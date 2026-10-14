@@ -166,7 +166,7 @@ async def test_battery_compiles_green_full_and_hero(
     for component in components:
         component_styles = component.get("styles", {})
         if component.get("component") == "Progress":
-            assert component_styles.get("color") == "#FF52991F"
+            assert component_styles.get("color") == "#FF34651F"
             assert component_styles.get("backgroundColor") == "#3364BB5C"
         if component.get("onClick"):
             assert component_styles.get("backgroundColor") == "#3364BB5C"

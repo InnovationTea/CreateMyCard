@@ -1,0 +1,16 @@
+{
+  "size": "2x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "health": {
+        "coldIndex": {
+          "type": "string",
+          "description": "感冒指数等级",
+          "sampleValue": "中等"
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

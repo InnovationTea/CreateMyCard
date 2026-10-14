@@ -125,8 +125,7 @@ data = {
 Stack({
   "width": "matchParent",
   "height": "matchParent",
-  "alignContent": "topStart",
-  "padding": { "left": 8, "right": 8 }
+  "alignContent": "topStart"
 },
   Column(
     {"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "end", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},

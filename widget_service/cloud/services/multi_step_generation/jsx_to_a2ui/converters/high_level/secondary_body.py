@@ -57,6 +57,28 @@ def convert_secondary_body(node: JSXElement, ctx: ConversionContext) -> A2UINode
     if errors:
         raise ValidationError("; ".join(errors))
     items = node.props.get("items")
+    measured = ctx.secondary_body_layouts.get(id(node))
+    if measured is not None:
+        # One bounded Text per actual JSX row group. Compose from original
+        # fields so their data paths/maps/units remain live, never from DOM text.
+        rows = []
+        offset = 0
+        for size in measured["rowSizes"]:
+            group = JSXElement(
+                tag=node.tag, props={**node.props, "items": items[offset:offset + size]},
+            )
+            paragraph = segmented_text(
+                group, ctx, hint="secondary_body_row",
+                font_size=measured["fontSize"], line_height=measured["lineHeight"],
+                font_color=palette(ctx).secondary,
+            )
+            paragraph.styles.update({"height": "wrapContent", "flexShrink": 0})
+            rows.append(paragraph)
+            offset += size
+        return column(ctx, "secondary_body", rows, gap=measured["rowGap"], styles={
+            "width": "matchParent", "height": "wrapContent", "flexShrink": 0,
+            "alignItems": "start", "constraintSize": {"minWidth": 0},
+        })
     separator = node.props.get("separator", " ｜ ")
     if isinstance(items, list) and len(items) > 1 and separator.strip() in {"", "|", "｜"}:
         return _wrapped_fields(node, ctx, items)

@@ -1,0 +1,16 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "metric": {
+        "x": {
+          "type": "integer",
+          "sampleValue": 10
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "userQuery": "显示数据"
+}

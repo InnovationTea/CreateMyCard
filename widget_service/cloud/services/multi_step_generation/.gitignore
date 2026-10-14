@@ -13,7 +13,7 @@ data/
 node_modules/
 playwright-browsers/
 package-lock.json
-preview/*
+preview/
 resources/
 scripts/build-jsx-run-gallery.js
 scripts/layout-pattern-audit.js

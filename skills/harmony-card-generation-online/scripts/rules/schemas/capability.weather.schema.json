@@ -57,7 +57,7 @@
             "weekday": {"type": "string"},
             "condition": {"type": "string"},
             "temperatureRangeText": {"type": "string"},
-            "rainProbabilityPercent": {"type": "string"},
+            "rainProbabilityPercent": {"type": "number"},
             "airQuality": {"type": "string"},
             "uvIndex": {"type": "string"},
             "coldLevel": {"type": "string"}

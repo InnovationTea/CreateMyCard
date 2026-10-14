@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 small backboard earphoneZone without a visual must use Column; do not place two Text nodes side by side where the second line can be clipped."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "7b4f8619641a9659f662474bbc25b79908a5fd794d73503e963beb80ec5b98c6",
+    "sample_task_spec.json": "070e3c2c86d472d8e8932e173ee96827ea3fd90fba80b490493a4f160e0d324e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

@@ -2,7 +2,32 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from __future__ import annotations
 
+from typing import Any
+
 from .base import BaseValidator, expression_like, is_empty_required_value, is_json_pointer
+
+StyleEnumRules = list[tuple[str | None, str, frozenset[str]]]
+
+
+def _style_enum_rules(enum_values: Any) -> StyleEnumRules:
+    """解析 style.json 的 ``enumValues``。
+
+    ``Type.field`` 形式的键只约束对应组件类型；裸 ``field`` 键约束所有组件的
+    同名样式字段。最终产物（updateComponents.components[].styles）里的枚举字段
+    一旦出现协议外取值（例如 ``"Top"``），必须在校验阶段拦截，不能下发端侧。
+    """
+    rules: StyleEnumRules = []
+    if not isinstance(enum_values, dict):
+        return rules
+    for key, allowed in enum_values.items():
+        if not isinstance(key, str) or not key or not isinstance(allowed, list):
+            continue
+        allowed_values = frozenset(item for item in allowed if isinstance(item, str))
+        if not allowed_values:
+            continue
+        type_scope, field = key.split(".", 1) if "." in key else (None, key)
+        rules.append((type_scope, field, allowed_values))
+    return rules
 
 
 class ComponentValidator(BaseValidator):
@@ -71,6 +96,7 @@ class ComponentValidator(BaseValidator):
         event_handler_forbidden = set(
             rules.protocol.get("eventHandlerForbiddenFields", ["condition", "as"])
         )
+        style_enum_rules = _style_enum_rules(rules.style.get("enumValues", {}))
 
         for index, component in enumerate(context.components):
             pointer = f"/updateComponents/components/{index}"
@@ -198,6 +224,33 @@ class ComponentValidator(BaseValidator):
                     actual=styles,
                     message="styles 必须是 object。",
                 )
+            if isinstance(styles, dict):
+                for type_scope, style_field, allowed_values in style_enum_rules:
+                    if type_scope is not None and type_scope != component_type:
+                        continue
+                    raw_value = styles.get(style_field)
+                    if not isinstance(raw_value, str) or expression_like(raw_value):
+                        continue
+                    if raw_value in allowed_values:
+                        continue
+                    reporter.add(
+                        "error",
+                        "STYLE_ENUM_INVALID",
+                        "hard",
+                        "genui",
+                        line=2,
+                        json_pointer=f"{pointer}/styles/{style_field}",
+                        actual=raw_value,
+                        expected=sorted(allowed_values),
+                        message=(
+                            f"{component_type}.styles.{style_field} "
+                            "取值不在协议枚举范围内，端侧无法识别。"
+                        ),
+                        fix_hint=(
+                            f"把 {style_field} 改为协议允许的枚举值："
+                            f"{sorted(allowed_values)}。"
+                        ),
+                    )
 
             # root 组件是唯一卡片 shell：宽高必须写 "matchParent"，实际预算由内部组件承担。
             # 其它组件继续按数值 / 可静态推导的约束保持数值宽高。

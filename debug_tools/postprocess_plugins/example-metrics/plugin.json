@@ -1,0 +1,50 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "id": "example-metrics",
+  "name": "示例产物统计",
+  "version": "1.0.0",
+  "description": "演示自定义插件接口：统计每个最终产物的文件数，并汇总数据集指标。",
+  "entrypoint": "plugin.py",
+  "dependence": [],
+  "timeoutSeconds": 60,
+  "outputs": [
+    {
+      "key": "sample-files",
+      "scope": "sample",
+      "title": "样本产物",
+      "dataType": "metrics",
+      "renderer": "kpi",
+      "required": true
+    },
+    {
+      "key": "dataset-summary",
+      "scope": "dataset",
+      "title": "数据集处理结果",
+      "dataType": "metrics",
+      "renderer": "kpi",
+      "required": true
+    }
+  ],
+  "presentation": {
+    "defaultView": "table",
+    "sampleFields": [
+      {
+        "key": "fileCount",
+        "label": "文件数",
+        "type": "number",
+        "sortable": true
+      }
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "includeHidden": {
+        "type": "boolean",
+        "title": "统计隐藏文件",
+        "default": false
+      }
+    },
+    "additionalProperties": false
+  }
+}

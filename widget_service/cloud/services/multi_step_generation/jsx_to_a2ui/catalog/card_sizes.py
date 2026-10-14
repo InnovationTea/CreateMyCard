@@ -4,8 +4,8 @@ from ..exceptions import ValidationError
 
 
 CARD_SIZE_DIMENSIONS: dict[str, tuple[int, int]] = {
-    "2x2": (160, 160),
-    "2x4": (320, 160),
+    "2x2": (150, 150),
+    "2x4": (300, 150),
 }
 
 DEFAULT_CARD_SIZE = "2x2"

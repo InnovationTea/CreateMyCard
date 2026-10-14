@@ -1,0 +1,16 @@
+{
+  "size": "2x4",
+  "dataModelSchema": {
+    "data": {
+      "other": {
+        "status": {
+          "type": "string",
+          "sampleValue": "正常"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "userQuery": "显示数据"
+}

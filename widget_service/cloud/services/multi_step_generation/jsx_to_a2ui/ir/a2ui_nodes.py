@@ -18,6 +18,7 @@ from ..catalog.bindings import (
     data_binding_separator,
     data_model_expression_reference,
     expression_string_literal,
+    indexed_value_template_tokens,
     is_boolean_text_mapping_target,
     normalized_boolean_text_map,
     value_type,
@@ -289,6 +290,7 @@ class ConversionContext:
     used_data_ids: set[str] = field(default_factory=set)
     used_action_ids: set[str] = field(default_factory=set)
     derived_data_model: dict[str, Any] = field(default_factory=dict)
+    secondary_body_layouts: dict[int, dict[str, Any]] = field(default_factory=dict)
 
     def make(
         self,
@@ -330,12 +332,22 @@ class ConversionContext:
             if len(binding_ids) > 1:
                 bindings = [self.compile_context.data_binding(item) for item in binding_ids]
                 self.used_data_ids.update(binding.id for binding in bindings)
-                separator = data_binding_separator(element.tag, name)
                 parts: list[str] = []
-                for index, binding in enumerate(bindings):
-                    if index:
-                        parts.append(expression_string_literal(separator))
-                    parts.append(self.binding_expression(binding, element.tag, name))
+                template_tokens = indexed_value_template_tokens(
+                    element.props.get(f"{name}Template"), len(bindings)
+                )
+                if template_tokens is not None:
+                    for token in template_tokens:
+                        if isinstance(token, int):
+                            parts.append(self.binding_expression(bindings[token], element.tag, name))
+                        elif token:
+                            parts.append(expression_string_literal(token))
+                else:
+                    separator = data_binding_separator(element.tag, name)
+                    for index, binding in enumerate(bindings):
+                        if index:
+                            parts.append(expression_string_literal(separator))
+                        parts.append(self.binding_expression(binding, element.tag, name))
                 value = a2ui_expression(parts)
             else:
                 binding = self.compile_context.data_binding(binding_ids[0])
@@ -344,7 +356,18 @@ class ConversionContext:
                 if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
                     value = boolean_text_expression(binding.path, value_map)
                 else:
-                    value = self.binding_reference(binding, element.tag, name)
+                    template = element.props.get(f"{name}Template")
+                    if isinstance(template, str) and template.count("{value}") == 1:
+                        prefix, suffix = template.split("{value}")
+                        parts = []
+                        if prefix:
+                            parts.append(expression_string_literal(prefix))
+                        parts.append(self.binding_expression(binding, element.tag, name))
+                        if suffix:
+                            parts.append(expression_string_literal(suffix))
+                        value = a2ui_expression(parts)
+                    else:
+                        value = self.binding_reference(binding, element.tag, name)
         return value
 
     def binding_expression(self, binding: DataBinding, tag: str, name: str) -> str:

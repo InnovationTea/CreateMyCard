@@ -15,6 +15,7 @@ from app.logger import json_for_log, logger
 from config.config import Settings
 from custom.model_transport import ModelTransportError
 from models.generation import ModelRequestContext
+from services.generation_trace_recorder import trace_record
 from utils.base_utils import sts_config
 
 _MODULE = "[MEP Model Transport]"
@@ -105,8 +106,7 @@ class MepModelTransport:
                 raise ValueError(f"不支持的消息角色: {role!r}")
             if not isinstance(content, str):
                 raise TypeError(
-                    f"消息 content 必须为字符串，role={role!r}，"
-                    f"实际类型={type(content).__name__}"
+                    f"消息 content 必须为字符串，role={role!r}，实际类型={type(content).__name__}"
                 )
             parts.append(f"<|im_start|>{role}\n{content}<|im_end|>\n")
         parts.append("<|im_start|>assistant\n")
@@ -264,9 +264,7 @@ class MepModelTransport:
     ) -> None:
         duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         first_token_latency_ms = (
-            round((first_token_at - started_at) * 1000, 2)
-            if first_token_at is not None
-            else None
+            round((first_token_at - started_at) * 1000, 2) if first_token_at is not None else None
         )
         completion_tokens = final_event.get("generateTokenNum") if final_event else None
         speed = self._token_speed(duration_ms, first_token_latency_ms, completion_tokens)
@@ -280,6 +278,24 @@ class MepModelTransport:
             f"finish_reason={self._event_value(final_event, 'finishReason')} "
             f"error_code={self._event_value(final_event, 'errorCode')} "
             f"error_msg={self._event_value(final_event, 'errorMsg')}"
+        )
+        trace_record(
+            "model.transport_metrics",
+            stage="model.transport",
+            status="completed",
+            duration_ms=duration_ms,
+            details={
+                "finishReason": self._event_value(final_event, "finishReason"),
+                "errorCode": self._event_value(final_event, "errorCode"),
+            },
+            metrics={
+                "firstTokenLatencyMs": first_token_latency_ms,
+                "inputTokens": self._event_value(final_event, "inputTokenNum"),
+                "completionTokens": completion_tokens,
+                "modelTimeMs": self._event_value(final_event, "modelTime"),
+                "tokensPerSecond": speed,
+                "outputChars": len(full_text),
+            },
         )
 
     @staticmethod
@@ -305,8 +321,7 @@ class MepModelTransport:
             return
         error_code = str(final_event.get("errorCode"))
         raise ModelTransportError(
-            "model returned error: "
-            f"code={error_code}, message={final_event.get('errorMsg')}",
+            f"model returned error: code={error_code}, message={final_event.get('errorMsg')}",
             code=error_code,
             partial_output=partial_output,
         )

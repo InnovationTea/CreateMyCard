@@ -23,10 +23,29 @@ from services.template_generation.engine.advanced.models import (
     TemplateRouteSelection,
 )
 
+from .calendar_field_paths import (
+    CALENDAR_CAPABILITY_ID,
+    calendar_reminder_aliases,
+    normalize_calendar_reminder_bindings,
+)
+from .compiler import template_displayed_binding_names
+from .models import TemplateDefinition
+from .provider_bundle import (
+    asset_semantic_tags,
+    parameter_value_kind,
+    provider_template_layout_kind,
+)
 from .registry import CardPlanRegistry
-from .retrieval_index import FieldToken, TemplateVariantSearchRecord
+from .retrieval_index import (
+    FieldToken,
+    TemplateVariantSearchRecord,
+    effective_display_record,
+    missing_any_of_groups,
+)
 
 _MAX_COMPONENT_TEMPLATE_CANDIDATES = 24
+_GENERIC_SCALAR_TYPES = frozenset({"string", "integer", "number", "boolean"})
+BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE = "BatteryOverviewPercentLevelHero@1"
 _TEMPLATE_QUERY_DISCRIMINATORS = {
     "WeatherOverviewAlertFull@1": frozenset({"/current/alertLevel"}),
 }
@@ -48,7 +67,17 @@ class TemplateSearchIntent(BaseModel):
         default_factory=dict,
         alias="primaryOutputFieldByCapability",
     )
-    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
+    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=4)
+    excluded_action_ids: tuple[str, ...] = Field(default=(), alias="excludedActionIds")
+    allow_earphone_candidate_actions: bool = Field(
+        default=True, alias="allowEarphoneCandidateActions", strict=True,
+    )
+    allow_calendar_view_fallback: bool = Field(
+        default=False, alias="allowCalendarViewFallback", strict=True,
+    )
+    allow_battery_settings_fallback: bool = Field(
+        default=False, alias="allowBatterySettingsFallback", strict=True,
+    )
 
     @field_validator("required_output_fields_by_capability")
     @classmethod
@@ -56,7 +85,7 @@ class TemplateSearchIntent(BaseModel):
         _validate_output_fields(values)
         return values
 
-    @field_validator("action_ids", mode="before")
+    @field_validator("action_ids", "excluded_action_ids", mode="before")
     @classmethod
     def normalized_actions(cls, value: Any) -> tuple[str, ...]:
         return _normalized_action_ids(value)
@@ -77,6 +106,7 @@ class TemplateSearchCandidate(BaseModel):
 
     template_id: str = Field(alias="templateId", min_length=1)
     covered_explicit_fields: tuple[str, ...] = Field(alias="coveredExplicitFields")
+    available_data_fields: tuple[str, ...] = Field(default=(), alias="availableDataFields")
 
 
 class TemplateBusinessCandidates(BaseModel):
@@ -107,7 +137,7 @@ class TemplateRetrievalQuery(BaseModel):
     required_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
         alias="requiredOutputFieldsByCapability",
     )
-    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
+    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=4)
 
     @field_validator("required_output_fields_by_capability")
     @classmethod
@@ -142,13 +172,38 @@ def _normalized_action_ids(value: Any) -> tuple[str, ...]:
     return normalized
 
 
+def normalize_redundant_date_intent(
+    intent: TemplateSearchIntent,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+) -> TemplateSearchIntent:
+    """天气日期已明确覆盖时，移除仅含日期候选的冗余空时间业务。"""
+    required = intent.required_output_fields_by_capability
+    if required.get("GetCurrentTime") != ():
+        return intent
+    if intent.action_ids or "GetCurrentTime" in intent.primary_output_field_by_capability:
+        return intent
+    weather_fields = required.get("ViewWeather", ())
+    if not any(re.fullmatch(r"/daily/\d+/date", path) for path in weather_fields):
+        return intent
+    time_fields: set[str] = set()
+    for binding in coverage_bindings:
+        if binding.capabilityId == "GetCurrentTime":
+            time_fields.update(binding.candidateOutputFields)
+    if not time_fields or not time_fields.issubset({"/currentDate", "/dayOfWeek"}):
+        return intent
+    normalized_fields = dict(required)
+    normalized_fields.pop("GetCurrentTime")
+    logger.info("[Template Generation] redundant_empty_date_business_removed")
+    return intent.model_copy(update={"required_output_fields_by_capability": normalized_fields})
+
+
 def build_template_retrieval_prompt(
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
 ) -> list[dict[str, str]]:
     """Build the first-layer marker prompt without exposing final UI choices."""
-    _require_supported_search_size(task_spec)
+    coverage_bindings = normalize_calendar_reminder_bindings(task_spec, coverage_bindings)
     data_shape = extract_data_shape(task_spec)
     capability_ids = tuple(binding.capabilityId for binding in coverage_bindings)
     component_ids = _component_ids_for_capabilities(registry, capability_ids)
@@ -178,7 +233,85 @@ def build_template_retrieval_prompt(
         ],
         "providerFirstLayerRules": registry.provider_first_layer_rules(component_ids, data_roots),
     }
+    earphone_single = set(capability_ids) == {"GetEarphoneInfo"}
+    earphone_only = earphone_single and task_spec.size == "2x2"
+    if earphone_only:
+        payload["earphoneTemplateReference"] = _earphone_template_reference(
+            registry, coverage_bindings, task_spec,
+        )
     schema = TemplateSearchIntent.model_json_schema(by_alias=True)
+    if not earphone_only:
+        properties = schema.get("properties")
+        if isinstance(properties, dict):
+            properties.pop("allowEarphoneCandidateActions", None)
+            properties.pop("excludedActionIds", None)
+    ui_instruction = (
+        "primaryOutputFieldByCapability 是稀疏映射：仅当用户对某个 capability 明确表达"
+        "唯一主焦点字段时输出，值必须同时出现在该 capability 的显式字段数组中；"
+        "无法判断时省略该 capability，不能按模板或领域常识猜测。"
+        "不得输出主题。"
+    )
+    action_limit = 4 if task_spec.size == "2x4" else 2
+    schema["properties"]["action"]["maxItems"] = action_limit
+    battery_only = set(capability_ids) == {"GetPhoneBatteryInfo"} and task_spec.size == "2x2"
+    battery_rule = ""
+    if battery_only:
+        payload["batteryTemplateReference"] = _battery_template_reference(
+            registry, coverage_bindings, task_spec,
+        )
+        battery_rule = (
+            "allowBatterySettingsFallback 仅标记单手机电量用户是否允许默认电池设置入口："
+            "用户未明确禁止按钮、操作或跳转时为 true；明确说不要按钮、不需要操作、"
+            "只展示不交互等时为 false；其他业务或多个业务也为 false。"
+            "没有提到按钮不等于禁止按钮。action 仍只含显式需求，不直接选择默认入口。"
+            "服务端在 Search 后没有合法候选动作时只采用 Full；有唯一合法候选设置入口且允许交互时，"
+            "Full 与 Hero 加该入口平等参与比较，优先可展示候选字段更多的方案，不设 Full 优先。"
+            "可参考实际模板字段判断覆盖，但最终选择仍由服务端执行；也不得为兜底补字段、删用户要求的字段或编造事件。"
+            "没有电池设置候选且用户明确要求电池健康时，服务端可补选唯一合法电池健康入口，"
+            "按钮仍为电池健康；不得把省电模式作为默认入口。"
+        )
+    else:
+        # 不向其他业务和混合业务的首层提示词引入电量专用规则或字段。
+        properties = schema.get("properties")
+        if isinstance(properties, dict):
+            properties.pop("allowBatterySettingsFallback", None)
+    action_rule = (
+        "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
+        f"语义一致的零到 {action_limit} 个不重复 eventId；不能因候选事件存在而默认选择。"
+    )
+    layout_rule = (
+        "不得判断业务是否能组成布局，也不得决定业务位置或 Action 消费者；"
+        "这些组合约束由服务端 Planner 在数据 Search 之后处理。"
+    )
+    if earphone_single and task_spec.size == "2x2":
+        action_rule = (
+            "必须输出action、excludedActionIds和allowEarphoneCandidateActions。"
+            "excludedActionIds列出用户局部禁止的所有输入候选动作ID；例如禁止音乐入口时排除所有音乐类候选。"
+            "排除集合只能引用输入候选，不能与action重叠；候选原始列表仍全部保留。"
+            "无法确定局部禁止项对应哪些候选时，allowEarphoneCandidateActions=false，禁止自动补动作。"
+            "布局按排除后可用候选数量选择。"
+            "耳机单业务：输入动作全部保留为候选，不在第一层筛除。"
+            "action只填写query明确要求的合法动作；未要求动作时action=[]，"
+            "这不表示没有候选动作，也不代表排除Hero。"
+            "用户允许交互且局部禁止范围已完整映射时allowEarphoneCandidateActions=true；"
+            "整体禁止或局部限制无法可靠映射时为false。"
+            "服务端按候选动作数量选择：没有候选动作时只尝试Full；一个候选动作按Hero→Full；"
+            "两个及以上候选动作按Compact→Hero→Full。"
+            "保留全部候选，先比较双动作Compact组合，均不可用时再比较单动作Hero，仍不可用时尝试Full。"
+            "不在第一层为了匹配模板自动添加动作，不固定候选动作名称或ID。"
+            "用户明确要求的合法动作必须保留；两个明确动作继续按既有规则处理。"
+            "显式动作与自动补选动作统一按动作适配优先：一个选中动作先选择合法Hero，"
+            "Hero不可用时才尝试Full图标动作；无动作使用Full，双动作使用Compact。"
+            "同一角色内才比较主焦点和字段匹配，不能为了高优先级角色删除明确字段或动作。"
+        )
+        layout_rule = "按耳机专用规则内部比较Full/Hero/Compact，最终布局仍由服务端Planner校验。"
+    elif earphone_single:
+        # 2x4 没有耳机专用排除字段和候选比较规则，只统一候选保留契约。
+        action_rule += (
+            "耳机单业务：输入动作全部保留为候选，不在第一层筛除。"
+            "action只填写query明确要求的合法动作；未要求动作时action=[]，"
+            "这不表示没有候选动作。"
+        )
     system = (
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
         "requiredOutputFieldsByCapability 的 key 必须来自 "
@@ -186,24 +319,186 @@ def build_template_retrieval_prompt(
         "明确要求展示的字段，字段必须逐字来自 "
         "candidateOutputFieldsByCapability；不得按模板反推字段，"
         "也不得补全用户未要求展示的字段；"
+        "但当用户请求创建天气卡片且只额外明确一个天气字段（例如天气更新时间）时，"
+        "应将天气卡片的默认基础展示字段一并视为用户意图："
+        "ViewWeather 默认包含 /location/prefectureName、/current/temperatureText 和"
+        "/current/condition，再叠加用户明确要求的字段；这些默认字段仍必须来自"
+        "candidateOutputFieldsByCapability，不能补充 schema 中不存在的字段；"
         "事件参数（如 actionCandidates args 中用于跳转的 entityId）不是展示字段，"
         "不得加入 requiredOutputFieldsByCapability。"
         "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
-        "不得判断业务是否能组成布局，也不得决定业务位置或 Action 消费者；"
-        "这些组合约束由服务端 Planner 在数据 Search 之后处理。"
+        + layout_rule
+        +
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
-        "primaryOutputFieldByCapability 是稀疏映射：仅当用户对某个 capability 明确表达"
-        "唯一主焦点字段时输出，值必须同时出现在该 capability 的显式字段数组中；"
-        "无法判断时省略该 capability，不能按模板或领域常识猜测。"
-        "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
-        "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
+        "未使用的业务必须省略 key，不以空数组占位；天气预报字段已包含所需日期或星期时，"
+        "不要额外加入未选择任何字段的 GetCurrentTime。"
+        + action_rule
+        +
+        "以下allowCalendarViewFallback及其动作限制仅适用于日历兜底，不适用于耳机："
+        "allowCalendarViewFallback 仅标记单日历日程用户是否允许默认查看入口："
+        "用户未明确禁止按钮、操作或跳转时为 true；明确说不要按钮、不需要操作、"
+        "只展示不交互等时为 false；其他业务或多个业务也为 false。"
+        "没有提到按钮不等于禁止按钮。不要把允许兜底当成已选动作，action 仍只含显式需求。"
+        "服务端在 Search 后优先使用匹配的 Full；只有没有 Full 而有可用 Hero，"
+        "且候选存在唯一、指向当前日程的查看动作时，才补选查看日程。"
+        "不得自行判断上述模板条件，也不得为兜底补充展示字段或编造事件。"
+        + battery_rule
+        +
         "不得输出主题、schemaVersion、组件、模板、Variant、尺寸、布局、Props 或理由。\n"
+        + ui_instruction + "\n"
         + json.dumps(schema, ensure_ascii=False)
     )
+    if "GetEarphoneInfo" in capability_ids:
+        system += (
+            "\n【蓝牙耳机意图优先】仅 GetEarphoneInfo 按 providerFirstLayerRules 中的"
+            "耳机核心与辅助字段规则筛选；允许省略对 userQuery 主要问题不必要的辅助字段，"
+            "该局部规则优先于上述按 title、description 或 taskSpec 收集展示字段、"
+            "不得参考模板筛选字段的规则。允许参考耳机规则中的模板覆盖选择最小核心字段，"
+            "普通并列项可按耳机规则降为辅助并省略；明确强调必须保留的字段不能省略。"
+            "其它业务规则不变，不为匹配模板补字段。"
+            "earphoneTemplateReference是当前启用模板的真实字段参考；"
+            "核对模板覆盖及自身输入依赖，不能把覆盖需求等同于模板可用。"
+            "耳机单业务按上述完整方案比较规则确定动作；其它业务和混合业务不自动增加动作。"
+        )
+    if earphone_only:
+        system += (
+            "\n【输出前最后自检：耳机仓电量与充电状态】"
+            "仓电量是/batteryLevel，仓充电状态是/chargingStatusDesc，"
+            "与左右耳字段不同。query明确要求这两项时同时保留，"
+            "不能因候选还有左右耳数据就改成左右耳概览。"
+            "以本轮模板参考及可选字段的展示条件判断覆盖，不根据旧模板名称推断不可用。"
+            "EarbudPairFull的左右耳与仓三项充电状态全部可用时展示状态层，"
+            "缺任意一项则整层隐藏；必须核对该条件才能认定覆盖充电状态需求。"
+            "字段筛选遵守明确需求和核心辅助字段规则，动作统一按完整方案比较规则决定。"
+        )
+    if battery_only:
+        system = (
+            "\n【单手机电量字段筛选优先规则】本规则优先于通用的不得参考模板反推字段规则。"
+            "只以userQuery确定必须展示字段；title、description和候选字段不能扩大需求。"
+            "非必选、且未被用户明确禁止的输入字段才作为可选候选，"
+            "保留原输入但不要放入requiredOutputFieldsByCapability；"
+            "用户明确禁止的字段不得作为附带展示的候选。"
+            "模板有该字段且输入存在可以附带展示，模板没有就不展示。"
+            "batteryTemplateReference提供当前启用模板的真实字段；比较displayFields覆盖需求、"
+            "missingInputFields为空且动作数量合适的完整方案，优先采用可被模板满足的合理概览解释。"
+            "所有必选字段被覆盖且输入齐全后，尊重用户的禁止要求、保证显式主焦点，"
+            "再优先匹配实际展示候选字段更多的模板；仅声明、不渲染或条件未满足的字段不计分。"
+            "仅统计本次输入实际提供且模板能够展示的不同字段，不为提高数量把候选变为必选。"
+            "不得删除用户明确要求，也不得把/batterySOCText当作缺失的/batterySOC。"
+            "例如query为充电状态和电池情况且提供文本电量时，必须字段通常为"
+            "/batterySOCText和/chargingStatusDesc；非必选且未被禁止的健康、充电类型、温度才作为候选。"
+            "明确要求充电类型时仍必须保留/pluggedTypeDesc，即使没有模板覆盖。"
+            "动作沿用allowBatterySettingsFallback规则，不直接输出模板ID或布局。"
+        ) + "\n" + system
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
+
+
+def normalize_calendar_reminder_intent(
+    intent: TemplateSearchIntent,
+    task_spec: TaskSpec,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+) -> TemplateSearchIntent:
+    """Keep first-layer explicit fields and focus consistent with approved aliases."""
+    aliases = calendar_reminder_aliases(task_spec, coverage_bindings)
+    requested = intent.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID)
+    if not aliases or requested is None:
+        return intent
+    fields: list[str] = []
+    for path in requested:
+        canonical = aliases.get(path, path)
+        if canonical not in fields:
+            fields.append(canonical)
+    primary = dict(intent.primary_output_field_by_capability)
+    focus = primary.get(CALENDAR_CAPABILITY_ID)
+    if focus in aliases:
+        primary[CALENDAR_CAPABILITY_ID] = aliases[focus]
+    if tuple(fields) == requested and primary == intent.primary_output_field_by_capability:
+        return intent
+    required = dict(intent.required_output_fields_by_capability)
+    required[CALENDAR_CAPABILITY_ID] = tuple(fields)
+    return intent.model_copy(update={
+        "required_output_fields_by_capability": required,
+        "primary_output_field_by_capability": primary,
+    })
+def _earphone_template_reference(
+    registry: CardPlanRegistry,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    task_spec: TaskSpec | None = None,
+) -> list[dict[str, Any]]:
+    """Supply current earphone template facts to the prompt, without choosing actions."""
+    candidate_paths = _candidate_paths(coverage_bindings, "GetEarphoneInfo")
+    references: list[dict[str, Any]] = []
+    for record in registry.template_variant_search_records:
+        if record.capability_id != "GetEarphoneInfo":
+            continue
+        if "2x2" not in record.supported_card_sizes:
+            continue
+        if not registry.template_is_enabled(record.template_id):
+            continue
+        role = provider_template_layout_kind(record.template_id)
+        if role not in {"Full", "Hero", "Compact"}:
+            continue
+        available = candidate_paths
+        if task_spec is not None:
+            definition = registry.require_template(record.template_id)
+            available = candidate_paths.intersection(
+                _record_typed_input_paths(record, task_spec, definition.data_domain)
+            )
+        references.append({
+            "templateId": record.template_id,
+            "roles": [role],
+            "displayFields": sorted(
+                effective_display_record(record, available).available_paths
+            ),
+            "requiredAnyOf": record.required_any_of,
+            "missingAnyOfGroups": missing_any_of_groups(record, available),
+            "displayTogether": record.display_together,
+            "requiredInputFields": sorted(record.required_paths),
+            "missingInputFields": sorted(record.required_paths.difference(candidate_paths)),
+        })
+    return references
+
+
+def _battery_template_reference(
+    registry: CardPlanRegistry,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    task_spec: TaskSpec,
+) -> list[dict[str, Any]]:
+    """Expose enabled battery template inputs without promoting candidate fields to requirements."""
+    candidate_paths = _candidate_paths(coverage_bindings, "GetPhoneBatteryInfo")
+    references: list[dict[str, Any]] = []
+    for record in registry.template_variant_search_records:
+        if record.capability_id != "GetPhoneBatteryInfo":
+            continue
+        if "2x2" not in record.supported_card_sizes:
+            continue
+        if not registry.template_is_enabled(record.template_id):
+            continue
+        roots = tuple(
+            binding.writeResultTo for binding in coverage_bindings
+            if binding.capabilityId == "GetPhoneBatteryInfo"
+        )
+        displayed = _template_available_data_fields(
+            registry.require_template(record.template_id), task_spec, roots, candidate_paths,
+            rendered_only=True,
+        )
+        relative_displayed: set[str] = set()
+        for root in roots:
+            for pointer in displayed:
+                if pointer.startswith(root.rstrip('/') + '/'):
+                    relative_displayed.add(pointer.removeprefix(root.rstrip('/')))
+        references.append({
+            "templateId": record.template_id,
+            "roles": [provider_template_layout_kind(record.template_id)],
+            "displayFields": sorted(relative_displayed),
+            "requiredInputFields": sorted(record.required_paths),
+            "optionalInputFields": sorted(record.available_paths.difference(record.required_paths)),
+            "missingInputFields": sorted(record.required_paths.difference(candidate_paths)),
+        })
+    return references
 
 
 def search_template_variants(
@@ -218,17 +513,19 @@ def search_template_variants(
     """Search only data-eligible templates for the requested card size.
 
     Layout, Theme, Action placement, business order, and final ranking intentionally
-    remain outside this function. Every returned candidate independently covers all
-    explicit fields of its capability; fields declared only as optionalData are valid
-    coverage and are never treated as a hard admission requirement.
+    remain outside this function. Small-card candidates independently cover all
+    explicit fields; wide-card candidates report partial coverage for composition.
+    Optional fields remain coverage, never hard admission requirements.
     """
-    _require_supported_search_size(task_spec)
+    intent = normalize_calendar_reminder_intent(intent, task_spec, coverage_bindings)
+    coverage_bindings = normalize_calendar_reminder_bindings(task_spec, coverage_bindings)
     if not intent.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template Search has no requested capability")
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     requested_ids = set(intent.required_output_fields_by_capability)
     if not requested_ids.issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
+    battery_only = task_spec.size == "2x2" and requested_ids == {"GetPhoneBatteryInfo"}
 
     result_groups: list[TemplateBusinessCandidates] = []
     matched_preferred_ids: set[str] = set()
@@ -260,20 +557,40 @@ def search_template_variants(
             card_spec,
             preferred_template_ids,
             candidate_output_fields=candidate_paths,
+            retain_all_candidates=task_spec.size == "2x4" or battery_only,
+            allow_battery_text_level_fallback=(
+                task_spec.size == "2x2"
+                and tuple(intent.required_output_fields_by_capability) == ("GetPhoneBatteryInfo",)
+                and set(explicit_fields) == {"/batterySOCText", "/batteryCapacityLevelDesc"}
+            ),
         )
         for business_id, matches in matches_by_business.items():
             candidates: list[TemplateSearchCandidate] = []
             for template_id, covered_paths in matches.items():
                 if preferred_ids and template_id not in preferred_ids:
                     continue
-                if not set(explicit_fields).issubset(covered_paths):
-                    continue
+                if task_spec.size == "2x2":
+                    if not set(explicit_fields).issubset(covered_paths):
+                        continue
+                available_fields = _template_available_data_fields(
+                    registry.require_template(template_id), task_spec, data_roots, candidate_paths,
+                    rendered_only=battery_only,
+                )
+                if battery_only:
+                    displayed_relative: set[str] = set()
+                    for root in data_roots:
+                        for pointer in available_fields:
+                            if pointer.startswith(root.rstrip('/') + '/'):
+                                displayed_relative.add(pointer.removeprefix(root.rstrip('/')))
+                    if not set(explicit_fields).issubset(displayed_relative):
+                        continue
                 candidates.append(
                     TemplateSearchCandidate(
                         templateId=template_id,
                         coveredExplicitFields=tuple(
                             path for path in explicit_fields if path in covered_paths
                         ),
+                        availableDataFields=available_fields,
                     )
                 )
                 if template_id in preferred_ids:
@@ -345,18 +662,23 @@ def retrieve_template_variants(
     preferred_template_ids: tuple[str, ...] = (),
 ) -> TemplateRouteSelection:
     """Return component candidate sets; never choose a final CardTpl variant."""
-    _require_supported_search_size(task_spec)
     selected_theme = registry.require_theme(query.theme_id)
     if selected_theme.supported_layout_ids:
         raise TemplateRetrievalMiss("first-layer Theme must not be layout-scoped")
     _validate_selected_actions(query, task_spec)
     action_count = _selected_action_count(query, task_spec)
+    meeting_template = "ScheduleOverviewMeetingEntryHero@1"
+    prefer_meeting_entry = "event.enter.meeting" in query.action_ids
+    if prefer_meeting_entry and not preferred_template_ids:
+        preferred_template_ids = (meeting_template,)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
     has_multiple_capabilities = len(query.required_output_fields_by_capability) > 1
     preferred_layout_suffix = None
     if not has_multiple_capabilities:
         preferred_layout_suffix = {1: "Hero", 2: "Compact"}.get(action_count)
+    elif task_spec.size == "2x4" and action_count == 1:
+        preferred_layout_suffix = "WideHalf"
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
@@ -408,12 +730,138 @@ def retrieve_template_variants(
         for component_id, template_paths in component_templates.items():
             by_component.setdefault(component_id, set()).update(template_paths)
 
+    # Specialized health components can all match the same summary capability.
+    # Prefer the specialized component whose single Template covers the most
+    # requested fields, then use GenericMetricOverview only for the residual
+    # fields.  Generic is a bounded fallback slot, never the primary business.
+    repeated_generic_compact_slots = False
+    primary_health: str | None = None
+    primary_template_ids: set[str] = set()
+    if task_spec.size == "2x4":
+        health_ids = {
+            "ActivityOverview", "WorkoutOverview", "HeartRateOverview",
+            "SleepOverview", "GenericMetricOverview",
+        }
+        selected_health = health_ids.intersection(by_component)
+        if len(selected_health) >= 2 and "GenericMetricOverview" in by_component:
+            specialized_health = sorted(selected_health - {"GenericMetricOverview"})
+            primary_coverage = 0
+            for component_id in specialized_health:
+                component_ids = by_component[component_id]
+                coverage_by_template = {
+                    template_id: sum(template_id in group for group in required_groups)
+                    for template_id in component_ids
+                }
+                component_coverage = max(coverage_by_template.values(), default=0)
+                best_ids = {
+                    template_id
+                    for template_id, coverage in coverage_by_template.items()
+                    if coverage == component_coverage
+                }
+                # Stable tie-breaking keeps the richer domain view ahead of a
+                # single-purpose metric view.
+                priority = {
+                    "SleepOverview": 0,
+                    "ActivityOverview": 1,
+                    "WorkoutOverview": 2,
+                    "HeartRateOverview": 3,
+                }.get(component_id, 9)
+                current_priority = {
+                    "SleepOverview": 0,
+                    "ActivityOverview": 1,
+                    "WorkoutOverview": 2,
+                    "HeartRateOverview": 3,
+                }.get(primary_health or "", 9)
+                if component_coverage > primary_coverage or (
+                    component_coverage == primary_coverage and priority < current_priority
+                ):
+                    primary_health = component_id
+                    primary_template_ids = best_ids
+                    primary_coverage = component_coverage
+
+            for component_id in selected_health:
+                if component_id not in {"GenericMetricOverview", primary_health}:
+                    by_component.pop(component_id, None)
+
+            if primary_health is not None:
+                by_component[primary_health].intersection_update(primary_template_ids)
+
+            generic_ids = by_component["GenericMetricOverview"]
+            residual_groups: list[tuple[str, ...]] = []
+            generic_field_count = 0
+            for group in required_groups:
+                group_ids = set(group)
+                if primary_template_ids.intersection(group_ids):
+                    # The specialized primary owns this field; do not also
+                    # advertise it as a Generic parameter candidate.
+                    residual_groups.append(
+                        tuple(item for item in group if item not in generic_ids)
+                    )
+                    continue
+                residual_groups.append(group)
+                if generic_ids.intersection(group_ids):
+                    generic_field_count += 1
+            required_groups = residual_groups
+            if generic_field_count > 2:
+                logger.info(
+                    "[Template Retrieval] generic_capacity_exceeded "
+                    f"primary_component={primary_health} "
+                    f"primary_coverage={primary_coverage} "
+                    f"residual_field_count={generic_field_count} capacity=2"
+                )
+                raise TemplateRetrievalMiss(
+                    "generic compact capacity cannot cover all residual requested fields"
+                )
+            if generic_field_count == 0:
+                by_component.pop("GenericMetricOverview", None)
+                generic_ids = set()
+            preferred_generic_name = "GenericMetricOverviewCompact@1"
+            if generic_ids and preferred_generic_name in generic_ids:
+                # Generic Compact is repeatable. For two residual metrics, keep
+                # two separate Compact slots so 2x4 can use the existing
+                # WideFullTwoCompactLayout instead of a dedicated Full+Compact
+                # layout. The repeated slot marker is materialized below in
+                # required_groups; componentCandidates remains de-duplicated.
+                by_component["GenericMetricOverview"] = {preferred_generic_name}
+                repeated_generic_compact_slots = generic_field_count >= 2
+            logger.info(
+                "[Template Retrieval] specialized_primary_selected "
+                f"component_id={primary_health} coverage={primary_coverage} "
+                f"template_ids={sorted(primary_template_ids)} "
+                f"generic_residual_count={generic_field_count}"
+            )
+
+            # Current 2x4 layouts provide three visible slots in total.  With
+            # an explicit Action, only two slots remain for business content.
+            # Do not silently discard the specialized primary or pretend that
+            # a bounded Generic Compact covers an arbitrary number of fields.
+            required_slot_count = len(by_component) + action_count
+            if action_count and len(by_component) > 2:
+                requested_fields = {
+                    capability_id: list(paths)
+                    for capability_id, paths in query.required_output_fields_by_capability.items()
+                }
+                logger.info(
+                    "[Template Retrieval] layout_capacity_exceeded "
+                    f"card_size=2x4 available_slot_count=3 "
+                    f"required_slot_count={required_slot_count} "
+                    f"business_components={sorted(by_component)} "
+                    f"action_count={action_count} "
+                    f"requested_fields={json_for_log(requested_fields)}"
+                )
+                raise TemplateRetrievalMiss(
+                    "2x4 layout capacity is insufficient for the specialized primary, "
+                    "generic residual metrics, and selected Action"
+                )
+
     candidates = tuple(
         TemplateComponentCandidate(
             componentId=component_id,
             availableTemplateIds=tuple(sorted(template_ids)),
         )
-        for component_id, template_ids in sorted(by_component.items())
+        for component_id, template_ids in sorted(
+            by_component.items(), key=_component_candidate_order_key
+        )
     )
     resolved_theme_id = query.theme_id
     if task_spec.size == "2x2":
@@ -423,15 +871,73 @@ def retrieve_template_variants(
             required_groups,
         )
     else:
-        if len(candidates) > 1:
-            raise TemplateRetrievalMiss(
-                "template Search supports one data business with optional Actions"
+        # 2x4 only (TaskSpec size is Literal["2x2", "2x4"]).  One business slot
+        # may split into a Full + Compact pair whose union of field bindings
+        # covers every demanded group; the health specialized-primary path keeps
+        # strict single-template semantics via allow_pair=False.
+        candidates_with_slots = [
+            _candidate_with_complete_field_coverage_or_pair(
+                candidate,
+                required_groups,
+                allow_pair=primary_health is None,
             )
-        candidates = tuple(
-            _candidate_with_complete_field_coverage(candidate, required_groups)
             for candidate in candidates
+        ]
+        candidates = tuple(candidate for candidate, _ in candidates_with_slots)
+        slot_groups_by_candidate = [slots for _, slots in candidates_with_slots]
+        if prefer_meeting_entry:
+            candidates = _prefer_eligible_template(candidates, meeting_template)
+        prefer_case_settings = (
+            len(candidates) == 2
+            and action_count == 2
+            and "event.open.settings.bluetooth" in query.action_ids
         )
-        required_groups = [candidate.available_template_ids for candidate in candidates]
+        if prefer_case_settings:
+            candidates = _prefer_eligible_template(
+                candidates, "BluetoothDeviceOverviewCaseSettingsHero@1"
+            )
+        if action_count == 1:
+            candidates = _prefer_half_compact_pair(candidates)
+        required_groups = []
+        for candidate, slots in zip(candidates, slot_groups_by_candidate, strict=True):
+            if slots is not None:
+                # Split candidate: the Full and Compact halves each become one
+                # slot group so downstream layout selection sees two positions.
+                # Post-split pref narrowing (_prefer_eligible_template) cannot
+                # orphan a half today (pref ids are Hero-kind); if it ever did,
+                # the second-layer exact-slot filter fails loudly.
+                required_groups.extend(slots)
+            else:
+                required_groups.append(candidate.available_template_ids)
+        if repeated_generic_compact_slots and primary_health is not None:
+            primary_group = next(
+                (
+                    candidate.available_template_ids
+                    for candidate in candidates
+                    if candidate.component_id == primary_health
+                ),
+                (),
+            )
+            generic_group = next(
+                (
+                    candidate.available_template_ids
+                    for candidate in candidates
+                    if candidate.component_id == "GenericMetricOverview"
+                ),
+                (),
+            )
+            if primary_group and generic_group:
+                required_groups = []
+                for candidate in candidates:
+                    required_groups.append(candidate.available_template_ids)
+                    if candidate.component_id == "GenericMetricOverview":
+                        required_groups.append(candidate.available_template_ids)
+    logger.info(
+        "[Template Retrieval] candidate_groups_resolved "
+        f"group_count={len(required_groups)} "
+        f"groups={json_for_log([list(group) for group in required_groups])} "
+        f"repeated_generic_compact_slots={repeated_generic_compact_slots}"
+    )
     selected_template_ids: list[str] = []
     for candidate in candidates:
         selected_template_ids.extend(candidate.available_template_ids)
@@ -448,7 +954,57 @@ def retrieve_template_variants(
         componentCandidates=candidates,
         actionIds=query.action_ids,
         requiredTemplateGroups=tuple(required_groups),
+        requiredOutputFieldsByCapability=query.required_output_fields_by_capability,
     )
+
+
+def _prefer_eligible_template(
+    candidates: tuple[TemplateComponentCandidate, ...],
+    template_id: str,
+) -> tuple[TemplateComponentCandidate, ...]:
+    result = []
+    for candidate in candidates:
+        if template_id in candidate.available_template_ids:
+            candidate = candidate.model_copy(update={"available_template_ids": (template_id,)})
+        result.append(candidate)
+    return tuple(result)
+
+
+def _prefer_half_compact_pair(
+    candidates: tuple[TemplateComponentCandidate, ...],
+) -> tuple[TemplateComponentCandidate, ...]:
+    """Use a complete half-width pairing only when both business slots support it."""
+    if len(candidates) != 2:
+        return candidates
+    for half_index in (0, 1):
+        half = candidates[half_index]
+        compact = candidates[1 - half_index]
+        half_ids = []
+        compact_ids = []
+        for template_id in half.available_template_ids:
+            if provider_template_layout_kind(template_id) == "WideHalf":
+                half_ids.append(template_id)
+        for template_id in compact.available_template_ids:
+            if provider_template_layout_kind(template_id) == "Compact":
+                compact_ids.append(template_id)
+        if half_ids and compact_ids:
+            return (
+                half.model_copy(update={"available_template_ids": tuple(half_ids)}),
+                compact.model_copy(update={"available_template_ids": tuple(compact_ids)}),
+            )
+    return candidates
+
+
+def _component_candidate_order_key(
+    item: tuple[str, set[str]],
+) -> tuple[int, str]:
+    """Place the visually larger business before Compact-only support slots."""
+    component_id, template_ids = item
+    compact_only = all(
+        provider_template_layout_kind(template_id) == "Compact"
+        for template_id in template_ids
+    )
+    return (1 if compact_only else 0, component_id)
 
 
 def restrict_query_to_preferred_templates(
@@ -466,6 +1022,11 @@ def restrict_query_to_preferred_templates(
         if record.template_id not in preferred_ids:
             continue
         matched_ids.add(record.template_id)
+        if record.business_id == "GenericMetricOverview":
+            # 通用指标没有固定字段表，保留显式请求交给 Search 校验候选来源和类型。
+            available_paths_by_capability.setdefault(record.capability_id, set()).update(
+                query.required_output_fields_by_capability.get(record.capability_id, ())
+            )
         available_paths_by_capability.setdefault(record.capability_id, set()).update(
             record.available_paths
         )
@@ -482,12 +1043,6 @@ def restrict_query_to_preferred_templates(
     return query.model_copy(
         update={"required_output_fields_by_capability": required_fields}
     )
-
-
-def _require_supported_search_size(task_spec: TaskSpec) -> None:
-    """Reject card sizes that are not yet supported by Provider Template Search."""
-    if task_spec.size == "2x4":
-        raise TemplateRetrievalMiss("template Search does not support 2x4 cards")
 
 
 def _apply_2x2_combination_policy(
@@ -743,6 +1298,107 @@ def _candidate_with_complete_field_coverage(
     return candidate.model_copy(update={"available_template_ids": template_ids})
 
 
+def _candidate_with_complete_field_coverage_or_pair(
+    candidate: TemplateComponentCandidate,
+    required_groups: list[tuple[str, ...]],
+    *,
+    allow_pair: bool,
+) -> tuple[TemplateComponentCandidate, tuple[tuple[str, ...], ...] | None]:
+    """Cover one slot with a single template, or split it into a Full+Compact pair.
+
+    Returns ``(narrowed_candidate, None)`` when one template covers every
+    demanded group, or ``(split_candidate, (full_ids, compact_ids))`` when no
+    single template does but a Full + Compact pair's union of field bindings
+    does. ``provider_template_layout_kind`` maps ``Wide*`` ids to their own
+    kinds, so only natively 2x2-sized shapes enter the pair.
+    """
+    candidate_ids = set(candidate.available_template_ids)
+    component_groups = [
+        set(group).intersection(candidate_ids)
+        for group in required_groups
+        if set(group).intersection(candidate_ids)
+    ]
+    complete_ids = set.intersection(*component_groups) if component_groups else candidate_ids
+    if not complete_ids:
+        if not allow_pair:
+            raise TemplateRetrievalMiss(
+                f"template candidates cannot cover one {candidate.component_id} slot"
+            )
+        full_ids = sorted(
+            template_id
+            for template_id in candidate.available_template_ids
+            if provider_template_layout_kind(template_id) == "Full"
+        )
+        compact_ids = sorted(
+            template_id
+            for template_id in candidate.available_template_ids
+            if provider_template_layout_kind(template_id) == "Compact"
+        )
+        pair_ids = set(full_ids) | set(compact_ids)
+        if (
+            not full_ids
+            or not compact_ids
+            or not component_groups
+            or not all(group.intersection(pair_ids) for group in component_groups)
+        ):
+            raise TemplateRetrievalMiss(
+                f"template candidates cannot cover one {candidate.component_id} slot"
+            )
+        slots = (tuple(full_ids), tuple(compact_ids))
+        return (
+            candidate.model_copy(
+                update={"available_template_ids": tuple(sorted(pair_ids))}
+            ),
+            slots,
+        )
+    template_ids = tuple(
+        template_id
+        for template_id in candidate.available_template_ids
+        if template_id in complete_ids
+    )
+    return candidate.model_copy(update={"available_template_ids": template_ids}), None
+
+
+def template_required_assets_are_available(
+    definition: TemplateDefinition, task_spec: TaskSpec
+) -> bool:
+    """A candidate must fill its required asset props from TaskSpec asset candidates."""
+    assets = [
+        item
+        for item in task_spec.assetCandidates
+        if isinstance(item, dict) and isinstance(item.get("src"), str)
+    ]
+    tags_by_source = {str(item["src"]): asset_semantic_tags(item) for item in assets}
+    for variant in definition.variants:
+        properties = variant.parameters_schema.get("properties", {})
+        satisfied = True
+        for name in variant.parameters_schema.get("required", ()):
+            schema = properties.get(name)
+            if schema is None or parameter_value_kind(name, schema) != "asset-source":
+                continue
+            required_tags = set(definition.asset_parameter_semantic_tags.get(name, ()))
+            if required_tags:
+                matched = any(required_tags.issubset(tags) for tags in tags_by_source.values())
+            else:
+                matched = bool(tags_by_source)
+            if not matched:
+                satisfied = False
+                break
+        if satisfied:
+            return True
+    return False
+
+
+def _template_required_assets_are_available(
+    record: TemplateVariantSearchRecord,
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+) -> bool:
+    return template_required_assets_are_available(
+        registry.require_template(record.template_id), task_spec
+    )
+
+
 def _component_templates_for_capability(
     registry: CardPlanRegistry,
     capability_id: str,
@@ -752,6 +1408,8 @@ def _component_templates_for_capability(
     preferred_template_ids: tuple[str, ...] = (),
     preferred_layout_suffix: str | None = None,
     candidate_output_fields: set[str] | None = None,
+    retain_all_candidates: bool = False,
+    allow_battery_text_level_fallback: bool = False,
 ) -> dict[str, dict[str, frozenset[str]]]:
     result: dict[str, dict[str, frozenset[str]]] = {}
     data_roots = _capability_data_roots(card_spec, capability_id)
@@ -771,6 +1429,11 @@ def _component_templates_for_capability(
         for record in registry.template_variant_search_records:
             if record.capability_id != capability_id or record.business_id != business_id:
                 continue
+            if record.template_id == BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE:
+                if not allow_battery_text_level_fallback:
+                    continue
+            available = _record_typed_input_paths(record, task_spec, data_root)
+            record = effective_display_record(record, available)
             evaluations.append(
                 _template_record_evaluation(
                     record,
@@ -784,17 +1447,45 @@ def _component_templates_for_capability(
                 continue
             if record.binding_count != len(data_roots):
                 continue
-            size_is_supported = not record.supported_card_sizes
-            size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
+            size_is_supported = _template_can_participate_in_size(record, task_spec.size)
             if not size_is_supported:
                 continue
             if not _template_query_discriminator_is_requested(record, query_tokens):
                 continue
             if not _template_required_fields_are_available(record, task_spec, card_spec):
                 continue
-            matches[record.template_id] = _record_available_query_paths(record, query_tokens)
+            if not _template_required_assets_are_available(record, task_spec, registry):
+                continue
+            if business_id == "GenericMetricOverview" and task_spec.size == "2x4":
+                # Generic Compact templates deliberately have no fixed field
+                # allowlist in the 2x4 residual-composition route. Their path
+                # props are constrained by the current candidate output fields
+                # and the token type check above. Generic is deliberately not
+                # admitted as a second business in 2x2, where the existing
+                # single-business layout contract must remain unchanged.
+                matches[record.template_id] = frozenset(
+                    token.path
+                    for token in query_tokens
+                    if token.path in provided_output_fields
+                    and token.data_type in _GENERIC_SCALAR_TYPES
+                )
+            else:
+                matches[record.template_id] = _record_available_query_paths(
+                    record, query_tokens
+                )
         if query_tokens:
             matches = {template_id: paths for template_id, paths in matches.items() if paths}
+        if BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE in matches:
+            required_paths = {token.path for token in query_tokens}
+            has_existing_match = False
+            for template_id, paths in matches.items():
+                if template_id == BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE:
+                    continue
+                if required_paths.issubset(paths):
+                    has_existing_match = True
+                    break
+            if has_existing_match:
+                matches.pop(BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE)
         limited_matches: dict[str, frozenset[str]] = {}
         if matches:
             limited_matches = _limit_component_templates(
@@ -804,6 +1495,8 @@ def _component_templates_for_capability(
                 preferred_template_ids,
                 preferred_layout_suffix,
             )
+            if retain_all_candidates:
+                limited_matches = matches
             result[business_id] = limited_matches
         _log_template_candidate_evaluation(
             capability_id=capability_id,
@@ -907,7 +1600,14 @@ def _template_record_evaluation(
             }
         )
 
-    matched_user_fields = _record_available_query_paths(record, query_tokens)
+    if record.business_id == "GenericMetricOverview" and task_spec.size == "2x4":
+        # GenericMetricOverview has no fixed provider field list on the wide
+        # residual route. Its candidate fields are validated before this
+        # diagnostic is built, so report the requested scalar paths as covered
+        # instead of using the empty metadata allowlist.
+        matched_user_fields = frozenset(token.path for token in query_tokens)
+    else:
+        matched_user_fields = _record_available_query_paths(record, query_tokens)
     unmatched_user_fields = sorted(token.path for token in query_tokens)
     unmatched_user_fields = [
         path for path in unmatched_user_fields if path not in matched_user_fields
@@ -916,18 +1616,22 @@ def _template_record_evaluation(
     rejection_reasons: list[str] = []
     if record.template_id not in enabled_template_ids:
         rejection_reasons.append("template_disabled")
-    size_is_supported = not record.supported_card_sizes
-    size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
+    size_is_supported = _template_can_participate_in_size(record, task_spec.size)
     if not size_is_supported:
         rejection_reasons.append("card_size_not_supported")
     if not _template_query_discriminator_is_requested(record, query_tokens):
         rejection_reasons.append("template_query_discriminator_not_requested")
+    missing_groups = missing_any_of_groups(
+        record, _record_typed_input_paths(record, task_spec, data_root),
+    )
+    if missing_groups:
+        rejection_reasons.append("template_any_of_requirement_unsatisfied")
+    if unmatched_user_fields:
+        rejection_reasons.append("user_required_data_not_covered")
     if missing_required_fields:
         rejection_reasons.append("user_provided_data_missing_template_required_fields")
     if required_type_mismatches:
         rejection_reasons.append("user_provided_data_type_mismatch")
-    if query_tokens and not matched_user_fields:
-        rejection_reasons.append("user_required_data_not_covered")
 
     return {
         "templateId": record.template_id,
@@ -936,13 +1640,30 @@ def _template_record_evaluation(
         "matchedUserRequiredFields": sorted(matched_user_fields),
         "unmatchedUserRequiredFields": unmatched_user_fields,
         "missingTemplateRequiredFields": missing_required_fields,
+        "missingAnyOfGroups": missing_groups,
         "templateRequiredFieldTypeMismatches": required_type_mismatches,
         "userRequiredFieldTypeMismatches": user_type_mismatches,
         "userRequiredDataFullyCovered": not unmatched_user_fields,
         "userProvidedDataSatisfiesTemplateRequirements": (
-            not missing_required_fields and not required_type_mismatches
+            not missing_required_fields and not required_type_mismatches and not missing_groups
         ),
         "rejectionReasons": rejection_reasons,
+    }
+
+
+def _template_can_participate_in_size(
+    record: TemplateVariantSearchRecord,
+    card_size: str,
+) -> bool:
+    """Allow standard business shapes inside a 2x4 composition layout."""
+    if not record.supported_card_sizes or card_size in record.supported_card_sizes:
+        return True
+    if card_size != "2x4":
+        return False
+    return provider_template_layout_kind(record.template_id) in {
+        "Full",
+        "Hero",
+        "Compact",
     }
 
 
@@ -1161,6 +1882,59 @@ def _log_action_param_fields_dropped(
     )
 
 
+def _template_available_data_fields(
+    definition: TemplateDefinition,
+    task_spec: TaskSpec,
+    data_roots: tuple[str, ...],
+    candidate_paths: set[str],
+    *,
+    rendered_only: bool = False,
+) -> tuple[str, ...]:
+    """Report distinct, usable binding paths without ranking Search candidates."""
+    paths_by_binding: dict[str, str] = {}
+    for name, binding in definition.bindings.items():
+        if not rendered_only and binding.path not in candidate_paths:
+            continue
+        root = data_roots[binding.root_index]
+        pointer = f"{root.rstrip('/')}{binding.path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+        if leaf is None:
+            continue
+        actual_type = leaf.get("type")
+        numeric_types_match = (
+            binding.data_type in {"integer", "number"}
+            and actual_type in ("integer", "number")
+        )
+        if actual_type == binding.data_type or numeric_types_match:
+            paths_by_binding[name] = pointer
+    if rendered_only:
+        parameter_names = _available_asset_parameters(definition, task_spec)
+        displayed = template_displayed_binding_names(
+            definition.variants[0], set(paths_by_binding), parameter_names,
+        )
+        paths_by_binding = {
+            name: path for name, path in paths_by_binding.items() if name in displayed
+        }
+    return tuple(sorted(set(paths_by_binding.values())))
+
+
+def _available_asset_parameters(definition: TemplateDefinition, task_spec: TaskSpec) -> set[str]:
+    """字段分析只使用真实候选素材证明参数存在，不读取样例值决定分支。"""
+    names: set[str] = set()
+    properties = definition.variants[0].parameters_schema.get("properties", {})
+    for name, schema in properties.items():
+        if parameter_value_kind(name, schema) != "asset-source":
+            continue
+        required_tags = set(definition.asset_parameter_semantic_tags.get(name, ()))
+        for asset in task_spec.assetCandidates:
+            if not isinstance(asset, dict) or not isinstance(asset.get("src"), str):
+                continue
+            if required_tags.issubset(asset_semantic_tags(asset)):
+                names.add(name)
+                break
+    return names
+
+
 def _capability_data_roots(
     card_spec: dict[str, Any], capability_id: str
 ) -> tuple[str, ...]:
@@ -1236,6 +2010,9 @@ def _validate_selected_actions(query: TemplateRetrievalQuery, task_spec: TaskSpe
 
 
 def _validate_selected_action_ids(action_ids: tuple[str, ...], task_spec: TaskSpec) -> None:
+    limit = 4 if task_spec.size == "2x4" else 2
+    if len(action_ids) > limit:
+        raise TemplateRetrievalMiss("selected Action count exceeds the card size budget")
     if not action_ids:
         return
     candidate_ids = {event.id for event in task_spec.eventCandidates if event.id}
@@ -1252,6 +2029,9 @@ def _template_required_fields_are_available(
     if len(data_roots) != record.binding_count:
         return False
     for data_root in data_roots:
+        available = _record_typed_input_paths(record, task_spec, data_root)
+        if missing_any_of_groups(record, available):
+            return False
         for path in record.required_paths:
             pointer = f"{data_root.rstrip('/')}{path}"
             if _task_spec_schema_leaf(task_spec.dataModelSchema, pointer) is None:
@@ -1262,3 +2042,15 @@ def _template_required_fields_are_available(
             if leaf is None or leaf.get("type") != token.data_type:
                 return False
     return True
+
+
+def _record_typed_input_paths(
+    record: TemplateVariantSearchRecord, task_spec: TaskSpec, data_root: str,
+) -> set[str]:
+    available: set[str] = set()
+    for token in record.field_tokens:
+        pointer = f"{data_root.rstrip('/')}{token.path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+        if leaf is not None and leaf.get("type") == token.data_type:
+            available.add(token.path)
+    return available

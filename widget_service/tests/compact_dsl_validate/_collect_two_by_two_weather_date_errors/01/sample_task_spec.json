@@ -1,0 +1,20 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "date": {
+          "type": "string",
+          "sampleValue": "10-08"
+        },
+        "weekday": {
+          "type": "string",
+          "sampleValue": "周四"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "userQuery": "显示数据"
+}

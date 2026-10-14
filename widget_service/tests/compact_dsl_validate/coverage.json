@@ -1,0 +1,1231 @@
+[
+  {
+    "function": "_collect_asset_source_errors",
+    "line": 290,
+    "expectedErrors": [
+      "component image.props.src: asset must use an original src from TaskSpec.assetCandidates."
+    ],
+    "directory": "_collect_asset_source_errors\\01"
+  },
+  {
+    "function": "_collect_asset_color_errors",
+    "line": 332,
+    "expectedErrors": [
+      "component icon: tintable SVG resources/heart.svg must set fillColor explicitly; omitting it renders the asset's default black."
+    ],
+    "directory": "_collect_asset_color_errors\\01"
+  },
+  {
+    "function": "_collect_hero_value_errors",
+    "line": 391,
+    "expectedErrors": [
+      "component title: fontSize 20 requires a pure number/integer or a supported primary value. A directly bound measurement with a declared unit may use 20/24fp in a full-width area or 2x4 large panel when its text budget fits; ordinary names, dates, times, and statuses remain at most 18fp."
+    ],
+    "directory": "_collect_hero_value_errors\\01"
+  },
+  {
+    "function": "_collect_hero_value_errors",
+    "line": 425,
+    "expectedErrors": [
+      "component main: Text label after the large numeric value must contain only a real unit for the preceding value. Move labels or descriptions to a separate line."
+    ],
+    "directory": "_collect_hero_value_errors\\02"
+  },
+  {
+    "function": "_collect_hero_value_errors",
+    "line": 406,
+    "expectedErrors": [
+      "component weatherReadout: formatted value weatherValue already contains its unit; do not append Text new or a field label."
+    ],
+    "directory": "_collect_hero_value_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_two_weather_date_errors",
+    "line": 461,
+    "expectedErrors": [
+      "component text: 2x2 single-day weather must not concatenate date and weekday in one Text. Keep weekday by default, or keep date alone when the user explicitly requests the exact date."
+    ],
+    "directory": "_collect_two_by_two_weather_date_errors\\01"
+  },
+  {
+    "function": "_collect_adjacent_display_unit_errors",
+    "line": 836,
+    "expectedErrors": [
+      "component value_row: display unit '步' cannot follow non-numeric binding /data/healthSport/calorieText. Remove the unit or bind a number/integer value."
+    ],
+    "directory": "_collect_adjacent_display_unit_errors\\01"
+  },
+  {
+    "function": "_collect_adjacent_display_unit_errors",
+    "line": 763,
+    "expectedErrors": [
+      "component value_row: large primary Text steps binds non-numeric field /data/healthSport/calorieText and must occupy its own row; do not append unit as a unit or label.",
+      "component steps: fontSize 30 requires a pure number/integer or a supported primary value. A directly bound measurement with a declared unit may use 20/24fp in a full-width area or 2x4 large panel when its text budget fits; ordinary names, dates, times, and statuses remain at most 18fp."
+    ],
+    "directory": "_collect_adjacent_display_unit_errors\\02",
+    "status": "伴随错误"
+  },
+  {
+    "function": "_collect_adjacent_display_unit_errors",
+    "line": 825,
+    "expectedErrors": [
+      "component valueRow: numeric value and unit unit must use Row alignItems \"bottom\"; the unit must use capped visual bottom padding for its font-size difference and must not use the numeric value's fixed height; both Text nodes must use intrinsic width and their Row itemMargin must not exceed 4."
+    ],
+    "directory": "_collect_adjacent_display_unit_errors\\03"
+  },
+  {
+    "function": "_collect_mixed_font_row_alignment_errors",
+    "line": 1130,
+    "expectedErrors": [
+      "component progressText: a Row containing mixed Text font sizes must use alignItems bottom so every visible text bottom aligns."
+    ],
+    "directory": "_collect_mixed_font_row_alignment_errors\\01"
+  },
+  {
+    "function": "_collect_mixed_font_row_alignment_errors",
+    "line": 1154,
+    "expectedErrors": [
+      "component scoreLabel: smaller Text in mixed-size Row progressText must use padding.bottom 2 to compensate the visible glyph baseline after Row alignItems \"bottom\" aligns the Text boxes."
+    ],
+    "directory": "_collect_mixed_font_row_alignment_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_small_backboard_errors",
+    "line": 1203,
+    "expectedErrors": [
+      "2x4 small backboard weather may contain at most two Text nodes. Keep one primary line and one supporting line instead of clipping a third line."
+    ],
+    "directory": "_collect_two_by_four_small_backboard_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_small_backboard_errors",
+    "line": 1221,
+    "expectedErrors": [
+      "2x4 small backboard earphoneZone without a visual must use Column; do not place two Text nodes side by side where the second line can be clipped."
+    ],
+    "directory": "_collect_two_by_four_small_backboard_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_small_backboard_errors",
+    "line": 1214,
+    "expectedErrors": [
+      "2x4 small backboard weather with a visual must use Row so its text stays on the left and the visual stays on the right."
+    ],
+    "directory": "_collect_two_by_four_small_backboard_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_small_backboard_errors",
+    "line": 1227,
+    "expectedErrors": [
+      "2x4 small backboard weather without a visual must vertically center its one or two Text lines."
+    ],
+    "directory": "_collect_two_by_four_small_backboard_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_four_action_backboard_errors",
+    "line": 1320,
+    "expectedErrors": [
+      "2x4 large backboard weatherZone must place its action as the final direct child.",
+      "2x4 large backboard weatherZone content must be a Column."
+    ],
+    "directory": "_collect_two_by_four_action_backboard_errors\\01",
+    "status": "伴随错误"
+  },
+  {
+    "function": "_collect_two_by_four_action_backboard_errors",
+    "line": 1328,
+    "expectedErrors": [
+      "2x4 large backboard left action must be 114x36."
+    ],
+    "directory": "_collect_two_by_four_action_backboard_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_action_backboard_errors",
+    "line": 1337,
+    "expectedErrors": [
+      "2x4 large backboard weatherZone with a Button must have exactly [content, Button] as direct children."
+    ],
+    "directory": "_collect_two_by_four_action_backboard_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_action_backboard_errors",
+    "line": 1344,
+    "expectedErrors": [
+      "2x4 large backboard weatherZone content must be a Column."
+    ],
+    "directory": "_collect_two_by_four_action_backboard_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_four_action_backboard_errors",
+    "line": 1349,
+    "expectedErrors": [
+      "2x4 large backboard weatherZone content must use layoutWeight 1 so the Button stays at the bottom."
+    ],
+    "directory": "_collect_two_by_four_action_backboard_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_four_action_backboard_errors",
+    "line": 1354,
+    "expectedErrors": [
+      "2x4 large backboard weatherZone with a Button may contain at most four Text nodes across no more than three visual rows. Merge or remove lower-priority fields."
+    ],
+    "directory": "_collect_two_by_four_action_backboard_errors\\06"
+  },
+  {
+    "function": "_collect_two_by_four_action_row_errors",
+    "line": 1374,
+    "expectedErrors": [
+      "2x4 graphical action Row earphoneZone must use itemMargin 8, at least 8vp left/right padding, justifyContent center, and alignItems center so its icon and label stay centered."
+    ],
+    "directory": "_collect_two_by_four_action_row_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_two_narrow_graphical_action_errors",
+    "line": 1423,
+    "expectedErrors": [
+      "2x2 narrow graphical action Row action must be centered by parent Column action_area; set alignItems to center when the action is narrower than the parent's content width."
+    ],
+    "directory": "_collect_two_by_two_narrow_graphical_action_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_full_width_action_errors",
+    "line": 1454,
+    "expectedErrors": [
+      "2x4 full-width action cta must be a direct child of the matchParent foreground Column; do not nest it inside a fixed-height main/body container where content can overlap."
+    ],
+    "directory": "_collect_two_by_four_full_width_action_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_full_width_action_errors",
+    "line": 1464,
+    "expectedErrors": [
+      "2x4 full-width action action must be the final direct child of foreground Column {parent.component_id}."
+    ],
+    "directory": "_collect_two_by_four_full_width_action_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_full_width_action_errors",
+    "line": 1473,
+    "expectedErrors": [
+      "2x4 content immediately above full-width action action must use layoutWeight 1 so the 276x36 action remains fixed at the bottom without overlapping content."
+    ],
+    "directory": "_collect_two_by_four_full_width_action_errors\\03"
+  },
+  {
+    "function": "_collect_raw_boolean_text_errors",
+    "line": 1564,
+    "expectedErrors": [
+      "component status: boolean field(s) /data/device/isConnected must be mapped to user-facing Text with a conditional expression; do not display raw true/false."
+    ],
+    "directory": "_collect_raw_boolean_text_errors\\01"
+  },
+  {
+    "function": "_collect_progress_value_errors",
+    "line": 1590,
+    "expectedErrors": [
+      "component value: Progress.value path /data/metric/x has schema type string; bind a number/integer field such as 68, not formatted text such as '68%'. If only formatted text exists, remove Progress and show the complete value with Text."
+    ],
+    "directory": "_collect_progress_value_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_w9_density_errors",
+    "line": 1729,
+    "expectedErrors": [
+      "2x4 W9 backboard left displays multiple peer quantitative fields and must keep all of them as ordinary complete text lines with the same typography; do not promote one field to a 30fp/38fp hero."
+    ],
+    "directory": "_collect_two_by_four_w9_density_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_w9_density_errors",
+    "line": 1736,
+    "expectedErrors": [
+      "2x4 W9 backboard left contains multiple 30fp/38fp values. Keep peer metrics as ordinary complete text lines instead of manufacturing multiple hero values."
+    ],
+    "directory": "_collect_two_by_four_w9_density_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_w9_density_errors",
+    "line": 1742,
+    "expectedErrors": [
+      "2x4 W9 backboard phoneZone with a 30fp/38fp numeric hero may contain only the value/unit line and one 12fp/400 auxiliary line after its business title. Merge auxiliary fields with ' | '."
+    ],
+    "directory": "_collect_two_by_four_w9_density_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1976,
+    "expectedErrors": [
+      "2x4 W9 must not duplicate the same action across both backboards. Keep each requested candidate action exactly once."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1981,
+    "expectedErrors": [
+      "2x4 W9 contains 2 visible actions but TaskSpec provides only 1 candidates. Do not copy an action to fill the other backboard."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 2009,
+    "expectedErrors": [
+      "2x4 W9 must keep explicitly requested actions inside their owning backboards (0/1). Remove lower-priority text before dropping an action."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1814,
+    "expectedErrors": [
+      "2x4 W9 backboard leftZone may contain at most four content Text rows. Merge same-object fields instead of stacking additional rows."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1842,
+    "expectedErrors": [
+      "2x4 W9 text left0 joins 3 dynamic facts in one narrow row. Keep at most two short facts per Text; split them into separate 12fp rows or remove the lowest-priority field. A compact multi-day weather row is the only exception."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1851,
+    "expectedErrors": [
+      "2x4 W9 backboard rightZone mixes data roots ['left', 'right']. Each backboard must display exactly one business object; move every field to its owning backboard."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\06"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1899,
+    "expectedErrors": [
+      "2x4 W9 countdown backboard left must contain exactly one unit Text `天`, placed below the numeric hero. Do not generate both an inline unit and another unit below it."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\07"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1875,
+    "expectedErrors": [
+      "2x4 W9 action left binds data root(s) ['second'] but is placed in backboard left, which displays ['first']. Move the action to its owning business backboard."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\08"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1894,
+    "expectedErrors": [
+      "2x4 W9 countdown left1 must use a 30fp/38fp, 700-weight numeric hero in its own backboard."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\09"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1919,
+    "expectedErrors": [
+      "2x4 W9 countdown value left1 must not share a Row with unit `天`; keep the single unit below the numeric hero."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\10"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1960,
+    "expectedErrors": [
+      "2x4 W9 weather day 0 in backboard left is split across multiple Text rows ['left0', 'split']. Merge each day into one 12fp/400 row."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\11"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1969,
+    "expectedErrors": [
+      "2x4 W9 multi-day weather backboard left must not insert Divider components between compact day rows."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\12"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1955,
+    "expectedErrors": [
+      "2x4 W9 compact weather day left0 must use 12fp/400 auxiliary text."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\13"
+  },
+  {
+    "function": "_collect_two_by_four_w9_content_errors",
+    "line": 1945,
+    "expectedErrors": [
+      "2x4 W9 compact weather day left0 must not show both full date and weekday in the same 114vp row. Keep the weekday and remove the redundant date."
+    ],
+    "directory": "_collect_two_by_four_w9_content_errors\\14"
+  },
+  {
+    "function": "_collect_two_by_two_s4_text_errors",
+    "line": 2032,
+    "expectedErrors": [
+      "2x2 S4 backboard one contains 3 Text rows; keep at most two single-line Text components."
+    ],
+    "directory": "_collect_two_by_two_s4_text_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_two_s4_text_errors",
+    "line": 2099,
+    "expectedErrors": [
+      "2x2 S4 calendar backboard one must keep a separate 14fp/700 meeting title above its 12fp/400 time row."
+    ],
+    "directory": "_collect_two_by_two_s4_text_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_two_s4_text_errors",
+    "line": 2039,
+    "expectedErrors": [
+      "2x2 S4 Text name must use maxLines 1; a backboard must never render a third line."
+    ],
+    "directory": "_collect_two_by_two_s4_text_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_two_s4_text_errors",
+    "line": 2056,
+    "expectedErrors": [
+      "2x2 S4 static Text shanghaiValue exceeds its 110vp single-line width; shorten the wording while keeping its meaning. Do not wrap it, add a third line, or move the visual."
+    ],
+    "directory": "_collect_two_by_two_s4_text_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_two_s4_text_errors",
+    "line": 2069,
+    "expectedErrors": [
+      "2x2 S4 clickable backboard phone_row must not show action hint Text phone_value; bind the action only to the backboard."
+    ],
+    "directory": "_collect_two_by_two_s4_text_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_two_s4_text_errors",
+    "line": 2087,
+    "expectedErrors": [
+      "2x2 S4 meeting time time must use its own 12fp/400 auxiliary row; do not combine it with the 14fp/700 meeting title."
+    ],
+    "directory": "_collect_two_by_two_s4_text_errors\\06"
+  },
+  {
+    "function": "_collect_two_by_two_s4_vertical_alignment_errors",
+    "line": 2147,
+    "expectedErrors": [
+      "2x2 S4 text group phone_text must use justifyContent center so its one or two lines remain vertically centered beside the visual."
+    ],
+    "directory": "_collect_two_by_two_s4_vertical_alignment_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_two_s4_vertical_alignment_errors",
+    "line": 2130,
+    "expectedErrors": [
+      "2x2 S4 backboard one without a visual must vertically center its one or two text lines with justifyContent center; do not reserve an empty third line."
+    ],
+    "directory": "_collect_two_by_two_s4_vertical_alignment_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_two_ring_group_alignment_errors",
+    "line": 2191,
+    "expectedErrors": [
+      "2x2 compact ring group root must use alignItems \"center\" so the ring and its single status line remain horizontally centered."
+    ],
+    "directory": "_collect_two_by_two_ring_group_alignment_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_two_s4_palette_errors",
+    "line": 2235,
+    "expectedErrors": [
+      "2x2 S4 must use one card palette across both business zones. Text, tintable Image, Progress, and Divider colors must share one RGB and may differ only in alpha. Found mixed palette colors: #000000: name.fontColor, #563D99: status.fontColor, time.fontColor."
+    ],
+    "directory": "_collect_two_by_two_s4_palette_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_aux_icon_errors",
+    "line": 2326,
+    "expectedErrors": [
+      "2x4 130x59 auxiliary backboard cell1 with an icon must contain exactly one one-line Text or one 1-2 line text Column plus one Image. The converter normalizes the cell to left-aligned text and a 20x20vp Image on the right."
+    ],
+    "directory": "_collect_two_by_four_aux_icon_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_alignment_errors",
+    "line": 2392,
+    "expectedErrors": [
+      "2x4 W1-focus-aux left focus may contain at most four Text nodes. Use at most three visual layers for value-led content, merge a closely related pair, or move one necessary fact to an auxiliary cell instead of filling the left zone with a dense list."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_alignment_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_alignment_errors",
+    "line": 2401,
+    "expectedErrors": [
+      "2x4 W1-focus-aux compact left content must use justifyContent center so its information group is vertically centered instead of being pinned to the top."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_alignment_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_alignment_errors",
+    "line": 2408,
+    "expectedErrors": [
+      "2x4 W1-focus-aux sparse or value-led left content must use alignItems center. Event lists and dense summaries may remain left-aligned, but their full group must still be vertically centered."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_alignment_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_alignment_errors",
+    "line": 2430,
+    "expectedErrors": [
+      "2x4 W1-focus-aux left content group statusArea must use justifyContent center so its compact text group is not pinned to the top or left."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_alignment_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_alignment_errors",
+    "line": 2437,
+    "expectedErrors": [
+      "2x4 W1-focus-aux left content Column statusArea must use alignItems center."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_alignment_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2469,
+    "expectedErrors": [
+      "2x4 W1-focus-aux must not repeat the same visible fact in the left focus and a right auxiliary cell. Reassign each requested field to one region only; duplicated paths: ['/data/healthSport/a']."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2491,
+    "expectedErrors": [
+      "2x4 W1-focus-aux left focus Image new is decorative and must be removed. Only an Image centered inside a Stack that also contains a valid ring Progress is allowed there."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2504,
+    "expectedErrors": [
+      "2x4 W1-focus-aux may contain only one 20fp-or-larger primary focus in the left zone. Keep peer metrics as ordinary auxiliary content instead of manufacturing a second hero."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2510,
+    "expectedErrors": [
+      "2x4 W1-focus-aux actions must occupy a right auxiliary cell; do not bind actions inside the left focus zone."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2526,
+    "expectedErrors": [
+      "2x4 W1-focus-aux must not add Progress unless the user explicitly requests a progress visualization. Use the left focus for the primary value and its necessary status instead."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2609,
+    "expectedErrors": [
+      "2x4 W1-focus-aux must reserve right auxiliary cells for explicit actions (0/1). Drop or merge lower-priority facts instead of omitting the requested action."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\06"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2541,
+    "expectedErrors": [
+      "2x4 W1-focus-aux Progress must be paired with a visible primary value Text of at least 18fp in the left focus zone. Do not output a standalone progress line or ring without its readout."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\07"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2571,
+    "expectedErrors": [
+      "2x4 phone-and-earphone W1 focus must use a compact ring Progress for numeric phone battery percentage; do not use a horizontal linear bar. If only formatted battery text exists, remove Progress and display that complete text instead."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\08"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2641,
+    "expectedErrors": [
+      "2x4 W1-focus-aux cell cell1 must keep its text group left-aligned. Use Row justifyContent start or Column alignItems start, and Text textAlign start; only vertical centering is allowed."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\09"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2651,
+    "expectedErrors": [
+      "2x4 W1-focus-aux cell cell1 may contain at most two Text nodes. Merge its auxiliary information."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\10"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2673,
+    "expectedErrors": [
+      "2x4 W1-focus-aux cell cell1 references 3 dynamic facts. Keep at most two facts that fit as two short lines; drop lower-priority fields."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\11"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2679,
+    "expectedErrors": [
+      "2x4 W1-focus-aux cell cell1 displays two dynamic facts in one Text. Use two single-line Text nodes, one fact per line, instead of joining them with '|'.",
+      "2x4 W1-focus-aux cell cell1 must place each of its two dynamic facts in a separate complete Text line. Do not put both labels on one line and both values on the other line."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\12",
+    "status": "伴随错误"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2702,
+    "expectedErrors": [
+      "2x4 W1-focus-aux cell cell1 must bind onClick to the auxiliary backboard itself; do not nest a Button or ActionUnit inside it."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\13"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2722,
+    "expectedErrors": [
+      "2x4 W1-focus-aux cell cell1 mixes data roots ['healthSport', 'other']. Each auxiliary cell must belong to one business object."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\14"
+  },
+  {
+    "function": "_collect_two_by_four_w1_focus_aux_errors",
+    "line": 2692,
+    "expectedErrors": [
+      "2x4 W1-focus-aux cell cell1 must place each of its two dynamic facts in a separate complete Text line. Do not put both labels on one line and both values on the other line."
+    ],
+    "directory": "_collect_two_by_four_w1_focus_aux_errors\\15"
+  },
+  {
+    "function": "_collect_two_by_four_w9_weather_triplet_errors",
+    "line": 2757,
+    "expectedErrors": [
+      "2x4 W9 weather backboard left with temperature, rain and air-quality rows must omit decorative icons so all three facts fit in the 114vp content width."
+    ],
+    "directory": "_collect_two_by_four_w9_weather_triplet_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_w9_weather_triplet_errors",
+    "line": 2766,
+    "expectedErrors": [
+      "2x4 W9 weather backboard left must display temperature exactly once in its compact three-row summary."
+    ],
+    "directory": "_collect_two_by_four_w9_weather_triplet_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_w9_weather_triplet_errors",
+    "line": 2774,
+    "expectedErrors": [
+      "2x4 W9 weather Text left1 must contain one dynamic fact only; keep temperature, rain and air quality on three separate rows."
+    ],
+    "directory": "_collect_two_by_four_w9_weather_triplet_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_w9_weather_triplet_errors",
+    "line": 2781,
+    "expectedErrors": [
+      "2x4 W9 weather Text left0 must use 12fp/400 in the compact three-row summary."
+    ],
+    "directory": "_collect_two_by_four_w9_weather_triplet_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_four_w9_weather_triplet_errors",
+    "line": 2787,
+    "expectedErrors": [
+      "2x4 W9 weather Text left1 must include the short label '降雨' so the value remains identifiable and is not clipped."
+    ],
+    "directory": "_collect_two_by_four_w9_weather_triplet_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_two_centered_hero_errors",
+    "line": 3131,
+    "expectedErrors": [
+      "2x2 sparse single-value Hero with one bottom action must use a 126vp layoutWeight content_area centered on both axes, containing one centered 106x58vp hero_box and a centered 106vp value_row."
+    ],
+    "directory": "_collect_two_by_two_centered_hero_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_two_centered_hero_errors",
+    "line": 3139,
+    "expectedErrors": [
+      "2x2 centered single-value Hero must use one approved value font tier: 38fp, 30fp, 24fp, or 20fp."
+    ],
+    "directory": "_collect_two_by_two_centered_hero_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_two_centered_hero_errors",
+    "line": 3178,
+    "expectedErrors": [
+      "2x2 centered single-value Hero exceeds the 106vp width pressure budget; downgrade value/unit together through 38/16fp -> 30/14fp -> 24/12fp -> 20/12fp until it fits."
+    ],
+    "directory": "_collect_two_by_two_centered_hero_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_two_centered_hero_errors",
+    "line": 3195,
+    "expectedErrors": [
+      "2x2 centered single-value Hero exceeds the 58vp height pressure budget; downgrade value/unit together instead of clipping it."
+    ],
+    "directory": "_collect_two_by_two_centered_hero_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_two_centered_hero_errors",
+    "line": 3151,
+    "expectedErrors": [
+      "2x2 centered single-value Hero unit must declare a fontSize."
+    ],
+    "directory": "_collect_two_by_two_centered_hero_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_two_centered_hero_errors",
+    "line": 3156,
+    "expectedErrors": [
+      "2x2 centered single-value Hero must downgrade value and unit together using 38/16fp, 30/14fp, 24/12fp, or 20/12fp limits."
+    ],
+    "directory": "_collect_two_by_two_centered_hero_errors\\06"
+  },
+  {
+    "function": "_collect_two_by_two_content_density_errors",
+    "line": 3296,
+    "expectedErrors": [
+      "2x2 150vp single-business pure-text content with an action may contain at most one prominent line and two 12fp/400 auxiliary lines. Merge related auxiliary fields with ' | ' and remove lower-priority update text."
+    ],
+    "directory": "_collect_two_by_two_content_density_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_two_content_density_errors",
+    "line": 3266,
+    "expectedErrors": [
+      "2x2 150vp single-business content displays multiple peer quantitative fields and must keep all of them as ordinary complete text lines with the same typography; do not promote one field to a 30fp/38fp hero."
+    ],
+    "directory": "_collect_two_by_two_content_density_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_two_content_density_errors",
+    "line": 3273,
+    "expectedErrors": [
+      "2x2 150vp single-business content contains multiple 30fp/38fp values. Treat peer metrics as ordinary complete text lines instead of manufacturing multiple hero values."
+    ],
+    "directory": "_collect_two_by_two_content_density_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_two_content_density_errors",
+    "line": 3279,
+    "expectedErrors": [
+      "2x2 150vp single-business content with a 30fp/38fp numeric hero may contain only the value/unit line and one 12fp/400 auxiliary line. Merge auxiliary fields into that line with ' | '."
+    ],
+    "directory": "_collect_two_by_two_content_density_errors\\04"
+  },
+  {
+    "function": "_collect_two_by_two_content_density_errors",
+    "line": 3310,
+    "expectedErrors": [
+      "2x2 150vp single-business content with an action and three information lines must keep its prominent text at 18fp or smaller so the 36vp action remains unobstructed."
+    ],
+    "directory": "_collect_two_by_two_content_density_errors\\05"
+  },
+  {
+    "function": "_collect_two_by_four_detached_unit_errors",
+    "line": 3378,
+    "expectedErrors": [
+      "2x4 numeric value left1 and unit left0 must be adjacent Text children of the same Row. Use Row alignItems bottom without bottom padding on the smaller Text; do not place a non-countdown unit on the next line."
+    ],
+    "directory": "_collect_two_by_four_detached_unit_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_weather_calendar_alignment_errors",
+    "line": 3419,
+    "expectedErrors": [
+      "2x4 weather-and-calendar cards must combine current temperature and condition in one single-line Text, such as 29° · 多云. Do not split them into separate Text nodes with different font metrics because their visible baselines will not align."
+    ],
+    "directory": "_collect_two_by_four_weather_calendar_alignment_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_countdown_backboard_errors",
+    "line": 3455,
+    "expectedErrors": [
+      "2x4 countdown backboard left without an action must directly contain exactly three Text children: target title, numeric countdown, and unit `天`. Do not nest a content/readout Column or add a fourth auxiliary line."
+    ],
+    "directory": "_collect_two_by_four_countdown_backboard_errors\\01"
+  },
+  {
+    "function": "_collect_two_by_four_countdown_backboard_errors",
+    "line": 3469,
+    "expectedErrors": [
+      "2x4 countdown backboard left must order its three Text children as target title, countdownDays value, and unit `天`."
+    ],
+    "directory": "_collect_two_by_four_countdown_backboard_errors\\02"
+  },
+  {
+    "function": "_collect_two_by_four_countdown_backboard_errors",
+    "line": 3479,
+    "expectedErrors": [
+      "2x4 countdown backboard left must use justifyContent \"spaceBetween\" and alignItems \"center\" so the title, number, and unit have balanced vertical spacing."
+    ],
+    "directory": "_collect_two_by_four_countdown_backboard_errors\\03"
+  },
+  {
+    "function": "_collect_two_by_four_countdown_backboard_errors",
+    "line": 3488,
+    "expectedErrors": [
+      "2x4 countdown Text left0 must use width 114 and textAlign center inside the balanced countdown backboard."
+    ],
+    "directory": "_collect_two_by_four_countdown_backboard_errors\\04"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3769,
+    "expectedErrors": [
+      "2x4 card displays two semantic data blocks (first, second) and must use W9: root must be a Row with padding 8 and exactly two direct 138x134 Column backboards with itemMargin 8. Do not use a shared title, a shared action area, or stacked full-width business rows."
+    ],
+    "directory": "_collect_layout_route_errors\\01"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3660,
+    "expectedErrors": [
+      "2x4 card has one dominant focus and at most two auxiliary slots and must use W1-focus-aux: root Row padding 12/itemMargin 10, a left 136x126 focus zone without a backboard, and a right 130x126 Column containing two 130x59 backboards separated by itemMargin 8."
+    ],
+    "directory": "_collect_layout_route_errors\\02"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3698,
+    "expectedErrors": [
+      "2x2 S4 requires exactly two independent display objects. Fields from one object must remain in one single-business layout instead of being split across two 134x63 backboards."
+    ],
+    "directory": "_collect_layout_route_errors\\03"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3751,
+    "expectedErrors": [
+      "2x2 card displays two data roots (calendar, other) and must use S4: root must be a Column with padding 8 and exactly two direct 134x63 Row/Column backboards with itemMargin 8. Countdown remains ordinary 14fp/700 primary text inside its backboard."
+    ],
+    "directory": "_collect_layout_route_errors\\04"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3595,
+    "expectedErrors": [
+      "2x4 cards must not stack two or more full-width 276x48-59 content backboards vertically. Select the matching W skeleton; two semantic data blocks must use W9 left/right backboards."
+    ],
+    "directory": "_collect_layout_route_errors\\05"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3626,
+    "expectedErrors": [
+      "2x2 S4 requires exactly two independent display objects. Fields from one object must remain in one single-business layout instead of being split across two 134x63 backboards."
+    ],
+    "directory": "_collect_layout_route_errors\\06"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3674,
+    "expectedErrors": [
+      "2x4 card displays at least four semantic metric groups and must use W8: root must be a Column with padding 8 and two direct 284x63 Rows separated by itemMargin 8; each Row must contain two 138x63 backboards separated by itemMargin 8. Merge naturally related weather facts before dropping the lowest-priority group."
+    ],
+    "directory": "_collect_layout_route_errors\\07"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3685,
+    "expectedErrors": [
+      "2x4 card displays three semantic data blocks and must use W10: root must be a Row with padding 8 and itemMargin 8, containing one 138x134 large backboard and one 138x134 Column with two 138x63 backboards separated by itemMargin 8."
+    ],
+    "directory": "_collect_layout_route_errors\\08"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3743,
+    "expectedErrors": [
+      "2x2 S4 countdown must be displayed as ordinary 14fp/700 primary text inside its backboard; do not reuse the V01 30fp/38fp hero or standalone countdown group."
+    ],
+    "directory": "_collect_layout_route_errors\\09"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3614,
+    "expectedErrors": [
+      "2x4 large backboard weatherZone may contain at most one action control. Do not stack two buttons inside a 138x134 backboard; remove duplicate or lower-priority actions."
+    ],
+    "directory": "_collect_layout_route_errors\\10"
+  },
+  {
+    "function": "_collect_layout_route_errors",
+    "line": 3634,
+    "expectedErrors": [
+      "2x2 card has one data root and must use a full-width single-business layout; do not generate an isolated 134x63 S4 backboard."
+    ],
+    "directory": "_collect_layout_route_errors\\11"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3800,
+    "expectedErrors": [
+      "2x2 countdown must display the day unit exactly once; do not place '天' beside the value and repeat it again in a second metadata row."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\01"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3869,
+    "expectedErrors": [
+      "2x2 V01 countdown value_group must contain exactly two visual rows: the countdown number and a second-line unit/meta row. Do not add a third aux_text or repeat the target name."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\02"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3879,
+    "expectedErrors": [
+      "2x2 V01 countdown meta_row may contain only the unit and the optional time on the same line."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\03"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3834,
+    "expectedErrors": [
+      "2x2 countdown with an action or additional visible data must place the countdown number in a left-aligned value_row; do not keep the V01 centered vertical number/unit layout."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\04"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3842,
+    "expectedErrors": [
+      "2x2 expanded countdown value_row must belong to a full-width value_group Column."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\05"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3850,
+    "expectedErrors": [
+      "2x2 countdown with an action or additional visible data must left-align value_group and value_row; centered countdown values are reserved for the display-only V01 layout."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\06"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3856,
+    "expectedErrors": [
+      "2x2 expanded countdown value_row must be the first child of value_group."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\07"
+  },
+  {
+    "function": "_collect_2x2_countdown_group_errors",
+    "line": 3860,
+    "expectedErrors": [
+      "2x2 expanded countdown value_group may contain only the value_row and one optional auxiliary-data row."
+    ],
+    "directory": "_collect_2x2_countdown_group_errors\\08"
+  },
+  {
+    "function": "_collect_two_by_four_w9_sparse_layout_errors",
+    "line": 3909,
+    "expectedErrors": [
+      "2x4 W9 sparse backboard rightZone must use a direct content Column with layoutWeight 1 and justifyContent center so the primary content group remains vertically centered."
+    ],
+    "directory": "_collect_two_by_four_w9_sparse_layout_errors\\01"
+  },
+  {
+    "function": "_collect_fusion_composition_errors",
+    "line": 4030,
+    "expectedErrors": [
+      "2x2 fusion-ball cards must not combine a title/auxiliary icon, a ring Progress, multiple status texts, and a button. Keep one primary visual focus: remove the icon or ring, merge status text, or fall back to a non-fusion layout."
+    ],
+    "directory": "_collect_fusion_composition_errors\\01"
+  },
+  {
+    "function": "_collect_semantic_text_errors",
+    "line": 4116,
+    "expectedErrors": [
+      "component range: time/date range ends with a dangling separator. Bind both start and end values, or remove the separator and display the available value only."
+    ],
+    "directory": "_collect_semantic_text_errors\\01"
+  },
+  {
+    "function": "_collect_semantic_text_errors",
+    "line": 4153,
+    "expectedErrors": [
+      "component value: reminder value must keep its minute semantics, such as 提前 15 分钟; do not display a bare numeric reminder value."
+    ],
+    "directory": "_collect_semantic_text_errors\\03"
+  },
+  {
+    "function": "_collect_semantic_text_errors",
+    "line": 4163,
+    "expectedErrors": [
+      "component value: windLevel must include the metric label 风力, for example 风力 2级; do not show a bare 2级."
+    ],
+    "directory": "_collect_semantic_text_errors\\04"
+  },
+  {
+    "function": "_collect_semantic_text_errors",
+    "line": 4139,
+    "expectedErrors": [
+      "component value: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region."
+    ],
+    "directory": "_collect_semantic_text_errors\\02"
+  },
+  {
+    "function": "_collect_unbound_action_hint_errors",
+    "line": 4207,
+    "expectedErrors": [
+      "component title: action-like Text '点击打开' has no clickable ancestor. Bind the matching event to its action slot or remove the action wording."
+    ],
+    "directory": "_collect_unbound_action_hint_errors\\01"
+  },
+  {
+    "function": "_collect_ambiguous_metric_text_errors",
+    "line": 4285,
+    "expectedErrors": [
+      "component value: value /data/health/coldIndex has ambiguous meaning (感冒指数等级); add a nearby metric label such as 感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone."
+    ],
+    "directory": "_collect_ambiguous_metric_text_errors\\01"
+  },
+  {
+    "function": "_collect_component_contract_errors",
+    "line": 4302,
+    "expectedErrors": [
+      "CardHeader.icon must be a non-empty asset path when present."
+    ],
+    "directory": "_collect_component_contract_errors\\01"
+  },
+  {
+    "function": "_collect_component_contract_errors",
+    "line": 4306,
+    "expectedErrors": [
+      "TimelineUnit requires a 2x2 card."
+    ],
+    "directory": "_collect_component_contract_errors\\02"
+  },
+  {
+    "function": "_collect_component_parent_errors",
+    "line": 4336,
+    "expectedErrors": [
+      "component value has multiple parents: one and two. Each component may appear in exactly one parent children list."
+    ],
+    "directory": "_collect_component_parent_errors\\01"
+  },
+  {
+    "function": "_collect_component_parent_errors",
+    "line": 4324,
+    "expectedErrors": [],
+    "directory": "_collect_component_parent_errors\\02",
+    "status": "入口不可触发：解析器去重"
+  },
+  {
+    "function": "_collect_container_errors",
+    "line": 4351,
+    "expectedErrors": [
+      "component root: Stack.children must be non-empty; use parent itemMargin, padding, or layout alignment instead of an empty spacer container."
+    ],
+    "directory": "_collect_container_errors\\01"
+  },
+  {
+    "function": "_collect_height_budget_errors",
+    "line": 4383,
+    "expectedErrors": [
+      "component root: vertical layout requires at least 180vp within 160vp; it overflows by 20vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment."
+    ],
+    "directory": "_collect_height_budget_errors\\01"
+  },
+  {
+    "function": "_collect_action_unit_errors",
+    "line": 4527,
+    "expectedErrors": [
+      "component cta: ActionUnit.state must be \"capsule\" or \"icon-round\"."
+    ],
+    "directory": "_collect_action_unit_errors\\01"
+  },
+  {
+    "function": "_collect_action_unit_errors",
+    "line": 4532,
+    "expectedErrors": [
+      "component value: ActionUnit must not declare children."
+    ],
+    "directory": "_collect_action_unit_errors\\02"
+  },
+  {
+    "function": "_collect_action_unit_errors",
+    "line": 4534,
+    "expectedErrors": [
+      "component cta: ActionUnit.onClick is required."
+    ],
+    "directory": "_collect_action_unit_errors\\03"
+  },
+  {
+    "function": "_collect_action_unit_errors",
+    "line": 4554,
+    "expectedErrors": [
+      "component value: icon-round ActionUnit must not declare label."
+    ],
+    "directory": "_collect_action_unit_errors\\04"
+  },
+  {
+    "function": "_collect_action_unit_errors",
+    "line": 4543,
+    "expectedErrors": [
+      "component value: capsule ActionUnit.icon must be a non-empty string when provided."
+    ],
+    "directory": "_collect_action_unit_errors\\05"
+  },
+  {
+    "function": "_collect_required_non_empty_string",
+    "line": 4564,
+    "expectedErrors": [
+      "component value: capsule ActionUnit.label must be a non-empty string."
+    ],
+    "directory": "_collect_required_non_empty_string\\01"
+  },
+  {
+    "function": "_collect_on_click_errors",
+    "line": 4577,
+    "expectedErrors": [
+      "component value.props.onClick: onClick must contain exactly one handler."
+    ],
+    "directory": "_collect_on_click_errors\\01"
+  },
+  {
+    "function": "_collect_on_click_errors",
+    "line": 4581,
+    "expectedErrors": [
+      "component value.props.onClick[0]: handler must be an object."
+    ],
+    "directory": "_collect_on_click_errors\\02"
+  },
+  {
+    "function": "_collect_on_click_errors",
+    "line": 4584,
+    "expectedErrors": [
+      "component value.props.onClick[0]: handler must contain only call and args."
+    ],
+    "directory": "_collect_on_click_errors\\03"
+  },
+  {
+    "function": "_collect_on_click_errors",
+    "line": 4589,
+    "expectedErrors": [
+      "component value.props.onClick[0].call: call must be a non-empty string."
+    ],
+    "directory": "_collect_on_click_errors\\04"
+  },
+  {
+    "function": "_collect_on_click_errors",
+    "line": 4592,
+    "expectedErrors": [
+      "component value.props.onClick[0].args: args must be an object."
+    ],
+    "directory": "_collect_on_click_errors\\05"
+  },
+  {
+    "function": "_collect_on_click_errors",
+    "line": 4595,
+    "expectedErrors": [
+      "component root.props.onClick[0]: handler must exactly match a TaskSpec eventCandidate."
+    ],
+    "directory": "_collect_on_click_errors\\06"
+  },
+  {
+    "function": "_collect_expression_context",
+    "line": 4683,
+    "expectedErrors": [
+      "component value.props.content: expression must occupy the full string as \"{{ ... }}\" and contain exactly one wrapper."
+    ],
+    "directory": "_collect_expression_context\\01"
+  },
+  {
+    "function": "_collect_expression_context",
+    "line": 4692,
+    "expectedErrors": [
+      "component value.props.content: expression wraps quoted JSON Pointer \"/data/x\"; use ${/data/x} for a dynamic binding, or use a plain static value without {{ }}."
+    ],
+    "directory": "_collect_expression_context\\02"
+  },
+  {
+    "function": "_collect_expression_context",
+    "line": 4708,
+    "expectedErrors": [
+      "component value.props.content: expression contains an incomplete ${...} reference."
+    ],
+    "directory": "_collect_expression_context\\03"
+  },
+  {
+    "function": "_collect_expression_context",
+    "line": 4701,
+    "expectedErrors": [
+      "component value.props.content: expression has no ${/json/pointer} reference; use a plain static value instead."
+    ],
+    "directory": "_collect_expression_context\\04"
+  },
+  {
+    "function": "_collect_expression_context",
+    "line": 4712,
+    "expectedErrors": [
+      "component value.props.content: expression reference \"invalid\" must be an absolute JSON Pointer."
+    ],
+    "directory": "_collect_expression_context\\05"
+  },
+  {
+    "function": "_collect_path_binding",
+    "line": 4762,
+    "expectedErrors": [
+      "component value.props.content: PathBinding.path must be an absolute JSON Pointer."
+    ],
+    "directory": "_collect_path_binding\\01"
+  },
+  {
+    "function": "_collect_data_context_errors",
+    "line": 4780,
+    "expectedErrors": [
+      "TaskSpec.dataModelSchema must be an object."
+    ],
+    "directory": "_collect_data_context_errors\\01"
+  },
+  {
+    "function": "_collect_data_context_errors",
+    "line": 4776,
+    "expectedErrors": [
+      "/state/missing: binding path has no matching Compact DSL data row."
+    ],
+    "directory": "_collect_data_context_errors\\02"
+  },
+  {
+    "function": "_collect_undeclared_data_path_error",
+    "line": 4800,
+    "expectedErrors": [
+      "/data/weather/current/temperatureText: path is not declared by TaskSpec.dataModelSchema; remove it or use a declared field."
+    ],
+    "directory": "_collect_undeclared_data_path_error\\01"
+  },
+  {
+    "function": "_collect_data_type_error",
+    "line": 4824,
+    "expectedErrors": [
+      "/data/weather/humidityPercent: data row type string does not match schema type number declared by TaskSpec."
+    ],
+    "directory": "_collect_data_type_error\\01"
+  }
+]

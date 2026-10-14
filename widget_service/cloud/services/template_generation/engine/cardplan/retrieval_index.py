@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .models import CARDTPL_SOURCE_FORMATS, TemplateDefinition, TemplateVariant
 
@@ -29,6 +29,8 @@ class TemplateVariantSearchRecord:
     required_field_tokens: frozenset[FieldToken]
     required_parameter_count: int
     binding_count: int = 1
+    required_any_of: tuple[tuple[str, ...], ...] = ()
+    display_together: tuple[tuple[str, ...], ...] = ()
 
 
 def build_template_variant_search_records(
@@ -80,4 +82,25 @@ def _build_record(
         required_field_tokens=required_tokens,
         required_parameter_count=len(variant.parameters_schema.get("required", ())),
         binding_count=definition.binding_count,
+        required_any_of=definition.required_any_of,
+        display_together=definition.display_together,
     )
+
+
+def missing_any_of_groups(
+    record: TemplateVariantSearchRecord, available: set[str],
+) -> tuple[tuple[str, ...], ...]:
+    return tuple(group for group in record.required_any_of if not available.intersection(group))
+
+
+def effective_display_record(
+    record: TemplateVariantSearchRecord, available: set[str],
+) -> TemplateVariantSearchRecord:
+    """仅将本轮实际可显示的字段计入覆盖；不改变原始注册记录。"""
+    if not record.display_together:
+        return record
+    displayed = set(record.available_paths).intersection(available)
+    for group in record.display_together:
+        if not set(group).issubset(available):
+            displayed.difference_update(group)
+    return replace(record, available_paths=frozenset(displayed))

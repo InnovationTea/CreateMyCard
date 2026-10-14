@@ -1,0 +1,5 @@
+["root","Column",{"width":"matchParent","height":150,"padding":12,"borderRadius":18,"space":6,"linearGradient":{"direction":"RightBottom","colors":[["multi_color_aux_02",0],["multi_color_aux_11",1]]},"constraintSize":{"minWidth":140,"maxWidth":140,"minHeight":140,"maxHeight":140}},["title","value","action"]]
+["title","Text",{"design":"subtitle-s","width":116,"height":20,"content":"青浦天气","fontColor":"font_primary","maxLines":1}]
+["value","Text",{"design":"display-s","width":116,"height":44,"content":{"path":"/data/weather/current/temperatureText"},"fontColor":"font_primary"}]
+["/data/weather/current/temperatureText","28°C"]
+["action","Button",{"design":"capsule","label":"看天气","backgroundColor":"background_emphasize","fontColor":"font_on_primary"}]

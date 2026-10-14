@@ -198,7 +198,7 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         gap=4,
         styles={
             "width": "matchParent",
-            "height": 64,
+            "height": 57 if ctx.card_size == "2x4" else 63,
             "padding": {"left": 8, "right": 8},
             "borderRadius": 16,
             "backgroundColor": current_palette.action_background,

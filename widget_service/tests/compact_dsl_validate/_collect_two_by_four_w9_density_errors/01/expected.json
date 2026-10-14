@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 backboard left displays multiple peer quantitative fields and must keep all of them as ordinary complete text lines with the same typography; do not promote one field to a 30fp/38fp hero."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "9f875f8929c1b636e691c7f4d2729471b445a1f505ae847b153ddabc50e17897",
+    "sample_task_spec.json": "560db16136f1454b8da087dae6f3f66168046d1d678f27f0c97800d9b2ecd130",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

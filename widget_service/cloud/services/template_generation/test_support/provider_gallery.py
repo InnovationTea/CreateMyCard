@@ -11,7 +11,7 @@ from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from unittest.mock import patch
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -60,7 +60,6 @@ def _clear_generated_gallery_files(root: Path) -> None:
         manifest_path.unlink()
 
 _PROVIDER_NAMES = {
-    "app-usage": "应用时长",
     "battery": "设备电量",
     "calendar": "日历日程",
     "countdown": "倒计时",
@@ -72,7 +71,6 @@ _PROVIDER_NAMES = {
 
 _BUSINESS_DESCRIPTIONS = {
     "ActivityOverview": ("每日活动", "展示今天的步数、热量和距离"),
-    "AppUsageOverview": ("应用时长", "展示示例应用今天的使用时长"),
     "BatteryOverview": ("设备电量", "展示手机剩余电量和充电状态"),
     "BluetoothDeviceOverview": ("蓝牙耳机", "展示耳机连接状态和左右耳电量"),
     "CalendarOverview": ("日历日程", "展示下一项日程"),
@@ -85,7 +83,6 @@ _BUSINESS_DESCRIPTIONS = {
 }
 
 _CAPABILITY_ARGUMENTS = {
-    "GetAppUsageDuration": {"appBundleName": "com.example.demo"},
     "GetCalendarEvents": {"futureDays": 7},
     "GetCountdownDays": {"targetDate": "2027-01-01"},
     "GetEarphoneInfo": {},
@@ -101,10 +98,6 @@ _CAPABILITY_ARGUMENTS = {
 
 _ACTION_IDS_BY_BUSINESS = {
     "ActivityOverview": ("event.open.health.sport", "event.open.settings.dnd"),
-    "AppUsageOverview": (
-        "event.open.settings.parentControl",
-        "event.open.settings.dnd",
-    ),
     "BatteryOverview": (
         "event.open.settings.battery",
         "event.setPowerSavingMode",
@@ -127,7 +120,6 @@ _ACTION_IDS_BY_BUSINESS = {
 
 _ACTION_QUERIES_BY_BUSINESS = {
     "ActivityOverview": ("查看运动健康详情", "打开免打扰设置"),
-    "AppUsageOverview": ("打开家长控制设置", "打开免打扰设置"),
     "BatteryOverview": ("打开电池设置", "开启省电模式"),
     "BluetoothDeviceOverview": ("打开蓝牙设置", "打开每日音乐"),
     "CalendarOverview": ("查看日程详情", "进入会议"),
@@ -182,16 +174,21 @@ _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
 _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "BatteryOverviewSupport@1": ("asset.icon_phone",),
     "BatteryOverviewStatusSupport@1": ("asset.bolt_fill",),
+    "BatteryOverviewPluggedTypeSupport@1": (),
+    "WeatherOverviewConditionSupport@1": ("asset.sun_max",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
+    "WeatherOverviewFeelsLikeWindSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewDaily2TravelSupport@1": ("asset.icon_weather_thermometer",),
     "WeatherOverviewTravelSupport@1": ("asset.icon_weather_thermometer",),
-    "CountdownOverviewSupport@1": ("asset.icon_timing",),
-    "CountdownOverviewTravelSupport@1": ("asset.icon_timing",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
     "HeartRateOverviewSupport@1": ("asset.heart_fill",),
-    "BluetoothDeviceOverviewEarbudsSupport@1": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewEarbudsSupport@1": (
+        "asset.icon_earphone", "asset.l_circle_fill", "asset.r_circle_fill",
+    ),
+    "BluetoothDeviceOverviewNameAndConnectionSupport@1": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewNameAndChargeSupport@1": ("asset.icon_earphone",),
     "BluetoothDeviceOverviewChargeSupport@1": ("asset.earphone_case_16644",),
     "BluetoothDeviceOverviewConnectionSupport@1": ("asset.icon_earphone",),
     "ScheduleOverviewTimeSupport@1": ("asset.calendar_fill",),
@@ -216,6 +213,7 @@ class GalleryInputCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     caseId: str
+    cardSize: Literal["2x2", "2x4"] = "2x2"
     providerId: str
     providerName: str
     providerSlug: str
@@ -692,7 +690,12 @@ def _gallery_sample_overrides(
             }
         )
     if weather_template is not None and weather_template.suffix == "Support":
-        sample_overrides["/data/weather/current/condition"] = _SUPPORT_WEATHER_CONDITION
+        condition = _SUPPORT_WEATHER_CONDITION
+        if weather_template.template_id == "WeatherOverviewConditionSupport@1":
+            condition = "晴"
+        for field in ("/current/condition", "/daily/2/condition"):
+            if field in weather_template.fields:
+                sample_overrides[f"/data/weather{field}"] = condition
     battery_template = next(
         (
             template
@@ -1686,6 +1689,7 @@ class ProviderGalleryBatchRunner:
     ) -> dict[str, Any]:
         return {
             "caseId": case.caseId,
+            "cardSize": case.cardSize,
             "providerId": case.providerId,
             "providerName": case.providerName,
             "providerSlug": case.providerSlug,
@@ -1732,10 +1736,12 @@ class ProviderGalleryBatchRunner:
                     "cases": cases,
                 }
             )
+        card_sizes = {item["cardSize"] for item in all_results}
+        card_size = next(iter(card_sizes)) if len(card_sizes) == 1 else "mixed"
         return {
             "schemaVersion": OUTPUT_SCHEMA_VERSION,
             "operation": "generate_widget_card_terse_dsl_nested2",
-            "cardSize": "2x2",
+            "cardSize": card_size if all_results else "2x2",
             "counts": {
                 "total": len(all_results),
                 "success": sum(item["status"] == "success" for item in all_results),

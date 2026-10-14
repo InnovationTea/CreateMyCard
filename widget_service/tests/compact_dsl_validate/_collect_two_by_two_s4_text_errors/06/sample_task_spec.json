@@ -1,0 +1,26 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "calendar": {
+        "title": {
+          "type": "string",
+          "sampleValue": "会议"
+        },
+        "dtStart": {
+          "type": "string",
+          "sampleValue": "09:00"
+        }
+      },
+      "other": {
+        "status": {
+          "type": "string",
+          "sampleValue": "正常"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "userQuery": "显示数据"
+}

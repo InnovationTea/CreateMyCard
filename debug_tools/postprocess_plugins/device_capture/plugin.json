@@ -1,0 +1,58 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "id": "device-gallery",
+  "name": "真机截图画廊",
+  "version": "2.0.0",
+  "description": "在 HarmonyOS 设备或模拟器上逐样本渲染，并生成内嵌真机截图的离线 HTML 画廊。",
+  "entrypoint": "builtin",
+  "dependence": [],
+  "outputs": [
+    {
+      "key": "device-capture",
+      "scope": "sample",
+      "title": "真机卡片截图",
+      "dataType": "image",
+      "renderer": "gallery",
+      "required": true
+    },
+    {
+      "key": "capture-summary",
+      "scope": "dataset",
+      "title": "真机截图汇总",
+      "dataType": "metrics",
+      "renderer": "kpi",
+      "required": true
+    },
+    {
+      "key": "device-gallery",
+      "scope": "dataset",
+      "title": "真机截图画廊",
+      "dataType": "link",
+      "renderer": "link",
+      "required": true
+    }
+  ],
+  "presentation": {
+    "defaultView": "gallery",
+    "sampleFields": [
+      {
+        "key": "captureStatus",
+        "label": "截图状态",
+        "type": "string",
+        "filterable": true,
+        "sortable": true
+      },
+      {
+        "key": "size",
+        "label": "尺寸",
+        "type": "string",
+        "filterable": true,
+        "sortable": true
+      }
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}

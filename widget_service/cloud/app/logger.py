@@ -4,6 +4,7 @@ import asyncio
 import functools
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -138,6 +139,22 @@ def json_for_log(value: Any) -> str:
         separators=(",", ":"),
         default=_json_log_default,
     )
+
+
+def json_text_for_log(value: str) -> str:
+    """记录模型 JSON 文本；非法 JSON 也遮蔽标识字段，不因解析失败泄露 uid/odid。"""
+    if get_settings().enable_sensitive_log_fields:
+        return json_for_log(value)
+    try:
+        decoded = json.loads(value)
+    except (ValueError, RecursionError):
+        pattern = (
+            r'("(?:uid|userId|userUid|callingUid|odid)"\s*:\s*)'
+            r'("(?:[^"\\]|\\.)*"|"[^\r\n]*$|[^,}\]\s]+)'
+        )
+        redacted = re.sub(pattern, r'\1"[REDACTED]"', value, flags=re.IGNORECASE)
+        return json_for_log(redacted)
+    return json_for_log(decoded)
 
 
 class TaskLogger:

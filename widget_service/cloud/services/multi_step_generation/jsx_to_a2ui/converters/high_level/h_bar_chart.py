@@ -50,6 +50,8 @@ def convert_h_bar_chart(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     text_color = "#99FFFFFF" if dark else _alpha(current.action_text, "99")
     track_color = "#33FFFFFF" if dark else _alpha(current.action_text, "33")
     bar_color = "#FFFFFFFF" if dark else current.action_text
+    compact = len(items) == 3
+    track_height = 4 if compact else 6
 
     bars: list[A2UINode] = []
     for index, item in enumerate(items):
@@ -111,11 +113,11 @@ def convert_h_bar_chart(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             100,
             kind="linear",
             color=bar_color,
-            stroke_width=6,
+            stroke_width=track_height,
             styles={
                 "width": "matchParent",
-                "height": 6,
-                "borderRadius": 3,
+                "height": track_height,
+                "borderRadius": 2 if compact else 3,
                 "backgroundColor": track_color,
                 "flexShrink": 0,
             },
@@ -126,7 +128,7 @@ def convert_h_bar_chart(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 "bar_chart_item",
                 [meta, track],
                 gap=4,
-                styles={"width": "matchParent", "height": 30, "alignItems": "start"},
+                styles={"width": "matchParent", "height": 28 if compact else 30, "alignItems": "start"},
             )
         )
 

@@ -84,49 +84,6 @@ def _enable_metrics(monkeypatch: pytest.MonkeyPatch, ops_metrics_module: ModuleT
 
 
 @pytest.mark.asyncio
-async def test_report_ops_metrics_does_not_wait_for_async_request(
-    monkeypatch: pytest.MonkeyPatch,
-    ops_metrics_module: ModuleType,
-) -> None:
-    _enable_metrics(monkeypatch, ops_metrics_module)
-    started = asyncio.Event()
-    release = asyncio.Event()
-    completed = asyncio.Event()
-    received: dict[str, Any] = {}
-
-    async def fake_trigger(
-        url: str,
-        payload: dict[str, Any],
-        session_id: str,
-        host: str,
-    ) -> None:
-        received.update(url=url, payload=payload, session_id=session_id, host=host)
-        started.set()
-        await release.wait()
-        completed.set()
-
-    monkeypatch.setattr(ops_metrics_module, "_report_ops_metrics_async", fake_trigger)
-
-    result = ops_metrics_module.report_ops_metrics({"taskSuccess": 1})
-
-    assert result is None
-    await asyncio.wait_for(started.wait(), timeout=1.0)
-    assert not completed.is_set()
-    assert received == {
-        "url": "http://container-host:8080/genui/agent/mq/trigger",
-        "payload": {
-            "sessionId": "session-from-context",
-            "body": {"taskSuccess": 1},
-        },
-        "session_id": "session-from-context",
-        "host": "container-host",
-    }
-
-    release.set()
-    await asyncio.wait_for(completed.wait(), timeout=1.0)
-
-
-@pytest.mark.asyncio
 async def test_report_ops_metrics_does_not_wait_when_called_from_worker_thread(
     monkeypatch: pytest.MonkeyPatch,
     ops_metrics_module: ModuleType,

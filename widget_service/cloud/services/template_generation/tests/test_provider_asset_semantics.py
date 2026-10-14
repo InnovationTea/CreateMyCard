@@ -13,10 +13,10 @@ from services.template_generation.engine.cardplan.models import (
     TemplateDefinition,
 )
 from services.template_generation.engine.cardplan.prompt import (
-    _asset_semantic_tags,
     _parameter_allowed_asset_sources,
 )
 from services.template_generation.engine.cardplan.provider_bundle import (
+    asset_semantic_tags,
     load_provider_bundle,
     load_provider_templates,
 )
@@ -27,7 +27,8 @@ _ROOT = Path(__file__).resolve().parents[1]
 _ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json"
 _SOURCE = "resources/base/media/"
 _SLOTS = (
-    ("BatteryOverviewSupport@1", "batteryIcon", "icon_phone.svg"),
+    # BatteryOverviewSupport@1 不在列：上游 #410 下架 icon_phone.svg 后，
+    # 其 batteryIcon 的 phone-device 语义已无在册素材（见下方专项用例）。
     ("BatteryOverviewStatusSupport@1", "batteryIcon", "bolt_fill.svg"),
     ("ActivityOverviewSupport@1", "stepsIcon", "figure_run.svg"),
     ("WorkoutOverviewSupport@1", "sourceIcon", "figure_run.svg"),
@@ -36,6 +37,12 @@ _SLOTS = (
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon", "icon_earphone.svg"),
     ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon", "earphone_case_16644.svg"),
     ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon", "icon_earphone.svg"),
+    ("BluetoothDeviceOverviewNameAndConnectionSupport@1", "bluetoothIconOrDeviceIcon",
+     "icon_earphone.svg"),
+    ("BluetoothDeviceOverviewNameAndChargeSupport@1", "bluetoothIconOrDeviceIcon",
+     "icon_earphone.svg"),
+    ("BluetoothDeviceOverviewEarbudsSupport@1", "leftIcon", "l_circle_fill.svg"),
+    ("BluetoothDeviceOverviewEarbudsSupport@1", "rightIcon", "r_circle_fill.svg"),
     ("ScheduleOverviewTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
     ("ScheduleOverviewLocationSupport@1", "calendarIcon", "calendar_fill.svg"),
     ("ScheduleOverviewStartTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
@@ -56,7 +63,7 @@ def catalog_contract() -> HybridBodyContract:
     for asset in assets:
         source = asset.get("src")
         assert isinstance(source, str)
-        tags_by_source[source] = _asset_semantic_tags(asset)
+        tags_by_source[source] = asset_semantic_tags(asset)
     return HybridBodyContract.model_construct(
         allowed_asset_sources=tuple(tags_by_source),
         asset_semantic_tags_by_source=tags_by_source,
@@ -73,7 +80,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 21
+    assert slot_count == 25
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -94,8 +101,29 @@ def test_mixed_catalog_is_filtered_per_business_slot(
         assert _SOURCE + "earphone_case_16644.svg" not in allowed
     if template_id == "BluetoothDeviceOverviewChargeSupport@1":
         assert _SOURCE + "icon_earphone.svg" not in allowed
-    if template_id == "BatteryOverviewSupport@1":
-        assert allowed == (_SOURCE + "icon_phone.svg",)
+    if parameter == "leftIcon":
+        assert _SOURCE + "r_circle_fill.svg" not in allowed
+    if parameter == "rightIcon":
+        assert _SOURCE + "l_circle_fill.svg" not in allowed
+
+
+def test_battery_support_phone_icon_slot_has_no_live_catalog_asset(
+    definitions: dict[str, TemplateDefinition],
+    catalog_contract: HybridBodyContract,
+) -> None:
+    """上游 #410 下架 icon_phone.svg 后，phone-device 语义暂无在册素材。"""
+    definition = definitions.get("BatteryOverviewSupport@1")
+    assert definition is not None
+    assert definition.asset_parameter_semantic_tags.get("batteryIcon") == ("phone-device",)
+    assert _parameter_allowed_asset_sources("batteryIcon", definition, catalog_contract) == ()
+    for probe in ("drop_1.svg", "bolt_fill.svg"):
+        with pytest.raises(TerselConversionError, match="semantics"):
+            _normalize_template_asset_params(
+                {"batteryIcon": _SOURCE + probe},
+                definition.asset_parameter_semantic_tags,
+                catalog_contract,
+                required_parameters=frozenset(),
+            )
 
 
 def test_phone_battery_support_icon_does_not_change_single_business_asset_semantics(
@@ -113,7 +141,7 @@ def test_phone_battery_support_icon_does_not_change_single_business_asset_semant
     "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
     "WeatherOverviewTemperatureSupport@1",
     "WeatherOverviewDaily2TravelSupport@1", "WeatherOverviewTravelSupport@1",
-    "WeatherOverviewHero@1", "WeatherOverviewFull@1",
+    "WeatherOverviewHero@1", "WeatherOverviewFull@1", "WeatherOverviewConditionSupport@1",
 ))
 def test_weather_slot_separates_single_and_dual_business_assets(
     definitions: dict[str, TemplateDefinition],
@@ -128,7 +156,8 @@ def test_weather_slot_separates_single_and_dual_business_assets(
         _SOURCE + "typhoon_fill.svg", _SOURCE + "icon_weather_wind.svg",
     }
     temperature_sources = {
-        _SOURCE + "heat_generation.svg", _SOURCE + "icon_weather_temperature1.svg",
+        # icon_weather_temperature1.svg 已被上游 #382 从素材目录下架。
+        _SOURCE + "heat_generation.svg",
         _SOURCE + "icon_weather_thermometer_medium.svg",
         _SOURCE + "icon_weather_thermometer.svg",
     }
@@ -172,36 +201,13 @@ def test_weather_slot_separates_single_and_dual_business_assets(
         )
 
 
-@pytest.mark.parametrize("template_id", (
-    "CountdownOverviewSupport@1", "CountdownOverviewTravelSupport@1",
-))
-def test_countdown_slot_only_accepts_timing_assets(
+def test_countdown_travel_support_declares_no_asset_slot(
     definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-    template_id: str,
 ) -> None:
-    definition = definitions.get(template_id)
+    """出行倒计时 Support 已删除 timerIcon 槽位，不得再声明任何素材参数。"""
+    definition = definitions.get("CountdownOverviewTravelSupport@1")
     assert definition is not None
-    allowed = _parameter_allowed_asset_sources("timerIcon", definition, catalog_contract)
-    timing_sources = {
-        _SOURCE + "hourglass_fill.svg",
-        _SOURCE + "stopwatch_fill.svg",
-        _SOURCE + "icon_timing.svg",
-    }
-    assert set(allowed) == timing_sources
-    for source in allowed:
-        normalized = _normalize_template_asset_params(
-            {"timerIcon": source}, definition.asset_parameter_semantic_tags,
-            catalog_contract, required_parameters=frozenset(),
-        )
-        assert normalized == {"timerIcon": source}
-    with pytest.raises(TerselConversionError, match="semantics"):
-        _normalize_template_asset_params(
-            {"timerIcon": _SOURCE + "clock.svg"},
-            definition.asset_parameter_semantic_tags,
-            catalog_contract,
-            required_parameters=frozenset(),
-        )
+    assert definition.asset_parameter_semantic_tags == {}
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -299,13 +305,14 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
     manifest = write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
     expected = {
-        "BatteryOverviewSupport@1": "asset.icon_phone",
+        # BatteryOverviewSupport@1 不贡献自身素材：icon_phone 已下架（上游 #410），
+        # 其用例仅携带 partner 的温度计素材。
         "BatteryOverviewStatusSupport@1": "asset.bolt_fill",
+        "WeatherOverviewConditionSupport@1": "asset.sun_max",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
+        "WeatherOverviewFeelsLikeWindSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewDaily2TravelSupport@1": "asset.icon_weather_thermometer",
         "WeatherOverviewTravelSupport@1": "asset.icon_weather_thermometer",
-        "CountdownOverviewSupport@1": "asset.icon_timing",
-        "CountdownOverviewTravelSupport@1": "asset.icon_timing",
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
         "SleepOverviewSupport@1": "asset.moon_z_fill_1",
@@ -313,12 +320,14 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "BluetoothDeviceOverviewEarbudsSupport@1": "asset.icon_earphone",
         "BluetoothDeviceOverviewChargeSupport@1": "asset.earphone_case_16644",
         "BluetoothDeviceOverviewConnectionSupport@1": "asset.icon_earphone",
+        "BluetoothDeviceOverviewNameAndConnectionSupport@1": "asset.icon_earphone",
+        "BluetoothDeviceOverviewNameAndChargeSupport@1": "asset.icon_earphone",
         "ScheduleOverviewTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewLocationSupport@1": "asset.calendar_fill",
         "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 64
+    assert len(provider.cases) == 79
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")
@@ -330,9 +339,20 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
             asset_id = expected.get(template_id)
             if asset_id is not None and asset_id not in expected_ids:
                 expected_ids.append(asset_id)
+            if template_id == "BluetoothDeviceOverviewEarbudsSupport@1":
+                expected_ids.extend(("asset.l_circle_fill", "asset.r_circle_fill"))
         assert asset_ids == expected_ids, case.caseId
         gallery_test = payload.get("galleryTest")
         assert isinstance(gallery_test, dict)
         overrides = gallery_test.get("sampleOverrides")
         assert isinstance(overrides, dict)
-        assert overrides.get("/data/weather/current/condition") == "多云"
+        expected_condition = "多云"
+        if "WeatherOverviewConditionSupport@1" in (case.targetTemplateId, case.partnerTemplateId):
+            expected_condition = "晴"
+        condition_path = "/data/weather/current/condition"
+        if case.targetTemplateId == "WeatherOverviewDaily2TravelSupport@1":
+            condition_path = "/data/weather/daily/2/condition"
+        elif case.targetTemplateId == "WeatherOverviewFeelsLikeWindSupport@1":
+            assert "/data/weather/current/condition" not in overrides
+            continue
+        assert overrides.get(condition_path) == expected_condition

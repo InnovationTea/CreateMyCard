@@ -34,7 +34,24 @@ from services.template_generation.engine.advanced.ux_mixed_prompt import (
     build_ux_mixed_prompt,
     build_ux_mixed_validation_retry_prompt,
 )
+from services.template_generation.engine.cardplan.battery_action_policy import (
+    resolve_battery_settings_fallback,
+)
+from services.template_generation.engine.cardplan.calendar_action_policy import (
+    resolve_calendar_view_fallback,
+)
+from services.template_generation.engine.cardplan.calendar_list_no_action_policy import (
+    plan_calendar_list_no_action_fallback,
+)
+from services.template_generation.engine.cardplan.calendar_no_action_policy import (
+    plan_calendar_no_action_fallback,
+)
 from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
+from services.template_generation.engine.cardplan.earphone_action_policy import (
+    resolve_earphone_candidate_actions,
+    restrict_earphone_action_role,
+    validate_earphone_action_exclusions,
+)
 from services.template_generation.engine.cardplan.models import (
     CARDTPL_SOURCE_FORMATS,
     TemplatePlan,
@@ -50,15 +67,20 @@ from services.template_generation.engine.cardplan.template_plan_planner import (
     planner_scope,
 )
 from services.template_generation.engine.cardplan.template_retrieval import (
+    BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE,
     TemplateRetrievalMiss,
+    TemplateRetrievalQuery,
     TemplateSearchIntent,
     build_template_retrieval_prompt,
+    normalize_calendar_reminder_intent,
+    normalize_redundant_date_intent,
     restrict_search_intent_to_preferred_templates,
     search_template_variants,
 )
 from services.template_generation.engine.tersel_converter import (
     TerselConversionError,
 )
+from services.template_generation.postprocessing import remove_bitmap_fill_colors
 from services.template_generation.profile import (
     TERSEL_PROTOCOL_PROFILE_ID,
     read_tersel_protocol_profile,
@@ -96,12 +118,8 @@ async def generate_template_a2ui(
 ) -> TemplateEngineOutput:
     """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
     logger.info(
-        f"{_MODULE} task_spec_received "
-        f"summary={json_for_log(_task_spec_log_summary(task_spec))}"
+        f"{_MODULE} task_spec_received summary={json_for_log(_task_spec_log_summary(task_spec))}"
     )
-    if task_spec.size == "2x4":
-        logger.info(f"{_MODULE} template_search_disabled_for_card_size size=2x4")
-        raise TemplateRouteNotApplicable("template Search does not support 2x4 cards")
     try:
         selected_task_spec = _with_trusted_sample_overrides(
             task_spec,
@@ -136,6 +154,14 @@ async def generate_template_a2ui(
     try:
         template_plans: tuple[TemplatePlan, ...] = ()
         if controls.first_layer_component_selector == "llm":
+            registry = CardPlanRegistry(
+                source_root=registry.source_root,
+                disabled_provider_ids=tuple(registry.disabled_provider_ids),
+                disabled_template_ids=(
+                    *sorted(registry.disabled_template_ids), BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE,
+                ),
+                enable_fusion_ball=enable_fusion_ball,
+            )
             selection = await plan_template_route_with_llm(
                 selected_task_spec,
                 data_shape,
@@ -153,6 +179,11 @@ async def generate_template_a2ui(
             )
             raw_query = await generate_json(prompt, "template-retrieval-query")
             intent = TemplateSearchIntent.model_validate(raw_query)
+            intent = normalize_redundant_date_intent(intent, coverage_bindings)
+            original_intent = intent
+            intent = normalize_calendar_reminder_intent(
+                intent, selected_task_spec, coverage_bindings,
+            )
             intent = restrict_search_intent_to_preferred_templates(
                 intent,
                 registry,
@@ -163,25 +194,112 @@ async def generate_template_a2ui(
                 trusted_template_action_ids,
                 selected_task_spec,
             )
-            search_result = search_template_variants(
-                intent,
-                selected_task_spec,
-                registry,
-                coverage_bindings,
-                card_spec,
-                preferred_template_ids=trusted_template_candidate_ids,
+            logger.info(
+                f"{_MODULE} template_retrieval_intent "
+                f"decision={json_for_log(intent.model_dump(mode='json', by_alias=True))}"
             )
-            template_plans = plan_template_candidates(
-                intent,
-                search_result,
-                selected_task_spec,
-                registry,
-            )
+            battery_action_is_optional = False
+            try:
+                validate_earphone_action_exclusions(intent, selected_task_spec)
+                search_result = search_template_variants(
+                    intent,
+                    selected_task_spec,
+                    registry,
+                    coverage_bindings,
+                    card_spec,
+                    preferred_template_ids=trusted_template_candidate_ids,
+                )
+                resolved_intent = resolve_calendar_view_fallback(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                    registry,
+                )
+                if resolved_intent.action_ids != intent.action_ids:
+                    logger.info(
+                        f"{_MODULE} calendar_view_fallback selected=True reason=hero_without_full"
+                    )
+                intent = resolved_intent
+                battery_action_is_optional = (
+                    selected_task_spec.size == "2x2"
+                    and tuple(intent.required_output_fields_by_capability) == (
+                        "GetPhoneBatteryInfo",
+                    )
+                    and not intent.action_ids
+                )
+                resolved_intent = resolve_battery_settings_fallback(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                )
+                if resolved_intent.action_ids != intent.action_ids:
+                    logger.info(
+                        f"{_MODULE} battery_settings_fallback selected=True "
+                        "reason=legal_hero_action_candidate"
+                    )
+                intent = resolved_intent
+                if not trusted_template_action_ids:
+                    resolved_earphone_intent = resolve_earphone_candidate_actions(
+                        intent,
+                        search_result,
+                        selected_task_spec,
+                        registry,
+                    )
+                    if resolved_earphone_intent.action_ids != intent.action_ids:
+                        search_result = restrict_earphone_action_role(
+                            search_result,
+                            len(resolved_earphone_intent.action_ids),
+                        )
+                    intent = resolved_earphone_intent
+                template_plans = plan_template_candidates(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                    registry,
+                    candidate_bindings=coverage_bindings,
+                    allow_battery_no_action_plan=battery_action_is_optional,
+                )
+            except TemplateRetrievalMiss:
+                fallback = plan_calendar_no_action_fallback(
+                    original_intent,
+                    selected_task_spec,
+                    registry,
+                    coverage_bindings,
+                    card_spec,
+                    enable_fusion_ball=enable_fusion_ball,
+                    trusted_template_candidate_ids=trusted_template_candidate_ids,
+                    trusted_template_action_ids=trusted_template_action_ids,
+                )
+                if fallback is None:
+                    fallback = plan_calendar_list_no_action_fallback(
+                        original_intent,
+                        selected_task_spec,
+                        registry,
+                        coverage_bindings,
+                        card_spec,
+                        enable_fusion_ball=enable_fusion_ball,
+                        trusted_template_candidate_ids=trusted_template_candidate_ids,
+                        trusted_template_action_ids=trusted_template_action_ids,
+                    )
+                if fallback is None:
+                    raise
+                intent = fallback.intent
+                registry = fallback.registry
+                search_result = fallback.search_result
+                template_plans = fallback.plans
+                logger.info(
+                    f"{_MODULE} calendar_no_action_fallback selected=True "
+                    "reason=original_search_or_planner_miss"
+                )
             selection = TemplateRouteSelection(
                 scope=planner_scope(template_plans),
                 componentCandidates=planner_component_candidates(template_plans),
-                actionIds=intent.action_ids,
+                actionIds=(
+                    () if battery_action_is_optional and not template_plans[0].action_assignments
+                    else intent.action_ids
+                ),
                 requiredTemplateGroups=planner_required_template_groups(template_plans),
+                requiredOutputFieldsByCapability=intent.required_output_fields_by_capability,
             )
             logger.info(
                 f"{_MODULE} template_retrieval matched=True "
@@ -211,6 +329,9 @@ async def generate_template_a2ui(
             scope=scope,
             component_candidates=selection.component_candidates,
             required_template_groups=selection.required_template_groups,
+            required_output_fields_by_capability=(
+                selection.required_output_fields_by_capability
+            ),
             template_plans=template_plans,
             registry=registry,
             model_client=model_client,
@@ -263,11 +384,13 @@ def _with_trusted_sample_overrides(
     return task_spec.model_copy(update={"dataModelSchema": schema})
 
 
-def _restrict_template_intent_actions(
-    intent: TemplateSearchIntent,
+def _restrict_template_intent_actions[
+    TemplateIntent: (TemplateSearchIntent, TemplateRetrievalQuery)
+](
+    intent: TemplateIntent,
     trusted_template_action_ids: tuple[str, ...],
     task_spec: TaskSpec,
-) -> TemplateSearchIntent:
+) -> TemplateIntent:
     """Apply trusted gallery Action overrides before deterministic planning."""
     if not trusted_template_action_ids:
         return intent
@@ -317,15 +440,29 @@ async def _generate_selected_templates(
     scope: AdvancedScopeBrief,
     component_candidates: tuple[TemplateComponentCandidate, ...],
     required_template_groups: tuple[tuple[str, ...], ...],
+    required_output_fields_by_capability: dict[str, tuple[str, ...]],
     registry: CardPlanRegistry,
     model_client: Any,
     template_plans: tuple[TemplatePlan, ...] = (),
 ) -> TemplateEngineOutput:
-    projected_task_spec = project_content_component_facts(
-        source_task_spec,
-        effective_capability_ids,
-        scope.advanced_component_ids,
-    )
+    generic_paths: list[str] = []
+    for plan in template_plans:
+        for slot in plan.business_slots:
+            for path in slot.field_bindings.values():
+                if path not in generic_paths:
+                    generic_paths.append(path)
+    if registry.enabled_calendar_fallback_template_ids:
+        # 补充 Full 的最小字段不依赖旧日程投影形态。下方仍按已检索模板的
+        # required/optional 路径复制真实源字段，并由正式编译器验证绑定。
+        projected_task_spec = source_task_spec.model_copy(update={"dataModelSchema": {"data": {}}})
+    else:
+        projected_task_spec = project_content_component_facts(
+            source_task_spec,
+            effective_capability_ids,
+            scope.advanced_component_ids,
+            required_output_fields_by_capability=required_output_fields_by_capability,
+            generic_output_fields=tuple(generic_paths) if template_plans else None,
+        )
     projected_task_spec = _with_provider_template_runtime_data(
         source_task_spec,
         projected_task_spec,
@@ -333,6 +470,7 @@ async def _generate_selected_templates(
         scope.advanced_component_ids,
         component_candidates,
         registry,
+        generic_output_fields=tuple(generic_paths) if template_plans else None,
     )
     projection = build_ux_mixed_prompt(
         task_spec=projected_task_spec,
@@ -405,7 +543,7 @@ async def _generate_selected_templates(
         f"repair_count={repair_count}"
     )
     return TemplateEngineOutput(
-        a2ui=compilation.a2ui,
+        a2ui=remove_bitmap_fill_colors(compilation.a2ui),
         tersel=compilation.effective_output,
         projected_task_spec=projected_task_spec,
         template_ids=tuple(compilation.stats.template_used_ids),
@@ -442,6 +580,8 @@ def _with_provider_template_runtime_data(
     component_ids: tuple[str, ...],
     component_candidates: tuple[TemplateComponentCandidate, ...],
     registry: CardPlanRegistry,
+    *,
+    generic_output_fields: tuple[str, ...] | None = None,
 ) -> TaskSpec:
     schema = deepcopy(projected.dataModelSchema)
     template_ids_by_component = {
@@ -472,15 +612,29 @@ def _with_provider_template_runtime_data(
                     if isinstance(validation, dict):
                         validation[component_id] = component_projection
                 changed = True
-            provider_paths = tuple(
-                dict.fromkeys(
-                    (
-                        *definition.required_data,
-                        *definition.optional_data,
-                        *(binding.path for binding in definition.bindings.values()),
+            if component_id == "GenericMetricOverview" and isinstance(
+                component_projection, dict
+            ):
+                # Generic templates are intentionally not tied to a provider
+                # field list. Copy the selected scalar leaves back to their
+                # provider root so the generated path bindings remain valid.
+                provider_paths = tuple(
+                    f"/{field_name}"
+                    for field_name in component_projection
+                    if isinstance(field_name, str) and field_name
+                )
+            else:
+                provider_paths = tuple(
+                    dict.fromkeys(
+                        (
+                            *definition.required_data,
+                            *definition.optional_data,
+                            *(binding.path for binding in definition.bindings.values()),
+                        )
                     )
                 )
-            )
+            if component_id == "GenericMetricOverview" and generic_output_fields is not None:
+                provider_paths = generic_output_fields
             for root in roots:
                 for relative_path in provider_paths:
                     path = f"{root.rstrip('/')}{relative_path}"

@@ -7,7 +7,8 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
-from pydantic_settings import BaseSettings
+from pydantic import AliasChoices, AliasGenerator, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from config.config_helper import ConfigHelper
 
@@ -27,7 +28,29 @@ def _parse_json_config(value: str, fallback):
         return fallback
 
 
+def _config_aliases(field_name: str) -> AliasChoices:
+    return AliasChoices(
+        f"WIDGET_SERVICE_{field_name.upper()}",
+        field_name.upper(),
+        field_name,
+    )
+
+
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=(
+            Path(__file__).resolve().parents[2] / ".env"
+            if platform.system() == "Windows"
+            else None
+        ),
+        env_file_encoding="utf-8",
+        env_prefix="",
+        case_sensitive=False,
+        extra="ignore",
+        populate_by_name=True,
+        alias_generator=AliasGenerator(validation_alias=_config_aliases),
+    )
+
     container_ip: str = get_container_ip()
     if platform.system() == "Windows":
         LOCAL_FLAG: bool = True
@@ -43,6 +66,7 @@ class Settings(BaseSettings):
         CONFIG: ConfigHelper = ConfigHelper("local")
     else:
         CONFIG: ConfigHelper = ConfigHelper("cloud")
+    WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
     hag_slb_url: str = CONFIG.get("hag_slb_url")
     osms_prepare_url: str = urljoin(hag_slb_url, CONFIG.get("osms_prepare_url"))
     osms_complete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_complete_url"))
@@ -50,7 +74,7 @@ class Settings(BaseSettings):
     osms_delete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_delete_url"))
     hag_osms_ak: str = CONFIG.get("hag_osms_ak")
     capability_registry_version: str = "app-11.7.5.205_rom-6.0"
-    # src → 云侧 url 映射（JSON 字符串，缺省为空 dict）。生成 DSL 时按 src 命中替换为 url。
+    # src → 云侧 URL 映射；模型使用原始 src，标准 A2UI 生成后精确替换，未命中保留原路径。
     asset_src_url_mapping: dict = _parse_json_config(CONFIG.get("asset.src.url.mapping"), {})
     design_compact_profile_id: str = "design-compact-dsl"
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
@@ -87,9 +111,33 @@ class Settings(BaseSettings):
     model_flow_id: str = CONFIG.get("model_flow_id")
     model_temperature: float = 0.4
     model_top_k: int = 1
-    system_prompt: str = CONFIG.get("system.prompt")
-    edit_system_prompt: str = CONFIG.get("edit.system.prompt")
-    repair_system_prompt: str = CONFIG.get("repair.system.prompt")
+    system_prompt: str = Field(
+        default=CONFIG.get("system.prompt"),
+        validation_alias=AliasChoices(
+            "WIDGET_SERVICE_SYSTEM_PROMPT_FILE",
+            "WIDGET_SERVICE_SYSTEM_PROMPT",
+            "SYSTEM_PROMPT_FILE",
+            "SYSTEM_PROMPT",
+        ),
+    )
+    edit_system_prompt: str = Field(
+        default=CONFIG.get("edit.system.prompt"),
+        validation_alias=AliasChoices(
+            "WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE",
+            "WIDGET_SERVICE_EDIT_SYSTEM_PROMPT",
+            "EDIT_SYSTEM_PROMPT_FILE",
+            "EDIT_SYSTEM_PROMPT",
+        ),
+    )
+    repair_system_prompt: str = Field(
+        default=CONFIG.get("repair.system.prompt"),
+        validation_alias=AliasChoices(
+            "WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE",
+            "WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT",
+            "REPAIR_SYSTEM_PROMPT_FILE",
+            "REPAIR_SYSTEM_PROMPT",
+        ),
+    )
     a2ui_form_model_backend: str = CONFIG.get("a2ui_form_model_backend")
     design_compact_model_backend: str = CONFIG.get("design_compact_model_backend")
     validation_failure_max_repair_attempts: int = CONFIG.get(
@@ -102,6 +150,33 @@ class Settings(BaseSettings):
     # 模型降级配置
     openai_master_client: str = CONFIG.get("openai_master_client")
     openai_fallback_client: str = CONFIG.get("openai_fallback_client")
+    deepseek_official_http_url: str = CONFIG.get(
+        "deepseek_official_http_url",
+        "https://api.deepseek.com/chat/completions",
+    )
+    deepseek_official_http_api_key: str = CONFIG.get(
+        "deepseek_official_http_api_key",
+        "",
+    )
+    deepseek_official_http_model: str = CONFIG.get(
+        "deepseek_official_http_model",
+        "deepseek-flash",
+    )
+    deepseek_official_http_temperature: float = CONFIG.get(
+        "deepseek_official_http_temperature",
+        0.7,
+    )
+    deepseek_official_http_top_p: float = CONFIG.get(
+        "deepseek_official_http_top_p",
+        0.9,
+    )
+    deepseek_official_http_max_tokens: int = CONFIG.get(
+        "deepseek_official_http_max_tokens",
+        8192,
+    )
+    deepseek_official_http_enable_thinking: bool = (
+        CONFIG.get("deepseek_official_http_enable_thinking", "false") == "true"
+    )
     # DeepSeekPlatform 配置
     deepseek_platform_access_key: str = CONFIG.get("deepseek_platform_access_key")
     deepseek_platform_secret_key_sts_config_key: str = CONFIG.get(
@@ -151,11 +226,34 @@ class Settings(BaseSettings):
         "compact_dsl_argument_repair_max_attempts",
         2,
     )
+    enable_compact_dsl_interface_retry: bool = (
+        CONFIG.get("enable_compact_dsl_interface_retry", "false") == "true"
+    )
+    enable_design_compact_few_shots: bool = (
+        CONFIG.get("enable_design_compact_few_shots", "true") == "true"
+    )
+    enable_design_compact_few_shot_selection: bool = (
+        CONFIG.get("enable_design_compact_few_shot_selection", "false") == "true"
+    )
+    enable_design_compact_runtime_prompt_context: bool = (
+        CONFIG.get("enable_design_compact_runtime_prompt_context", "false") == "true"
+    )
+    compact_dsl_interface_retry_count: int = Field(
+        default=CONFIG.get("compact_dsl_interface_retry_count", 1),
+        ge=0,
+    )
+
     enable_default_protocol_profile_fallback: bool = (
         CONFIG.get("enable_default_protocol_profile_fallback") == "true"
     )
     enable_openai_fallback: bool = CONFIG.get("enable_openai_fallback") == "true"
     enable_sensitive_log_fields: bool = CONFIG.get("enable_sensitive_log_fields") == "true"
+    enable_generation_trace_recording: bool = (
+        CONFIG.get("enable_generation_trace_recording", "false") == "true"
+    )
+    generation_trace_root: Path = Path(
+        CONFIG.get("generation_trace_root", "workspace/traces")
+    )
     ids_installation_filter_package_names: tuple[str, ...] = (
         "com.huawei.hmsapp.totemweather",
         "com.huawei.hmos.health",
@@ -164,6 +262,7 @@ class Settings(BaseSettings):
 
     # deepseek v4 flash model config
     deepseek_ws_url: str = CONFIG.get("deepseek_ws_url")
+    deepseek_http_url: str = CONFIG.get("deepseek_http_url", "")
     deepseek_model: str = CONFIG.get("deepseek_model")
     deepseek_api_key: str = CONFIG.get("deepseek_api_key")
     deepseek_user: str = CONFIG.get("deepseek_user")
@@ -193,6 +292,51 @@ class Settings(BaseSettings):
 
     # dmq 华山开关
     ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
+
+    @field_validator("compact_dsl_interface_retry_count", mode="before")
+    @classmethod
+    def validate_interface_retry_count(cls, value: object) -> object:
+        """允许配置文件中的整数字符串，不接受布尔值或浮点数。"""
+        if isinstance(value, (bool, float)):
+            raise ValueError("compact_dsl_interface_retry_count must be a non-negative integer")
+        return value
+
+    @field_validator("system_prompt", "edit_system_prompt", "repair_system_prompt", mode="before")
+    @classmethod
+    def load_prompt_file_alias(cls, value: object) -> object:
+        """兼容 .env.example 中的 prompt 文件路径配置。"""
+        if not isinstance(value, str):
+            return value
+        if "\n" in value:
+            return value
+        candidate = Path(value).expanduser()
+        roots = (
+            Path.cwd(),
+            Path(__file__).resolve().parents[2],
+            Path(__file__).resolve().parents[3],
+        )
+        candidates = (
+            [candidate]
+            if candidate.is_absolute()
+            else [root / candidate for root in roots]
+        )
+        for path in candidates:
+            if path.is_file():
+                return path.read_text(encoding="utf-8")
+        return value
+
+    @field_validator("openai_master_client", "openai_fallback_client")
+    @classmethod
+    def validate_model_provider(cls, value: str) -> str:
+        allowed = {
+            "mep",
+            "deepseek_platform",
+            "llmclient",
+            "deepseek_official_http",
+        }
+        if value not in allowed:
+            raise ValueError(f"unsupported model provider: {value}")
+        return value
 
     @property
     def package_root(self) -> Path:

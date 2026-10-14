@@ -6,7 +6,12 @@ from typing import Literal, Protocol
 from models.generation import ModelRequestContext
 
 ModelBackend = Literal["mep", "openai"]
-ModelProvider = Literal["mep", "deepseek_platform", "llmclient"]
+ModelProvider = Literal[
+    "mep",
+    "deepseek_platform",
+    "llmclient",
+    "deepseek_official_http",
+]
 
 
 class ModelTransport(Protocol):

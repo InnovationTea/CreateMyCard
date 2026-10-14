@@ -10,6 +10,14 @@ from config.config import Settings
 from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelBackend, ModelProvider, ModelTransportError
 from models.generation import ModelRequestContext
+from services.generation_trace_recorder import (
+    trace_attempt,
+    trace_details,
+    trace_increment_retry,
+    trace_next_attempt,
+    trace_record,
+    trace_span,
+)
 
 _MODULE = "[Unified Model Client]"
 
@@ -55,25 +63,38 @@ class UnifiedModelClient:
         allow_mep_partial_abort: bool = False,
     ) -> str:
         """执行一次逻辑模型调用；每轮 repair 会重新调用并从 master 开始。"""
+        logical_attempt = trace_next_attempt("modelLogicalCalls")
         plans = self._provider_plans(backend)
         last_error: Exception | None = None
-        for plan_index, plan in enumerate(plans):
-            if plan_index > 0:
-                self.retry_count += 1
-                logger.warning(
-                    f"{_MODULE} fallback_started operation={self.operation_name} "
-                    f"phase={phase} provider={plan.provider}"
-                )
-            try:
-                return await self._generate_with_provider(
-                    plan,
-                    messages,
-                    request_context,
-                    phase,
-                    allow_mep_partial_abort,
-                )
-            except Exception as exc:
-                last_error = exc
+        with trace_attempt(modelLogical=logical_attempt):
+            for plan_index, plan in enumerate(plans):
+                if plan_index > 0:
+                    self.retry_count += 1
+                    trace_increment_retry("providerFallbacks")
+                    trace_record(
+                        "model.provider_fallback",
+                        stage="model.routing",
+                        status="started",
+                        details={
+                            "phase": phase,
+                            "provider": plan.provider,
+                            "role": plan.role,
+                        },
+                    )
+                    logger.warning(
+                        f"{_MODULE} fallback_started operation={self.operation_name} "
+                        f"phase={phase} provider={plan.provider}"
+                    )
+                try:
+                    return await self._generate_with_provider(
+                        plan,
+                        messages,
+                        request_context,
+                        phase,
+                        allow_mep_partial_abort,
+                    )
+                except Exception as exc:
+                    last_error = exc
         if last_error is None:
             raise ModelTransportError("model provider plan is empty")
         if isinstance(last_error, ModelTransportError):
@@ -127,37 +148,117 @@ class UnifiedModelClient:
         allow_mep_partial_abort: bool,
     ) -> str:
         max_attempts = plan.max_retry_attempts + 1
-        for attempt in range(1, max_attempts + 1):
-            try:
-                result = await self._runtime_generate_once(
-                    plan.provider,
-                    messages,
-                    request_context,
-                )
-                return self._require_output(result)
-            except Exception as exc:
-                recovered = self._recover_mep_partial_output(
-                    exc,
-                    plan.provider,
-                    allow_mep_partial_abort,
-                )
-                if recovered is not None:
-                    return recovered
-                should_retry = attempt < max_attempts
-                delay_seconds = self._retry_delay_seconds(attempt) if should_retry else 0.0
-                log_failure = logger.warning if should_retry else logger.error
-                log_failure(
-                    f"{_MODULE} model_call_failed operation={self.operation_name} "
-                    f"phase={phase} provider={plan.provider} role={plan.role} "
-                    f"attempt={attempt} max_attempts={max_attempts} "
-                    f"will_retry={json_for_log(should_retry)} "
-                    f"retry_delay_seconds={delay_seconds} "
-                    f"exception_type={type(exc).__name__}"
-                )
-                if not should_retry:
-                    raise
-                self.retry_count += 1
-                await self._sleep(delay_seconds)
+        with trace_details(modelPhase=phase, provider=plan.provider, role=plan.role):
+            for provider_attempt in range(1, max_attempts + 1):
+                physical_attempt = trace_next_attempt("modelPhysicalAttempts")
+                with (
+                    trace_attempt(
+                        modelPhysical=physical_attempt,
+                        providerAttempt=provider_attempt,
+                    ),
+                    trace_span(
+                        "model.physical_call",
+                        stage="model.physicalCall",
+                        details={
+                            "phase": phase,
+                            "provider": plan.provider,
+                            "role": plan.role,
+                        },
+                        kind="model",
+                    ) as physical_span,
+                ):
+                    physical_span.json_artifacts[f"{phase}_model_messages"] = messages
+                    physical_span.artifact_roles[f"{phase}_model_messages"] = "input"
+                    trace_record(
+                        "model.physical_attempt",
+                        stage="model.execution",
+                        status="started",
+                    )
+                    try:
+                        result = await self._runtime_generate_once(
+                            plan.provider,
+                            messages,
+                            request_context,
+                        )
+                        output = self._require_output(result)
+                        physical_span.text_artifacts[f"{phase}_assistant_raw"] = output
+                        physical_span.artifact_roles[f"{phase}_assistant_raw"] = "output"
+                        trace_record(
+                            "model.physical_attempt",
+                            stage="model.execution",
+                            status="success",
+                            details={"outputChars": len(output)},
+                        )
+                        return output
+                    except Exception as exc:
+                        recovered = self._recover_mep_partial_output(
+                            exc,
+                            plan.provider,
+                            allow_mep_partial_abort,
+                        )
+                        if recovered is not None:
+                            physical_span.outcome("recovered", errorCode=getattr(exc, "code", ""))
+                            recovered_name = f"{phase}_assistant_partial_recovered"
+                            physical_span.text_artifacts[recovered_name] = recovered
+                            physical_span.artifact_roles[recovered_name] = "output"
+                            trace_record(
+                                "model.partial_output_recovered",
+                                stage="model.execution",
+                                status="recovered",
+                                details={
+                                    "outputChars": len(recovered),
+                                    "errorCode": getattr(exc, "code", ""),
+                                },
+                            )
+                            return recovered
+                        should_retry = provider_attempt < max_attempts
+                        physical_span.outcome(
+                            "failed",
+                            exceptionType=type(exc).__name__,
+                            message=str(exc),
+                            willRetry=should_retry,
+                        )
+                        delay_seconds = (
+                            self._retry_delay_seconds(provider_attempt) if should_retry else 0.0
+                        )
+                        trace_record(
+                            "model.physical_attempt",
+                            stage="model.execution",
+                            status="failed",
+                            details={
+                                "exceptionType": type(exc).__name__,
+                                "message": str(exc),
+                                "errorCode": getattr(exc, "code", ""),
+                                "willRetry": should_retry,
+                                "backoffMs": round(delay_seconds * 1000, 2),
+                                "nextProviderAttempt": (
+                                    provider_attempt + 1 if should_retry else None
+                                ),
+                            },
+                        )
+                        log_failure = logger.warning if should_retry else logger.error
+                        log_failure(
+                            f"{_MODULE} model_call_failed "
+                            f"operation={self.operation_name} phase={phase} "
+                            f"provider={plan.provider} role={plan.role} "
+                            f"attempt={provider_attempt} max_attempts={max_attempts} "
+                            f"will_retry={json_for_log(should_retry)} "
+                            f"retry_delay_seconds={delay_seconds} "
+                            f"exception_type={type(exc).__name__}"
+                        )
+                        if not should_retry:
+                            raise
+                        self.retry_count += 1
+                        trace_increment_retry("modelTransportRetries")
+                with trace_span(
+                    "model.retry_backoff",
+                    stage="model.retryBackoff",
+                    details={
+                        "configuredBackoffMs": round(delay_seconds * 1000, 2),
+                        "nextProviderAttempt": provider_attempt + 1,
+                    },
+                ):
+                    await self._sleep(delay_seconds)
         raise AssertionError("model retry loop exited unexpectedly")
 
     async def _runtime_generate_once(

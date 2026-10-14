@@ -46,8 +46,9 @@ def _palette(name: str, background: str, content: str, stops: tuple[str, ...] = 
 
 # A2UI-only orb fallback: retain the source palette as a linear approximation.
 # JSX uses the authored ellipse layers and backdrop blur, not these gradients.
+_PLAIN_SURFACE = _palette("__plain-surface", "FFFFFF", "000000")
+
 APPEARANCES: dict[str, Appearance] = {
-    "solid-white": _palette("solid-white", "FFFFFF", "000000"),
     "solid-blue": _palette("solid-blue", "E5EDFE", "1F4799"),
     "solid-orange": _palette("solid-orange", "FFF3E6", "99661F"),
     "solid-green": _palette("solid-green", "F0FFE6", "52991F"),
@@ -55,12 +56,12 @@ APPEARANCES: dict[str, Appearance] = {
     "solid-purple": _palette("solid-purple", "EDE6FF", "401F99"),
     "orb-orange": _palette("orb-orange", "BF3F26", "FFFFFF", ("BF3F26", "FF8E3E", "FAA89E")),
     "orb-blue": _palette("orb-blue", "121E59", "FFFFFF", ("121E59", "8FA2D9", "52CCCC")),
-    "orb-purple": _palette("orb-purple", "1B1259", "FFFFFF", ("1B1259", "5761D9", "B398D9")),
+    "orb-purple": _palette("orb-purple", "1B1259", "FFFFFF", ("1B1259", "572BD9", "B398D9")),
     "orb-green": _palette("orb-green", "17734C", "FFFFFF", ("17734C", "26BFA6", "60BF98")),
 }
 
 APPEARANCE_ALIASES = {
-    "neutral-soft": "solid-white",
+    "neutral-soft": "solid-blue",
     "blue-soft": "solid-blue",
     "pink-soft": "solid-orange",
     "yellow-soft": "solid-orange",
@@ -80,6 +81,8 @@ APPEARANCES.update({
 
 
 def get_appearance(name: str | None) -> Appearance:
+    if name in {None, _PLAIN_SURFACE.name}:
+        return _PLAIN_SURFACE
     key = name or "blue-soft"
     try:
         return APPEARANCES[key]
@@ -88,7 +91,9 @@ def get_appearance(name: str | None) -> Appearance:
 
 
 def resolve_appearance_name(name: str | None, size: str | None = None) -> str:
-    canonical = APPEARANCE_ALIASES.get(name, name) or "solid-white"
+    if name is None:
+        return _PLAIN_SURFACE.name
+    canonical = APPEARANCE_ALIASES.get(name, name)
     get_appearance(canonical)
     if size == "2x4" and canonical.startswith("orb-"):
         return canonical.replace("orb-", "solid-", 1)

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux left content group statusArea must use justifyContent center so its compact text group is not pinned to the top or left."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "46359a6049f61b565d3b668bfd19b1016e9c8fbc383102d556ea69bffc07106c",
+    "sample_task_spec.json": "e782d8143a10485b3facc7cbc9ba6a6b789bfe770d8af023141fce5ab3f81120",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

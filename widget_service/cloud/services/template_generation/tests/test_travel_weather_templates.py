@@ -228,8 +228,8 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
     )
     body = (
         'Template("TwoSupportLayout@1",{},'
-        'Template("CountdownOverviewSupport@1",'
-        '{"timerIcon":"resources/base/media/icon_timing.svg"}),'
+        'Template("CountdownOverviewTravelSupport@1",'
+        '{}),'
         'Template("WeatherOverviewDaily2TravelSupport@1",'
         '{"conditionIcon":"resources/base/media/icon_weather_thermometer.svg"}));'
     )
@@ -243,16 +243,17 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
     )
 
     assert "WeatherOverviewDaily2TravelSupport@1" in output.template_ids
-    assert "CountdownOverviewSupport@1" in output.template_ids
+    assert "CountdownOverviewTravelSupport@1" in output.template_ids
     assert "${/data/weather/daily/2/condition}" in output.a2ui
     assert "${/data/weather/daily/2/temperatureRangeText}" in output.a2ui
-    assert output.a2ui.count('"backgroundColor":"#1A2E529E"') == 2
-    assert "resources/base/media/icon_timing.svg" in output.a2ui
+    assert output.a2ui.count('"backgroundColor":"#CCFFFFFF"') == 2
+    assert "resources/base/media/icon_timing.svg" not in output.a2ui
     assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
 
 
 @pytest.mark.asyncio
-async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
+@pytest.mark.parametrize("rain_probability", [0, 12.5, 60, 100])
+async def test_q026_binds_alarm_action_to_travel_capsule(rain_probability: int | float) -> None:
     weather_fields = (
         "/daily/4/condition",
         "/daily/4/temperatureRangeText",
@@ -272,7 +273,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
                         {
                             "condition": _field("string", "小雨"),
                             "temperatureRangeText": _field("string", "20℃ / 28℃"),
-                            "rainProbabilityPercent": _field("string", "60%"),
+                            "rainProbabilityPercent": _field("number", rain_probability),
                         },
                     )
                 },
@@ -294,8 +295,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
     body = (
         'Template("TwoSupportLayout@1",{},'
         'Template("CountdownOverviewTravelSupport@1",'
-        '{"title":"西安出行","actionId":"event.open.clock.alarm",'
-        '"timerIcon":"resources/base/media/icon_timing.svg"}),'
+        '{"title":"西安出行","actionId":"event.open.clock.alarm"}),'
         'Template("WeatherOverviewTravelSupport@1",'
         '{"conditionIcon":"resources/base/media/icon_weather_thermometer.svg"}));'
     )
@@ -314,7 +314,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
     assert "${/data/weather/daily/4/condition}" in output.a2ui
     assert "${/data/weather/daily/4/rainProbabilityPercent}" in output.a2ui
     assert "clickToDeeplink" in output.a2ui
-    assert "resources/base/media/icon_timing.svg" in output.a2ui
+    assert "resources/base/media/icon_timing.svg" not in output.a2ui
     assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
     condition = _component_for_content(
         output.a2ui,
@@ -326,7 +326,7 @@ async def test_q026_binds_alarm_action_to_travel_capsule() -> None:
     )
     rain_probability = _component_for_content(
         output.a2ui,
-        "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} }}",
+        "{{ '降雨概率 ' + ${/data/weather/daily/4/rainProbabilityPercent} + '%' }}",
     )
     # 基底布局以温度范围为主行、天气现象与降雨概率为副行。
     assert temperature.get("styles", {}).get("fontSize") == 14
@@ -391,7 +391,7 @@ async def test_q042_binds_weather_action_to_weather_capsule() -> None:
     body = (
         'Template("TwoSupportLayout@1",{},'
         'Template("CountdownOverviewTravelSupport@1",'
-        '{"title":"出差倒计时","timerIcon":"resources/base/media/icon_timing.svg"}),'
+        '{"title":"出差倒计时"}),'
         'Template("WeatherOverviewTemperatureSupport@1",'
         '{"actionId":"event.open.weather",'
         '"conditionIcon":"resources/base/media/icon_weather_thermometer.svg"}));'
@@ -411,7 +411,7 @@ async def test_q042_binds_weather_action_to_weather_capsule() -> None:
     assert "${/data/weather/current/temperatureC}" in output.a2ui
     assert "${/data/weather/current/condition}" in output.a2ui
     assert "${/data/weather/location/cityCode}" in output.a2ui
-    assert "resources/base/media/icon_timing.svg" in output.a2ui
+    assert "resources/base/media/icon_timing.svg" not in output.a2ui
     assert "resources/base/media/icon_weather_thermometer.svg" in output.a2ui
     condition = _component_for_content(
         output.a2ui,

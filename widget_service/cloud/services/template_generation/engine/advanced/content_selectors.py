@@ -71,6 +71,31 @@ _SCHEDULE_TEMPLATE_VARIANT_SPECS: tuple[
         ),
     ),
     (
+        "reminderSource",
+        (
+            ("senderName", "/events/0/senderName", "string", True),
+            ("remindTime", "/events/0/remindTime/0", "string", False),
+        ),
+    ),
+    (
+        "allDayLocation",
+        (
+            ("title", "/events/0/title", "string", False),
+            ("isAllDay", "/events/0/isAllDay", "boolean", False),
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+        ),
+    ),
+    (
+        "eventCountDatedLocation",
+        (
+            ("eventCount", "/eventCount", "integer", False),
+            ("title", "/events/0/title", "string", False),
+            ("startDate", "/events/0/startDate", "string", False),
+            ("dtStart", "/events/0/dtStart", "string", False),
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+        ),
+    ),
+    (
         "eventCountDetails",
         (
             ("eventCount", "/eventCount", "integer", False),
@@ -84,6 +109,7 @@ _SCHEDULE_TEMPLATE_VARIANT_SPECS: tuple[
 _SCHEDULE_VARIANT_ALLOWED_UNSUPPORTED_TERMS: dict[str, frozenset[str]] = {
     "locationDescriptionEnd": frozenset({"备注", "memo"}),
     "reminderDetails": frozenset({"邀请人", "发起人", "sender name"}),
+    "reminderSource": frozenset({"邀请人", "发起人", "sender name"}),
     "eventCountDetails": frozenset({"备注", "memo"}),
 }
 
@@ -127,6 +153,11 @@ _SELECTOR_FALLBACK_FIELDS: dict[str, tuple[str, ...]] = {
         "temperatureRangeText",
         "alertLevel",
         "updatedAt",
+        # 风况模板族（WindFull/WindHero primaryData、RainWindFull secondaryData）的
+        # 可渲染事实——严格四要素天气 selector 缺席（仅风况/降水+风况最小输入）时，
+        # 直连叶子回退仍须投影出所选模板实际渲染的风况字段。
+        "windDirection",
+        "windLevel",
     ),
     "DateOverview": ("startDate", "weekday"),
     "ScheduleOverview": ("title", "dtStart", "dtEnd", "eventLocation"),
@@ -141,6 +172,10 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "chargingStatusDesc",
         "healthStatusDesc",
         "pluggedTypeDesc",
+        "nowCurrentText",
+        "voltageText",
+        "batteryTemperatureText",
+        "isBatteryPresentText",
     ),
     "ResourceUsageOverview": ("usagePercent", "availableMemText", "totalMemText"),
     "AppUsageOverview": (
@@ -726,6 +761,8 @@ _SCHEDULE_QUERY_TERMS = (
     "会议",
     "下一项",
     "下一场",
+    "下个安排",
+    "下一个安排",
     "预约",
     "入会",
 )
@@ -1527,6 +1564,9 @@ def project_content_component_facts(
     task_spec: TaskSpec,
     capability_ids: set[str],
     component_ids: tuple[str, ...],
+    *,
+    required_output_fields_by_capability: dict[str, tuple[str, ...]] | None = None,
+    generic_output_fields: tuple[str, ...] | None = None,
 ) -> TaskSpec:
     """Narrow the second-layer contract to selected component display facts.
 
@@ -1576,6 +1616,39 @@ def project_content_component_facts(
             sleep_facts = extract_sleep_overview_facts(schema)
             if sleep_facts is not None:
                 selected = sleep_facts.as_selector()
+        elif component_id == "GenericMetricOverview":
+            # Generic compact supplements the primary business component. It
+            # is intentionally data-agnostic: every requested scalar leaf from
+            # the candidate capability is eligible, and the second layer
+            # chooses one or two exact paths. Keep only fields not already
+            # owned by a specialized component in this composition.
+            requested_field_names = tuple(
+                dict.fromkeys(
+                    path.rsplit("/", 1)[-1]
+                    for paths in (required_output_fields_by_capability or {}).values()
+                    for path in paths
+                )
+            )
+            specialized_field_names: set[str] = set()
+            for selected_component_id in component_ids:
+                if selected_component_id == "GenericMetricOverview":
+                    continue
+                specialized_field_names.update(
+                    _PROVIDER_COMPONENT_FIELDS.get(selected_component_id, ())
+                )
+            field_names = tuple(
+                name
+                for name in requested_field_names
+                if name not in specialized_field_names
+            )
+            if generic_output_fields is not None:
+                field_names = tuple(path.rsplit("/", 1)[-1] for path in generic_output_fields)
+            source = _best_source_object(schema, field_names)
+            selected = {
+                field_name: deepcopy(field)
+                for field_name in field_names
+                if (field := _first_field(source, field_name)) is not None
+            }
         elif component_id == "BatteryOverview":
             battery_facts = extract_battery_overview_facts(schema)
             if battery_facts is not None:
@@ -2591,21 +2664,25 @@ def _bluetooth_facts_from_candidate(
     has_connection_and_case_battery = (
         is_connected is not None and case_battery_level is not None
     )
-    if not has_name_and_case_battery and not has_connection_and_case_battery and (
-        is_connected is None
-    ) != (
-        earphone_name is None
-    ):
+    left_battery_level = _trusted_percentage_number(_first_field(candidate, "leftBatteryLevel"))
+    right_battery_level = _trusted_percentage_number(_first_field(candidate, "rightBatteryLevel"))
+    has_complete_ear_battery = (
+        left_battery_level is not None
+        and right_battery_level is not None
+    )
+    has_independent_battery_facts = (
+        has_name_and_case_battery
+        or has_connection_and_case_battery
+        or has_complete_ear_battery
+    )
+    has_partial_identity = (is_connected is None) != (earphone_name is None)
+    if has_partial_identity and not has_independent_battery_facts:
         return None
     facts = BluetoothDeviceOverviewFacts(
         is_connected=is_connected,
         earphone_name=earphone_name,
-        left_battery_level=_trusted_percentage_number(
-            _first_field(candidate, "leftBatteryLevel")
-        ),
-        right_battery_level=_trusted_percentage_number(
-            _first_field(candidate, "rightBatteryLevel")
-        ),
+        left_battery_level=left_battery_level,
+        right_battery_level=right_battery_level,
         left_charging_status=_trusted_string(
             _first_field(candidate, "leftChargingStatusDesc")
         ),
@@ -3182,7 +3259,24 @@ def _schedule_template_variant_projection(
         if shape_fields:
             selected.update(shape_fields)
             variant_names.add(variant_name)
+    if not selected:
+        selected = _schedule_date_location_fields(provider)
+        if selected:
+            variant_names.add("dateLocation")
     return selected, frozenset(variant_names)
+
+
+def _schedule_date_location_fields(provider: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Only fill the previously unsupported date/location projection branch."""
+    selected: dict[str, dict[str, Any]] = {}
+    for name in ("title", "startDate", "eventLocation"):
+        field = _calendar_variant_schema_leaf(provider, f"/events/0/{name}")
+        if not _trusted_schedule_variant_field(field, data_type="string", allow_empty=False):
+            return {}
+        if field is None:
+            raise ValueError('field is not None')
+        selected[name] = deepcopy(field)
+    return selected
 
 
 def _calendar_variant_schema_leaf(

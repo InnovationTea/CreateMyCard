@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 weather Text left1 must contain one dynamic fact only; keep temperature, rain and air quality on three separate rows."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "840c04df2a6d30a59f0189a4771d01c1232e94c56d74aa20e943b6c03d3d7502",
+    "sample_task_spec.json": "f25e199045d2e3a6d8f9ae3172950ae574eea353bfe73316d93ebf3de3facf08",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

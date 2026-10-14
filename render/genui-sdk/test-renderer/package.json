@@ -1,0 +1,25 @@
+{
+  "name": "@genui-sdk/test-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "extract": "tsx src/extract-schema.ts",
+    "generate": "tsx src/generate-jsonl.ts",
+    "render": "tsx --tsconfig ../tsconfig.base.json src/render-html.tsx",
+    "render:all": "tsx --tsconfig ../tsconfig.base.json src/render-html.tsx --all",
+    "test": "tsx src/extract-schema.ts && tsx src/generate-jsonl.ts"
+  },
+  "dependencies": {
+    "@genui-sdk/parser": "*",
+    "@genui-sdk/graph": "*",
+    "@genui-sdk/renderer": "*",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "*"
+  }
+}

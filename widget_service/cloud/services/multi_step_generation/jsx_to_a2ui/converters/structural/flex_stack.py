@@ -8,7 +8,11 @@ from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.layout import adapt_flex_children, column, row, stack
 
-_BACKPLATE_PADDING = 6
+_DEFAULT_BACKPLATE_PADDING = 6
+
+
+def _backplate_padding(ctx: ConversionContext) -> int:
+    return 8 if ctx.card_size == "2x4" else _DEFAULT_BACKPLATE_PADDING
 
 
 def _align(value: str | None, *, is_row: bool) -> str | None:
@@ -116,7 +120,7 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
         appearance = get_appearance(ctx.appearance)
         styles.update(
             {
-                "padding": _BACKPLATE_PADDING,
+                "padding": _backplate_padding(ctx),
                 "borderRadius": 16,
                 "backgroundColor": appearance.action_background,
                 "clip": True,
@@ -141,7 +145,7 @@ def _child_content_extent(
     else:
         extent = _number(raw_extent)
     if extent is not None and node.props.get("surface") == "backplate":
-        extent = max(0, extent - 2 * _BACKPLATE_PADDING)
+        extent = max(0, extent - 2 * _backplate_padding(ctx))
     return extent
 
 
@@ -484,15 +488,16 @@ def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     height = _dimension(node.props.get("height"))
     parent_width = _relative_extent(width, "width", ctx.parent_content_width)
     parent_height = _relative_extent(height, "height", ctx.parent_content_height)
+    backplate_padding = _backplate_padding(ctx)
     content_width = max(
         0,
         parent_width
-        - (2 * _BACKPLATE_PADDING if node.props.get("surface") == "backplate" else 0),
+        - (2 * backplate_padding if node.props.get("surface") == "backplate" else 0),
     )
     content_height = max(
         0,
         parent_height
-        - (2 * _BACKPLATE_PADDING if node.props.get("surface") == "backplate" else 0),
+        - (2 * backplate_padding if node.props.get("surface") == "backplate" else 0),
     )
     child_ctx = ctx.for_children(
         parent_content_width=content_width,
@@ -535,7 +540,7 @@ def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             # offsets are measured from the backplate's padding box. Keep the
             # inset on this flow layer so the absolute anchors below can use
             # the full outer extent without adding the padding a second time.
-            flow.styles["padding"] = _BACKPLATE_PADDING
+            flow.styles["padding"] = backplate_padding
         children.append(flow)
     for child in source_children:
         if child.props.get("position") != "absolute":

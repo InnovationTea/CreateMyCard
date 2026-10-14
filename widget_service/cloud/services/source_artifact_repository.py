@@ -6,13 +6,15 @@ import json
 import re
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
 from config.config import get_settings
 from core.errors import ErrorCode
 from models.artifact import WidgetArtifact
+from services.asset_url_mapper import AssetUrlMapper
+from services.capability_registry import CapabilityRegistry
 from utils.download_file_from_url import (
     DownloadFileError,
     DownloadFileNotFoundError,
@@ -78,6 +80,45 @@ def calculate_artifact_digest(artifact: WidgetArtifact) -> str:
 
 class SourceArtifactRepository:
     """通过公共下载工具按配置读取并解析 artifact v2。"""
+
+    @staticmethod
+    def restore_asset_paths(
+        source: SourceArtifactLoadResult,
+        mapping: dict[str, str],
+        *,
+        restore_genui: bool,
+    ) -> SourceArtifactLoadResult:
+        """只规范化编辑输入副本；保留原文件和下载时计算的产物摘要。"""
+        artifact = source.artifact.model_copy(deep=True)
+        registry = CapabilityRegistry(version=artifact.meta.capabilityRegistryVersion)
+        originals = {item.id: item.src for item in registry.list_asset_capabilities()}
+        candidates = artifact.taskSpec.get("assetCandidates", [])
+        if not isinstance(candidates, list):
+            raise ValueError("source assetCandidates must be a list")
+        declared_sources: set[str] = set()
+        aliases: list[tuple[str, str]] = []
+        for item in candidates:
+            if not isinstance(item, dict):
+                continue
+            src = item.get("src")
+            asset_id = item.get("id")
+            original = originals.get(asset_id) if isinstance(asset_id, str) else None
+            if not isinstance(src, str):
+                continue
+            if original is None:
+                original = src
+            declared_sources.add(original)
+            aliases.append((src, original))
+            item["src"] = original
+        mapper = AssetUrlMapper(mapping, declared_sources)
+        for address, original in aliases:
+            mapper.add_source_alias(address, original)
+        token = source.design_token
+        if token:
+            token = mapper.restore_design_token(token)
+        if restore_genui:
+            artifact.genui = mapper.rewrite_standard(artifact.genui, restore=True)
+        return replace(source, artifact=artifact, design_token=token)
 
     def load(self, source_url: str) -> SourceArtifactLoadResult:
         settings = get_settings()

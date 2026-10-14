@@ -35,6 +35,15 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     items = node.props.get("items")
     if not isinstance(items, list):
         raise AssertionError()
+    parent_width = ctx.parent_content_width
+    narrow_multirow = (
+        len(items) >= 3
+        and isinstance(parent_width, int | float)
+        and not isinstance(parent_width, bool)
+        and parent_width <= 120
+    )
+    row_height: str | int = "wrapContent" if narrow_multirow else 16
+    text_height: str | int = "wrapContent" if narrow_multirow else 16
 
     rows: list[A2UINode] = []
     for index, item in enumerate(items):
@@ -47,16 +56,15 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         label_node = text(
             ctx,
             "table_text_label",
-            label,
+            ctx.item_prop(node.tag, item, index, "label"),
             styles={
-                "height": 16,
+                "width": "fixAtIdealSize",
+                "height": 12 if narrow_multirow else text_height,
                 "fontSize": 10,
                 "fontWeight": 500,
                 "fontColor": palette(ctx).secondary,
                 "maxLines": 1,
-                "textOverflow": "ellipsis",
-                "flexShrink": 1,
-                "constraintSize": {"minWidth": 0},
+                "flexShrink": 0,
             },
         )
         parameter_node = text(
@@ -64,15 +72,19 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "table_text_parameter",
             ctx.item_prop(node.tag, item, index, "parameter"),
             styles={
-                "height": 16,
+                "height": row_height,
                 "fontSize": 10,
                 "fontWeight": 500,
                 "fontColor": palette(ctx).primary,
                 "textAlign": "end",
-                "maxLines": 1,
+                "maxLines": 2 if narrow_multirow else 1,
                 "textOverflow": "ellipsis",
+                "layoutWeight": 1,
                 "flexShrink": 1,
-                "constraintSize": {"minWidth": 0, "maxWidth": "70%"},
+                "constraintSize": {
+                    "minWidth": 0,
+                    **({"minHeight": 12, "maxHeight": 24} if narrow_multirow else {}),
+                },
             },
         )
         rows.append(
@@ -83,9 +95,16 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 gap=8,
                 styles={
                     "width": "matchParent",
-                    "height": 16,
+                    "height": row_height,
                     "flexShrink": 0,
-                    "alignItems": "bottom",
+                    # Native Column suppresses itemMargin under spaceBetween.
+                    # Explicit row margins preserve CSS gap's minimum while
+                    # still allowing surplus height to be distributed.
+                    **({"margin": {"bottom": 2}}
+                       if len(items) >= 3 and index < len(items) - 1 else {}),
+                    **({"constraintSize": {"minHeight": 16, "maxHeight": 24}}
+                       if narrow_multirow else {}),
+                    "alignItems": "top" if narrow_multirow else "bottom",
                     "justifyContent": "spaceBetween",
                 },
             )
@@ -95,12 +114,11 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         ctx,
         "table_text",
         rows,
-        gap=2,
+        gap=0 if len(rows) >= 3 else 2,
         styles={
             "width": "matchParent",
-            # Auto-height slots must measure the rows, not claim the whole
-            # ancestor's offered height. Definite slots opt into filling in
-            # adapt_flex_children, where the parent layout is known.
+            # Auto-height slots measure their rows. Definite slots opt into
+            # adaptive filling in adapt_flex_children.
             "height": "wrapContent",
             "alignItems": "start",
             "justifyContent": "spaceBetween" if len(rows) >= 3 else "start",

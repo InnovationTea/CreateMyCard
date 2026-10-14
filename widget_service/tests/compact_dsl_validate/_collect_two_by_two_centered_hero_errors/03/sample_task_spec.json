@@ -1,0 +1,21 @@
+{
+  "size": "2x2",
+  "eventCandidates": [
+    {
+      "call": "openAlarm",
+      "args": {}
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "countdown": {
+        "days": {
+          "type": "integer",
+          "description": "倒计时剩余天数纯整数",
+          "sampleValue": 1000
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

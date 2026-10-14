@@ -1,0 +1,14 @@
+{
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "humidityPercent": {
+          "type": "number",
+          "sampleValue": 68
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": []
+}

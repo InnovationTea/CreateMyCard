@@ -2,13 +2,15 @@
 
 本文描述默认 `firstLayerComponentSelector=search` 链路中五个模块的职责和数据边界。目标是让 Search
 只回答“哪些模板在当前卡片尺寸与数据条件下可用”，由确定性 Planner 统一处理布局、主题、Action
-消费位置和业务顺序，第二层 LLM 只在不超过三个完整 Plan 中选择。
+消费位置和业务顺序，第二层 LLM 只在不超过三个完整 Plan 中选择。该默认链路同时用于 2x2 和 2x4。
 
 ## 1. 总体链路
 
 ```text
 第一层 LLM
   -> 数据可用性 Search
+  -> 日历默认查看动作策略（仅适用场景）
+  -> 电量默认设置动作策略（仅适用场景）
   -> 确定性 Template Planner
   -> 第二层 LLM
   -> Validator / Compiler
@@ -18,6 +20,14 @@
 不推测模型意图。
 
 ## 2. 第一层 LLM
+
+默认 Search 路线对日程提醒父路径执行受限归一化：仅 `2x2 / GetCalendarEvents` 的候选
+`/events/<原索引>/remindTime`，且所有同能力绑定根的 TaskSpec 都将该位置投影为非空标量字段数组时，
+映射为同一日程的 `/remindTime/0`。不根据样例值补造字段；空数组、对象数组、嵌套数组与缺失字段不转换。
+已显式指定提醒索引的路径不变，原始请求和 TaskSpec 不变。归一化副本用于首层候选字段及白名单；
+首层若仍返回原候选父路径，在可信模板限制和 Search 前同步归一化显式字段与主焦点，并按原顺序去重。
+Search 直接入口也使用同一规则，之后仍严格检查候选白名单、字段类型与模板覆盖。其它业务、其它字段、
+宽卡与旧 LLM 选择路线保持原行为；不将任意数组父路径与任意元素视为等价。
 
 输入包括用户描述、TaskSpec 中可展示的数据字段和 Action 候选，以及 Provider 的字段语义说明。第一层只做
 用户意图标定，输出：
@@ -41,9 +51,17 @@
 - `requiredOutputFieldsByCapability` 只包含用户显式要求展示的字段。
 - `primaryOutputFieldByCapability` 是稀疏映射。每个业务最多一个显式主焦点；无法从描述中确定时不输出该
   capability。值必须同时存在于该 capability 的显式字段数组中。
-- `action` 只包含用户显式要求且来自 TaskSpec 候选的事件 ID。
+- `action` 只包含用户显式要求且来自 TaskSpec 候选的事件 ID。第一层按尺寸声明上限：2x2 为两个、2x4 为四个；Planner 再检查实际布局容量。
+- `allowCalendarViewFallback` 是可选布尔值，兼容旧首层输出时默认为 `false`。仅当用户请求单日历日程
+  且未明确禁止按钮、操作或跳转时，首层标记为 `true`；它只表达用户是否允许默认查看入口，不代表已选
+  Action。首层仍不判断 Full/Hero 是否可用，也不直接把默认查看事件加入 `action`。
 - 输出不包含 `themeId`、`schemaVersion`、组件、模板、布局或 Props。服务内部仍使用严格模型校验字段、
   JSON Pointer、唯一性和关联关系。
+
+`allowBatterySettingsFallback` 同样是可选严格布尔值，旧首层输出缺省为 `false`。仅向 `2x2`、候选
+能力只有 `GetPhoneBatteryInfo` 的首层提示词暴露该字段及电量专用说明，其余业务的提示词保持不变。
+首层只标记用户是否允许默认入口：未明确禁止按钮、操作或跳转为 `true`，明确禁止为 `false`；
+`action` 仍只包含显式要求的动作，不为适配 Hero 补字段、删字段或判断模板可用性。
 
 ## 3. Search
 
@@ -55,7 +73,10 @@ Search 输入第一层意图、卡片尺寸、TaskSpec、CardSpec 已批准的�
 3. 使用模板定义中的必需字段检查运行时数据可用性与类型。
 4. 使用 `primaryData + secondaryData + optionalData` 计算显式字段覆盖；`optionalData` 可以形成覆盖，
    但不会成为模板准入的必需数据。
-5. 只保留能够独立覆盖该业务全部显式字段的模板。
+5. 2x2 只保留独立完整覆盖的模板；2x4 保留已验证的部分覆盖候选，将组合覆盖交给 Planner。宽版 Search 不按前 24 个模板截断，避免可选字段增多挤掉可行形态；第二层只接收最终最多三个 Plan 的候选并集。
+6. 为每个候选返回 `availableDataFields`：本轮候选字段中被模板实际引用、TaskSpec 已提供且类型兼容的
+   完整绑定路径，包含可用的非显式字段。按完整路径去重，不同绑定根分别计算；缺失字段、未引用字段、
+   静态文案、图标和仅用于事件参数的字段不计入。该字段只提供数据事实，不在 Search 中排序。
 
 Search 不读取主题、布局、Action 数量或 Action 消费位置，也不对业务顺序做判断。输出不重复模板自身的
 输入定义：
@@ -79,6 +100,11 @@ Search 不读取主题、布局、Action 数量或 Action 消费位置，也不�
             "/current/temperatureText",
             "/current/airQuality",
             "/location/districtName"
+          ],
+          "availableDataFields": [
+            "/data/weather/current/airQuality",
+            "/data/weather/current/temperatureText",
+            "/data/weather/location/districtName"
           ]
         }
       ]
@@ -93,18 +119,67 @@ Search 不读取主题、布局、Action 数量或 Action 消费位置，也不�
 
 ## 4. Template Planner
 
+进入 Planner 前，服务端仅对 `2x2`、唯一 `GetCalendarEvents / CalendarOverview` 业务、无显式已选
+Action 且 `allowCalendarViewFallback=true` 的请求应用默认查看策略：
+
+1. Search 存在能覆盖全部显式字段且必需数据齐全的 Full 时，保持无动作。
+2. 没有 Full、但有同样通过 Search 的 Hero 时，检查已批准候选中是否恰好有一个
+   `event.viewCalendarEvent`，且参数引用与所有候选 Hero 展示的日程对象一致；满足才补选该事件。
+3. 没有 Hero、动作缺失、重复或指向其他日程时不补选。禁止凭空构造事件、补数据或删除用户要求的字段。
+
+补选结果同时用于 Planner 和后续 TaskSpec 动作筛选，保证二层按钮、事件参数及最终编译一致。
+默认文案沿用已注册的“查看日程”，可信候选显式提供文案时仍优先使用该文案。显式动作请求保留原语义；
+双业务、其他业务和宽卡不使用此兜底。用户说“不要按钮”“不需要操作”“只展示不交互”等时禁止补选；
+单纯没有提到按钮不属于禁止。此策略不改变 Search 的纯数据职责。
+
+电量策略独立应用于 `2x2`、唯一 `GetPhoneBatteryInfo / BatteryOverview` 业务、无已选 Action 且
+`allowBatterySettingsFallback=true` 的请求：
+
+1. 有通过 Search 的 Hero 时检查设置入口，不因存在 Full 就提前排除 Hero。
+2. 已批准候选中必须恰有一个 `event.open.settings.battery`，调用为 `clickToDeeplink`，参数精确为
+   `intentName=Settings`、`bundleName=com.huawei.hmos.settings`、
+   `abilityName=com.huawei.hmos.settings.MainAbility`、`uri=battery`，才补选该事件。
+3. 默认文案沿用已注册的“电池设置”，候选提供可信文案时仍沿用该文案。候选缺失、重复、参数不符、
+   只有 Compact/Support 也不触发。完全没有电池设置候选且显式字段包含 `/healthStatusDesc` 时，
+   可改为复用唯一合法的 `event.open.settings.batteryHealth` 候选，按钮文案为“电池健康”，
+   目标参数除 `uri=smart_charge_battery_health` 外与上述系统设置参数一致。
+   有电池设置候选但其重复或非法时，不用健康入口掩盖错误；省电模式不用于默认入口。
+
+显式动作和画廊指定动作保持原集合，Full 不会删除它们。禁止按钮、其他业务、混合业务、宽卡和旧 LLM
+选择路线不受此策略影响。原始 TaskSpec、候选数据和显式字段不变，仍由 Planner 校验完整字段覆盖及
+动作消费；有合法候选设置入口时 Full 与 Hero 平等参与后述字段比较，无合法候选入口时只尝试 Full。
+不放宽显式字段、禁止项、主焦点或全局动作约束。
+
+`BatteryOverviewPercentLevelHero@1` 是 Search 专用的电量补充分支：仅单电量 `2x2`，且用户显式字段
+恰好为 `/batterySOCText` 和 `/batteryCapacityLevelDesc`，才检查该模板。在类型、必需输入和完整覆盖
+校验后，只要任一旧模板仍能完整覆盖，就移除新变体候选；旧模板无完整覆盖时才保留它。
+额外候选字段不触发此分支；混合业务、宽卡、旧检索适配器和旧 LLM 选择路线不暴露该变体。
+禁用模板与可信画廊模板限制仍生效，不能用新变体绕过；不从百分比样例反推数值绑定。
+
 Planner 是确定性服务模块，输入第一层意图、Search 结果、卡片尺寸、TaskSpec 和 Registry。它通过
 `templateId` 从 Registry 重新取得模板定义，并联合规划：
 
 - 精确 Layout Template；
-- 有序业务槽位及每个槽位的精确业务 Template；
+- 有序业务槽位及每个槽位的精确业务 Template；通用指标通过 `fieldBindings` 锁定每个实例的路径参数；
 - Theme；
 - 每个 Action 的消费者：根 Action Template 或某个支持 `actionId` 的垂域业务 Template；
 - 显式字段覆盖与主焦点匹配信号。
 
+单手机电量 `2x2` 的提示词要求：非必选、且未被用户明确禁止的字段才作为候选。
+不新增禁止字段集合、协议字段或场景专用拒绝分支。该要求属于模型提示词语义约束，
+当前确定性排序仍读取原始输入候选，不能据此声称服务端已经硬性过滤所有否定要求。
+Search 使用模板蓝图和本轮类型兼容的输入，复用生产编译器的条件分支语义计算实际正文绑定；
+条件守卫、事件参数、未使用的元数据及未渲染分支不代表展示。无法实际显示全部显式字段的模板淘汰。
+电量排序先按下述规则保证显式唯一主焦点，再比较实际显示的候选字段去重数。
+没有主焦点时直接比较实际候选覆盖数，同分沿用原得分。无合法候选动作时只构建 Full；
+存在允许的候选设置动作时 Full/Hero 平等参与比较，显式动作仍必须消费。其它业务排序保持原样。
+
 硬约束是每个 Plan 必须覆盖用户全部显式字段并消费每个已选 Action 恰好一次。`2x2` 单业务有显式主焦点
-时，优先只保留该字段命中模板 `primaryData` 的 Plan；未声明主焦点时按模板主数据、次数据、可选数据的
-匹配程度稳定排序。双业务 Action 可以由 `HeroTitleContentActionLayout` 的根 Action 消费，也可以由
+时，优先只保留该字段命中模板 `primaryData` 的 Plan。排序依次比较显式主焦点命中数、显式字段的主数据
+匹配数、数据使用量、次数据匹配数，最后减少仅落在可选数据中的显式字段数。数据使用量取 Plan 全部业务
+模板 `availableDataFields` 的去重并集大小；同一请求可用数据总量固定，因此按使用字段数排序等价于按
+数据使用率排序。主数据优先级保持高于使用量，同分时保留既有候选顺序。双业务 Action 可以由
+`HeroTitleContentActionLayout` 的根 Action 消费，也可以由
 `TwoSupportLayout` 中声明了可选 `actionId` 的 Support 模板消费，因此 Planner 不会先固定布局再判断
 Action。
 
@@ -122,12 +197,106 @@ Support 通过模板条目的 `supportedEventIds` 声明内嵌事件白名单。
 天气必须同城市，日程必须同一展示项；无合法归属时该 Plan 不可用，不能移给搭档业务或静默丢弃动作。
 完整清单和验证规则见 [Support 事件归属契约](support-template-action-policy.md)。
 
+### 日程无按钮补充分支
+
+以下四个模板仅用于单日历请求的受限补充分支，不加入普通 Search、旧 LLM 选择路线或混合业务的候选集合：
+
+| 模板 | 尺寸 | 展示内容 | 布局 |
+| --- | --- | --- | --- |
+| `ScheduleOverviewSourceReminderFull@1` | 2x2 | 日程来源、提前提醒，标题可选 | `SingleFocusLayout@1` |
+| `ScheduleOverviewTimezoneWideFull@1` | 2x4 | 时区、开始时间、地点，标题和结束时间可选 | `WideFullOnlyLayout@1` |
+| `ScheduleOverviewEventCountDetailsWideFull@1` | 2x4 | 日程总数、首项备注，首项标题和开始时间可选 | `WideFullOnlyLayout@1` |
+| `ScheduleOverviewReminderWideFull@1` | 2x4 | 开始时间、提前提醒，标题可选 | `WideFullOnlyLayout@1` |
+
+先使用原注册表、原候选和原排序完成 Search 与 Planner；只要原流程得到合法 Plan，就直接使用原结果。
+仅原 Search 或 Planner 明确未命中时，才用同一次首层意图尝试一次日历补充分支。第二层、编译和校验错误
+不触发这一重试。补充分支保留被禁用模板和可信候选范围限制，不通过新的模板绕开配置。
+
+四个模板均不消费 Action。只有不存在显式操作需求时才能进入该分支；候选中存在查看事件不代表用户选择
+了该事件，候选缺失也不阻断无按钮模板。不得删除已选 Action 或明确操作要求来获得匹配。
+
+用户显式要求的字段仍必须被完整覆盖并具备真实、类型兼容的数据。模板中的可选标题或结束时间不意味着
+可以省略用户已经要求的内容。数量备注模板只展示总数与首项摘要，不把“各条”“所有日程”的列表要求
+缩减为首项，也不把 `futureDays=1` 解释为数据已经完成严格的当日筛选。
+
+补充分支按已经检索通过的模板路径复制真实源字段，不再附加旧日程投影形态的完整字段要求；最小字段
+组合和带可选字段组合均由正式编译器校验。原流程的内容投影保持不变。
+
+仅在这一补充分支中，单日历宽卡明确请求且候选已授权的提醒父路径可以复用受限别名：真实数据结构必须
+是非空纯标量数组，保留原绑定根和日程索引，映射到该数组的第零项。显式提醒索引保持不变；空数组、
+对象数组、嵌套数组、缺失数据和未授权路径不兼容。提前提醒是提醒设置值，不是距离会议开始的剩余时长。
+用户要求全部提醒设置时，不允许将整个数组缩减为第零项。
+现有 2x2 路径规则及默认查看按钮策略保持原行为。
+
+### 日程列表无按钮补充分支
+
+仅当原 Search/Planner 未命中，且上述四个单条补充模板也无法匹配时，才使用同一次、未删减的首层意图
+继续尝试以下三种定长列表。它们仅支持单日历、单绑定根的 2x4 请求，默认不进入普通 Search、旧 LLM
+或混合业务的候选集合，布局均为 `WideFullOnlyLayout@1`。
+
+| 模板 | 必须完整请求并具有授权数据的内容 |
+| --- | --- |
+| `ScheduleOverviewTimezoneThreeEventsWideFull@1` | 三条日程各自的时区、标题、开始时间、结束时间、地点 |
+| `ScheduleOverviewEventCountFourDetailsWideFull@1` | 日程总数，以及四条日程各自的标题、开始时间、备注 |
+| `ScheduleOverviewEventCountThreeNotesWideFull@1` | 日程总数，以及三条日程各自的备注 |
+
+每种形态只接受表中精确字段集合，不把第三种形态转换为包含额外标题或时间的模板。列表必须从索引零
+连续覆盖所有三条或四条；按同一绑定根下实际的类型化数组结构和全部候选路径共同确认条数。如果源结构
+或候选还有首层未选中的第四条、第五条，则保持未命中，不截成模板容量。`eventCount.sampleValue` 仅为
+展示样例，不用来证明或推断数组条数。同条日程中未请求的额外字段可保留在输入中，但不因此扩展展示需求。
+每个请求字段仍须通过正式 Search 的类型与授权检查；不补假数据，不删除字段，不更改原始输入。
+
+精确字段形态优先。如果 query 已明确要求“每个”“各条”“所有日程”，首层却只选了其中部分索引，
+仅当已选各条的字段种类完全一致且恰好为目标形态、类型化数组条数正确、全部目标路径均获候选授权时，
+可在本分支内复制意图并补齐其余索引的同类字段。数量形态还要求原意图已经选择日程总数。原首层响应
+和原输入保留不变，补充分支记录加强覆盖前后的字段集合；不把跨条目不同字段要求合并成另一种列表。
+没有明确逐条覆盖语义、缺候选、缺类型化数据或超出容量时均不补齐。补齐后的完整集合仍通过正式
+Search/Planner，不能绕过字段类型、禁用配置或可信候选范围检查。
+否定展示全部、仅首条或前 N 条的要求不触发逐条补齐；即使首层已选完整字段，也不能忽略 query 中
+与本形态条数冲突的明确数量限制。
+
+该分支沿用无动作和可信范围限制：显式操作 query、已选 Action、可信 Action、禁用模板及禁用 Provider
+不能被新列表绕开。候选中的查看动作不等于已选动作。明确要求超出本形态条数，或要求文字全文、禁止
+省略时保持未命中；“完整列表”“所有日程”本身不等于文字全文要求。普通长文本遵循模板固定行数和
+省略显示规则，不新增任意字数阈值。第二层、编译和校验错误仍沿用原失败语义，不触发列表重试。
+
+### 日程单项补充形态
+
+以下八个模板复用已有日程布局，用于原 Search/Planner 未命中后的补充匹配。它们与上述四个单项、
+三个列表模板的字段合同不重叠；原四个单项分支先判断，既有七个模板的条件和排序保持不变。
+新增模板默认在普通 Search、旧 LLM 路线、首层提示词和混合业务候选中隐藏，只有补充分支显式启用
+唯一目标后才参加正式 Search/Planner。被禁用模板、被禁用 Provider、可信模板及可信动作限制继续生效。
+
+| 模板 | 尺寸 | 必需字段 | 可选字段 |
+| --- | --- | --- | --- |
+| `ScheduleOverviewTitleStartFull@1` | 2x2 | 首项标题、开始时间 | 无 |
+| `ScheduleOverviewReminderStartFull@1` | 2x2 | 首项开始时间、提前提醒第零项 | 首项标题 |
+| `ScheduleOverviewDateAllDayFull@1` | 2x2 | 首项日期、标题、全天状态 | 无 |
+| `ScheduleOverviewDateEndFull@1` | 2x2 | 首项标题、日期、结束时间 | 无 |
+| `ScheduleOverviewAllDayLocationFull@1` | 2x2 | 首项全天状态、地点 | 首项标题 |
+| `ScheduleOverviewDateStartLocationFull@1` | 2x2 | 首项日期、开始时间、地点 | 首项标题、结束时间 |
+| `ScheduleOverviewReminderDetailsWideFull@1` | 2x4 | 首项邀请人、重要程度、提前提醒第零项，以及数据更新时间 | 无 |
+| `ScheduleOverviewDatedMeetingWideFull@1` | 2x4 | 首项日期、标题、开始时间、结束时间、地点 | 无 |
+
+只接受表中必需字段至“必需字段加可选字段”之间的完整集合，单日历、单绑定、同根及尺寸必须一致。
+所有字段均需候选授权及正确类型；可选字段一旦被用户请求，也必须真实可用且完整显示。日期、开始和
+结束时间不能互换，不为匹配增加时区、地点、数量等未请求的必需字段。全天状态 `false` 和重要程度 `0`
+是有效值；邀请人样例为空不等于字段不存在。提醒路径继续使用现有受限别名，不扩大数组、索引或授权范围。
+
+新增形态都没有动作，候选查看按钮有无不影响准入，但已选动作、可信动作及显式操作需求继续拒绝。
+不删原意图字段，不合成候选外按钮。原流程已成功时不进入新增分支；编译或校验错误不触发补充匹配。
+
+单项模板只接受索引零，不将明确“每条”“各日程”“两项”等多条要求缩为首项；新增措辞门禁仅约束
+本节八个模板，不修改旧七个分支的规则。输入有多条但首层只明确选择首项时，本节宽日期详情仍只代表
+首项展示；匹配成功不证明完整列表已被覆盖。若首层选择第二项字段，或 query 明确要求逐条展示，保持
+单项分支未命中，不删除第二项、不自动将首项动作复制给其它项。
+
 ## 5. 第二层 LLM
 
 第二层输入最多三个完整 Plan，以及这些 Plan 涉及的 Template 完整 Props 签名、可信字符串、数字、素材
 和 Provider 二层说明。它只能：
 
-1. 完整选择一个 Plan；
+1. 按下发优先级，在能合法补全开放 Props 的候选中优先完整选择排名靠前的 Plan；
 2. 按所选 Template 的签名补全开放 Props 和可信素材；
 3. 输出一棵以该 Plan 的 Layout Template 为根的调用树。
 
@@ -137,7 +306,7 @@ Support 通过模板条目的 `supportedEventIds` 声明内嵌事件白名单。
 ## 6. Validator / Compiler
 
 编译前先对调用树执行原子 Plan 校验：根 Layout、直接业务 Template 的 ID 与顺序、根 Action Template
-及事件 ID、业务 Template 内嵌 `actionId` 的槽位必须完整匹配同一个 Plan。若调用树跨 Plan 混用，或同时
+及事件 ID、业务 Template 内嵌 `actionId` 的槽位、通用指标路径参数必须完整匹配同一个 Plan。若调用树跨 Plan 混用，或同时
 匹配零个或多个 Plan，直接拒绝；唯一匹配的 `planId` 记录到内部展开统计和日志。之后才进入原有 Props、
 数据绑定、Action 唯一消费、节点预算、主题展开和 A2UI 转换校验。
 
@@ -145,3 +314,39 @@ Support 通过模板条目的 `supportedEventIds` 声明内嵌事件白名单。
 
 旧 `firstLayerComponentSelector=llm` 路径保留原有 `TemplateRouteSelection` 行为用于兼容，不使用新的
 Planner 原子 Plan 契约。
+
+## 7. 横版组合规则
+
+`wide_template_planner.py` 为公共 Planner 提供完整横版组合，复用同一套主题裁决、排序、去重与编译契约。
+它按每个 capability 的显式字段枚举完整覆盖，再匹配已登记布局的业务形态与动作位置。布局失败仅淘汰
+该组合；不得因为候选集合中存在 Full + Compact 就拒绝其中可行的 Hero + Hero 或 Full + Full。
+
+- 最多四个业务实例；同一通用指标模板可以出现两次，但分别固定不同的 `valuePath`。
+- 双指标模板固定 `firstValuePath`、`secondValuePath`，两个字段必须不同。通用指标只消费未被专用模板
+  覆盖的已验证标量字段；按实际实例数计数，不能覆盖或替换其它 capability 的必选槽位。
+- 第一层声明主焦点时优先匹配专用模板主字段，再优先减少通用实例数和业务实例总数；其它排序沿用
+  主、次、可选字段匹配，并在可行时保持请求中的业务顺序。同一批 Plan 共享主题和业务集合。
+- 单动作且同时存在 `Full + Compact + CompactAction` 与 `Full + Hero + PillAction` 两类完整组合时，
+  右列"2x1 业务 + 2x1 动作"形态与 Hero 形态同分，按枚举顺序稳定优先前者。
+- 单动作时允许为已选业务追加一个"伴生动作槽位"：同一业务内声明了 `supportedEventIds` 且变体带
+  `actionId` Prop 的 Compact 模板（如耳机歌单入口），以第三个 2x1 槽位进入
+  `Full + Compact + Compact` 组合，动作内嵌其根节点；伴生槽位不承载显式字段，也不改变 Search 的
+  字段覆盖结论，无合格伴生模板时保持原有组合不变。
+- 双面板根按钮在 `businessPosition` 中记录归属，按面板位置排列。归属来自当前业务已启用模板的
+  `supportedEventIds`，动态天气/日程跳转还须匹配该模板的数据对象。已批准固定目标可通过业务事件
+  白名单证明入口归属；没有可证明归属的动作只能进入独立共享操作区，不能放到搭档面板下。
+- 根按钮声明 `actionTemplateId`；内置按钮声明业务位置且不占根动作槽位。每个动作实例只消费一次。
+- 单业务单动作若存在支持该事件、覆盖全部字段的 WideFull，优先使用 WideFullOnlyLayout 的内置按钮
+  计划，继续执行 `supports_business_action` 的严格对象校验；未满足条件时继续枚举其它完整布局。
+- 双 Hero 双面板（WideTwoFocusLayout）同样允许单动作内嵌进语义匹配 Hero 的根节点底板，不产生根
+  Action 槽位；内嵌 Plan 与根按钮 Plan 同分时优先内嵌。只有 2x2 变体的标准 Hero 经 Wide 组合进入
+  2x4 时仍按其 2x2 变体校验 `actionId`；已声明 2x4 变体的模板只按 2x4 变体判断。
+- 2x4 四个动作仅支持单业务 + 四个 LargeIconAction 的既有专用布局；三个动作或容量不足返回未命中。
+  2x2 不扩展动作容量。动作、字段或业务不能静默删除。
+
+通用指标在数据投影时使用 Plan 的精确路径并集，不按同领域其它模板的字段并集扣除；编译器把相对路径
+拼接到唯一的健康数据绑定根，缺失或多根均拒绝。缺少可选评分等字段时，睡眠 Full 的主信息区弹性占位，
+可选辅行直接位于业务根，避免产生空容器。
+
+`retrieve_template_variants`、`plan_embedded_wide_full` 与无 Plan 的二层布局推导仅保留给旧兼容入口和
+直接调用者；默认生产链路不回落到这些路径。已选完整 Plan 生成失败时沿用现有第二层修复与失败语义。

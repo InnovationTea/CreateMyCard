@@ -3,7 +3,7 @@ from __future__ import annotations
 from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
-from ..base.layout import column
+from ..base.layout import column, row
 from .numeric_ratio import collect_numeric_ratio_conversion_errors, convert_numeric_ratio
 
 
@@ -25,6 +25,9 @@ def collect_numeric_ratio_stack_conversion_errors(node: JSXElement) -> list[str]
     if not isinstance(items, list):
         return ["NumericRatioStack.items must be an array"]
     errors: list[str] = []
+    direction = node.props.get("direction", "column")
+    if direction not in {"column", "row"}:
+        errors.append('NumericRatioStack.direction must be "column" or "row"')
     for index, item in enumerate(items):
         if not isinstance(item, dict):
             errors.append(f"NumericRatioStack.items[{index}] must be an object")
@@ -43,4 +46,20 @@ def convert_numeric_ratio_stack(node: JSXElement, ctx: ConversionContext) -> A2U
     for item in items:
         child = _numeric_ratio_item_node(node, item)
         children.append(convert_numeric_ratio(child, ctx))
+    if node.props.get("direction", "column") == "row":
+        for child in children:
+            child.props["itemMargin"] = 2
+            child.children[0].styles["width"] = 12
+        return row(
+            ctx,
+            "numeric_ratio_stack",
+            children,
+            gap=0,
+            styles={
+                "width": "matchParent",
+                "alignItems": "center",
+                "justifyContent": "spaceBetween",
+                "constraintSize": {"minWidth": 0},
+            },
+        )
     return column(ctx, "numeric_ratio_stack", children, gap=4, styles={"alignItems": "start"})

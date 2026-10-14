@@ -151,6 +151,126 @@ def test_wind_search_treats_time_as_optional_but_preserves_explicit_requirement(
     assert "WeatherOverviewWindHero@1" in candidate_ids
 
 
+def test_wind_full_template_supports_no_action_weather_card() -> None:
+    task = TaskSpec(
+        userQuery="显示风向、风力等级和城市名称的天气卡片",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"prefectureName": _field("上海市")},
+                    "current": {
+                        "windDirection": _field("东南风"),
+                        "windLevel": _field(2, "integer"),
+                    },
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/windDirection",
+            "/current/windLevel",
+        ],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [{"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"}],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": (
+                "/location/prefectureName",
+                "/current/windDirection",
+                "/current/windLevel",
+            )
+        }
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "WeatherOverviewWindFull@1"
+
+
+def test_activity_full_template_supports_steps_only_action_less_card() -> None:
+    task = TaskSpec(
+        userQuery="做个卡片，显示今天总步数",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "healthSport": {"dailySteps": _field(6200, "integer")},
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary",
+        writeResultTo="/data/healthSport",
+        candidateOutputFields=["/dailySteps"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetHealthAndSportSummary", "writeResultTo": "/data/healthSport"}
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetHealthAndSportSummary": ("/dailySteps",)},
+        primaryOutputFieldByCapability={"GetHealthAndSportSummary": "/dailySteps"},
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "ActivityOverviewFull@1"
+
+
+def test_heart_rate_updated_full_supports_update_time_action_less_card() -> None:
+    task = TaskSpec(
+        userQuery="显示运动平均心率和更新时间的卡片",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "exerciseHeartRateAvg": _field(135, "integer"),
+                    "updatedAt": _field("2026-08-06 09:00"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary",
+        writeResultTo="/data/healthSport",
+        candidateOutputFields=["/exerciseHeartRateAvg", "/updatedAt"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetHealthAndSportSummary", "writeResultTo": "/data/healthSport"}
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "GetHealthAndSportSummary": ("/exerciseHeartRateAvg", "/updatedAt"),
+        },
+        primaryOutputFieldByCapability={"GetHealthAndSportSummary": "/exerciseHeartRateAvg"},
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+    plans = plan_template_candidates(intent, result, task, registry)
+
+    assert plans
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    assert plans[0].business_slots[0].template_id == "HeartRateOverviewUpdatedFull@1"
+
+
 def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
     messages = build_template_retrieval_prompt(
         _weather_task(),
@@ -172,6 +292,7 @@ def test_first_layer_contract_contains_only_fields_focus_and_actions() -> None:
         "requiredOutputFieldsByCapability",
         "primaryOutputFieldByCapability",
         "action",
+        "allowCalendarViewFallback",
     }
 
 
@@ -358,7 +479,7 @@ def test_second_layer_receives_only_bounded_atomic_plans() -> None:
 def _support_plans() -> tuple[TemplatePlan, ...]:
     action_id = "event.open.weather"
     task_spec = TaskSpec(
-        userQuery="同时显示天气和应用时长，点击查看天气",
+        userQuery="同时显示天气和手机电量，点击查看天气",
         size="2x2",
         dataModelSchema={},
         eventCandidates=[
@@ -381,7 +502,7 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={
             "ViewWeather": ("/current/temperatureText",),
-            "GetAppUsageDuration": ("/appUsage/durationText",),
+            "GetPhoneBatteryInfo": ("/batterySOC",),
         },
         action=(action_id,),
     )
@@ -400,13 +521,13 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
                 ),
             ),
             TemplateBusinessCandidates(
-                capabilityId="GetAppUsageDuration",
-                businessId="AppUsageOverview",
-                explicitFields=("/appUsage/durationText",),
+                capabilityId="GetPhoneBatteryInfo",
+                businessId="BatteryOverview",
+                explicitFields=("/batterySOC",),
                 candidates=(
                     TemplateSearchCandidate(
-                        templateId="AppUsageOverviewSupport@1",
-                        coveredExplicitFields=("/appUsage/durationText",),
+                        templateId="BatteryOverviewSupport@1",
+                        coveredExplicitFields=("/batterySOC",),
                     ),
                 ),
             ),
@@ -561,7 +682,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",{}));'
+        'Template("BatteryOverviewSupport@1",{}));'
     )
     matched_plan_id = _validate_allowed_template_plan(
         parse_ux_layout_card(valid_source),
@@ -574,7 +695,7 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         'Template("TwoSupportLayout@1",{},'
         'Template("WeatherOverviewTemperatureSupport@1",'
         f'{{"actionId":"{action_id}"}}),'
-        'Template("AppUsageOverviewSupport@1",'
+        'Template("BatteryOverviewSupport@1",'
         f'{{"actionId":"{action_id}"}}));'
     )
 
@@ -584,3 +705,96 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
             contract,
             get_cardplan_registry(),
         )
+
+
+def test_wide_plan_tie_prefers_two_compact_over_hero_action_layout() -> None:
+    task_spec = TaskSpec(
+        userQuery="今晚骑车回家，看当前天气、体感温度、天气预警和手机剩余电量，点击导航回家",
+        size="2x4",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "current": {
+                        "condition": _field("多云"),
+                        "feelsLikeC": _field(26.0, "number"),
+                        "alertLevel": _field("黄色"),
+                    }
+                },
+                "phoneBattery": {"batterySOC": _field(63, "integer")},
+            }
+        },
+        eventCandidates=[
+            EventAction(
+                id="event.startNavigate",
+                displayLabel="开始导航",
+                call="clickToIntent",
+                args={
+                    "intentName": "StartNavigate",
+                    "params": {"dstLocation": {"location": "home"}},
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/icon_weather_temperature1.svg",
+                "description": "温度计图标",
+            },
+            {
+                "src": "resources/base/media/battery_leaf_fill.svg",
+                "description": "电池图标",
+            },
+            {
+                "src": "resources/base/media/location_north_up_right_fill.svg",
+                "description": "导航图标",
+            },
+        ],
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            writeResultTo="/data/weather",
+            candidateOutputFields=[
+                "/current/condition",
+                "/current/feelsLikeC",
+                "/current/alertLevel",
+            ],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetPhoneBatteryInfo",
+            writeResultTo="/data/phoneBattery",
+            candidateOutputFields=["/batterySOC"],
+        ),
+    )
+    card = {
+        "title": "骑车回家",
+        "suggestSize": "2x4",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            {"capabilityId": "GetPhoneBatteryInfo", "writeResultTo": "/data/phoneBattery"},
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/alertLevel", "/current/condition", "/current/feelsLikeC"),
+            "GetPhoneBatteryInfo": ("/batterySOC",),
+        },
+        action=("event.startNavigate",),
+    )
+
+    registry = get_cardplan_registry()
+    found = search_template_variants(intent, task_spec, registry, bindings, card)
+    plans = plan_template_candidates(intent, found, task_spec, registry)
+
+    assert plans
+    # 与 Q083 评审骨架一致：同分时“Full + 业务 Compact + 动作 Compact”按 _WIDE_LAYOUTS
+    # 位次优先于“Full + Hero + PillAction”，不受业务覆盖组合枚举顺序影响。
+    first = plans[0]
+    assert first.layout_template_id == "WideFullTwoCompactLayout@1"
+    assert [slot.template_id for slot in first.business_slots] == [
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
+        "BatteryOverviewPercentRingCompact@1",
+    ]
+    assignment = first.action_assignments[0]
+    assert assignment.action_id == "event.startNavigate"
+    assert assignment.consumer == "root-action"
+    assert assignment.action_template_id == "CompactSubtitleAction@1"

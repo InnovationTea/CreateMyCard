@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 contains 2 visible actions but TaskSpec provides only 1 candidates. Do not copy an action to fill the other backboard."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "958b4adddf4f621e2a34aaa637a299e34a64f97dc6e9f3c528b955f75246c931",
+    "sample_task_spec.json": "aeb7953ed1c2af0eb7266781a7a8302666305425b4cd91b4f4bc6cf3983a5b29",
+    "sample_card_spec.json": "21876ba5647241226dbf524779d39679ce1b40a5ae1e106512a567b16ca01a20"
+  }
+}

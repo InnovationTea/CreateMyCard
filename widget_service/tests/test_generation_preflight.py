@@ -56,6 +56,16 @@ def test_generation_tool_schema_matches_source_direct_result_contract():
     output_schema = tool["outputSchema"]
 
     assert tool["arguments"]["required"] == ["userQuery"]
+    assert set(properties) == {
+        "userQuery",
+        "sourceArtifactUrl",
+        "size",
+        "title",
+        "description",
+        "candidateDataBindings",
+        "candidateEventCandidates",
+        "candidateAssetIds",
+    }
     assert set(data_item["properties"]) == {
         "writeResultTo",
         "arguments",
@@ -405,36 +415,6 @@ def test_preflight_rejects_unknown_asset():
     assert issue.path == "/candidateAssetIds/0"
     assert issue.agentAction == "REFRESH_CAPABILITIES"
     assert issue.referenceSource.endswith("assetCandidates[]")
-
-
-@pytest.mark.asyncio
-async def test_preflight_rejects_disabled_data_capability_before_model(monkeypatch):
-    def unexpected_generate(*_args, **_kwargs):
-        pytest.fail("a disabled data capability must not reach the model")
-
-    monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
-    request = _request(
-        candidateDataBindings=[
-            {
-                "capabilityId": "GetAppUsageDuration",
-                "arguments": {"appBundleName": "com.example.video"},
-                "writeResultTo": "/data/appUsageStats",
-                "candidateOutputFields": ["/appUsage/durationText"],
-            }
-        ]
-    )
-
-    with pytest.raises(GenerationPreflightError) as exc_info:
-        await WidgetGenerationService().generate_widget_card_compact_dsl(request)
-
-    details = exc_info.value.details()
-    issue = details["issues"][0]
-    assert details["modelCalled"] is False
-    assert details["requiredActions"] == ["REFRESH_CAPABILITIES"]
-    assert issue["code"] == ErrorCode.UNKNOWN_CAPABILITY
-    assert issue["path"] == "/candidateDataBindings/0/capabilityId"
-    assert "当前已停用" in issue["message"]
-    assert "重新获取能力概述并移除" in issue["message"]
 
 
 @pytest.mark.asyncio

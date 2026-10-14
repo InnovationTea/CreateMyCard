@@ -112,7 +112,7 @@ def convert_top_text_bottom_value(node: JSXElement, ctx: ConversionContext) -> A
     item_count = len(items)
     dividers = []
     for index in range(1, item_count):
-        left = round(296 * index / item_count, 4)
+        left = round(276 * index / item_count, 4)
         dividers.append(
             column(
                 ctx,

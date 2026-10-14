@@ -6,9 +6,9 @@
   "supportedCapabilityIds": ["GetPhoneBatteryInfo"],
   "paletteSceneIds": ["device.battery"],
   "allowTemplateActionBackgroundOverride": false,
-  "primaryColor": "#FF52991F",
-  "supportContentColor": "#9952991F",
-  "progressColor": "#FF52991F",
+  "primaryColor": "#FF34651F",
+  "supportContentColor": "#FF456A35",
+  "progressColor": "#FF34651F",
   "progressBackgroundColor": "#3364BB5C",
   "rootStyle": {
     "backgroundColor": "#FFF0FFE6",
@@ -20,6 +20,6 @@
   },
   "actionStyle": {
     "backgroundColor": "#3364BB5C",
-    "contentColor": "#FF52991F"
+    "contentColor": "#FF34651F"
   }
 }

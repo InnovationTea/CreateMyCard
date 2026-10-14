@@ -1,0 +1,8 @@
+["root","Column",{},["group"]]
+["group","Column",{},["value","meta"]]
+["value","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":30,"fontWeight":400,"maxLines":1,"fontColor":"#FF563D99"}]
+["meta","Row",{},["unit","time","extra"]]
+["unit","Text",{"content":"天","fontSize":12,"fontWeight":400,"maxLines":1,"fontColor":"#FF563D99"}]
+["time","Text",{"content":"09:00","fontSize":12,"fontWeight":400,"maxLines":1,"fontColor":"#FF563D99"}]
+["extra","Text",{"content":"备注","fontSize":12,"fontWeight":400,"maxLines":1,"fontColor":"#FF563D99"}]
+["/data/countdown/countdownDays",10]

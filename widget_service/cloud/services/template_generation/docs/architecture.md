@@ -62,9 +62,7 @@ Form Profile、模型运行时和请求上下文，再将其注入公共生成�
 
 ```mermaid
 flowchart TD
-    IN[TaskSpec appVersion + CardSpec + effective bindings] --> SIZE{size == 2x4?}
-    SIZE -->|是| MISS[模板路由不适用]
-    SIZE -->|否| LOAD[加载 Controls 与 CardPlanRegistry]
+    IN[TaskSpec appVersion + CardSpec + effective bindings] --> LOAD[加载 Controls 与 CardPlanRegistry]
     LOAD --> FUSION{appVersion >= 配置最低版本?}
     FUSION -->|false| FILTER[移除融球 Theme 的请求级视图]
     FUSION -->|true| SELECTOR{firstLayerComponentSelector}

@@ -2,10 +2,21 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 from .card_sizes import CARD_SIZE_DIMENSIONS, DEFAULT_CARD_SIZE
-from .config import RESOURCE_STAGES, SKILL_DIR
+from .config import (
+    PROMPT_FEW_SHOT_ROLES,
+    PROMPT_FEW_SHOT_ROLE,
+    PROMPT_INITIAL_ROLES,
+    PROMPT_REPAIR_ROLE,
+    PROMPT_RESOURCE_ROLES,
+    PROMPT_SOURCE_DIR,
+    RESOURCE_STAGES,
+    SKILL_DIR,
+)
 
 if "." in (__package__ or ""):
     from ..jsx_to_a2ui.catalog.bindings import bindable_prop_type_labels
@@ -21,7 +32,10 @@ _CONTRACT_BLOCK = re.compile(
 )
 _CONTRACT_LINE = re.compile(r"^\s*(?P<name>[A-Za-z_$][\w$]*)\s*:\s*\{(?P<body>.*)\},?\s*$")
 _ARRAY_FIELD = r"\b{field}\s*:\s*\[(?P<values>[^]]*)\]"
-FEW_SHOT_2X4_PATH = SKILL_DIR / "references" / "fewshots" / "end_to_end_2x4.md"
+_YAML_FRONTMATTER = re.compile(
+    r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n|\Z)",
+    re.DOTALL,
+)
 
 
 # Model-facing Card appearances follow the current v15 designer source.
@@ -29,7 +43,6 @@ FEW_SHOT_2X4_PATH = SKILL_DIR / "references" / "fewshots" / "end_to_end_2x4.md"
 # but are intentionally absent from the generated JSX contract.
 GENERATION_CARD_APPEARANCES_SOLID = frozenset(
     {
-        "solid-white",
         "solid-blue",
         "solid-orange",
         "solid-green",
@@ -87,6 +100,7 @@ GENERATION_COMPONENTS_COMMON = frozenset(
     {
         "Badge",
         "Card",
+        "DataDisplay",
         "DoubleLineTitle",
         "EmphasisText",
         "EmphasizedData",
@@ -95,6 +109,7 @@ GENERATION_COMPONENTS_COMMON = frozenset(
         "H_BarChart",
         "InfoBlock",
         "NumericRatio",
+        "NumericRatioStack",
         "PillButton",
         "ProgressCircle",
         "ProgressCircleSingle",
@@ -107,7 +122,7 @@ GENERATION_COMPONENTS_COMMON = frozenset(
 )
 
 GENERATION_COMPONENTS_BY_SIZE = {
-    "2x2": frozenset({"DataDisplay", "CircleButton"}),
+    "2x2": frozenset({"CircleButton"}),
     "2x4": frozenset({"TopTextBottomValue", "TextBlock", "CardButton"}),
 }
 
@@ -128,6 +143,7 @@ GENERATION_COMPONENTS = frozenset(
         "H_BarChart",
         "InfoBlock",
         "NumericRatio",
+        "NumericRatioStack",
         "PillButton",
         "ProgressCircle",
         "ProgressCircleSingle",
@@ -180,8 +196,9 @@ _GENERATION_REQUIRED_PROPS = {
     # The browser validator already enforces these requirements; keeping them
     # in the prompt contract prevents avoidable validation/retry cycles.
     "ProgressCircleSingle": frozenset({"appearance", "ariaLabel"}),
-    "ProgressCircle": frozenset({"appearance", "ariaLabel"}),
+    "ProgressCircle": frozenset({"appearance", "ariaLabel", "size"}),
     "NumericRatio": frozenset({"appearance"}),
+    "NumericRatioStack": frozenset({"appearance", "direction"}),
     "EventCard": frozenset({"items"}),
     "PillButton": frozenset({"appearance"}),
     "CircleButton": frozenset({"appearance"}),
@@ -199,6 +216,10 @@ _GENERATION_ENUM_OVERRIDES = {
         "align": frozenset({"stretch", "flex-start", "center", "flex-end"}),
     },
     "H_BarChart": {"mode": frozenset({"light", "dark"})},
+    "NumericRatioStack": {
+        "appearance": frozenset({"card"}),
+        "direction": frozenset({"column", "row"}),
+    },
 }
 for _component_name in (
     "ProgressCircleSingle",
@@ -208,6 +229,7 @@ for _component_name in (
     "CircleButton",
 ):
     _GENERATION_ENUM_OVERRIDES[_component_name] = {"appearance": frozenset({"card"})}
+_GENERATION_ENUM_OVERRIDES["ProgressCircle"]["size"] = frozenset({"sm"})
 
 
 def _quoted_values(source: str) -> set[str]:
@@ -379,29 +401,46 @@ def generation_contract_sync_errors() -> list[str]:
 
 
 def format_generation_contract(card_size: str | None = None) -> str:
+    semantic_layout = card_size in {"2x2", "2x4"}
     lines = [
         "# 可生成 JSX 合同",
         "",
         "只允许提交一个以 <Card> 为根的声明式 JSX 表达式。",
         "禁止原生 HTML、style/className、spread props、变量读取、函数调用、条件表达式、Hooks 和副作用。",
         "属性表达式只允许字符串、数字、布尔值、null，以及 JSON-like 数组/对象；布局必须显式表达。",
-        "Card 与每个 Stack 必须显式填写 direction=\"column\" 或 direction=\"row\"。",
-        "Stack/Grid 的 basis、minWidth 以及 Stack.alignSelf、Stack.wrap 仅属于 runtime 兼容能力，不属于可生成子集。",
-        "固定槽使用 flex={0}，并按父级 direction 通过 width 或 height 声明主轴尺寸。",
+        (
+            f"{card_size} 只提交 Card.layout + Region.slot/variant；禁止输出 Stack/Grid。"
+            if semantic_layout else
+            "Card 与每个 Stack 必须显式填写 direction=\"column\" 或 direction=\"row\"。"
+        ),
+        (
+            "恰好三个同级占比值使用 NumericRatioStack，通过 direction 选择横排或纵排。"
+            if semantic_layout else
+            "Stack/Grid 的 basis、minWidth 以及 Stack.alignSelf、Stack.wrap 仅属于 runtime 兼容能力，不属于可生成子集。"
+        ),
         "禁止使用 Card.background 和仅供实现层覆盖的硬编码颜色属性。",
         "",
         "Card appearance 必选值：" + ", ".join(sorted(generation_card_appearances(card_size))),
         "",
         "## 组件",
     ]
-    for name, item in generatable_contracts(
+    contracts = generatable_contracts(
         card_size,
         include_legacy_appearances=False,
-    ).items():
+    )
+    if semantic_layout:
+        contracts = {name: item for name, item in contracts.items() if name not in {"Stack", "Grid"}}
+    for name, item in contracts.items():
         required = set(item.required)
         optional = set(item.optional)
         enums = dict(item.enums or {})
-        if name in {"Card", "Stack"}:
+        if semantic_layout and name == "Card":
+            required.add("layout")
+            optional.difference_update({"direction", "gap", "align", "justify", "padding"})
+            if card_size == "2x4":
+                optional.add("flow")
+            enums.pop("direction", None)
+        elif name in {"Card", "Stack"}:
             required.add("direction")
             optional.discard("direction")
             enums["direction"] = frozenset({"column", "row"})
@@ -424,61 +463,176 @@ def format_generation_contract(card_size: str | None = None) -> str:
     return "\n".join(lines) + "\n"
 
 
+@dataclass(frozen=True, slots=True)
+class PromptPart:
+    """One responsibility-scoped prompt fragment without maintainer metadata."""
+
+    role: str
+    content: str
+    source_files: tuple[Path, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PromptBundle:
+    """Static first-pass contracts, intentionally excluding repair instructions."""
+
+    card_size: str
+    include_few_shot: bool
+    initial_parts: tuple[PromptPart, ...]
+
+    @property
+    def initial_content(self) -> str:
+        return "\n\n".join(
+            part.content for part in self.initial_parts if part.content.strip()
+        )
+
+    @property
+    def initial_source_files(self) -> tuple[Path, ...]:
+        return tuple(
+            path
+            for part in self.initial_parts
+            for path in part.source_files
+        )
+
+
+def _prompt_part_files(role: str, card_size: str) -> tuple[Path, ...]:
+    role_dir = PROMPT_SOURCE_DIR / role
+    if role == PROMPT_FEW_SHOT_ROLE:
+        # Size-scoped examples are retrieved after Plan; only usage boundaries stay
+        # in the stable system prefix.
+        return (role_dir / "fewshots_common.md",)
+    return (
+        role_dir / f"{role}_common.md",
+        role_dir / f"{role}_{card_size}.md",
+    )
+
+
+def _read_prompt_source(path: Path) -> str:
+    source = path.read_text(encoding="utf-8")
+    match = _YAML_FRONTMATTER.match(source)
+    if match is None:
+        raise ValueError(f"prompt source is missing YAML frontmatter: {path}")
+    return source[match.end():].lstrip("\r\n")
+
+
+def _load_prompt_part(role: str, card_size: str) -> PromptPart:
+    source_files = _prompt_part_files(role, card_size)
+    content = "\n\n".join(
+        body
+        for body in (_read_prompt_source(path) for path in source_files)
+        if body.strip()
+    )
+    return PromptPart(role=role, content=content, source_files=source_files)
+
+
+@lru_cache(maxsize=4)
+def assemble_prompt_bundle(
+    card_size: str,
+    include_few_shot: bool = False,
+) -> PromptBundle:
+    """Assemble and cache one size-scoped prompt without task-specific input."""
+
+    if card_size not in CARD_SIZE_DIMENSIONS:
+        allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
+        raise ValueError(f"unsupported task size {card_size!r}; expected one of {allowed}")
+    roles = list(PROMPT_INITIAL_ROLES)
+    if include_few_shot and card_size in PROMPT_FEW_SHOT_ROLES:
+        roles.append(PROMPT_FEW_SHOT_ROLE)
+    initial_parts = tuple(_load_prompt_part(role, card_size) for role in roles)
+    return PromptBundle(
+        card_size=card_size,
+        include_few_shot=include_few_shot,
+        initial_parts=initial_parts,
+    )
+
+
+@lru_cache(maxsize=2)
+def assemble_repair_prompt(card_size: str) -> PromptPart:
+    """Load the repair contract only when a valid JSX submission needs repair."""
+
+    if card_size not in CARD_SIZE_DIMENSIONS:
+        allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
+        raise ValueError(f"unsupported task size {card_size!r}; expected one of {allowed}")
+    return _load_prompt_part(PROMPT_REPAIR_ROLE, card_size)
+
+
+def clear_prompt_bundle_cache() -> None:
+    """Clear the process cache for tests and prompt-development tooling."""
+
+    assemble_prompt_bundle.cache_clear()
+    assemble_repair_prompt.cache_clear()
+
+
 class GenerationResources:
     def __init__(self, *, include_few_shot: bool = False) -> None:
         self._by_key = {stage.key: stage for stage in RESOURCE_STAGES}
         self.include_few_shot = include_few_shot
+
+    def bundle(self, card_size: str | None = None) -> PromptBundle:
+        resolved_size = card_size or DEFAULT_CARD_SIZE
+        return assemble_prompt_bundle(resolved_size, self.include_few_shot)
+
+    def repair(self, card_size: str | None = None) -> PromptPart:
+        resolved_size = card_size or DEFAULT_CARD_SIZE
+        return assemble_repair_prompt(resolved_size)
 
     @property
     def keys(self) -> tuple[str, ...]:
         return tuple(stage.key for stage in RESOURCE_STAGES)
 
     def missing_files(self) -> list[Path]:
-        paths = [stage.path for stage in RESOURCE_STAGES if stage.path is not None]
-        paths.append(SKILL_DIR / "references" / "components" / "components_common.md")
-        paths.extend(SKILL_DIR / "references" / "components" / f"components_{size}.md" for size in CARD_SIZE_DIMENSIONS)
-        paths.extend(
-            SKILL_DIR / "references" / "layouts" / f"layout_patterns_{size}.md" for size in CARD_SIZE_DIMENSIONS
-        )
+        paths: list[Path] = []
+        for card_size in CARD_SIZE_DIMENSIONS:
+            roles = [*PROMPT_INITIAL_ROLES, PROMPT_REPAIR_ROLE]
+            if self.include_few_shot and card_size in PROMPT_FEW_SHOT_ROLES:
+                roles.append(PROMPT_FEW_SHOT_ROLE)
+            for role in roles:
+                paths.extend(_prompt_part_files(role, card_size))
+            if self.include_few_shot:
+                paths.extend((
+                    PROMPT_SOURCE_DIR / "fewshots" / f"fewshots_{card_size}.md",
+                    PROMPT_SOURCE_DIR / "fewshots" / f"library_{card_size}.md",
+                    PROMPT_SOURCE_DIR / "repair" / f"repair_examples_{card_size}.md",
+                ))
         if self.include_few_shot:
-            paths.append(FEW_SHOT_2X4_PATH)
+            paths.append(PROMPT_SOURCE_DIR / "fewshots" / "library_dense_2x2.md")
+            paths.append(PROMPT_SOURCE_DIR / "fewshots" / "library_dense_2x4.md")
         paths.append(SKILL_DIR / "design-system-runtime.jsx")
-        return [path for path in paths if not path.exists()]
+        return [path for path in dict.fromkeys(paths) if not path.exists()]
 
     def source_files(self, key: str, *, card_size: str | None = None) -> tuple[Path, ...]:
-        """Return the source files whose contents form one model-visible resource."""
-        stage = self._by_key.get(key)
-        if stage is None:
+        """Return prompt-source files for a legacy logical resource name.
+
+        Live generation injects :meth:`bundle` once.  This compatibility view
+        keeps trace readers and local tooling able to resolve the four former
+        resource groups without reintroducing model-facing read turns.
+        """
+        if key not in self._by_key:
             raise KeyError(f"unknown generation resource {key!r}")
-        if key == "jsx_contract":
-            files = (SKILL_DIR / "references" / "core.md",)
-        elif key == "component_style":
-            resolved_size = card_size or DEFAULT_CARD_SIZE
-            if resolved_size not in CARD_SIZE_DIMENSIONS:
-                allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
-                raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
-            component_dir = SKILL_DIR / "references" / "components"
-            files = (
-                component_dir / "components_common.md",
-                component_dir / f"components_{resolved_size}.md",
-            )
-        elif key == "layout_patterns":
-            resolved_size = card_size or DEFAULT_CARD_SIZE
-            if resolved_size not in CARD_SIZE_DIMENSIONS:
-                allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
-                raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
-            files = (SKILL_DIR / "references" / "layouts" / f"layout_patterns_{resolved_size}.md",)
-            if self.include_few_shot and resolved_size == "2x4":
-                files += (FEW_SHOT_2X4_PATH,)
-        else:
-            if stage.path is None:
-                raise AssertionError()
-            files = (stage.path,)
+        resolved_size = card_size or DEFAULT_CARD_SIZE
+        if resolved_size not in CARD_SIZE_DIMENSIONS:
+            allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
+            raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
+        roles = PROMPT_RESOURCE_ROLES[key]
+        files = tuple(
+            path
+            for role in roles
+            for path in _prompt_part_files(role, resolved_size)
+        )
+        if (
+            self.include_few_shot
+            and key == "layout_patterns"
+            and resolved_size in PROMPT_FEW_SHOT_ROLES
+        ):
+            files += _prompt_part_files(PROMPT_FEW_SHOT_ROLE, resolved_size)
         return files
 
     def read(self, key: str, *, card_size: str | None = None) -> str:
         source_files = self.source_files(key, card_size=card_size)
-        return "\n\n".join(path.read_text(encoding="utf-8") for path in source_files)
+        contents = []
+        for path in source_files:
+            contents.append(_read_prompt_source(path))
+        return "\n\n".join(contents)
 
 
 def iter_asset_values(value: object, *, key: str | None = None) -> Iterable[str]:

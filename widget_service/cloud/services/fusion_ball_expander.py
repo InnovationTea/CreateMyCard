@@ -17,6 +17,7 @@ from config.config import get_settings
 FUSION_BALL_CONTENT_ID_PREFIX = "__genui_render_component__"
 FUSION_BALL_MIN_PRD_VERSION_CONFIG = "fusion_ball_min_prd_version"
 FUSION_BALL_BASE_SIZE = 160
+FUSION_BALL_SIZES = frozenset({"2x2", "2x4"})
 FUSION_BALL_DESIGN_TOKENS = (
     "fusion-ball-battery-teal",
     "fusion-ball-schedule-cool",
@@ -24,20 +25,38 @@ FUSION_BALL_DESIGN_TOKENS = (
     "fusion-ball-sleep-violet",
     "fusion-ball-sport-orange",
 )
+# 各尺寸的展开画布；2x4 (320x160) 呈现 2x2 构图放大 2 倍后的下半部分，槽位盒重新
+# 锚定到画布原点，保证三球保持正圆并完整覆盖画布。
+_FUSION_BALL_CANVAS_SIZES = {"2x2": (160, 160), "2x4": (320, 160)}
+# 槽位布局：(槽位 id, 球 id, 槽宽, 槽高, 槽内对齐, 球径)，尺寸均为画布设计 vp。
+_FUSION_BALL_SLOT_LAYOUTS = {
+    "2x2": (
+        ("fusionBallLargeSlot", "fusionBallLarge", 180, 44, "center", 210),
+        ("fusionBallMediumSlot", "fusionBallMedium", 80, 220, "bottom", 160),
+        ("fusionBallSmallSlot", "fusionBallSmall", 195, 190, "bottomEnd", 100),
+    ),
+    "2x4": (
+        ("fusionBallLargeSlot", "fusionBallLarge", 360, 94, "bottom", 420),
+        ("fusionBallMediumSlot", "fusionBallMedium", 160, 280, "bottom", 320),
+        ("fusionBallSmallSlot", "fusionBallSmall", 390, 220, "bottomEnd", 200),
+    ),
+}
 
 _BASE_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
 _ARGB_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{8}$")
 _FUSION_ROOT_TYPES = frozenset({"Row", "Column", "Stack"})
 _DESIGN_TOKEN_FIXED_PALETTES = {
-    "fusion-ball-battery-teal": ("#FF17734C", "#FF26BFA6", "#FF60BF98"),
-    "fusion-ball-schedule-cool": ("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+    "fusion-ball-battery-teal": ("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
+    "fusion-ball-schedule-cool": ("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
     "fusion-ball-schedule-warm": ("#FF731D28", "#FFFF5533", "#FFE68A2E"),
-    "fusion-ball-sleep-violet": ("#FF2B2459", "#FF572BD9", "#FFB398D9"),
-    "fusion-ball-sport-orange": ("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
+    "fusion-ball-sleep-violet": ("#FF493D99", "#FF5536B3", "#FF7D6B99"),
+    "fusion-ball-sport-orange": ("#FFF24131", "#FFFF8833", "#FFE68073"),
 }
 _FUSION_CAPSULE_BACKGROUND = "#33FFFFFF"
 _FUSION_CAPSULE_TEXT = "#E6FFFFFF"
 _FUSION_CAPSULE_ICON = "#99FFFFFF"
+_FUSION_CONTENT_BACKGROUND = "#33FFFFFF"
+_FUSION_CONTENT_TEXT = "#FFFFFFFF"
 _FUSION_CAPSULE_HEIGHT = 36
 _FUSION_CAPSULE_BORDER_RADII = frozenset({18, 20})
 _BACKGROUND_STYLE_KEYS = frozenset(
@@ -93,6 +112,17 @@ def fusion_ball_enabled(prd_ver: Any) -> bool:
     return requested_version >= minimum_version
 
 
+def fusion_ball_layout(
+    size: str,
+) -> tuple[tuple[int, int], tuple[tuple[str, str, int, int, str, int], ...]]:
+    """Return the canvas size and slot layout for one supported fusion-ball card size."""
+    if size not in _FUSION_BALL_SLOT_LAYOUTS:
+        raise FusionBallExpansionError(
+            f"Fusion-ball size must be one of {sorted(FUSION_BALL_SIZES)}."
+        )
+    return _FUSION_BALL_CANVAS_SIZES[size], _FUSION_BALL_SLOT_LAYOUTS[size]
+
+
 def build_fusion_ball_content_id(original_id: str) -> str:
     """Prefix the original content id with the renderer overflow marker."""
     if not isinstance(original_id, str) or not original_id:
@@ -145,8 +175,8 @@ def fusion_ball_palette_for_root(
     size: str,
     app_version: Any,
 ) -> FusionBallPalette | None:
-    """Resolve a root fusion Style Design Token for supported 2x2 cards."""
-    if size != "2x2" or not fusion_ball_enabled(app_version):
+    """Resolve a root fusion Style Design Token for supported 2x2/2x4 cards."""
+    if size not in FUSION_BALL_SIZES or not fusion_ball_enabled(app_version):
         return None
     roots = [item for item in components if _component_id(item) == "root"]
     if len(roots) != 1:
@@ -171,6 +201,8 @@ def fusion_ball_palette_for_root(
 def expand_fusion_ball_components(
     components: list[dict[str, Any]],
     palette: FusionBallPalette,
+    *,
+    size: str = "2x2",
 ) -> list[dict[str, Any]]:
     """Wrap a converted A2UI root with the deterministic fusion-ball background."""
     copied = copy.deepcopy(components)
@@ -198,6 +230,7 @@ def expand_fusion_ball_components(
     foreground_styles["height"] = "matchParent"
 
     content_components = [foreground, *(item for item in copied if item is not root)]
+    _normalize_fusion_content_styles(content_components, content_id)
     _apply_fusion_capsule_styles(content_components, content_id)
 
     expanded_root = {
@@ -214,9 +247,34 @@ def expand_fusion_ball_components(
             "alignContent": "topStart",
         },
     }
-    background = _build_fusion_ball_components(palette)
+    background = _build_fusion_ball_components(palette, size)
     remaining = content_components[1:]
     return [expanded_root, *background, foreground, *remaining]
+
+
+def _normalize_fusion_content_styles(
+    components: list[dict[str, Any]],
+    content_id: str,
+) -> None:
+    """将浅色骨架的内容表面收敛为融球前景样式。"""
+    components_by_id = {
+        item.get("id"): item for item in components if isinstance(item.get("id"), str)
+    }
+    content_ids = _collect_descendant_ids(components_by_id, content_id)
+    for component_id in content_ids:
+        component = components_by_id.get(component_id)
+        if not isinstance(component, dict) or component_id == content_id:
+            continue
+        styles = component.get("styles")
+        if not isinstance(styles, dict):
+            continue
+        background_color = styles.get("backgroundColor")
+        if isinstance(background_color, str) and background_color.upper() == "#CCFFFFFF":
+            styles["backgroundColor"] = _FUSION_CONTENT_BACKGROUND
+        if component.get("component") == "Text":
+            styles["fontColor"] = _FUSION_CONTENT_TEXT
+        elif component.get("component") == "Image" and "fillColor" in styles:
+            styles["fillColor"] = _FUSION_CONTENT_TEXT
 
 
 def _apply_fusion_capsule_styles(
@@ -320,8 +378,17 @@ def _validate_component_ids(
         )
 
 
-def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, Any]]:
-    return [
+def _build_fusion_ball_components(
+    palette: FusionBallPalette,
+    size: str,
+) -> list[dict[str, Any]]:
+    (canvas_width, canvas_height), slots = fusion_ball_layout(size)
+    ball_colors = {
+        "fusionBallLarge": palette.large,
+        "fusionBallMedium": palette.medium,
+        "fusionBallSmall": palette.small,
+    }
+    components = [
         _stack(
             "fusionBallBackground",
             [
@@ -330,67 +397,50 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
                 "fusionBallSmallSlot",
                 "fusionBallGlassLayer",
             ],
-            width=fusion_ball_relative_size(160),
-            height=fusion_ball_relative_size(160),
+            width="100%",
+            height="100%",
             borderRadius=20,
             alignContent="topStart",
             clip=True,
         ),
-        _stack(
-            "fusionBallLargeSlot",
-            ["fusionBallLarge"],
-            width=fusion_ball_relative_size(180),
-            height=fusion_ball_relative_size(44),
-            alignContent="center",
-        ),
-        _ball(
-            "fusionBallLarge",
-            210,
-            palette.large,
-            parent_width=180,
-            parent_height=44,
-        ),
-        _stack(
-            "fusionBallMediumSlot",
-            ["fusionBallMedium"],
-            width=fusion_ball_relative_size(80),
-            height=fusion_ball_relative_size(220),
-            alignContent="bottom",
-        ),
-        _ball(
-            "fusionBallMedium",
-            160,
-            palette.medium,
-            parent_width=80,
-            parent_height=220,
-        ),
-        _stack(
-            "fusionBallSmallSlot",
-            ["fusionBallSmall"],
-            width=fusion_ball_relative_size(195),
-            height=fusion_ball_relative_size(190),
-            alignContent="bottomEnd",
-        ),
-        _ball(
-            "fusionBallSmall",
-            100,
-            palette.small,
-            parent_width=195,
-            parent_height=190,
-        ),
+    ]
+    for slot_id, ball_id, slot_width, slot_height, alignment, diameter in slots:
+        ball_color = ball_colors.get(ball_id)
+        if ball_color is None:
+            raise KeyError(f"Unknown fusion-ball component id: {ball_id}")
+        components.append(
+            _stack(
+                slot_id,
+                [ball_id],
+                width=fusion_ball_relative_size(slot_width, canvas_width),
+                height=fusion_ball_relative_size(slot_height, canvas_height),
+                alignContent=alignment,
+            ),
+        )
+        components.append(
+            _ball(
+                ball_id,
+                diameter,
+                ball_color,
+                parent_width=slot_width,
+                parent_height=slot_height,
+            ),
+        )
+    components.append(
         {
             "id": "fusionBallGlassLayer",
             "component": "Divider",
             "styles": {
-                "width": fusion_ball_relative_size(160),
-                "height": fusion_ball_relative_size(160),
+                "width": "100%",
+                "height": "100%",
                 "strokeWidth": 0,
                 "color": "#00000000",
-                "backgroundColor": "#1AFFFFFF",
-                "backdropBlur": {"radius": 120},
+                "backgroundColor": "#0DFFFFFF",
+                "backdropBlur": {"radius": 210},
             },
         },
-    ]
+    )
+    return components
 
 
 def _stack(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
@@ -27,12 +27,18 @@ from services.template_generation.engine.cardplan.retrieval_index import (
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     TemplateRetrievalQuery,
+    TemplateSearchIntent,
     _component_templates_for_capability,
     _limit_component_templates,
     _required_field_template_groups,
     build_template_retrieval_prompt,
     restrict_query_to_preferred_templates,
     retrieve_template_variants,
+    search_template_variants,
+)
+from services.template_generation.engine.compact_dsl_a2ui_converter import (
+    convert_a2ui_to_compact_dsl,
+    validate_compact_dsl_context,
 )
 
 _WEATHER_FIELDS = (
@@ -134,6 +140,14 @@ def _card_spec() -> dict[str, Any]:
         "suggestSize": "2x2",
         "dataBindings": [{"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"}],
     }
+
+
+def _stub_required_assets_registry_entry() -> SimpleNamespace:
+    """Fake TemplateDefinition：无必选素材槽位，素材可用性检查恒通过。"""
+    return SimpleNamespace(
+        variants=(SimpleNamespace(parameters_schema={}),),
+        asset_parameter_semantic_tags={},
+    )
 
 
 def _query(*paths: str) -> TemplateRetrievalQuery:
@@ -263,6 +277,7 @@ def test_candidate_diagnostics_distinguish_user_and_template_field_failures(
             missing_user_requirement,
         ),
         enabled_template_ids=lambda values: values,
+        require_template=lambda template_id: _stub_required_assets_registry_entry(),
     )
     info_logs: list[str] = []
     monkeypatch.setattr(
@@ -467,7 +482,7 @@ def test_specialized_weather_focus_routes_to_ux_template(
                 {},
                 {
                     "temperatureRangeText": _field("25℃ / 32℃"),
-                    "rainProbabilityPercent": _field("20%"),
+                    "rainProbabilityPercent": _field(20, "number"),
                 },
             ],
             (
@@ -869,21 +884,29 @@ def test_calendar_first_layer_rule_excludes_meeting_action_parameters() -> None:
     assert "event.enter.meeting" in calendar_rule
 
 
-def test_search_rejects_2x4_before_prompt_or_retrieval() -> None:
+def test_search_supports_2x4_prompt_and_composition_slot_retrieval() -> None:
     task = _task().model_copy(update={"size": "2x4"})
     card_spec = _card_spec() | {"suggestSize": "2x4"}
-    inaccessible_registry = cast(CardPlanRegistry, object())
+    registry = get_cardplan_registry()
 
-    with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
-        build_template_retrieval_prompt(task, inaccessible_registry, (_binding(),))
-    with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
-        retrieve_template_variants(
-            _query("/current/condition"),
-            task,
-            inaccessible_registry,
-            (_binding(),),
-            card_spec,
-        )
+    messages = build_template_retrieval_prompt(task, registry, (_binding(),))
+    selection = retrieve_template_variants(
+        _query("/current/condition"),
+        task,
+        registry,
+        (_binding(),),
+        card_spec,
+    )
+
+    assert messages[1]["content"]
+    assert selection.component_candidates
+    layout_kinds = {
+        retrieval_module.provider_template_layout_kind(template_id)
+        for candidate in selection.component_candidates
+        for template_id in candidate.available_template_ids
+    }
+    assert {"Full", "Hero", "Compact"}.intersection(layout_kinds)
+    assert {"WideHero", "WideFull", "WideHalf"}.intersection(layout_kinds)
 
 
 def test_search_rejects_two_data_businesses() -> None:
@@ -1101,8 +1124,12 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
     expected_primary_color = "#FFCCEEFF" if enable_fusion_ball else "#FF1F4799"
     expected_support_color = "#B3CCEEFF" if enable_fusion_ball else "#991F4799"
     themed_text_count = 0
+    action_buttons = [item for item in components if item.get("component") == "Button"]
+    assert len(action_buttons) == 1
+    assert action_buttons[0].get("label") == action.display_label
     for component in components:
-        content = component.get("content")
+        content_key = "label" if component.get("component") == "Button" else "content"
+        content = component.get(content_key)
         if not isinstance(content, str):
             continue
         weather_title_paths = (
@@ -1153,9 +1180,9 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         )
         assert background_count == 1
         palette = {
-            "fusionBallLarge": "#FF121E59",
-            "fusionBallMedium": "#FF2BA2D9",
-            "fusionBallSmall": "#FF52CCCC",
+            "fusionBallLarge": "#FF1F3399",
+            "fusionBallMedium": "#FF2385B3",
+            "fusionBallSmall": "#FF24B3B3",
         }
         for component_id, color in palette.items():
             component = by_id.get(component_id)
@@ -1213,6 +1240,14 @@ def test_optional_weather_title_does_not_relax_single_business_templates(
             query, task, get_cardplan_registry(), (_binding(),), _card_spec()
         )
         assert "WeatherOverviewConditionHero@1" in result.allowed_template_ids
+        assert "WeatherOverviewHeroTitle@1" not in result.allowed_template_ids
+    elif action_count == 0:
+        # 条件+体感+预警 Full 以天气现象为必选字段，可独立覆盖此类查询；
+        # 可选标题模板仍不得借此进入单业务方案。
+        result = retrieve_template_variants(
+            query, task, get_cardplan_registry(), (_binding(),), _card_spec()
+        )
+        assert "WeatherOverviewConditionFeelsLikeAlertFull@1" in result.allowed_template_ids
         assert "WeatherOverviewHeroTitle@1" not in result.allowed_template_ids
     else:
         with pytest.raises(TemplateRetrievalMiss):
@@ -1353,6 +1388,7 @@ def test_q001_weather_condition_fields_match_condition_hero() -> None:
     )
 
     assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
         "WeatherOverviewConditionHero@1",
     )
 
@@ -1390,9 +1426,11 @@ def test_q004_weather_alert_fields_match_alert_full() -> None:
         _card_spec(),
     )
 
-    assert result.component_candidates[0].available_template_ids == (
+    # 候选元组的顺序随注册表迭代不稳定，多成员一律按排序比较。
+    assert sorted(result.component_candidates[0].available_template_ids) == [
         "WeatherOverviewAlertFull@1",
-    )
+        "WeatherOverviewUpdatedAtFull@1",
+    ]
 
 
 def test_q025_weather_wind_fields_match_wind_hero() -> None:
@@ -1454,9 +1492,13 @@ def test_q025_weather_wind_fields_match_wind_hero() -> None:
         _card_spec(),
     )
 
-    assert result.component_candidates[0].available_template_ids == (
+    # 风况字段同时精确覆盖 WindFull（风向+风力为主数据）与 WindHero 的契约，
+    # 两者都进入候选（与 q001 的 Full+Hero 组合一致）。
+    assert sorted(result.component_candidates[0].available_template_ids) == [
+        "WeatherOverviewUpdatedAtFull@1",
+        "WeatherOverviewWindFull@1",
         "WeatherOverviewWindHero@1",
-    )
+    ]
 
 
 def test_q034_two_weather_bindings_match_dual_city_full() -> None:
@@ -1759,6 +1801,11 @@ def test_bluetooth_earphone_hero_supports_name_and_battery() -> None:
     task = TaskSpec(
         userQuery="展示耳机名称和耳机电量",
         size="2x2",
+        assetCandidates=[{
+            "src": "resources/base/media/icon_earphone.svg",
+            "description": "耳机本体图标",
+            "sceneTags": ["earphone-body"],
+        }],
         eventCandidates=[
             EventAction(
                 id="event.open.music.daily",
@@ -1794,6 +1841,14 @@ def test_bluetooth_earphone_hero_supports_name_and_battery() -> None:
         ],
     }
 
+    without_icon = task.model_copy(update={"assetCandidates": []})
+    without_icon_result = retrieve_template_variants(
+        query, without_icon, get_cardplan_registry(), (binding,), card_spec
+    )
+    assert without_icon_result.component_candidates[0].available_template_ids == (
+        "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+    )
+
     result = retrieve_template_variants(
         query,
         task,
@@ -1804,6 +1859,7 @@ def test_bluetooth_earphone_hero_supports_name_and_battery() -> None:
 
     assert result.component_candidates[0].available_template_ids == (
         "BluetoothDeviceOverviewEarphoneHero@1",
+        "BluetoothDeviceOverviewEarphonePercentTextFull@1",
     )
 
 
@@ -1875,7 +1931,14 @@ def test_search_without_action_keeps_only_full_candidates() -> None:
     )
 
     template_ids = set(result.component_candidates[0].available_template_ids)
-    assert template_ids == {"WeatherOverviewFull@1"}
+    # AlertInfoFull / UpdatedAtFull share Full@1's primary/secondary contract,
+    # so the condition-only query matches them too.
+    # UpdatedAtFull 的 updatedAt 已改为必出主数据，本意图不提供 updatedAt，
+    # 不再进入候选。
+    assert template_ids == {
+        "WeatherOverviewFull@1", "WeatherOverviewAlertInfoFull@1",
+        "WeatherOverviewConditionFeelsLikeAlertFull@1",
+    }
 
 
 def test_search_index_reports_per_field_matches_before_route_intersection() -> None:
@@ -1911,6 +1974,7 @@ def test_search_index_reports_per_field_matches_before_route_intersection() -> N
             record("WeatherCondition@1", condition),
         ),
         enabled_template_ids=lambda template_ids: template_ids,
+        require_template=lambda template_id: _stub_required_assets_registry_entry(),
     )
     query_tokens = frozenset({temperature, condition})
 
@@ -1963,6 +2027,7 @@ def test_search_filters_provider_templates_by_card_size() -> None:
             record("WeatherWide@1", frozenset({"2x4"})),
         ),
         enabled_template_ids=lambda template_ids: template_ids,
+        require_template=lambda template_id: _stub_required_assets_registry_entry(),
     )
 
     candidates = _component_templates_for_capability(
@@ -2006,12 +2071,12 @@ def test_optional_data_is_available_but_not_required_for_second_containment() ->
     record = next(
         item
         for item in get_cardplan_registry().template_variant_search_records
-        if item.template_id == "AppUsageOverviewFull@1"
+        if item.template_id == "WeatherOverviewFull@1"
     )
 
-    assert "/updatedAt" in record.available_paths
-    assert "/updatedAt" not in record.required_paths
-    assert any(token.path == "/updatedAt" for token in record.field_tokens)
+    assert "/current/airQuality" in record.available_paths
+    assert "/current/airQuality" not in record.required_paths
+    assert any(token.path == "/current/airQuality" for token in record.field_tokens)
 
 
 def test_search_rejects_weather_and_battery_businesses() -> None:
@@ -2235,4 +2300,447 @@ def test_search_rejects_countdown_and_weather_businesses() -> None:
                     {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
                 ],
             },
+        )
+
+
+def _weather_battery_task(with_actions: bool) -> TaskSpec:
+    events: list[EventAction] = []
+    if with_actions:
+        events = [
+            EventAction(
+                id="event.open.weather",
+                description="查看天气详情",
+                call="clickToDeeplink",
+                args={"uri": "example://weather"},
+            ),
+            EventAction(
+                id="event.open.settings.battery",
+                description="打开系统设置的电池页。",
+                call="clickToDeeplink",
+                args={"uri": "battery"},
+            ),
+        ]
+    return TaskSpec(
+        userQuery="看当前天气和手机电量、充电状态",
+        size="2x4",
+        assetCandidates=[{
+            "src": "resources/base/media/battery_leaf_fill.svg",
+            "description": "手机电量图标",
+            "sceneTags": ["battery"],
+        }],
+        eventCandidates=events,
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {
+                        "districtName": _field("西湖区"),
+                        "prefectureName": _field("杭州市"),
+                    },
+                    "current": {"condition": _field("多云")},
+                },
+                "phoneBattery": {
+                    "batterySOC": _field(68, "integer"),
+                    "chargingStatusDesc": _field("未充电"),
+                },
+            }
+        },
+    )
+
+
+_WEATHER_BATTERY_BINDINGS = (
+    CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/districtName",
+            "/location/prefectureName",
+            "/current/condition",
+        ],
+    ),
+    CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=["/batterySOC", "/chargingStatusDesc"],
+    ),
+)
+
+
+def _weather_battery_card_spec() -> dict[str, Any]:
+    return {
+        "title": "天气和电量",
+        "description": "当前天气和手机电量充电状态",
+        "suggestSize": "2x4",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            {"capabilityId": "GetPhoneBatteryInfo", "writeResultTo": "/data/phoneBattery"},
+        ],
+    }
+
+
+@pytest.mark.parametrize(
+    ("with_actions", "expected_layout_id"),
+    [
+        (False, "WideTwoFocusLayout@1"),
+        (True, "WideTwoFocusTwoActionLayout@1"),
+    ],
+)
+def test_weather_battery_2x4_composes_two_focus_panels(
+    with_actions: bool,
+    expected_layout_id: str,
+) -> None:
+    task = _weather_battery_task(with_actions)
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/condition", "/location/districtName"),
+            "GetPhoneBatteryInfo": ("/batterySOC", "/chargingStatusDesc"),
+        },
+        action=("event.open.weather", "event.open.settings.battery") if with_actions else (),
+    )
+    registry = get_cardplan_registry()
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        registry,
+        _WEATHER_BATTERY_BINDINGS,
+        _weather_battery_card_spec(),
+    )
+    projection = build_ux_mixed_prompt(
+        task_spec=task,
+        card_spec=_weather_battery_card_spec(),
+        scope=result.scope,
+        component_candidates=result.component_candidates,
+        required_template_groups=result.required_template_groups,
+        registry=registry,
+    )
+
+    assert projection.allowed_layout_ids == (expected_layout_id.removesuffix("@1"),)
+    candidate_groups_text = next(
+        message.get("content", "")
+        for message in projection.messages
+        if isinstance(message, dict) and "candidateGroups=" in message.get("content", "")
+    )
+    groups_line = next(
+        line
+        for line in candidate_groups_text.splitlines()
+        if line.startswith("candidateGroups=")
+    )
+    candidate_groups = json.loads(groups_line.removeprefix("candidateGroups="))
+    assert [item["componentId"] for item in candidate_groups] == [
+        "WeatherOverview",
+        "BatteryOverview",
+    ]
+    assert {item["layoutKind"] for item in candidate_groups} == {"Hero"}
+    assert "BatteryOverviewStatusHero@1" in candidate_groups[1]["availableTemplateIds"]
+
+    action_payloads = "".join(
+        'Template("PillAction@1",'
+        + json.dumps(
+            {"actionId": action.action_id, "label": action.display_label},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "),"
+        for action in projection.contract.action_bindings
+    )
+    source = (
+        f'Template("{expected_layout_id}",{{}},'
+        'Template("WeatherOverviewConditionHero@1",{}),'
+        'Template("BatteryOverviewStatusHero@1",'
+        '{"batteryIcon":"resources/base/media/battery_leaf_fill.svg"}),'
+        f"{action_payloads});"
+    )
+    compilation = compile_ux_layout_card(
+        source,
+        task_spec=task,
+        contract=projection.contract,
+        protocol_profile=A2UIProtocolRegistry(
+            A2UI_FORM_PROTOCOL_PROFILE_ID
+        ).get_profile(),
+        registry=registry,
+        card_spec=_weather_battery_card_spec(),
+        business_title="天气和电量",
+        enable_data_bindings=True,
+    )
+    compact_dsl = convert_a2ui_to_compact_dsl(compilation.a2ui, size=task.size)
+    validate_compact_dsl_context(
+        compact_dsl,
+        task_spec=task.model_dump(mode="json"),
+        card_spec=_weather_battery_card_spec(),
+    )
+
+    messages = [json.loads(line) for line in compilation.a2ui.splitlines() if line.strip()]
+    components = messages[1].get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    by_id = {component.get("id"): component for component in components}
+    root = by_id.get("root")
+    assert isinstance(root, dict)
+    assert root.get("children") == ["template_root"]
+    foreground = by_id.get("template_root")
+    assert isinstance(foreground, dict)
+    assert foreground.get("children") == ["__genui_render_component__root_1"]
+    row = by_id.get("__genui_render_component__root_1")
+    assert isinstance(row, dict)
+    assert row.get("component") == "Row"
+    row_children = row.get("children")
+    assert isinstance(row_children, list) and len(row_children) == 2
+
+    def descendant_ids(node_id: str) -> set[str]:
+        pending = [node_id]
+        seen: set[str] = set()
+        while pending:
+            current = pending.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            pending.extend(by_id.get(current, {}).get("children", []))
+        return seen
+
+    weather_condition_ids = {
+        component.get("id")
+        for component in components
+        if "/data/weather/current/condition" in str(component.get("content", ""))
+    }
+    battery_percent_ids = {
+        component.get("id")
+        for component in components
+        if "/data/phoneBattery/batterySOC" in str(component.get("content", ""))
+    }
+    assert weather_condition_ids and battery_percent_ids
+    assert weather_condition_ids <= descendant_ids(row_children[0])
+    assert battery_percent_ids <= descendant_ids(row_children[1])
+
+
+def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> None:
+    task = TaskSpec(
+        userQuery=(
+            "出门前想检查耳机仓和手机充电，看耳机仓充电状态、手机剩余电量、"
+            "手机充电状态和充电器类型，可以打开蓝牙设置，也可以打开电池设置。"
+        ),
+        size="2x4",
+        assetCandidates=[{
+            "src": "resources/base/media/icon_phone.svg",
+            "description": "手机电量图标",
+            "sceneTags": ["phone-device"],
+        }],
+        eventCandidates=[
+            EventAction(
+                id="event.open.settings.bluetooth",
+                description="打开系统设置的蓝牙设置页。",
+                call="clickToDeeplink",
+                args={"uri": "bluetooth_entry"},
+            ),
+            EventAction(
+                id="event.open.settings.battery",
+                description="打开系统设置的电池页。",
+                call="clickToDeeplink",
+                args={"uri": "battery"},
+            ),
+        ],
+        dataModelSchema={
+            "data": {
+                "earphone": {"chargingStatusDesc": _field("未充电")},
+                "phoneBattery": {
+                    "batterySOC": _field(68, "integer"),
+                    "chargingStatusDesc": _field("未充电"),
+                    "pluggedTypeDesc": _field("未连接充电器"),
+                },
+            }
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="GetEarphoneInfo",
+            writeResultTo="/data/earphone",
+            candidateOutputFields=["/chargingStatusDesc"],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetPhoneBatteryInfo",
+            writeResultTo="/data/phoneBattery",
+            candidateOutputFields=[
+                "/batterySOC",
+                "/chargingStatusDesc",
+                "/pluggedTypeDesc",
+            ],
+        ),
+    )
+    card_spec = {
+        "title": "设备充电",
+        "description": "耳机手机充电状态",
+        "suggestSize": "2x4",
+        "dataBindings": [
+            {"capabilityId": "GetEarphoneInfo", "writeResultTo": "/data/earphone"},
+            {
+                "capabilityId": "GetPhoneBatteryInfo",
+                "writeResultTo": "/data/phoneBattery",
+            },
+        ],
+    }
+    query = TemplateRetrievalQuery(
+        themeId="fusion-battery-teal",
+        requiredOutputFieldsByCapability={
+            "GetEarphoneInfo": ("/chargingStatusDesc",),
+            "GetPhoneBatteryInfo": (
+                "/batterySOC",
+                "/chargingStatusDesc",
+                "/pluggedTypeDesc",
+            ),
+        },
+        action=("event.open.settings.bluetooth", "event.open.settings.battery"),
+    )
+    registry = get_cardplan_registry(True)
+
+    result = retrieve_template_variants(query, task, registry, bindings, card_spec)
+    projection = build_ux_mixed_prompt(
+        task_spec=task,
+        card_spec=card_spec,
+        scope=result.scope,
+        component_candidates=result.component_candidates,
+        required_template_groups=result.required_template_groups,
+        registry=registry,
+    )
+
+    assert projection.allowed_layout_ids == ("WideTwoFocusTwoActionLayout",)
+    candidate_groups_text = next(
+        message.get("content", "")
+        for message in projection.messages
+        if isinstance(message, dict) and "candidateGroups=" in message.get("content", "")
+    )
+    groups_line = next(
+        line
+        for line in candidate_groups_text.splitlines()
+        if line.startswith("candidateGroups=")
+    )
+    candidate_groups = json.loads(groups_line.removeprefix("candidateGroups="))
+    assert [item["componentId"] for item in candidate_groups] == [
+        "BluetoothDeviceOverview",
+        "BatteryOverview",
+    ]
+    assert candidate_groups[0]["availableTemplateIds"] == [
+        "BluetoothDeviceOverviewCaseSettingsHero@1"
+    ]
+    assert candidate_groups[1]["availableTemplateIds"] == [
+        "BatteryOverviewChargeStatusHero@1", "BatteryOverviewStatusRingHero@1"
+    ]
+
+    action_payloads = "".join(
+        'Template("PillAction@1",'
+        + json.dumps(
+            {"actionId": action.action_id, "label": action.display_label},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "),"
+        for action in projection.contract.action_bindings
+    )
+    source = (
+        'Template("WideTwoFocusTwoActionLayout@1",{},'
+        'Template("BluetoothDeviceOverviewCaseSettingsHero@1",{}),'
+        'Template("BatteryOverviewChargeStatusHero@1",'
+        '{"batteryIcon":"resources/base/media/icon_phone.svg"}),'
+        f"{action_payloads});"
+    )
+    compilation = compile_ux_layout_card(
+        source,
+        task_spec=task,
+        contract=projection.contract,
+        protocol_profile=A2UIProtocolRegistry(
+            A2UI_FORM_PROTOCOL_PROFILE_ID
+        ).get_profile(),
+        registry=registry,
+        card_spec=card_spec,
+        business_title="设备充电",
+        enable_data_bindings=True,
+    )
+    compact_dsl = convert_a2ui_to_compact_dsl(compilation.a2ui, size=task.size)
+    validate_compact_dsl_context(
+        compact_dsl,
+        task_spec=task.model_dump(mode="json"),
+        card_spec=card_spec,
+    )
+    visible_text_values: list[str] = []
+    for line in compact_dsl.splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if not isinstance(row, list) or len(row) <= 2 or row[1] != "Text":
+            continue
+        if isinstance(row[2], dict) and isinstance(row[2].get("content"), str):
+            visible_text_values.append(row[2]["content"])
+    visible_texts = tuple(visible_text_values)
+    assert "设备电量" not in visible_texts
+    assert "设备充电" not in visible_texts
+
+    messages = [json.loads(line) for line in compilation.a2ui.splitlines() if line.strip()]
+    components = messages[1].get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    by_id = {component.get("id"): component for component in components}
+    rows_with_two_panels = []
+    for component in components:
+        if component.get("component") == "Row" and len(component.get("children", [])) == 2:
+            rows_with_two_panels.append(component)
+    assert rows_with_two_panels
+    row = rows_with_two_panels[0]
+    row_children = row["children"]
+    assert isinstance(row_children, list) and len(row_children) == 2
+
+    def descendant_ids(node_id: str) -> set[str]:
+        pending = [node_id]
+        seen: set[str] = set()
+        while pending:
+            current = pending.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            pending.extend(by_id.get(current, {}).get("children", []))
+        return seen
+
+    earphone_status_ids = {
+        component.get("id")
+        for component in components
+        if "/data/earphone/chargingStatusDesc" in str(component.get("content", ""))
+    }
+    battery_percent_ids = {
+        component.get("id")
+        for component in components
+        if "/data/phoneBattery/batterySOC" in str(component.get("content", ""))
+    }
+    battery_plugged_ids = {
+        component.get("id")
+        for component in components
+        if "/data/phoneBattery/pluggedTypeDesc" in str(component.get("content", ""))
+    }
+    assert earphone_status_ids and battery_percent_ids
+    assert not battery_plugged_ids
+    assert earphone_status_ids <= descendant_ids(row_children[0])
+    assert battery_percent_ids <= descendant_ids(row_children[1])
+
+
+def test_required_current_date_must_not_be_silently_dropped() -> None:
+    """模板未承载的用户必选能力必须整体拒绝，禁止静默丢弃成单业务。"""
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/temperatureText",),
+            "GetCurrentTime": ("/currentDate",),
+        },
+    )
+    task = _task()
+    task.dataModelSchema["data"]["time"] = {"currentDate": _field("2026-10-12")}
+    time_binding = CandidateDataBinding(
+        capabilityId="GetCurrentTime",
+        writeResultTo="/data/time",
+        candidateOutputFields=["/currentDate"],
+    )
+    card_spec = _card_spec()
+    card_spec["dataBindings"].append(
+        {"capabilityId": "GetCurrentTime", "writeResultTo": "/data/time"},
+    )
+
+    with pytest.raises(
+        TemplateRetrievalMiss,
+        match="no provider template covers capability GetCurrentTime",
+    ):
+        search_template_variants(
+            intent, task, get_cardplan_registry(), (_binding(), time_binding), card_spec,
         )

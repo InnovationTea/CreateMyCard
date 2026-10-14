@@ -10,6 +10,7 @@ from .converters.registry import create_context
 from .emitter.messages import build_messages
 from .exceptions import A2UIProtocolOutputError, ValidationError
 from .parser.jsx_parser import extract_card_functions
+from .rendered_layout import secondary_body_layouts
 from .validation.protocol_validator import validate_messages
 
 SURFACE_ID_PREFIX = "multi_step_genui_card"
@@ -61,6 +62,9 @@ def compile_source(
             name,
             compile_context=compile_context,
             enable_dynamic_data_binding=enable_dynamic_data_binding,
+        )
+        context.secondary_body_layouts = secondary_body_layouts(
+            source, name, jsx, compile_context.rendered_layout,
         )
         root = context.convert(jsx)
         explicit_data_model = (data_models or {}).get(name)

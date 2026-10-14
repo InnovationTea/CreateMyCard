@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x2 narrow graphical action Row action must be centered by parent Column action_area; set alignItems to center when the action is narrower than the parent's content width."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "2ea26e827a3d861257c224bae33e651bd78b6a841408cbe7693e974dc8076082",
+    "sample_task_spec.json": "beb9ea77038f239239428c2fbc2731c566072185de88f1e5a21ba1cbac53bef1",
+    "sample_card_spec.json": "5e58d75376b3f287aa6a1e6ff33e041a0d6795f4704c9fadcf5cafd2dd6cab73"
+  }
+}

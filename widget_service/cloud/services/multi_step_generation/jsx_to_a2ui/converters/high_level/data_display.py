@@ -8,6 +8,9 @@ from ..common import palette
 
 
 def convert_data_display(node: JSXElement, ctx: ConversionContext) -> A2UINode:
+    compact_2x4 = ctx.card_size == "2x4"
+    text_conclusion = node.props.get("variant") == "textConclusion"
+    value_font_size = 18 if text_conclusion else 56
     label = text(
         ctx,
         "data_display_label",
@@ -29,8 +32,8 @@ def convert_data_display(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         ctx.prop(node, "value"),
         styles={
             "width": "matchParent",
-            "height": 60,
-            "fontSize": 56,
+            "height": 24 if text_conclusion else 64 if compact_2x4 else 60,
+            "fontSize": value_font_size,
             "fontWeight": 700,
             "fontColor": palette(ctx).primary,
             "textAlign": "center",
@@ -41,7 +44,7 @@ def convert_data_display(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     supporting = text(
         ctx,
         "data_display_supporting",
-        node.props["supportingText"],
+        ctx.prop(node, "supportingText"),
         styles={
             "width": "matchParent",
             "constraintSize": {"minWidth": 0, "minHeight": 20},
@@ -50,13 +53,18 @@ def convert_data_display(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             "fontColor": palette(ctx).secondary,
             "textAlign": "center",
             "flexShrink": 1,
+            **({
+                "height": 20,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+            } if compact_2x4 else {}),
         },
     )
     return column(
         ctx,
         "data_display",
         [label, value, supporting],
-        gap=8,
+        gap=4 if compact_2x4 else 8,
         styles={
             "width": "matchParent",
             "constraintSize": {"minWidth": 0},

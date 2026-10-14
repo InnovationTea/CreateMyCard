@@ -3,9 +3,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from .bindings import BINDABLE_PROP_TYPES, collect_display_prop_type_errors
 from ..exceptions import ValidationError
 from ..parser.jsx_ast import JSXElement
+from .bindings import (
+    BINDABLE_PROP_TYPES,
+    collect_display_prop_type_errors,
+    data_binding_ids,
+    indexed_value_template_tokens,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,7 +34,18 @@ def contract(required=(), optional=(), required_one_of=(), **enums) -> Contract:
 
 
 CONTRACTS = {
-    "Card": contract(optional=("size", "appearance", "background", "padding", "direction", "gap", "align", "justify")),
+    "Card": contract(
+        optional=(
+            "size",
+            "appearance",
+            "background",
+            "padding",
+            "direction",
+            "gap",
+            "align",
+            "justify",
+        )
+    ),
     "Stack": contract(
         optional=(
             "direction",
@@ -56,7 +72,17 @@ CONTRACTS = {
             "surface",
         ),
         direction=("column", "row"),
-        align=("stretch", "flex-start", "center", "flex-end", "start", "end", "top", "bottom", "baseline"),
+        align=(
+            "stretch",
+            "flex-start",
+            "center",
+            "flex-end",
+            "start",
+            "end",
+            "top",
+            "bottom",
+            "baseline",
+        ),
         justify=(
             "start",
             "center",
@@ -93,28 +119,40 @@ CONTRACTS = {
     "Icon": contract(optional=("name", "src", "size", "alt", "decorative")),
     "AppIcon": contract(optional=("name", "src", "alt")),
     "WeatherIcon": contract(optional=("name", "src", "alt")),
-    "SingleLineTitle": contract(required=("title",), optional=("dataIds",)),
+    "SingleLineTitle": contract(
+        required=("title",),
+        optional=("icon", "fillColor", "titleTemplate", "dataIds"),
+    ),
     "DoubleLineTitle": contract(
-        required=("title", "secondaryInfo"), optional=("dataIds",)
+        required=("title", "secondaryInfo"),
+        optional=("titleTemplate", "secondaryInfoTemplate", "dataIds"),
     ),
     "Badge": contract(
         required=("value",),
         optional=("color", "dataIds"),
         color=("blue", "orange", "green", "red", "purple", "cyan", "pink"),
     ),
-    "DataDisplay": contract(required=("label", "value", "supportingText"), optional=("dataIds",)),
+    "DataDisplay": contract(
+        required=("label", "value", "supportingText"),
+        optional=("variant", "dataIds"),
+        variant=("textConclusion",),
+    ),
     "InfoBlock": contract(
         required=("primaryText", "secondaryText"),
-        optional=("unit", "visual", "dataIds"),
+        optional=("primaryTextTemplate", "secondaryTextTemplate", "unit", "visual", "dataIds"),
     ),
     "TopTextBottomValue": contract(required=("items",)),
     "TableText": contract(required=("items",)),
     "TextBlock": contract(required=("items",)),
     "EmphasizedData": contract(optional=("unit", "dataIds"), required_one_of=("value", "items")),
-    "EmphasisText": contract(required=("mainText",), optional=("secondaryText", "dataIds")),
+    "EmphasisText": contract(
+        required=("mainText",),
+        optional=("secondaryText", "secondaryTextTemplate", "dataIds"),
+    ),
     "SecondaryBody": contract(required=("items",), optional=("separator",)),
     "WeatherSummaryCard": contract(
-        required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"), optional=("ariaLabel",)
+        required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"),
+        optional=("ariaLabel",),
     ),
     "SecondaryBodyCard": contract(required=("title", "lines"), optional=("value",)),
     "ProgressLine1": contract(
@@ -128,10 +166,15 @@ CONTRACTS = {
         mode=("light", "dark"),
     ),
     "ProgressLine2WithData": contract(
-        required=("currentValue", "totalValue", "value"), optional=("mode", "barColor", "unit", "items", "dataIds")
+        required=("currentValue", "totalValue", "value"),
+        optional=("mode", "barColor", "unit", "items", "dataIds"),
     ),
     "H_BarChart": contract(required=("items",), optional=("mode",), mode=("light", "dark")),
-    "Gauge": contract(required=("value", "label"), optional=("min", "max", "mode", "dataIds"), mode=("light", "dark")),
+    "Gauge": contract(
+        required=("value", "label"),
+        optional=("min", "max", "mode", "dataIds"),
+        mode=("light", "dark"),
+    ),
     "ProgressRing": contract(
         required=("value", "icon"),
         optional=(
@@ -148,18 +191,39 @@ CONTRACTS = {
     "ProgressCircleSingle": contract(
         required=("value", "icon", "label"),
         optional=(
-            "displayValue", "secondaryLabel", "ariaLabel", "appearance",
-            "size", "trackColor", "barColor", "dataIds",
+            "displayValue",
+            "secondaryLabel",
+            "ariaLabel",
+            "appearance",
+            "size",
+            "trackColor",
+            "barColor",
+            "dataIds",
         ),
         size=("compact",),
     ),
     "ProgressCircle": contract(
         required=("icon", "externalText"),
-        optional=("value", "size", "density", "ariaLabel", "appearance", "trackColor", "barColor", "dataIds"),
+        optional=(
+            "value",
+            "size",
+            "density",
+            "ariaLabel",
+            "appearance",
+            "trackColor",
+            "barColor",
+            "dataIds",
+        ),
         size=("sm", "md"),
     ),
-    "NumericRatio": contract(required=("icon", "value"), optional=("unit", "appearance", "dataIds")),
-    "NumericRatioStack": contract(required=("items",), optional=("appearance",)),
+    "NumericRatio": contract(
+        required=("icon", "value"), optional=("unit", "appearance", "dataIds")
+    ),
+    "NumericRatioStack": contract(
+        required=("items",),
+        optional=("appearance", "direction"),
+        direction=("column", "row"),
+    ),
     "ChecklistItem": contract(required=("title", "meta"), optional=("done", "dataIds")),
     "EventCard": contract(
         required_one_of=("items", "title"),
@@ -198,7 +262,9 @@ def binding_contract_sync_errors() -> list[str]:
         if top_level and "dataIds" not in contract_props:
             errors.append(f"{tag} has top-level binding types but its contract has no dataIds")
         if top_level and "dataValueMaps" not in contract_props:
-            errors.append(f"{tag} has top-level binding types but its contract has no dataValueMaps")
+            errors.append(
+                f"{tag} has top-level binding types but its contract has no dataValueMaps"
+            )
         if item_level and "items" not in contract_props:
             errors.append(f"{tag} has item binding types but its contract has no items prop")
 
@@ -237,6 +303,54 @@ def collect_jsx_component_errors(
     for name, allowed in (item.enums or {}).items():
         if name in node.props and node.props[name] not in allowed:
             errors.append(f"<{node.tag}> prop {name} has invalid value {node.props[name]!r}")
+    template_props = {
+        "SingleLineTitle": {"titleTemplate": "title"},
+        "DoubleLineTitle": {
+            "titleTemplate": "title",
+            "secondaryInfoTemplate": "secondaryInfo",
+        },
+        "InfoBlock": {
+            "primaryTextTemplate": "primaryText",
+            "secondaryTextTemplate": "secondaryText",
+        },
+        "EmphasisText": {"secondaryTextTemplate": "secondaryText"},
+    }.get(node.tag, {})
+    for template_prop, value_prop in template_props.items():
+        if template_prop not in node.props:
+            continue
+        template = node.props[template_prop]
+        data_ids = node.props.get("dataIds")
+        raw_binding_ids = data_ids.get(value_prop) if isinstance(data_ids, dict) else None
+        binding_ids = data_binding_ids(node.tag, value_prop, raw_binding_ids)
+        indexed_template = (
+            node.tag in {"InfoBlock", "EmphasisText"}
+            and value_prop == "secondaryText"
+            and binding_ids is not None
+            and len(binding_ids) > 1
+        )
+        if indexed_template:
+            if indexed_value_template_tokens(template, len(binding_ids)) is None:
+                placeholders = "、".join(f"{{{index}}}" for index in range(len(binding_ids)))
+                errors.append(
+                    f"<{node.tag}> prop {template_prop} must contain {placeholders} "
+                    "exactly once in dataIds order"
+                )
+        elif not isinstance(template, str) or template.count("{value}") != 1:
+            errors.append(
+                f"<{node.tag}> prop {template_prop} must be a string containing "
+                "exactly one {value} placeholder"
+            )
+        if binding_ids is None or (not indexed_template and len(binding_ids) != 1):
+            errors.append(
+                f"<{node.tag}> prop {template_prop} requires "
+                f"dataIds.{value_prop} to bind one non-empty data ID"
+            )
+        data_value_maps = node.props.get("dataValueMaps")
+        if isinstance(data_value_maps, dict) and value_prop in data_value_maps:
+            errors.append(
+                f"<{node.tag}> prop {template_prop} cannot be combined with "
+                f"dataValueMaps.{value_prop}"
+            )
     errors.extend(collect_display_prop_type_errors(node))
     return list(dict.fromkeys(errors))
 
