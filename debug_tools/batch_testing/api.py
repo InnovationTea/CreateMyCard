@@ -8,14 +8,16 @@ import os
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.concurrency import run_in_threadpool
 
 from debug_tools.paths import CLOUD_ROOT, DEBUG_TOOLS_ROOT, WIDGET_SERVICE_ROOT
 
 from .quality import compare as compare_quality
 from .quality import evaluation as quality_evaluation
+from .quality_import import MAX_REQUEST_BYTES, import_batch
 from .runner import BatchRunManager
 from .service_manager import load_batch_defaults, probe_service_health
 from .task_manager import BatchTaskManager
@@ -239,17 +241,34 @@ def register_batch_routes(
         except (OSError, ValueError, IndexError) as exc:
             raise HTTPException(status_code=503, detail="评估方案不可用") from exc
 
+    @app.post("/debug/batch/quality/import")
+    async def import_quality(request: Request) -> dict[str, Any]:
+        data = bytearray()
+        async for chunk in request.stream():
+            data.extend(chunk)
+            if len(data) > MAX_REQUEST_BYTES:
+                raise HTTPException(status_code=413, detail="每次导入最多 64 MiB，请分批")
+        try:
+            payload = json.loads(data)
+            return await run_in_threadpool(import_batch, task_manager.output_root, payload)
+        except (ValueError, RecursionError) as exc:
+            detail = str(exc) if not isinstance(exc, RecursionError) else "输入嵌套过深"
+            raise HTTPException(status_code=422, detail=detail) from exc
+
     @app.get("/debug/batch/quality/compare")
     async def batch_quality_compare(
         leftRunId: str,
         rightRunId: str,
         leftExecutionId: str | None = None,
         rightExecutionId: str | None = None,
+        leftSampleId: str | None = None,
+        rightSampleId: str | None = None,
     ) -> dict[str, Any]:
         try:
             return compare_quality(
                 task_manager.postprocess_manager, leftRunId, rightRunId,
                 leftExecutionId, rightExecutionId,
+                leftSampleId, rightSampleId,
             )
         except (KeyError, OSError) as exc:
             raise HTTPException(status_code=404, detail="批次或评分结果不存在") from exc

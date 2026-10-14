@@ -65,7 +65,7 @@ def make_context(tmp_path: Path, findings: list | None = None) -> dict:
 def test_clean_scoped_score_and_manifest(tmp_path: Path) -> None:
     result = plugin.process_sample(make_context(tmp_path))
     assert result.get("facts", {}).get("score") == 100
-    assert "训练验收" in result.get("summary", "")
+    assert result.get("summary") == result.get("facts", {}).get("verdict")
     manifest = json.loads((PLUGIN_DIR / "plugin.json").read_text(encoding="utf-8"))
     PostprocessManager._validate_manifest(manifest, PLUGIN_DIR)
     normalized = PostprocessManager._normalize_result(
@@ -115,6 +115,30 @@ def test_dedupe_and_uncertainty(tmp_path: Path) -> None:
     assert result.get("facts", {}).get("confirmed") == 1
     normalized = plugin.model.normalize({**finding, "evidence_type": "待确认"}, "test")
     assert plugin.model.score([normalized]).get("range") == [85, 100]
+
+
+@pytest.mark.parametrize("version", [None, "", "11.7.7.300"])
+def test_web_client_version_matches_current_request(tmp_path: Path, version: str | None) -> None:
+    context = make_context(tmp_path)
+    request_path = Path(context.get("finalAttemptDir")) / "request.json"
+    if version is not None:
+        request_path.write_text(json.dumps({"deviceInfo": {"prdVer": version}}), encoding="utf-8")
+    evidence = plugin._evidence(context)
+    assert evidence is not None
+    render_context = evidence.get("renderContext")
+    assert isinstance(render_context, dict)
+    render_context["appVersion"] = version
+    assert plugin.process_sample(context).get("facts", {}).get("score") == 100
+    request_path.write_text(json.dumps({"deviceInfo": {"prdVer": "changed"}}), encoding="utf-8")
+    assert plugin.process_sample(context).get("facts", {}).get("score") is None
+
+
+def test_client_version_prioritizes_nested_task_spec() -> None:
+    blocks = {"appVersion": "fallback"}
+    request = {"payload": {"taskSpec": json.dumps({"appVersion": "task"})}}
+    assert plugin._app_version(blocks, request) == "task"
+    assert plugin._app_version({"taskSpec": {"appVersion": ""}}, blocks) == ""
+    assert plugin._app_version({"version": "v0.9"}) is None
 
 
 def test_render_failure_is_quality_reject_not_plugin_failure(tmp_path: Path) -> None:

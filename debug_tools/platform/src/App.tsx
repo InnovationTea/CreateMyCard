@@ -15,6 +15,7 @@ import { QualityRoute } from './routes/QualityRoute';
 import { QualityCompareRoute } from './routes/QualityCompareRoute';
 import { QualityEvaluationRoute } from './routes/QualityEvaluationRoute';
 import { ValidationFailureCaptureRoute } from './routes/ValidationFailureCaptureRoute';
+import { QualityImportRoute } from './routes/QualityImportRoute';
 import { BackendStatusWidget } from './components/BackendStatusWidget';
 
 const navigation = [
@@ -70,6 +71,7 @@ function Shell() {
             <Route path="/batch/tasks/:taskId" element={<BatchRoute />} />
             <Route path="/batch/legacy/:runId" element={<BatchRoute />} />
             <Route path="/quality" element={<QualityRoute />} />
+            <Route path="/quality/import" element={<QualityImportRoute />} />
             <Route path="/quality/compare" element={<QualityCompareRoute />} />
             <Route path="/quality/evaluation" element={<QualityEvaluationRoute />} />
             <Route path="/settings" element={<SettingsPanel />} />
