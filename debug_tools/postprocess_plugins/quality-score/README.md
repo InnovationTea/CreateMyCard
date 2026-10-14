@@ -127,7 +127,7 @@ Playwright 截图入口，仅将批跑查询 API 替换为固定测试输入；�
 
 | 文件 | 用途 |
 |---|---|
-| `docs/云侧方案设计.md` | 子集、参数唯一来源及只读比较契约 |
+| [`debug_tools/调试平台运行规范.md`](../../调试平台运行规范.md#质量评分与跨批次比较) | 子集、参数唯一来源及只读比较契约 |
 | `widget_service/debug_tools/batch_testing/api.py` | 方案/比较接口和批次名称 |
 | `widget_service/debug_tools/batch_testing/postprocess.py` | 子集校验、选择快照、只执行所选样本 |
 | `widget_service/debug_tools/batch_testing/quality.py` | 快照对齐、分差、问题分布与通过率 |
@@ -165,7 +165,7 @@ Ruff 与差异空白检查通过。测试仅使用隔离测试输入，不调用
 
 | 文件 | 用途 |
 |---|---|
-| `docs/云侧方案设计.md` | 登记单批 Web 评分边界与证据合同 |
+| [`debug_tools/调试平台运行规范.md`](../../调试平台运行规范.md#质量评分与跨批次比较) | 单批 Web 评分边界与证据合同 |
 | `widget_service/debug_tools/platform/src/routes/BatchGalleryCaptureRoute.tsx` | 将当前渲染输入和解析诊断交给截图采集器 |
 | `widget_service/debug_tools/scripts/capture_batch_gallery.mjs` | 同步采集测量证据并绑定 DSL／PNG 哈希 |
 | `widget_service/debug_tools/scripts/web_quality.mjs` | Web 几何、文字和素材检测 |
