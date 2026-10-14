@@ -1,0 +1,2 @@
+# 仅导入 DSL＋图片时需要；Web 批跑和评分模型本身不依赖 OCR。
+rapidocr-onnxruntime==1.4.4

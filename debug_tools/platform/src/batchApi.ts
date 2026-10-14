@@ -66,6 +66,7 @@ export type DeviceCaptureConfig = {
 
 export type BatchRun = {
   runId: string;
+  sourceType?: string;
   name?: string | null;
   status: string;
   startedAt: string;
@@ -235,6 +236,10 @@ export type QualityEvaluation = {
 
 export type QualityIssueDiff = { code: string; left: number; right: number; delta: number };
 export type QualityComparisonSide = {
+  sampleId?: string;
+  imageUrl?: string | null;
+  evidenceVersion?: string;
+  gaps?: string[];
   score: number | null;
   scoreLow: number | null;
   verdict: string;
@@ -263,6 +268,7 @@ export type QualityComparison = {
     left: QualityComparisonSide | null;
     right: QualityComparisonSide | null;
     scoreDelta: number | null;
+    scoreLowDelta?: number | null;
     issueDiff: QualityIssueDiff[];
   }>;
   issueDistribution: QualityIssueDiff[];
@@ -545,10 +551,26 @@ export function getQualityComparison(options: {
   rightRunId: string;
   leftExecutionId?: string;
   rightExecutionId?: string;
+  leftSampleId?: string;
+  rightSampleId?: string;
 }): Promise<QualityComparison> {
   const params = new URLSearchParams();
   Object.entries(options).forEach(([key, value]) => { if (value) params.set(key, value); });
   return requestJson(`/debug/batch/quality/compare?${params}`);
+}
+
+export type QualityImportSample = {
+  id: string; query: string; size: string; dsl: string; imageBase64: string;
+  cardSpec?: Record<string, unknown>; expectedIntents?: string[];
+  sourceSha256?: string; imageSha256?: string;
+};
+
+export function importQualityBatch(input: {
+  name: string; imageSource: string; samples: QualityImportSample[];
+}): Promise<BatchRun> {
+  return requestJson('/debug/batch/quality/import', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  });
 }
 
 export function getBatchSample(runId: string, sampleId: string): Promise<BatchSampleDetail> {

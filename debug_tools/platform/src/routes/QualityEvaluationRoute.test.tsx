@@ -14,7 +14,7 @@ describe('QualityEvaluationRoute', () => {
     const { container } = render(<MemoryRouter><QualityEvaluationRoute /></MemoryRouter>);
     expect(await screen.findByRole('heading', { name: '方案正文' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '评估方案（当前版本）' })).toBeInTheDocument();
-    expect(screen.getByText(/历史结果以对应评分看板的 policy 快照为准/)).toBeInTheDocument();
+    expect(screen.getByText(/历史评分使用对应执行中保存的参数快照/)).toBeInTheDocument();
     expect(screen.getByText('sha-current')).toBeInTheDocument();
     expect(within(screen.getByRole('table')).getByRole('cell', { name: '50%' })).toBeInTheDocument();
     expect(container.querySelector('strong')).toHaveTextContent('50%');

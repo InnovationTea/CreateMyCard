@@ -64,8 +64,8 @@ export function QualityRoute() {
 
   return <div className="quality-page">
     <header className="batch-center-header">
-      <div><h1>质量评分</h1><p>选择已完成批次和样本，确认后手动运行 Web 质量评分。</p></div>
-      <nav className="quality-links" aria-label="质量工具"><Link to="/quality/evaluation">评估方案</Link><Link to="/quality/compare">批次对比</Link></nav>
+      <div><h1>质量评分</h1><p>选择 Web 批跑或已导入的 DSL＋图片＋Query，确认后手动评分。</p></div>
+      <nav className="quality-links" aria-label="质量工具"><Link to="/quality/import">导入 DSL＋图片</Link><Link to="/quality/evaluation">评估方案</Link><Link to="/quality/compare">批次／单条对比</Link></nav>
     </header>
     {(error || scoring.error) && <div className="batch-error" role="alert">{error || scoring.error}</div>}
     <fieldset className="quality-card" disabled={scoring.busy} onChange={() => setConfirmed(null)}>
@@ -73,7 +73,7 @@ export function QualityRoute() {
       <label className="quality-field">已完成批次<select value={runId} onChange={(event) => setParams(event.target.value ? { runId: event.target.value } : {})}>
         <option value="">请选择批次</option>
         {runs.map((item) => <option key={item.runId} value={item.runId}>
-          {item.name ? `${item.name} · ` : ''}{item.runId} · {item.total} 个样本 · {item.finishedAt || item.startedAt}
+          {item.sourceType === 'external-quality' ? '[导入] ' : '[Web批跑] '}{item.name ? `${item.name} · ` : ''}{item.runId} · {item.total} 个样本 · {item.finishedAt || item.startedAt}
         </option>)}
       </select></label>
       {loading && <p role="status">正在加载批次…</p>}
@@ -105,8 +105,10 @@ export function QualityRoute() {
     <section className="quality-card" aria-label="运行评分">
       <h2>2. 运行评分</h2>
       <p>{confirmed ? `已确认 ${confirmed.length} 个样本；修改批次或范围后需重新确认。` : '先确认导入样本，再点击运行评分。'}</p>
-      <p className="quality-warning">将复用已有画廊依赖。旧证据可能导致待评，请先显式再次运行画廊，再运行评分。100 分不代表训练验收通过。</p>
-      {run && <p><Link to={galleryPath}>前往画廊／后处理</Link></p>}
+      <p className="quality-warning">{run?.sourceType === 'external-quality'
+        ? '使用离线结构、内容线索与 OCR 检查，不启动 Web 或模拟器渲染。截图关联为用户配对，缺少 OCR 时待评。'
+        : '将复用已有画廊依赖。检测结果过期时，请先再次运行画廊，再运行评分。'}</p>
+      {run && run.sourceType !== 'external-quality' && <p><Link to={galleryPath}>前往画廊／后处理</Link></p>}
       <button type="button" className="batch-create-submit" disabled={!confirmed || Boolean(selectionError) || scoring.busy} onClick={() => { if (confirmed) void scoring.start(confirmed); }}>
         {scoring.busy ? scoring.status : '运行评分'}
       </button>

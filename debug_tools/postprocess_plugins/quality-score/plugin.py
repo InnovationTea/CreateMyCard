@@ -1,4 +1,4 @@
-"""单批 Web 评分适配：只读输入、保留证据，不修复 DSL，不触发模型。"""
+"""Web 与外部卡片评分适配：读取检测结果、计算分数并生成看板产物。"""
 
 from __future__ import annotations
 
@@ -19,9 +19,8 @@ model = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(model)
 
 BOUNDARY = (
-    "仅评价当前 Web 预览的已声明检查：文字截断、画布越界、文字重叠候选、素材加载和解析诊断。"
-    "不验证真实 Intent 执行、完整业务语义、端侧一致性、色板与整体审美。"
-    "100 分不等于训练验收；分数上下界不是统计置信区间。"
+    "Web 检查项：文字截断、画布越界、文字重叠候选、素材加载和解析诊断。"
+    "分数上界计入确认问题，下界额外计入待确认问题。"
 )
 
 
@@ -39,7 +38,46 @@ def _inside(root: Path, value: str) -> Path:
     return path
 
 
-def _pending(reason: str) -> dict[str, Any]:
+def _app_version(*sources: Any) -> str | None:
+    """与网页 resolveAppVersion 一致：先取 TaskSpec，再取原请求版本。"""
+    def visit(source: Any, depth: int, task_only: bool) -> str | None:
+        if depth > 12:
+            return None
+        if isinstance(source, str):
+            try:
+                source = json.loads(source)
+            except ValueError:
+                return None
+        if not isinstance(source, dict):
+            return None
+        for key in ("taskSpec", "taskspec"):
+            version = visit(source.get(key), depth + 1, False)
+            if version is not None:
+                return version
+        if not task_only:
+            version = source.get("appVersion")
+            if isinstance(version, str):
+                return version
+            device = source.get("deviceInfo")
+            if isinstance(device, dict) and isinstance(device.get("prdVer"), str):
+                return device.get("prdVer")
+        for key in (
+            "artifact", "blocks", "raw", "data", "response", "request", "payload", "params"
+        ):
+            version = visit(source.get(key), depth + 1, task_only)
+            if version is not None:
+                return version
+        return None
+
+    for task_only in (True, False):
+        for source in sources:
+            version = visit(source, 0, task_only)
+            if version is not None:
+                return version
+    return None
+
+
+def _pending(reason: str, boundary: str = BOUNDARY) -> dict[str, Any]:
     return {
         "status": "partial",
         "summary": reason,
@@ -47,7 +85,7 @@ def _pending(reason: str) -> dict[str, Any]:
         "artifacts": [
             {"key": "score", "data": [{"label": "评分", "value": "待评"}]},
             {"key": "issues", "data": [{"状态": "证据不足", "原因": reason}]},
-            {"key": "coverage", "data": BOUNDARY},
+            {"key": "coverage", "data": boundary},
         ],
     }
 
@@ -66,14 +104,27 @@ def _evidence(context: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def process_sample(context: dict[str, Any]) -> dict[str, Any]:
-    """复用同一次网页渲染证据与既定模型；历史截图或缺证据不得给满分。"""
+    """按输入来源读取检测结果，核对关联信息后调用共享评分模型。"""
     sample = context.get("sample")
     if not isinstance(sample, dict):
         raise ValueError("缺少 sample")
+    if sample.get("sourceType") == "external-quality":
+        spec = importlib.util.spec_from_file_location(
+            "external_quality_checks", Path(__file__).with_name("external.py")
+        )
+        if spec is None or spec.loader is None:
+            raise ImportError("外部输入检查器缺失")
+        checker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(checker)
+        try:
+            findings, evidence, image_path, boundary = checker.inspect(context)
+        except (OSError, ValueError, TypeError, KeyError, RecursionError) as exc:
+            return _pending(f"导入检测未完成：{type(exc).__name__}：{exc}", checker.BOUNDARY)
+        return _score_result(context, findings, evidence, image_path, boundary)
     run_dir = Path(context.get("runDir", "")).resolve()
     final_dir = context.get("finalAttemptDir")
     if not final_dir:
-        return _pending("没有最终产物；生成失败与质量淘汰应分别统计")
+        return _pending("没有最终产物，无法评分")
     source_dir = _inside(run_dir, final_dir)
     dsl_path = _inside(run_dir, str(source_dir / "genui.jsonl"))
     if not dsl_path.is_file():
@@ -88,8 +139,14 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
     blocks_path = _inside(run_dir, str(source_dir / "blocks.json"))
     blocks = _read_object(blocks_path) if blocks_path.is_file() else None
     render_context = {"query": sample.get("query"), "size": sample.get("size"), "blocks": blocks}
+    request_path = _inside(run_dir, str(source_dir / "request.json"))
+    request = _read_object(request_path) if request_path.is_file() else None
+    app_version = _app_version(blocks, request)
+    saved_context = evidence.get("renderContext") or {}
+    if app_version is not None or "appVersion" in saved_context:
+        render_context["appVersion"] = app_version
     if evidence.get("renderContext") != render_context:
-        return _pending("Query、尺寸或最终产物上下文已变化；请重新运行画廊")
+        return _pending("Query、尺寸、客户端版本或最终产物上下文已变化；请重新运行画廊")
     render_failed = evidence.get("renderFailed") is True
     if not render_failed and evidence.get("complete") is not True:
         return _pending("网页测量未完成，不能用空问题单评分")
@@ -103,7 +160,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
     if not render_failed and not expected_coverage.issubset(evidence.get("coverage", [])):
         return _pending("检测证据未包含本版声明的检查范围")
     if not render_failed and "findings" not in evidence:
-        return _pending("检测结果缺少 findings；未检测不等于没有问题")
+        return _pending("检测结果缺少 findings；请重新运行画廊")
     findings = evidence.get("findings", [])
     if not isinstance(findings, list) or any(not isinstance(x, dict) for x in findings):
         raise ValueError("检测证据 findings 格式错误")
@@ -112,21 +169,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
         findings.append({"code": "render.failed", "message": "当前 DSL 的 Web 解析或渲染失败"})
     for warning in evidence.get("parseWarnings", []):
         findings.append({"code": "protocol.profile_diagnostics", "message": str(warning)})
-    normalized = [model.normalize(f, "web-quality-v1") for f in findings]
-    result = model.score(normalized)
-    score = result.get("score")
-    bounds = result.get("range")
-    low = bounds[0] if bounds else None
-    verdict = "范围内未扣分"
-    if score is None:
-        verdict = "待评"
-    elif result.get("hard_reject"):
-        verdict = "Web渲染淘汰"
-    elif result.get("pending_groups"):
-        verdict = "含待确认问题"
-    elif result.get("confirmed_groups"):
-        verdict = "存在确认问题"
-    artifacts: list[dict[str, Any]] = []
+    image_path = None
     if not render_failed:
         image_value = evidence.get("imageRunPath")
         if not isinstance(image_value, str):
@@ -136,11 +179,40 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
             return _pending("本次截图文件缺失")
         image_bytes = image_path.read_bytes()
         if hashlib.sha256(image_bytes).hexdigest() != evidence.get("imageSha256"):
-            return _pending("截图哈希不匹配；不展示旧图或混用分数")
-        output_dir = Path(context.get("outputDir", ""))
-        target = output_dir / "card.png"
+            return _pending("截图哈希不匹配；请重新运行画廊")
+    return _score_result(context, findings, evidence, image_path, BOUNDARY)
+
+
+def _score_result(context, findings, evidence, image_path, boundary):
+    """两个检测入口共用归一化、扣分和看板产物。"""
+    normalized = [model.normalize(f, evidence.get("schemaVersion")) for f in findings]
+    result = model.score(normalized)
+    if evidence.get("complete") is False and not result.get("hard_reject"):
+        result["score"] = None
+        result["range"] = None
+    score = result.get("score")
+    bounds = result.get("range")
+    low = bounds[0] if bounds else None
+    imported = evidence.get("schemaVersion") == "external-quality-v1"
+    verdict = "范围内未扣分"
+    if score is None:
+        verdict = "待评"
+    elif result.get("hard_reject"):
+        verdict = "输入硬错误淘汰" if imported else "Web渲染淘汰"
+    elif result.get("pending_groups"):
+        verdict = "含待确认问题"
+    elif result.get("confirmed_groups"):
+        verdict = "存在确认问题"
+    elif evidence.get("gaps"):
+        verdict = "检查范围有限"
+    artifacts: list[dict[str, Any]] = []
+    if image_path is not None:
+        target = Path(context.get("outputDir", "")) / ("card" + image_path.suffix)
         shutil.copy2(image_path, target)
-        artifacts.append({"key": "capture", "path": target.name, "alt": "本次 Web 渲染截图"})
+        artifacts.append({
+            "key": "capture", "path": target.name,
+            "alt": "用户导入截图" if imported else "本次 Web 渲染截图",
+        })
     issue_rows = []
     for finding in normalized:
         issue_rows.append(
@@ -168,7 +240,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
             },
             {"key": "deductions", "data": result.get("breakdown", [])},
             {"key": "issues", "data": issue_rows},
-            {"key": "coverage", "data": BOUNDARY},
+            {"key": "coverage", "data": boundary + "\n" + "；".join(evidence.get("gaps", []))},
             {
                 "key": "detail",
                 "data": {
@@ -180,7 +252,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
     )
     return {
         "status": "partial" if score is None else "success",
-        "summary": f"{verdict}；仅限 Web 检查范围，不代表训练验收",
+        "summary": verdict,
         "facts": {
             "score": score,
             "scoreLow": low,
@@ -211,7 +283,7 @@ def process_dataset(context: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, int | float) and isinstance(low, int | float):
             highs.append(value)
             lows.append(low)
-        rejected += facts.get("verdict") == "Web渲染淘汰"
+        rejected += facts.get("verdict") in {"Web渲染淘汰", "输入硬错误淘汰"}
     total, scored = len(rows), len(highs)
     bins = []
     for lower in range(0, 100, 20):
@@ -221,7 +293,7 @@ def process_dataset(context: dict[str, Any]) -> dict[str, Any]:
         bins.append({"分数段": f"{lower}–{lower + 20}", "卡片数": count})
     return {
         "status": "success" if scored == total else "partial",
-        "summary": f"已评分 {scored}/{total}；待评 {total - scored}；Web 渲染淘汰 {rejected}",
+        "summary": f"已评分 {scored}/{total}；待评 {total - scored}；硬错误淘汰 {rejected}",
         "facts": {
             "total": total,
             "scored": scored,
@@ -235,7 +307,7 @@ def process_dataset(context: dict[str, Any]) -> dict[str, Any]:
                     {"label": "总数", "value": total},
                     {"label": "已评分", "value": scored},
                     {"label": "待评（不入均分）", "value": total - scored},
-                    {"label": "Web 渲染淘汰", "value": rejected},
+                    {"label": "硬错误淘汰", "value": rejected},
                     {
                         "label": "平均分上界（含淘汰）",
                         "value": round(sum(highs) / scored, 2) if scored else "待评",
