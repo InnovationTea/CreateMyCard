@@ -1,9 +1,11 @@
 """宽卡垂域组合的可重放输入和骨架筛选边界。"""
 
+import json
 from pathlib import Path
 
 import pytest
 
+from models.generation import TaskSpec
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.cardplan.template_plan_planner import (
     plan_template_candidates,
@@ -11,6 +13,7 @@ from services.template_generation.engine.cardplan.template_plan_planner import (
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     search_template_variants,
+    template_required_assets_are_available,
 )
 from services.template_generation.engine.cardplan.wide_template_planner import (
     _template_intrinsic_height,
@@ -36,6 +39,7 @@ def test_compositions_stay_in_original_domain_and_preserve_existing_requests(
     manifest = append_wide_compositions(tmp_path)
     assert [provider.providerId for provider in manifest.providers] == original_ids
     selections = _selections()
+    assets = gallery._load_asset_capabilities(gallery._CAPABILITY_ROOT)
     registry = get_cardplan_registry(True)
     layouts = {layout.layout_id: layout for layout in composition_layouts()}
     covered = set()
@@ -57,10 +61,27 @@ def test_compositions_stay_in_original_domain_and_preserve_existing_requests(
             assert len(case.compositionTemplateIds) == len(layout.roles)
             assert case.expectedActionCount == len(layout.action_templates)
             domains = []
+            payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+            content = payload.get("content")
+            assert isinstance(content, dict)
+            asset_ids = content.get("candidateAssetIds")
+            assert isinstance(asset_ids, list)
+            asset_candidates = []
+            for asset_id in asset_ids:
+                asset = assets.get(asset_id)
+                assert asset is not None
+                asset_candidates.append(asset)
+            task = TaskSpec(
+                userQuery="宽卡素材检查", size="2x4",
+                dataModelSchema={}, assetCandidates=asset_candidates,
+            )
             for position, template_id in enumerate(case.compositionTemplateIds):
                 selection = selections.get(template_id)
                 assert selection is not None
                 domains.append(selection.business.provider_slug)
+                assert template_required_assets_are_available(
+                    registry.require_template(template_id), task,
+                )
                 if layout.slot_height_budgets:
                     budget = layout.slot_height_budgets[position]
                     if budget is not None:
@@ -68,7 +89,15 @@ def test_compositions_stay_in_original_domain_and_preserve_existing_requests(
             assert domains[0] == provider.providerSlug
             assert len(domains) == len(set(domains))
     assert covered == set(layouts)
-    assert composition_count == 81
+    assert composition_count == 80
+    audit = json.loads((tmp_path / "wide-composition-selection.json").read_text(encoding="utf-8"))
+    excluded = audit.get("excluded")
+    assert isinstance(excluded, list)
+    # 现有电量 Hero 不满足该骨架高度预算，不用缺少手机图标的模板补足数量。
+    assert any(
+        (item.get("domain"), item.get("layout")) == ("battery", "WideTwoHeroActionLayout")
+        for item in excluded
+    )
     first = manifest.model_dump()
     replay = append_wide_compositions(tmp_path)
     assert replay.model_dump() == first
@@ -103,7 +132,6 @@ async def test_runner_passes_all_businesses_and_checks_actual_skeleton(
     monkeypatch: pytest.MonkeyPatch,
     mismatch: str,
 ) -> None:
-    import json
     from types import SimpleNamespace
 
     from services.template_generation import facade

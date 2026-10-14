@@ -23,7 +23,7 @@ DEFAULT_SEED = 20261014
 _POOL = {
     "battery": {
         "Full": ("BatteryOverviewPercentTextFull@1",),
-        "Hero": ("BatteryOverviewSupportHero@1", "BatteryOverviewTemperatureRingHero@1"),
+        "Hero": ("BatteryOverviewStatusRingHero@1", "BatteryOverviewTemperatureRingHero@1"),
         "Compact": ("BatteryOverviewPercentRingCompact@1",),
     },
     "calendar": {
