@@ -114,6 +114,13 @@
       "category": "layout"
     },
     {
+      "module": "semantic/layout/horizontal.py",
+      "function": "_collect_horizontal_budget_errors",
+      "code": "COMPACT_LAYOUT_WIDTH_OVERFLOW",
+      "class": "semantic",
+      "category": "layout"
+    },
+    {
       "module": "semantic/numeric_display.py",
       "function": "_collect_numeric_component_errors",
       "code": "COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE",

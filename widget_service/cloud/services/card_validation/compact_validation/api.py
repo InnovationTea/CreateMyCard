@@ -41,6 +41,9 @@ from services.card_validation.compact_validation.semantic.layout.assets import (
 from services.card_validation.compact_validation.semantic.layout.geometry import (
     _collect_height_budget_errors,
 )
+from services.card_validation.compact_validation.semantic.layout.horizontal import (
+    _collect_horizontal_budget_errors,
+)
 from services.card_validation.compact_validation.semantic.layout.text_width import (
     _collect_text_width_budget_errors,
 )
@@ -156,6 +159,9 @@ def validate_compact_dsl(
     budget_components = normalize_mixed_font_text_rows(components, data_model=data_model)
     _collect_height_budget_errors(budget_components, task_spec, card_spec, errors, protocol_profile)
     _collect_text_width_budget_errors(
+        budget_components, task_spec, card_spec, errors, protocol_profile
+    )
+    _collect_horizontal_budget_errors(
         budget_components, task_spec, card_spec, errors, protocol_profile
     )
     for component in components:

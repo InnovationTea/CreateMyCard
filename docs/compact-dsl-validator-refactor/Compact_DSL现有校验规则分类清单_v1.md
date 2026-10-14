@@ -66,6 +66,24 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 高度建议要求保留固定设计量，重组合法布局；新增规则仍按约束性质归类并复用已有运行时合同。
 
 
+## 横向固定内容预算补充（2026-10-14，Issue #538）
+
+| 检查项 | 分类与实际文件 | 归属理由及边界 |
+|---|---|---|
+| `COMPACT_LAYOUT_WIDTH_OVERFLOW` | 语义／布局与视觉约束，`semantic/layout/horizontal.py` | 判断展开后 Row 的固定内容、嵌套后代、margin 和间距能否放入当前参考分区；属于空间预算，不属于语法或绑定 |
+
+共享 `reference_region_boxes` 提供画布与权重分配，当前组件 Recipe 提供固定设计尺寸；
+不另建标题高度或文字字体估算，也不整体迁入 PR #470 的二维几何引擎。
+执行位置在 `api.py` 的现有高度与文字宽度预算之后，保持前置校验、warning 和模板跳过语义。
+错误事实通过 `CompactDiagnostic` 返回，建议在 `repair_hints.json` 登记；流水线继续负责修复编排。
+本次新增 1 个活动结构化错误码（合计 33 个），规则登记夹具与 `test_compact_horizontal_budget.py` 同步。
+未知几何、未建模约束、任意二维相交及字形裁切不在本项覆盖范围内，不把未报错等同于像素验证通过。
+
+同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
+高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
+受约束影响的后代槽位继续按未知处理，避免把分配前宽度当作实际宽度。
+该补充仍归 horizontal.py，不增加诊断码；原始 3:1 分区案例记录于 text-block-input.jsonl。
+
 ## CodeCheck 整改范围收敛（2026-10-12）
 
 本 PR 只保留 Compact 自身的等价整改：`compact_validation/constants.py` 的测量样本正则拆分长行，
