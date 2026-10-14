@@ -125,8 +125,9 @@ def test_required_gallery_assets_are_registered_and_semantic(template_id: str) -
 @pytest.mark.parametrize("template_id", [
     "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1",
 ])
-def test_missing_phone_icon_is_not_added_or_replaced(template_id: str) -> None:
-    assets = _load_asset_capabilities(_CAPABILITY_ROOT)
+@pytest.mark.parametrize("version", ["app-11.7.5.205_rom-6.0", "app-11.7.7.300_rom-7.0"])
+def test_battery_leaf_replaces_missing_phone_icon(template_id: str, version: str) -> None:
+    assets = _load_asset_capabilities(_CAPABILITY_ROOT.parent / version)
     assert "asset.icon_phone" not in assets
     templates = {}
     for business in _load_business_definitions(_PROVIDER_ROOT):
@@ -134,13 +135,30 @@ def test_missing_phone_icon_is_not_added_or_replaced(template_id: str) -> None:
             templates[template.template_id] = template
     template = templates.get(template_id)
     assert template is not None
+    assert _candidate_asset_ids(template, assets) == ["asset.battery_leaf_fill"]
     candidates = []
     for asset_id in _candidate_asset_ids(template, assets):
         asset = assets.get(asset_id)
         assert asset is not None
         candidates.append(asset)
     task = TaskSpec(
-        userQuery="缺少手机设备图标", size="2x2", dataModelSchema={}, assetCandidates=candidates,
+        userQuery="展示手机电量", size="2x2", dataModelSchema={}, assetCandidates=candidates,
+    )
+    assert template_required_assets_are_available(
+        CardPlanRegistry().require_template(template_id), task,
+    )
+
+
+@pytest.mark.parametrize("template_id", [
+    "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1",
+])
+@pytest.mark.parametrize("asset_id", ["asset.phone_fill", "asset.ic_phone", "asset.emoji_phone1"])
+def test_battery_leaf_contract_rejects_phone_call_icons(template_id: str, asset_id: str) -> None:
+    assets = _load_asset_capabilities(_CAPABILITY_ROOT.parent / "app-11.7.7.300_rom-7.0")
+    asset = assets.get(asset_id)
+    assert asset is not None
+    task = TaskSpec(
+        userQuery="展示手机电量", size="2x2", dataModelSchema={}, assetCandidates=[asset],
     )
     assert not template_required_assets_are_available(
         CardPlanRegistry().require_template(template_id), task,
