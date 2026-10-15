@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from jsonschema import Draft202012Validator
+
 from models.generation import TaskSpec
 from services.fusion_ball_expander import FUSION_BALL_SIZES
 from services.template_generation.engine.a2ui_expression import (
