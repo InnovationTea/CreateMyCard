@@ -11,6 +11,7 @@ ModelProvider = Literal[
     "deepseek_platform",
     "llmclient",
     "deepseek_official_http",
+    "aliyun_bailian",
 ]
 
 

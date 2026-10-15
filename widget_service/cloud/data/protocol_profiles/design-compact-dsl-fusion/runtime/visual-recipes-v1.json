@@ -204,6 +204,17 @@
             "flexShrink": 0
           }
         }
+      },
+      "sizes": {
+        "2x4": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "wrapContent"
+              }
+            }
+          }
+        }
       }
     },
     "EmphasisText": {
@@ -251,7 +262,7 @@
       "alignment": "aligned",
       "metrics": {
         "minimumItems": 1,
-        "maximumItems": 4
+        "maximumItems": 6
       },
       "parts": {
         "root": {
@@ -718,6 +729,7 @@
             "fontSize": 10,
             "fontWeight": 500,
             "maxLines": 1,
+            "textOverflow": "ellipsis",
             "flexShrink": 1,
             "constraintSize": {
               "minWidth": 0
@@ -824,9 +836,40 @@
                 "height": 57
               }
             },
+            "copy": {
+              "styles": {
+                "height": "matchParent",
+                "padding": {
+                  "top": 8
+                },
+                "justifyContent": "start",
+                "itemMargin": 2
+              }
+            },
             "primary": {
               "styles": {
-                "fontSize": 14
+                "fontSize": 14,
+                "height": 19,
+                "lineHeight": 1.3571428571428572
+              }
+            },
+            "secondary": {
+              "styles": {
+                "fontSize": 12,
+                "height": 16,
+                "lineHeight": 1.3333333333333333
+              }
+            },
+            "primaryRow": {
+              "styles": {
+                "height": 19
+              }
+            },
+            "primaryValue": {
+              "styles": {
+                "fontSize": 14,
+                "height": 19,
+                "lineHeight": 1.3571428571428572
               }
             }
           }

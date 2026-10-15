@@ -26,6 +26,12 @@ async function renderText(content: string, styles: Record<string, unknown>) {
 }
 
 describe('Web 文字行数与裁剪', () => {
+  it('独立分隔符保留竖线两侧空格', () => {
+    render(<ExtendedText content=" | " maxLines={1} fontSize={14} />);
+    const separator = screen.getByLabelText(' | ', { normalizer: value => value });
+    expect(separator.style.whiteSpace).toBe('pre');
+    expect(separator.textContent).toBe(' | ');
+  });
   it.each([
     { content: '未连接充电器', width: 56, height: 16, fontSize: 10 },
     { content: '168次/分钟', width: 56, height: 18, fontSize: 12 },

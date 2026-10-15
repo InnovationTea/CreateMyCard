@@ -38,3 +38,4 @@ class ValidationContext:
     binding_paths: list[str] = field(default_factory=list)
     visible_binding_paths: list[str] = field(default_factory=list)
     data_model: dict[str, Any] | None = None
+    layout_origins: dict[str, str] = field(default_factory=dict)

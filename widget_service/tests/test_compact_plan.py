@@ -7,6 +7,7 @@ import pytest
 from services.compact_dsl_a2ui_converter import MODEL_COMPACT_INPUT_COMPONENT_TYPES
 from services.compact_plan import (
     CompactPlanValidationError,
+    _secondary_body_composition_errors,
     build_compact_plan_tool,
     compact_plan_asset_ids,
     compact_plan_coverage_errors,
@@ -16,6 +17,7 @@ from services.compact_plan import (
     compact_plan_optional_drop_candidate,
     parse_compact_plan_call,
 )
+from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
 
 
@@ -164,7 +166,7 @@ def plan_call_with_composition(*, content_height: int = 34) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
-def test_plan_composition_rejects_isolated_secondary_body_region() -> None:
+def test_plan_composition_rejects_secondary_body_when_card_has_no_core() -> None:
     payload = json.loads(plan_call_with_composition())
     arguments = payload.get("arguments")
     assert isinstance(arguments, dict)
@@ -239,6 +241,23 @@ def test_plan_composition_accepts_secondary_body_with_core_group() -> None:
     assert secondary.get("component") == "SecondaryBody"
 
 
+def test_plan_composition_accepts_secondary_body_with_core_in_other_region() -> None:
+    composition = {
+        "regions": [
+            {
+                "id": "primary",
+                "groups": [{"component": "EmphasisText"}],
+            },
+            {
+                "id": "support",
+                "groups": [{"component": "SecondaryBody"}],
+            },
+        ]
+    }
+
+    assert _secondary_body_composition_errors(composition) == []
+
+
 def asset_task_spec() -> dict:
     spec = task_spec()
     spec["assetCandidates"] = [
@@ -294,6 +313,32 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "priority" in properties["info_required"]["items"]["required"]
     assert "composition" not in properties
     assert tool["function"]["parameters"]["required"] == ["info_required"]
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_plan_tool_explains_registered_layout_names_without_new_fields(size: str) -> None:
+    spec = task_spec()
+    spec["size"] = size
+    tool = build_compact_plan_tool(spec)
+    function = tool.get("function")
+    assert isinstance(function, dict)
+    description = function.get("description")
+    assert isinstance(description, str)
+    assert "不得自行缩写、拼接或增删后缀" in description
+    assert "全部必要事实与动作都有合法落点" in description
+    assert ("children 为 [title, hero, support]" in description) == (size == "2x4")
+    if size == "2x4":
+        assert "Region 的 title-hero-support" in description
+        assert "Group 的 hero-support 只有 [hero, support]" in description
+        assert "第四项 PillButton" in description
+    parameters = function.get("parameters")
+    assert isinstance(parameters, dict)
+    properties = parameters.get("properties")
+    assert isinstance(properties, dict)
+    assert set(properties) == {"info_required", "layoutHints"}
+    layout_hints = properties.get("layoutHints")
+    assert isinstance(layout_hints, dict)
+    assert "不填写 Region/Group 变体，不使用简称" in layout_hints.get("description", "")
 
 
 def test_plan_tool_requires_explicit_asset_assignments_for_candidates() -> None:
@@ -644,6 +689,57 @@ def test_plan_call_is_normalized_without_freezing_components() -> None:
     )
 
 
+def test_two_by_four_action_plan_removes_top_bottom_layout_hint() -> None:
+    spec = task_spec()
+    spec["size"] = "2x4"
+    payload = json.loads(plan_call())
+    arguments = payload.get("arguments")
+    assert isinstance(arguments, dict)
+    arguments["layoutHints"] = ["W-top-bottom", "W-content-side-slots"]
+
+    result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), spec)
+
+    assert result.plan.get("layoutHints") == ["W-content-side-slots"]
+    assert result.warnings[-1] == (
+        "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
+        "an Action and this layout has no legal action slot."
+    )
+
+
+def test_two_by_four_action_plan_does_not_invent_replacement_layout_hint() -> None:
+    spec = task_spec()
+    spec["size"] = "2x4"
+    payload = json.loads(plan_call())
+    arguments = payload.get("arguments")
+    assert isinstance(arguments, dict)
+    arguments["layoutHints"] = ["W-top-bottom"]
+
+    result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), spec)
+
+    assert "layoutHints" not in result.plan
+    assert result.warnings[-1] == (
+        "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
+        "an Action and this layout has no legal action slot."
+    )
+
+
+def test_two_by_four_plan_without_action_keeps_top_bottom_layout_hint() -> None:
+    spec = task_spec()
+    spec["size"] = "2x4"
+    payload = json.loads(plan_call())
+    arguments = payload.get("arguments")
+    assert isinstance(arguments, dict)
+    facts = arguments.get("info_required")
+    assert isinstance(facts, list)
+    arguments["info_required"] = [fact for fact in facts if "actionId" not in fact]
+    arguments["layoutHints"] = ["W-top-bottom"]
+
+    result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), spec)
+
+    assert result.plan.get("layoutHints") == ["W-top-bottom"]
+    assert not any("W-top-bottom was removed" in warning for warning in result.warnings)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
@@ -911,7 +1007,7 @@ def test_optional_drop_never_allows_action_fact_to_be_omitted() -> None:
         (0,),
     ) == ()
 
-def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
+def test_single_line_title_plan_hint_can_be_covered_by_body_component() -> None:
     spec = task_spec()
     plan = {
         "info_required": [
@@ -922,10 +1018,11 @@ def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
             }
         ]
     }
-    text_source = "\n".join(
+    body_source = "\n".join(
         [
             '["root","Column",{},["title"]]',
-            '["title","Text",{"content":{"path":"/data/calendar/events/0/title"}}]',
+            '["title","TextBlock",{"items":[{"label":"会议",'
+            '"value":{"path":"/data/calendar/events/0/title"}}]}]',
         ]
     )
     header_source = "\n".join(
@@ -936,14 +1033,11 @@ def test_single_line_title_plan_fact_cannot_be_covered_by_text() -> None:
         ]
     )
 
-    assert compact_plan_coverage_errors(text_source, plan, spec) == (
-        "Plan title fact must be visible in a SingleLineTitle.title: "
-        "会议标题 (/data/calendar/events/0/title).",
-    )
+    assert compact_plan_coverage_errors(body_source, plan, spec) == ()
     assert compact_plan_coverage_errors(header_source, plan, spec) == ()
 
 
-def test_static_title_plan_fact_keeps_hard_title_placement_validation() -> None:
+def test_static_title_plan_hint_can_be_covered_by_body_component() -> None:
     spec = task_spec()
     plan = {
         "info_required": [
@@ -962,9 +1056,7 @@ def test_static_title_plan_fact_keeps_hard_title_placement_validation() -> None:
         ]
     )
 
-    assert compact_plan_coverage_errors(source, plan, spec) == (
-        "Plan title fact must be visible in a SingleLineTitle.title: 卡片标题.",
-    )
+    assert compact_plan_coverage_errors(source, plan, spec) == ()
     assert compact_plan_coverage_warnings(source, plan, spec) == ()
 
 
@@ -1005,6 +1097,77 @@ def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
     )
 
     assert compact_plan_coverage_errors(source, plan, spec) == ()
+
+
+@pytest.mark.parametrize("validate_drop_facts", [False, True])
+@pytest.mark.parametrize("drop_entered", [False, True])
+@pytest.mark.parametrize("missing_action", [False, True])
+def test_drop_fact_validation_switch_keeps_normal_coverage_and_action_checks(
+    validate_drop_facts: bool, drop_entered: bool, missing_action: bool,
+) -> None:
+    spec = task_spec()
+    spec["size"] = "2x4"
+    spec["appVersion"] = "12.0.0.1"
+    plan = {
+        "info_required": [
+            {"requirement": "会议标题", "dataId": "/data/calendar/events/0/title",
+             "priority": "must"},
+            {"requirement": "会议时间", "dataId": "/data/calendar/events/0/start",
+             "priority": "should"},
+            {"requirement": "打开日历", "actionId": "event.open.calendar", "priority": "must"},
+        ]
+    }
+    source_rows = [
+        ["root", "Layout", {"layout": "W-split-panels"}, ["left", "right"]],
+        ["left", "Region", {"variant": "center"}, ["main"]],
+        ["main", "EmphasisText", {"mainText": {"path": "/data/calendar/events/0/title"}}],
+        ["right", "Region", {"variant": "title-content-action"}, ["title", "extra", "action"]],
+        ["title", "SingleLineTitle", {"title": "打开日历"}],
+        ["extra", "SecondaryBody", {"items": [
+            {"label": "时间", "value": {"path": "/data/calendar/events/0/start"}},
+        ]}],
+        ["action", "PillButton", {"label": "打开日历", "onClick": [
+            {"call": "clickToDeeplink", "args": {"uri": "hww://calendar"}},
+        ]}],
+    ]
+    original = "\n".join(json.dumps(row, ensure_ascii=False) for row in source_rows)
+    tracker = CompactRepairStrategyTracker()
+    if drop_entered:
+        errors = [{
+            "code": "COMPACT_DSL_VALIDATION_FAILED", "stage": "validation",
+            "message": "component right: vertical layout requires at least 140vp within 110vp",
+        }]
+        for _ in range(4):
+            directive = tracker.next_directive(original, errors, compact_plan=plan, task_spec=spec)
+        assert directive.repair_strategy == "drop_optional_component"
+        assert tracker.allowed_omitted_fact_indexes == (1,)
+    allowed = tracker.validation_omitted_fact_indexes(
+        plan, validate_drop_plan_facts=validate_drop_facts,
+    )
+    source_rows[2] = ["main", "EmphasisText", {"mainText": "日程概览"}]
+    source_rows[5] = ["guide", "EmphasisText", {"mainText": "日程信息"}]
+    source_rows[3][3] = ["title", "guide", "action"]
+    if missing_action:
+        source_rows[3][2] = {"variant": "title-content"}
+        source_rows[3][3] = ["title", "guide"]
+        source_rows.pop()
+    source_rows.append(["/state/ready", True])
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in source_rows)
+    result = DesignCompactProcessor().process(source, DslProcessingContext(
+        size="2x4", card_spec={"suggestSize": "2x4"}, task_spec=spec,
+        protocol_profile={}, compact_plan=plan, allowed_omitted_plan_fact_indexes=allowed,
+    ))
+    messages = [issue.message for issue in result.errors]
+    expect_missing_facts = not drop_entered or validate_drop_facts
+    assert any("Plan fact is missing" in message for message in messages) == expect_missing_facts
+    assert any("Plan action is missing" in message for message in messages) == missing_action
+    if not expect_missing_facts and not missing_action:
+        assert result.errors == ()
+        assert result.standard_dsl
+    omitted = compact_plan_omitted_facts(source, plan, spec, allowed)
+    expected_omitted = 0 if not drop_entered else 1 if validate_drop_facts else 2
+    assert len(omitted) == expected_omitted
+    assert all("actionId" not in fact for fact in omitted)
 
 
 def test_processor_reports_missing_static_plan_text_as_warning() -> None:

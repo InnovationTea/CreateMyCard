@@ -278,7 +278,7 @@ def test_repair_keeps_history_recovery_and_internal_record(
     assert "invalidSourceDsl" not in payload
     assert {"role": "assistant", "content": TALL} in prompt
     assert quality_errors == before
-    assert "Occupancy:" in content
+    assert "关键占用：" in content
     assert "compactDiagnostics" not in content
 
 

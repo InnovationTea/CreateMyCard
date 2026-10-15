@@ -171,11 +171,11 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 最终响应必须且只能输出一个 `genui` Markdown 代码块，代码块中只包含极简协议 JSONL 行。所有组件行和 DataModel 行必须连续放在这同一个代码块内；禁止按组件、区域、数据或任何其他方式拆成多个 `genui` 代码块，也禁止输出第二个代码块。
 
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main"]]
+["root","Layout",{"layout":"S-title-content","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main"]]
 ["header","SingleLineTitle",{"title":"卡片标题","fontSize":12}]
-["main","Column",{"width":"matchParent","itemMargin":2},["primary","support"]]
-["primary","EmphasisText",{"mainText":"主要内容","fontSize":18,"width":"matchParent"}]
-["support","SecondaryBody",{"items":[{"value":"补充说明"}],"fontSize":14,"width":"matchParent"}]
+["main","Group",{"variant":"hero-support"},["primary","support"]]
+["primary","EmphasisText",{"mainText":"主要内容","fontSize":18}]
+["support","SecondaryBody",{"items":[{"value":"补充说明"}],"fontSize":14}]
 ["/state/ready",true]
 ```
 
@@ -186,19 +186,19 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 - 每行都是独立、严格、单行、可解析的 JSON；不得使用注释、尾逗号、单引号 JSON 或多行 JSON。
 - 组件行格式固定为 `[id, component, props]` 或 `[id, component, props, children]`。
 - 数据行格式固定为 `[path, value]`，其中 `path` 必须是以 `/` 开头的 JSON Pointer。
-- 第一个组件行必须是 `root`；2x2 使用 Row/Column，2x4 单业务及 `W-four-slots` 允许 Stack 外壳，内边距由满尺寸前景层承担一次；`W-split-panels`/`W-content-side-slots` 必须使用 Row。
+- 第一个组件行必须是root Layout，选择本尺寸S/W父布局；2x2直接声明角色，2x4独立分区用Region，同区组合用Group。两种尺寸都不输出Row/Column/Stack或内部展开节点。
 - 只生成组件行和数据行；禁止输出 `createSurface`、`updateComponents`、`updateDataModel`、`surfaceId`、`catalogId` 或 A2UI 组件对象数组。
 - 组件行中的 `props` 是一个扁平对象：组件语义字段和样式字段都直接写在 `props` 中，不嵌套 `styles`。
-- 基础布局组件的 `children` 必须写在第 4 项，必须是非空的子组件 id 字符串数组；禁止输出对象形式的 children、模板描述、repeat 描述或 `[]`。其它组件不得有第 4 项。
+- 布局容器的children写在第4项，必须是非空组件ID数组；禁止对象形式children、repeat或空数组。容器只用本尺寸登记的Layout/Region/Group，其他业务组件不得有第4项。
 - 凡是 UI 通过 PathBinding 或 Expression 访问的动态路径，都必须在后续数据行中初始化首帧值。
 
 以下是输出前必须全部通过的零容错门禁；任一项不成立都不得直接输出，必须在内部修复后重新检查：
 
 1. **消息闭环**：必须只输出极简协议 JSONL 行，不能混入 A2UI 三消息、JSON 数组外壳、解释文字或 CardSpec。
-2. **组件闭环**：建立全部组件 id 的集合；`root` 和每个普通 `children` 项都必须在集合中恰好命中一个真实组件。除 `root` 外的每个组件只能被一个父容器引用一次，禁止同一语义组件或容器同时出现在内层 content 和外层背板的 children 中。每个 Row、Column、Stack 都必须包含至少一个真实子组件，禁止用空容器制造间距或弹性留白；间距改用父容器的 `itemMargin`、`padding` 或合法对齐方式。禁止引用未定义的文本或按钮子项，禁止孤立组件。
+2. **组件闭环**：建立全部组件 id 的集合；`root` 和每个普通 `children` 项都必须在集合中恰好命中一个真实组件。除 `root` 外的每个组件只能被一个父容器引用一次，禁止同一语义组件或容器同时出现在内层 content 和外层背板的 children 中。每个Layout、Region、Group必须具有合同所需的真实有序角色，不生成空槽或弹性占位；间距和对齐由模板提供。禁止引用未定义的文本或按钮子项，禁止孤立组件。
 3. **字段与表达式分层**：`content/src/label/value/itemMargin/onClick/accessibility` 等组件语义属性和样式属性都写在第三项 `props`；`children` 只能写在第 4 项；不得输出嵌套 `styles`。扫描所有字符串值：只要包含 `{{` 或 `}}`，整个字符串就必须是且只能是一个从首字符开始、到末字符结束的完整 `{{ ... }}`。
 4. **数据闭环**：每个 Expression 或 PathBinding 在首帧都必须可求值；凡是选中用于展示的动态字段，展示组件必须真实绑定该字段。逐项检查组件中的可见静态字面量：若字面量等于某个 `sampleValue`，或语义来源于其内容、格式、状态结论或单位组合，对应组件必须改为绑定该字段；`sampleValue` 及其等义改写只能出现在对应路径的数据行中，不能静态写入 `content`、`label`、`value` 或其它可见属性。
-5. **布局闭环**：从 root 开始递归计算每个 Row/Column 的横纵预算；任何一级出现负剩余空间、越界、被 root 裁切或依赖压缩才能成立，都必须先删减、合并或缩小次要内容再输出。
+5. **布局闭环**：从root开始核对横纵预算，两种尺寸均按语义模板及组件实际占用计算；负预算、越界或依赖压缩时改组件组合/布局，不修改固定模板几何或缩小Recipe。
 6. **文本闭环**：为每个受保护文本、格式化动态值和 CTA 构造压力字符串并计算所需宽度；分配宽度不足时必须缩短非核心静态文案、改为纵向布局、扩大槽位、降低到批准字号或删除次要字段，禁止使用 `clip/ellipsis` 交付残缺结果。
 7. **动作闭环**：PillButton、CardButton 或专用 clickable Row 的可见文案只表达动作本身，默认压缩为简短的“动词 + 对象”。任何含“导航、打开、查看、清理、开启、关闭、拨打”等动作语义的按钮外观都必须具有合法 `onClick`；否则删除动作措辞和按钮外观。`S-dual-info` 的信息背板不支持事件；存在必须保留的显式动作时改选可承载动作的布局。
 8. **状态闭环**：静态文案、颜色和图标不得与首帧动态值矛盾，也不得把某个可能变化的状态永久写死。无法由当前受控绑定安全表达的状态提示必须改为中性信息或删除。
@@ -222,8 +222,8 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 - 第 1 项是组件 id，必须唯一、稳定、语义化。
 - 第 2 项是组件名，只能使用本提示词允许的基础布局组件和组件。
 - 第 3 项是 props 扁平对象；不用的属性必须省略，不写 `null`。
-- 第 4 项只允许 Row、Column、Stack 使用，且必须是至少包含一个子组件 id 的字符串数组；禁止使用空数组或 `{ "componentId": ..., "path": ..., "itemVar": ... }` 这类模板对象；非容器组件不得拥有 children。
-- `space` 可作为 `itemMargin` 的简写；同一卡片优先统一使用 `itemMargin`。
+- 第4项只允许本尺寸登记的Layout/Region/Group使用，必须是非空的真实组件ID数组；禁止空数组或模板对象；业务组件不得拥有children。
+- 两种尺寸固定几何均由语义模板决定，不输出宽高、间距、权重或对齐Props。
 - `onClick` 必须是非空数组且恰好一个 handler，并完整复用 eventCandidate 的 `call/args`。
 
 ## 4.2 动态绑定
@@ -243,7 +243,7 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 ### 4.2.2 标签、对象与数值不得分离
 
 - 风向不能代替风力标签。展示 `windLevel` 时写成完整的 `{{ '风力 ' + ${/data/weather/current/windLevel} + '级' }}`，或在同一父组放“风力”标签和数值；只写“东南风 / 2级”不成立。
-- `calendar.eventCount` 用一个 `SecondaryBody` 的显示值表达用户要求的时间范围、动态数量和日程语义，例如 `{{ '未来7天 ' + ${/data/calendar/eventCount} + '项安排' }}`；不得拆成孤立大数字与“件事”，也不得擅自把时间范围写成7天。
+- `calendar.eventCount` 必须与用户要求的统计范围、日程集合含义一起理解。2x4 同时展示集合数量与成员详情时，可用 `Group variant="title-count"`：SingleLineTitle 写真实统计范围与日程集合名称，Badge 只绑定数量，成员标题和时间放入内容区。不把数量作为孤立大数字，不从其它分区借说明，也不擅自把范围写成7天。其它形式仍用完整正文表达范围、动态数量和日程语义；2x2 保持一个 `SecondaryBody` 的完整显示值。
 - 左右耳、多设备、多个日期的值都要保留各自对象或时间标识。两个百分比的位置顺序不能代替“左耳/右耳”标签。
 - `ProgressCircle`、`ProgressLine2`、`ProgressCircleSingle` 与其读数必须使用同一对象、同一指标的数据。完整数值百分比字符串可原样驱动可见读数，并由转换器为内部进度换算 number；禁止从普通正文截取数字、借用另一对象的 number 字段、样例常量或改写数据类型来画环。缺少可验证比例时不能通过视觉伪装补齐。
 
@@ -310,7 +310,7 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 
 ## 6.3 数组展示
 
-当前转换层不支持数组模板对象。Row、Column、Stack 的 `children` 必须始终是子组件 id 字符串数组。
+当前转换层不支持数组模板对象。Layout、Region、Group的children必须始终是子组件id字符串数组。
 
 - 禁止在 `children` 第 4 项输出 `{ "componentId": ..., "path": ..., "itemVar": ..., "indexVar": ... }`。
 - 禁止在表达式中使用 `$item`、`itemVar`、`indexVar` 或其它循环变量。
@@ -328,7 +328,7 @@ CardSpec，不负责判断候选能力是否真实可用，也不扩大输入声
 - `onClick` 必须是非空数组且恰好一个 handler；禁止 `condition`、`as`、`$context` 和动作链。
 - handler 的 `call/args` 必须完整复用一个 eventCandidate。候选中的静态值、Expression 或模板相对 PathBinding 保持原结构，不自行构造事件参数。
 - 事件是否应被选择只按 2.4 节的 `explicit/implicit/sideEffect` 分级决定。本节只约束被选事件的 DSL 写法，不得因技术上可绑定就提升事件优先级。
-- 需要卡面文字解释的文字或图文动作使用 `PillButton`；2x2 单动作在存在准确 SVG、用户未要求动作文字且正文事实可明确拆分为一个主信息组与至少一个可由核心组件承载的独立其它信息组时，可直接首选 `CircleButton` 和 `S-title-anchor`。其它信息进入左下支撑区，不要求固定三项，但至少一项；标题、动作以及只在标题中展示的地点、对象或范围上下文不计入，只有 `SecondaryBody` 与按钮的左下分区也不成立。没有独立支撑事实时排除 `S-title-anchor`，改选 `S-title-content-action` 等文字动作布局。无需先证明整宽文字按钮造成空间压力。用户仅用“点击、点一下、打开、查看”等词描述动作，不等于要求卡面显示动作文字；只有明确要求展示按钮文案时才改用文字按钮。被选中的无副作用单一隐式入口优先放在支持整卡入口的 root，不额外占用版面；`W-four-slots`/`W-content-side-slots` 的 `CardButton` 语义槽绑定所属蒙版，左侧大内容蒙版使用内部 `PillButton`。同一动作只选择一个点击容器，不重复绑定。`S-dual-info`、`W-top-bottom` 和 `InfoBlock` 语义槽舍弃隐式入口。
+- 需要卡面文字解释的文字或图文动作使用 `PillButton`；2x2 单动作在存在准确 SVG、用户未要求动作文字且正文事实可明确拆分为一个主信息组与至少一个独立其它信息组时，可直接首选 `CircleButton` 和 `S-title-anchor`。其它信息进入左下支撑区，不要求固定三项，但至少一项；标题、动作以及只在标题中展示的地点、对象或范围上下文不计入。左下可以使用 `SecondaryBody` 承载辅助事实，只要整卡其它位置已有核心信息组件；整卡不能只有 `SecondaryBody`、标题与按钮。没有独立支撑事实时排除 `S-title-anchor`，改选 `S-title-content-action` 等文字动作布局。无需先证明整宽文字按钮造成空间压力。用户仅用“点击、点一下、打开、查看”等词描述动作，不等于要求卡面显示动作文字；只有明确要求展示按钮文案时才改用文字按钮。被选中的无副作用单一隐式入口优先放在支持整卡入口的 root，不额外占用版面；`W-four-slots`/`W-content-side-slots` 的 `CardButton` 语义槽绑定所属蒙版，左侧大内容蒙版使用内部 `PillButton`。同一动作只选择一个点击容器，不重复绑定。`S-dual-info`、`W-top-bottom` 和 `InfoBlock` 语义槽舍弃隐式入口。
 - 用户明确要求“点击/点一下/打开/查看/导航/设置/进入/播放”某个候选动作时，该动作是显式动作，必须落到当前骨架的 PillButton、CircleButton、CardButton 或合法可点击 Row；不得绑定到 `InfoBlock`，也不得改成 root.onClick 后再用普通正文补写“点击查看……”或“点击导航……”。`W-top-bottom` 仅允许密集列表变体将所属只读详情绑定到列表整体；除此以外不承载显式动作。当前尺寸没有兼容布局时按不支持处理，禁止静默删除。
 - 只有用户未明确要求的无副作用隐式入口才可绑定 root 或所属蒙版；隐式入口不生成按钮，也不生成“点击、打开、查看、导航”等可见动作提示文字。
 - 不把一个候选事件复制到多个无关组件，也不生成没有候选事件的可点击外观。

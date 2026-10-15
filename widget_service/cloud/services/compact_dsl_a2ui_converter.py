@@ -74,6 +74,9 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
         "Row",
         "Column",
         "Stack",
+        "Layout",
+        "Region",
+        "Group",
         "Text",
         "ProgressCircle",
         "PillButton",
@@ -102,8 +105,8 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
 # Historical Few-shot and local conversion fixtures may still contain direct Text rows.
 # The live model boundary uses this narrower set and requires semantic text components.
 MODEL_COMPACT_INPUT_COMPONENT_TYPES = COMPACT_INPUT_COMPONENT_TYPES - {"Text"}
+_CONTAINER_TYPES = frozenset({"Row", "Column", "Stack", "Layout", "Region", "Group"})
 _INTERNAL_COMPONENT_TYPES = frozenset({"Image", "Divider", "Progress", "Button"})
-_CONTAINER_TYPES = frozenset({"Row", "Column", "Stack"})
 _SEMANTIC_FIELDS = {
     "Text": frozenset({"content"}),
     "Image": frozenset({"src"}),
@@ -382,10 +385,36 @@ _DESIGN_ALIASES: dict[str, dict[str, str]] = {}
 
 
 def parse_compact_dsl_rows(
-    compact_dsl: str, *, skip_compact_dsl_validation: bool = False,
+    compact_dsl: str, *, expand_layouts: bool = True, size: str | None = None,
+    skip_compact_dsl_validation: bool = False,
 ) -> tuple[CompactRow, ...]:
     """Parse Design Compact DSL into the row model shared with validation."""
-    return tuple(_parse_compact_rows(
+    from services.compact_semantic_layout import expand_semantic_layout_rows
+    rows = _parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
+    if expand_layouts:
+        expansion = expand_semantic_layout_rows(rows, size=size)
+        rows = _canonicalize_component_order(list(expansion.rows))
+    return tuple(rows)
+
+
+def expand_compact_semantic_layout(compact_dsl: str, *, size: str) -> tuple[str, dict[str, str]]:
+    """显式编译与来源映射用于 Trace；绑定修复和编辑始终保留语义原文。"""
+    from services.compact_semantic_layout import expand_semantic_layout_rows
+    rows = _parse_compact_rows(compact_dsl)
+    expansion = expand_semantic_layout_rows(rows, size=size)
+    if not expansion.origins:
+        return compact_dsl, {}
+    ordered = _canonicalize_component_order(list(expansion.rows))
+    return _serialize_repaired_rows(ordered), expansion.origins
+
+
+def serialize_compact_dsl_source(
+    compact_dsl: str, *, skip_compact_dsl_validation: bool = False,
+) -> str:
+    """保存已解析、语法修正后的源行；不展开语义布局或改写业务 Props。"""
+    return _serialize_repaired_rows(_parse_compact_rows(
         compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
     ))
 
@@ -498,7 +527,7 @@ def repair_compact_dsl_binding_paths(
     card_spec: dict[str, Any],
     skip_compact_dsl_validation: bool = False,
 ) -> str:
-    """Repair unique data roots or safely inline unbacked local values."""
+    """Repair unique roots/path typos or safely inline unbacked local values."""
     rows = _parse_compact_rows(
         compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
     )
@@ -523,14 +552,7 @@ def repair_compact_dsl_binding_paths(
     for path in dict.fromkeys(paths):
         if _schema_node_at_path(schema, path) is not None:
             continue
-        suffix = path
-        if path == "/data" or path.startswith("/data/"):
-            suffix = path[len("/data") :]
-        candidates: set[str] = set()
-        for root in roots:
-            candidate = f"{root.rstrip('/')}{suffix}"
-            if _schema_node_at_path(schema, candidate) is not None:
-                candidates.add(candidate)
+        candidates = _schema_binding_path_candidates(path, schema, roots)
         if len(candidates) == 1:
             path_replacements[path] = candidates.pop()
             continue
@@ -608,9 +630,9 @@ def convert_compact_dsl_to_a2ui(
     from services.compact_layout_runtime import adaptive_slot_ids
 
     profile = protocol_profile or {"version": "v0.9"}
-    rows = _parse_compact_rows(
-        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
-    )
+    rows = list(parse_compact_dsl_rows(
+        compact_dsl, size=size, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    ))
     components, data_rows = _split_component_rows(rows)
     _validate_compact_component_bindings(components)
     data_model = _build_data_model(data_rows)
@@ -2211,6 +2233,34 @@ def _card_spec_data_roots(card_spec: dict[str, Any]) -> list[str]:
         if isinstance(root, str) and root.startswith("/"):
             roots.append(root)
     return roots
+
+
+def _schema_binding_path_candidates(
+    path: str,
+    schema: dict[str, Any],
+    roots: list[str],
+) -> set[str]:
+    """仅返回由单个常见语法笔误得到、且在 schema 中真实存在的唯一候选集合。"""
+    variants = [path]
+    if path.endswith("}"):
+        variants.append(path[:-1])
+    if path.startswith(("/data/", "/state/")):
+        for index, char in enumerate(path):
+            if char == ".":
+                variants.append(f"{path[:index]}/{path[index + 1:]}")
+
+    candidates: set[str] = set()
+    for variant in dict.fromkeys(variants):
+        if variant != path and _schema_node_at_path(schema, variant) is not None:
+            candidates.add(variant)
+        suffix = variant
+        if variant == "/data" or variant.startswith("/data/"):
+            suffix = variant[len("/data") :]
+        for root in roots:
+            candidate = f"{root.rstrip('/')}{suffix}"
+            if candidate != path and _schema_node_at_path(schema, candidate) is not None:
+                candidates.add(candidate)
+    return candidates
 
 
 def _candidate_asset_sources(task_spec: dict[str, Any]) -> set[str]:

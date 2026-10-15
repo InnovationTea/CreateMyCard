@@ -1,10 +1,10 @@
 # validate_compact_dsl 校验数据
 
-范围按 compact_dsl_validator.py 中 153 个 errors.append 源码位置统计。这些位置由 validate_compact_dsl 及其检查函数执行；不把解析器异常和双动作校验的内部原因重复计数。
+范围按 Compact 校验器中 152 个现存报错源码位置统计。这些位置由 validate_compact_dsl 及其检查函数执行；不把解析器异常和双动作校验的内部原因重复计数。
 
-149 个位置有单错误样例；3 个位置因校验条件存在逻辑包含关系而必然伴随其他错误；1 个位置不可从公开入口触发。152 个可触发位置都通过完整 validate_compact_dsl 入口验证，并用执行跟踪确认实际命中目标 errors.append。
+148 个位置有单错误样例；3 个位置因校验条件存在逻辑包含关系而必然伴随其他错误；1 个位置不可从公开入口触发。
 
-按检查函数分目录，每组包含 sample_compact.dsl、sample_task_spec.json、sample_card_spec.json。expected.json 仅记录预期错误、异常类型和输入文件校验和；coverage.json 记录完整的 153 个源码错误点及其样例目录。
+按检查函数分目录，每组包含 sample_compact.dsl、sample_task_spec.json、sample_card_spec.json。expected.json 仅记录预期错误、异常类型和输入文件校验和；coverage.json 记录完整的 152 个源码错误点及其样例目录。
 
 ## 使用
 
@@ -18,7 +18,9 @@ D:\ProgramFiles\anaconda3\envs\CreateMyCard\python.exe widget_service\tests\comp
 
 ## 验证记录
 
-逐组完整入口回放：LF 与 CRLF 两种换行格式均为 153 通过、0 失败。清除 PYTHONPATH 且不传 `--cloud` 的默认入口 smoke 回放为 153 通过、0 失败。新回放脚本 Ruff 通过，git diff --check 通过。
+历史逐组完整入口回放：LF 与 CRLF 两种换行格式均为 153 通过、0 失败。清除 PYTHONPATH 且不传 `--cloud` 的默认入口 smoke 回放为 153 通过、0 失败。新回放脚本 Ruff 通过，git diff --check 通过。
+
+2026-10-14 停用 eventCount 文案硬校验后，定向日程数量回归 7 通过、0 失败。当前工作区的全量历史样例回放为 5 通过、147 失败；失败主要来自工作区已有的组件白名单和旧布局规则变更，不是本次 eventCount 规则删除引入。
 收集项目测试输入时执行相关 7 个测试文件：408 通过、6 失败。失败来自当前工作区原有测试预期与校验器不一致：1 个模板空容器被解析器提前拦截、3 个格式化读数目前被接受、2 个 W9 样例直接显示布尔字段。此次仅新增数据与回放脚本，未修改生产代码。
 
 ## 逐错误位置索引
@@ -145,7 +147,6 @@ D:\ProgramFiles\anaconda3\envs\CreateMyCard\python.exe widget_service\tests\comp
 | `_collect_two_by_four_w9_sparse_layout_errors` | 3909 | [_collect_two_by_four_w9_sparse_layout_errors/01](_collect_two_by_four_w9_sparse_layout_errors/01/expected.json) | 单错误 | 1 |
 | `_collect_fusion_composition_errors` | 4030 | [_collect_fusion_composition_errors/01](_collect_fusion_composition_errors/01/expected.json) | 单错误 | 1 |
 | `_collect_semantic_text_errors` | 4116 | [_collect_semantic_text_errors/01](_collect_semantic_text_errors/01/expected.json) | 单错误 | 1 |
-| `_collect_semantic_text_errors` | 4139 | [_collect_semantic_text_errors/02](_collect_semantic_text_errors/02/expected.json) | 单错误 | 1 |
 | `_collect_semantic_text_errors` | 4153 | [_collect_semantic_text_errors/03](_collect_semantic_text_errors/03/expected.json) | 单错误 | 1 |
 | `_collect_semantic_text_errors` | 4163 | [_collect_semantic_text_errors/04](_collect_semantic_text_errors/04/expected.json) | 单错误 | 1 |
 | `_collect_unbound_action_hint_errors` | 4207 | [_collect_unbound_action_hint_errors/01](_collect_unbound_action_hint_errors/01/expected.json) | 单错误 | 1 |

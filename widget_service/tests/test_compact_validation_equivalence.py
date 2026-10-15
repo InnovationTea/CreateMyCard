@@ -96,9 +96,9 @@ def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
     if secondary_body_id is not None:
         message = (
             f"component {secondary_body_id}: SecondaryBody is auxiliary and cannot be the "
-            "only information component in its semantic region; pair it with a core "
-            "information component. Titles, buttons and other SecondaryBody instances "
-            "do not count."
+            "only information component in the card; pair it with a core information "
+            "component somewhere in the card. Titles, buttons and other SecondaryBody "
+            "instances do not count."
         )
         return {
             "exception": "CompactDslValidationError",

@@ -11,6 +11,27 @@
 
 ## Fusion 融合后的当前生效约定
 
+2026-10-15：Drop阶段的Plan展示事实覆盖可由enable_drop_plan_fact_validation控制，默认关闭。
+此项属于生成编排层的降级政策，不新增语法／语义校验器；compact_repair_strategy.py按阶段计算
+可省略事实索引，widget_generation_service.py在校验及响应处传入原有Plan覆盖、缺失记录接口。
+Action覆盖及其它发布校验不变；进入Drop前始终严格，开启开关时保留原明确授权的豁免范围。
+
+2026-10-15：SecondaryBody.items数量上限由4改为6，归属语法／组件合同，仍委托
+compact_high_level_components.py的共享组件校验，不在分类入口重复实现。实际数量超过6时进入
+既有组件修复，由compact_repair_strategy.py说明可选补充项清理与Plan保护；容量归属与Drop授权不变。
+
+2026-10-14 单例检视补充：2×4 SecondaryBody 单行的完整值与静态标签共同核算宽度。
+归属语义／布局与视觉约束，落点 semantic/layout/text_width.py，复用现有同行压力函数及建议；
+api.py 仅启用该尺寸的检查。未知值或兄弟标签不估猜，不恢复其它旧门禁，2×2 发布判定不变。
+
+同日补充 2×4 语义编译反馈：共享 Runtime compact_semantic_layout.py 的既有角色数、父区变体
+检查在原失败信息中列出有序角色及该父区允许的变体；仍委托该编译器判定，校验分类入口不重复实现。
+不改变成功/失败边界、几何或检查顺序，不包含业务答案，仍通过既有转换错误路径传递。
+
+2×4 多字段文本宽度检查在同一 semantic/layout/text_width.py 中复用既有安全解析器，
+不增加任意表达式求值器。已知字符串连接与简单布尔分支按完整文案核算，未知值和算术不猜测；
+2×2 原行为不变，继续沿用已有宽度错误及建议。
+
 ### 2026-10-12 最终设计对照复核
 
 当前基线为 main `69c153f5`（已包含 #506 和 #500）。语法／语义分类及 32 个活动结构化错误码不变，
@@ -442,9 +463,9 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   原始诊断：component {component.component_id}: time/date range ends with a dangling separator. Bind both start and end values, or remove the separator and display the available value only.
 
-- **OBS-L4139**：`_collect_semantic_text_errors`，主脚本第 4139 行。
+- **OBS-L4139**：`_collect_semantic_text_errors`，主脚本第 4139 行，2026-10-14 已停用。
 
-  原始诊断：component {component.component_id}: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.
+  历史诊断：component {component.component_id}: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.
 
 - **OBS-L4153**：`_collect_semantic_text_errors`，主脚本第 4153 行。
 
@@ -1014,7 +1035,7 @@ warning 保持原字符串返回及流水线警告码、日志路径，不进入
 | BASE-01：纵向最小高度参考画布 | `compact_dsl_validator.py` 的 `_REFERENCE_CANVAS_HEIGHT` 将 `2x2`、`2x4`、`4x2` 设为 `150.0` | [云侧方案设计](../云侧方案设计.md)“校验与重试”规定 Compact 最小高度校验采用 `160vp` | 登记差异，不在分类或等价拆分中改常量、阈值、报错文案或快照；实施行为修正前单独确认依据并补充边界回归 |
 | BASE-02：W9 无动作倒计时结构冲突 | OBS-L3455 要求背板直接包含三个 Text，OBS-L3909 又要求直接内容 Column | 同一稀疏倒计时背板同时触发，两种结构不能同时满足 | 待确认适用条件和优先级；保留等价行为及两种结构的复现，不生成保证可解的新建议 |
 | BASE-03：分离单位建议冲突 | OBS-L3378 要求同 Row 且较小文字不加 bottom padding | OBS-L825、OBS-L1154 对混合字号要求底部补偿；照旧建议修改后仍会失败 | 旧文案逐字保留；新 expected 保留实际对齐约束，不复制冲突建议，不借调整建议改变阈值 |
-| BASE-04：eventCount 适用边界 | OBS-L4139 检查所有 eventCount 引用的时间范围和日程文案 | 当前 design-compact-dsl/PROMPT.md 讲的是数量摘要；条件表达式仅输出状态时也被当前实现检查 | 作为边界待裁决，补充数量展示与条件状态、时间范围已知与未知用例，不臆造时间范围 |
+| BASE-04：eventCount 适用边界 | OBS-L4139 曾检查所有 eventCount 引用的时间范围和日程文案 | 硬校验过度约束文案实现，并会阻断仍可读的紧凑结果 | 2026-10-14 已暂时停用；保留 Prompt 指导而不作硬拒绝 |
 
 保留代码基线只是等价拆分的验收依据，不表示认可它符合总方案。最终实施前必须明确该差异是独立修复
 还是另行延期；未经确认不能同时宣称“现有行为完全一致”和“高度约定已符合总方案”。
