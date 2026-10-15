@@ -803,6 +803,8 @@ class _WidePlanScore(NamedTuple):
     """Wide 组合计划的排序分值，各字段按字典序参与比较。"""
 
     embedded_action_count: int
+    support_slot_count: int
+    support_novelty_count: int
     focus_match_count: int
     generic_slot_penalty: int
     slot_count_penalty: int
@@ -822,11 +824,26 @@ def _wide_plan_score(
     base = _plan_score(plan, intent, registry, groups)
     generic_count = sum(bool(slot.field_bindings) for slot in plan.business_slots)
     embedded_count = sum(item.consumer == "business-template" for item in plan.action_assignments)
+    support_slots = [slot for slot in plan.business_slots if slot.layout_role == "Support"]
+    support_novelty = 0
+    for support_index, slot in enumerate(plan.business_slots):
+        if slot.layout_role != "Support":
+            continue
+        definition = registry.require_template(slot.template_id)
+        support_fields = set(definition.primary_data) | set(definition.secondary_data)
+        other_fields: set[str] = set()
+        for other_index, other in enumerate(plan.business_slots):
+            if other_index == support_index or other.business_id != slot.business_id:
+                continue
+            other_fields.update(other.covered_explicit_fields)
+        support_novelty += len(support_fields - other_fields)
     requested_order = tuple(intent.required_output_fields_by_capability)
     actual_order = tuple(dict.fromkeys(slot.capability_id for slot in plan.business_slots))
     order_matches = int(actual_order == requested_order)
     return _WidePlanScore(
         embedded_action_count=embedded_count,
+        support_slot_count=len(support_slots),
+        support_novelty_count=support_novelty,
         focus_match_count=base[0],
         generic_slot_penalty=-generic_count,
         slot_count_penalty=-len(plan.business_slots),

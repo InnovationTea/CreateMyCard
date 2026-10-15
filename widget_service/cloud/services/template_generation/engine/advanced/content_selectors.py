@@ -149,8 +149,12 @@ _SELECTOR_FALLBACK_FIELDS: dict[str, tuple[str, ...]] = {
         "districtName",
         "prefectureName",
         "airQuality",
+        "uvIndex",
         "coldLevel",
         "temperatureRangeText",
+        "rainProbabilityPercent",
+        "date",
+        "weekday",
         "alertLevel",
         "updatedAt",
         # 风况模板族（WindFull/WindHero primaryData、RainWindFull secondaryData）的
