@@ -87,9 +87,17 @@ def validate_compact_dsl(
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
+        original_rows = parse_compact_dsl_rows(
+            compact_dsl,
+            expand_layouts=False,
+            size=task_spec.get("size"),
+        )
         rows = parse_compact_dsl_rows(compact_dsl, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
+    from services.compact_semantic_layout import collect_semantic_layout_warnings
+
+    warnings = list(collect_semantic_layout_warnings(original_rows))
     components = ComponentRows(row for row in rows if isinstance(row, ComponentRow))
     context = ValidationContext(
         original_source=compact_dsl if original_source is None else original_source,
@@ -154,7 +162,6 @@ def validate_compact_dsl(
     binding_paths = context.binding_paths
     visible_binding_paths = context.visible_binding_paths
     errors = DiagnosticCollector()
-    warnings: list[str] = []
     _collect_asset_source_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_ambiguous_metric_text_errors(

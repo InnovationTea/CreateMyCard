@@ -1260,6 +1260,10 @@ class WidgetGenerationService:
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
                 compact_plan=accepted_compact_plan,
+                plan_information_coverage_as_warning=(
+                    quality_repair_attempt_count > 0
+                    and not settings.enable_drop_plan_fact_validation
+                ),
                 allowed_omitted_plan_fact_indexes=(
                     compact_repair_tracker.validation_omitted_fact_indexes(
                         accepted_compact_plan,

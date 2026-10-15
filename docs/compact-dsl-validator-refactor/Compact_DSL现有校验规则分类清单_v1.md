@@ -15,10 +15,12 @@
 PathBinding。该调整归属语法／组件的共享绑定合同，落点 compact_component_bindings.py；直接
 PathBinding 的 string/number/integer 类型相容性仍归属语义／数据绑定，不在分类入口复制检查。
 
-2026-10-15：Drop阶段的Plan展示事实覆盖可由enable_drop_plan_fact_validation控制，默认关闭。
-此项属于生成编排层的降级政策，不新增语法／语义校验器；compact_repair_strategy.py按阶段计算
-可省略事实索引，widget_generation_service.py在校验及响应处传入原有Plan覆盖、缺失记录接口。
-Action覆盖及其它发布校验不变；进入Drop前始终严格，开启开关时保留原明确授权的豁免范围。
+2026-10-15：Plan 展示事实覆盖调整为请求级一次硬校验。首次 DSL 评估仍严格检查全部
+Plan 事实；进入第一次模型 Repair 后，compact_plan.py 仅将非 Action 展示事实缺失转为
+warning，2×2 与 2×4 共用该逻辑。此项属于生成编排层的降级政策，不新增语法／语义校验器。
+Action 事实、事件 handler、动作素材、动作槽及其它 Compact 校验不降级。
+enable_drop_plan_fact_validation 默认关闭；开启时在 Repair 阶段恢复严格事实覆盖，仅保留程序明确
+授权的 Drop 豁免范围。
 
 2026-10-15：SecondaryBody.items数量上限由4改为6，归属语法／组件合同，仍委托
 compact_high_level_components.py的共享组件校验，不在分类入口重复实现。实际数量超过6时进入
@@ -31,6 +33,9 @@ api.py 仅启用该尺寸的检查。未知值或兄弟标签不估猜，不恢�
 同日补充 2×4 语义编译反馈：共享 Runtime compact_semantic_layout.py 的既有角色数、父区变体
 检查在原失败信息中列出有序角色及该父区允许的变体；仍委托该编译器判定，校验分类入口不重复实现。
 不改变成功/失败边界、几何或检查顺序，不包含业务答案，仍通过既有转换错误路径传递。
+2026-10-15 将 `W-content-side-slots` 中“上方 CardButton、下方 InfoBlock”的顺序检查从转换错误降为
+warning；共享 Runtime 继续确定性展开原顺序，校验入口只收集建议，不复制槽位判断。槽位数量、组件角色、
+父区变体与几何检查仍为原有硬校验。
 
 2×4 多字段文本宽度检查在同一 semantic/layout/text_width.py 中复用既有安全解析器，
 不增加任意表达式求值器。已知字符串连接与简单布尔分支按完整文案核算，未知值和算术不猜测；
@@ -475,9 +480,9 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   原始诊断：component {component.component_id}: reminder value must keep its minute semantics, such as 提前 15 分钟; do not display a bare numeric reminder value.
 
-- **OBS-L4163**：`_collect_semantic_text_errors`，主脚本第 4163 行。
+- **OBS-L4163**：`_collect_semantic_text_errors`，主脚本第 4163 行，2026-10-15 已停用。
 
-  原始诊断：component {component.component_id}: windLevel must include the metric label 风力, for example 风力 2级; do not show a bare 2级.
+  历史诊断：component {component.component_id}: windLevel must include the metric label 风力, for example 风力 2级; do not show a bare 2级.
 
 - **OBS-L4207**：`_collect_unbound_action_hint_errors`，主脚本第 4207 行。
 

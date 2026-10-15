@@ -210,6 +210,7 @@ def test_plan_and_compact_errors_keep_distinct_codes(monkeypatch: pytest.MonkeyP
 
     def coverage(*args: object, **kwargs: object) -> CompactPlanCoverageResult:
         assert kwargs.get("allowed_omitted_fact_indexes") == (0,)
+        assert kwargs.get("information_errors_as_warnings") is True
         return CompactPlanCoverageResult(errors=("missing fact",), warnings=("plan warning",))
 
     monkeypatch.setattr(generation_pipeline, "evaluate_compact_plan_coverage", coverage)
@@ -225,6 +226,7 @@ def test_plan_and_compact_errors_keep_distinct_codes(monkeypatch: pytest.MonkeyP
         protocol_profile={},
         compact_plan={"info_required": []},
         allowed_omitted_plan_fact_indexes=(0,),
+        plan_information_coverage_as_warning=True,
     )
     result = DesignCompactProcessor().process(INVALID, context)
     assert [item.code for item in result.errors] == [

@@ -45,6 +45,23 @@ SECONDARY_BODY_OLD_HEIGHT_CASES = {
     108: "condition",
 }
 
+SECONDARY_BODY_WIDTH_CASES = {77, 109}
+RETIRED_WIND_LABEL_CASE = 24
+
+
+def _secondary_body_width_error() -> dict:
+    message = (
+        "component current_item1: text width overflow; complete label '电压' plus "
+        "compound value '4V' requires about 39vp of pressure width within 38.4vp at "
+        "the original body font. Keep the full label and value; use legal two-line "
+        "body text at the same font and budget its height, or regroup. Weight, "
+        "clipping and dropping units do not close this text budget."
+    )
+    return {
+        "exception": "CompactDslValidationError",
+        "message": f"Compact DSL validation failed:\n- {message}",
+        "errors": [message],
+    }
 
 def _secondary_body_height_error(component_id: str) -> dict:
     message = (
@@ -62,6 +79,15 @@ def _secondary_body_height_error(component_id: str) -> dict:
 
 
 def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
+    if case_index == RETIRED_WIND_LABEL_CASE:
+        remaining_error = expected.get("errors", [])[0]
+        return {
+            "exception": "CompactDslValidationError",
+            "message": f"Compact DSL validation failed:\n- {remaining_error}",
+            "errors": [remaining_error],
+        }
+    if case_index in SECONDARY_BODY_WIDTH_CASES:
+        return _secondary_body_width_error()
     height_component_id = SECONDARY_BODY_OLD_HEIGHT_CASES.get(case_index)
     if height_component_id is not None:
         return _secondary_body_height_error(height_component_id)

@@ -79,6 +79,7 @@ class DslProcessingContext:
     layout_scope: str | None = None
     compact_plan: dict[str, Any] | None = None
     allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
+    plan_information_coverage_as_warning: bool = False
     repair_context: RepairGuidanceContext | None = None
 
 
@@ -241,6 +242,7 @@ class DesignCompactProcessor:
             context.compact_plan,
             context.task_spec,
             allowed_omitted_fact_indexes=context.allowed_omitted_plan_fact_indexes,
+            information_errors_as_warnings=context.plan_information_coverage_as_warning,
         )
         plan_errors = plan_coverage.errors
         plan_warnings = plan_coverage.warnings
@@ -285,6 +287,9 @@ class DesignCompactProcessor:
                 "plan_coverage_result": {
                     "errors": list(plan_errors),
                     "warnings": list(plan_warnings),
+                    "informationCoverageSeverity": (
+                        "warning" if context.plan_information_coverage_as_warning else "error"
+                    ),
                     "omittedFacts": [
                         fact.get("requirement") for fact in omitted_facts
                     ],

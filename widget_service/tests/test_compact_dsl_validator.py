@@ -1139,7 +1139,7 @@ def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
     with pytest.raises(
         CompactDslValidationError,
         match="add a nearby metric label such as 感冒指数",
-    ):
+    ) as exc_info:
         validate_compact_dsl(
             dsl,
             task_spec={
@@ -1160,6 +1160,7 @@ def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
             },
             card_spec={"suggestSize": "2x2"},
         )
+    assert all("windLevel must include" not in error for error in exc_info.value.errors)
 
 
 def test_design_prompt_contains_no_empty_container_examples() -> None:

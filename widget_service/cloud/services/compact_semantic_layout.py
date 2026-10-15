@@ -30,6 +30,10 @@ GEOMETRY_PROPS = frozenset({
 })
 GENERATED_PREFIX = "__layout__"
 _BACKGROUND_PROPS = frozenset({"linearGradient", "backgroundColor", "backgroundImage"})
+MIXED_FIXED_SLOT_ORDER_WARNING = (
+    "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；"
+    "当前顺序仍允许转换。"
+)
 SMALL_CHILD_ROLES = {
     "S-center": (1, "[content]"),
     "S-title-content": (2, "[title, content]"),
@@ -82,6 +86,27 @@ class SemanticLayoutExpansion:
 def has_semantic_layout(rows: list[CompactRow] | tuple[CompactRow, ...]) -> bool:
     return any(isinstance(row, ComponentRow) and row.component_type in SEMANTIC_LAYOUT_TYPES
                for row in rows)
+
+
+def collect_semantic_layout_warnings(
+    rows: list[CompactRow] | tuple[CompactRow, ...],
+) -> tuple[str, ...]:
+    """返回不阻断确定性展开的语义布局建议。"""
+    components = {
+        row.component_id: row for row in rows if isinstance(row, ComponentRow)
+    }
+    root = components.get("root")
+    if root is None or root.props.get("layout") != "W-content-side-slots":
+        return ()
+    if len(root.children) != 3:
+        return ()
+    upper = components.get(root.children[1])
+    lower = components.get(root.children[2])
+    if upper is None or lower is None:
+        return ()
+    if upper.component_type == "CardButton" and lower.component_type == "InfoBlock":
+        return (MIXED_FIXED_SLOT_ORDER_WARNING,)
+    return ()
 
 
 def _fail(identifier: str, message: str) -> NoReturn:
@@ -507,9 +532,6 @@ class _Compiler:
             self.region(content, compact=False)
             self.fixed_slot(upper, combination=False)
             self.fixed_slot(lower, combination=False)
-            if self.node(upper).component_type == "CardButton":
-                if self.node(lower).component_type == "InfoBlock":
-                    _fail("root", "混合固定槽必须将 InfoBlock 放在 CardButton 上方")
             slots = self.generated("root", "slots")
             self.add(slots, "Column", {"width": "matchParent", "height": "matchParent",
                                        "itemMargin": self.parent_gap, "layoutWeight": 1},

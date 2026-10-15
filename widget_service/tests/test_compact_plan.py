@@ -15,6 +15,7 @@ from services.compact_plan import (
     compact_plan_data_paths,
     compact_plan_omitted_facts,
     compact_plan_optional_drop_candidate,
+    evaluate_compact_plan_coverage,
     parse_compact_plan_call,
 )
 from services.compact_repair_strategy import CompactRepairStrategyTracker
@@ -56,6 +57,50 @@ def task_spec() -> dict:
     }
 
 
+def dual_action_task_spec() -> dict:
+    return {
+        "userQuery": "显示剩余电量，并打开省电模式和导航回家",
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "phoneBattery": {
+                    "soc": {
+                        "type": "integer",
+                        "description": "剩余电量",
+                        "sampleValue": 68,
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "充电状态",
+                        "sampleValue": "未充电",
+                    },
+                }
+            }
+        },
+        "eventCandidates": [
+            {
+                "id": "event.setPowerSavingMode",
+                "description": "打开省电模式",
+                "call": "clickToIntent",
+                "args": {
+                    "intentName": "SetSettingSwitch",
+                    "params": {
+                        "appBundleName": "com.huawei.hmos.settings",
+                        "itemName": "battery_saving_mode",
+                        "switchFlag": 0,
+                    },
+                },
+            },
+            {
+                "id": "event.startNavigate",
+                "description": "导航回家",
+                "call": "startNavigate",
+                "args": {"destination": "home"},
+            },
+        ],
+    }
+
+
 def plan_call() -> str:
     return json.dumps(
         {
@@ -83,6 +128,215 @@ def plan_call() -> str:
         },
         ensure_ascii=False,
     )
+
+
+def freshness_task_spec(user_query: str = "显示天气预警") -> dict:
+    return {
+        "userQuery": user_query,
+        "size": "2x2",
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "current": {
+                        "alertLevel": {
+                            "type": "string",
+                            "description": "天气预警等级",
+                            "sampleValue": "大风蓝色预警",
+                        },
+                        "condition": {
+                            "type": "string",
+                            "description": "当前天气状态",
+                            "sampleValue": "多云",
+                        },
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "description": "数据更新时间",
+                        "sampleValue": "2026-08-06 09:00",
+                    },
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+
+
+def freshness_plan_call(
+    *,
+    include_condition: bool = False,
+    freshness_component: str = "EmphasisText",
+    freshness_priority: str = "should",
+    composition_groups: list[dict] | None = None,
+) -> str:
+    facts = [
+        {
+            "requirement": "天气预警等级",
+            "priority": "must",
+            "dataId": "/data/weather/current/alertLevel",
+            "componentHints": ["EmphasisText"],
+        }
+    ]
+    if include_condition:
+        facts.append(
+            {
+                "requirement": "当前天气状态",
+                "priority": "should",
+                "dataId": "/data/weather/current/condition",
+                "componentHints": ["EmphasisText"],
+            }
+        )
+    facts.append(
+        {
+            "requirement": "数据更新时间",
+            "priority": freshness_priority,
+            "dataId": "/data/weather/updatedAt",
+            "componentHints": [freshness_component],
+        }
+    )
+    arguments: dict = {
+        "info_required": facts,
+        "layoutHints": ["S-title-content"],
+    }
+    if composition_groups is not None:
+        arguments["composition"] = {
+            "layout": "S-title-content",
+            "variant": 1,
+            "regions": [
+                {
+                    "id": "title",
+                    "path": [0],
+                    "referenceWidth": 126,
+                    "referenceHeight": 20,
+                    "gap": 0,
+                    "groups": [
+                        {
+                            "component": "SingleLineTitle",
+                            "factIndexes": [],
+                            "placements": [],
+                            "referenceHeight": 20,
+                        }
+                    ],
+                },
+                {
+                    "id": "content",
+                    "path": [1],
+                    "referenceWidth": 126,
+                    "referenceHeight": 108,
+                    "gap": 2,
+                    "groups": composition_groups,
+                },
+            ],
+        }
+    return json.dumps(
+        {"name": "submit_card_plan", "arguments": arguments},
+        ensure_ascii=False,
+    )
+
+
+def test_unrequested_freshness_metadata_is_rejected_for_non_sparse_card() -> None:
+    with pytest.raises(
+        CompactPlanValidationError,
+        match="Freshness metadata is not a normal display fact",
+    ):
+        parse_compact_plan_call(
+            freshness_plan_call(include_condition=True),
+            freshness_task_spec(),
+        )
+
+
+def test_sparse_card_accepts_freshness_as_optional_emphasis_support() -> None:
+    result = parse_compact_plan_call(
+        freshness_plan_call(),
+        freshness_task_spec(),
+    )
+
+    facts = result.plan.get("info_required")
+    assert isinstance(facts, list)
+    assert facts[1].get("priority") == "should"
+    assert facts[1].get("componentHints") == ["EmphasisText"]
+
+
+def test_sparse_card_rejects_standalone_secondary_body_freshness() -> None:
+    with pytest.raises(
+        CompactPlanValidationError,
+        match="must be grouped into the single short text core",
+    ):
+        parse_compact_plan_call(
+            freshness_plan_call(freshness_component="SecondaryBody"),
+            freshness_task_spec(),
+        )
+
+
+def test_sparse_card_rejects_required_freshness_filler() -> None:
+    with pytest.raises(
+        CompactPlanValidationError,
+        match="must use priority should",
+    ):
+        parse_compact_plan_call(
+            freshness_plan_call(freshness_priority="must"),
+            freshness_task_spec(),
+        )
+
+
+def test_explicit_freshness_request_allows_rich_card() -> None:
+    result = parse_compact_plan_call(
+        freshness_plan_call(
+            include_condition=True,
+            freshness_component="SecondaryBody",
+            freshness_priority="must",
+        ),
+        freshness_task_spec("显示天气预警、当前天气和更新时间"),
+    )
+
+    facts = result.plan.get("info_required")
+    assert isinstance(facts, list)
+    assert len(facts) == 3
+
+
+def test_sparse_card_composition_groups_freshness_with_core() -> None:
+    result = parse_compact_plan_call(
+        freshness_plan_call(
+            composition_groups=[
+                {
+                    "component": "EmphasisText",
+                    "factIndexes": [0, 1],
+                    "placements": ["mainText", "secondaryText"],
+                    "referenceHeight": 42,
+                }
+            ]
+        ),
+        freshness_task_spec(),
+        require_composition=True,
+    )
+
+    assert result.plan.get("composition") is not None
+
+
+def test_sparse_card_composition_rejects_separate_freshness_group() -> None:
+    with pytest.raises(
+        CompactPlanValidationError,
+        match="must share one EmphasisText group",
+    ):
+        parse_compact_plan_call(
+            freshness_plan_call(
+                composition_groups=[
+                    {
+                        "component": "EmphasisText",
+                        "factIndexes": [0],
+                        "placements": ["mainText"],
+                        "referenceHeight": 24,
+                    },
+                    {
+                        "component": "EmphasisText",
+                        "factIndexes": [1],
+                        "placements": ["secondaryText"],
+                        "referenceHeight": 24,
+                    },
+                ]
+            ),
+            freshness_task_spec(),
+            require_composition=True,
+        )
 
 
 def test_anchor_hint_rejects_title_plus_single_body_fact() -> None:
@@ -339,6 +593,166 @@ def test_plan_tool_explains_registered_layout_names_without_new_fields(size: str
     layout_hints = properties.get("layoutHints")
     assert isinstance(layout_hints, dict)
     assert "不填写 Region/Group 变体，不使用简称" in layout_hints.get("description", "")
+
+
+def test_dual_action_plan_tool_only_offers_the_unique_layout() -> None:
+    spec = dual_action_task_spec()
+    spec["assetCandidates"] = [
+        {"id": "asset.power", "src": "resources/power.svg"},
+        {"id": "asset.home", "src": "resources/home.svg"},
+        {"id": "asset.location", "src": "resources/location.svg"},
+    ]
+    tool = build_compact_plan_tool(
+        spec,
+        include_composition=True,
+        layout_scope="S-content-dual-action",
+    )
+    properties = tool["function"]["parameters"]["properties"]
+    layout_hints = properties["layoutHints"]
+
+    assert layout_hints["items"]["enum"] == ["S-content-dual-action"]
+    assert layout_hints["maxItems"] == 1
+    assert properties["composition"]["properties"]["layout"]["enum"] == [
+        "S-content-dual-action"
+    ]
+    title_assignment = properties["assetAssignments"]["properties"]["title"]
+    assert title_assignment["properties"]["assetId"] == {
+        "type": "null",
+        "enum": [None],
+        "description": "固定双动作布局没有标题槽，必须为 null。",
+    }
+
+
+def test_dual_action_plan_is_normalized_to_compact_content_and_pill_buttons() -> None:
+    payload = {
+        "name": "submit_card_plan",
+        "arguments": {
+            "info_required": [
+                {
+                    "requirement": "剩余电量",
+                    "priority": "must",
+                    "dataId": "/data/phoneBattery/soc",
+                    "componentHints": ["ProgressCircleSingle", "EmphasizedData"],
+                },
+                {
+                    "requirement": "充电状态",
+                    "priority": "should",
+                    "dataId": "/data/phoneBattery/status",
+                    "componentHints": ["SecondaryBody", "TableText"],
+                },
+                {
+                    "requirement": "打开省电模式",
+                    "priority": "must",
+                    "actionId": "event.setPowerSavingMode",
+                    "componentHints": ["CircleButton"],
+                },
+                {
+                    "requirement": "导航回家",
+                    "priority": "must",
+                    "actionId": "event.startNavigate",
+                    "componentHints": ["PillButton"],
+                },
+            ],
+            "layoutHints": ["S-title-content-action", "S-content-dual-action"],
+        },
+    }
+
+    result = parse_compact_plan_call(
+        json.dumps(payload, ensure_ascii=False),
+        dual_action_task_spec(),
+    )
+
+    assert result.plan["layoutHints"] == ["S-content-dual-action"]
+    facts = result.plan["info_required"]
+    assert facts[0]["componentHints"] == ["TableText"]
+    assert facts[1]["componentHints"] == ["TableText"]
+    assert facts[2]["componentHints"] == ["PillButton"]
+    assert facts[3]["componentHints"] == ["PillButton"]
+
+
+def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
+    spec = dual_action_task_spec()
+    spec["assetCandidates"] = [
+        {"id": "asset.power", "src": "resources/power.svg"},
+        {"id": "asset.home", "src": "resources/home.svg"},
+        {"id": "asset.location", "src": "resources/location.svg"},
+    ]
+    payload = {
+        "name": "submit_card_plan",
+        "arguments": {
+            "info_required": [
+                {
+                    "requirement": "剩余电量",
+                    "priority": "must",
+                    "dataId": "/data/phoneBattery/soc",
+                    "componentHints": ["EmphasisText"],
+                },
+                {
+                    "requirement": "打开省电模式",
+                    "priority": "must",
+                    "actionId": "event.setPowerSavingMode",
+                    "componentHints": ["PillButton"],
+                },
+                {
+                    "requirement": "导航回家",
+                    "priority": "must",
+                    "actionId": "event.startNavigate",
+                    "componentHints": ["PillButton"],
+                },
+            ],
+            "layoutHints": ["S-content-dual-action"],
+            "assetAssignments": {
+                "actions": [
+                    {
+                        "actionId": "event.setPowerSavingMode",
+                        "assetId": "asset.power",
+                    },
+                    {
+                        "actionId": "event.startNavigate",
+                        "assetId": "asset.home",
+                    },
+                ],
+                "title": {"assetId": "asset.location"},
+            },
+        },
+    }
+
+    result = parse_compact_plan_call(json.dumps(payload), spec)
+
+    assert result.plan["assetAssignments"]["title"] == {
+        "assetId": None,
+        "reason": "S-content-dual-action has no title slot.",
+    }
+
+
+def test_action_coverage_reports_exact_event_argument_mismatch() -> None:
+    spec = dual_action_task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "打开省电模式",
+                "priority": "must",
+                "actionId": "event.setPowerSavingMode",
+                "componentHints": ["PillButton"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["power"]]',
+            '["power","PillButton",{"label":"打开省电模式","onClick":'
+            '[{"call":"clickToIntent","args":{"intentName":"SetSettingSwitch",'
+            '"params":{"appBundleName":"com.huawei.hmos.settings",'
+            '"itemName":"battery_saving_mode","switchFlag":1}}}]}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(source, plan, spec)
+
+    assert len(errors) == 1
+    assert '"switchFlag":0' in errors[0]
+    assert '"switchFlag":1' in errors[0]
+    assert "do not infer, invert, or rewrite parameter values" in errors[0]
 
 
 def test_plan_tool_requires_explicit_asset_assignments_for_candidates() -> None:
@@ -1201,6 +1615,62 @@ def test_processor_reports_missing_static_plan_text_as_warning() -> None:
     assert len(warnings) == 1
     assert warnings[0].code == "COMPACT_PLAN_COVERAGE_WARNING"
     assert "卡片标题" in warnings[0].message
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_repair_coverage_downgrades_information_but_not_action(size: str) -> None:
+    handler = {"call": "openSettings", "args": {"target": "device"}}
+    spec = {
+        "size": size,
+        "dataModelSchema": {
+            "data": {
+                "device": {
+                    "status": {
+                        "type": "string",
+                        "description": "设备状态",
+                        "sampleValue": "在线",
+                    }
+                }
+            }
+        },
+        "eventCandidates": [{"id": "event.open.settings", **handler}],
+        "assetCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "展示设备状态",
+                "dataId": "/data/device/status",
+                "priority": "must",
+            },
+            {
+                "requirement": "打开设备设置",
+                "actionId": "event.open.settings",
+                "priority": "must",
+            },
+        ]
+    }
+    source = '\n'.join(
+        [
+            '["root","Column",{},["summary"]]',
+            '["summary","EmphasisText",{"mainText":"设备概览","fontSize":18}]',
+        ]
+    )
+
+    strict = evaluate_compact_plan_coverage(source, plan, spec)
+    assert len(strict.errors) == 2
+    assert strict.warnings == ()
+
+    repaired = evaluate_compact_plan_coverage(
+        source,
+        plan,
+        spec,
+        information_errors_as_warnings=True,
+    )
+    assert len(repaired.errors) == 1
+    assert "Plan action is missing" in repaired.errors[0]
+    assert len(repaired.warnings) == 1
+    assert "Plan fact is missing" in repaired.warnings[0]
 
 
 def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:

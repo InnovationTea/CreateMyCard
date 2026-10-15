@@ -272,27 +272,6 @@ def _collect_semantic_text_errors(
                     ),
                 ),
             )
-        has_wind_level_path = any(path.endswith("/windlevel") for path in normalized_paths)
-        if has_wind_level_path and "风力" not in nearby_text:
-            emit_error(
-                errors,
-                CompactDiagnostic(
-                    code="COMPACT_DISPLAY_WIND_METRIC_LABEL",
-                    validation_class="semantic",
-                    category="display",
-                    message="风力等级缺少可识别的风力标签。",
-                    expected={"requiredMetricLabel": "风力", "bareLevelAllowed": False},
-                    actual={"paths": paths, "nearbyText": nearby_text},
-                    component_id=component.component_id,
-                    property_path="/content",
-                    legacy_message=(
-                        f"component {component.component_id}: windLevel must include the "
-                        f"metric label 风力, for example 风力 2级; do not show a bare 2级."
-                    ),
-                ),
-            )
-
-
 def _collect_unbound_action_hint_errors(components: list[ComponentRow], errors: list[str]) -> None:
     components_by_id = {component.component_id: component for component in components}
     parent_by_child: dict[str, str] = {}

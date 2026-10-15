@@ -150,6 +150,49 @@ def test_wide_region_variants_and_mirror_match_original_contract(variant: str,
     assert match.layout_id == "W-content-side-slots"
 
 
+def test_reversed_mixed_fixed_slots_compile_with_warning() -> None:
+    rows = [
+        ["root", "Layout", {"layout": "W-content-side-slots"}, ["content", "action", "info"]],
+        *_region("content", "center"),
+        [
+            "action",
+            "CardButton",
+            {
+                "label": "查看设备",
+                "onClick": [{"call": "open", "args": {"id": "device"}}],
+            },
+        ],
+        [
+            "info",
+            "InfoBlock",
+            {
+                "variant": "slot",
+                "primaryText": "设备在线",
+                "secondaryText": "连接状态",
+                "backgroundColor": "#99FFFFFF",
+            },
+        ],
+    ]
+    source = _source(rows)
+    assert "updateComponents" in convert_compact_dsl_to_a2ui(source, size="2x4")
+
+    result = validate_compact_dsl(
+        source,
+        task_spec={
+            "size": "2x4",
+            "dataModelSchema": {"data": {}},
+            "assetCandidates": [],
+            "eventCandidates": [{"call": "open", "args": {"id": "device"}}],
+        },
+        card_spec={"suggestSize": "2x4"},
+    )
+
+    assert result.warnings == (
+        "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；"
+        "当前顺序仍允许转换。",
+    )
+
+
 @pytest.mark.parametrize("variant", ["continuous", "bottom-details", "equal"])
 @pytest.mark.parametrize("with_title", [False, True])
 def test_top_bottom_variants_and_optional_title(variant: str, with_title: bool) -> None:
