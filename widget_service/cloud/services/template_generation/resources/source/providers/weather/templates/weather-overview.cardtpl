@@ -46,6 +46,72 @@ Row(
 )
 #End
 
+#Template WeatherOverviewHumiditySupport@1(props: { actionId?: string })
+data = {
+    humidity: $path("/current/humidityPercent"),
+    airQuality: $optionalPath("/current/airQuality"),
+    windDirection: $optionalPath("/current/windDirection"),
+    windLevel: $optionalPath("/current/windLevel")
+}
+
+Row(
+  {
+    "_advancedComponent": "WeatherOverview",
+    "width": "matchParent",
+    "justifyContent": "spaceBetween",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Column(
+    {
+      "itemMargin": 2,
+      "justifyContent": "center",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      Expr("湿度 " + data.humidity + "%"),
+      {
+        "height": 19,
+        "fontSize": 14,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis"
+      }
+    ),
+    #if data.airQuality
+      Text(
+        Expr("空气质量 " + data.airQuality),
+        {
+          "height": 13,
+          "fontSize": 10,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        }
+      )
+    #elseif data.windDirection && data.windLevel
+      Text(
+        Expr(data.windDirection + " " + data.windLevel + "级"),
+        {
+          "height": 13,
+          "fontSize": 10,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        }
+      )
+    #endif
+  )
+)
+#End
+
 #Template WeatherOverviewDaily2TravelSupport@1(props: { conditionIcon?: asset, actionId?: string })
 data = {
     condition: $path("/daily/2/condition"),

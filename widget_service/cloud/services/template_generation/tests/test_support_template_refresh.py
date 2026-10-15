@@ -48,6 +48,7 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "WeatherOverviewTemperatureSupport@1": (0, 1),
     "WeatherOverviewTemperatureUvSupport@1": (0, 1),
     "WeatherOverviewTemperaturecoldLevelSupport@1": (0, 1),
+    "WeatherOverviewHumiditySupport@1": (0,),
     "WeatherOverviewDaily2TravelSupport@1": (0,),
     "WeatherOverviewTravelSupport@1": (0,),
     "WorkoutOverviewSupport@1": (0,),
@@ -60,6 +61,7 @@ _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES = {
     "BatteryOverviewSupport@1",
     "BluetoothDeviceOverviewChargeSupport@1",
     "BluetoothDeviceOverviewConnectionSupport@1",
+    "WeatherOverviewHumiditySupport@1",
 }
 
 # 温度文本改为可选绑定的温度 Support：无可选数据时主行仅剩城市文本。
@@ -153,6 +155,7 @@ def test_support_ux_spacing_typography_and_right_icon(
             "CountdownOverviewTravelSupport@1",
             "WeatherOverviewDaily2TravelSupport@1",
             "WeatherOverviewTravelSupport@1",
+            "WeatherOverviewHumiditySupport@1",
         } else 12
         font_size = 14 if primary else subtitle_size
         # 上游新增的纯文本电量和温湿度模板使用 16fp 主读数。
@@ -168,7 +171,12 @@ def test_support_ux_spacing_typography_and_right_icon(
         else:
             # 电量/天气升级模板的辅助行已改为 500 中等字重。
             assert styles.get("fontWeight") in (400, 500)
-        assert styles.get("minFontSize", font_size) == font_size
+        min_font_size = styles.get("minFontSize", font_size)
+        # 250 分支保留的温湿度 Support 辅助行允许在窄槽位降到 10fp。
+        if template_id == "WeatherOverviewTemperatureHumiditySupport@1":
+            assert min_font_size in (font_size, 10)
+        else:
+            assert min_font_size == font_size
 
     for index, node in enumerate(_standalone_images(root)):
         styles = node.values[-1]
@@ -260,7 +268,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 26
+    assert len(supports) == 27
     assert not supports.intersection({
         "CountdownOverviewSupport@1",
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
@@ -379,6 +387,7 @@ def test_all_support_actions_are_optional_and_bound_to_root(with_action: bool) -
         assert isinstance(options, dict)
         # 以下历史模板仍使用覆盖层，本轮未改动其样式。
         legacy_overlays = {
+            "ResourceUsageOverviewSupport@1",
             "BluetoothDeviceOverviewEarbudsSupport@1",
         }
         if template_id not in legacy_overlays:

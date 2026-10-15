@@ -902,6 +902,25 @@
         "/current/humidityPercent",
         "/current/airQuality"
       ]
+    },
+    {
+      "templateId": "WeatherOverviewHumiditySupport@1",
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "湿度辅助 Support：不重复显示城市和当前温度，主行展示湿度，辅行可展示空气质量或风向；用于 2x4 Full 右侧辅助槽位。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/humidityPercent"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/current/airQuality",
+        "/current/windDirection",
+        "/current/windLevel"
+      ]
     }
   ],
   "compatibility": {
