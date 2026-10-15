@@ -276,7 +276,8 @@ def build_compact_plan_tool(
                     "required": ["assetId"],
                     "additionalProperties": False,
                     "description": (
-                        "先完成动作图标分配，再从未使用素材中决定主 SingleLineTitle 图标。"
+                        "先完成动作图标分配，再为一个语义匹配的 SingleLineTitle 选择"
+                        "未使用素材；不指定标题行顺序。无标题布局填 null 并说明原因。"
                     ),
                 },
             },
@@ -824,9 +825,11 @@ def compact_plan_context(
     if "assetAssignments" in context_plan:
         asset_instruction = (
             "assetAssignments 冻结素材消费顺序与结果：先按 actionId 将分配落实到对应"
-            "动作组件，再将 title 中的非空素材落实到主 SingleLineTitle.icon；"
-            "assetId 为 null 时保持无图标。不得复用、互换或跳过已分配素材，也不得用"
-            "未分配素材覆盖明确的空分配。"
+            "动作组件。有 SingleLineTitle 时，将 title 中的非空素材落实到其中一个"
+            "语义匹配的标题且恰好使用一次，不按组件行顺序或左右位置确定标题。"
+            "其余标题不得增加未分配图标；title.assetId 为 null 时所有标题保持无图标。"
+            "无标题布局不消费标题装饰素材，不得为此新增标题；必需标题事实仍须满足。"
+            "按钮分配始终落实，不得复用、互换或跳过，也不得用未分配素材覆盖空分配。"
         )
     small_conflict = False
     if conflicts:

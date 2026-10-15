@@ -35,6 +35,17 @@
 | 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle、带 icon 的 CardButton 和 SingleLineTitle；自动着色、原色、PNG 保留原合同 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
+2026-10-14 标题素材布局适配（#534、#535）：
+
+| 检查项 | 分类与实际文件 | 归属理由与边界 |
+|---|---|---|
+| 标题素材分配消费、重复及空分配 | 语义／有效能力，`semantic/plan_contracts.py::_collect_title_asset_assignment_errors` | 比较已接受 Plan 与实际标题素材消费；扫描全部标题，不按组件行顺序猜测所属分区；有标题时恰好使用一次，空分配时不得使用图标 |
+| 无标题布局与装饰素材分配 | 同上 | 标题素材不承担标题存在性判定；没有 SingleLineTitle 时不新增标题要求，动作素材仍先执行检查 |
+| 必需标题事实存在性 | 既有 `compact_plan.py::_compact_fact_coverage_result`，语义／展示 | 继续按事实覆盖要求判定，未移动、复制或放宽；合法布局与高度继续委托原布局合同 |
+
+本次不增加分区字段，不推断标题文字语义，不改入口顺序、按钮优先和重试策略；回归覆盖第二标题消费、
+组件顺序变化、重复／错误／空分配、无标题双按钮布局及必需标题事实缺失。
+
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
 图标与颜色的类型、格式和关联字段仍委托共享组件合同（语法／组件）；标题高度预算属于语义／布局，
 由 `semantic/layout/geometry.py` 根据有无图标读取共享 Recipe，分别预占 20vp／12vp。

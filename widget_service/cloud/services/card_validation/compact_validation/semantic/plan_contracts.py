@@ -185,6 +185,16 @@ def _collect_plan_asset_assignment_errors(
     title_assignment = assignments.get("title")
     if not isinstance(title_assignment, dict):
         return
+    _collect_title_asset_assignment_errors(components, asset_sources, title_assignment, errors)
+
+
+def _collect_title_asset_assignment_errors(
+    components: list[ComponentRow],
+    asset_sources: dict[str, str],
+    title_assignment: dict[str, Any],
+    errors: list[str],
+) -> None:
+    """标题素材按实际消费校验，不推断分区，也不为装饰素材强制新增标题。"""
     titles = [
         component
         for component in components
@@ -192,23 +202,29 @@ def _collect_plan_asset_assignment_errors(
     ]
     expected_title_source = asset_sources.get(title_assignment.get("assetId"))
     if not titles:
-        if expected_title_source is not None:
-            errors.append(
-                "assetAssignments.title selected an icon but DSL has no SingleLineTitle."
-            )
         return
-    actual_title_icon = titles[0].props.get("icon")
-    if expected_title_source is None:
-        if isinstance(actual_title_icon, str) and actual_title_icon.strip():
+    matching_count = 0
+    for title in titles:
+        icon = title.props.get("icon")
+        if not isinstance(icon, str) or not icon.strip():
+            continue
+        if expected_title_source is None:
             errors.append(
-                "primary SingleLineTitle must not use an icon because its accepted Plan "
-                "asset assignment is null."
+                f"SingleLineTitle {title.component_id!r} must not use an icon because "
+                "its accepted Plan asset assignment is null."
             )
-        return
-    if actual_title_icon != expected_title_source:
+            continue
+        if icon != expected_title_source:
+            errors.append(
+                f"SingleLineTitle {title.component_id!r} uses an unassigned icon {icon!r}; "
+                f"the Plan-assigned title icon is {expected_title_source!r}."
+            )
+            continue
+        matching_count += 1
+    if expected_title_source is not None and matching_count != 1:
         errors.append(
-            "primary SingleLineTitle must use Plan-assigned icon "
-            f"{expected_title_source!r}."
+            "SingleLineTitle components must use Plan-assigned title icon "
+            f"{expected_title_source!r} exactly once; found {matching_count} uses."
         )
 
 

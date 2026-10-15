@@ -632,7 +632,7 @@ def test_accepts_icons_matching_plan_asset_assignments() -> None:
 @pytest.mark.parametrize(
     ("missing_fragment", "expected_error"),
     [
-        (',"icon":"resources/weather.svg"', "primary SingleLineTitle must use"),
+        (',"icon":"resources/weather.svg"', "must use Plan-assigned title icon"),
         (',"icon":"resources/action.svg"', "button for action 'event.open.weather' must use"),
     ],
 )
