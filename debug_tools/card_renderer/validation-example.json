@@ -1,0 +1,69 @@
+{
+  "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"alignItems\":\"center\",\"justifyContent\":\"center\",\"backgroundColor\":\"#FFF1F6FE\"},[\"value\"]]\n[\"value\",\"EmphasisText\",{\"mainText\":\"你好，卡片\",\"width\":\"matchParent\",\"height\":\"matchParent\"}]",
+  "context": {
+    "artifact": {
+      "schemaVersion": "widget-artifact-v2",
+      "genui": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"value\"],\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"itemMargin\":0},{\"id\":\"value\",\"component\":\"Column\",\"children\":[\"value_main\"],\"itemMargin\":2,\"styles\":{\"alignItems\":\"start\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\",\"height\":\"matchParent\"}},{\"id\":\"value_main\",\"component\":\"Text\",\"content\":\"你好，卡片\",\"styles\":{\"height\":24,\"fontSize\":18,\"fontWeight\":700,\"lineHeight\":1.3333333333333333,\"maxLines\":1,\"flexShrink\":1,\"width\":\"matchParent\",\"fontColor\":\"@theme:primary/1\",\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{}}}}",
+      "cardSpec": {
+        "title": "你好，卡片",
+        "description": "静态校验回放示例",
+        "suggestSize": "2x2"
+      },
+      "taskSpec": {
+        "userQuery": "生成一个显示你好，卡片的静态卡片",
+        "size": "2x2",
+        "appVersion": "11.7.7.331",
+        "dataModelSchema": {},
+        "eventCandidates": [],
+        "assetCandidates": []
+      },
+      "effectiveCapabilities": {
+        "data": [],
+        "event": [],
+        "asset": []
+      },
+      "removedCapabilities": [],
+      "generationPlan": {
+        "candidateDataBindings": [],
+        "candidateEventCandidates": [],
+        "candidateAssetIds": []
+      },
+      "meta": {
+        "apiVersion": "v1",
+        "taskSpecVersion": "task-spec-v1",
+        "cardSpecVersion": "card-spec-v1",
+        "dslProtocolVersion": "v0.9",
+        "skillVersion": "skill-widget-v1",
+        "protocolProfileId": "a2ui-form-rom6.0-v1",
+        "capabilityRegistryVersion": "app-11.7.7.300_rom-7.0",
+        "artifactSchemaVersion": "widget-artifact-v2",
+        "generationMode": "create",
+        "artifactId": "00000000-0000-0000-0000-000000000000",
+        "createdAt": 1792022400000
+      }
+    },
+    "sourceKind": "model",
+    "compactPlan": {
+      "info_required": [
+        {
+          "requirement": "显示问候",
+          "priority": "must",
+          "text": "你好，卡片",
+          "componentHints": [
+            "EmphasisText"
+          ]
+        }
+      ],
+      "layoutHints": [
+        "S-center"
+      ]
+    },
+    "enableArtifactValidation": true,
+    "planInformationCoverageAsWarning": false,
+    "allowedOmittedPlanFactIndexes": [],
+    "assetMapping": {},
+    "designProfileId": "design-compact-dsl",
+    "layoutScope": "S-plan-guided",
+    "sourceArtifact": null
+  }
+}
