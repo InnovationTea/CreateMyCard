@@ -2102,7 +2102,6 @@ class WidgetGenerationService:
                 need_fallback=need_fallback,
             )
         template_source_generator.processor_kind = policy.processor_kind
-        template_source_generator.fail_fast = policy.operation == "generateWidgetCardCompactDsl"
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
             policy.protocol_profile_id
         ).get_profile()
