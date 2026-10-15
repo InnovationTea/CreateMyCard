@@ -249,20 +249,7 @@ def _collect_semantic_text_errors(
             )
         paths = _component_content_paths(component)
         normalized_paths = [path.casefold() for path in paths]
-        own_text = _static_text_fragments(content)
         nearby_text = _nearby_text_context(component, parent_by_child, components_by_id)
-        if any(path.endswith("/eventcount") for path in normalized_paths):
-            has_range_context = any(
-                marker in own_text for marker in ("未来", "接下来", "近", "今天", "明天", "本周")
-            )
-            has_schedule_context = any(marker in own_text for marker in ("安排", "日程", "会议"))
-            if not has_range_context or not has_schedule_context:
-                errors.append(
-                    f"component {component.component_id}: calendar eventCount must not be "
-                    f"shown as a standalone number or unit. Combine it with its time scope "
-                    f"and schedule meaning, for example 未来7天 2项安排, inside the calendar "
-                    f"region."
-                )
         has_reminder_path = any(
             "remindtime" in path or "remindminutes" in path for path in normalized_paths
         )
@@ -364,6 +351,7 @@ def _has_nearby_metric_label(
     component: ComponentRow,
     parent_by_child: dict[str, str],
     components_by_id: dict[str, ComponentRow],
+    layout_origins: dict[str, str] | None = None,
 ) -> bool:
     def has_metric_label(value: Any) -> bool:
         if not isinstance(value, str):
@@ -385,11 +373,19 @@ def _has_nearby_metric_label(
         return True
 
     current = component.component_id
-    for _ in range(3):
+    levels = 0
+    visited: set[str] = set()
+    origins = layout_origins or {}
+    while levels < 3 and current not in visited:
+        visited.add(current)
         parent_id = parent_by_child.get(current)
         parent = components_by_id.get(parent_id) if parent_id else None
         if parent is None:
             return False
+        # 模板新增的承载容器不改变“相邻”的语义距离；业务 Region 仍计一层。
+        origin = origins.get(parent.component_id)
+        if origin is None or origin == parent.component_id:
+            levels += 1
         for sibling_id in parent.children:
             if sibling_id == current:
                 continue
@@ -428,7 +424,8 @@ def _has_nearby_metric_label(
 
 
 def _collect_ambiguous_metric_text_errors(
-    components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str]
+    components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str],
+    *, layout_origins: dict[str, str] | None = None,
 ) -> None:
     components_by_id = {component.component_id: component for component in components}
     parent_by_child: dict[str, str] = {}
@@ -450,7 +447,8 @@ def _collect_ambiguous_metric_text_errors(
         for path in paths:
             node = _schema_node_at_path(task_spec.get("dataModelSchema"), path)
             if _is_ambiguous_metric_node(node) and (
-                not _has_nearby_metric_label(component, parent_by_child, components_by_id)
+                not _has_nearby_metric_label(component, parent_by_child, components_by_id,
+                                            layout_origins)
             ):
                 detail = node.get("description") if isinstance(node, dict) else path
                 emit_error(

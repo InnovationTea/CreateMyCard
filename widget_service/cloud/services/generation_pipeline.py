@@ -16,6 +16,7 @@ from services.card_validation.display_unit_rules import repair_repeated_display_
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
+    expand_compact_semantic_layout,
     repair_compact_dsl_binding_paths,
     repair_compact_dsl_safe_structure,
 )
@@ -173,6 +174,16 @@ class DesignCompactProcessor:
                 card_spec=context.card_spec,
                 skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
+            expanded_source, layout_origins = expand_compact_semantic_layout(
+                source_dsl, size=context.size,
+            )
+            if layout_origins:
+                trace_step(
+                    "dsl.semantic_layout.expanded", stage="dsl.layoutExpansion", status="success",
+                    text_artifacts={"semantic_layout_source": source_dsl,
+                                    "semantic_layout_expanded": expanded_source},
+                    json_artifacts={"semantic_layout_origins": layout_origins},
+                )
         except CompactDslConversionError as exc:
             trace_step(
                 "dsl.binding_repair.completed",

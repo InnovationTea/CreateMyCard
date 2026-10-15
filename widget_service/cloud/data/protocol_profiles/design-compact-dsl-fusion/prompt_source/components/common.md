@@ -36,7 +36,7 @@
 | 标题附属 | `Badge` | 标题关联数量 | 标题旁显示同一集合的真实数量 | 只能与标题组成标题单元 |
 | 核心信息 | `EmphasizedData` | 核心数值 + 可选单位 | 突出唯一量化主值 | 一个核心值；不吸收辅助信息 |
 | 核心信息 | `EmphasisText` | 主文本 + 可选次文本 | 突出文本结论、类别或状态 | 两行必须属于同一核心语义 |
-| 正文与补充 | `SecondaryBody` | 1–4 个正文、metadata 或短说明项 | 补充同区已经存在的核心信息 | 不得独立存在；同组多项放入一个实例并按单行／多行选择固定字号 |
+| 正文与补充 | `SecondaryBody` | 1–6 个正文、metadata 或短说明项 | 补充整卡已经存在的核心信息，可进入独立支撑区 | 整卡无核心时不用；同组多项放入一个实例并按单行／多行选择固定字号 |
 | 核心信息 | `DataDisplay` | 标签 + 主值 + 支撑文本 | 2x2 完整单焦点 | 三项各一行；不吸收动作、第二指标或独立补充 |
 | 紧凑信息 | `InfoBlock` | 主信息 + 辅助信息 + 可选图标或占比圆环 | 固定小槽中的完整主辅信息 | 每槽一个；不支持事件 |
 | 多项属性 | `TableText` | 多行标签—值 | 同一主题的 2–3 项属性 | 两种尺寸共用；进入连续内容槽 |
@@ -58,7 +58,7 @@
 1. 每个语义分区最多使用一个 `SingleLineTitle`；2x4 左右独立分区可分别使用。标题加次信息使用 `DoubleLineTitle`，标题关联真实数量才使用 `Badge`；标题不用正文组件代替。
 2. 先按信息语义和字段关系保留可行组件，再结合尺寸文件的槽位与容量确定最终组件；不为使用组件补造字段。
 3. 有唯一核心值时使用一个强调或进度组件；没有真实主次时保持并列，不把普通数字强行放大为核心。
-4. 完整单焦点使用 `DataDisplay`；核心加独立补充使用一个核心组件与一个 `SecondaryBody`，同一对象或同一集合的 2–4 个短补充字段合并到该实例的 `items`，不拆成多个单项实例。`SecondaryBody` 只能辅助同一语义分区内的核心信息组件，不能成为分区内唯一的信息组件；标题、按钮、布局容器和其它 `SecondaryBody` 都不满足搭配条件。只有无核心且用户明确要求逐项查看、对比或等权汇总时才使用 `TableText`。2x4 横向详情选择 `TextBlock` 或 `TopTextBottomValue`。
+4. 完整单焦点使用 `DataDisplay`；核心加独立补充使用一个核心组件与一个 `SecondaryBody`，同一对象或同一集合的 2–4 个短补充字段合并到该实例的 `items`，不拆成多个单项实例。`SecondaryBody` 只能辅助整卡中已经存在的核心信息组件，但允许与该核心位于不同语义分区；标题、按钮、布局容器和其它 `SecondaryBody` 都不满足搭配条件。只有整卡无核心且用户明确要求逐项查看、对比或等权汇总时才使用 `TableText`。2x4 横向详情选择 `TextBlock` 或 `TopTextBottomValue`。
 5. 单占比使用 `ProgressCircleSingle`；两个或四个同级占比使用多个 `ProgressCircle`；三个图标可区分的同级占比使用 `NumericRatioStack`；明确目标差距使用 `ProgressLine2`；2–3 个对象同指标比较使用 `H_BarChart`。
 6. 一个或多个按时间排列的事件使用一个 `EventCard`；普通时间属性使用 `SecondaryBody`。同一事实只展示一次，事件数量不设固定上限但必须通过实际容量预算。
 7. 动作按槽位选择 `PillButton`、`CircleButton` 或 `CardButton`，只能绑定当前事件候选，不伪造操作。
@@ -69,7 +69,8 @@
 <!-- prompt:catalog -->
 # 2. Compact DSL 组件合同
 
-只允许三种基础布局组件：`Row`、`Column`、`Stack`。
+模型只用本尺寸登记的语义布局：Layout、Group，以及2x4独立分区的Region。
+Row/Column/Stack仅由编译器生成或读取旧输入，不是新生成候选。
 
 除基础布局组件外，只允许：`SingleLineTitle`、`DoubleLineTitle`、`Badge`、
 `EmphasizedData`、`EmphasisText`、`SecondaryBody`、`DataDisplay`、`InfoBlock`、`TableText`、`SummaryList`、
@@ -79,9 +80,10 @@
 ## 2.1 组件共同规则
 
 - 组件行的语义字段和样式字段直接写在第三项 `props`，不用的字段省略，不嵌套 `styles`。
-- 只有 `Row`、`Column`、`Stack` 在第 4 项声明非空 `children`；其它组件均只输出一行且不带 children。
+- 只有本尺寸登记的Layout、Region、Group在第4项声明非空children；其它组件均只输出一行且不带 children。
 - 布局组件只能使用各自章节列出的字段。使用视觉 Recipe 的组件只能使用自身属性表，
-  并可额外使用 `width`、`height`、`layoutWeight`、`flexShrink`、`margin` 调整组件根的外部布局。
+  新语义源不填写width、height、layoutWeight、flexShrink、margin等外部几何；
+  这些字段仅兼容旧低阶输入，新源槽位由模板提供。
 - `PillButton` 不使用上述 `width` 例外；其宽度固定由所在动作槽和 Recipe 撑满。
 - 视觉 Recipe 组件不接受 `padding`、圆角、内部间距或对齐覆盖；本文件标有 `fontSize` 的文本组件在新生成时
   必须显式写出固定主字号，帮助布局预算，但该值必须等于 Recipe，不是可调样式。内部次级字号、结构和样式仍由转换器确定。
@@ -94,31 +96,18 @@
 
 ## 3. 布局组件
 
-### 3.1 `Row`
+### 3.1 Layout
 
-用于横向排列同级子组件。第 4 项 `children` 必填；`itemMargin` 可选数字 vp，`space` 是兼容别名。
-`justifyContent` 只取 `start|center|end|spaceAround|spaceBetween|spaceEvenly`，`alignItems` 只取
-`top|center|bottom`。可使用 `width`、`height`、`constraintSize`、`aspectRatio`、`margin`、`padding`、
-`borderRadius`、`borderWidth`、`borderColor`、`backgroundColor`、`backgroundImage`、
-`backgroundImageSizeWithStyle`、`linearGradient`、`shadow`、`layoutWeight`、`flexShrink`、`visibility`、`clip`。
-子组件宽度、padding 与最小间距之和必须不超过父宽；分布式对齐不能修复负剩余空间。
-`justifyContent` 使用 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍是必须保留的最小间距；
-两者可以同时设置，但只能把扣除最小间距后的非负剩余空间交给分布式对齐。
-同一行不同字号的文字采用`Row alignItems="bottom"`底部对齐，2x2与2x4都遵守；语义组件内部由转换器统一执行，
-不手写Text或覆盖组件内部padding。数值与真实单位保留各自固定字号并紧邻，不把单位居中悬在大字旁。
+root选择当前尺寸正式布局；children按layouts合同的有序角色填写。背景沿用Core，几何由模板展开。
 
-### 3.2 `Column`
+### 3.2 Region
 
-用于纵向排列有先后层级的子组件。第 4 项 `children` 必填；`itemMargin` 可选数字 vp，`space` 是兼容别名。
-`justifyContent` 与 Row 相同，`alignItems` 只取 `start|center|end`，可使用与 Row 相同的布局与表面字段。
-子组件高度、padding 与最小间距之和必须不超过父高；`layoutWeight` 和 `flexShrink` 不抵消真实最小高度。
-`justifyContent` 使用分布式对齐时同样先扣除 `itemMargin`，不能依赖它消除负剩余空间。
+仅2x4独立内容分区使用，选择登记variant及有序角色，不填写几何或绑定事件。
 
-### 3.3 `Stack`
+### 3.3 Group
 
-只用于背景与前景、图标底板等真实叠放。第 4 项 `children` 必填；`alignContent` 只取
-`topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd`。可使用与 Row 相同的布局与表面字段，
-但不使用 `itemMargin`、`justifyContent` 或 `alignItems`。进度组件已包含内部结构，不再手写内部 Stack。
+同区语义合组，只填本尺寸登记variant及真实children；不跨对象混组，不增加组件或动作容量。
+数字与单位的字底对齐由业务组件内部保证，不手写基础文字或内部Row/Stack。
 
 ## 4. 文本与信息组件
 
@@ -201,7 +190,7 @@ SVG 标题图标由运行时使用 100% 不透明的主图形色，不由模型�
 
 #### 槽位与容量
 
-不能单独进入标题位或内容位；必须紧跟标题组件，共同放入标题 Row。数量在整卡只表达一次。
+不能单独进入标题位或内容位；必须紧跟标题组件，在2x4中共同放入Group.title-count。数量在整卡只表达一次。
 
 ```genui
 ["event_count","Badge",{"value":{"path":"/data/calendar/eventCount"},"backgroundColor":"#338C4B1C"}]
@@ -272,20 +261,27 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 
 #### 选择条件
 
-只用于补充同一分区已经存在的核心信息，例如辅助正文、普通时间、来源、更新时间或弱提示；不得独立作为
-该分区的唯一信息组件。标题、Badge、按钮、布局容器和其它 `SecondaryBody` 都不算核心组件。正文自身是主要
-结论时使用 `EmphasisText`，不能用 `SecondaryBody` 规避核心选型。组件不区分 role，单项和多项均写入
-`items`；同一对象或同一集合的多个短字段按原顺序放入一个实例，不得按日期、对象索引或字段逐项拆成多个
-单项 `SecondaryBody`，也不得为使用较小字号或规避容量校验而拆分。只有无核心且用户明确要求逐项查看、
+只用于补充整卡已经存在的核心信息，例如辅助正文、普通时间、来源、更新时间或弱提示；可以位于独立
+支撑区，但整卡不能只有 `SecondaryBody`、标题与按钮。标题、Badge、按钮、布局容器和其它 `SecondaryBody`
+都不算核心组件。正文自身是主要结论时使用 `EmphasisText`，不能用 `SecondaryBody` 规避核心选型。
+刷新元数据默认不展示；只有用户明确要求、时效决定业务结论，或无动作且只有一个短文本核心信息导致
+卡片明显稀疏时才可展示。稀疏场景应把刷新元数据合入该核心 `EmphasisText.secondaryText`，
+不得为了填空单独创建 `SecondaryBody`、第二分区或 `S-title-dual-content`。
+组件不区分 role，单项和多项均写入 `items`；同一对象或同一集合的
+多个短字段按原顺序放入一个实例，不得按日期、对象索引或字段逐项拆成多个
+单项 `SecondaryBody`，也不得为使用较小字号或规避容量校验而拆分。只有整卡无核心且用户明确要求逐项查看、
 对比或等权汇总的标签—值表才使用 `TableText`；事件、比较和进度仍使用对应语义组件。
+超过6项时优先删除重复、与需求无关或已接受Plan未要求的可选补充项，不为凑满6项补造内容。
+已接受Plan要求的事实不得仅为满足项数删除；未经Drop授权时保留事实，改用能完整承载的合法组件组合。
+允许6项不代表当前槽位能装下6项，仍按实际行数、完整值与间距验算容量。
 
 #### 组件属性
 
 | Prop | 类型 | 绑定能力 | 要求 |
 |---|---|---|---|
-| `items` | Array | 数组结构仅静态 | 必填；1–4 项 |
-| `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；保留完整值和单位 |
-| `items[].label` | string | 仅静态 | 可选；短标签 |
+| `items` | Array | 数组结构仅静态 | 必填；1–6 项 |
+| `items[].value` | 显示值 | 静态 / Expression / PathBinding | 必填；承载完整值和单位；追加单位或格式化使用完整 Expression |
+| `items[].label` | string | 仅静态 | 可选；可独立识别的短字段名称优先写在这里，不拼进 value |
 | `items[].maxLines` | number | 仅静态 | 可选；`1|2`，默认 1；两行时必须预留高度 |
 | `columns` | number | 仅静态 | 可选；`1|2`，默认 2；1 表示每项独占一行 |
 | `separator` | string | 仅静态 | 可选；同一行相邻项默认用 ` | ` 分隔，跨行不加分隔符 |
@@ -297,17 +293,24 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 超过一行或任一项使用 `maxLines:2` 时，整组为 `12fp/400`、行高 `16vp`。
 两项同行用 14；两项 `columns:1` 分行用 12，不能只按项目数判断。
 每行最多两项，行间距固定 2；总高度为各行最大 `maxLines × 行高` 之和加行间距。
+转换器按首帧完整文案与参考槽位宽度自动分行，整组转为多行时使用12fp/16vp，不裁切原值；
+同行短项按自然占宽，不强制等分。没有已知文案或宽度时仍须显式声明单列/两行并预留容量。
+自动换行是转换阶段的保守预算，不承诺已导出A2UI在后续数据变长时自动重编行布局。
 文字放不下时使用单列或合法两行，并同步字号与高度预算；不裁切、删单位或手动缩字。
-标签保留自然宽度，值承接剩余宽度；长标签可与值合并到同项完整 Expression，保留原始绑定。
+可独立识别的短字段名称优先放 `label`，动态值和单位放同项 `value`；裸值直接绑定，
+不重复添加原值已含的名称或单位。标签保留自然宽度，值承接剩余宽度。
+只有完整正文，或使用单列/合法两行后确实仍无法分开完整排版时，才把标签合入同项完整
+Expression；保留原始绑定、标签和单位。不因能拼接 Expression 就省略短标签，也不为纯正文补造 label。
 不输出 `role`，不覆盖内部字重、padding 或对齐。
 
 ```genui
 ["description","SecondaryBody",{"items":[{"value":{"path":"/data/weather/description"},"maxLines":2}],"fontSize":12}]
-["updated","SecondaryBody",{"items":[{"value":"{{ '更新 ' + ${/data/weather/updatedAt} }}"}],"fontSize":14}]
+["updated","SecondaryBody",{"items":[{"label":"更新 ","value":{"path":"/data/weather/updatedAt"}}],"fontSize":14}]
+["heart_detail","SecondaryBody",{"items":[{"label":"最低心率 ","value":"{{ ${/data/healthSport/exerciseHeartRateMin} + '次/分钟' }}","maxLines":2}],"fontSize":12}]
 ["sleep_detail","SecondaryBody",{"items":[{"label":"夜间睡眠 ","value":{"path":"/data/healthSport/nightSleepDurationText"}},{"label":"午睡 ","value":{"path":"/data/healthSport/napDurationText"}}],"separator":" | ","fontSize":14}]
 ```
 
-以上仅展示组件属性写法；放入完整卡片时，每个实例都必须与同一语义分区内的核心信息组件搭配。
+以上仅展示组件属性写法；放入完整卡片时，整卡必须另有至少一个核心信息组件，但可位于其它语义分区。
 
 ### 4.7 `DataDisplay`
 
@@ -362,8 +365,9 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 
 #### 槽位与容量
 
-每个合法小槽只放一个 `InfoBlock`，两行文字必须保持单行。尺寸、variant 和文字区宽度由尺寸文件规定；
-必要值放不下时先取消可选图标，仍不成立则改用其它组件组合。
+每个合法小槽只放一个 `InfoBlock`，两行文字保持单行。尺寸、variant 和文字区宽度由尺寸文件规定。
+`primaryText` 应完整可读；`secondaryText` 超出文字区时由 Recipe 在尾部显示省略号，并产生 warning，
+不因此拒绝整张卡。省略只影响辅助文字的可见尾部，原始绑定与完整数据保持不变。
 
 #### 示例
 
@@ -377,7 +381,7 @@ Expression；`mainText` 不接受数组，互不相关或需要逐项标签的�
 无 visual 的紧凑 `InfoBlock`。短静态对象标签可以和一个动态值组成完整 Expression，用来区分同级对象：
 
 ```genui
-["tomorrow","InfoBlock",{"variant":"stacked","width":"matchParent","height":50,"primaryText":"{{ '明天 ' + ${/data/weather/daily/1/condition} }}","secondaryText":"{{ '空气质量 ' + ${/data/weather/daily/1/airQuality} }}","backgroundColor":"#CCFFFFFF"}]
+["tomorrow","InfoBlock",{"variant":"stacked","primaryText":"{{ '明天 ' + ${/data/weather/daily/1/condition} }}","secondaryText":"{{ '空气质量 ' + ${/data/weather/daily/1/airQuality} }}","backgroundColor":"#CCFFFFFF"}]
 ```
 
 有准确语义图标时使用 `visual.type:"icon"`。Compact DSL 直接绑定真实路径，不使用 `dataIds` 或
@@ -480,7 +484,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 | `externalText` | number / string / Expression / PathBinding | 静态 / Expression / PathBinding | 必填；`0–100` 数值、纯数值字符串、完整百分比字符串，或结果为 `0–100` 数值的完整 Expression；需要环外百分号时可让 Expression 以 `+ '%'` 或 `+ '％'` 结尾 |
 | `icon` | string | 仅静态 | 必填；逐字使用当前素材候选路径 |
 | `accessibility` | object | 仅静态 | 必填；包含非空 `label`，可选 `description` |
-| `width`、`height` | number | 仅静态 | 必填；按当前槽位填写正数 vp |
+| `width`、`height` | number | 仅静态 | 旧输入必填；新语义源不填，由登记比例槽注入 |
 | `color` | `#AARRGGBB` | 仅静态 | 必填；完成轨道颜色 |
 | `backgroundColor` | `#AARRGGBB` | 仅静态 | 必填；未完成轨道颜色 |
 | `fillColor` | `#AARRGGBB` | 仅静态 | 使用默认可染色 SVG 时必填；原色 SVG 或 PNG 不填写 |
@@ -492,7 +496,7 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 #### 示例
 
 ```genui
-["ratio","ProgressCircle",{"externalText":{"path":"/data/device/batteryPercent"},"icon":"resources/base/media/battery_leaf_fill.svg","accessibility":{"label":"设备电量百分比"},"width":52,"height":68,"fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["ratio","ProgressCircle",{"externalText":{"path":"/data/device/batteryPercent"},"icon":"resources/base/media/battery_leaf_fill.svg","accessibility":{"label":"设备电量百分比"},"fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
 ```
 
 #### 注意事项
@@ -643,6 +647,8 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 
 组件已包含时间线和文字列，不再手写时间线轨道或重复标题、时间内容。兼容旧的单事件
 `title/time/location` 输入，但新生成统一使用 `items`。
+  `items[].location` 只表达真实地点，不填写全天状态、发起人或其它备注；没有地点就省略。
+  这些额外属性使用同区的 SecondaryBody，事件标题和时间仍留在同一个 EventCard 中。
 compact 的时间与地点同行：时间取自然宽度，分隔符保持原间距，地点承接剩余宽度。
 完整地点太长时改用普通有地点规格并重算总高，或选择更宽的合法内容区；不删地点或让时间占满整行。
 

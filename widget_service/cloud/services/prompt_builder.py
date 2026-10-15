@@ -7,7 +7,7 @@ from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
-from services.card_validation.compact_validation.model_feedback import compact_issue_for_model
+from services.card_validation.compact_validation.model_feedback import compact_issues_for_model
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
@@ -970,9 +970,14 @@ class PromptBuilder:
 
     @staticmethod
     def layout_scope(task_spec: TaskSpec) -> str:
-        """生成、校验和修复共享同尺寸全集；Plan 候选不冻结布局。"""
+        """生成、校验和修复共享范围；结构唯一时收窄为固定布局。"""
         if task_spec.size not in {"2x2", "2x4"}:
             raise ValueError(f"Unsupported Compact size: {task_spec.size}")
+        if (
+            task_spec.size == "2x2"
+            and PromptBuilder._query_requests_multiple_actions(task_spec)
+        ):
+            return "S-content-dual-action"
         return "S-plan-guided" if task_spec.size == "2x2" else "W-plan-guided"
 
     @staticmethod
@@ -1168,7 +1173,11 @@ class PromptBuilder:
                     "# 本轮双动作预算\n\n"
                     "使用 S-content-dual-action：正文38、间距8、按钮36、间距8、按钮36。"
                     "不增加 SingleLineTitle 或独立标题，不使用融球；必要对象名并入正文短行。"
-                    "正文不放30/38fp大值，两个动作完整、各自可点击，不允许正文侵入按钮。"
+                    "正文只有一项短事实时使用 EmphasisText；有多项短事实时合并为一个"
+                    "TableText。不得使用 DataDisplay、ProgressCircleSingle、独立 SecondaryBody"
+                    "或30/38fp大值。两个动作完整、各自可点击，不允许正文侵入按钮。"
+                    "每个按钮的 onClick 必须逐字段复制对应 eventCandidate 的 call 和 args，"
+                    "不得按常识翻转或改写参数值。"
                 )
             if layout_scope == "S-quad-content":
                 return (
@@ -1574,16 +1583,35 @@ class PromptBuilder:
         """构造 Plan 与 DSL 共享的本轮布局范围和动态字段提醒。"""
         layout_scope = PromptBuilder.layout_scope(task_spec)
         layouts = "、".join(allowed_layout_ids(task_spec.size, layout_scope))
+        fixed_layout = layout_scope in {"S-content-dual-action"}
+        output_contract = (
+            "最终 DSL 使用 Layout 选择本尺寸登记的 S 系列布局，children 按角色顺序填写；"
+            "同区内容可用登记的 Group 合组。不输出 Region、Row/Column/Stack 或内部几何参数。"
+        )
+        if task_spec.size == "2x4":
+            output_contract = (
+                "最终 DSL 使用 Layout 选择本尺寸登记的父布局，以 Region 选择内容变体、"
+                "Group 选择受控组合；不输出 Row/Column/Stack 或内部展开的几何参数。"
+            )
+        layout_instruction = (
+            "该范围由必要动作数量唯一确定，是生成、校验和修复共享的硬约束。"
+            if fixed_layout
+            else (
+                "布局建议不是硬锁，不能按业务名称、候选字段总数或示例强制构图。"
+            )
+        )
         prompt = (
             "# 本轮组件与布局选择\n\n"
             f"当前尺寸 {task_spec.size}，合法布局范围：{layouts}。\n"
             "以已接受 Plan 的必要事实与动作为硬合同；优先落实语义、类型和容量匹配的"
-            "组件软候选，再按完整内容选择合法布局。布局建议不是硬锁，"
-            "不能按业务名称、候选字段总数或示例强制构图。"
+            f"组件软候选，再按完整内容选择合法布局。{layout_instruction}"
             "候选组件不适配时改选其它已注册组件或合法组件组合，不能改变内部 Recipe、"
-            "删事实或动作来提高使用率。最终 DSL 只输出已注册的基础布局组件和组件，"
-            "不输出布局 ID、Card 或 Region 节点。"
+            "删事实或动作来提高使用率。"
+            f"{output_contract}"
         )
+        if fixed_layout:
+            route_lock = PromptBuilder._layout_route_lock(task_spec, layout_scope)
+            prompt = f"{prompt}\n\n{route_lock}"
         formatted_percent_instruction = PromptBuilder._formatted_percent_instruction(task_spec)
         if formatted_percent_instruction:
             prompt = f"{prompt}\n\n{formatted_percent_instruction}"
@@ -1744,6 +1772,7 @@ class PromptBuilder:
         tool = build_compact_plan_tool(
             task_spec_value,
             include_composition=runtime_prompt_context_enabled,
+            layout_scope=PromptBuilder.layout_scope(task_spec),
         )
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
         capacity_context = ""
@@ -2070,7 +2099,7 @@ class PromptBuilder:
         fact_context_name = "本对话已有的 TaskSpec" if is_design_compact else "originalUserContent"
         payload: dict[str, Any] = {
             "invalidSourceDsl": invalid_source_dsl,
-            "qualityErrors": [compact_issue_for_model(item) for item in quality_errors],
+            "qualityErrors": compact_issues_for_model(quality_errors),
             "dslFormat": dsl_format,
             "instruction": (
                 f"{target_instruction}先从 {fact_context_name} 恢复"
@@ -2121,8 +2150,14 @@ class PromptBuilder:
             if runtime_prompt_context_enabled and isinstance(original_payload, dict):
                 recovery = original_payload.get("compositionRecovery")
             capacity_errors = []
+            missing_action = False
+            missing_fact = False
             for error in quality_errors:
                 message = error.get("message", "")
+                if message.startswith("Plan action is missing from visible DSL:"):
+                    missing_action = True
+                if message.startswith("Plan fact is missing from visible DSL:"):
+                    missing_fact = True
                 capacity_pattern = r"vertical layout requires|overflow|layout.*match|text width"
                 if re.search(capacity_pattern, message):
                     capacity_errors.append(message)
@@ -2164,6 +2199,21 @@ class PromptBuilder:
                     "有限搜索未给出完整解时仍按完整合同合组，不能沿用已失效的旧参考。"
                     "保留事实动作和字号，落实整个变体与横纵合组，"
                     "不要继续维持上一轮 Compact DSL 的超预算子树。"
+                )
+            elif task_spec is not None and missing_action:
+                payload["instruction"] += (
+                    "动作覆盖失败时先核对按钮是否从 root 可达，不能仅新增孤立组件行。"
+                    "优先使用现有合法动作位；没有可用动作位时允许最小必要的语义组合"
+                    "或父布局变更以保留全部 Action，不能冻结无法承载这些操作的布局。"
+                    "保留已正确的业务内容、绑定和对象归属，不因补按钮降级完整事件。"
+                )
+            elif task_spec is not None and missing_fact:
+                payload["instruction"] += (
+                    "展示事实缺失时先恢复所属信息组，再核算补齐全部字段后的容量。"
+                    "原布局仅装入部分事实时合法，不代表补齐后仍合法；优先在原组合法合并"
+                    "短属性，必要时最小范围调整组件组合或当前尺寸父布局。"
+                    "不把超过项目数的条目塞入单个辅助组件，不裁切、静态化或删除字段来补覆盖。"
+                    "已有正确事实、绑定和Action保持不变，不打散同级关系或混入无关对象。"
                 )
             elif not capacity_errors and not recompose_requested:
                 payload["instruction"] += (

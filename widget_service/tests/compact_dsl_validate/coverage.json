@@ -982,14 +982,6 @@
     "directory": "_collect_semantic_text_errors\\04"
   },
   {
-    "function": "_collect_semantic_text_errors",
-    "line": 4139,
-    "expectedErrors": [
-      "component value: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region."
-    ],
-    "directory": "_collect_semantic_text_errors\\02"
-  },
-  {
     "function": "_collect_unbound_action_hint_errors",
     "line": 4207,
     "expectedErrors": [

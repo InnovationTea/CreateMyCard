@@ -48,6 +48,14 @@ class SourceLocations:
     def locate(self, diagnostic: CompactDiagnostic) -> CompactDiagnostic:
         result = replace(diagnostic, component_id=None, property_path=None, source_line=None)
         component_id = diagnostic.component_id
+        origin = self._context.layout_origins.get(component_id)
+        if origin is not None:
+            record = self._unique_record(origin)
+            if record is not None:
+                return replace(
+                    diagnostic, component_id=origin, property_path=None,
+                    source_line=record.line, evidence_source="expanded",
+                )
         if component_id is not None and self._context.original_components is not None:
             original = component_index(self._context.original_components).get(component_id)
             expanded = component_index(self._context.components).get(component_id)

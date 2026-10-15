@@ -23,6 +23,8 @@ ai_widget_data_huashan_enable: false
 enable_default_capability_registry_fallback: true
 enable_default_protocol_profile_fallback: true
 enable_validation_failure_retry: true
+# Drop 阶段是否严格校验未获明确省略授权的 Plan 展示事实；动作覆盖始终校验。
+enable_drop_plan_fact_validation: false
 enable_widget_edit: false
 enable_artifact_download_mock: true
 enable_widget_directive_commands: false

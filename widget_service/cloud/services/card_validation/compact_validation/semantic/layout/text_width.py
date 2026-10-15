@@ -21,9 +21,10 @@ def _collect_text_width_budget_errors(
     protocol_profile: dict[str, Any] | None,
     *,
     include_label_pressure: bool = False,
+    warnings: list[str] | None = None,
 ) -> None:
     """兜底明确单行超宽；自然宽度只用已知祖先内宽作上界，不猜实际尺寸。"""
-    from services.compact_composition_context import _literal_display_sample
+    from services.compact_composition_context import small_card_display_text
 
     size = card_spec.get("suggestSize") or task_spec.get("size")
     if size not in {"2x2", "2x4"}:
@@ -78,12 +79,8 @@ def _collect_text_width_budget_errors(
         if width is None:
             continue
         content = props.get("content") if row.component_type == "Text" else props.get("label")
-        displayed = _literal_display_sample(content, task_spec)
-        text = displayed[1] if displayed is not None else None
-        if size == "2x2":
-            from services.compact_composition_context import small_card_display_text
-
-            text = small_card_display_text(content, task_spec)
+        # 两种尺寸共用保守的完整文案解析；不运行表达式或猜测未知字段。
+        text = small_card_display_text(content, task_spec)
         if text is None and isinstance(content, str) and "{{" not in content:
             text = content
         if not isinstance(text, str) or not text or "\n" in text:
@@ -94,7 +91,7 @@ def _collect_text_width_budget_errors(
             by_id,
             parents,
             boxes,
-            include_regular_text=include_label_pressure and size == "2x2",
+            include_regular_text=include_label_pressure,
         )
         if duration_error is not None:
             errors.append(duration_error)
@@ -105,6 +102,14 @@ def _collect_text_width_budget_errors(
         # 只反馈明显冲突，不把字符压力估计作为精确字体测量门禁。
         required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
         if available > 0 and required > available + 1e-7:
+            if _uses_visual_recipe_part(row, "InfoBlock.secondary"):
+                if warnings is not None:
+                    warnings.append(
+                        f"component {row.component_id}: InfoBlock.secondaryText exceeds its "
+                        f"{available:g}vp single-line text area and will be rendered with "
+                        "an ellipsis."
+                    )
+                continue
             errors.append(
                 f"component {row.component_id}: text width overflow; complete text {text!r} "
                 f"at original font {font:g} needs about {required:g}vp in one line, "

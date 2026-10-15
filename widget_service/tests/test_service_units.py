@@ -517,6 +517,16 @@ def test_validation_failure_retry_is_enabled_by_default(monkeypatch):
     assert settings.enable_validation_failure_retry is True
 
 
+def test_drop_plan_fact_validation_is_disabled_by_default_and_can_be_enabled(monkeypatch):
+    variable = "WIDGET_SERVICE_ENABLE_DROP_PLAN_FACT_VALIDATION"
+    monkeypatch.delenv(variable, raising=False)
+    assert Settings(_env_file=None).enable_drop_plan_fact_validation is False
+    monkeypatch.setenv(variable, "true")
+    assert Settings(_env_file=None).enable_drop_plan_fact_validation is True
+    monkeypatch.setenv(variable, "false")
+    assert Settings(_env_file=None).enable_drop_plan_fact_validation is False
+
+
 def test_model_failure_retry_is_disabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", raising=False)
 
@@ -4267,11 +4277,15 @@ async def test_source_format_warning_does_not_trigger_repair(
     settings = get_settings()
     model_calls = 0
     processor = get_dsl_processor(processor_kind)
+    # 产物现在保存已解析的Compact源；本测试仍只隔离非阻断warning，不使用伪DSL。
+    valid_source = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+        encoding="utf-8"
+    )
 
     def generate_source(_client, _prompt, _profile=None, **_kwargs):
         nonlocal model_calls
         model_calls += 1
-        return "source-dsl-with-warning"
+        return valid_source
 
     def process_with_warning(source_dsl, _context):
         issue = QualityIssue(
