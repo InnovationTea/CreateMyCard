@@ -10,6 +10,7 @@ from .models import TemplateValue
 
 _EXPR_CALL = re.compile(r"(?<![\w.$#])Expr\s*\(")
 _DATA_REFERENCE = re.compile(r"data\.([A-Za-z_][A-Za-z0-9_]*)")
+_PROP_REFERENCE = re.compile(r"props\.([A-Za-z_][A-Za-z0-9_]*)")
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _CLOSERS = {"(": ")", "[": "]", "{": "}"}
 
@@ -82,7 +83,7 @@ def _call_end(source: str, opening: int) -> int:
 
 
 def parse_runtime_expression(source: str) -> TemplateValue:
-    """将受限 JS 表达式转为已有的 literal/binding IR 并复用 A2UI 语法校验。"""
+    """将受限表达式转为 literal/binding/parameter IR，并复用 A2UI 语法校验。"""
     parts: list[TemplateValue] = []
     index = 0
     while index < len(source):
@@ -99,6 +100,11 @@ def parse_runtime_expression(source: str) -> TemplateValue:
         if reference is not None:
             parts.append(TemplateValue(kind="binding", name=reference.group(1)))
             index = reference.end()
+            continue
+        parameter = _PROP_REFERENCE.match(source, index)
+        if parameter is not None:
+            parts.append(TemplateValue(kind="parameter", name=parameter.group(1)))
+            index = parameter.end()
             continue
         identifier = _IDENTIFIER.match(source, index)
         if identifier is not None:
@@ -119,6 +125,8 @@ def parse_runtime_expression(source: str) -> TemplateValue:
             if not isinstance(part.name, str):
                 raise ValueError("Provider Template Expr binding name must be a string")
             symbolic.append("${data." + part.name + "}")
+        elif part.kind == "parameter":
+            symbolic.append("'template parameter'")
         else:
             if not isinstance(part.value, str):
                 raise ValueError("Provider Template Expr literal value must be a string")
