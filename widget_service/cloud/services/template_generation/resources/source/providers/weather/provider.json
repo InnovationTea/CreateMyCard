@@ -586,7 +586,7 @@
       "templateId": "WeatherOverviewDailyConditionWeekdayFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "明日天气现象日期 Full：突出 daily[1] 天气现象，并展示星期；温度范围、降雨概率和日期可选。",
+      "description": "明日天气现象星期 Full：突出 daily[1] 天气现象，并展示星期；温度范围和降雨概率可选。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/1/condition"
@@ -597,7 +597,6 @@
       "optionalData": [
         "/location/prefectureName",
         "/location/districtName",
-        "/daily/1/date",
         "/daily/1/temperatureRangeText",
         "/daily/1/rainProbabilityPercent"
       ]
@@ -606,7 +605,7 @@
       "templateId": "WeatherOverviewDailyUvColdFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "今日健康指数精简 Full：突出 daily[0] 紫外线等级，并展示感冒指数；空气质量、天气现象和温度范围可选。",
+      "description": "今日健康指数精简 Full：突出 daily[0] 紫外线等级，并展示感冒指数；空气质量可选。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/uvIndex"
@@ -617,9 +616,7 @@
       "optionalData": [
         "/location/prefectureName",
         "/location/districtName",
-        "/daily/0/airQuality",
-        "/daily/0/condition",
-        "/daily/0/temperatureRangeText"
+        "/daily/0/airQuality"
       ]
     },
     {
@@ -873,7 +870,7 @@
       "templateId": "WeatherOverviewUvOnlyFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "紫外线精简 Full：突出当前紫外线等级；城市、天气现象、空气质量和感冒风险可选。",
+      "description": "紫外线精简 Full：突出当前紫外线等级；城市、天气现象和温度可选。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/uvIndex"
@@ -883,9 +880,7 @@
         "/location/prefectureName",
         "/location/districtName",
         "/current/temperatureText",
-        "/current/condition",
-        "/current/airQuality",
-        "/current/coldLevel"
+        "/current/condition"
       ]
     },
     {

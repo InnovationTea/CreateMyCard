@@ -450,6 +450,9 @@ def _companion_action_slots(
                         task,
                         available_fields_by_capability.get(capability_by_business[business_id], set()),
                     )
+                    # A layout-owned Support must add a new metric. Do not use
+                    # a Support that only repeats the Full's city/temperature/
+                    # condition fields to fill an empty action-side slot.
                     if not support_fields.difference(already_rendered_fields):
                         continue
                 if template_kind != "Support" and not supports_business_action(
@@ -476,7 +479,13 @@ def _rendered_template_fields(
     task: TaskSpec,
     candidate_paths: set[str],
 ) -> set[str]:
-    """Return only fields whose conditional branch actually renders this input."""
+    """Return only fields whose conditional branch actually renders this input.
+
+    Provider ``primaryData``/``secondaryData`` describes coverage eligibility,
+    not necessarily the fields emitted by every conditional branch.  Companion
+    Support selection must use the latter, otherwise an optional field already
+    rendered by the main template looks like new information.
+    """
     if not definition.data_domain:
         return set()
     rendered = _template_available_data_fields(
@@ -497,10 +506,9 @@ def _rendered_template_fields(
 def _required_data_available(definition: TemplateDefinition, task: TaskSpec) -> bool:
     """伴生模板的必需数据路径必须能在 TaskSpec 数据模型中解析到。"""
     data = task.dataModelSchema.get("data") if isinstance(task.dataModelSchema, dict) else None
-    for path in definition.required_data:
-        node: Any = data
-        segments = path.strip("/").split("/")
-        for segment in segments[1:]:
+
+    def resolves(node: Any, segments: list[str]) -> bool:
+        for segment in segments:
             if isinstance(node, list):
                 if not segment.isdigit() or int(segment) >= len(node):
                     return False
@@ -509,6 +517,20 @@ def _required_data_available(definition: TemplateDefinition, task: TaskSpec) -> 
             if not isinstance(node, dict) or segment not in node:
                 return False
             node = node[segment]
+        return True
+
+    for path in definition.required_data:
+        segments = path.strip("/").split("/")
+        # Provider paths are relative to the capability root (for example
+        # ``/current/humidityPercent``), while TaskSpec stores that root below
+        # ``data.weather``. Try the complete data object and each capability
+        # root; the previous implementation skipped the first path segment and
+        # incorrectly rejected valid Support companions.
+        roots = [data]
+        if isinstance(data, dict):
+            roots.extend(value for value in data.values() if isinstance(value, (dict, list)))
+        if not any(resolves(root, segments) for root in roots):
+            return False
     return True
 
 

@@ -164,9 +164,7 @@ data = {
     city: $optionalPath("/location/prefectureName"),
     district: $optionalPath("/location/districtName"),
     temperature: $optionalPath("/current/temperatureText"),
-    condition: $optionalPath("/current/condition"),
-    airQuality: $optionalPath("/current/airQuality"),
-    coldLevel: $optionalPath("/current/coldLevel")
+    condition: $optionalPath("/current/condition")
 }
 
 Column(
@@ -194,7 +192,6 @@ Column(
 data = {
     condition: $path("/daily/1/condition"),
     weekday: $path("/daily/1/weekday"),
-    date: $optionalPath("/daily/1/date"),
     temperatureRange: $optionalPath("/daily/1/temperatureRangeText"),
     rainProbability: $optionalPath("/daily/1/rainProbabilityPercent"),
     city: $optionalPath("/location/prefectureName"),
@@ -212,11 +209,11 @@ Column(
     Text(data.condition, {"width": "matchParent", "height": 24, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
     Text(data.weekday, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
     #if data.temperatureRange && data.rainProbability
-      Text(Expr(data.temperatureRange + "｜降雨 " + data.rainProbability), {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"})
+      Text(Expr(data.temperatureRange + "｜降雨 " + data.rainProbability + "%"), {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"})
     #elseif data.temperatureRange
       Text(data.temperatureRange, {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"})
     #elseif data.rainProbability
-      Text(Expr("降雨 " + data.rainProbability), {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"})
+      Text(Expr("降雨 " + data.rainProbability + "%"), {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"})
     #endif
   )
 )
@@ -227,8 +224,6 @@ data = {
     uvIndex: $path("/daily/0/uvIndex"),
     coldLevel: $path("/daily/0/coldLevel"),
     airQuality: $optionalPath("/daily/0/airQuality"),
-    condition: $optionalPath("/daily/0/condition"),
-    temperatureRange: $optionalPath("/daily/0/temperatureRangeText"),
     city: $optionalPath("/location/prefectureName"),
     district: $optionalPath("/location/districtName")
 }
@@ -1750,13 +1745,14 @@ Column(
       "layoutWeight": 1,
       "itemMargin": 12,
       "justifyContent": "spaceBetween",
-      "alignItems": "stretch",
+      "alignItems": "center",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
       {
         "width": "matchParent",
+        "height": "matchParent",
         "layoutWeight": 1,
         "padding": 12,
         "backgroundColor": $theme('supportContentStyle.backgroundColor'),
@@ -1783,6 +1779,7 @@ Column(
     Column(
       {
         "width": "matchParent",
+        "height": "matchParent",
         "layoutWeight": 1,
         "padding": 12,
         "backgroundColor": $theme('supportContentStyle.backgroundColor'),
