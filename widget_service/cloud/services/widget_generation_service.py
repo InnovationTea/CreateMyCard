@@ -662,9 +662,16 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # 纯模板入口不依赖通用生成 Prompt；仅原始协议或允许 fallback 时按需加载。
+        template_fallback_to_fusion = (
+            template_source_generator is not None
+            and policy.operation == "generateWidgetCardCompactDsl"
+            and source_load_result is None
+        )
+        # Compact 模板失败必须能从 Fusion Plan 重启，不受 JSX 开关影响。
         prompt_started_at = time.perf_counter()
-        needs_model_prompt = template_source_generator is None or need_fallback
+        needs_model_prompt = (
+            template_source_generator is None or need_fallback or template_fallback_to_fusion
+        )
         prompt: list[dict[str, str]] = []
         if needs_model_prompt:
             from services.prompt_builder import PromptBuilder
@@ -773,6 +780,7 @@ class WidgetGenerationService:
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
         source_generated_by_template = False
+        validated_template_source: str | None = None
         accepted_compact_plan: dict | None = None
         accepted_compact_plan_warnings: tuple[str, ...] = ()
         compact_agent_messages: list[dict[str, str]] | None = None
@@ -934,6 +942,7 @@ class WidgetGenerationService:
             nonlocal effective_generation_prompt
             nonlocal model_call_phase
             nonlocal source_generated_by_jsx, source_generated_by_template
+            nonlocal validated_template_source, latest_processing_result
             source_generated_by_jsx = False
             source_generated_by_template = False
             original_small_display_roles.clear()
@@ -948,31 +957,50 @@ class WidgetGenerationService:
                         f"{_MODULE} template_source_generation_started operation={policy.operation}"
                     )
                     result = await template_source_generator(
-                        task_spec,
-                        processing_context.card_spec,
-                        tuple(effective_bindings),
+                        task_spec.model_copy(deep=True),
+                        copy.deepcopy(processing_context.card_spec),
+                        copy.deepcopy(tuple(effective_bindings)),
                     )
                     report_ops_metrics(body={"templateProposal": 1})
                     generated_dsl = require_generated_dsl(result)
                     source_generated_by_template = True
+                    if template_fallback_to_fusion:
+                        template_errors = await evaluate_source_dsl(generated_dsl)
+                        if template_errors:
+                            raise A2UIModelGenerationError("; ".join(template_errors))
+                        validated_template_source = generated_dsl
                     return generated_dsl
                 except Exception as exc:
-                    fallback = (
-                        "jsx"
-                        if try_jsx
-                        else ("original_protocol_flow" if need_fallback else "none")
-                    )
+                    source_generated_by_template = False
+                    if template_fallback_to_fusion:
+                        fallback = "fusion_plan"
+                        original_small_display_roles.clear()
+                        latest_processing_result = DslProcessingResult(source_dsl="")
+                        trace_record(
+                            "template.fallback",
+                            stage="template",
+                            status="failed",
+                            details={
+                                "fallback": fallback,
+                                "errorType": type(exc).__name__,
+                                "reason": str(exc),
+                            },
+                        )
+                    elif try_jsx:
+                        fallback = "jsx"
+                    else:
+                        fallback = "original_protocol_flow" if need_fallback else "none"
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
                         f"operation={policy.operation} fallback={fallback} "
                         f"reason={type(exc).__name__} "
                         f"detail={json_for_log(str(exc))}"
                     )
-                    if not try_jsx and not need_fallback:
+                    if fallback == "none":
                         raise A2UIModelGenerationError(
                             "Template source generation failed without fallback"
                         ) from exc
-            if try_jsx:
+            if try_jsx and not template_fallback_to_fusion:
                 try:
                     logger.info(f"{_MODULE} jsx_generation_started operation={policy.operation}")
                     bridge = JsxA2UIBridge()
@@ -1470,6 +1498,8 @@ class WidgetGenerationService:
             return [item.repair_message() for item in validation_issues]
 
         async def evaluate_source_dsl(source_dsl: str) -> list[str]:
+            if source_generated_by_template and source_dsl == validated_template_source:
+                return []
             if quality_repair_attempt_count == 0:
                 trace_phase("validation")
             with (
@@ -2052,6 +2082,7 @@ class WidgetGenerationService:
                 need_fallback=need_fallback,
             )
         template_source_generator.processor_kind = policy.processor_kind
+        template_source_generator.fail_fast = policy.operation == "generateWidgetCardCompactDsl"
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
             policy.protocol_profile_id
         ).get_profile()

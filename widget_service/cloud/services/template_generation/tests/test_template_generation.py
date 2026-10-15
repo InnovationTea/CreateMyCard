@@ -7219,22 +7219,30 @@ def _minimal_template_a2ui() -> str:
 
 
 @pytest.mark.asyncio
-async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatch):
+@pytest.mark.parametrize("fail_fast", [False, True])
+async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatch, fail_fast):
     class Output:
         a2ui = _minimal_template_a2ui()
         template_ids = ("WeatherOverviewFull@1",)
         expanded_component_count = 3
 
     observed_feature_flags: list[bool] = []
+    observed_client_options: list[dict[str, Any]] = []
+
+    def create_client(*_args: Any, **options: Any) -> object:
+        observed_client_options.append(options)
+        return object()
 
     async def generate(
         *_args: Any,
         enable_fusion_ball: bool,
+        **options: Any,
     ) -> Output:
+        assert options == ({"max_body_repairs": 0} if fail_fast else {})
         observed_feature_flags.append(enable_fusion_ball)
         return Output()
 
-    monkeypatch.setattr(facade, "create_template_model_client", lambda *_args: object())
+    monkeypatch.setattr(facade, "create_template_model_client", create_client)
     monkeypatch.setattr(facade, "generate_template_engine_a2ui", generate)
     result = await facade.request_template_source_dsl(
         _weather_task_spec(),
@@ -7254,6 +7262,7 @@ async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatc
             app_name="CreateMyCard",
         ),
         enable_fusion_ball=False,
+        fail_fast=fail_fast,
     )
 
     assert isinstance(result, str)
@@ -7266,6 +7275,7 @@ async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatc
     ]
     assert rows[-1] == ["/", {"data": {}}]
     assert observed_feature_flags == [False]
+    assert observed_client_options == ([{"fail_fast": True}] if fail_fast else [{}])
 
 
 @pytest.mark.asyncio
@@ -7373,10 +7383,14 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     )
     captured: dict[str, Any] = {}
 
+    def create_model(_runtime: Any, _context: Any, *, fail_fast: bool) -> WeatherTemplateModel:
+        assert fail_fast
+        return model
+
     monkeypatch.setattr(
         facade,
         "create_template_model_client",
-        lambda _runtime, _context: model,
+        create_model,
     )
 
     async def save(store: ArtifactStore, artifact: Any) -> ArtifactSaveResult:
@@ -8293,6 +8307,32 @@ async def test_first_layer_action_must_be_a_task_spec_event_id():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("max_repairs", [0, 2])
+async def test_template_body_repair_budget_is_controlled_by_entry(max_repairs):
+    class InvalidBodyModel(WeatherTemplateModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.phases: list[str] = []
+
+        async def generate(self, *_args: Any, phase: str, **_kwargs: Any) -> str:
+            self.phases.append(phase)
+            return 'Template("UnknownTemplate@1",{});'
+
+    model = InvalidBodyModel()
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/condition"],
+    )
+    with pytest.raises(TemplateGenerationError, match="template body validation failed"):
+        await generate_template_a2ui(
+            _weather_task_spec(), _weather_card_spec(), (binding,), model,
+            max_body_repairs=max_repairs,
+        )
+    assert model.phases == ["advanced-mixed-body"] + ["advanced-mixed-body-repair"] * max_repairs
+
+
+@pytest.mark.asyncio
 async def test_compact_edit_rejection_uses_original_flow(monkeypatch):
     request = _weather_request().model_copy(
         update={"sourceArtifactUrl": "https://artifact.test/source.md"}
@@ -8440,7 +8480,7 @@ async def test_template_exception_obeys_route_failure_policy(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("policy_factory", [_policy, _terse_policy], ids=["compact", "terse"])
-async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once(
+async def test_template_quality_failure_obeys_entry_fallback_policy(
     monkeypatch,
     policy_factory,
 ):
@@ -8454,6 +8494,7 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
 
     class ModelClient:
         model_failure_retry_count = 0
+        use_mock = True
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             nonlocal model_generate_calls
@@ -8547,14 +8588,16 @@ async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once
 
     assert response.status == GenerationStatus.SUCCESS
     assert template_call_count == 1
-    assert model_generate_calls == 0
-    assert model_repair_calls == 1
+    is_compact = policy_factory().operation == "generateWidgetCardCompactDsl"
+    expected_source = "generic-initial-source" if is_compact else "generic-repaired-source"
+    assert model_generate_calls == (1 if is_compact else 0)
+    assert model_repair_calls == (0 if is_compact else 1)
     assert processed_sources == [
         "template-invalid-source",
-        "generic-repaired-source",
+        expected_source,
     ]
     assert processor_kinds == [DslProcessorKind.DESIGN_COMPACT]
-    assert saved_design_tokens == ["generic-repaired-source"]
+    assert saved_design_tokens == [expected_source]
     assert source_permissions == [True, False]
 
 
