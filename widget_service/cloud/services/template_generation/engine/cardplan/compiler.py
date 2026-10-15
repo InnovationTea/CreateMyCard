@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from jsonschema import Draft202012Validator
-
 from models.generation import TaskSpec
 from services.fusion_ball_expander import FUSION_BALL_SIZES
 from services.template_generation.engine.a2ui_expression import (
@@ -936,6 +935,11 @@ def _expand_call(
         contract,
         required_parameters=frozenset(
             str(item) for item in variant.parameters_schema.get("required", ())
+        ),
+        optional_semantic_fallback_parameters=(
+            frozenset({"leftEarIcon", "rightEarIcon", "caseIcon"})
+            if definition.business_id == "BluetoothDeviceOverview"
+            else frozenset()
         ),
     )
     _validate_template_params(
@@ -4626,6 +4630,7 @@ def _normalize_template_asset_params(
     contract: HybridBodyContract,
     *,
     required_parameters: frozenset[str],
+    optional_semantic_fallback_parameters: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     normalized = dict(params)
     for key, value in params.items():
@@ -4653,6 +4658,12 @@ def _normalize_template_asset_params(
             if required_tags.issubset(set(contract.asset_semantic_tags_by_source.get(source, ())))
         ]
         if len(candidates) != 1:
+            can_use_text_fallback = (
+                key in optional_semantic_fallback_parameters and key not in required_parameters
+            )
+            if can_use_text_fallback:
+                normalized.pop(key, None)
+                continue
             raise TerselConversionError(
                 f"Template asset semantics do not match {key}: {value}"
             )

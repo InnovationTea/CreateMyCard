@@ -44,7 +44,18 @@
           "/rightChargingStatusDesc",
           "/chargingStatusDesc"
         ]
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ],
+        "caseIcon": [
+          "earphone-case"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudPairHero@1",
@@ -59,7 +70,15 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "optionalData": []
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewHero@1",
@@ -77,7 +96,15 @@
         "/rightBatteryLevel",
         "/leftChargingStatusDesc",
         "/rightChargingStatusDesc"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsPhoneWideFull@1",
@@ -94,7 +121,15 @@
         "/batteryLevel",
         "/leftBatteryLevel",
         "/rightBatteryLevel"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsDynamicWideFull@1",
@@ -111,7 +146,15 @@
         "/batteryLevel",
         "/leftBatteryLevel",
         "/rightBatteryLevel"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
@@ -249,7 +292,15 @@
       "optionalData": [
         "/leftChargingStatusDesc",
         "/rightChargingStatusDesc"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudPairFull@1",
@@ -282,7 +333,18 @@
           "/earphoneName",
           "/isConnected"
         ]
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ],
+        "caseIcon": [
+          "earphone-case"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudPairChargingFull@1",
@@ -290,9 +352,26 @@
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机三处电量与充电状态Full，沿用EarbudPairFull结构。顶部小标题使用请求title，无title则显示蓝牙耳机；下方18fp大字显示chargingStatusDesc，底部左耳、右耳、盒三列电量。只要求三处电量和整体/盒充电状态，不要求名称、连接状态或左右耳充电状态。图标可选，无独立按钮。",
       "entry": "templates/earbud-pair-charging-full.cardtpl",
-      "primaryData": ["/batteryLevel", "/leftBatteryLevel", "/rightBatteryLevel"],
-      "secondaryData": ["/chargingStatusDesc"],
-      "optionalData": []
+      "primaryData": [
+        "/batteryLevel",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ],
+        "caseIcon": [
+          "earphone-case"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewCompleteWideFull@1",
@@ -309,7 +388,15 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "optionalData": []
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudPairCompact@1",
@@ -327,7 +414,18 @@
       "optionalData": [
         "/batteryLevel",
         "/isConnected"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ],
+        "caseIcon": [
+          "earphone-case"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewCompletePhoneWideFull@1",
@@ -344,7 +442,15 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "optionalData": []
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarphoneCaseHero@1",
@@ -377,7 +483,12 @@
       "secondaryData": [
         "/chargingStatusDesc"
       ],
-      "optionalData": []
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "caseIcon": [
+          "earphone-case"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarphoneHero@1",
@@ -429,7 +540,15 @@
       "optionalData": [],
       "supportedEventIds": [
         "event.open.music.favorite"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewMusicFull@1",
@@ -530,6 +649,12 @@
         ],
         "musicIcon": [
           "music"
+        ],
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
         ]
       },
       "primaryData": [
@@ -567,6 +692,12 @@
       "assetParameterSemanticTags": {
         "deviceIcon": [
           "earphone-case"
+        ],
+        "leftEarIcon": [
+          "earphone-left"
+        ],
+        "rightEarIcon": [
+          "earphone-right"
         ]
       }
     },
