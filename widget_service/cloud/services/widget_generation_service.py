@@ -751,6 +751,8 @@ class WidgetGenerationService:
             "id": policy.model_profile_id,
             "format": policy.model_format,
         }
+        if policy.single_step:
+            model_protocol_profile["singleStepOutput"] = True
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"

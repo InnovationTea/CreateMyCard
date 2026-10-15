@@ -33,6 +33,9 @@ def test_missing_spec_uses_default_config(
     assert helper.get("compact_dsl_argument_repair_max_attempts") == 2
     assert helper.get("enable_compact_dsl_interface_retry") == "false"
     assert helper.get("compact_dsl_interface_retry_count") == 1
+    assert helper.get("enable_single_step_generation_fallback") == "false"
+    assert helper.get("enable_single_step_widget_edit") == "true"
+    assert helper.get("enable_widget_edit") == "true"
 
 
 def test_existing_spec_is_used_without_default_merge(

@@ -17,9 +17,22 @@ from services.card_validation.standard_plan_coverage import standard_plan_covera
 from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.generation_pipeline import DslProcessingResult, QualityIssue
 from services.single_step_contract import compact_font_requirements
+from services.single_step_output import SingleStepOutputError, extract_single_step_output
 from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import SourceArtifactError, SourceArtifactLoadResult
 from services.widget_generation_service import WidgetGenerationService
+
+
+def _default_switch_settings(monkeypatch):
+    from config.config import Settings
+
+    for field in (
+        "enable_single_step_generation_fallback", "enable_single_step_widget_edit",
+        "enable_widget_edit",
+    ):
+        for alias in (f"WIDGET_SERVICE_{field.upper()}", field.upper(), field):
+            monkeypatch.delenv(alias, raising=False)
+    return Settings(_env_file=None)
 
 
 def _standard(font_size=14, text="测试卡片"):
@@ -72,11 +85,19 @@ def single_step_run(monkeypatch):
     state = SimpleNamespace(
         calls=[], saved=[], standard=_standard(), primary_success=False,
         compact_source="invalid-compact", repaired_compact_source="invalid-compact",
+        envelope=None, profiles=[],
     )
+
+    def standard_output(client, profile):
+        if state.envelope is None:
+            return state.standard
+        raw = f"```{state.envelope}\n{state.standard}\n```"
+        return client._process_model_output(raw, profile or {})
 
     async def generate(_client, messages, profile=None, **_kwargs):
         model_format = (profile or {}).get("format")
         state.calls.append(("generate", model_format, copy.deepcopy(messages)))
+        state.profiles.append(copy.deepcopy(profile))
         if model_format == "raw-json":
             return json.dumps({"name": "submit_card_plan", "arguments": {
                 "info_required": [{"text": "测试卡片", "requirement": "显示测试卡片标题",
@@ -84,12 +105,17 @@ def single_step_run(monkeypatch):
                                    "componentHints": ["EmphasisText"]}],
                 "layoutHints": ["W-top-bottom"],
             }}, ensure_ascii=False)
-        return state.standard if model_format == "a2ui-form" else state.compact_source
+        if model_format == "a2ui-form":
+            return standard_output(_client, profile)
+        return state.compact_source
 
     async def repair(_client, messages, profile=None, **_kwargs):
         model_format = (profile or {}).get("format")
         state.calls.append(("repair", model_format, copy.deepcopy(messages)))
-        return state.standard if model_format == "a2ui-form" else state.repaired_compact_source
+        state.profiles.append(copy.deepcopy(profile))
+        if model_format == "a2ui-form":
+            return standard_output(_client, profile)
+        return state.repaired_compact_source
 
     def process(_processor, source, _context):
         if state.primary_success:
@@ -197,9 +223,10 @@ async def test_network_error_never_uses_single_step(single_step_run, monkeypatch
     "generate_widget_card_compact_dsl", "generate_widget_card_a2ui_form",
     "generate_widget_card_terse_dsl_nested2",
 ])
+@pytest.mark.parametrize("envelope", [None, "jsonl"])
 @pytest.mark.asyncio
 async def test_all_edit_entries_use_expanded_source_without_token(
-    single_step_run, monkeypatch, entry,
+    single_step_run, monkeypatch, entry, envelope,
 ):
     state = single_step_run
     service = WidgetGenerationService()
@@ -207,6 +234,16 @@ async def test_all_edit_entries_use_expanded_source_without_token(
     assert created.status == GenerationStatus.SUCCESS
     source_artifact = state.saved[-1][0]
     original = source_artifact.model_dump_json()
+    defaults = _default_switch_settings(monkeypatch)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_widget_edit", defaults.enable_widget_edit)
+    monkeypatch.setattr(
+        settings, "enable_single_step_widget_edit", defaults.enable_single_step_widget_edit,
+    )
+    monkeypatch.setattr(
+        settings, "enable_single_step_generation_fallback",
+        defaults.enable_single_step_generation_fallback,
+    )
     source = SourceArtifactLoadResult(
         artifact=source_artifact, design_token=None, artifact_digest="sha256:source",
         url_hash="source-hash", read_latency_ms=0.0, parse_latency_ms=0.0, download_mode="mock",
@@ -216,6 +253,7 @@ async def test_all_edit_entries_use_expanded_source_without_token(
     monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: True)
     monkeypatch.setattr(WidgetGenerationService, "_enable_jsx_generation", lambda _self: True)
     state.standard = _standard(font_size=20)
+    state.envelope = envelope
     state.calls.clear()
     edited = await getattr(service, entry)(GenerateWidgetCardRequest(
         uid="single-step-test", prdVer="11.7.7.331", device={"romVersion": "7.0"},
@@ -276,23 +314,36 @@ def test_prompt_is_isolated_from_fusion_and_previous_input_is_data():
     assert repair[:2] == prompt
 
 
-def test_single_step_switches_default_off():
-    from config.config import Settings
-
-    settings = Settings(_env_file=None)
+def test_generation_fallback_defaults_off_and_single_step_edit_defaults_on(monkeypatch):
+    settings = _default_switch_settings(monkeypatch)
     assert settings.enable_single_step_generation_fallback is False
-    assert settings.enable_single_step_widget_edit is False
+    assert settings.enable_single_step_widget_edit is True
+    assert settings.enable_widget_edit is True
     assert settings.validation_failure_max_repair_attempts == 5
 
 
 @pytest.mark.parametrize("field", [
     "enable_single_step_generation_fallback", "enable_single_step_widget_edit",
+    "enable_widget_edit",
 ])
-def test_single_step_switches_can_be_enabled_by_environment(monkeypatch, field):
+@pytest.mark.parametrize("enabled", [False, True])
+def test_single_step_switches_can_be_overridden_by_environment(monkeypatch, field, enabled):
     from config.config import Settings
 
-    monkeypatch.setenv(f"WIDGET_SERVICE_{field.upper()}", "true")
-    assert getattr(Settings(_env_file=None), field) is True
+    _default_switch_settings(monkeypatch)
+    monkeypatch.setenv(f"WIDGET_SERVICE_{field.upper()}", str(enabled).lower())
+    assert getattr(Settings(_env_file=None), field) is enabled
+
+
+@pytest.mark.asyncio
+async def test_edit_master_switch_still_blocks_single_step(single_step_run, monkeypatch):
+    monkeypatch.setattr(get_settings(), "enable_widget_edit", False)
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request(
+        sourceArtifactUrl="https://artifact.test/widget/source.md",
+    ))
+    assert response.errorCode == ErrorCode.WIDGET_EDIT_DISABLED.value
+    assert not single_step_run.calls
+    assert not single_step_run.saved
 
 
 @pytest.mark.asyncio
@@ -533,4 +584,133 @@ def test_font_guard_requires_visible_matching_binding_and_size():
     assert not standard_plan_coverage_errors(
         _standard(text="{{ ${/label} }}", font_size=18), None, {},
         font_requirements=requirement,
+    )
+
+
+@pytest.mark.parametrize("language", ["genui", "jsonl", "JSONL", "GENUI"])
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_single_step_extracts_one_envelope_without_changing_dsl(language, newline):
+    source = _standard().replace("\n", newline)
+    raw = f"  ```{language}  {newline}{source}{newline}```  "
+    assert extract_single_step_output(raw) == source
+    assert extract_single_step_output(source) == source
+
+
+@pytest.mark.parametrize("raw", [
+    "```jsonl\n{}", "```json\n{}\n```", "```\n{}\n```",
+    "解释\n```genui\n{}\n```", "```genui\n{}\n```\n解释",
+    "```genui\n{}\n```\n```genui\n{}\n```",
+    "```jsonl\n```genui\n{}\n```\n```",
+])
+def test_single_step_rejects_ambiguous_or_incomplete_envelopes(raw):
+    with pytest.raises(SingleStepOutputError):
+        extract_single_step_output(raw)
+
+
+def test_single_step_extraction_does_not_repair_invalid_json_or_change_strings():
+    assert extract_single_step_output("```jsonl\nnot-json\n```") == "not-json"
+    source = _standard(text="代码标记 ```jsonl 也是正文")
+    assert extract_single_step_output(f"```jsonl\n{source}\n```") == source
+
+
+def test_single_step_extraction_precedes_existing_standard_normalization():
+    source = _standard().replace('"width": "matchParent", "height": "matchParent"',
+                                 '"width": 300, "height": 150')
+    client = A2UIModelClient()
+    profile = {"id": "a2ui-form-rom6.0-v1", "format": "a2ui-form", "singleStepOutput": True}
+    result = client._process_model_output(f"```jsonl\n{source}\n```", profile)
+    assert result == client.convert_dsl(source)
+    update = json.loads(result.splitlines()[1]).get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    styles = components[0].get("styles")
+    assert isinstance(styles, dict)
+    assert styles.get("width") == "matchParent"
+    assert styles.get("height") == "matchParent"
+    with pytest.raises(A2UIModelGenerationError):
+        client._process_model_output("```genui\n{}\n```\n解释", profile)
+
+
+@pytest.mark.parametrize("profile", [
+    {"id": "design-compact-dsl", "format": "compact-dsl"},
+    {"id": "a2ui-form-rom6.0-v1", "format": "a2ui-form"},
+])
+def test_untagged_output_retains_original_extraction(profile):
+    client = A2UIModelClient()
+    raw = f"```jsonl\n{_standard()}\n```"
+    expected = client.extract_genui_payload(raw)
+    if profile.get("format") == "a2ui-form":
+        expected = client.convert_dsl(expected)
+    assert client._process_model_output(raw, profile) == expected
+
+
+@pytest.mark.asyncio
+async def test_five_repairs_then_jsonl_fallback_without_changing_primary(single_step_run):
+    state = single_step_run
+    state.envelope = "jsonl"
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(state.calls) == 8
+    assert all("singleStepOutput" not in profile for profile in state.profiles[:-1])
+    assert state.profiles[-1].get("singleStepOutput") is True
+    actual = [json.loads(line) for line in state.saved[-1][0].genui.splitlines()]
+    assert actual == [json.loads(line) for line in state.standard.splitlines()]
+
+
+@pytest.mark.asyncio
+async def test_edit_repair_also_extracts_jsonl(single_step_run, monkeypatch):
+    state = single_step_run
+    service = WidgetGenerationService()
+    created = await service.generate_widget_card_compact_dsl(_request())
+    assert created.status == GenerationStatus.SUCCESS
+    source = SourceArtifactLoadResult(
+        artifact=state.saved[-1][0], design_token=None, artifact_digest="sha256:source",
+        url_hash="source", read_latency_ms=0.0, parse_latency_ms=0.0, download_mode="mock",
+    )
+    monkeypatch.setattr("services.source_artifact_repository.SourceArtifactRepository.load",
+                        lambda *_args: source)
+    original_repair = A2UIModelClient.generate_repair
+
+    async def repair(client, messages, profile=None, **kwargs):
+        state.standard = _standard(font_size=20)
+        return await original_repair(client, messages, profile, **kwargs)
+
+    monkeypatch.setattr(A2UIModelClient, "generate_repair", repair)
+    state.calls.clear()
+    state.envelope = "jsonl"
+    state.standard = "not-json"
+    response = await service.generate_widget_card_compact_dsl(GenerateWidgetCardRequest(
+        uid="single-step-test", prdVer="11.7.7.331", device={"romVersion": "7.0"},
+        userQuery="仅把标题改为20", sourceArtifactUrl=created.artifactUrl,
+    ))
+    assert response.status == GenerationStatus.SUCCESS
+    assert [call[0] for call in state.calls] == ["generate", "repair"]
+    assert all(call[1] == "a2ui-form" for call in state.calls)
+
+
+@pytest.mark.parametrize("text", [
+    "{{ '地点 ' + ${/label} }}", "{{ ${/label} + ' 地点' }}",
+    "{{ ('地' + '点 ') + (${/label}) }}", "{{ '地点 ' + ${/label} + '（会议）' }}",
+    "{{ '地点' }}", "{{ '地\\u70b9 ' + ${/label} }}",
+])
+def test_literal_labels_in_concatenation_are_visible_at_original_font(text):
+    plan = {"info_required": [{"text": "地点"}]}
+    requirement = [{"text": "地点 ", "fontSize": 14}]
+    assert not standard_plan_coverage_errors(
+        _standard(text=text), plan, {}, font_requirements=requirement,
+    )
+    assert standard_plan_coverage_errors(
+        _standard(text=text, font_size=12), plan, {}, font_requirements=requirement,
+    )
+
+
+@pytest.mark.parametrize("text", [
+    "{{ ${/label} }}", "{{ ${/label} == '地点' }}",
+    "{{ ${/label} ? '地点' : '未知' }}", "{{ size('地点') + ${/label} }}",
+    "{{ '地点' if ${/label} else '' }}", "{{ '地点' * 0 + ${/label} }}",
+])
+def test_labels_in_conditions_or_non_concatenation_are_not_assumed_visible(text):
+    assert standard_plan_coverage_errors(
+        _standard(text=text), {"info_required": [{"text": "地点"}]}, {},
     )

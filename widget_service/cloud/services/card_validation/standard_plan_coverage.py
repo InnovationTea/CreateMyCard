@@ -2,16 +2,20 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 """单步兜底的事实语义交接；不把Compact组件或布局合同施加到标准A2UI。"""
 
+import ast
 import json
 import re
 from typing import Any
 
+from app.logger import logger
 from services.single_step_contract import clean_font_requirements
 
+from .base import expression_body, is_single_wrapped_expression
 from .source_parser import normalize_dsl_text
 
 _VISIBLE_FIELDS = {"Text": "content", "Button": "label", "Checkbox": "label"}
 _PATH = re.compile(r"\$\{(?P<path>/[^}]+)\}")
+_EXPRESSION_ATOM = re.compile(r"'(?:\\.|[^'\\])*'|(?P<binding>\$\{/[^}]+\})")
 
 
 def standard_plan_coverage_errors(
@@ -135,15 +139,58 @@ def _reachable_components(update: dict) -> list[dict]:
 def _collect_visible(value: Any, paths: set[str], literals: list[str]) -> None:
     if isinstance(value, str):
         matches = list(_PATH.finditer(value))
-        if matches:
-            for match in matches:
-                paths.add(match.group("path"))
-        else:
+        for match in matches:
+            paths.add(match.group("path"))
+        if is_single_wrapped_expression(value):
+            literals.extend(_normalize(item) for item in _concatenated_literals(value))
+        elif not matches:
             literals.append(_normalize(value))
     elif isinstance(value, dict):
         path = value.get("path")
         if set(value) == {"path"} and isinstance(path, str):
             paths.add(path)
+
+
+def _concatenated_literals(value: str) -> list[str]:
+    """只收集无条件拼接片段，不把条件/函数内出现的字符串当作可见文本。"""
+    body = expression_body(value)
+    if len(body) > 2048:
+        return []
+    bindings: set[str] = set()
+
+    def replace_binding(match: re.Match) -> str:
+        if match.group("binding") is None:
+            return match.group(0)
+        name = f"__single_step_binding_{len(bindings)}"
+        bindings.add(name)
+        return name
+
+    translated = _EXPRESSION_ATOM.sub(replace_binding, body)
+    try:
+        root = ast.parse(translated, mode="eval").body
+    except (SyntaxError, ValueError, RecursionError) as exc:
+        logger.debug(
+            "Single-step literal coverage skipped unsupported expression: {}", type(exc).__name__
+        )
+        return []
+    pending = [root]
+    literals: list[str] = []
+    segment = ""
+    while pending:
+        node = pending.pop()
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            pending.extend((node.right, node.left))
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            segment += node.value
+        elif isinstance(node, ast.Name) and node.id in bindings:
+            if segment:
+                literals.append(segment)
+                segment = ""
+        else:
+            return []
+    if segment:
+        literals.append(segment)
+    return literals
 
 
 def _event_handler(candidates: Any, action_id: str) -> dict | None:

@@ -34,6 +34,7 @@ from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
 )
+from services.single_step_output import SingleStepOutputError, extract_single_step_output
 
 _MODULE = "[A2UI Model]"
 
@@ -300,7 +301,13 @@ class A2UIModelClient:
         protocol_profile: dict,
     ) -> str:
         """按目标 DSL 格式统一处理各模型后端的原始输出。"""
-        dsl_text = self.extract_genui_payload(raw_output)
+        if protocol_profile.get("singleStepOutput") is True:
+            try:
+                dsl_text = extract_single_step_output(raw_output)
+            except SingleStepOutputError as exc:
+                raise A2UIModelGenerationError(str(exc)) from exc
+        else:
+            dsl_text = self.extract_genui_payload(raw_output)
         if protocol_profile.get("format") == "raw-json":
             logger.info(
                 f"{_MODULE} raw_json_processed backend={self.backend} "
