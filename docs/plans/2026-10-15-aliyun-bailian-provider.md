@@ -42,3 +42,6 @@
 - 使用aliyun_bailian/deepseek-v4.1-flash，关闭thinking；密钥隐藏输入到进程环境，不写入仓库或配置文件。
 - 原版测试test_debug_agent_prefers_official_http_when_api_key_is_configured在PR539上同样失败
   （期望high、实现disable），不属于本次接入回归；该断言未修改。
+- 补充旧部署配置兼容测试：旧配置没有任何aliyun_bailian键时，未选择百炼仍能启动，
+  新增字段显式默认值与default_config.yaml相同。本次对比已冻结为bc6bf79/0df705e；
+  此兼容保护不改变实验使用的已配置参数、生成逻辑或B的运行代码。

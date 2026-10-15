@@ -1,11 +1,15 @@
 """百炼是独立可选通道，不改变原默认配置或共用官方DeepSeek密钥。"""
 
+import importlib.util
 import json
+import sys
+from pathlib import Path
 
 import httpx
 import pytest
 
 from config.config import Settings
+from config.config_helper import ConfigHelper
 from custom.aliyun_bailian_transport import AliyunBailianHttpTransport
 from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelTransportError
@@ -110,6 +114,29 @@ def test_settings_accept_bailian_as_master_and_fallback(monkeypatch: pytest.Monk
     settings = Settings(_env_file=None, openai_fallback_client="aliyun_bailian")
     assert settings.openai_fallback_client == "aliyun_bailian"
     assert settings.aliyun_bailian_model == "deployment-model"
+    assert settings.openai_master_client != "aliyun_bailian"
+
+
+def test_old_deployment_config_can_omit_all_new_bailian_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_get = ConfigHelper.get
+
+    def old_config_get(self, key, default=None):
+        if key.startswith("aliyun_bailian_"):
+            return default
+        return original_get(self, key, default)
+
+    monkeypatch.setattr(ConfigHelper, "get", old_config_get)
+    path = Path(__file__).resolve().parents[1] / "cloud/config/config.py"
+    spec = importlib.util.spec_from_file_location("isolated_bailian_config", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, module)
+    spec.loader.exec_module(module)
+    settings = module.Settings(_env_file=None)
+    assert settings.aliyun_bailian_api_key == ""
+    assert settings.aliyun_bailian_max_tokens == 8192
     assert settings.openai_master_client != "aliyun_bailian"
 
 
