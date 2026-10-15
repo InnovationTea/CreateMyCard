@@ -922,8 +922,12 @@ def _expand_call(
         raise TerselConversionError(
             f"Template params are invalid for {wire_id}/{size}: {errors[0].message}"
         )
-    if wire_id == "BatteryOverviewChargingTemperatureFull@1" and params.get("title") == "":
-        # 本模板将空标题视为未传；模板条件原本只判断参数是否存在。
+    title_fallback_template = (
+        wire_id == "BatteryOverviewChargingTemperatureFull@1"
+        or definition.business_id == "BluetoothDeviceOverview"
+    )
+    if title_fallback_template and params.get("title") == "":
+        # 这些模板将空标题视为未传；模板条件原本只判断参数是否存在。
         params = dict(params)
         params.pop("title", None)
     params = _normalize_template_asset_params(
@@ -5099,7 +5103,7 @@ def _template_value(
     elif value.kind == "interpolation":
         raise TerselConversionError("Template interpolation must be the first Text value.")
     elif value.kind == "expression":
-        resolved_value = _provider_runtime_expression(value, bindings)
+        resolved_value = _provider_runtime_expression(value, bindings, params)
     elif value.kind == "compile-time-conditional":
         resolved_value = _provider_compile_time_conditional(
             value,
@@ -5291,6 +5295,7 @@ def _provider_static_interpolation(
 def _provider_runtime_expression(
     value: TemplateValue,
     bindings: dict[str, str],
+    params: dict[str, Any] | None = None,
 ) -> str:
     parts: list[str] = []
     for item in value.items:
@@ -5299,6 +5304,12 @@ def _provider_runtime_expression(
             if placeholder is None:
                 raise TerselConversionError(f"Template binding is missing: {item.name}")
             parts.append(_a2ui_expression_reference(placeholder))
+            continue
+        if item.kind == "parameter":
+            parameter = params.get(item.name or "") if params is not None else None
+            if not isinstance(parameter, str):
+                raise TerselConversionError("Template Expr props must be strings.")
+            parts.append(_a2ui_expression_string(parameter))
             continue
         if item.kind == "literal" and isinstance(item.value, str):
             parts.append(item.value)
