@@ -23,6 +23,8 @@ ai_widget_data_huashan_enable: false
 enable_default_capability_registry_fallback: true
 enable_default_protocol_profile_fallback: true
 enable_validation_failure_retry: true
+enable_single_step_generation_fallback: false
+enable_single_step_widget_edit: false
 enable_widget_edit: false
 enable_artifact_download_mock: true
 enable_widget_directive_commands: false

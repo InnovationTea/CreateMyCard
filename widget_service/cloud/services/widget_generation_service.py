@@ -46,6 +46,7 @@ from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairAr
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
+from services.card_validation.standard_plan_coverage import standard_plan_coverage_errors
 from services.compact_plan import (
     CompactPlanValidationError,
     compact_plan_omitted_facts,
@@ -84,6 +85,8 @@ from services.protocol_registry import (
 )
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
+from services.single_step_contract import clean_fallback_plan, compact_font_requirements
+from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import (
     SourceArtifactError,
     SourceArtifactLoadResult,
@@ -291,6 +294,7 @@ class WidgetGenerationService:
         try_jsx: bool = False,
         template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
+        single_step_context: dict | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -313,6 +317,15 @@ class WidgetGenerationService:
         request_body = self._request_body_for_artifact(request)
         asset_mapping = dict(settings.asset_src_url_mapping)
         generation_mode = "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
+        is_fusion_generation = (
+            policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            and policy.operation == "generateWidgetCardCompactDsl"
+        )
+        single_step_fallback_enabled = (
+            settings.enable_single_step_generation_fallback
+            and is_fusion_generation
+            and generation_mode == "create"
+        )
         source_load_result = None
         source_url_hash = ""
         previous_design_token = None
@@ -669,7 +682,16 @@ class WidgetGenerationService:
         if needs_model_prompt:
             from services.prompt_builder import PromptBuilder
 
-            if policy.stores_design_token:
+            if policy.single_step:
+                prompt = SingleStepPromptBuilder.build(
+                    task_spec,
+                    protocol_profile,
+                    previous_genui=(
+                        source_load_result.artifact.genui if source_load_result else None
+                    ),
+                    fallback_context=single_step_context,
+                )
+            elif policy.stores_design_token:
                 design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
                     policy.model_profile_id,
                     size=task_spec.size,
@@ -777,6 +799,7 @@ class WidgetGenerationService:
         accepted_compact_plan_warnings: tuple[str, ...] = ()
         compact_agent_messages: list[dict[str, str]] | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
+        first_fusion_source_dsl: str | None = None
         effective_generation_prompt = prompt
 
         async def generate_compact_plan() -> dict:
@@ -1003,7 +1026,11 @@ class WidgetGenerationService:
                             "JSX generation failed without fallback"
                         ) from exc
             logger.info(f"{_MODULE} model_source_generation_started operation={policy.operation}")
-            if policy.operation == "generateWidgetCardCompactDsl" and not model_client.use_mock:
+            uses_compact_plan = (
+                policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                and policy.operation == "generateWidgetCardCompactDsl"
+            )
+            if uses_compact_plan and not model_client.use_mock:
                 if source_fallback_started:
                     trace_phase_outcome("degraded", reason="fallback_to_model")
                 accepted_compact_plan = await generate_compact_plan()
@@ -1024,7 +1051,7 @@ class WidgetGenerationService:
                     details={"compactPlanApplied": True},
                     json_artifacts={"dsl_prompt_final": effective_generation_prompt},
                 )
-            elif policy.operation == "generateWidgetCardCompactDsl":
+            elif uses_compact_plan:
                 if not source_fallback_started:
                     trace_phase("dsl")
                 logger.info(f"{_MODULE} compact_plan_skipped reason=model_mock")
@@ -1130,7 +1157,8 @@ class WidgetGenerationService:
                     and compact_agent_messages is not None
                     else effective_generation_prompt
                 )
-                repair_prompt = PromptBuilder().build_repair(
+                repair_builder = SingleStepPromptBuilder if policy.single_step else PromptBuilder
+                repair_prompt = repair_builder().build_repair(
                     active_prompt,
                     invalid_source_dsl,
                     quality_error_payloads,
@@ -1140,6 +1168,7 @@ class WidgetGenerationService:
                     previous_failures=(
                         quality_repair_failure_history
                         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        or policy.single_step
                         else None
                     ),
                     repair_history=(
@@ -1155,6 +1184,8 @@ class WidgetGenerationService:
                         else {}
                     ),
                 )
+                if policy.single_step:
+                    quality_repair_failure_history.append(quality_error_payloads)
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                     quality_repair_failure_history.append(quality_error_payloads)
                     history_entry: dict[str, Any] = {
@@ -1231,6 +1262,9 @@ class WidgetGenerationService:
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
+            nonlocal first_fusion_source_dsl
+            if single_step_fallback_enabled and first_fusion_source_dsl is None:
+                first_fusion_source_dsl = source_dsl
             if task_spec.size == "2x2" and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                 from services.compact_composition_context import retain_original_small_display_roles
 
@@ -1343,7 +1377,7 @@ class WidgetGenerationService:
                     latest_processing_result,
                 )
                 return conversion_errors
-            if not settings.enable_artifact_validation:
+            if not settings.enable_artifact_validation and not policy.single_step:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=enable_artifact_validation_false"
@@ -1400,6 +1434,14 @@ class WidgetGenerationService:
             artifact_validator = ArtifactValidator(asset_mapper.mapping)
             artifact_validation_started_at = time.perf_counter()
             validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            if policy.single_step and single_step_context is not None and not validation_errors:
+                coverage_errors = standard_plan_coverage_errors(
+                    standard_dsl,
+                    single_step_context.get("acceptedPlan"),
+                    processing_context.task_spec,
+                    font_requirements=single_step_context.get("fontRequirements"),
+                )
+                validation_errors.extend(coverage_errors)
             if validation_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
             validation_prompt_contexts = getattr(
@@ -1485,15 +1527,21 @@ class WidgetGenerationService:
                 trace_phase_outcome("failed" if errors else "success", errorCount=len(errors))
                 return errors
 
+        repair_limit = settings.validation_failure_max_repair_attempts
         retry_on_validation_failure = (
             settings.enable_validation_failure_retry and needs_model_prompt
         )
+        if policy.quality_repair_limit is not None:
+            retry_on_validation_failure = retry_on_validation_failure and (
+                policy.quality_repair_limit > 0
+            )
+            repair_limit = max(1, policy.quality_repair_limit)
         try:
             retry_result = await retry_controller.run(
                 generate_source_dsl,
                 evaluate_source_dsl,
                 retry_on_quality_failure=retry_on_validation_failure,
-                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                max_repair_attempts=repair_limit,
                 repair=repair_source_dsl,
             )
         except A2UIModelGenerationError as exc:
@@ -1567,6 +1615,45 @@ class WidgetGenerationService:
         conversion_failed = not genui.strip()
         validation_failed_blocking = policy.validation_failure_blocking and bool(errors)
         if conversion_failed or validation_failed_blocking:
+            use_single_step_fallback = (
+                single_step_fallback_enabled
+                and retry_on_validation_failure
+                and retry_result.retryCount >= 5
+            )
+            if use_single_step_fallback:
+                fonts, font_warnings = compact_font_requirements(
+                    first_fusion_source_dsl or "", size=task_spec.size,
+                    task_spec=processing_context.task_spec,
+                )
+                fallback_context = {
+                    "acceptedPlan": clean_fallback_plan(accepted_compact_plan),
+                    "fontRequirements": fonts,
+                }
+                trace_step(
+                    "single_step.fallback.started",
+                    stage="singleStepFallback",
+                    status="started",
+                    details={
+                        "primaryRepairCount": retry_result.retryCount,
+                        "maxLogicalGenerations": 1,
+                        "fontContractWarnings": font_warnings,
+                    },
+                    json_artifacts={"single_step_fallback_context": fallback_context},
+                    text_artifacts={"single_step_failed_compact_source": source_dsl},
+                )
+                fallback_response = await self._generate_widget_card_with_policy(
+                    request,
+                    self._single_step_policy(policy, is_edit=False),
+                    before_model_call=before_model_call,
+                    single_step_context=fallback_context,
+                )
+                trace_record(
+                    "single_step.fallback.completed",
+                    stage="singleStepFallback",
+                    status=fallback_response.status.value,
+                    details={"errorCode": fallback_response.errorCode},
+                )
+                return fallback_response
             failure_category = "conversion" if conversion_failed else "validation"
             logger.error(
                 f"{_MODULE} strict_generation_validation_failed "
@@ -2003,7 +2090,10 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        if "sourceArtifactUrl" in request.model_fields_set:
+        if (
+            "sourceArtifactUrl" in request.model_fields_set
+            and not get_settings().enable_single_step_widget_edit
+        ):
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
                 suggestSize=request.size or DEFAULT_WIDGET_SIZE,
@@ -2032,8 +2122,21 @@ class WidgetGenerationService:
         try_jsx: bool = False,
         template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
+        single_step_context: dict | None = None,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定路由对应的协议 profile。"""
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
+        if is_edit and get_settings().enable_single_step_widget_edit:
+            policy = self._single_step_policy(policy, is_edit=True)
+            try_jsx = False
+            template_source_generator = None
+            need_fallback = True
+            trace_record(
+                "single_step.edit.selected", stage="singleStepEdit", status="success"
+            )
+        extra_context = {}
+        if single_step_context is not None:
+            extra_context["single_step_context"] = single_step_context
         unsupported_response = self._policy_unsupported_response(request, policy)
         if unsupported_response is not None:
             return unsupported_response
@@ -2050,6 +2153,7 @@ class WidgetGenerationService:
                 before_model_call=before_model_call,
                 try_jsx=try_jsx,
                 need_fallback=need_fallback,
+                **extra_context,
             )
         template_source_generator.processor_kind = policy.processor_kind
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
@@ -2067,6 +2171,25 @@ class WidgetGenerationService:
             try_jsx=try_jsx,
             template_source_generator=template_source_generator,
             need_fallback=need_fallback,
+            **extra_context,
+        )
+
+    @staticmethod
+    def _single_step_policy(
+        policy: GenerationRoutePolicy, *, is_edit: bool,
+    ) -> GenerationRoutePolicy:
+        """保留后端和实际协议，仅将生成表示切换为独立标准A2UI。"""
+        return replace(
+            policy,
+            processor_kind=DslProcessorKind.STANDARD_A2UI,
+            source_format="a2ui-form",
+            model_profile_id=policy.protocol_profile_id,
+            model_format="a2ui-form",
+            design_profile_id=None,
+            validation_failure_blocking=True,
+            stores_design_token=False,
+            single_step=True,
+            quality_repair_limit=None if is_edit else 0,
         )
 
     @staticmethod
