@@ -152,6 +152,10 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     monkeypatch.setattr(service_module, "get_dsl_processor", lambda _kind: SimpleNamespace(
         process=process,
     ))
+    # 此测试隔离编排，处理器返回的是来源标记而非真实 DSL。
+    monkeypatch.setattr(
+        service_module, "serialize_compact_dsl_source", lambda source, **_kwargs: source,
+    )
     monkeypatch.setattr(AssetUrlMapper, "rewrite_standard", rewrite)
     monkeypatch.setattr(service_module.ArtifactValidator, "validate", validate)
     monkeypatch.setattr(service_module, "JsxA2UIBridge", unexpected_jsx)

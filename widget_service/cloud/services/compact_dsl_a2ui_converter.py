@@ -57,6 +57,7 @@ from services.fusion_ball_expander import (
     expand_fusion_ball_components,
     fusion_ball_palette_for_root,
 )
+from services.theme_style_roles import in_layout_phase, property_role
 
 ThemeMode = Literal["light", "dark"]
 
@@ -515,6 +516,8 @@ def _is_formal_split_panel_root(
             return False
         if props.get("borderRadius") != 16 or props.get("clip") is not True:
             return False
+        if in_layout_phase() and props.get("surfaceRole") == "panel":
+            continue
         if props.get("backgroundColor") != "#99FFFFFF":
             return False
     return True
@@ -1977,6 +1980,8 @@ def _resolve_tokens(
     if not isinstance(value, str):
         return value
     if property_name in _COLOR_PROPERTIES:
+        if in_layout_phase():
+            return property_role(property_name, value)
         return _COLOR_TOKENS.get(value, value)
     return value
 
@@ -2134,6 +2139,10 @@ def _normalize_text_component(styles: dict[str, Any]) -> None:
 def _normalize_root_component(styles: dict[str, Any]) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
+    if in_layout_phase():
+        styles.pop("backgroundColor", None)
+        styles.pop("linearGradient", None)
+        return
     if not any(name in styles for name in ("linearGradient", "backgroundColor", "backgroundImage")):
         styles["backgroundColor"] = _DEFAULT_ROOT_BACKGROUND
 

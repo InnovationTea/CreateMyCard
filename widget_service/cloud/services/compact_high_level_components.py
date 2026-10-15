@@ -18,6 +18,14 @@ from services.compact_component_runtime import (
     secondary_body_text_width,
     visual_recipe_part,
 )
+from services.theme_style_roles import (
+    alpha_role,
+    component_roles,
+    in_layout_phase,
+    is_role,
+    native_asset,
+    role,
+)
 
 
 class CompactDslConversionError(ValueError):
@@ -81,6 +89,11 @@ def apply_system_component_colors(
     """Inject runtime-owned color roles before validating and expanding components."""
     resolved: list[ComponentRow] = []
     for component in components:
+        if in_layout_phase():
+            component = ComponentRow(
+                component.component_id, component.component_type,
+                component_roles(component.component_type, component.props), component.children,
+            )
         font_role = _SYSTEM_FONT_ROLE_BY_COMPONENT.get(component.component_type)
         icon_role = _SYSTEM_ICON_ROLE_BY_COMPONENT.get(component.component_type)
         if font_role is None and icon_role is None:
@@ -108,6 +121,8 @@ def apply_system_component_colors(
 
 def _system_palette_color(palette: dict[str, str], role: str) -> str:
     color = palette.get(role)
+    if in_layout_phase() and is_role(color):
+        return color
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
         raise CompactDslConversionError(f"System palette role {role} must use #AARRGGBB.")
     return color
@@ -298,6 +313,11 @@ def expand_high_level_component_rows(
         if expander is not None:
             rows = _allocate_expanded_ids(component, rows, existing_ids | generated_ids)
         for index, row in enumerate(rows):
+            if in_layout_phase() and row.component_type == "Image":
+                if native_asset(row.props.get("src")):
+                    props = dict(row.props)
+                    props.pop("fillColor", None)
+                    row = ComponentRow(row.component_id, row.component_type, props, row.children)
             is_original_root = index == 0 and row.component_id == component.component_id
             if not is_original_root and row.component_id in existing_ids:
                 raise CompactDslConversionError(
@@ -408,7 +428,7 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
     fill_color = header.props.get("fillColor")
     if fill_color is not None and not has_icon:
         raise CompactDslConversionError("SingleLineTitle.fillColor requires icon.")
-    if "fillColor" in header.props:
+    if "fillColor" in header.props and not (in_layout_phase() and is_role(fill_color)):
         if not isinstance(fill_color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
             raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
     if has_icon:
@@ -423,8 +443,9 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
             f"SingleLineTitle.height must be {expected_height} when provided."
         )
     color = header.props.get("fontColor")
-    if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
-        raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
+    if not (in_layout_phase() and is_role(color)):
+        if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
+            raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
     generated_ids = {f"{header.component_id}_title"}
     if has_icon:
         generated_ids.add(f"{header.component_id}_icon")
@@ -2619,7 +2640,7 @@ def _event_card_item_rows(
             variant=variant,
             props={
                 "borderColor": component.props["fontColor"],
-                "backgroundColor": "#00FFFFFF",
+                "backgroundColor": role("transparent") if in_layout_phase() else "#00FFFFFF",
                 "alignContent": "center",
             },
         ),
@@ -3156,6 +3177,8 @@ def _require_string_display_value(component: ComponentRow, name: str) -> None:
 
 def _require_color(component: ComponentRow, name: str) -> None:
     value = component.props.get(name)
+    if in_layout_phase() and is_role(value):
+        return
     if isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{8}", value):
         return
     raise CompactDslConversionError(
@@ -3164,6 +3187,8 @@ def _require_color(component: ComponentRow, name: str) -> None:
 
 
 def _color_with_alpha(color: str, opacity: float) -> str:
+    if in_layout_phase() and is_role(color):
+        return alpha_role(color, opacity)
     alpha = round(int(color[1:3], 16) * opacity)
     return f"#{alpha:02X}{color[3:]}"
 

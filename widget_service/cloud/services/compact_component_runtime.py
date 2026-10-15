@@ -12,6 +12,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from services.theme_style_roles import in_layout_phase, recipe_roles, role
+
 VISUAL_RECIPE_VERSION = "visual-recipes-v1"
 _CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
@@ -66,6 +68,8 @@ def resolve_card_color_palette(
     fusion_ball_active: bool = False,
 ) -> dict[str, str]:
     """Resolve semantic content-color roles from the authored root surface."""
+    if in_layout_phase():
+        return {name: role(name) for name in _PALETTE_ROLES}
     palettes = _load_contract()["palettes"]
     if fusion_ball_active:
         return _palette_roles(palettes, "fusionDark")
@@ -120,7 +124,7 @@ def component_visual_recipe(
                 f"Visual recipe variant {variant} is not registered for {component_name}."
             )
         resolved = _deep_merge(resolved, variant_recipe)
-    return resolved
+    return recipe_roles(component_name, resolved) if in_layout_phase() else resolved
 
 
 def secondary_body_variant(items: list[dict[str, Any]], columns: int = 2) -> str | None:

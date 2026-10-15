@@ -1,5 +1,12 @@
 # 蓝区默认配置。绿区 spec 配置存在时，只读取 spec，不与本文件合并。
 ENVIRONMENT: local
+enable_post_layout_theme: false
+enable_photo_background_theme: false
+enable_subjectless_wide_theme: false
+subjectless_wide_sample_rate: 0.10
+enable_square_music_photo_expansion: false
+enable_square_photo_expansion: false
+square_photo_expansion_sample_rate: 0.10
 
 hag_slb_url: ""
 osms_prepare_url: ""

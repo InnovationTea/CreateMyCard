@@ -81,6 +81,7 @@ class DslProcessingContext:
     allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
     plan_information_coverage_as_warning: bool = False
     repair_context: RepairGuidanceContext | None = None
+    colorless_layout: bool = False
 
 
 @dataclass(frozen=True)
@@ -160,9 +161,25 @@ class DesignCompactProcessor:
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
+        from config.config import get_settings
+        from services.theme_style_roles import layout_phase
+
+        enabled = get_settings().enable_post_layout_theme and context.colorless_layout
+        with layout_phase(enabled, context.task_spec):
+            return self._process(source_dsl, context)
+
+    def _process(
+        self, source_dsl: str, context: DslProcessingContext,
+    ) -> DslProcessingResult:
         binding_repair_started_at = time.perf_counter()
+        from services.layout_theme_contract import strip_source_colors
+        from services.theme_style_roles import in_layout_phase
+
         original_source_dsl = source_dsl
         try:
+            if in_layout_phase():
+                source_dsl = strip_source_colors(source_dsl)
+                original_source_dsl = source_dsl
             source_dsl = repair_compact_dsl_safe_structure(
                 source_dsl,
                 size=context.size,

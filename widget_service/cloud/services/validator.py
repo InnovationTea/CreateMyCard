@@ -8,11 +8,20 @@ from config.config import get_settings
 from models.artifact import WidgetArtifact
 from services.card_validation import ValidationOptions, validate_card
 from services.card_validation.diagnostics import Diagnostic
+from services.card_validation.theme_phase_validator import theme_phase_errors
+from services.theme_style_roles import in_layout_phase
 
 _MODULE = "[Validator]"
 
 
 class ArtifactValidator:
+    def validate_layout(self, artifact: WidgetArtifact, protocol_profile: dict) -> list[str]:
+        """内部定稿门禁：保留结构、能力和语义检查，不提前解析色值。"""
+        from services.theme_style_roles import layout_phase
+
+        with layout_phase():
+            return self.validate(artifact, protocol_profile)
+
     def __init__(self, asset_src_url_mapping: dict[str, str] | None = None) -> None:
         self.error_categories: list[str] = []
         self.error_prompt_contexts: list[dict[str, Any]] = []
@@ -42,6 +51,10 @@ class ArtifactValidator:
         )
         self.error_categories = []
         self.error_prompt_contexts = []
+        phase_errors = theme_phase_errors(artifact.genui, layout=in_layout_phase())
+        if phase_errors:
+            self.error_categories = ["THEME_PHASE"]
+            return phase_errors
         try:
             settings = get_settings()
             reporter = validate_card(

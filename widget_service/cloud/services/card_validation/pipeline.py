@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import logging
 
+from services.theme_style_roles import in_layout_phase
+
 from .aesthetic_baseline_validator import AestheticBaselineValidator
 from .asset_validator import AssetValidator
 from .binding_validator import BindingValidator
@@ -75,6 +77,8 @@ def run_pipeline(
 ) -> None:
     validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS) + list(QUALITY_VALIDATORS)
     for current_stage in selected_stages(stage):
+        if current_stage == "quality" and in_layout_phase():
+            continue
         if stop_on_stage_error and current_stage == "semantic" and reporter.has_error("hard"):
             return
         if stop_on_stage_error and current_stage == "quality" and reporter.error_count:

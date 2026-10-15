@@ -11,11 +11,14 @@ from services.card_validation.compact_validation.semantic.asset_references impor
     task_asset_candidates,
 )
 from services.compact_dsl_a2ui_converter import ComponentRow
+from services.theme_style_roles import in_layout_phase
 
 
 def _collect_asset_color_errors(
     components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str]
 ) -> None:
+    if in_layout_phase():
+        return
     candidates = task_asset_candidates(task_spec)
     if candidates is None:
         return

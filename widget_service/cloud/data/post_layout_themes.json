@@ -1,0 +1,360 @@
+{
+  "version": 1,
+  "matching": {
+    "dynamicTextReservation": {
+      "mode": "contract-or-estimated"
+    }
+  },
+  "photos": [
+    {
+      "id": "photo-rain-ink-square",
+      "size": "2x2",
+      "business": "rain",
+      "subjectPosition": "右上",
+      "subjectBounds": [
+        0.46,
+        0.08,
+        0.54,
+        0.6
+      ],
+      "subjectRegions": [
+        [
+          0.9,
+          0.08,
+          0.1,
+          0.1
+        ],
+        [
+          0.8,
+          0.18,
+          0.2,
+          0.1
+        ],
+        [
+          0.7,
+          0.28,
+          0.3,
+          0.1
+        ],
+        [
+          0.6,
+          0.38,
+          0.4,
+          0.1
+        ],
+        [
+          0.51,
+          0.48,
+          0.49,
+          0.1
+        ],
+        [
+          0.46,
+          0.58,
+          0.54,
+          0.1
+        ]
+      ],
+      "description": "恢复原始右上大雨伞，伞面与伞骨以分段区域标注为禁放主体；左侧及底部深色雨幕可放内容，雨丝水滴是背景纹理，底部文字绘制在图片上方。固定构图禁止运行时移动。",
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_rain_ink_top_right_square.jpg",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    },
+    {
+      "id": "photo-sunflower-blue",
+      "size": "2x2",
+      "business": "weather",
+      "subjectPosition": "右上",
+      "subjectBounds": [
+        0.31,
+        0.1,
+        0.69,
+        0.69
+      ],
+      "subjectRegions": [
+        [
+          0.67,
+          0.1,
+          0.29,
+          0.1
+        ],
+        [
+          0.61,
+          0.2,
+          0.37,
+          0.07
+        ],
+        [
+          0.57,
+          0.27,
+          0.43,
+          0.08
+        ],
+        [
+          0.52,
+          0.35,
+          0.48,
+          0.07
+        ],
+        [
+          0.4,
+          0.42,
+          0.6,
+          0.105
+        ],
+        [
+          0.38,
+          0.525,
+          0.62,
+          0.025
+        ],
+        [
+          0.35,
+          0.55,
+          0.65,
+          0.03
+        ],
+        [
+          0.31,
+          0.58,
+          0.69,
+          0.06
+        ],
+        [
+          0.31,
+          0.64,
+          0.42,
+          0.045
+        ],
+        [
+          0.39,
+          0.685,
+          0.31,
+          0.025
+        ],
+        [
+          0.91,
+          0.64,
+          0.09,
+          0.08
+        ],
+        [
+          0.39,
+          0.71,
+          0.31,
+          0.04
+        ],
+        [
+          0.5,
+          0.75,
+          0.06,
+          0.04
+        ]
+      ],
+      "description": "用户确认的斜向缩小向日葵，花朵由右上伸向中下部；花瓣、花盘、茎叶按分段主体区域避让，外接矩形不是整块禁放。左侧及底部蓝天可放白字，右下保留图标按钮空位；胶囊整体豁免，图标按钮内容仍正常校验。纯背景不含文字和按钮，运行时不移动构图。",
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_sunflower_diagonal_clear_button_v5.jpg",
+      "objectFit": "fill",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    },
+    {
+      "id": "photo-vinyl-dark-square",
+      "size": "2x2",
+      "business": "music",
+      "subjectPosition": "右",
+      "subjectBounds": [
+        0.59,
+        0.24,
+        0.41,
+        0.76
+      ],
+      "description": "右侧唱盘与唱臂整体为禁放主体，顶部和左侧为深色底，融球白色字系。胶囊按钮整体按既定规则豁免。",
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_vinyl_right_v3.jpg",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    },
+    {
+      "id": "photo-balloon-sky",
+      "size": "2x2",
+      "business": "countdown",
+      "subjectPosition": "右上",
+      "subjectBounds": [
+        0.52,
+        0.07,
+        0.42,
+        0.53
+      ],
+      "description": "右上热气球与吊篮，主体区域禁放正文；左侧和底部为蓝灰天空，融球白色字系。构图已烘焙，禁止运行时移动或裁剪。",
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_balloon_topright_v4.jpg",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    }
+  ],
+  "subjectlessWidePhotos": [
+    {
+      "id": "photo-subjectless-w04",
+      "size": "2x4",
+      "business": "weather",
+      "composition": "subjectless",
+      "description": "W04 蓝色薄云纹，中深色低对比无主体底图，适合融球白字层级；全画布内容可覆盖，不改变布局。",
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_subjectless_w04_white_text_v2.jpg",
+      "objectFit": "fill",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    },
+    {
+      "id": "photo-subjectless-b05",
+      "size": "2x4",
+      "business": "battery",
+      "composition": "subjectless",
+      "description": "B05 原版青绿纹理，按用户截图恢复；手机电量业务无主体底图，沿用融球白字层级与白色20%底托，不改变布局。",
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_subjectless_b05.jpg",
+      "objectFit": "fill",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    },
+    {
+      "id": "photo-subjectless-h04",
+      "size": "2x4",
+      "business": "sleep",
+      "composition": "subjectless",
+      "description": "H04 睡眠静紫，无主体纹理，全画布内容可覆盖，不改变布局。",
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_subjectless_h04.jpg",
+      "objectFit": "fill",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    }
+  ],
+  "squareExpansions": [
+    {
+      "id": "photo-music-square-to-wide",
+      "kind": "photo",
+      "sourceSize": "2x2",
+      "size": "2x4",
+      "business": "music",
+      "composition": "square-left",
+      "description": "原2x2音乐内容完整放左半区，右半区为墨镜人物；不移动原内容，不新增数据。",
+      "subjectPosition": "右",
+      "subjectBounds": [
+        0.53,
+        0,
+        0.47,
+        1
+      ],
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_expansion_music_right_v1.jpg",
+      "objectFit": "fill",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    },
+    {
+      "id": "photo-countdown-square-to-wide",
+      "kind": "photo",
+      "sourceSize": "2x2",
+      "size": "2x4",
+      "business": "countdown",
+      "composition": "square-left",
+      "description": "原2x2倒计时内容完整放左半区，右半区为小鸟与树枝；左右各半，背景允许少量拉伸，不裁切或移动主体。",
+      "subjectPosition": "右",
+      "subjectBounds": [
+        0.5,
+        0,
+        0.5,
+        1
+      ],
+      "contentTone": "light",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_expansion_countdown_right_v1.jpg",
+      "objectFit": "fill",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    },
+    {
+      "id": "photo-sleep-square-to-wide",
+      "kind": "photo",
+      "sourceSize": "2x2",
+      "size": "2x4",
+      "business": "sleep",
+      "composition": "square-left",
+      "description": "原2x2睡眠内容完整放左半区，右半区为月亮；左右各半，背景允许少量拉伸，不裁切或移动主体。",
+      "subjectPosition": "右",
+      "subjectBounds": [
+        0.53,
+        0,
+        0.47,
+        1
+      ],
+      "contentTone": "dark",
+      "palette": "fusionDark",
+      "src": "resources/base/media/bg_expansion_sleep_right_v1.jpg",
+      "objectFit": "fill",
+      "frame": {
+        "slotWidth": 1,
+        "slotHeight": 1,
+        "imageWidth": 1,
+        "imageHeight": 1,
+        "align": "topStart"
+      }
+    }
+  ]
+}
