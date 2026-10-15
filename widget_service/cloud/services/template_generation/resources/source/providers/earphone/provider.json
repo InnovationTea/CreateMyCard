@@ -13,8 +13,8 @@
       "capabilityId": "GetEarphoneInfo",
       "dataDomain": "/data/earphone",
       "dataSchema": {
-        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
-        "version": "app-11.7.5.205_rom-6.0"
+        "path": "capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json",
+        "version": "app-11.7.7.300_rom-7.0"
       }
     }
   ],
@@ -116,7 +116,8 @@
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
       "supportedEventIds": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth",
+        "event.setBluetoothMode"
       ],
       "assetParameterSemanticTags": {
         "deviceIcon": [
@@ -159,7 +160,8 @@
         ]
       },
       "supportedEventIds": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth",
+        "event.setBluetoothMode"
       ]
     },
     {
@@ -183,13 +185,15 @@
         ]
       },
       "supportedEventIds": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth",
+        "event.setBluetoothMode"
       ]
     },
     {
       "templateId": "BluetoothDeviceOverviewConnectionSupport@1",
       "supportedEventIds": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth",
+        "event.setBluetoothMode"
       ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
@@ -211,7 +215,8 @@
     {
       "templateId": "BluetoothDeviceOverviewChargeSupport@1",
       "supportedEventIds": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth",
+        "event.setBluetoothMode"
       ],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",

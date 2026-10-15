@@ -80,7 +80,6 @@ from services.template_generation.engine.cardplan.compiler import (
     _apply_template_background,
     _apply_theme_content_color,
     _compile_ux_layout_shell,
-    _inject_resource_battery_title,
     _instantiate_blueprint,
     _lower_action_template_tree,
     _provider_layout_action_background,
@@ -282,7 +281,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 253
+    assert len(registry.provider_template_ids) == 250
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -330,7 +329,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "CountdownOverviewHero@1",
         "HeartRateOverviewFull@1",
         "HeartRateOverviewMinMaxFull@1",
-        "ResourceUsageOverviewFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewDatedAllDayHero@1",
         "ScheduleOverviewDateFull@1",
@@ -394,7 +392,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "earphone",
         "health-sport",
         "layout",
-        "system-memory",
         "weather",
     }
     provider_sources = tuple((registry.source_root / "providers").glob("*/templates/*.cardtpl"))
@@ -1249,7 +1246,7 @@ def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
     source_root = tmp_path / "source"
     bundled_source_root = get_cardplan_registry().source_root
     shutil.copytree(bundled_source_root, source_root)
-    rule_path = source_root / "themes/device-clean-blue-teal/first-layer.md"
+    rule_path = source_root / "themes/meeting-paper-neutral/first-layer.md"
     rule_path.write_text(
         rule_path.read_text(encoding="utf-8") + "\n<!-- local update -->\n",
         encoding="utf-8",
@@ -1257,7 +1254,7 @@ def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
 
     registry = CardPlanRegistry(source_root=source_root)
 
-    assert registry.require_theme("device-clean-blue-teal") is not None
+    assert registry.require_theme("meeting-paper-neutral") is not None
     assert "files" not in registry.manifest
     assert "promptSha256" not in registry.manifest
 
@@ -1283,7 +1280,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert "layoutComponents" not in theme_base
     assert provider_business_groups == set(registry.ux_business_components)
     assert provider_layout_components == set(registry.ux_layout_components)
-    assert len(registry.ux_business_component_provider_ids) == 11
+    assert len(registry.ux_business_component_provider_ids) == 10
     calendar = registry.require_ux_business_component("CalendarOverview")
     assert len(calendar.local_template_ids) == 51
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
@@ -1320,7 +1317,6 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
         "audio-product-neutral-violet",
         "battery-device-green",
         "2x2-two-support",
-        "device-clean-blue-teal",
         "family-weather-care-blue",
         "fusion-battery-teal",
         "fusion-schedule-cool",
@@ -1464,7 +1460,7 @@ def test_search_layout_action_rule_omits_legacy_two_support_instruction() -> Non
 def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
     registry = get_cardplan_registry()
     contract = HybridBodyContract.model_construct(
-        theme_profile_id="device-clean-blue-teal",
+        theme_profile_id="meeting-paper-neutral",
         allowed_layout_component_ids=("SingleFocusLayout",),
     )
     action = Nested2Node(
@@ -1509,22 +1505,22 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
     root_options = root.values[-1]
     default_text, explicit_text, image, progress, button, styled_action = styled.children
 
-    assert root_options["backgroundColor"] == "#FFFFFFFF"
+    assert root_options["backgroundColor"] == "#FFE5EDFE"
     assert root_options["padding"] == 12
     template_root = root.children[0]
     assert template_root.component_type == styled.component_type
     assert template_root.children == styled.children
     assert template_root.values[-1]["_id"] == "template_root"
-    assert default_text.values[-1]["fontColor"] == "#E6000000"
+    assert default_text.values[-1]["fontColor"] == "#FF1F4799"
     assert explicit_text.values[-1]["fontColor"] == "#FF123456"
     assert image.values[-1]["fillColor"] == "#FF654321"
     assert progress.values[-1]["color"] == "#FFABCDEF"
-    assert button.values[-1]["fontColor"] == "#E6000000"
+    assert button.values[-1]["fontColor"] == "#FF1F4799"
     styled_action_options = styled_action.values[-1]
     assert isinstance(styled_action_options, dict)
     assert "fontColor" not in styled_action_options
 
-    action_style = registry.require_theme("device-clean-blue-teal").action_style
+    action_style = registry.require_theme("meeting-paper-neutral").action_style
     assert action_style is not None
     action_template = Nested2Node("PillAction", (), (action,))
     lowered_action = _lower_action_template_tree(
@@ -1697,7 +1693,7 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
             "schedule-cool",
             FusionBallPalette("#FF1F3399", "#FF2385B3", "#FF24B3B3"),
         ),
-        ("device-clean-blue-teal", None, None),
+        ("meeting-paper-neutral", None, None),
     ],
 )
 def test_fusion_ball_palette_is_gated_by_selected_theme(
@@ -1829,24 +1825,6 @@ def test_non_fusion_event_countdown_theme_uses_the_reviewed_solid_palette() -> N
     assert theme.action_style.background_color == "#3399521F"
 
 
-def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
-    theme = get_cardplan_registry().require_theme("device-clean-blue-teal")
-
-    assert theme.supported_capability_ids == (
-        "GetSystemMemInfo",
-    )
-    assert theme.primary_color == "#E6000000"
-    assert theme.support_content_color == "#99000000"
-    assert theme.progress_color == "#FFF9A01E"
-    assert theme.root_style["backgroundColor"] == "#FFFFFFFF"
-    assert theme.root_style["linearGradient"]["colors"] == [
-        ["#1AF9A01E", 0],
-        ["#00FFFFFF", 1],
-    ]
-    assert theme.action_style.content_color == "#FF0A59F7"
-    assert theme.action_style.background_color == "#1A0A59F7"
-
-
 def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> None:
     enabled_registry = get_cardplan_registry(True)
     disabled_registry = get_cardplan_registry(False)
@@ -1862,7 +1840,6 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
         "2x2-two-support",
         "audio-product-neutral-violet",
         "battery-device-green",
-        "device-clean-blue-teal",
         "family-weather-care-blue",
         "meeting-paper-neutral",
         "race-night-violet",
@@ -2119,7 +2096,7 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
         (Nested2Node("Text", ("会议", "body"), ()),),
     )
     contract = HybridBodyContract.model_construct(
-        theme_profile_id="device-clean-blue-teal"
+        theme_profile_id="meeting-paper-neutral"
     )
 
     decorated = _apply_template_background(
@@ -3319,7 +3296,7 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
     progress_count = 0
     ring_icon_count = 0
 
-    for provider_name in ("battery", "system-memory"):
+    for provider_name in ("battery",):
         bundle = load_provider_bundle(providers_root / provider_name)
         for definition in bundle.templates:
             root = definition.variants[0].root
@@ -3337,8 +3314,8 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 17
-    assert ring_icon_count == 18
+    assert progress_count == 14
+    assert ring_icon_count == 15
 
 
 def test_battery_ring_progress_uses_dedicated_track_theme_color() -> None:
@@ -3442,16 +3419,6 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         "Stack",
         "Column",
     ]
-
-    resource_peer = registry.require_variant(
-        "ResourceUsageOverviewCompact@1",
-        "default",
-    ).root
-    assert _template_node_options(resource_peer)["justifyContent"] == "end"
-    assert _template_node_options(_template_nodes(resource_peer, "Image")[0])["width"] == 20
-    percent_row = resource_peer.children[1]
-    assert _template_node_options(percent_row.children[0])["fontWeight"] == 700
-    assert not _template_nodes(resource_peer.children[0], "Text")
 
     activity = registry.require_variant("ActivityOverviewFull@1", "default").root
     activity_text_options = [
@@ -3634,7 +3601,6 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
         "CalendarOverview": "ScheduleOverviewTimeSupport@1",
         "CountdownOverview": "CountdownOverviewTravelSupport@1",
         "HeartRateOverview": "HeartRateOverviewSupport@1",
-        "ResourceUsageOverview": "ResourceUsageOverviewSupport@1",
         "SleepOverview": "SleepOverviewSupport@1",
         "WeatherOverview": "WeatherOverviewTemperatureSupport@1",
         "WorkoutOverview": "WorkoutOverviewSupport@1",
@@ -4309,46 +4275,6 @@ def test_calendar_event_count_details_template_is_advertised() -> None:
         "/events/0/dtStart",
         "/events/0/description",
     )
-
-
-def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
-    registry = get_cardplan_registry()
-    contract = HybridBodyContract(
-        theme_profile_id="fusion-battery-teal",
-        allowed_components=(),
-        allowed_design_tokens=(),
-        allowed_layout_tokens=(),
-        allowed_template_ids=(
-            "BatteryOverviewCompact@1",
-            "ResourceUsageOverviewCompact@1",
-        ),
-        required_template_groups=(
-            ("BatteryOverviewCompact@1",),
-            ("ResourceUsageOverviewCompact@1",),
-        ),
-        allowed_asset_sources=(),
-        trusted_literals=("设备资源",),
-        trusted_numbers=(),
-        required_literals=(),
-        protected_literals=(),
-        limits=HybridLimits(
-            max_raw_components=8,
-            max_expanded_components=64,
-            max_nesting_depth=8,
-            vertical_budget_vp=128,
-        ),
-    )
-    result = _inject_resource_battery_title(
-        Nested2Node("Row", ("between", {}), ()),
-        "设备资源",
-        contract,
-        registry,
-        size="2x2",
-    )
-
-    title_options = result.children[0].values[2]
-    assert title_options["fontWeight"] == 400
-    assert title_options["fontColor"] == "#99182431"
 
 
 @pytest.mark.asyncio
@@ -6473,7 +6399,7 @@ async def test_second_layer_invalid_direct_calls_are_retried_exactly_twice() -> 
     class InvalidDirectCallModel(_FixedTemplateModel):
         def __init__(self) -> None:
             super().__init__(
-                theme_id="device-clean-blue-teal",
+                theme_id="meeting-paper-neutral",
                 component_id="BatteryOverview",
                 available_template_ids=("BatteryOverviewFull@1",),
                 capability_id="GetPhoneBatteryInfo",

@@ -13,8 +13,8 @@
       "capabilityId": "GetPhoneBatteryInfo",
       "dataDomain": "/data/phoneBattery",
       "dataSchema": {
-        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
-        "version": "app-11.7.5.205_rom-6.0"
+        "path": "capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json",
+        "version": "app-11.7.7.300_rom-7.0"
       }
     }
   ],

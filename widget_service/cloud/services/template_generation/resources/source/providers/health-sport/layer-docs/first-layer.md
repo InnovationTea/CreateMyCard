@@ -38,3 +38,10 @@
 - 支持 2x4 完整作息；不支持阶段、目标、趋势或建议。
 
 根据 `userQuery` 判断出的任一必须显示字段不能由所选一个或多个组件的支持路径完整覆盖时，不得选择模板路线。
+
+## 健康关联动作
+
+活动 Support 可打开 `event.open.health.activityRecord`；训练和运动心率模板可打开
+`event.open.health.sportsRecord`；已声明内嵌动作且展示训练时长的模板可打开
+`event.open.health.workoutDuration`。这些固定入口只表示活动记录、运动记录或锻炼时长页面，
+不宣称直达当前日期或某次训练详情；睡眠仍使用原睡眠详情事件。完整白名单以模板声明为准。

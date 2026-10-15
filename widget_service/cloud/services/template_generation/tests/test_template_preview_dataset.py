@@ -20,20 +20,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 223
+    assert manifest.get("templateCount") == 220
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 27,
-        "Compact": 24,
+        "Support": 26,
+        "Compact": 23,
         "Hero": 52,
-        "Full": 84,
+        "Full": 83,
         "WideHero": 5,
         "WideFull": 26,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 188, "2x4": 35}
-    assert len(cases) == 223
+    assert manifest.get("countsBySize") == {"2x2": 185, "2x4": 35}
+    assert len(cases) == 220
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 223
+    assert len(template_ids) == 220
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -116,7 +116,6 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "clock_fill.svg",
         "earphone_case_16644.svg",
         "drop_1.svg",
-        "externaldrive_fill.svg",
         "figure_run.svg",
         "flame_fill.svg",
         "heart_fill.svg",

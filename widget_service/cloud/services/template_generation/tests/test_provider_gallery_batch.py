@@ -13,6 +13,7 @@ from api.schemas import GenerateWidgetCardResponse
 from core.errors import GenerationStatus
 from models.artifact import WidgetArtifact
 from services.artifact_store import ArtifactStore
+from services.capability_registry import CapabilityRegistry
 from services.template_generation.controls import TemplateControls
 from services.template_generation.test_support import provider_gallery
 from services.template_generation.test_support.provider_gallery import (
@@ -36,6 +37,25 @@ def test_gallery_result_preserves_declared_size_for_every_status(
     assert result.get("cardSize") == size
     assert result.get("status") == status
     assert result.get("errorMessage") == "reason"
+
+
+def test_gallery_requests_resolve_the_same_registry_as_their_definitions(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    expected_version = "app-11.7.7.300_rom-7.0"
+    for provider in manifest.providers:
+        for case in provider.cases:
+            request_file = case.requestFile
+            assert request_file
+            payload = json.loads((tmp_path / request_file).read_text(encoding="utf-8"))
+            request = provider_gallery._request_from_envelope(payload)
+            registry = CapabilityRegistry(
+                app_version=request.prdVer,
+                device_rom_version=request.device.romVersion,
+            )
+            assert registry.version == expected_version
+            assert registry.version_dir == provider_gallery._CAPABILITY_ROOT
+            for event in request.candidateEventCandidates or []:
+                assert registry.get_event_capability(event.capabilityId) is not None
 
 
 def test_gallery_output_declares_mixed_sizes_without_relabeling_cases(tmp_path: Path) -> None:
@@ -233,13 +253,13 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert not stale_input.exists()
-    assert len(manifest.providers) == 9
+    assert len(manifest.providers) == 8
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 包含各业务场景及 27 个 Support 模板的双业务动作组合；
-    # 天气明日日期 Full 贡献一个用例（总数 231 → 232）。
-    assert len(all_cases) == 239
+    # 包含各业务场景及 26 个 Support 模板的双业务动作组合；
+    # 合并 main 的系统内存移除及本分支七个新增 Full。
+    assert len(all_cases) == 233
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -330,7 +350,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 238
+    assert len(targeted_cases) == 233
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -564,13 +584,7 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
         "ScheduleOverviewDateFull@1",
     )
     assert calendar_full.missingReason == ""
-    system_memory = _find_case(
-        manifest,
-        "ResourceUsageOverview",
-        "single-content",
-        "ResourceUsageOverviewFull@1",
-    )
-    assert system_memory.missingReason == "数据能力当前未注册"
+    assert all(provider.providerSlug != "system-memory" for provider in manifest.providers)
 
 
 @pytest.mark.asyncio
@@ -692,13 +706,13 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 239
+    assert summary.total == 233
     assert summary.failed == 0
-    assert summary.missing == 6
+    assert summary.missing == 0
     assert summary.not_generated == 233
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
-    assert len(reloaded.providers) == 9
+    assert len(reloaded.providers) == 8
 
 
 def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path: Path) -> None:
@@ -834,8 +848,8 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
     # 两个天气 Support 不提供自身动作，各少一个双动作场景。
-    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 79
-    assert len({case.caseId for case in provider.cases}) == 79
+    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 76
+    assert len({case.caseId for case in provider.cases}) == 76
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -861,9 +875,9 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
-    assert summary.total == 79
+    assert summary.total == 76
     assert summary.success == 76
-    assert summary.missing == 3
+    assert summary.missing == 0
     assert summary.failed == summary.not_generated == 0
     assert len(service.requests) == 76
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
