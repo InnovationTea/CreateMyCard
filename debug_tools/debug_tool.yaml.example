@@ -1,0 +1,268 @@
+# 使用前复制为 debug_tool.yaml，已有配置请勿覆盖。
+# 注释为字段说明，字段值为保留真实类型的示例；路径、模型和设备信息请按本机环境替换。
+# 不包含真实凭据；密钥只填写在本机配置或微服务 .env。
+# widget_backend 的配置会覆盖 .env，不要新增空密钥覆盖有效凭据。
+main_agent:
+  # Skill 根目录，相对仓库根目录
+  skill_root: skills
+  # 是否自动发现 Skill 配置
+  auto_discover_profiles: true
+  # 默认使用的 Skill 标识
+  default_profile: harmony-card-generation-online
+  # 主 Agent 系统提示词文件路径
+  system_prompt: debug_tools/end_to_end_debug/backend/system_prompt.md
+  ui:
+    quick_prompts:
+      -
+        # 快捷提示显示名称
+        label: 天气卡片
+        # 点击快捷提示后提交的需求文本
+        prompt: 帮我做一个今天的天气卡片，显示上海市天气
+      -
+        # 快捷提示显示名称
+        label: 待办清单
+        # 点击快捷提示后提交的需求文本
+        prompt: 创建一个待办清单卡片
+      -
+        # 快捷提示显示名称
+        label: 日程安排
+        # 点击快捷提示后提交的需求文本
+        prompt: 创建一个日程卡片，显示最近的日程
+      -
+        # 快捷提示显示名称
+        label: 日程安排跳转
+        # 点击快捷提示后提交的需求文本
+        prompt: 创建一个日程卡片，显示最近的日程，并且能够跳转查看
+      -
+        # 快捷提示显示名称
+        label: 拨打电话
+        # 点击快捷提示后提交的需求文本
+        prompt: 创建一个天气卡片，显示今天的天气，并且可以点击给父亲打电话
+  profiles:
+    harmony-card-generation-online:
+      # 配置标识
+      name: harmony-card-generation-online
+      # 界面显示名称
+      display_name: 在线卡片生成
+      # 用途描述
+      description: 当前在线云侧编排 Skill
+  model:
+    # 卡片生成模型后端
+    design_compact_model_backend: openai
+    # 主模型通道：llmclient / deepseek_official_http / deepseek_platform / mep
+    openai_master_client: llmclient
+    # 备用模型通道，需与对应密钥配置匹配
+    openai_fallback_client: llmclient
+    # 模型调用失败时是否重试
+    enable_model_failure_retry: false
+    # 主模型失败时是否启用备用模型
+    enable_openai_fallback: false
+    # 主模型失败最大重试次数
+    model_failure_max_retry_attempts: 1
+    # 备用模型失败最大重试次数
+    fallback_model_failure_max_retry_attempts: 1
+    # 首次重试等待秒数
+    model_failure_retry_initial_delay_seconds: 1.0
+    # 重试最长等待秒数
+    model_failure_retry_max_delay_seconds: 30.0
+    # 重试等待时间增长倍数
+    model_failure_retry_backoff_multiplier: 2.0
+    # 重试等待随机抖动比例
+    model_failure_retry_jitter_ratio: 0.2
+    # 模型请求最大并发数
+    model_max_concurrency: 20
+    # 模型排队超时秒数
+    model_queue_timeout_seconds: 120
+    # 模型请求超时秒数
+    model_request_timeout_seconds: 120
+    # DeepSeek 官方 HTTP 接口地址
+    deepseek_official_http_url: https://api.deepseek.com/chat/completions
+    # 官方接口模型名称，按账号支持的模型填写
+    deepseek_official_http_model: deepseek-flash
+    # 采样温度，取值 0 到 2
+    deepseek_official_http_temperature: 0.7
+    # 核采样概率，取值大于 0 且不超过 1
+    deepseek_official_http_top_p: 0.9
+    # 单次生成的最大 token 数
+    deepseek_official_http_max_tokens: 8192
+    # 是否启用官方接口思考模式
+    deepseek_official_http_enable_thinking: false
+    # 平台访问凭据，按所用平台填写
+    deepseek_platform_access_key: ""
+    # 平台 STS 密钥配置标识
+    deepseek_platform_secret_key_sts_config_key: ''
+    # 平台 WebSocket 接口地址
+    deepseek_platform_ws_url: ""
+    # 平台 API 凭据，按所用平台填写
+    deepseek_platform_api_key: ''
+    # 平台请求发送方标识
+    deepseek_platform_sender: example-sender
+    # 是否选择平台思考模型
+    deepseek_platform_model_select: false
+    # 平台模型标识
+    deepseek_platform_model_name: YOUR_PLATFORM_MODEL
+
+# 批量测试的稳定运行参数。创建任务页面不提供这些字段，所有任务直接复用本节配置。
+# 本地受管微服务始终在回环地址上使用运行时分配的空闲端口。
+batch_testing:
+  # 批跑并发数，1 到 16
+  concurrency: 4
+  # 批跑失败重试次数，0 到 5
+  max_retries: 1
+  # 请求超时秒数
+  request_timeout_seconds: 300
+  # 受管服务启动超时秒数，1 到 300
+  service_startup_timeout_seconds: 30
+  # 批跑追踪目录，相对微服务根目录
+  trace_root: workspace/traces
+
+widget_backend:
+  exposed:
+    # 主模型通道：llmclient / deepseek_official_http / deepseek_platform / mep
+    openai_master_client: llmclient
+    # 模型调用失败时是否重试
+    enable_model_failure_retry: true
+    # 主模型失败最大重试次数
+    model_failure_max_retry_attempts: 1
+    # 主模型失败时是否启用备用模型
+    enable_openai_fallback: true
+    # 备用模型失败最大重试次数
+    fallback_model_failure_max_retry_attempts: 1
+    # 产物校验失败时是否触发修复
+    enable_validation_failure_retry: true
+    # 校验失败最大修复次数
+    validation_failure_max_repair_attempts: 1
+    # 是否启用卡片模板
+    enable_card_template: false
+    # 是否启用 Compact DSL 接口重试
+    enable_compact_dsl_interface_retry: true
+    # Compact DSL 接口重试次数
+    compact_dsl_interface_retry_count: 1
+    # 是否启用产物校验
+    enable_artifact_validation: true
+  defaults:
+    # 是否记录生成追踪
+    enable_generation_trace_recording: true
+    # 生成追踪目录，相对微服务根目录
+    generation_trace_root: workspace/traces
+    # 是否使用模拟模型输出
+    enable_a2ui_model_mock: false
+    # 备用模型通道，需与对应密钥配置匹配
+    openai_fallback_client: llmclient
+    # 首次重试等待秒数
+    model_failure_retry_initial_delay_seconds: 1.0
+    # 重试最长等待秒数
+    model_failure_retry_max_delay_seconds: 30.0
+    # 重试等待时间增长倍数
+    model_failure_retry_backoff_multiplier: 2.0
+    # 重试等待随机抖动比例
+    model_failure_retry_jitter_ratio: 0.2
+    # 模型请求最大并发数
+    model_max_concurrency: 20
+    # 模型排队超时秒数
+    model_queue_timeout_seconds: 120
+    # 模型请求超时秒数
+    model_request_timeout_seconds: 120
+    # 官方接口模型名称，按账号支持的模型填写
+    deepseek_official_http_model: deepseek-flash
+    # 采样温度，取值 0 到 2
+    deepseek_official_http_temperature: 0.7
+    # 核采样概率，取值大于 0 且不超过 1
+    deepseek_official_http_top_p: 0.9
+    # 单次生成的最大 token 数
+    deepseek_official_http_max_tokens: 8192
+    # 是否启用官方接口思考模式
+    deepseek_official_http_enable_thinking: false
+    # 是否使用本地产物下载模拟
+    enable_artifact_download_mock: true
+
+platform:
+  environment:
+    # DevEco Studio 安装目录，请替换为本机路径
+    deveco_studio_home: C:/Tools/DevEco Studio
+    # 本项目仓库根目录，请替换为本机路径
+    workspace_root: C:/Projects/CreateMyCard
+    # 模拟器数据目录
+    emulator_data_root: C:/Users/YourName/HuaweiEmulator
+    # Node 可执行文件路径
+    node_executable: ${environment.deveco_studio_home}/tools/node/node.exe
+    # Java / JBR 根目录
+    java_home: ${environment.deveco_studio_home}/jbr
+    # DevEco SDK 根目录
+    sdk_home: ${environment.deveco_studio_home}/sdk
+    # HDC 可执行文件路径
+    hdc: ${environment.sdk_home}/default/openharmony/toolchains/hdc.exe
+    # Hvigor 构建脚本路径
+    hvigor: ${environment.deveco_studio_home}/tools/hvigor/bin/hvigorw.bat
+    # OHPM 包管理器路径
+    ohpm: ${environment.deveco_studio_home}/tools/ohpm/bin/ohpm.bat
+    # 模拟器可执行文件路径
+    emulator: ${environment.deveco_studio_home}/tools/emulator/Emulator.exe
+  server:
+    # 调试平台监听地址，默认仅本机访问
+    host: 127.0.0.1
+    # 调试平台监听端口
+    port: 8888
+    # 已部署微服务 WebSocket 根地址
+    upstream_base_url: ws://127.0.0.1:8855
+    # 端到端请求的宿主应用包名
+    bundle_name: com.example.hostapp
+    # 主 Agent 最大执行步数
+    max_steps: 20
+    # 主 Agent 单次输出最大 token 数
+    max_tokens: 8192
+    # 请求超时秒数
+    request_timeout_seconds: 180
+    # 允许读取的单个 Skill 资源最大字节数
+    skill_resource_max_bytes: 262144
+  # 真机截图运行参数仅由调试平台读取，不进入微服务配置或任务快照。
+  # ArkTS 工程、应用标识、输入文件和裁切框均由内置 a2ui_render 协议确定。
+  device_capture:
+    # HDC 可执行文件路径
+    hdc: ${environment.hdc}
+    # 设备构建使用的 SDK 根目录
+    deveco_sdk_home: ${environment.sdk_home}
+    # Java / JBR 根目录
+    java_home: ${environment.java_home}
+    # Hvigor 构建脚本路径
+    hvigor: ${environment.hvigor}
+    # 设备工具命令超时秒数
+    command_timeout_seconds: 300
+    # 设备渲染等待超时秒数
+    render_timeout_seconds: 30
+    # 截图最大尝试次数
+    capture_attempts: 6
+    # 模拟器可执行文件路径
+    emulator: ${environment.emulator}
+    # 模拟器实例目录，请替换为本机路径
+    emulator_instance_root: ${environment.emulator_data_root}
+    # 模拟器镜像目录，请替换为本机路径
+    emulator_image_root: C:/Users/YourName/HuaweiSdk
+    # 模拟器启动超时秒数
+    emulator_start_timeout_seconds: 120
+    # 模拟器在线状态轮询间隔秒数
+    emulator_poll_seconds: 2
+    # 设备调试输出目录，相对仓库根目录
+    output_root: debug_tools/device_output
+defaults:
+  # 调试用户标识，使用测试值
+  uid: debug-user
+  # 调试设备标识，使用测试值
+  device_id: debug-device
+  # 目标设备型号
+  phone_type: ALN-AL00
+  # 宿主应用版本号
+  app_version: 11.9.9.342
+  # 目标系统版本描述
+  rom_version: ALN-AL00 7.0.0.100
+  # 语言区域代码
+  locale: zh-CN
+  # 国家或地区代码
+  country_code: CN
+logging:
+  # 日志级别，如 INFO / DEBUG / WARNING
+  level: INFO
+  # 是否开启调试详细追踪
+  trace: false
+  # 日志字段展示长度限制
+  value_limit: 160

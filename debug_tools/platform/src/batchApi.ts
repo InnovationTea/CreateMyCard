@@ -65,6 +65,8 @@ export type DeviceCaptureConfig = {
 };
 
 export type BatchRun = {
+  effectiveServiceConfig?: Record<string, unknown>;
+  configWarnings?: string[];
   runId: string;
   sourceType?: string;
   name?: string | null;
@@ -315,6 +317,9 @@ export type ValidationFailureItem = {
 };
 
 export type BatchExecution = Partial<BatchRun> & {
+  effectiveServiceConfig?: Record<string, unknown>;
+  configWarnings?: string[];
+  serviceOverrides?: Record<string, unknown>;
   runId: string;
   taskId: string;
   status: string;
@@ -356,9 +361,31 @@ export type BatchScheduler = {
 };
 
 export type ServiceConfigDefaults = {
-  values: Record<string, string | number | boolean>;
+  values: Record<string, unknown>;
   sources: Record<string, string>;
+  exposedKeys: string[];
+  fields: ServiceConfigField[];
+  version: string;
 };
+
+export type ServiceConfigField = {
+  name: string;
+  displayName: string;
+  type: string;
+  source: string;
+  group: 'exposed' | 'defaults';
+  sensitive: boolean;
+  editable: boolean;
+  readOnlyReason: string;
+};
+
+export function saveServiceConfigDefaults(version: string, changes: Record<string, unknown>): Promise<ServiceConfigDefaults> {
+  return requestJson('/debug/batch/service-config/defaults', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ version, changes }),
+  });
+}
 
 export type ConnectionAvailability = {
   mainAgent: { available: boolean; detail: string };

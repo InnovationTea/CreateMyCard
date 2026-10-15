@@ -65,7 +65,10 @@ function rendererAssets(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), rendererAssets()],
+  plugins: [react(), rendererAssets(), {
+    name: 'normalize-html-line-endings',
+    transformIndexHtml: (html) => html.replace(/\r\n?/g, '\n'),
+  }],
   base: '/debug/',
   resolve: {
     alias: {
@@ -109,6 +112,10 @@ export default defineConfig({
       },
       '/debug/batch': {
         target: 'http://127.0.0.1:8888',
+      },
+      '/debug/device/': {
+        target: 'http://127.0.0.1:8888',
+        ws: true,
       },
     },
   },

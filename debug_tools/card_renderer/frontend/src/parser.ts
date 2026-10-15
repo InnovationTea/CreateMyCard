@@ -332,7 +332,9 @@ function parseRows(text: string): unknown[] {
 export async function parseInput(text: string, options: ParseOptions = {}): Promise<RendererDocument> {
   const rows = parseRows(text);
   const compactRows = rows.filter((row): row is unknown[] => Array.isArray(row));
-  if (compactRows.length > 0 || unwrapRenderableSource(text).trim().startsWith('[')) {
+  const a2uiRows = rows.filter(isA2uiRow);
+  if (compactRows.length > 0
+    || (a2uiRows.length === 0 && unwrapRenderableSource(text).trim().startsWith('['))) {
     return compileCompactDocument(
       unwrapRenderableSource(text),
       compactRows,
@@ -340,7 +342,6 @@ export async function parseInput(text: string, options: ParseOptions = {}): Prom
       { ...options, appVersion: resolveAppVersion(text) ?? options.appVersion },
     );
   }
-  const a2uiRows = rows.filter(isA2uiRow);
   const source = a2uiRows.length > 0
     ? a2uiRows.map((row) => JSON.stringify(row)).join('\n')
     : unwrapRenderableSource(text);

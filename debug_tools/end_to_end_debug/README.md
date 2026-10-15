@@ -23,12 +23,13 @@ uv run debug_tools --mode full --host 127.0.0.1 --port 8888
 ## 目录
 
 ```text
-end_to_end_debug/
-├── backend/                 # FastAPI、会话管理、Agent 与工具等待桥
-│   ├── debug_agent.yaml     # 调试平台稳定配置
-│   ├── server.py            # full 模式应用入口
-│   └── system_prompt.md     # 调试 Agent system prompt
-└── frontend/                # 对话、运行轨迹和会话状态 React 组件
+debug_tools/
+├── debug_tool.yaml          # 调试平台统一稳定配置
+└── end_to_end_debug/
+    ├── backend/             # FastAPI、会话管理、Agent 与工具等待桥
+    │   ├── server.py        # full 模式应用入口
+    │   └── system_prompt.md # 调试 Agent system prompt
+    └── frontend/            # 对话、运行轨迹和会话状态 React 组件
 ```
 
 ## 页面操作
@@ -47,20 +48,20 @@ Agent 会话；切换期间正在执行的请求会继续运行。刷新或关�
 
 ## 配置
 
-Main Agent 的主要配置位于 `backend/debug_agent.yaml`：
+Main Agent 的主要配置位于 `../debug_tool.yaml` 的 `main_agent`：
 
 - `default_profile` 和 `profiles`：默认 Skill 及页面展示信息；
 - `ui.quick_prompts`：页面快捷需求；
 - `model`：Main Agent 的模型路由、重试、并发和超时；
-- `server`：调试后端固定参数；
+- `platform.server`：调试后端固定参数；
 - `defaults`：页面公共请求参数默认值；
-- `batch_testing`、`device_capture`：由批量测试与后处理使用，分别见对应子包文档。
+- `batch_testing`、`platform.device_capture`：由批量测试与后处理使用，分别见对应子包文档。
 
 模型配置优先级为：
 
 ```text
 cloud/config/default_config.yaml
-< end_to_end_debug/backend/debug_agent.yaml
+< debug_tool.yaml
 < widget_service/.env
 < 进程环境变量
 ```

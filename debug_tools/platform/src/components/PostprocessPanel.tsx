@@ -7,6 +7,7 @@ import {
   type PostprocessPlugin,
   type PostprocessPluginResult,
 } from '../batchApi';
+import { deviceRequest, type Emulator, type Operation, type Target } from '../deviceApi';
 
 function executionStatusLabel(status: string): string {
   return ({
@@ -31,6 +32,21 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
   const [busy, setBusy] = useState(false);
   const [rerunningPluginId, setRerunningPluginId] = useState('');
   const [error, setError] = useState('');
+  const [deviceTargets, setDeviceTargets] = useState<Target[]>([]);
+  const [deviceEmulators, setDeviceEmulators] = useState<Emulator[]>([]);
+  const [deviceOperation, setDeviceOperation] = useState<Operation | null>(null);
+
+  const refreshDeviceTargets = async (preferredTargetId = '') => {
+    const value = await deviceRequest<{ targets: Target[]; emulators: Emulator[] }>('/targets');
+    setDeviceTargets(value.targets);
+    setDeviceEmulators(value.emulators);
+    if (preferredTargetId && value.targets.some((target) => target.id === preferredTargetId)) {
+      setConfigs((current) => ({
+        ...current,
+        'device-gallery': { ...current['device-gallery'], targetId: preferredTargetId },
+      }));
+    }
+  };
 
   useEffect(() => {
     listPostprocessPlugins().then((items) => {
@@ -46,6 +62,36 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
       setConfigs(defaults);
     }).catch((reason) => setError(String(reason)));
   }, []);
+  useEffect(() => {
+    if (!open) return;
+    refreshDeviceTargets().catch(() => {
+      setDeviceTargets([]);
+      setDeviceEmulators([]);
+    });
+  }, [open]);
+  useEffect(() => {
+    if (!open || !deviceOperation || deviceOperation.status !== 'running') return;
+    let stopped = false;
+    let timer = 0;
+    const poll = async () => {
+      try {
+        const value = await deviceRequest<Operation>(`/operations/${deviceOperation.id}`);
+        if (stopped) return;
+        setDeviceOperation(value);
+        if (value.status === 'running') {
+          timer = window.setTimeout(poll, 800);
+        } else if (value.status === 'success') {
+          await refreshDeviceTargets(value.targetId ?? '');
+        } else {
+          setError(value.message);
+        }
+      } catch (reason) {
+        if (!stopped) setError(reason instanceof Error ? reason.message : String(reason));
+      }
+    };
+    timer = window.setTimeout(poll, 800);
+    return () => { stopped = true; window.clearTimeout(timer); };
+  }, [open, deviceOperation?.id, deviceOperation?.status]);
 
   const waitingExecution = executions.find((item) => item.status === 'waiting');
   const active = executions.some((item) => ['queued', 'running'].includes(item.status));
@@ -159,6 +205,17 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
     }
   };
 
+  const startEmulator = async (emulatorId: string) => {
+    setError('');
+    try {
+      const value = await deviceRequest<Operation>(`/emulators/${emulatorId}/start`, {});
+      setDeviceOperation(value);
+      if (value.status === 'success') await refreshDeviceTargets(value.targetId ?? '');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
+  };
+
   return <>
     <button type="button" className="postprocess-launch" onClick={() => setOpen(true)}>
       后处理插件{active ? ` · ${activeCount} 个执行中` : historyByPlugin.size ? ` · ${historyByPlugin.size}` : ''}
@@ -185,11 +242,36 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
                 />
                 <span><b>{plugin.name}</b><small>{plugin.description ?? plugin.id}</small>
                   {dependencies.length > 0 && <em>依赖：{dependencies.map((id) => pluginById.get(id)?.name ?? id).join(' → ')}</em>}
+                  {plugin.id === 'device-gallery' && checked && <span className="postprocess-device-profile">
+                    {deviceTargets.length ? <select aria-label="真机截图在线设备"
+                      value={String(configs[plugin.id]?.targetId ?? '')}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => {
+                        event.stopPropagation();
+                        setConfigs((current) => ({
+                          ...current,
+                          [plugin.id]: { ...current[plugin.id], targetId: event.target.value },
+                        }));
+                      }}>
+                      <option value="">请选择在线设备</option>
+                      {deviceTargets.map((target) => <option key={target.id} value={target.id}>
+                        {target.name} · {target.kind}
+                      </option>)}
+                    </select> : <small>当前没有在线设备</small>}
+                    {deviceEmulators.map((emulator) => <button type="button" key={emulator.id}
+                      disabled={!emulator.ready || deviceOperation?.status === 'running'}
+                      onClick={(event) => { event.stopPropagation(); void startEmulator(emulator.id); }}>
+                      启动本地模拟器 · {emulator.name}
+                    </button>)}
+                    {deviceOperation && <small>{deviceOperation.message}</small>}
+                    {!deviceTargets.length && <Link to="/device-render"
+                      onClick={(event) => event.stopPropagation()}>打开设备渲染 ›</Link>}
+                  </span>}
                 </span>
               </label>;
             })}
           </section>
-          <footer className="postprocess-dialog-actions"><span>{newSelected.length ? `将并行执行 ${newSelected.length} 个新增插件` : selected.length ? '已选插件均已运行，可单独再次运行' : '尚未选择插件'}</span><button type="button" disabled={busy || active || !newSelected.length} onClick={run}>{busy ? '正在提交…' : active ? '后处理正在执行' : waitingExecution ? '更新自动执行配置' : runStatus === 'completed' ? '开始后处理' : '完成后自动执行'}</button></footer>
+          <footer className="postprocess-dialog-actions"><span>{newSelected.length ? `将并行执行 ${newSelected.length} 个新增插件` : selected.length ? '已选插件均已运行，可单独再次运行' : '尚未选择插件'}</span><button type="button" disabled={busy || active || !newSelected.length || (newSelected.includes('device-gallery') && !configs['device-gallery']?.targetId)} onClick={run}>{busy ? '正在提交…' : active ? '后处理正在执行' : waitingExecution ? '更新自动执行配置' : runStatus === 'completed' ? '开始后处理' : '完成后自动执行'}</button></footer>
           <section className="postprocess-inline-results">
             <header><strong>执行结果</strong><small>自动展示运行中插件与每个插件的最新一次结果</small></header>
             {!displayedPluginIds.length && <div className="batch-empty">尚无后处理执行记录</div>}

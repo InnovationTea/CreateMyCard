@@ -20,7 +20,7 @@ uv sync
 | --- | --- | --- |
 | `browser-gallery` | Node.js、npm、`playwright-core`、Edge/Chrome/Chromium | 非标准安装路径的浏览器需配置环境变量 |
 | `validation-failure-gallery` | Node.js、npm、`playwright-core`、Edge/Chrome/Chromium | 同上 |
-| `device-gallery` | DevEco JDK、SDK、HDC、Hvigor、ArkTS 渲染工程、HarmonyOS 设备或模拟器 | 必须配置 `debug_agent.yaml` |
+| `device-gallery` | DevEco JDK、SDK、HDC、Hvigor、ArkTS 渲染工程、HarmonyOS 设备或模拟器 | 必须配置 `debug_tool.yaml` |
 
 ### 浏览器截图插件
 
@@ -46,44 +46,43 @@ uv run debug_tools
 
 ### 真机截图插件
 
-`device-gallery` 会复制一份 ArkTS 渲染工程，通过 Hvigor 构建 HAP，再使用 HDC 安装、启动、截图和
-回收临时文件。先安装 DevEco Studio 及对应 HarmonyOS/OpenHarmony SDK，准备可由 Hvigor 构建的渲染工程，
-然后修改 `debug_tools/end_to_end_debug/backend/debug_agent.yaml` 中的 `device_capture`：
+`device-gallery` 复用 `device_debug` 的 Render Session。先安装 DevEco Studio 及对应 SDK，再在
+`debug_tools/debug_tool.yaml` 中配置本机工具链和模拟器目录：
 
 ```yaml
-device_capture:
-  hdc: D:/DevEco/sdk/default/openharmony/toolchains/hdc.exe
-  device_sn: null
-  render_project: D:/Workspace/A2UI_Render
-  deveco_sdk_home: D:/DevEco/sdk
-  java_home: D:/DevEco/jbr
-  hvigor: D:/DevEco/tools/hvigor/bin/hvigorw.bat
-  signed_hap_name: entry-default-signed.hap
-  bundle_name: com.example.myapplication
-  ability_name: EntryAbility
-  module_name: entry
-  rawfile_target: entry/src/main/resources/rawfile/test.json
-  hap_output_dir: entry/build/default/outputs/default
-  crop_config: debug_tools/postprocess_plugins/device_capture/device_crop.json
-  auto_start_emulator: false
+platform:
+  environment:
+    deveco_studio_home: D:/DevEco
+    workspace_root: D:/Workspace
+    sdk_home: ${environment.deveco_studio_home}/sdk
+    hdc: ${environment.sdk_home}/default/openharmony/toolchains/hdc.exe
+  device_capture:
+    hdc: ${environment.hdc}
+    deveco_sdk_home: ${environment.sdk_home}
+    java_home: ${environment.java_home}
+    hvigor: ${environment.hvigor}
+    render_timeout_seconds: 30
+    capture_attempts: 6
+    auto_start_emulator: false
 ```
 
-路径可以是绝对路径，也可以是相对仓库根目录的路径。`rawfile_target` 和 `hap_output_dir` 必须是渲染工程内
-的相对路径。`signed_hap_name` 要与 Hvigor 实际生成的可安装 HAP 文件名一致；真机通常需要已签名产物。
+内置工程位于 `debug_tools/a2ui_render`，插件配置只接受本次执行的 `targetId`。插件自动选择最新 HAP：
+真机和未知目标要求 signed，模拟器可使用 unsigned。App 的 `A2UI_RUN` 终态决定成功、警告或失败，
+卡片裁切严格使用 App 返回的 `cropPx`。
 
-使用已启动的真机或模拟器时，建议保持 `auto_start_emulator: false`。启用前先验证工具和设备：
+启动前可先验证工具和设备：
 
 ```powershell
 & 'D:\DevEco\jbr\bin\java.exe' -version
 & 'D:\DevEco\sdk\default\openharmony\toolchains\hdc.exe' list targets
 ```
 
-`device_sn` 留空时必须且只能有一台 HDC 设备在线；多设备时填写 `hdc list targets` 返回的目标标识。
-真机需开启开发者模式和 USB 调试，并确认本机已获得设备授权。
+真机需开启开发者模式和 USB 调试，并确认本机已获得设备授权。插件面板始终要求选择本次在线目标，
+不会从配置文件读取或持久化设备序列号。
 
-需要由平台自动启动 DevEco 模拟器时，再设置 `auto_start_emulator: true`，并补充
-`emulator`、`emulator_name`、`emulator_instance_root` 和 `emulator_image_root`。这些值必须指向本机已创建
-的同一个 DevEco 模拟器实例。
+需要本地模拟器时，在插件面板点击“启动本地模拟器”。平台读取 `emulator`、
+`emulator_instance_root` 和 `emulator_image_root`，等待所选实例的 HDC 端口上线并自动选中返回的
+`targetId`；启动进程退出或等待超时会在面板显示明确错误。
 
 ## v2 清单
 

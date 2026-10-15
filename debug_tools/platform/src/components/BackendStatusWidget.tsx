@@ -49,7 +49,7 @@ export function useBackendAvailability() {
   const startManaged = async () => {
     setStarting(true);
     try {
-      const next = await startManagedService(config.managedServiceConfig);
+      const next = await startManagedService({});
       setStatus(next);
       const endpoint = next.managedService.endpoint;
       if (endpoint) updateConfig({ managedServiceWsUrl: endpoint });

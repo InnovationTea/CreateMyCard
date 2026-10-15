@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { parseInput, resolveAppVersion } from '../src/parser';
 
 const genui = [
@@ -14,6 +15,19 @@ const genui = [
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Python 是 Compact 预览的唯一转换器', () => {
+  it('设备页的双城市天气消息数组与原始 JSONL 使用相同渲染数据', async () => {
+    const source = readFileSync(new URL('../../fixtures/a2ui-weather-cities.jsonl', import.meta.url), 'utf8');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const original = await parseInput(source);
+    const device = await parseInput(JSON.stringify(source.trim().split('\n').map(row => JSON.parse(row))));
+    expect(device.mode).toBe('A2UI');
+    expect(device.components).toEqual(original.components);
+    expect(device.data).toEqual(original.data);
+    expect(device.jsonl).toBe(original.jsonl);
+    expect(device.surface).toEqual(original.surface);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it.each(['PillButton', 'CircleButton', 'ProgressCircle', 'FuturePythonComponent'])(
     '%s 原样交给 Python，不在浏览器展开或限制类型', async (component) => {
       const source = JSON.stringify(['root', component, { label: '电量' }]);
@@ -50,7 +64,12 @@ describe('Python 是 Compact 预览的唯一转换器', () => {
     expect(document.mode).toBe('Design Compact DSL');
   });
 
-  it.each([genui, '{"root":{"type":"Extended.Text","props":{"content":"Graph"}}}'])(
+  it.each([
+    genui,
+    JSON.stringify(genui.split('\n').map(row => JSON.parse(row))),
+    JSON.stringify({ artifact: { genui: genui.split('\n').map(row => JSON.parse(row)) } }),
+    '{"root":{"type":"Extended.Text","props":{"content":"Graph"}}}',
+  ])(
     '已有 A2UI 或 Graph 不调用转换接口', async (source) => {
       const fetchMock = vi.fn();
       vi.stubGlobal('fetch', fetchMock);

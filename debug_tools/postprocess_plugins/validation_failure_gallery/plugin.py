@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import re
@@ -13,6 +12,9 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+
+from debug_tools.runtime_environment import Toolchain, load_toolchain
+from debug_tools.subprocesses import run_node_script
 
 GalleryCapture = Callable[[str, Path], Awaitable[dict[str, Any]]]
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
@@ -275,10 +277,12 @@ class ValidationFailureGalleryManager:
         capture_base_url: str,
         *,
         capture: GalleryCapture | None = None,
+        toolchain: Toolchain | None = None,
     ) -> None:
         self.output_root = output_root.resolve()
         self.capture_base_url = capture_base_url.rstrip("/")
         self.capture = capture or self._capture_with_browser
+        self.toolchain = toolchain or load_toolchain()
 
     def items(self, run_id: str) -> list[dict[str, Any]]:
         run_dir = self._safe_run_dir(run_id)
@@ -495,32 +499,17 @@ class ValidationFailureGalleryManager:
         }
 
     async def _capture_with_browser(self, capture_url: str, output_dir: Path) -> dict[str, Any]:
-        node = shutil.which("node")
-        if node is None:
-            raise RuntimeError("未找到 Node.js，无法生成卡片截图")
+        toolchain = self.toolchain
         script = Path(__file__).resolve().parents[2] / "scripts" / "capture_batch_gallery.mjs"
-        process = await asyncio.create_subprocess_exec(
-            node,
-            str(script),
-            "--url",
-            capture_url,
-            "--output",
-            str(output_dir),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        await run_node_script(
+            toolchain.node_executable,
+            script,
+            ["--url", capture_url, "--output", str(output_dir)],
             cwd=script.parents[1],
+            env=toolchain.environment(),
+            timeout=900.0,
+            label="校验失败画廊截图",
         )
-        try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=900.0)
-        except TimeoutError as exc:
-            process.kill()
-            await process.communicate()
-            raise RuntimeError("校验失败画廊截图超时") from exc
-        if process.returncode != 0:
-            detail = stderr.decode("utf-8", errors="replace").strip()
-            if not detail:
-                detail = stdout.decode("utf-8", errors="replace").strip()
-            raise RuntimeError(detail or "校验失败画廊截图进程失败")
         return _read_object(output_dir / "capture.json")
 
     def _safe_run_dir(self, run_id: str) -> Path:

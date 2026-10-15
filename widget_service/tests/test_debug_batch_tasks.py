@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from debug_tools.batch_testing import service_manager
 from debug_tools.batch_testing.api import register_batch_routes
+from debug_tools.batch_testing.managed_config import read_configuration, save_configuration
 from debug_tools.batch_testing.runner import (
     BatchRunManager,
     apply_request_overrides,
@@ -16,6 +17,7 @@ from debug_tools.batch_testing.service_manager import (
     ManagedServiceController,
     load_batch_defaults,
     load_service_defaults,
+    validate_service_config,
 )
 from debug_tools.batch_testing.task_manager import BatchTaskManager
 from fastapi import FastAPI
@@ -192,37 +194,55 @@ def test_request_overrides_update_public_fields_without_mutating_source() -> Non
     assert "odid" not in source["content"]
 
 
-def test_service_defaults_never_return_sensitive_keys(tmp_path: Path) -> None:
-    config_path = (
-        tmp_path / "debug_tools" / "end_to_end_debug" / "backend" / "debug_agent.yaml"
-    )
+def test_service_defaults_follow_yaml_dotenv_and_temporary_priority(tmp_path: Path) -> None:
+    config_path = tmp_path / "debug_tools" / "debug_tool.yaml"
     config_path.parent.mkdir(parents=True)
     config_path.write_text(
-        "model:\n"
-        "  openai_master_client: llmclient\n"
-        "  model_max_concurrency: 12\n"
+        "widget_backend:\n"
+        "  exposed:\n"
+        "    openai_master_client: llmclient\n"
+        "  defaults:\n"
+        "    model_max_concurrency: 12\n"
         "batch_testing:\n"
         "  concurrency: 3\n"
         "  request_timeout_seconds: 240\n"
         "  trace_root: custom/traces\n",
         encoding="utf-8",
     )
+    default_path = tmp_path / "cloud" / "config" / "default_config.yaml"
+    default_path.parent.mkdir(parents=True)
+    default_path.write_text(
+        "openai_master_client: deepseek_official_http\nmodel_max_concurrency: 8\n",
+        encoding="utf-8",
+    )
     (tmp_path / ".env").write_text(
-        "WIDGET_SERVICE_OPENAI_MASTER_CLIENT=deepseek_official_http\n"
+        "WIDGET_SERVICE_OPENAI_MASTER_CLIENT=deepseek_platform\n"
         "WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_API_KEY=secret-value\n",
         encoding="utf-8",
     )
 
     result = load_service_defaults(tmp_path)
     batch_defaults = load_batch_defaults(tmp_path)
+    temporary = validate_service_config(
+        {"openai_master_client": "llmclient"},
+        tmp_path,
+    )
 
-    assert result["values"]["openaiMasterClient"] == "deepseek_official_http"
-    assert "modelMaxConcurrency" not in result["values"]
-    assert batch_defaults["concurrency"] == 3
-    assert batch_defaults["requestTimeoutSeconds"] == 240.0
-    assert batch_defaults["traceRoot"] == "custom/traces"
+    values = result.get("values")
+    sources = result.get("sources")
+    assert isinstance(values, dict)
+    assert isinstance(sources, dict)
+    assert values.get("openai_master_client") == "llmclient"
+    assert values.get("model_max_concurrency") == 12
+    assert sources.get("openai_master_client") == "debug_tool.yaml"
+    assert result.get("exposedKeys") == ["openai_master_client"]
+    assert temporary.get("openai_master_client") == "llmclient"
+    assert len(temporary) == 1
+    assert batch_defaults.get("concurrency") == 3
+    assert batch_defaults.get("requestTimeoutSeconds") == 240.0
+    assert batch_defaults.get("traceRoot") == "custom/traces"
     serialized = json.dumps(result)
-    assert "API_KEY" not in serialized
+    assert "DEEPSEEK_OFFICIAL_HTTP_API_KEY" in serialized
     assert "secret-value" not in serialized
 
 
@@ -462,6 +482,8 @@ def test_create_and_enqueue_adds_first_execution_after_existing_queue(tmp_path: 
         first.get("taskId"),
         second.get("taskId"),
     ]
+
+
 @pytest.mark.asyncio
 async def test_scheduler_runs_only_one_execution_and_advances_queue(tmp_path: Path) -> None:
     datasets_root = tmp_path / "Datasets"
@@ -585,6 +607,7 @@ async def test_postprocessing_only_starts_after_manual_request(tmp_path: Path) -
     postprocess_result = manager.postprocess_manager.enqueue(
         first_run_id,
         ["browser-gallery", "device-gallery"],
+        {"device-gallery": {"targetId": "target-one"}},
     )
     await manager.postprocess_manager.queue.join()
 
@@ -659,7 +682,10 @@ def test_task_api_exposes_datasets_tasks_copy_and_scheduler(tmp_path: Path) -> N
     plugins = client.get("/debug/batch/postprocess/plugins")
     postprocess = client.post(
         f"/debug/batch/runs/{run_id}/postprocess",
-        json={"pluginIds": ["browser-gallery", "device-gallery"], "configs": {}},
+        json={
+            "pluginIds": ["browser-gallery", "device-gallery"],
+            "configs": {"device-gallery": {"targetId": "target-one"}},
+        },
     )
     old_gallery = client.post(f"/debug/batch/runs/{run_id}/gallery")
     old_device_capture = client.post(f"/debug/batch/runs/{run_id}/device-capture")
@@ -734,7 +760,7 @@ def test_connection_api_reports_status_and_starts_managed_service(
     )
     started = client.post(
         "/debug/batch/connections/managed/start",
-        json={"serviceConfig": {"enableA2uiModelMock": True}},
+        json={"serviceConfig": {}},
     )
 
     assert status.status_code == 200
@@ -806,3 +832,86 @@ async def test_managed_service_injects_the_selected_port(
     assert captured_environment["WIDGET_SERVICE_SERVER_PORT"] == "43123"
     assert controller.service is not None
     assert controller.service.port == 43123
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("removed", [False, True])
+async def test_queued_task_uses_latest_defaults_and_filters_old_overrides(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    legacy: bool,
+    removed: bool,
+) -> None:
+    datasets = tmp_path / "Datasets"
+    _write_dataset(datasets, "request_dataset")
+    debug = tmp_path / "debug_tools/debug_tool.yaml"
+    debug.parent.mkdir()
+    debug.write_text(
+        "widget_backend:\n  exposed:\n    model_max_concurrency: 20\n"
+        "  defaults:\n    enable_model_failure_retry: false\n",
+        encoding="utf-8",
+    )
+    controller = FakeServiceController()
+    manager = BatchTaskManager(
+        datasets,
+        tmp_path / "output",
+        tmp_path / "traces",
+        tmp_path / "cloud",
+        service_controller=controller,  # type: ignore[arg-type]
+    )
+    payload = _task_payload("request_dataset")
+    payload["backendMode"] = "managed"
+    payload["serviceConfig"] = {"model_max_concurrency": 25}
+    task = manager.create_task(payload)
+    task_id = task.get("taskId")
+    assert isinstance(task_id, str)
+    assert task.get("serviceConfig") == {"model_max_concurrency": 25}
+    assert task.get("serviceConfigVersion") == 2
+    if legacy:
+        path = tmp_path / "output/tasks" / f"{task_id}.json"
+        persisted = json.loads(path.read_text(encoding="utf-8"))
+        persisted.pop("serviceConfigVersion", None)
+        persisted["serviceConfig"] = {
+            "model_max_concurrency": 25,
+            "enable_model_failure_retry": False,
+            "deepseek_api_key": "old-secret",
+        }
+        path.write_text(json.dumps(persisted), encoding="utf-8")
+    run_id = "run_config_test"
+    manager._write_execution({"runId": run_id, "taskId": task_id, "status": "queued"})
+    config = read_configuration(tmp_path)
+    save_configuration(tmp_path, {"enable_model_failure_retry": True}, config.version)
+    if removed:
+        debug.write_text(
+            "widget_backend:\n  defaults:\n    model_max_concurrency: 20\n"
+            "    enable_model_failure_retry: true\n",
+            encoding="utf-8",
+        )
+    received: list[dict[str, Any]] = []
+
+    async def ensure(overrides: dict[str, Any]) -> str:
+        received.append(overrides)
+        return "ws://127.0.0.1:8855/api/v1/ws/tools"
+
+    async def complete() -> None:
+        return None
+
+    def start(*_args: Any, **_kwargs: Any) -> None:
+        manager.run_manager.tasks[run_id] = asyncio.create_task(complete())
+
+    monkeypatch.setattr(controller, "ensure", ensure)
+    monkeypatch.setattr(manager.run_manager, "start_run", start)
+    monkeypatch.setattr(manager.run_manager, "get_run", lambda _id: {"status": "completed"})
+    monkeypatch.setattr(manager.postprocess_manager, "activate_waiting", lambda _id: None)
+    await manager._execute_queued(run_id)
+    execution = manager._read_execution(run_id)
+    assert execution.get("status") == "completed"
+    expected = {} if removed else {"model_max_concurrency": 25}
+    assert received == [expected]
+    effective = execution.get("effectiveServiceConfig")
+    assert isinstance(effective, dict)
+    assert effective.get("enable_model_failure_retry") is True
+    assert effective.get("model_max_concurrency") == (20 if removed else 25)
+    assert "old-secret" not in json.dumps(manager.get_run(run_id))
+    assert bool(execution.get("configWarnings")) is (legacy or removed)

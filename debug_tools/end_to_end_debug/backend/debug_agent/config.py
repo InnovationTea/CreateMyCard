@@ -120,7 +120,10 @@ class DebugSettings:
     ) -> DebugSettings:
         selected = config.profile(profile)
         raw = _read_yaml(config.config_path)
-        server = raw.get("server", {})
+        platform = raw.get("platform", {})
+        if not isinstance(platform, dict):
+            raise ValueError("Debug platform 配置必须是对象")
+        server = platform.get("server", {})
         defaults = raw.get("defaults", {})
         logging = raw.get("logging", {})
         return cls(
@@ -171,17 +174,20 @@ class DebugSettings:
 
 def load_debug_config(path: Path, repo_root: Path) -> DebugConfig:
     raw = _read_yaml(path)
-    shared_prompt = raw.get("system_prompt")
+    main_agent = raw.get("main_agent", {})
+    if not isinstance(main_agent, dict):
+        raise ValueError("Debug main_agent 配置必须是对象")
+    shared_prompt = main_agent.get("system_prompt")
     prompt_path = None
     if shared_prompt:
         prompt_path = Path(shared_prompt)
         if not prompt_path.is_absolute():
             prompt_path = _resolve_repo_file(prompt_path, repo_root, path)
-    skill_root = Path(raw.get("skill_root", "skills"))
+    skill_root = Path(main_agent.get("skill_root", "skills"))
     if not skill_root.is_absolute():
         skill_root = (repo_root / skill_root).resolve()
     profiles: dict[str, SkillProfile] = {}
-    configured_profiles = raw.get("profiles") or {}
+    configured_profiles = main_agent.get("profiles") or {}
     if not isinstance(configured_profiles, dict):
         raise ValueError("Debug profiles 配置必须是对象")
     for key, value in configured_profiles.items():
@@ -195,7 +201,7 @@ def load_debug_config(path: Path, repo_root: Path) -> DebugConfig:
             str(value.get("description", "")),
             prompt_path,
         )
-    if bool(raw.get("auto_discover_profiles", True)) and skill_root.is_dir():
+    if bool(main_agent.get("auto_discover_profiles", True)) and skill_root.is_dir():
         for directory in sorted(skill_root.iterdir(), key=lambda item: item.name.lower()):
             if not _is_debug_skill_directory(directory):
                 continue
@@ -211,11 +217,11 @@ def load_debug_config(path: Path, repo_root: Path) -> DebugConfig:
             )
     if not profiles:
         raise ValueError(f"Debug Skill 主目录不存在可用 Skill: {skill_root}")
-    quick_prompts = _load_quick_prompts(raw.get("ui", {}))
-    model_overrides = raw.get("model", {})
+    quick_prompts = _load_quick_prompts(main_agent.get("ui", {}))
+    model_overrides = main_agent.get("model", {})
     if not isinstance(model_overrides, dict):
         raise ValueError("Debug model 配置必须是对象")
-    configured_default = str(raw.get("default_profile", ""))
+    configured_default = str(main_agent.get("default_profile", ""))
     default_profile = configured_default if configured_default in profiles else next(iter(profiles))
     return DebugConfig(
         path.resolve(),
@@ -293,11 +299,11 @@ def _field_environment_aliases(field_name: str, validation_alias: Any) -> set[st
 
 
 def _debug_config_path(repo_root: Path) -> Path:
-    relative = Path("debug_tools/end_to_end_debug/backend/debug_agent.yaml")
+    relative = Path("debug_tools/debug_tool.yaml")
     candidates = (
         repo_root / relative,
         repo_root / "widget_service" / relative,
-        Path(__file__).resolve().parents[1] / "debug_agent.yaml",
+        Path(__file__).resolve().parents[3] / "debug_tool.yaml",
     )
     for candidate in candidates:
         if candidate.is_file():

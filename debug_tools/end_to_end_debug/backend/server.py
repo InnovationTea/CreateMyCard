@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 
 from debug_tools.batch_testing import register_batch_routes
 from debug_tools.card_renderer.api import register_renderer_conversion_routes
+from debug_tools.device_debug.api import register_device_routes
 from debug_tools.paths import (
     CLOUD_ROOT,
     DEBUG_TOOLS_ROOT,
@@ -71,7 +72,7 @@ def create_app(
     会从云侧配置读取模型设置，但不会启动上游工具服务。
     """
 
-    config_path = DEBUG_TOOLS_ROOT / "end_to_end_debug" / "backend" / "debug_agent.yaml"
+    config_path = DEBUG_TOOLS_ROOT / "debug_tool.yaml"
     if not config_path.is_file():
         raise RuntimeError(f"debug config does not exist: {config_path}")
 
@@ -84,6 +85,7 @@ def create_app(
     static_dir = FRONTEND_DIST
     register_renderer_asset_routes(app)
     register_renderer_conversion_routes(app)
+    register_device_routes(app)
 
     @app.get("/debug/health")
     async def health() -> dict[str, Any]:

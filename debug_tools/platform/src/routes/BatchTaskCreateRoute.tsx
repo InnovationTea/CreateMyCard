@@ -9,14 +9,8 @@ import {
   type BatchDatasetItem,
 } from '../batchApi';
 import { useWorkbench } from '../context';
-import { SERVICE_CONFIG_GROUPS, serviceConfigLabel } from '../serviceConfig';
-
-const REQUEST_FIELDS = [
-  ['protocolVersion', '协议版本'], ['bundleName', 'Bundle Name'], ['deviceId', 'Device ID'],
-  ['phoneType', 'Phone Type'], ['appVersion', 'App Version'], ['romVersion', 'ROM Version'],
-  ['locale', 'Locale'], ['countryCode', 'Country Code'], ['deviceFormation', 'Device Formation'],
-  ['deviceType', 'Device Type'], ['sysVer', 'System Version'],
-] as const;
+import type { ServiceConfigDefaults } from '../batchApi';
+import { ServiceConfigInput } from '../components/ServiceConfigInput';
 
 export function BatchTaskCreateRoute() {
   const navigate = useNavigate();
@@ -29,16 +23,9 @@ export function BatchTaskCreateRoute() {
   const [name, setName] = useState('');
   const [backendMode, setBackendMode] = useState<'deployed' | 'managed'>('deployed');
   const [toolWsBaseUrl, setToolWsBaseUrl] = useState(config.toolWsBaseUrl);
-  const [serviceConfig, setServiceConfig] = useState<Record<string, string | number | boolean>>(
-    { ...config.managedServiceConfig },
-  );
-  const [serviceSources, setServiceSources] = useState<Record<string, string>>({});
-  const [enabledOverrides, setEnabledOverrides] = useState<Set<string>>(new Set());
-  const [overrideValues, setOverrideValues] = useState<Record<string, string | number>>(() => {
-    const values: Record<string, string | number> = {};
-    REQUEST_FIELDS.forEach(([key]) => { values[key] = config[key]; });
-    return values;
-  });
+  const [serviceConfig, setServiceConfig] = useState<Record<string, unknown>>({});
+  const [defaults, setDefaults] = useState<ServiceConfigDefaults | null>(null);
+  const [invalid, setInvalid] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -47,8 +34,7 @@ export function BatchTaskCreateRoute() {
       .then(([items, defaults]) => {
         setDatasets(items);
         if (items.length) setDatasetId(items[0].id);
-        setServiceConfig((current) => ({ ...defaults.values, ...current }));
-        setServiceSources(defaults.sources);
+        setDefaults(defaults);
       })
       .catch((reason) => setError(reason instanceof Error ? reason.message : String(reason)));
   }, []);
@@ -75,20 +61,13 @@ export function BatchTaskCreateRoute() {
     return next;
   });
 
-  const toggleOverride = (key: string) => setEnabledOverrides((current) => {
-    const next = new Set(current);
-    if (next.has(key)) next.delete(key); else next.add(key);
-    return next;
-  });
-
   const submit = async () => {
     setSaving(true);
     setError('');
     try {
-      const requestOverrides: Record<string, unknown> = {};
-      enabledOverrides.forEach((key) => { requestOverrides[key] = overrideValues[key]; });
+      if (backendMode === 'managed' && (!defaults || Object.values(invalid).some(Boolean))) throw new Error('请等待配置加载并修正无效参数');
       const created = await createBatchTask({
-        name, datasetId, sampleIds: Array.from(selected), requestOverrides,
+        name, datasetId, sampleIds: Array.from(selected), requestOverrides: {},
         backendMode, toolWsBaseUrl,
         serviceConfig: backendMode === 'managed' ? serviceConfig : {},
       });
@@ -123,18 +102,23 @@ export function BatchTaskCreateRoute() {
           </section>
 
           <section className="batch-form-section">
-            <div className="batch-form-heading"><div><h2>公共请求字段覆盖</h2><p>默认保留样本原值；勾选后才会覆盖所有选中样本。系统生成的 UID 与会话字段不可覆盖。</p></div><button type="button" onClick={() => setEnabledOverrides(new Set(REQUEST_FIELDS.map(([key]) => key)))}>使用工作台配置</button></div>
-            <div className="override-grid">{REQUEST_FIELDS.map(([key, label]) => <label key={key} className={enabledOverrides.has(key) ? 'enabled' : ''}><input type="checkbox" checked={enabledOverrides.has(key)} onChange={() => toggleOverride(key)} /><span>{label}</span><input disabled={!enabledOverrides.has(key)} type={typeof overrideValues[key] === 'number' ? 'number' : 'text'} value={overrideValues[key] ?? ''} onChange={(event) => setOverrideValues((current) => ({ ...current, [key]: typeof current[key] === 'number' ? Number(event.target.value) : event.target.value }))} /></label>)}</div>
-          </section>
-
-          <section className="batch-form-section">
             <div className="batch-form-heading"><div><h2>测试后端</h2><p>选择已部署服务，或调整会影响模型表现和性能的参数后启动本地微服务。</p></div></div>
             <div className="backend-mode-switch"><button type="button" className={backendMode === 'deployed' ? 'active' : ''} onClick={() => setBackendMode('deployed')}>已部署后端</button><button type="button" className={backendMode === 'managed' ? 'active' : ''} onClick={() => setBackendMode('managed')}>本地受管后端</button></div>
-            {backendMode === 'deployed' ? <label className="wide-field"><span>WebSocket Base URL</span><input value={toolWsBaseUrl} onChange={(event) => setToolWsBaseUrl(event.target.value)} /></label> : <div className="service-config-groups">{SERVICE_CONFIG_GROUPS.map((group) => <fieldset key={group.title}><legend>{group.title}</legend>{group.keys.map((key) => { const value = serviceConfig[key]; return <label key={key}><span>{serviceConfigLabel(key)}<small>{serviceSources[key] ?? '连接配置'}</small></span>{typeof value === 'boolean' ? <input type="checkbox" checked={value} onChange={(event) => setServiceConfig((current) => ({ ...current, [key]: event.target.checked }))} /> : <input type={typeof value === 'number' ? 'number' : 'text'} value={value ?? ''} onChange={(event) => setServiceConfig((current) => ({ ...current, [key]: typeof value === 'number' ? Number(event.target.value) : event.target.value }))} />}</label>; })}</fieldset>)}</div>}
-            <p className="secret-note">端口由系统自动分配；并发、超时、Trace 与产物设置复用 debug_agent.yaml。API Key、Access Key 和 Secret 仅由后端进程继承 `.env`。</p>
+            {backendMode === 'deployed' ? <label className="wide-field"><span>WebSocket Base URL</span><input value={toolWsBaseUrl} onChange={(event) => setToolWsBaseUrl(event.target.value)} /></label> : <div className="managed-config-grid">{defaults?.fields.filter((field) => field.group === 'exposed' && field.editable && !field.sensitive).map((field) => <div className="managed-config-field" key={field.name}>
+              <div className="managed-config-label"><strong>{field.displayName}</strong><small>{field.name in serviceConfig ? '本次临时覆盖' : field.source}</small></div>
+              <ServiceConfigInput field={field} value={field.name in serviceConfig ? serviceConfig[field.name] : defaults.values[field.name]} onChange={(value) => setServiceConfig((current) => {
+                const next = { ...current };
+                if (JSON.stringify(value) === JSON.stringify(defaults.values[field.name])) delete next[field.name];
+                else next[field.name] = value;
+                return next;
+              })} onValidity={(valid) => setInvalid((current) => ({ ...current, [field.name]: !valid }))} />
+              {field.name in serviceConfig && <button type="button" onClick={() => { setInvalid((current) => ({ ...current, [field.name]: false })); setServiceConfig((current) => { const next = { ...current }; delete next[field.name]; return next; }); }}>取消临时覆盖</button>}
+            </div>)}</div>}
+
+            <p className="secret-note">本次参数只对该受管后端版本生效且优先级最高；端口自动分配，其余默认值来自连接配置和 debug_tool.yaml。</p>
           </section>
         </main>
-        <aside className="batch-create-summary"><h2>任务摘要</h2><dl><div><dt>数据集</dt><dd>{datasetId || '未选择'}</dd></div><div><dt>样本</dt><dd>{selected.size} 个</dd></div><div><dt>后端</dt><dd>{backendMode === 'managed' ? '本地受管' : '已部署'}</dd></div><div><dt>字段覆盖</dt><dd>{enabledOverrides.size} 项</dd></div></dl><p>创建后立即加入后台队列；执行完成后可进入任务选择插件进行后处理。</p></aside>
+        <aside className="batch-create-summary"><h2>任务摘要</h2><dl><div><dt>数据集</dt><dd>{datasetId || '未选择'}</dd></div><div><dt>样本</dt><dd>{selected.size} 个</dd></div><div><dt>后端</dt><dd>{backendMode === 'managed' ? '本地受管' : '已部署'}</dd></div></dl><p>创建后立即加入后台队列；执行完成后可进入任务选择插件进行后处理。</p></aside>
       </div>
     </div>
   );
