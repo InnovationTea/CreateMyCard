@@ -5,11 +5,13 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+import logging
 import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ...device_debug.commands import DeviceError
 from ...device_debug.config import Config
 from ...device_debug.devices import Devices
 from ...device_debug.runner import DeviceRenderer, RenderFailure
@@ -27,9 +29,20 @@ class DeviceCaptureManager:
         renderer: DeviceRenderer | Any | None = None,
     ) -> None:
         self.output_root = output_root.resolve()
-        self.config = Config.load() if renderer is None else None
+        self.config: Config | None = None
+        self.configuration_error: str | None = None
+        if renderer is None:
+            try:
+                self.config = Config.load()
+            except DeviceError as exc:
+                self.configuration_error = str(exc)
+                logging.getLogger(__name__).warning(
+                    "设备截图暂不可用，调试平台继续启动；使用前请完善配置：%s", exc
+                )
         self.devices = Devices(self.config) if self.config is not None else None
-        self.renderer = renderer or DeviceRenderer(self.config, self.devices)
+        self.renderer = renderer
+        if self.config is not None:
+            self.renderer = DeviceRenderer(self.config, self.devices)
 
     async def start(self) -> None:
         self.output_root.mkdir(parents=True, exist_ok=True)
@@ -39,6 +52,13 @@ class DeviceCaptureManager:
             await self.devices.close()
 
     async def availability(self) -> dict[str, Any]:
+        if self.configuration_error is not None:
+            return {
+                "available": False,
+                "checks": [{"name": "工具链配置", "ok": False, "detail": self.configuration_error}],
+                "targets": [],
+                "error": self.configuration_error,
+            }
         if self.config is None:
             method = getattr(self.renderer, "availability", None)
             return await method() if method is not None else {"available": True, "checks": []}
@@ -149,6 +169,8 @@ async def run_builtin(
         raise ValueError("真机截图必须选择当前在线设备")
     if not hasattr(manager, "renderer"):
         return await _run_legacy_host(manager, run_id)
+    if manager.renderer is None:
+        raise DeviceError(manager.configuration_error or "设备工具未配置", 503)
     run_dir = manager._legacy_run_dir(run_id)
     summary = manager._read_json(run_dir / "summary.json")
     samples_value = summary.get("samples", [])

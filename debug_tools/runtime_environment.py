@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import shutil
@@ -85,6 +86,18 @@ def load_toolchain(config_path: Path | None = None) -> Toolchain:
         emulator=path_variables.get("emulator"),
         path_variables=path_variables,
     )
+
+
+def load_optional_toolchain() -> Toolchain | None:
+    """启动时检查可选工具链；功能执行时仍通过 load_toolchain 严格校验。"""
+    toolchain: Toolchain | None = None
+    try:
+        toolchain = load_toolchain()
+    except ToolchainError as exc:
+        logging.getLogger(__name__).warning(
+            "本机截图工具暂不可用，调试平台继续启动；使用前请完善配置：%s", exc
+        )
+    return toolchain
 
 
 def _mapping(value: Any, name: str) -> dict[str, Any]:

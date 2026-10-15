@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from debug_tools.runtime_environment import Toolchain, load_toolchain
+from debug_tools.runtime_environment import Toolchain, load_optional_toolchain, load_toolchain
 from debug_tools.subprocesses import run_node_script
 
 GalleryCapture = Callable[[str, Path], Awaitable[dict[str, Any]]]
@@ -290,7 +290,7 @@ class ValidationFailureGalleryManager:
         self.output_root = output_root.resolve()
         self.capture_base_url = capture_base_url.rstrip("/")
         self.capture = capture or self._capture_with_browser
-        self.toolchain = toolchain or load_toolchain()
+        self.toolchain = toolchain or load_optional_toolchain()
 
     def items(self, run_id: str) -> list[dict[str, Any]]:
         analyses = self._analyze_run(run_id)
@@ -694,7 +694,7 @@ class ValidationFailureGalleryManager:
         }
 
     async def _capture_with_browser(self, capture_url: str, output_dir: Path) -> dict[str, Any]:
-        toolchain = self.toolchain
+        toolchain = self.toolchain or load_toolchain()
         script = Path(__file__).resolve().parents[2] / "scripts" / "capture_batch_gallery.mjs"
         await run_node_script(
             toolchain.node_executable,
