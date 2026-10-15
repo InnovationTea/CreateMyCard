@@ -41,6 +41,9 @@ from services.card_validation.compact_validation.semantic.layout.assets import (
 from services.card_validation.compact_validation.semantic.layout.geometry import (
     _collect_height_budget_errors,
 )
+from services.card_validation.compact_validation.semantic.layout.horizontal import (
+    _collect_horizontal_budget_errors,
+)
 from services.card_validation.compact_validation.semantic.layout.text_width import (
     _collect_text_width_budget_errors,
 )
@@ -171,6 +174,9 @@ def validate_compact_dsl(
         budget_components, task_spec, card_spec, errors, protocol_profile,
         include_label_pressure=(card_spec.get("suggestSize") or task_spec.get("size")) == "2x4",
         warnings=warnings,
+    )
+    _collect_horizontal_budget_errors(
+        budget_components, task_spec, card_spec, errors, protocol_profile
     )
     for component in components:
         location = f"component {component.component_id}.props"
