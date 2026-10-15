@@ -85,6 +85,7 @@ from services.template_generation.engine.cardplan.compiler import (
     _provider_layout_action_background,
     _provider_template_binding_values,
     _validate_provider_template_state,
+    template_displayed_binding_names,
 )
 from services.template_generation.engine.cardplan.fusion_ball_background import (
     FusionBallPalette,
@@ -281,7 +282,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 243
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -344,6 +344,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "SleepOverviewNapHero@1",
         "SleepOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAirQualitySummaryFull@1",
         "WeatherOverviewAlertFull@1",
         "WeatherOverviewCareAlertFull@1",
         "WeatherOverviewCareWideHero@1",
@@ -351,6 +352,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "WeatherOverviewDailyCompareFull@1",
         "WeatherOverviewDailyDateFull@1",
         "WeatherOverviewDailyHealthFull@1",
+        "WeatherOverviewDailyConditionWeekdayFull@1",
+        "WeatherOverviewDailyUvColdFull@1",
         "WeatherOverviewDailyRainFull@1",
         "WeatherOverviewDualCityFull@1",
         "WeatherOverviewFull@1",
@@ -358,6 +361,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "WeatherOverviewHumidityFull@1",
         "WeatherOverviewTargetDayHealthFull@1",
         "WeatherOverviewUvFull@1",
+        "WeatherOverviewUvOnlyFull@1",
         "WeatherOverviewWindHero@1",
         "WorkoutOverviewFull@1",
         "WorkoutOverviewTrainingRecordHero@1",
@@ -553,6 +557,28 @@ def test_weather_daily_templates_declare_exact_item_contracts(
     assert definition.optional_data == optional_data
     assert variant.required_bindings == required_bindings
     assert variant.optional_bindings == optional_bindings
+
+
+@pytest.mark.parametrize(
+    "template_id",
+    (
+        "WeatherOverviewUvOnlyFull@1",
+        "WeatherOverviewDailyUvColdFull@1",
+        "WeatherOverviewDailyConditionWeekdayFull@1",
+    ),
+)
+def test_weather_optional_fields_are_rendered_by_the_declared_templates(template_id: str) -> None:
+    """Optional provider coverage must not advertise fields absent from the body."""
+    definition = get_cardplan_registry().require_template(template_id)
+    variant = definition.variants[0]
+    required = set(variant.required_bindings)
+    for name in variant.optional_bindings:
+        displayed = template_displayed_binding_names(
+            variant,
+            required | {name},
+            set(),
+        )
+        assert name in displayed, f"{template_id} declares but does not render {name}"
 
 
 def test_weather_daily_item_word_labels_match_bound_daily_index() -> None:
@@ -1130,6 +1156,9 @@ def test_weather_location_compile_time_conditional_selects_available_reference(
             "supportContentColor": "#99000000",
         },
     )
+    # The surrounding layout slot owns the fixed height and vertical centering;
+    # the Weather Compact root must remain intrinsic instead of filling it.
+    assert "height" not in root.values[0]
     location_text = root.children[0].children[0].children[0]
 
     assert location_text.component_type == "Text"

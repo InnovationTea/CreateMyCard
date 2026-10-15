@@ -961,7 +961,7 @@ def _expand_call(
             "WideTwoFocusTwoActionLayout",
         }
         and task_spec.size == "2x4"
-        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact"}
+        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact", "Support"}
     )
     if (
         variant.supported_card_sizes
@@ -6695,10 +6695,21 @@ def _validate_provider_template_layout_action_requirements(
         ("CompactAction",),
         ("CompactSubtitleAction",),
     }:
-        if layout_kinds not in {("Full", "Compact"), ("Hero", "Compact")}:
+        if layout_kinds not in {
+            ("Full", "Compact"),
+            ("Full", "Support"),
+            ("Hero", "Compact"),
+            ("Hero", "Support"),
+        }:
             raise TerselConversionError(
                 f"{layout_id} Provider Template slot combination is invalid."
             )
+        return
+    if layout_id == "WideFullTwoCompactLayout" and not action_names and layout_kinds == (
+        "Full",
+        "Support",
+        "Support",
+    ):
         return
     if layout_id == "WideHalfTwoCompactLayout" and action_names == ("CompactAction",):
         if layout_kinds != ("WideHalf", "Compact"):
@@ -9279,6 +9290,11 @@ def _lower_action_template_tree(
         values[options_index] = cleaned
         return Nested2Node(filled.component_type, tuple(values), filled.children)
     styled = apply_foreground(content)
+    # CompactAction is rendered inside a layout-owned support slot.  The slot
+    # supplies the shared surface, radius, and padding; adding an action
+    # background here would create a second nested panel inside that slot.
+    if node.component_type == "CompactAction":
+        return styled
     return _merge_node_options(styled, {"backgroundColor": background})
 
 
