@@ -42,7 +42,7 @@ template_generation -X-> ArtifactValidator / ArtifactStore / ResponsePlanner
 
 Compact 和 Tersel 入口分别构造 `TemplateSourceGenerator` 对象，并设置各自的模板候选、Action、样例覆盖等
 差异属性。`WidgetGenerationService._generate_widget_card_with_policy()` 只负责向对象绑定当前 Processor、
-Form Profile、模型运行时、请求上下文与 `fail_fast`，再将其注入公共生成链。回退策略在公共 `generate_source_dsl()` 中
+Form Profile、模型运行时和请求上下文，再将其注入公共生成链。回退策略在公共 `generate_source_dsl()` 中
 执行，不进入模板模块。
 
 | 场景 | Compact | Tersel |
@@ -195,9 +195,11 @@ Plan，只能补全开放 Props 与可信素材，不得跨 Plan 混用 Layout�
 9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后执行 artifact 校验。A2UI-Compact 不接受
    或保留 `FusionBall` 云端组件。
 
-独立模板入口二层输出发生 `TerselConversionError` 时，首次生成后最多使用两次二层修复。
-普通 Compact 创建入口设置 `fail_fast=True`：首层及正文模型调用关闭重试和主备切换，正文空输出
-不重试，二层编译的 `max_body_repairs=0`；首次失败直接交回服务层，启动 Fusion Info Plan。
+两个入口都保留模板原有内部策略：首层公共模型重试和主备切换由原配置控制；正文
+`MODEL_EMPTY_OUTPUT` 保留一次相同输入重试；二层输出发生 `TerselConversionError` 时，
+首次生成后最多执行 `_MAX_BODY_REPAIRS=2` 次模型修复，确定性脚本修复保持不变。
+普通 Compact 创建仅在模板黑盒最终失败、或返回结果在外层转换／校验失败后启动 Fusion Info Plan，
+不向模板传入用于覆盖内部策略的参数。独立入口最终失败时直接返回失败。
 
 ## 4. 数据形态变换
 
@@ -239,7 +241,7 @@ Fusion，优先于 JSX 和 `need_fallback`；独立模板入口仍无普通模�
   不重复下发开始通知，不走 JSX，不消耗 Fusion repair 额度；质量修复关闭时仍执行该回退。
 - 模板调用使用独立输入副本，失败时清空模板来源标记和处理结果，Fusion 使用完整原始业务输入。
   模板成功的转换与校验结果直接复用，避免重复执行。失败原因记录在 `template.fallback` Trace。
-- 独立模板入口保留二层最多 2 次编译修复、正文空输出最多两次调用及首层原调用策略。
+- 两个入口均保留二层最多 2 次编译修复、正文空输出最多两次调用及首层原调用策略。
 - Fusion 的 Plan 与公共 Compact repair 使用原配置，任何后续失败均不重跑 Template；保存或上传失败
   不触发路线切换。
 

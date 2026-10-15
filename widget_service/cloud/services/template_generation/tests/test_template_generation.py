@@ -7264,8 +7264,7 @@ def _minimal_template_a2ui() -> str:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("fail_fast", [False, True])
-async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatch, fail_fast):
+async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatch):
     class Output:
         a2ui = _minimal_template_a2ui()
         template_ids = ("WeatherOverviewFull@1",)
@@ -7283,7 +7282,7 @@ async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatc
         enable_fusion_ball: bool,
         **options: Any,
     ) -> Output:
-        assert options == ({"max_body_repairs": 0} if fail_fast else {})
+        assert options == {}
         observed_feature_flags.append(enable_fusion_ball)
         return Output()
 
@@ -7307,7 +7306,6 @@ async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatc
             app_name="CreateMyCard",
         ),
         enable_fusion_ball=False,
-        fail_fast=fail_fast,
     )
 
     assert isinstance(result, str)
@@ -7320,7 +7318,7 @@ async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatc
     ]
     assert rows[-1] == ["/", {"data": {}}]
     assert observed_feature_flags == [False]
-    assert observed_client_options == ([{"fail_fast": True}] if fail_fast else [{}])
+    assert observed_client_options == [{}]
 
 
 @pytest.mark.asyncio
@@ -7428,8 +7426,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     )
     captured: dict[str, Any] = {}
 
-    def create_model(_runtime: Any, _context: Any, *, fail_fast: bool) -> WeatherTemplateModel:
-        assert fail_fast
+    def create_model(_runtime: Any, _context: Any) -> WeatherTemplateModel:
         return model
 
     monkeypatch.setattr(
@@ -8352,15 +8349,17 @@ async def test_first_layer_action_must_be_a_task_spec_event_id():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("max_repairs", [0, 2])
-async def test_template_body_repair_budget_is_controlled_by_entry(max_repairs):
+@pytest.mark.parametrize("recovers_after", [None, 1, 2])
+async def test_template_body_repair_budget_is_preserved(recovers_after):
     class InvalidBodyModel(WeatherTemplateModel):
         def __init__(self) -> None:
             super().__init__()
             self.phases: list[str] = []
 
-        async def generate(self, *_args: Any, phase: str, **_kwargs: Any) -> str:
+        async def generate(self, *args: Any, phase: str, **kwargs: Any) -> str:
             self.phases.append(phase)
+            if recovers_after is not None and len(self.phases) > recovers_after:
+                return await super().generate(*args, phase=phase, **kwargs)
             return 'Template("UnknownTemplate@1",{});'
 
     model = InvalidBodyModel()
@@ -8369,12 +8368,18 @@ async def test_template_body_repair_budget_is_controlled_by_entry(max_repairs):
         writeResultTo="/data/weather",
         candidateOutputFields=["/current/condition"],
     )
-    with pytest.raises(TemplateGenerationError, match="template body validation failed"):
-        await generate_template_a2ui(
+    if recovers_after is None:
+        with pytest.raises(TemplateGenerationError, match="template body validation failed"):
+            await generate_template_a2ui(
+                _weather_task_spec(), _weather_card_spec(), (binding,), model,
+            )
+    else:
+        output = await generate_template_a2ui(
             _weather_task_spec(), _weather_card_spec(), (binding,), model,
-            max_body_repairs=max_repairs,
         )
-    assert model.phases == ["advanced-mixed-body"] + ["advanced-mixed-body-repair"] * max_repairs
+        assert output.a2ui
+    repair_count = 2 if recovers_after is None else recovers_after
+    assert model.phases == ["advanced-mixed-body"] + ["advanced-mixed-body-repair"] * repair_count
 
 
 @pytest.mark.asyncio
