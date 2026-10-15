@@ -23,11 +23,13 @@ from services.generation_pipeline import (
     DslProcessingResult,
     DslProcessorKind,
     QualityIssue,
+    _capture_processing_result,
     get_dsl_processor,
 )
 from services.generation_trace_recorder import (
     GenerationTraceRecorder,
     TraceRecord,
+    TraceSpan,
     trace_attempt,
     trace_record,
     trace_span,
@@ -75,6 +77,43 @@ def test_trace_record_omits_empty_fields() -> None:
         "startOffsetMs": 0.0,
         "details": {"zero": 0, "false": False},
     }
+
+
+def test_processing_trace_issues_keep_severity() -> None:
+    span = TraceSpan()
+    result = DslProcessingResult(
+        source_dsl='["root","Column",{},[]]',
+        issues=(
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_PLAN_FACT_OMITTED",
+                message="fact omitted",
+                severity="warning",
+            ),
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_DSL_VALIDATION_FAILED",
+                message="layout invalid",
+            ),
+        ),
+    )
+
+    _capture_processing_result(span, result)
+
+    assert span.json_artifacts["dsl_processing_issues"] == [
+        {
+            "stage": "validation",
+            "code": "COMPACT_PLAN_FACT_OMITTED",
+            "message": "fact omitted",
+            "severity": "warning",
+        },
+        {
+            "stage": "validation",
+            "code": "COMPACT_DSL_VALIDATION_FAILED",
+            "message": "layout invalid",
+            "severity": "error",
+        },
+    ]
 
 
 def test_trace_uid_can_be_read_before_argument_repair() -> None:

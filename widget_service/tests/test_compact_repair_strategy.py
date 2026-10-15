@@ -268,8 +268,38 @@ def test_chinese_semantic_layout_error_uses_structure_route() -> None:
     directive = tracker.next_directive("dsl-v1", errors)
 
     assert directive.category == "layout_structure"
-    assert directive.repair_strategy == "parent_layout_recompose"
+    assert directive.repair_strategy == "semantic_layout_contract_repair"
     assert directive.scope == "parent_layout"
+    assert directive.retry_target == "dsl_local_repair"
+
+
+def test_semantic_layout_contract_repair_escalates_in_bounded_steps() -> None:
+    tracker = CompactRepairStrategyTracker()
+    errors = [
+        _issue(
+            "语义布局不符合合同：节点 right：子组件数量应为 [3]，实际为 2；"
+            "Region.variant='title-content-action' 要求 [title, content, PillButton]。"
+        )
+    ]
+
+    first = tracker.next_directive("dsl-v1", errors)
+    repeated = tracker.next_directive("dsl-v1", errors)
+    parent = tracker.next_directive("dsl-v1", errors)
+    full = tracker.next_directive("dsl-v1", errors)
+
+    assert first.repair_strategy == "semantic_layout_contract_repair"
+    assert first.retry_target == "dsl_local_repair"
+    assert "直属 children" in first.instruction
+    assert "title-count 只占标题角色" in first.instruction
+    assert "title-content-action 的动作角色必须使用 PillButton" in first.instruction
+    assert repeated.repair_strategy == "semantic_layout_contract_repair"
+    assert repeated.no_progress is True
+    assert "不得原样返回上一轮 DSL" in repeated.instruction
+    assert parent.repair_strategy == "parent_layout_recompose"
+    assert parent.scope == "parent_layout"
+    assert "本轮仍不重写整份 DSL" in parent.instruction
+    assert full.repair_strategy == "plan_guided_recompose"
+    assert full.scope == "full_dsl"
 
 
 def test_compact_fallback_bridges_contract_repair_then_resumes_drop() -> None:

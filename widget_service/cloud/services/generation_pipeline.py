@@ -63,6 +63,12 @@ class QualityIssue:
         payload.update(self.prompt_context)
         return payload
 
+    def to_diagnostic_payload(self) -> dict[str, Any]:
+        """为 Trace 保留完整诊断级别，不改变修复模型输入。"""
+        payload = self.to_prompt_payload()
+        payload["severity"] = self.severity
+        return payload
+
 
 @dataclass(frozen=True)
 class DslProcessingContext:
@@ -142,7 +148,7 @@ def _capture_processing_result(span: TraceSpan, result: DslProcessingResult) -> 
     span.text_artifacts["dsl_processing_input"] = result.source_dsl
     span.text_artifacts["dsl_processing_output"] = result.standard_dsl
     span.json_artifacts["dsl_processing_issues"] = [
-        item.to_prompt_payload() for item in result.issues
+        item.to_diagnostic_payload() for item in result.issues
     ]
     span.artifact_roles.update(
         {

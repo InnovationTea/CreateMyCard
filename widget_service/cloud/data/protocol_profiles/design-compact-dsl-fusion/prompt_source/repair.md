@@ -59,6 +59,11 @@ SecondaryBody.items；短字段名称放静态label，动态值及单位放value
 错误属性并复查相邻影响。不能因一次属性错误重选整卡骨架；不确定诊断不授权盲目重组。
 策略名直接表达修复目的：`component_contract_repair` 只修复被定位的组件合同；
 `parent_layout_recompose` 重组报错组件所属的父布局并重新分配完整信息组与动作。
+`semantic_layout_contract_repair` 只修复错误消息定位的 `Layout`、`Region` 或 `Group`：严格按消息给出的
+合同调整该节点直属 children 的数量、顺序与角色。`Group` 整体只占一个直属角色；`title-count` 只占标题角色；
+`title-content-action` 的动作角色使用 `PillButton`；`W-content-side-slots` 的固定动作槽使用 `CardButton`。
+保持其它区域和合法变体不变，不修改展开后的 Row/Column 几何。第一次原样返回时必须再次执行这项精确修复；
+同一合同连续两次未闭合才升级父布局，父布局仍失败后才允许重建整份 DSL。
 同根因重复且 repairStrategy 已升级到 parent_layout/full_dsl 时，按升级范围完整重组，
 不继续执行首轮局部冻结要求；硬事实、动作、组件固定字号和全部合同仍不变。
 若同时存在结构、容量或必需信息错误，不能冻结已经不成立的布局；局部修复无法闭合时，

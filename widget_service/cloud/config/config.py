@@ -180,6 +180,20 @@ class Settings(BaseSettings):
     deepseek_official_http_enable_thinking: bool = (
         CONFIG.get("deepseek_official_http_enable_thinking", "false") == "true"
     )
+    # 可选阿里云百炼通道；不复用官方DeepSeek或WebSocket凭据。
+    aliyun_bailian_base_url: str = CONFIG.get(
+        "aliyun_bailian_base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    aliyun_bailian_api_key: str = Field(
+        default=CONFIG.get("aliyun_bailian_api_key", ""), repr=False,
+    )
+    aliyun_bailian_model: str = CONFIG.get("aliyun_bailian_model", "deepseek-v4.1-flash")
+    aliyun_bailian_temperature: float = CONFIG.get("aliyun_bailian_temperature", 0.7)
+    aliyun_bailian_top_p: float = CONFIG.get("aliyun_bailian_top_p", 0.9)
+    aliyun_bailian_max_tokens: int = CONFIG.get("aliyun_bailian_max_tokens", 8192)
+    aliyun_bailian_enable_thinking: bool = (
+        CONFIG.get("aliyun_bailian_enable_thinking", "false") == "true"
+    )
     # DeepSeekPlatform 配置
     deepseek_platform_access_key: str = CONFIG.get("deepseek_platform_access_key")
     deepseek_platform_secret_key_sts_config_key: str = CONFIG.get(
@@ -339,6 +353,7 @@ class Settings(BaseSettings):
             "deepseek_platform",
             "llmclient",
             "deepseek_official_http",
+            "aliyun_bailian",
         }
         if value not in allowed:
             raise ValueError(f"unsupported model provider: {value}")

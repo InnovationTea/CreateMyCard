@@ -288,6 +288,76 @@ def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
     return "component_contract"
 
 
+def _is_semantic_layout_contract_failure(
+    quality_errors: list[dict[str, Any]],
+) -> bool:
+    """识别已经给出精确父节点合同的语义布局错误。"""
+    return any(
+        "语义布局不符合合同" in str(issue.get("message") or "")
+        for issue in quality_errors
+    )
+
+
+def _semantic_layout_contract_directive(
+    *,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+) -> CompactRepairDirective:
+    """先按错误消息修正直属角色，避免过早重写整卡。"""
+    instruction = (
+        "只修复错误消息定位的 Layout、Region 或 Group 节点：严格按消息给出的合同调整该节点"
+        "直属 children 的数量、顺序和角色，并补齐或替换错误角色。Group 整体只占一个直属角色；"
+        "title-count 只占标题角色；title-content-action 的动作角色必须使用 PillButton；"
+        "W-content-side-slots 的固定动作槽使用 CardButton。保持其它区域、事实、绑定、Action 及"
+        "已经合法的 layout/variant 不变，不修改语义展开后的 Row/Column 几何。"
+    )
+    if consecutive_failures >= 2 or no_progress:
+        instruction += (
+            " 上一轮没有执行这项合同修复；本轮必须实际改变报错节点的直属 children 或 variant，"
+            "逐项对照错误消息闭合角色，不得原样返回上一轮 DSL，也不得改写无关区域。"
+        )
+    return CompactRepairDirective(
+        category="layout_structure",
+        scope="parent_layout",
+        repair_strategy="semantic_layout_contract_repair",
+        retry_target="dsl_local_repair",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=instruction,
+    )
+
+
+def _semantic_layout_parent_directive(
+    *,
+    fingerprint: str,
+    consecutive_failures: int,
+    category_attempt: int,
+    no_progress: bool,
+) -> CompactRepairDirective:
+    """两次精确合同修复仍失败时，仅重组共同父布局。"""
+    return CompactRepairDirective(
+        category="layout_structure",
+        scope="parent_layout",
+        repair_strategy="parent_layout_recompose",
+        retry_target="dsl_recompose",
+        fingerprint=fingerprint,
+        consecutive_failures=consecutive_failures,
+        category_attempt=category_attempt,
+        no_progress=no_progress,
+        retryable=True,
+        instruction=(
+            "同一语义布局合同已经两次未闭合；停止重复局部改名或原样返回，重组报错节点及其共同"
+            "父布局，重新选择一个完整合法的 Layout/Region/Group 变体并一次补齐全部直属角色。"
+            "保留父区外正确内容、全部事实、绑定和 Action；本轮仍不重写整份 DSL。"
+        ),
+    )
+
+
 def _layout_directive(
     *,
     category: str,
@@ -731,6 +801,9 @@ class CompactRepairStrategyTracker:
 
         repeated_root_cause = self._consecutive_failures >= 2 or no_progress
         is_layout_failure = category in {"layout_capacity", "layout_structure"}
+        is_semantic_layout_contract_failure = _is_semantic_layout_contract_failure(
+            quality_errors,
+        )
         allow_text_compaction = _capacity_text_compaction_relevant(
             invalid_source_dsl,
         )
@@ -816,6 +889,26 @@ class CompactRepairStrategyTracker:
                     candidate=self._optional_drop_candidate,
                 )
                 self._fallback_submission_count += 1
+        elif (
+            is_semantic_layout_contract_failure
+            and self._consecutive_failures <= 2
+        ):
+            directive = _semantic_layout_contract_directive(
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+            )
+        elif (
+            is_semantic_layout_contract_failure
+            and self._previous_strategy == "semantic_layout_contract_repair"
+        ):
+            directive = _semantic_layout_parent_directive(
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+            )
         elif self._active_fallback == "compact_component":
             if not is_layout_failure:
                 # 紧凑布局消除布局错误后，持续按新错误类别迁移到定向修复；
