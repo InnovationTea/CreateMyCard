@@ -62,7 +62,7 @@ Column(
     #if data.workoutCalories
     Text(
         data.workoutCalories,
-        { "width": "matchParent", "height": 24, "fontSize": 18, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+        { "width": "matchParent", "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
     ),
     #else
     Text(

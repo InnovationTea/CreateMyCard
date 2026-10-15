@@ -69,6 +69,12 @@ def _is_valid_full_template(wire_id: str, definition) -> bool:
     # Q103 风况意图不再强制城市字段），仅必需字段意图下数据只剩风况对，
     # 天气 content selector 投影不出可渲染 facts（与 RainWindFull 同类缺口），
     # 完整字段请求（Q103 实测）渲染正常；待上游补齐 content selector 后移除。
+    # CurrentTimeOverview 全族为配对专用业务（template_plan_planner
+    # _PAIRING_ONLY_BUSINESS_IDS）：不允许单独成卡，本用例的单业务渲染链路
+    # 对其必然 Plan 落空；其渲染覆盖由 paired 用例与 preview/contrast 承担。
+    # 待业务允许单独成卡后移除。
+    if wire_id.startswith("CurrentTimeOverview"):
+        return False
     return True
 
 
