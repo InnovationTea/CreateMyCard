@@ -1006,7 +1006,7 @@ async def _serve_operation_websocket(
                 request_log = json_for_log(
                     request.model_dump(
                         mode="json",
-                        exclude={"uid", "sourceArtifactUrl"},
+                        exclude={"uid", "sourceArtifactUrl", "device"},
                         exclude_none=True,
                     )
                 )
