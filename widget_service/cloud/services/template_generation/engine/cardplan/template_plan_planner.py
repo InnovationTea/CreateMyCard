@@ -35,6 +35,9 @@ from .wide_template_planner import wide_plan_compositions
 _MAX_PLANS = 3
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _ICON_ACTION_TEMPLATE_ID = "IconAction@1"
+# 只能作为配对业务出现的组件：不允许单独成卡（无单业务方案）。
+# CurrentTimeOverview 的时间/日期信息仅作为其它业务卡片的补充行（TwoSupportLayout）。
+_PAIRING_ONLY_BUSINESS_IDS = frozenset({"CurrentTimeOverview"})
 _COUNTDOWN_DATE_PATTERN = re.compile(r"(?:\d{4}\s*[年/-]\s*)?\d{1,2}\s*[月/-]\s*\d{1,2}\s*[日号]?")
 _COUNTDOWN_HOLIDAY_TERMS = (
     "元旦",
@@ -447,6 +450,9 @@ def _single_business_drafts(
     registry: CardPlanRegistry,
 ) -> tuple[tuple[TemplatePlan, tuple[int, ...]], ...]:
     if task_spec.size != "2x2":
+        return ()
+    if group.business_id in _PAIRING_ONLY_BUSINESS_IDS:
+        # 配对专用业务不生成单业务方案；仅含该业务时整体不可成卡。
         return ()
     layouts: tuple[tuple[str, str, str | None], ...]
     if not action_ids:

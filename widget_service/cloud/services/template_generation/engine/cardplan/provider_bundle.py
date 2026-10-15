@@ -145,6 +145,7 @@ _PROVIDER_TEMPLATE_FAMILIES = (
     "SleepOverview",
     "GenericMetricOverview",
     "DateOverview",
+    "CurrentTimeOverview",
 )
 
 
