@@ -1,5 +1,10 @@
 # 第二层业务模板使用规则
 
+- `BluetoothDeviceOverviewEarbudPairChargingFull@1`：沿用EarbudPairFull的小标题、大字主状态和
+  左耳/右耳/盒三列电量。必需三处电量及chargingStatusDesc；不要补名称、连接状态或左右耳状态。
+  当cardComposition.businessTitleCandidate非空时逐字传入title；缺省省略，显示“蓝牙耳机”。
+  图标可选，无素材时显示左/右/盒；无动作2×2使用SingleFocusLayout，按下发计划组合。
+
 2×2 单耳机以动作适配优先于字段得分：单动作优先选择合法 Hero，仅在 Hero 不可用时使用 Full 图标动作；无动作使用 Full，双动作使用 Compact。显式动作与自动补选动作规则一致。第二层只在服务端提供的完整 Plan 中选择，不把 Hero 的动作搬到 Full，不因 Full 的主要字段匹配更多而跨角色选择；字段完整覆盖与输入准入要求保持。
 
 - Provider：`com.huawei.earphone.cli`；业务领域为 `BluetoothDeviceOverview`。
@@ -68,6 +73,8 @@
     ChargeSupport 与 StatusHero 只接受耳机收纳盒或充电盒；同名参数必须按具体模板语义匹配，不得使用
     单侧耳塞或通用音乐图标。
 - 必填素材没有合适候选时不得选择该模板；可选素材没有合适候选时省略。
+- 左耳、右耳和盒电量位不能重复使用通用耳机图片；本轮缺少对应对象的素材时，省略
+  leftEarIcon、rightEarIcon 或 caseIcon，由模板显示“左 / 右 / 盒”等既有文字标识和实际电量。
 - `BluetoothDeviceOverviewTripleBatteryWideHalf@1`：横向三块耳机仓、左耳、右耳电量，适用于 WideHalf 槽位；只覆盖三项电量，不覆盖连接状态，不含动作。deviceIcon 为耳机仓，左右耳图标按语义选择，输入无对应素材时省略，不能自行增加素材候选。
 - `BluetoothDeviceOverviewEarbudsChargingWideFull@1`：Q073、EAR123 完整 2x4，要求名称、连接状态、左右耳和耳机仓的电量及充电状态共八字段。左侧连接摘要和左右耳44vp电量环及充电状态，右上耳机仓电量和充电状态；deviceIcon 为充电盒，左右耳图标不可互换。仅在本轮已选择每日歌单动作且规划器将其分配给本模板时可选，actionId 必填；右下固定显示每日歌单面板，点击绑定面板根节点。不支持无动作隐藏面板的变体。两侧面板使用主题底色，外侧安全边距由骨架提供。
   顶部摘要按运行时连接状态显示：已连接才拼接耳机名称，未连接只显示“未连接”，不显示“未连接耳机”或上次设备名称。保留名称绑定，不按首帧样例值裁剪，以支持连接状态刷新。
@@ -87,6 +94,13 @@ EarbudPairCompact 现可选展示连接状态和仓电量。双动作需求包�
 模板覆盖必须满足本轮字段显示条件：EarbudTripleHero 与 EarbudPairFull 的三项充电状态不齐全时不覆盖任何充电状态；EarbudPairFull 的名称与连接状态至少存在一项。动作候选保留原始列表，局部禁止项通过 excludedActionIds 排除，按过滤后可用动作数选择布局；无法识别禁止项范围时关闭自动补动作。
 
 - `BluetoothDeviceOverviewEarbudPairRingFull@1`：无动作2×2 Full，必需名称与左右耳电量，不需要盒电量或连接状态。顶部名称、双环内圆形 L/R 标识、环下对应百分比；leftChargingStatusDesc 与 rightChargingStatusDesc 独立可选，只有一项也应展示对应一侧，不适用三项状态成组显示规则。无需图标素材，沿用通用字段覆盖与布局规则。
+
+
+耳机名称与连接状态同时存在时，显示必须随运行时 isConnected 更新：名称作为标题时，
+已连接显示名称，未连接显示请求 title，title 缺省或空字符串时显示“蓝牙耳机”；
+名称作为补充信息时，未连接隐藏名称且不占位，连接状态位置继续显示“未连接”。
+未提供连接状态的模板保持原有名称展示，不根据名称文本猜测连接状态。
+支持 title 的上述模板必须逐字传入非空 cardComposition.businessTitleCandidate；缺省省略 title。不得依据当前样例连接值删除名称或状态绑定。
 
 ## 蓝牙关联动作
 

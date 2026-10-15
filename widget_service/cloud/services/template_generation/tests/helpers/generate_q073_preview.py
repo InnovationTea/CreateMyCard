@@ -51,9 +51,11 @@ def generate(
     data_schema = _build_data_schema(definition)
     if earphone_sample is not None:
         data_fields = data_schema.get("data")
-        assert isinstance(data_fields, dict)
+        if not isinstance(data_fields, dict):
+            raise AssertionError("preview data schema must contain a data object")
         earphone_fields = data_fields.get("earphone")
-        assert isinstance(earphone_fields, dict)
+        if not isinstance(earphone_fields, dict):
+            raise AssertionError("preview data schema must contain an earphone object")
         for name, value in earphone_sample.items():
             field = earphone_fields.get(name)
             if not isinstance(field, dict):
