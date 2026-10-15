@@ -100,6 +100,112 @@ def test_infoblock_secondary_overflow_is_reported_as_warning() -> None:
     assert "ellipsis" in warnings[0]
 
 
+@pytest.mark.parametrize("part", ["TextBlock.label", "TextBlock.value"])
+def test_text_block_overflow_is_reported_as_warning(part: str) -> None:
+    font_size = 12 if part == "TextBlock.label" else 10
+    rows = [
+        ComponentRow("root", "Column", {"width": 47, "height": 16}, ("detail",)),
+        ComponentRow(
+            "detail",
+            "Text",
+            {
+                "content": "东南风 2级",
+                "width": 47,
+                "fontSize": font_size,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "_visualRecipe": f"{_VISUAL_RECIPE_MARKER_PREFIX}{part}",
+            },
+            (),
+        ),
+    ]
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    _collect_text_width_budget_errors(
+        rows,
+        {"size": "2x4", "dataModelSchema": {"data": {}}},
+        {},
+        errors,
+        None,
+        warnings=warnings,
+    )
+
+    assert errors == []
+    assert len(warnings) == 1
+    assert part in warnings[0]
+    assert "ellipsis" in warnings[0]
+
+
+def test_card_button_label_overflow_is_reported_as_warning() -> None:
+    rows = [
+        ComponentRow("root", "Column", {"width": 76, "height": 20}, ("lower_label",)),
+        ComponentRow(
+            "lower_label",
+            "Text",
+            {
+                "content": "查看首场日程",
+                "width": 76,
+                "fontSize": 14,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "_visualRecipe": (
+                    f"{_VISUAL_RECIPE_MARKER_PREFIX}CardButton.label"
+                ),
+            },
+            (),
+        ),
+    ]
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    _collect_text_width_budget_errors(
+        rows,
+        {"size": "2x4", "dataModelSchema": {"data": {}}},
+        {},
+        errors,
+        None,
+        warnings=warnings,
+    )
+
+    assert errors == []
+    assert len(warnings) == 1
+    assert "CardButton.label" in warnings[0]
+    assert "ellipsis" in warnings[0]
+
+
+def test_text_block_value_overflow_does_not_reject_compact_dsl() -> None:
+    rows = [
+        [
+            "root",
+            "Column",
+            {"width": "matchParent", "height": "matchParent", "padding": 12},
+            ["details"],
+        ],
+        [
+            "details",
+            "TextBlock",
+            {
+                "items": [
+                    {"label": "天气", "value": "多云"},
+                    {"label": "体感", "value": "31℃"},
+                    {"label": "湿度", "value": "68%"},
+                    {"label": "风力", "value": "东南风 2级"},
+                ]
+            },
+        ],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+    result = validate_compact_dsl(
+        source,
+        task_spec={"size": "2x4", "dataModelSchema": {"data": {}}},
+        card_spec={},
+    )
+
+    assert any("TextBlock.value" in warning for warning in result.warnings)
+
+
 def test_infoblock_secondary_overflow_does_not_reject_compact_dsl() -> None:
     rows = [
         ["root", "Column", {"width": 132, "height": 57}, ["info"]],

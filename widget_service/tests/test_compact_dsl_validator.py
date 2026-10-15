@@ -688,7 +688,7 @@ def test_allows_plan_title_asset_without_title_when_info_block_is_present() -> N
     )
 
 
-def test_rejects_plan_title_asset_without_title_or_info_block() -> None:
+def test_allows_plan_title_asset_without_title() -> None:
     task_spec = {
         "size": "2x2",
         "eventCandidates": [],
@@ -710,22 +710,17 @@ def test_rejects_plan_title_asset_without_title_or_info_block() -> None:
         ]
     )
 
-    with pytest.raises(
-        CompactDslValidationError,
-        match="assetAssignments.title selected an icon but DSL has no SingleLineTitle",
-    ):
-        validate_compact_dsl(
-            compact_dsl,
-            task_spec=task_spec,
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
-            compact_plan=compact_plan,
-        )
+    validate_compact_dsl(
+        compact_dsl,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+        compact_plan=compact_plan,
+    )
 
 
 @pytest.mark.parametrize(
     ("missing_fragment", "expected_error"),
     [
-        (',"icon":"resources/weather.svg"', "primary SingleLineTitle must use"),
         (',"icon":"resources/action.svg"', "button for action 'event.open.weather' must use"),
     ],
 )
@@ -774,9 +769,10 @@ def test_rejects_missing_plan_asset_assignment(
         )
 
 
-def test_allows_2x4_title_without_plan_assigned_icon() -> None:
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_allows_title_without_plan_assigned_icon(size: str) -> None:
     task_spec = {
-        "size": "2x4",
+        "size": size,
         "eventCandidates": [],
         "dataModelSchema": {"data": {}},
         "assetCandidates": [
@@ -799,7 +795,7 @@ def test_allows_2x4_title_without_plan_assigned_icon() -> None:
     validate_compact_dsl(
         compact_dsl,
         task_spec=task_spec,
-        card_spec={"suggestSize": "2x4", "dataBindings": []},
+        card_spec={"suggestSize": size, "dataBindings": []},
         compact_plan=compact_plan,
     )
 

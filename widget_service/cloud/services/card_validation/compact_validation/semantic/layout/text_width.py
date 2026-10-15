@@ -102,10 +102,31 @@ def _collect_text_width_budget_errors(
         # 只反馈明显冲突，不把字符压力估计作为精确字体测量门禁。
         required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
         if available > 0 and required > available + 1e-7:
+            text_block_part = None
+            for part in ("TextBlock.label", "TextBlock.value"):
+                if _uses_visual_recipe_part(row, part):
+                    text_block_part = part
+                    break
+            if text_block_part is not None:
+                if warnings is not None:
+                    warnings.append(
+                        f"component {row.component_id}: {text_block_part} exceeds its "
+                        f"{available:g}vp single-line text area and will be rendered with "
+                        "an ellipsis."
+                    )
+                continue
             if _uses_visual_recipe_part(row, "InfoBlock.secondary"):
                 if warnings is not None:
                     warnings.append(
                         f"component {row.component_id}: InfoBlock.secondaryText exceeds its "
+                        f"{available:g}vp single-line text area and will be rendered with "
+                        "an ellipsis."
+                    )
+                continue
+            if _uses_visual_recipe_part(row, "CardButton.label"):
+                if warnings is not None:
+                    warnings.append(
+                        f"component {row.component_id}: CardButton.label exceeds its "
                         f"{available:g}vp single-line text area and will be rendered with "
                         "an ellipsis."
                     )

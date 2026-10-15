@@ -9,6 +9,14 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
+from openai import (
+    APIConnectionError,
+    APIResponseValidationError,
+    APIStatusError,
+    APITimeoutError,
+    AsyncOpenAI,
+)
+from openai.types.chat import ChatCompletion
 
 from app.logger import logger
 from config.config import Settings
@@ -29,6 +37,7 @@ class DeepSeekOfficialHttpTransport:
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.settings = settings
+        self._sdk_client: AsyncOpenAI | None = None
         self._owns_http_client = http_client is None
         self.http_client = http_client or httpx.AsyncClient(
             limits=httpx.Limits(
@@ -53,47 +62,38 @@ class DeepSeekOfficialHttpTransport:
         del request_context
         self._validate_configuration()
         payload = self._build_payload(messages)
-        request_url = self.settings.deepseek_official_http_url.strip()
-        headers = {
-            "Authorization": f"Bearer {self.settings.deepseek_official_http_api_key.strip()}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
         started_at = time.perf_counter()
         try:
-            response = await self.http_client.post(
-                request_url,
-                json=payload,
-                headers=headers,
-            )
-        except httpx.TimeoutException as exc:
+            if self.settings.deepseek_official_http_use_sdk:
+                response_body = await self._request_with_sdk(payload)
+            else:
+                response_body = await self._request_with_httpx(payload)
+        except (APITimeoutError, httpx.TimeoutException) as exc:
             self._log_failure("timeout", started_at, exc)
             raise ModelTransportError(
                 "DeepSeek official HTTP request timed out",
                 code="MODEL_HTTP_TIMEOUT",
             ) from exc
-        except httpx.RequestError as exc:
+        except (APIConnectionError, httpx.RequestError) as exc:
             self._log_failure("request_error", started_at, exc)
             raise ModelTransportError(
                 "DeepSeek official HTTP request failed",
                 code="MODEL_HTTP_REQUEST_ERROR",
             ) from exc
-
-        duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-        if response.is_error:
+        except (APIStatusError, httpx.HTTPStatusError) as exc:
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+            status_code = exc.response.status_code
             report_ops_metrics(body={"taskFailModelCrash": 1})
             logger.warning(
-                f"{_MODULE} response_failed status={response.status_code} "
+                f"{_MODULE} response_failed status={status_code} "
                 f"duration_ms={duration_ms} model={self.settings.deepseek_official_http_model}"
             )
             raise ModelTransportError(
-                f"DeepSeek official HTTP returned status {response.status_code}",
+                f"DeepSeek official HTTP returned status {status_code}",
                 code="MODEL_HTTP_STATUS",
-            )
-
-        try:
-            response_body = response.json()
-        except ValueError as exc:
+            ) from None
+        except (APIResponseValidationError, ValueError) as exc:
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
             report_ops_metrics(body={"taskFailModelCrash": 1})
             logger.warning(
                 f"{_MODULE} response_invalid_json duration_ms={duration_ms} "
@@ -104,6 +104,7 @@ class DeepSeekOfficialHttpTransport:
                 code="MODEL_RESPONSE_INVALID",
             ) from exc
 
+        duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         try:
             result = self._extract_content(response_body)
         except ModelTransportError:
@@ -131,6 +132,51 @@ class DeepSeekOfficialHttpTransport:
         )
         return result
 
+    async def _request_with_sdk(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """使用标准 Chat Completions 方法，正文与 usage 继续由公共逻辑解析。"""
+        endpoint = httpx.URL(self.settings.deepseek_official_http_url.strip())
+        if self._sdk_client is None:
+            base_url = endpoint.copy_with(
+                path=endpoint.path.removesuffix("/chat/completions") + "/",
+                query=None,
+                fragment=None,
+            )
+            self._sdk_client = AsyncOpenAI(
+                api_key=self.settings.deepseek_official_http_api_key.strip(),
+                base_url=base_url,
+                http_client=self.http_client,
+                timeout=self.settings.model_request_timeout_seconds,
+                max_retries=0,
+            )
+        thinking = payload.get("thinking")
+        if not isinstance(thinking, dict):
+            raise ValueError("DeepSeek thinking parameters must be an object")
+        parameters = dict(payload)
+        parameters.pop("thinking")
+        response = await self._sdk_client.chat.completions.create(
+            **parameters,
+            extra_body={"thinking": thinking},
+            extra_query=endpoint.params,
+        )
+        if not isinstance(response, ChatCompletion):
+            raise ValueError("DeepSeek response is not a Chat Completion object")
+        return response.model_dump(warnings=False)
+
+    async def _request_with_httpx(self, payload: dict[str, Any]) -> Any:
+        """保留原有请求入口，仅用于显式关闭 SDK 后的对照。"""
+        response = await self.http_client.post(
+            self.settings.deepseek_official_http_url.strip(),
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {self.settings.deepseek_official_http_api_key.strip()}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+        )
+        if response.is_error:
+            response.raise_for_status()
+        return response.json()
+
     def _validate_configuration(self) -> None:
         url = self.settings.deepseek_official_http_url.strip()
         parsed_url = urlparse(url)
@@ -144,6 +190,13 @@ class DeepSeekOfficialHttpTransport:
                 "DeepSeek official HTTP URL must not contain credentials",
                 code="MODEL_CONFIG_INVALID",
             )
+        if self.settings.deepseek_official_http_use_sdk:
+            if not parsed_url.path.endswith("/chat/completions"):
+                raise ModelTransportError(
+                    "DeepSeek SDK endpoint path must end with /chat/completions; "
+                    "disable deepseek_official_http_use_sdk for custom paths",
+                    code="MODEL_CONFIG_INVALID",
+                )
         if not self.settings.deepseek_official_http_api_key.strip():
             raise ModelTransportError(
                 "DeepSeek official HTTP API key is not configured",

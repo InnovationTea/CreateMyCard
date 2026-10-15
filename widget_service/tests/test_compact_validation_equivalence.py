@@ -40,34 +40,10 @@ OLD_COMPACT_EVENT_HEIGHT_ERROR = (
     "Occupancy: events=112vp+margin(0vp), gaps=0vp."
 )
 
-# #512 将 SecondaryBody 规格改为按实际行布局选择，不再依赖历史 role。
-# 冻结样本不重生成，显式登记旧 metadata 12fp 在单行模式下的新错误。
-SECONDARY_BODY_FONT_CASES = {
-    98: "start_time",
-    99: "status",
-    101: "battery",
-    102: "battery_row",
-    103: "score_title",
+SECONDARY_BODY_OLD_HEIGHT_CASES = {
+    76: "condition",
     108: "condition",
 }
-
-SECONDARY_BODY_OLD_HEIGHT_CASES = {76: "condition"}
-
-
-def _secondary_body_font_error(component_id: str) -> dict:
-    message = (
-        f"{component_id}: SecondaryBody.fontSize must be the fixed Recipe value 14. "
-        "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row and "
-        "fontSize 12 / lineHeight 16 for multiple rows. Recompute fontSize after "
-        "changing columns, items or maxLines; do not change bindings or delete facts."
-    )
-    return {
-        "exception": "CompactDslValidationError",
-        "message": f"Compact DSL validation failed:\n- {message}",
-        "errors": [message],
-        "cause_type": "CompactDslConversionError",
-        "cause_text": message,
-    }
 
 
 def _secondary_body_height_error(component_id: str) -> dict:
@@ -86,9 +62,6 @@ def _secondary_body_height_error(component_id: str) -> dict:
 
 
 def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
-    font_component_id = SECONDARY_BODY_FONT_CASES.get(case_index)
-    if font_component_id is not None:
-        return _secondary_body_font_error(font_component_id)
     height_component_id = SECONDARY_BODY_OLD_HEIGHT_CASES.get(case_index)
     if height_component_id is not None:
         return _secondary_body_height_error(height_component_id)

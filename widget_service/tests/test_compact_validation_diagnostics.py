@@ -198,6 +198,27 @@ def test_model_feedback_groups_expanded_height_errors_by_semantic_region() -> No
     assert item_message.count("错误码：") == 1
 
 
+def test_height_feedback_prefers_removing_optional_wide_title_icon() -> None:
+    diagnostic = _diagnostic(
+        component_id="main",
+        source_line=4,
+        actual={
+            "minimumRequiredHeight": 132,
+            "overflow": 6,
+            "occupancy": "main_title=20vp, event=104vp, gaps=8vp",
+            "removableTitleIcon": {"componentId": "main_title", "heightSaving": 8},
+        },
+        expected={"maximumHeight": 126},
+    )
+
+    result = compact_issues_for_model([_payload([diagnostic.to_payload()])])
+
+    message = result[0].get("message")
+    assert isinstance(message, str)
+    assert "删除 SingleLineTitle 组件 main_title 的 icon 属性可释放 8vp" in message
+    assert "保留 title、全部事实、Action 和当前布局" in message
+
+
 @pytest.mark.parametrize("diagnostics", [[], [None], [{}], [{"severity": "warning"}]])
 def test_bad_diagnostics_fall_back_to_old_message(diagnostics: list[Any]) -> None:
     payload = _payload(diagnostics)

@@ -1476,12 +1476,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 "items": [{"label": {"path": "/data/label"}, "value": "正文"}],
                 "fontColor": "#FF1F4799",
             },
-            {
-                "role": "body",
-                "items": [{"value": "正文"}],
-                "fontSize": 18,
-                "fontColor": "#FF1F4799",
-            },
         ]
         for props in invalid_props:
             with self.subTest(props=props):
@@ -1584,15 +1578,23 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         ["content", component_type, invalid_props],
                     ]
                 )
-                with self.assertRaisesRegex(
-                    CompactDslConversionError,
-                    "fontSize must be the fixed Recipe value",
-                ):
-                    convert_compact_dsl_to_a2ui(
+                if component_type == "SecondaryBody":
+                    invalid_result = convert_compact_dsl_to_a2ui(
                         invalid_dsl,
                         size="2x2",
                         protocol_profile=self.profile,
                     )
+                    self.assertEqual(invalid_result, legacy_result)
+                else:
+                    with self.assertRaisesRegex(
+                        CompactDslConversionError,
+                        "fontSize must be the fixed Recipe value",
+                    ):
+                        convert_compact_dsl_to_a2ui(
+                            invalid_dsl,
+                            size="2x2",
+                            protocol_profile=self.profile,
+                        )
 
     def test_secondary_body_metadata_accepts_contract_multiline_mode(self) -> None:
         compact_dsl = _serialize(
@@ -1620,12 +1622,12 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["metadata_item0_value"]["styles"]["height"], 32)
         self.assertEqual(components["metadata_item0_value"]["styles"]["maxLines"], 2)
 
-    def test_secondary_body_font_size_error_explains_line_layout(self) -> None:
+    def test_secondary_body_ignores_declared_font_size_and_uses_recipe(self) -> None:
         cases = [
-            (2, 12, "Recipe value 14", "single row"),
-            (3, 14, "Recipe value 12", "multiple rows"),
+            (2, 12, 14),
+            (3, 14, 12),
         ]
-        for item_count, font_size, expected_value, expected_context in cases:
+        for item_count, font_size, expected_font_size in cases:
             with self.subTest(item_count=item_count):
                 items = [{"value": f"详情{index}"} for index in range(item_count)]
                 compact_dsl = _serialize(
@@ -1643,17 +1645,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     ]
                 )
 
-                with self.assertRaises(CompactDslConversionError) as context:
-                    convert_compact_dsl_to_a2ui(
-                        compact_dsl,
-                        size="2x2",
-                        protocol_profile=self.profile,
-                    )
-
-                message = str(context.exception)
-                self.assertIn(expected_value, message)
-                self.assertIn(expected_context, message)
-                self.assertIn("changing columns, items or maxLines", message)
+                result = convert_compact_dsl_to_a2ui(
+                    compact_dsl,
+                    size="2x2",
+                    protocol_profile=self.profile,
+                )
+                update = json.loads(result.splitlines()[1])["updateComponents"]
+                components = {item["id"]: item for item in update["components"]}
+                value = components["details_item0_value"]
+                self.assertEqual(value["styles"]["fontSize"], expected_font_size)
 
     def test_expands_info_block_progress_visual_and_two_event_card_items(self) -> None:
         compact_dsl = _serialize(

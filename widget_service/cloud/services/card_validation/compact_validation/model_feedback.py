@@ -387,6 +387,24 @@ def _height_group_summary(
         lines.append("关键占用：")
         for occupancy in occupancies[:3]:
             lines.append(f"- {occupancy}")
+    title_icon_candidate = None
+    for diagnostic in diagnostics:
+        item_actual = diagnostic.get("actual")
+        if not isinstance(item_actual, dict):
+            continue
+        candidate = item_actual.get("removableTitleIcon")
+        if isinstance(candidate, dict):
+            title_icon_candidate = candidate
+            break
+    if title_icon_candidate is not None:
+        title_id = title_icon_candidate.get("componentId")
+        height_saving = title_icon_candidate.get("heightSaving")
+        if isinstance(title_id, str) and isinstance(height_saving, (int, float)):
+            lines.append(
+                f"优先修复：删除 SingleLineTitle 组件 {title_id} 的 icon 属性可释放 "
+                f"{_compact_number(height_saving)}vp，足以消除当前高度超限；"
+                "保留 title、全部事实、Action 和当前布局。"
+            )
     lines.append(
         "修复要求：按完整事实重新选择组件组合或当前尺寸合法布局；"
         "保留必要事实、Action、固定字号和设计尺寸，不使用裁剪、缩字、权重或 flexShrink 规避。"

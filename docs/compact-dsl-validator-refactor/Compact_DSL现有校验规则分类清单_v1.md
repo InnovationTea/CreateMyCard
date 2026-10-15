@@ -11,6 +11,10 @@
 
 ## Fusion 融合后的当前生效约定
 
+2026-10-15：TextBlock.items[].label 与 items[].value 一致允许静态值、完整 Expression 和
+PathBinding。该调整归属语法／组件的共享绑定合同，落点 compact_component_bindings.py；直接
+PathBinding 的 string/number/integer 类型相容性仍归属语义／数据绑定，不在分类入口复制检查。
+
 2026-10-15：Drop阶段的Plan展示事实覆盖可由enable_drop_plan_fact_validation控制，默认关闭。
 此项属于生成编排层的降级政策，不新增语法／语义校验器；compact_repair_strategy.py按阶段计算
 可省略事实索引，widget_generation_service.py在校验及响应处传入原有Plan覆盖、缺失记录接口。
@@ -850,6 +854,10 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
   原始诊断：2x2 fusion-ball cards must not combine a title/auxiliary icon, a ring Progress, multiple status texts, and a button. Keep one primary visual focus: remove the icon or ring, merge status text, or fall back to a non-fusion layout.
 
 - **OBS-L4383**：`_collect_height_budget_errors`，主脚本第 4383 行。
+
+  当前归属：语义／布局与视觉约束，`semantic/layout/geometry.py`。2026-10-15 按确认仅在高度校验
+  视图中忽略 2x4 语义展开生成 Column 的 8vp 纵向间距；参考槽位同步使用该视图，其它高度约束不变。
+  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。
 
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
 

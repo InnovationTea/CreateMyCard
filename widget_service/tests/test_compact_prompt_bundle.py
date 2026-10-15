@@ -471,6 +471,15 @@ def test_size_component_rules_separate_shared_and_dedicated_components() -> None
         "wide-components",
         "",
     )
+    wide_components = two_by_four_fragments.get("wide-components", "")
+    text_block_contract = wide_components.split(
+        "### 2x4 专属组件：`TextBlock`",
+        maxsplit=1,
+    )[1].split("###", maxsplit=1)[0]
+    assert (
+        "| `items[].label` | 显示值 | 静态 / Expression / PathBinding"
+        in text_block_contract
+    )
     assert "2x4 专属组件：`SummaryList`" not in two_by_four_fragments.get(
         "wide-components",
         "",

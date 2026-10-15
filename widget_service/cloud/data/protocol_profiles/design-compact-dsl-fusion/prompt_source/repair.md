@@ -102,7 +102,8 @@ repairStrategy 逐层重算，不能等待不存在的工作表，也不能把�
 CardButton 完整label过长时使用 labelLines:2，在原字号、原动作槽中换行，检查40vp加上下padding；
 仍不够时改合法动作组合，不能裁掉对象名称。EventCard compact 地点太长时改普通地点规格或更宽内容区。
 实际显示宽度必须包括标签、前缀、值和单位，不能只核算路径裸值。
-除 `InfoBlock.secondaryText` 允许按 Recipe 单行省略并只产生 warning 外，固定单行组件放不下完整文案时，
+除 `InfoBlock.secondaryText`、`TextBlock` 内部 label/value 和 `CardButton.label` 允许按 Recipe 单行省略并
+只产生 warning 外，固定单行组件放不下完整文案时，
 在所属合法区域拆为原字号的独立行或重新分区；
 必要前缀不能迁移到更小字号的次文字以规避宽度。其它并列文字先逐列核对 label+完整value，
 不使用 clip 或未声明的单行省略掩盖超宽；原有不同指标和对象标签必须保留，不能只剩两个无标签读数。

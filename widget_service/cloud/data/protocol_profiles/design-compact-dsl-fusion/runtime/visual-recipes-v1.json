@@ -1205,6 +1205,7 @@
             "fontWeight": 700,
             "textAlign": "start",
             "maxLines": 1,
+            "textOverflow": "ellipsis",
             "flexShrink": 1,
             "constraintSize": {
               "minWidth": 0

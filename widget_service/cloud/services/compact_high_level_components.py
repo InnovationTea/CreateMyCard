@@ -16,7 +16,6 @@ from services.compact_component_runtime import (
     resolve_card_color_palette,
     secondary_body_layout,
     secondary_body_text_width,
-    secondary_body_variant,
     visual_recipe_part,
 )
 
@@ -650,10 +649,6 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
     return items
 
 
-def _secondary_body_variant(component: ComponentRow, items: list[dict[str, Any]]) -> str | None:
-    return secondary_body_variant(items, component.props.get("columns", 2))
-
-
 def _secondary_body_widths(components: list[ComponentRow], size: str) -> dict[str, float]:
     from services.compact_region_layout import reference_region_boxes
 
@@ -713,20 +708,6 @@ def _expand_secondary_body(
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("SecondaryBody requires a 2x2 or 2x4 card.")
     items = _secondary_body_items(component)
-    variant = _secondary_body_variant(component, items)
-    font_size_context = (
-        "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row and "
-        "fontSize 12 / lineHeight 16 for multiple rows. Recompute fontSize after "
-        "changing columns, items or maxLines; do not change bindings or delete facts."
-    )
-    _validate_recipe_font_size(
-        component,
-        component_name="SecondaryBody",
-        part_name="text",
-        size=size,
-        variant=variant,
-        expectation_context=font_size_context,
-    )
     task = {"dataModelSchema": _secondary_sample_schema(data_model or {})}
     texts: list[str | None] = []
     for item in items:

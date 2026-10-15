@@ -154,6 +154,9 @@ class Settings(BaseSettings):
         "deepseek_official_http_url",
         "https://api.deepseek.com/chat/completions",
     )
+    deepseek_official_http_use_sdk: bool = (
+        CONFIG.get("deepseek_official_http_use_sdk", "true") == "true"
+    )
     deepseek_official_http_api_key: str = CONFIG.get(
         "deepseek_official_http_api_key",
         "",

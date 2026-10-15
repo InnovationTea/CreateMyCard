@@ -177,21 +177,15 @@ def _collect_plan_asset_assignment_errors(
     ]
     expected_title_source = asset_sources.get(title_assignment.get("assetId"))
     if not titles:
-        has_info_block = any(
-            component.component_type == "InfoBlock" for component in components
-        )
-        if expected_title_source is not None and not has_info_block:
-            errors.append(
-                "assetAssignments.title selected an icon but DSL has no SingleLineTitle."
-            )
         return
     actual_title_icon = titles[0].props.get("icon")
+    if not isinstance(actual_title_icon, str) or not actual_title_icon.strip():
+        return
     if expected_title_source is None:
-        if isinstance(actual_title_icon, str) and actual_title_icon.strip():
-            errors.append(
-                "primary SingleLineTitle must not use an icon because its accepted Plan "
-                "asset assignment is null."
-            )
+        errors.append(
+            "primary SingleLineTitle must not use an icon because its accepted Plan "
+            "asset assignment is null."
+        )
         return
     if actual_title_icon != expected_title_source:
         errors.append(

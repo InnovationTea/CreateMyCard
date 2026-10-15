@@ -284,6 +284,7 @@ def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> Non
     assert components["CardButton"]["parts"]["icon"]["styles"]["height"] == 24
     assert components["CardButton"]["parts"]["placeholder"]["styles"]["width"] == 24
     assert components["CardButton"]["parts"]["placeholder"]["styles"]["height"] == 24
+    assert components["CardButton"]["parts"]["label"]["styles"]["textOverflow"] == "ellipsis"
     assert components["CircleButton"]["parts"]["root"]["styles"]["width"] == 40
     assert components["CircleButton"]["parts"]["root"]["styles"]["height"] == 40
     text_block_parts = components["TextBlock"]["parts"]
@@ -295,7 +296,7 @@ def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> Non
     other_components = {
         name: recipe
         for name, recipe in components.items()
-        if name not in {"InfoBlock", "TextBlock"}
+        if name not in {"InfoBlock", "TextBlock", "CardButton"}
     }
     assert "ellipsis" not in json.dumps(other_components)
 

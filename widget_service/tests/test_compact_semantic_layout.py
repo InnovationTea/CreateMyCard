@@ -6,6 +6,9 @@ import pytest
 
 from services.asset_url_mapper import AssetUrlMapper
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.card_validation.compact_validation.semantic.layout.geometry import (
+    _height_budget_components,
+)
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
@@ -233,6 +236,56 @@ def test_binding_repair_does_not_replace_semantic_source_with_generated_rows() -
     assert '"Region"' in repaired
     assert "__layout__" not in repaired
     assert "/data/device/reading" in repaired
+
+
+@pytest.mark.parametrize(
+    ("size", "kind", "gap", "origin", "expected_gap"),
+    [
+        ("2x4", "Column", 8, "region", 0),
+        ("2x4", "Column", 6, "region", 6),
+        ("2x4", "Row", 8, "region", 8),
+        ("2x2", "Column", 8, "region", 8),
+        ("2x4", "Column", 8, "container", 8),
+        ("2x4", "Column", 8, None, 8),
+    ],
+)
+def test_height_gap_relaxation_only_changes_mapped_generated_wide_columns(
+    size: str, kind: str, gap: int, origin: str | None, expected_gap: int,
+) -> None:
+    row = ComponentRow("container", kind, {"itemMargin": gap, "padding": 12}, ())
+    origins = {"container": origin} if origin is not None else {}
+    budget = _height_budget_components([row], size, origins)
+    assert budget[0].props.get("itemMargin") == expected_gap
+    assert budget[0].props.get("padding") == 12
+    assert row.props.get("itemMargin") == gap
+
+
+@pytest.mark.parametrize("item_count", [4, 5])
+def test_wide_height_budget_ignores_layout_gaps_but_keeps_content_minimums(item_count: int) -> None:
+    rows = [
+        ["root", "Layout", {"layout": "W-content-side-slots"}, ["main", "upper", "lower"]],
+        ["main", "Region", {"variant": "title-hero-support"}, ["title", "value", "support"]],
+        ["title", "SingleLineTitle", {"title": "天气", "icon": "test.svg", "fontSize": 12}],
+        ["value", "EmphasizedData", {"value": 29, "unit": "℃", "fontSize": 30}],
+        ["support", "SecondaryBody", {"columns": 1, "fontSize": 12,
+                                      "items": [{"value": "辅助信息"}] * item_count}],
+        _leaf("upper", "InfoBlock"),
+        _leaf("lower", "InfoBlock"),
+    ]
+    source = _source(rows)
+    task = {"size": "2x4", "dataModelSchema": {"data": {}},
+            "assetCandidates": [{"src": "test.svg", "description": "多色，保留原色"}]}
+    if item_count == 4:
+        validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x4"})
+    else:
+        with pytest.raises(CompactDslValidationError) as caught:
+            validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x4"})
+        assert any(item.code == "COMPACT_LAYOUT_HEIGHT_OVERFLOW"
+                   for item in caught.value.diagnostics)
+    expanded = parse_compact_dsl_rows(source, size="2x4")
+    sub = next(row for row in expanded
+               if isinstance(row, ComponentRow) and row.component_id == "__layout__main__sub")
+    assert sub.props.get("itemMargin") == 8
 
 
 def test_height_budget_is_not_bypassed_and_feedback_locates_original_region() -> None:
