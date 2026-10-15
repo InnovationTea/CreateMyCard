@@ -1329,10 +1329,13 @@ def _candidate_with_complete_field_coverage_or_pair(
             for template_id in candidate.available_template_ids
             if provider_template_layout_kind(template_id) == "Full"
         )
+        # In a 2x4 composition the narrow auxiliary slot is a Support slot.
+        # Keep Compact as a legacy fallback for existing providers, but prefer
+        # the semantically correct Support shape whenever it is available.
         compact_ids = sorted(
             template_id
             for template_id in candidate.available_template_ids
-            if provider_template_layout_kind(template_id) == "Compact"
+            if provider_template_layout_kind(template_id) in {"Compact", "Support"}
         )
         pair_ids = set(full_ids) | set(compact_ids)
         if (
@@ -1664,6 +1667,7 @@ def _template_can_participate_in_size(
         "Full",
         "Hero",
         "Compact",
+        "Support",
     }
 
 

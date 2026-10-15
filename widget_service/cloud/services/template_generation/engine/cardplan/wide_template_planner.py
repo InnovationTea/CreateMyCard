@@ -28,6 +28,7 @@ from .template_retrieval import (
     TemplateBusinessCandidates,
     TemplateSearchIntent,
     TemplateSearchResult,
+    _template_available_data_fields,
     template_required_assets_are_available,
 )
 
@@ -157,7 +158,20 @@ def wide_plan_compositions(
         # 动作不必再挤进 PillAction 行；伴生槽位不承载显式字段。
         slot_options: tuple[tuple[TemplatePlanBusinessSlot, ...], ...] = (slots,)
         if len(actions) == 1 and len(slots) < 4:
-            companions = _companion_action_slots(slots, actions, registry, task)
+            available_fields_by_capability: dict[str, set[str]] = {}
+            for group in search_result.business_candidates:
+                available_fields_by_capability.setdefault(group.capability_id, set()).update(
+                    path
+                    for candidate in group.candidates
+                    for path in candidate.available_data_fields
+                )
+            companions = _companion_action_slots(
+                slots,
+                actions,
+                registry,
+                task,
+                available_fields_by_capability,
+            )
             slot_options += tuple((*slots, companion) for companion in companions)
         for option_slots in slot_options:
             for layout_rank, layout in enumerate(_WIDE_LAYOUTS):
@@ -394,6 +408,7 @@ def _companion_action_slots(
     actions: tuple[ActionBinding, ...],
     registry: CardPlanRegistry,
     task: TaskSpec,
+    available_fields_by_capability: dict[str, set[str]],
 ) -> tuple[TemplatePlanBusinessSlot, ...]:
     """为已选业务枚举可承载单动作的伴生 Compact 槽位。
 
@@ -404,20 +419,45 @@ def _companion_action_slots(
     results: list[TemplatePlanBusinessSlot] = []
     seen: set[tuple[str, str]] = {(slot.business_id, slot.template_id) for slot in slots}
     capability_by_business = {slot.business_id: slot.capability_id for slot in slots}
+    already_rendered_fields: set[str] = set()
+    for slot in slots:
+        definition = registry.require_template(slot.template_id)
+        already_rendered_fields.update(
+            _rendered_template_fields(
+                definition,
+                task,
+                available_fields_by_capability.get(slot.capability_id, set()),
+            )
+        )
+        already_rendered_fields.update(slot.field_bindings.values())
     for action in actions:
         for business_id in sorted(capability_by_business):
             component = registry.require_ux_business_component(business_id)
             for template_id in registry.enabled_template_ids(component.local_template_ids):
                 if (business_id, template_id) in seen:
                     continue
-                if provider_template_layout_kind(template_id) != "Compact":
+                template_kind = provider_template_layout_kind(template_id)
+                if template_kind not in {"Support", "Compact"}:
                     continue
                 definition = registry.require_template(template_id)
                 if not template_required_assets_are_available(definition, task):
                     continue
                 if not _required_data_available(definition, task):
                     continue
-                if not supports_business_action(definition, action, "2x4"):
+                if template_kind == "Support":
+                    support_fields = _rendered_template_fields(
+                        definition,
+                        task,
+                        available_fields_by_capability.get(capability_by_business[business_id], set()),
+                    )
+                    # A layout-owned Support must add a new metric. Do not use
+                    # a Support that only repeats the Full's city/temperature/
+                    # condition fields to fill an empty action-side slot.
+                    if not support_fields.difference(already_rendered_fields):
+                        continue
+                if template_kind != "Support" and not supports_business_action(
+                    definition, action, "2x4"
+                ):
                     continue
                 seen.add((business_id, template_id))
                 results.append(
@@ -426,7 +466,7 @@ def _companion_action_slots(
                         businessId=business_id,
                         capabilityId=capability_by_business[business_id],
                         templateId=template_id,
-                        layoutRole="Compact",
+                        layoutRole=template_kind,
                         coveredExplicitFields=(),
                         primaryMatchedFields=(),
                     )
@@ -434,13 +474,41 @@ def _companion_action_slots(
     return tuple(results)
 
 
+def _rendered_template_fields(
+    definition: TemplateDefinition,
+    task: TaskSpec,
+    candidate_paths: set[str],
+) -> set[str]:
+    """Return only fields whose conditional branch actually renders this input.
+
+    Provider ``primaryData``/``secondaryData`` describes coverage eligibility,
+    not necessarily the fields emitted by every conditional branch.  Companion
+    Support selection must use the latter, otherwise an optional field already
+    rendered by the main template looks like new information.
+    """
+    if not definition.data_domain:
+        return set()
+    rendered = _template_available_data_fields(
+        definition,
+        task,
+        (definition.data_domain,),
+        candidate_paths,
+        rendered_only=True,
+    )
+    prefix = definition.data_domain.rstrip("/")
+    return {
+        path.removeprefix(prefix)
+        for path in rendered
+        if path.startswith(f"{prefix}/")
+    }
+
+
 def _required_data_available(definition: TemplateDefinition, task: TaskSpec) -> bool:
     """伴生模板的必需数据路径必须能在 TaskSpec 数据模型中解析到。"""
     data = task.dataModelSchema.get("data") if isinstance(task.dataModelSchema, dict) else None
-    for path in definition.required_data:
-        node: Any = data
-        segments = path.strip("/").split("/")
-        for segment in segments[1:]:
+
+    def resolves(node: Any, segments: list[str]) -> bool:
+        for segment in segments:
             if isinstance(node, list):
                 if not segment.isdigit() or int(segment) >= len(node):
                     return False
@@ -449,6 +517,20 @@ def _required_data_available(definition: TemplateDefinition, task: TaskSpec) -> 
             if not isinstance(node, dict) or segment not in node:
                 return False
             node = node[segment]
+        return True
+
+    for path in definition.required_data:
+        segments = path.strip("/").split("/")
+        # Provider paths are relative to the capability root (for example
+        # ``/current/humidityPercent``), while TaskSpec stores that root below
+        # ``data.weather``. Try the complete data object and each capability
+        # root; the previous implementation skipped the first path segment and
+        # incorrectly rejected valid Support companions.
+        roots = [data]
+        if isinstance(data, dict):
+            roots.extend(value for value in data.values() if isinstance(value, (dict, list)))
+        if not any(resolves(root, segments) for root in roots):
+            return False
     return True
 
 
