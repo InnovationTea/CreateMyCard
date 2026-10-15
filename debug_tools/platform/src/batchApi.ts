@@ -361,6 +361,7 @@ export type BatchScheduler = {
 };
 
 export type ServiceConfigDefaults = {
+  localConfigExists: boolean;
   values: Record<string, unknown>;
   sources: Record<string, string>;
   exposedKeys: string[];

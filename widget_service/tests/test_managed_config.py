@@ -349,3 +349,15 @@ def test_lifecycle_fingerprint_detects_file_changes(
         await controller.stop()
 
     asyncio.run(exercise())
+
+
+@pytest.mark.parametrize("exists", [True, False])
+def test_local_config_presence_is_independent_of_backend_fields(
+    project: Path, exists: bool
+) -> None:
+    path = project.parent / "debug_tools/debug_tool.yaml"
+    if exists:
+        path.write_text("platform: {}\n", encoding="utf-8")
+    else:
+        path.unlink()
+    assert read_configuration(project).public().get("localConfigExists") is exists

@@ -75,11 +75,11 @@ export function SettingsPanel() {
       </div>
     </div>
     <div className="settings-scroll">
-      <section className="settings-card" aria-label="首次使用配置说明">
+      {defaults?.localConfigExists === false && <section className="settings-card" aria-label="首次使用配置说明">
         <div className="settings-card-heading"><h2>使用前请创建本机配置</h2></div>
         <p>首次使用前，将 <code>debug_tools/debug_tool.yaml.example</code> 复制为 <code>debug_tools/debug_tool.yaml</code>，按模板注释填写本机路径和模型配置后再启动。已有配置请勿覆盖。</p>
         <p>实际配置仅保存在本机，不提交 Git；示例中的空凭据和路径需要按实际环境填写。</p>
-      </section>
+      </section>}
       <ToolchainStatusWidget />
       <section className="settings-card">
         <div className="settings-card-heading"><h2>微服务连接</h2><span>选择当前调试使用的微服务来源</span></div>

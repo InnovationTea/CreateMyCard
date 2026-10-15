@@ -186,6 +186,7 @@ class Configuration:
     exposed: list[str] = field(default_factory=list)
     types: dict[str, str] = field(default_factory=dict)
     version: str = ""
+    local_config_exists: bool = False
 
     def editable(self, name: str) -> bool:
         return name in self.types and name not in PLATFORM_FIELDS and not sensitive(name)
@@ -224,6 +225,7 @@ class Configuration:
             "fields": fields,
             "exposedKeys": self.exposed,
             "version": self.version,
+            "localConfigExists": self.local_config_exists,
         }
 
 
@@ -231,7 +233,7 @@ def read_configuration(root: Path) -> Configuration:
     debug_path = config_path(root)
     default_path = root / "cloud/config/default_config.yaml"
     env_path = root / ".env"
-    config = Configuration(types=field_types(root))
+    config = Configuration(types=field_types(root), local_config_exists=debug_path.is_file())
     digest = hashlib.sha256()
     for path in (default_path, env_path, debug_path):
         digest.update(path.name.encode())

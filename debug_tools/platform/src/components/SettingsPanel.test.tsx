@@ -6,8 +6,9 @@ import { configurationFixture } from '../serviceConfig.testFixture';
 import { DEBUG_CONFIG_STORAGE_KEY } from '../config';
 import { SettingsPanel } from './SettingsPanel';
 
-function mockApi(fail = false) {
+function mockApi(fail = false, localConfigExists = true) {
   const fixture = configurationFixture();
+  fixture.localConfigExists = localConfigExists;
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input);
     let body: unknown = { checks: [], status: [] };
@@ -37,6 +38,22 @@ async function openManaged() {
 
 describe('SettingsPanel', () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); });
+
+  it('hides setup instructions when the local config exists', async () => {
+    mockApi();
+    await openManaged();
+    expect(screen.queryByRole('region', { name: '首次使用配置说明' })).not.toBeInTheDocument();
+  });
+
+  it('shows setup instructions only after confirming the local config is missing', async () => {
+    mockApi(false, false);
+    render(<WorkbenchProvider><SettingsPanel /></WorkbenchProvider>);
+    expect(screen.queryByRole('region', { name: '首次使用配置说明' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: '首次使用配置说明' })).toBeInTheDocument();
+    mockApi(false, true);
+    await userEvent.click(screen.getByRole('button', { name: '重新加载已保存配置' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: '首次使用配置说明' })).not.toBeInTheDocument());
+  });
 
   it('groups all fields dynamically, shows sources and keeps sensitive fields read-only', async () => {
     mockApi();

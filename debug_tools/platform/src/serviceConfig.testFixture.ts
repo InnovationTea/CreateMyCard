@@ -16,7 +16,7 @@ export function configurationFixture(): ServiceConfigDefaults {
     asset_src_url_mapping: 'dict', server_port: 'int', unknown_legacy: 'unknown',
   };
   return {
-    version: 'version-one', values, exposedKeys,
+    version: 'version-one', values, exposedKeys, localConfigExists: true,
     sources: Object.fromEntries(names.map((name) => [name, '.env'])),
     fields: names.map((name) => ({
       name, displayName: name.toUpperCase(), type: types[name] ?? 'str', source: '.env',
