@@ -1,6 +1,6 @@
 ---
 name: harmony-card-generation-online
-description: "用户提出创建或修改卡片时，使用本 Skill。用户无需说明卡片类型、平台或生成方式；信息不清楚时由本 Skill 澄清，具体能否支持由后续流程判断。"
+description: "用户提出创建、修改卡片或指定使用“桌面卡片生成技能”时，使用本 Skill。用户无需说明卡片类型、平台或生成方式；信息不清楚时由本 Skill 澄清，具体能否支持由后续流程判断。"
 metadata:
   tools:
     - bundleName: "com.omega_w_0823.hmservice"
