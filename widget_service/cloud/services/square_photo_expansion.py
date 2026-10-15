@@ -43,8 +43,8 @@ def expansion_gate(task: dict) -> dict:
     digest = hashlib.sha256(f"square-photo-v1|{task.get('size')}|{query}".encode()).digest()
     bucket = int.from_bytes(digest[:8], "big") % 10000
     reason = None
-    if not settings.enable_post_layout_theme or not settings.enable_photo_background_theme:
-        reason = "后置主题或图片开关未开启"
+    if not settings.enable_photo_background_theme:
+        reason = "图片开关未开启"
     elif not (settings.enable_square_photo_expansion or (
         settings.enable_square_music_photo_expansion and business == "music"
     )):

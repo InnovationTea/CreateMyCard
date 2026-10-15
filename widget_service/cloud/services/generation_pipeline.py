@@ -161,11 +161,9 @@ class DesignCompactProcessor:
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
-        from config.config import get_settings
         from services.theme_style_roles import layout_phase
 
-        enabled = get_settings().enable_post_layout_theme and context.colorless_layout
-        with layout_phase(enabled, context.task_spec):
+        with layout_phase(context.colorless_layout, context.task_spec):
             return self._process(source_dsl, context)
 
     def _process(

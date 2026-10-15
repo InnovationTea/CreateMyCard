@@ -3855,6 +3855,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch):
     settings = get_settings()
     event = CapabilityRegistry(version=REGISTRY_VERSION_6).get_event_capability(
@@ -3914,7 +3915,8 @@ async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_design_compact_skips_validator_when_validation_is_disabled(monkeypatch):
+@pytest.mark.usefixtures("isolated_theme_stage")
+async def test_design_compact_skips_layout_validator_when_validation_is_disabled(monkeypatch):
     settings = get_settings()
     validation_calls: list[str] = []
 
@@ -3979,6 +3981,7 @@ _SOURCE_FORMAT_CASES = [
     _SOURCE_FORMAT_CASES,
 )
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_conversion_failure_repair_uses_latest_source_format(
     monkeypatch,
     generation_method,
@@ -4024,6 +4027,7 @@ async def test_conversion_failure_repair_uses_latest_source_format(
     _SOURCE_FORMAT_CASES,
 )
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_source_format_validation_error_repairs_original_source_dsl(
     monkeypatch,
     generation_method,
@@ -4083,6 +4087,7 @@ async def test_source_format_validation_error_repairs_original_source_dsl(
     _SOURCE_FORMAT_CASES,
 )
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_quality_repair_distinguishes_source_and_artifact_validation(
     monkeypatch,
     generation_method,
@@ -4269,6 +4274,7 @@ async def test_unknown_validator_exception_does_not_trigger_model_repair(monkeyp
     ],
 )
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_source_format_warning_does_not_trigger_repair(
     monkeypatch,
     generation_method,

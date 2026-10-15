@@ -10,6 +10,7 @@ import pytest
 from config.config import get_settings
 from services.card_validation import validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
+from services.compact_component_runtime import load_visual_recipe_contract
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.compact_prompt_loader import assemble_prompts
 from services.compact_semantic_layout import SEMANTIC_LAYOUT_TYPES
@@ -537,21 +538,18 @@ def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
         assert deprecated not in assembled
 
 
-def _palette_rows() -> list[list[str]]:
-    palettes = []
-    for line in PROMPTS["create"].splitlines():
-        if not line.startswith("|"):
-            continue
-        colors = re.findall(r"#[A-F0-9]{8}", line)
-        if len(colors) == 6:
-            palettes.append(colors)
-    assert palettes
-    return palettes
-
-
-@pytest.mark.parametrize("colors", _palette_rows())
-def test_palette_preserves_text_hierarchy(colors: list[str]) -> None:
-    start, end, primary, secondary, button, _ = colors
+@pytest.mark.parametrize("family", ["blue", "purple", "warm"])
+def test_runtime_palette_preserves_text_hierarchy(family: str) -> None:
+    palette = load_visual_recipe_contract().get("palettes", {}).get(family)
+    assert palette
+    gradients = palette.get("gradients")
+    assert gradients
+    start, end = gradients[0]
+    roles = palette.get("roles", {})
+    primary = roles.get("primary")
+    secondary = roles.get("secondary")
+    button = roles.get("componentSecondary")
+    assert primary and secondary and button
     start_rgb = _rgba(start)[:3]
     end_rgb = _rgba(end)[:3]
     for step in range(11):

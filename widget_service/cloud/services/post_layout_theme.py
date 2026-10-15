@@ -29,9 +29,7 @@ from services.theme_selection_policy import default_palette_family, fusion_candi
 from services.theme_style_roles import COLOR_FIELDS, is_role, resolve_role, unpainted_document
 
 MANIFEST = Path(__file__).resolve().parents[1] / "data/post_layout_themes.json"
-FUSION_PROMPT = (
-    MANIFEST.parent / "protocol_profiles/design-compact-dsl-fusion/prompt_source/core.md"
-)
+SELECTION_RULES = MANIFEST.parent / "post_layout_theme_selection.md"
 PREFIX = "__post_theme_"
 FUSION_IDS = frozenset(
     {
@@ -237,10 +235,7 @@ def user_color_overrides(query: str) -> dict:
 @lru_cache(maxsize=1)
 def original_selection_rules() -> str:
     """只后移原融合选择合同，不复制色值或另造背景偏好。"""
-    text = FUSION_PROMPT.read_text(encoding="utf-8")
-    mapping = text.split("## 背景选择与业务映射\n", 1)[1].split("| 色板 |", 1)[0]
-    fusion = text.split("## 融球\n", 1)[1].split("融球只输出", 1)[0]
-    return mapping.strip() + "\n\n融球业务映射：\n" + fusion.strip()
+    return SELECTION_RULES.read_text(encoding="utf-8").strip()
 
 
 def presets(task: dict) -> list[dict]:

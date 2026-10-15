@@ -67,7 +67,6 @@ class Settings(BaseSettings):
     else:
         CONFIG: ConfigHelper = ConfigHelper("cloud")
     WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
-    enable_post_layout_theme: bool = CONFIG.get("enable_post_layout_theme", "false") == "true"
     enable_photo_background_theme: bool = (
         CONFIG.get("enable_photo_background_theme", "false") == "true"
     )

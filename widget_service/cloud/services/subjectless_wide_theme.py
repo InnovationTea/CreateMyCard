@@ -36,7 +36,7 @@ def wide_gate(task: dict) -> dict:
     businesses = sorted(matching_businesses(task))
     reason = None
     enabled = settings.enable_subjectless_wide_theme and settings.enable_photo_background_theme
-    if not enabled or not settings.enable_post_layout_theme:
+    if not enabled:
         reason = "无主体宽卡背景未启用"
     elif task.get("size") != "2x4":
         reason = "仅原生2x4，不参与2x2扩展"

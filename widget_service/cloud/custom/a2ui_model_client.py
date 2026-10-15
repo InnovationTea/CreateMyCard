@@ -167,9 +167,7 @@ class A2UIModelClient:
             from services.layout_theme_contract import layout_only_prompt, uses_post_layout_theme
 
             fusion_layout = uses_post_layout_theme(self.operation_name)
-            if self.settings.enable_post_layout_theme and fusion_layout and (
-                "compact" in profile_format or planning
-            ):
+            if fusion_layout and ("compact" in profile_format or planning):
                 prompt = layout_only_prompt(prompt, planning=planning)
             if self.use_mock:
                 raw_output = self._load_mock_data(protocol_profile, prompt)

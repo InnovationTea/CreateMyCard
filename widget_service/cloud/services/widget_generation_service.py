@@ -791,7 +791,7 @@ class WidgetGenerationService:
         from services.square_photo_expansion import expansion_enabled
 
         def colorless_source() -> bool:
-            return settings.enable_post_layout_theme and uses_post_layout_theme(
+            return uses_post_layout_theme(
                 policy.operation, template_source=source_generated_by_template,
                 jsx_source=source_generated_by_jsx,
             )

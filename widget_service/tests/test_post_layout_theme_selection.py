@@ -13,6 +13,7 @@ from services import post_layout_theme as themes
 from services import theme_selection_policy as policy
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.layout_theme_contract import layout_only_prompt
+from services.protocol_registry import A2UIProtocolRegistry
 from services.theme_style_roles import layout_phase
 
 LAYOUT = '\n'.join([
@@ -102,7 +103,8 @@ def test_wide_rejects_model_attempt_to_select_fusion(settings, monkeypatch, toke
 
 
 def test_layout_prompt_still_excludes_original_color_contract():
-    original = themes.FUSION_PROMPT.read_text(encoding="utf-8")
+    original = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
+    assert "## 背景选择与业务映射" not in original
     messages = layout_only_prompt([{"role": "system", "content": original}])
     prompt = messages[0].get("content")
     assert "## 背景选择与业务映射" not in prompt

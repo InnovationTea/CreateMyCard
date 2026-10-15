@@ -16,7 +16,7 @@ from services.theme_style_roles import role
 @pytest.fixture
 def enabled(monkeypatch):
     settings = get_settings()
-    for flag in ("enable_post_layout_theme", "enable_photo_background_theme",
+    for flag in ("enable_photo_background_theme",
                  "enable_square_photo_expansion", "enable_subjectless_wide_theme"):
         monkeypatch.setattr(settings, flag, True)
     monkeypatch.setattr(settings, "square_photo_expansion_sample_rate", .1)
