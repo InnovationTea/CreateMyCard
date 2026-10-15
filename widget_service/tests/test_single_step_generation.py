@@ -16,6 +16,8 @@ from services.artifact_store import ArtifactStore
 from services.card_validation.standard_plan_coverage import standard_plan_coverage_errors
 from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.generation_pipeline import DslProcessingResult, QualityIssue
+from services.single_step_250.converter import convert_compact_dsl_to_a2ui
+from services.single_step_250.resources import MODEL_FORMAT
 from services.single_step_contract import compact_font_requirements
 from services.single_step_output import SingleStepOutputError, extract_single_step_output
 from services.single_step_prompt import SingleStepPromptBuilder
@@ -70,6 +72,32 @@ def _request(**changes):
     return GenerateWidgetCardRequest(**values)
 
 
+def _as_legacy_source(standard):
+    if standard == "not-json":
+        return standard
+    messages = [json.loads(line) for line in standard.splitlines()]
+    update = messages[1].get("updateComponents")
+    assert isinstance(update, dict)
+    rows = []
+    for component in update.get("components", []):
+        props = copy.deepcopy(component.get("styles", {}))
+        for key, value in component.items():
+            if key not in {"styles", "id", "component", "children"}:
+                props[key] = copy.deepcopy(value)
+        row = [component.get("id"), component.get("component"), props]
+        if "children" in component:
+            row.append(component.get("children"))
+        rows.append(row)
+    data = messages[2].get("updateDataModel")
+    assert isinstance(data, dict)
+    rows.append(["/", data.get("value")])
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+
+def _converted_standard(standard):
+    return convert_compact_dsl_to_a2ui(_as_legacy_source(standard), size="2x4")
+
+
 @pytest.fixture
 def single_step_run(monkeypatch):
     settings = get_settings()
@@ -89,9 +117,10 @@ def single_step_run(monkeypatch):
     )
 
     def standard_output(client, profile):
+        source = _as_legacy_source(state.standard)
         if state.envelope is None:
-            return state.standard
-        raw = f"```{state.envelope}\n{state.standard}\n```"
+            return source
+        raw = f"```{state.envelope}\n{source}\n```"
         return client._process_model_output(raw, profile or {})
 
     async def generate(_client, messages, profile=None, **_kwargs):
@@ -105,7 +134,7 @@ def single_step_run(monkeypatch):
                                    "componentHints": ["EmphasisText"]}],
                 "layoutHints": ["W-top-bottom"],
             }}, ensure_ascii=False)
-        if model_format == "a2ui-form":
+        if model_format == MODEL_FORMAT:
             return standard_output(_client, profile)
         return state.compact_source
 
@@ -113,7 +142,7 @@ def single_step_run(monkeypatch):
         model_format = (profile or {}).get("format")
         state.calls.append(("repair", model_format, copy.deepcopy(messages)))
         state.profiles.append(copy.deepcopy(profile))
-        if model_format == "a2ui-form":
+        if model_format == MODEL_FORMAT:
             return standard_output(_client, profile)
         return state.repaired_compact_source
 
@@ -152,23 +181,23 @@ async def test_five_repairs_then_one_standard_call_and_forced_validation(single_
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
     assert response.status == GenerationStatus.SUCCESS
     assert [call[1] for call in state.calls] == [
-        "raw-json", "compact-dsl", *(["compact-dsl"] * 5), "a2ui-form",
+        "raw-json", "compact-dsl", *(["compact-dsl"] * 5), MODEL_FORMAT,
     ]
     assert len(state.saved) == 1
     artifact, token = state.saved[0]
     assert token is None
-    assert artifact.genui == state.standard
+    assert artifact.genui == _converted_standard(state.standard)
     final_messages = state.calls[-1][2]
-    assert "标准 A2UI 单步生成与编辑" in final_messages[0].get("content", "")
+    assert "极简协议" in final_messages[0].get("content", "")
     content = final_messages[1].get("content")
     assert isinstance(content, str)
     payload = json.loads(content)
-    facts = payload.get("fallbackFacts")
-    assert isinstance(facts, list)
-    assert facts[0].get("text") == "测试卡片"
+    assert payload.get("userQuery") == "创建测试卡片"
+    assert "fallbackFacts" not in payload
+    assert "fontRequirements" not in payload
     assert "failedSourceDsl" not in payload
     assert "qualityErrors" not in payload
-    assert "componentHints" not in json.dumps(facts)
+    assert "componentHints" not in content
     assert "layoutHints" not in content
     assert "invalid-compact" not in content
 
@@ -201,11 +230,11 @@ async def test_bad_standard_does_not_save_or_recurse(single_step_run):
 
 
 @pytest.mark.asyncio
-async def test_missing_fallback_fact_does_not_become_success(single_step_run):
+async def test_legacy_fallback_does_not_add_fusion_plan_coverage_gate(single_step_run):
     single_step_run.standard = _standard(text="无关文字")
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
-    assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
-    assert not single_step_run.saved
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(single_step_run.saved) == 1
 
 
 @pytest.mark.asyncio
@@ -261,7 +290,7 @@ async def test_all_edit_entries_use_expanded_source_without_token(
     ))
     assert edited.status == GenerationStatus.SUCCESS
     assert len(state.calls) == 1
-    assert state.calls[0][1] == "a2ui-form"
+    assert state.calls[0][1] == MODEL_FORMAT
     content = state.calls[0][2][1].get("content")
     assert isinstance(content, str)
     payload = json.loads(content)
@@ -310,8 +339,8 @@ def test_prompt_is_isolated_from_fusion_and_previous_input_is_data():
     assert "untrusted source" not in prompt[0].get("content", "")
     assert "W-plan-guided" not in prompt[0].get("content", "")
     repair = SingleStepPromptBuilder.build_repair(prompt, "bad", [{"message": "invalid"}])
-    assert len(repair) == 4
-    assert repair[:2] == prompt
+    assert len(repair) == 2
+    assert repair[0].get("content", "").startswith(prompt[0].get("content", ""))
 
 
 def test_generation_fallback_defaults_off_and_single_step_edit_defaults_on(monkeypatch):
@@ -409,7 +438,7 @@ async def test_custom_primary_limit_is_not_rewritten(single_step_run, monkeypatc
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
     assert response.status == GenerationStatus.SUCCESS
     assert [call[1] for call in single_step_run.calls] == [
-        "raw-json", "compact-dsl", *(["compact-dsl"] * 7), "a2ui-form",
+        "raw-json", "compact-dsl", *(["compact-dsl"] * 7), MODEL_FORMAT,
     ]
 
 
@@ -482,7 +511,7 @@ async def test_edit_result_can_be_edited_again_without_compact_token(single_step
         assert current.artifactUrl != previous
         assert state.saved[-1][1] is None
     assert len(state.calls) == 2
-    assert all(call[1] == "a2ui-form" for call in state.calls)
+    assert all(call[1] == MODEL_FORMAT for call in state.calls)
 
 
 def _compact_text(font=18):
@@ -508,11 +537,9 @@ def test_clean_fallback_payload_never_includes_old_layout_errors_or_ids():
     content = prompt[1].get("content")
     assert isinstance(content, str)
     payload = json.loads(content)
-    assert set(payload) == {
-        "mode", "taskSpec", "catalogId", "protocolDocuments", "fallbackFacts", "fontRequirements",
-    }
-    assert payload.get("fallbackFacts") == [{"text": "必需事实", "actionId": "open"}]
-    assert payload.get("fontRequirements") == [{"text": "必需事实", "fontSize": 18}]
+    assert payload == task.model_dump(mode="json", exclude_none=True, exclude={"appVersion"})
+    assert "fallbackFacts" not in payload
+    assert "fontRequirements" not in payload
     assert "old-layout-body" not in content
     assert "old error" not in content
 
@@ -553,7 +580,7 @@ def test_font_contract_does_not_freeze_misused_numeric_component():
 
 
 @pytest.mark.asyncio
-async def test_fallback_preserves_first_font_not_shrunk_repair(single_step_run):
+async def test_legacy_fallback_does_not_inherit_fusion_font_contract(single_step_run):
     state = single_step_run
     state.compact_source = _compact_text()
     state.repaired_compact_source = _compact_text(font=14)
@@ -562,18 +589,18 @@ async def test_fallback_preserves_first_font_not_shrunk_repair(single_step_run):
     assert result.status == GenerationStatus.SUCCESS
     content = state.calls[-1][2][1].get("content")
     assert isinstance(content, str)
-    assert json.loads(content).get("fontRequirements") == [{"text": "测试卡片", "fontSize": 18}]
+    assert "fontRequirements" not in json.loads(content)
     assert "old-layout-body" not in content
 
 
 @pytest.mark.asyncio
-async def test_smaller_fallback_font_is_not_saved(single_step_run):
+async def test_legacy_legal_font_is_not_blocked_by_fusion_recipe(single_step_run):
     state = single_step_run
     state.compact_source = _compact_text()
     result = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
-    assert result.errorCode == ErrorCode.VALIDATION_FAILED.value
+    assert result.status == GenerationStatus.SUCCESS
     assert len(state.calls) == 8
-    assert not state.saved
+    assert len(state.saved) == 1
 
 
 def test_font_guard_requires_visible_matching_binding_and_size():
@@ -655,7 +682,7 @@ async def test_five_repairs_then_jsonl_fallback_without_changing_primary(single_
     assert all("singleStepOutput" not in profile for profile in state.profiles[:-1])
     assert state.profiles[-1].get("singleStepOutput") is True
     actual = [json.loads(line) for line in state.saved[-1][0].genui.splitlines()]
-    assert actual == [json.loads(line) for line in state.standard.splitlines()]
+    assert actual == [json.loads(line) for line in _converted_standard(state.standard).splitlines()]
 
 
 @pytest.mark.asyncio
@@ -686,7 +713,7 @@ async def test_edit_repair_also_extracts_jsonl(single_step_run, monkeypatch):
     ))
     assert response.status == GenerationStatus.SUCCESS
     assert [call[0] for call in state.calls] == ["generate", "repair"]
-    assert all(call[1] == "a2ui-form" for call in state.calls)
+    assert all(call[1] == MODEL_FORMAT for call in state.calls)
 
 
 @pytest.mark.parametrize("text", [

@@ -308,6 +308,11 @@ class A2UIModelClient:
                 raise A2UIModelGenerationError(str(exc)) from exc
         else:
             dsl_text = self.extract_genui_payload(raw_output)
+        if protocol_profile.get("singleStepOutput") is True and protocol_profile.get(
+            "format"
+        ) == "single-step-250":
+            # 原始极简协议交给隔离的250转换器，不走标准A2UI归一化。
+            return dsl_text
         if protocol_profile.get("format") == "raw-json":
             logger.info(
                 f"{_MODULE} raw_json_processed backend={self.backend} "
@@ -351,8 +356,14 @@ class A2UIModelClient:
         """
         mock_data_path = self.mock_data_path
         if mock_data_path is None:
-            filename = self._mock_filename(protocol_profile or {}, prompt or [])
-            mock_data_path = Path(__file__).with_name(filename)
+            if (protocol_profile or {}).get("format") == "single-step-250":
+                from services.single_step_250.resources import PROFILE_DIR
+
+                size = self._task_size_from_prompt(prompt or [])
+                mock_data_path = PROFILE_DIR / f"mock.design-compact-dsl-{size}.dat"
+            else:
+                filename = self._mock_filename(protocol_profile or {}, prompt or [])
+                mock_data_path = Path(__file__).with_name(filename)
         if not mock_data_path.is_file():
             raise FileNotFoundError(f"A2UI mock 数据文件不存在: {mock_data_path}")
 
