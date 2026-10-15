@@ -180,10 +180,10 @@ platform:
   environment:
     # DevEco Studio 安装目录，请替换为本机路径
     deveco_studio_home: C:/Tools/DevEco Studio
-    # 本项目仓库根目录，请替换为本机路径
-    workspace_root: C:/Projects/CreateMyCard
-    # 模拟器数据目录
+    # 模拟器数据目录，请替换为本机路径，路径下包含可用模拟器子文件夹
     emulator_data_root: C:/Users/YourName/HuaweiEmulator
+    # 模拟器镜像目录，请替换为本机路径，路径下包含productConfig.json文件
+    emulator_image_root: C:/Users/YourName/HuaweiSdk
     # Node 可执行文件路径
     node_executable: ${environment.deveco_studio_home}/tools/node/node.exe
     # Java / JBR 根目录
@@ -237,7 +237,7 @@ platform:
     # 模拟器实例目录，请替换为本机路径
     emulator_instance_root: ${environment.emulator_data_root}
     # 模拟器镜像目录，请替换为本机路径
-    emulator_image_root: C:/Users/YourName/HuaweiSdk
+    emulator_image_root: ${environment.emulator_image_root}
     # 模拟器启动超时秒数
     emulator_start_timeout_seconds: 120
     # 模拟器在线状态轮询间隔秒数

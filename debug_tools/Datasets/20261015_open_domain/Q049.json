@@ -1,0 +1,51 @@
+{
+    "content": {
+        "functionName": "generateWidgetCardCompactDsl",
+        "romVersion": "SGT-AL10 7.0.0.105",
+        "bundleName": "com.omega_w_0823.hmservice",
+        "candidateEventCandidates": [],
+        "size": "2x4",
+        "candidateDataBindings": [],
+        "candidateAssetIds": [],
+        "description": "分年龄段每日喂食量",
+        "userQuery": "生成一张卡片，展示猫咪不同年龄阶段每天建议喂食量：2至4月龄幼猫50至70克干粮分4餐，4至12月龄60至90克分3餐，1至7岁成年猫40至60克分2餐，7岁以上老年猫35至50克并选易消化配方，各阶段需保证自由饮水。",
+        "title": "猫喂食量"
+    },
+    "deviceInfo": {
+        "countryCode": "CN",
+        "deviceFormation": "HDSpeaker",
+        "deviceType": 0,
+        "locale": "zh-CN",
+        "phoneType": "SGT-AL10",
+        "prdVer": "11.8.8.512",
+        "sysVer": "EmotionUI_9.0.0",
+        "time": "20260929090000000"
+    },
+    "pagination": {
+        "limit": 5,
+        "start": ""
+    },
+    "session": {
+        "interactionId": "49",
+        "isNew": false,
+        "sessionId": "6ecb3b89-6dcb-49f6-8ccb-38636bcb36d0"
+    },
+    "userAuth": {
+        "user": {}
+    },
+    "utterance": {
+        "original": "",
+        "type": "text"
+    },
+    "version": "1.0",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.105",
+    "bundleName": "com.omega_w_0823.hmservice",
+    "candidateEventCandidates": [],
+    "size": "2x4",
+    "candidateDataBindings": [],
+    "candidateAssetIds": [],
+    "description": "分年龄段每日喂食量",
+    "userQuery": "生成一张卡片，展示猫咪不同年龄阶段每天建议喂食量：2至4月龄幼猫50至70克干粮分4餐，4至12月龄60至90克分3餐，1至7岁成年猫40至60克分2餐，7岁以上老年猫35至50克并选易消化配方，各阶段需保证自由饮水。",
+    "title": "猫喂食量"
+}
