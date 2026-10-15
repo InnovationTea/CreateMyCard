@@ -24,7 +24,7 @@ from services.template_generation.engine.tersel_converter import TerselConversio
 from services.template_generation.test_support.provider_gallery import write_gallery_input_dataset
 
 _ROOT = Path(__file__).resolve().parents[1]
-_ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json"
+_ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.7.300_rom-7.0/asset_capabilities.json"
 _SOURCE = "resources/base/media/"
 _SLOTS = (
     # BatteryOverviewSupport@1 不在列：上游 #410 下架 icon_phone.svg 后，
@@ -80,7 +80,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 25
+    assert slot_count == 24
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -154,12 +154,14 @@ def test_weather_slot_separates_single_and_dual_business_assets(
     state_sources = {
         _SOURCE + "sun_max.svg", _SOURCE + "drop_1.svg",
         _SOURCE + "typhoon_fill.svg", _SOURCE + "icon_weather_wind.svg",
+        _SOURCE + "emoji_typhoon_orange.png", _SOURCE + "emoji_typhoon_blue.png",
     }
     temperature_sources = {
         # icon_weather_temperature1.svg 已被上游 #382 从素材目录下架。
         _SOURCE + "heat_generation.svg",
         _SOURCE + "icon_weather_thermometer_medium.svg",
         _SOURCE + "icon_weather_thermometer.svg",
+        _SOURCE + "emoji_temperature_orange.png", _SOURCE + "emoji_temperature_blue.png",
     }
     dual_business = (
         template_id == "WeatherOverviewTemperatureSupport@1"
@@ -327,7 +329,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 79
+    assert len(provider.cases) == 76
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")

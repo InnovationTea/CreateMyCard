@@ -911,18 +911,20 @@ def test_search_supports_2x4_prompt_and_composition_slot_retrieval() -> None:
 
 def test_search_rejects_two_data_businesses() -> None:
     task = _task()
-    task.dataModelSchema["data"]["systemMem"] = {
-        "usagePercent": _field(65, "number"),
-        "availableMemText": _field("4.2 GB"),
-        "totalMemText": _field("12 GB"),
+    task.dataModelSchema["data"]["phoneBattery"] = {
+        "batteryCapacityLevelDesc": _field("正常"),
+        "batterySOC": _field(65, "integer"),
+        "batterySOCText": _field("65%"),
+        "chargingStatusDesc": _field("未充电"),
     }
-    memory = CandidateDataBinding(
-        capabilityId="GetSystemMemInfo",
-        writeResultTo="/data/systemMem",
+    battery = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
         candidateOutputFields=[
-            "/usagePercent",
-            "/availableMemText",
-            "/totalMemText",
+            "/batteryCapacityLevelDesc",
+            "/batterySOC",
+            "/batterySOCText",
+            "/chargingStatusDesc",
         ],
     )
     with pytest.raises(TemplateRetrievalMiss, match="multiple data businesses"):
@@ -936,22 +938,23 @@ def test_search_rejects_two_data_businesses() -> None:
                         "/current/condition",
                         "/current/coldLevel",
                     ),
-                    "GetSystemMemInfo": (
-                        "/usagePercent",
-                        "/availableMemText",
-                        "/totalMemText",
+                    "GetPhoneBatteryInfo": (
+                        "/batteryCapacityLevelDesc",
+                        "/batterySOC",
+                        "/batterySOCText",
+                        "/chargingStatusDesc",
                     ),
                 },
             ),
             task,
             CardPlanRegistry(),
-            (_binding(), memory),
+            (_binding(), battery),
             {
                 "dataBindings": [
                     {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
                     {
-                        "capabilityId": "GetSystemMemInfo",
-                        "writeResultTo": "/data/systemMem",
+                        "capabilityId": "GetPhoneBatteryInfo",
+                        "writeResultTo": "/data/phoneBattery",
                     },
                 ]
             },

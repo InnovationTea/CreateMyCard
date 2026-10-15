@@ -40,7 +40,6 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "BluetoothDeviceOverviewConnectionSupport@1": (0,),
     "CountdownOverviewTravelSupport@1": (0,),
     "HeartRateOverviewSupport@1": (0,),
-    "ResourceUsageOverviewSupport@1": (0, 1),
     "ScheduleOverviewTimeSupport@1": (0,),
     "ScheduleOverviewLocationSupport@1": (0,),
     "ScheduleOverviewStartTimeSupport@1": (0,),
@@ -242,7 +241,6 @@ def test_heart_rate_support_keeps_two_direct_text_lines_without_forced_width() -
     ("BatteryOverviewSupport@1", 40, 16),
     ("BluetoothDeviceOverviewChargeSupport@1", 40, 16),
     ("BluetoothDeviceOverviewConnectionSupport@1", 40, 16),
-    ("ResourceUsageOverviewSupport@1", 44, 20),
 ))
 def test_support_ux_preserves_progress_and_inner_icon_sizes(
     template_id: str, ring_size: int, icon_size: int,
@@ -262,7 +260,7 @@ def test_support_ux_preserves_progress_and_inner_icon_sizes(
 def test_support_inventory_removes_deleted_templates() -> None:
     registry = get_cardplan_registry()
     supports = {key for key in registry.templates if key.endswith("Support@1")}
-    assert len(supports) == 27
+    assert len(supports) == 26
     assert not supports.intersection({
         "CountdownOverviewSupport@1",
         "ScheduleOverviewSupport@1", "HeartRateOverviewUpdatedSupport@1",
@@ -381,7 +379,6 @@ def test_all_support_actions_are_optional_and_bound_to_root(with_action: bool) -
         assert isinstance(options, dict)
         # 以下历史模板仍使用覆盖层，本轮未改动其样式。
         legacy_overlays = {
-            "ResourceUsageOverviewSupport@1",
             "BluetoothDeviceOverviewEarbudsSupport@1",
         }
         if template_id not in legacy_overlays:
