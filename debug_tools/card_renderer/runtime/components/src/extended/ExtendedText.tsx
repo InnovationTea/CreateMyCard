@@ -130,6 +130,8 @@ export function ExtendedText({ content, onClick, ...styleProps }: ExtendedTextPr
   const common = mergeCommonStyles(s);
   const ts = textSchema(s);
   const text = content == null ? "" : typeof content === "object" ? JSON.stringify(content) : String(content);
+  // 独立标签或分隔符的显式边界空格也是内容；pre仍禁止单行换行。
+  if (s.maxLines === 1 && text !== text.trim() && !/[\r\n]/.test(text)) ts.whiteSpace = "pre";
   const style = { ...base, ...common, ...ts };
   const completeText = useCompleteText(
     text, s.maxLines === 1 && s.textOverflow !== "ellipsis" && s.textOverflow !== "marquee",

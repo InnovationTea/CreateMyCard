@@ -21,7 +21,6 @@ from services.template_generation.engine.cardplan.template_plan_planner import (
     plan_template_candidates,
 )
 from services.template_generation.engine.cardplan.template_retrieval import (
-    TemplateRetrievalMiss,
     TemplateSearchIntent,
     TemplateSearchResult,
     build_template_retrieval_prompt,
@@ -248,7 +247,8 @@ def test_charging_hero_covers_text_and_level_without_fabricating_numeric_data() 
     # 从已覆盖的候选中移除（template_retrieval 的 text-level fallback 淘汰逻辑），
     # 兜底变体仅在通用 Hero 缺席时出现（见 test_battery_case_extensions）。
     assert [c.template_id for c in result.business_candidates[0].candidates] == [
-        "BatteryOverviewChargingProgressHero@1", "BatteryOverviewPercentLevelFull@1",
+        "BatteryOverviewChargingProgressHero@1", "BatteryOverviewPercentStatusFull@1",
+        "BatteryOverviewPercentLevelFull@1",
     ]
     assert "batterySOC\"" not in json.dumps(case.task.dataModelSchema)
     resolved = resolve_battery_settings_fallback(case.intent, result, case.task)
@@ -444,12 +444,16 @@ def test_battery_reference_does_not_drop_explicit_plugged_type() -> None:
     candidates = result.business_candidates[0].candidates
     assert [candidate.template_id for candidate in candidates] == [
         "BatteryOverviewPluggedTypeSupport@1",
+        "BatteryOverviewChargingTypePercentFull@1",
     ]
     assert case.intent.required_output_fields_by_capability.get(_CAPABILITY) == (
         *_TEXT_FIELDS, "/pluggedTypeDesc",
     )
-    with pytest.raises(TemplateRetrievalMiss, match="cannot form a supported atomic plan"):
-        plan_template_candidates(case.intent, result, case.task, registry)
+    plans = plan_template_candidates(case.intent, result, case.task, registry)
+    assert plans[0].layout_template_id == "SingleFocusLayout@1"
+    slot = plans[0].business_slots[0]
+    assert slot.template_id == "BatteryOverviewChargingTypePercentFull@1"
+    assert set(slot.covered_explicit_fields) == {*_TEXT_FIELDS, "/pluggedTypeDesc"}
 
 
 @pytest.mark.asyncio
@@ -464,7 +468,15 @@ async def test_percent_text_full_without_actions(
         "eventCandidates": [],
     })
     case = replace(case, task=task)
-    registry = CardPlanRegistry()
+    # 本用例专门验证旧 PercentTextFull；新 Full 的字段收益排序由新增用例覆盖。
+    disabled = ("BatteryOverviewPercentStatusFull@1",)
+
+    def legacy_registry(enable_fusion_ball: bool = False) -> CardPlanRegistry:
+        return CardPlanRegistry(
+            disabled_template_ids=disabled, enable_fusion_ball=enable_fusion_ball,
+        )
+
+    registry = legacy_registry()
     result = _search(case, registry)
     resolved = resolve_battery_settings_fallback(case.intent, result, task)
     plans = plan_template_candidates(resolved, result, task, registry)
@@ -476,6 +488,7 @@ async def test_percent_text_full_without_actions(
     monkeypatch.setattr(pipeline, "load_template_controls", lambda: TemplateControls(
         schemaVersion="template-controls/1", firstLayerComponentSelector="search",
     ))
+    monkeypatch.setattr(pipeline, "get_cardplan_registry", legacy_registry)
 
     class Model:
         async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
@@ -517,11 +530,8 @@ def test_battery_plan_prefers_more_available_candidate_fields(with_extra: bool) 
     plans = plan_template_candidates(
         intent, result, case.task, registry, candidate_bindings=(case.binding,),
     )
-    expected = (
-        "BatteryOverviewFull@1"
-        if with_extra else "BatteryOverviewPercentTextFull@1"
-    )
-    assert plans[0].business_slots[0].template_id == expected
+    # 新 Full 可展示更新时间及健康等候选，覆盖收益高于旧百分比 Full 和数值电量 Full。
+    assert plans[0].business_slots[0].template_id == "BatteryOverviewPercentStatusFull@1"
     assert case.intent.required_output_fields_by_capability == {_CAPABILITY: _TEXT_FIELDS}
 
 
@@ -557,7 +567,7 @@ async def test_q144_full_and_hero_compete_by_candidate_coverage(
                         'Template("PillAction@1",{"actionId":"event.open.settings.battery",'
                         '"label":"电池设置"}));')
             return ('Template("SingleFocusLayout@1",{},'
-                    'Template("BatteryOverviewPercentTextFull@1",{}));')
+                    'Template("BatteryOverviewPercentStatusFull@1",{}));')
 
     output = await pipeline.generate_template_a2ui(task, case.card, (case.binding,), Model())
     assert_template_compact_processing(
@@ -565,7 +575,8 @@ async def test_q144_full_and_hero_compete_by_candidate_coverage(
         task_spec=task.model_dump(mode="json"), card_spec=case.card,
     )
     assert len(output.projected_task_spec.eventCandidates) == int(allow_action)
-    assert ("batteryTemperatureText" in output.a2ui) == allow_action
+    # 无动作时新 Full 也能展示温度，不再依赖 Hero+按钮才能覆盖该候选。
+    assert "batteryTemperatureText" in output.a2ui
 
 
 def _review_case(issue: str) -> BatteryCase:

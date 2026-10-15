@@ -151,8 +151,12 @@ async def test_online_restores_nested_facts_before_formatting_and_preserves_reco
     processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
     original_process = processor.process
     internal_payloads: list[list[dict[str, Any]]] = []
+    information_coverage_warning_modes: list[bool] = []
 
     def process(source: str, context: DslProcessingContext) -> Any:
+        information_coverage_warning_modes.append(
+            context.plan_information_coverage_as_warning
+        )
         result = original_process(source, context)
         for issue in result.errors:
             diagnostics = issue.prompt_context.get("compactDiagnostics")
@@ -197,6 +201,7 @@ async def test_online_restores_nested_facts_before_formatting_and_preserves_reco
         assert SRC in message
         assert URL not in message
     assert len(saved_records) == 2
+    assert information_coverage_warning_modes == [False, True, True]
     failed_record = saved_records[0]
     assert failed_record.model_generated_compact_dsl == INVALID
     assert failed_record.validation_errors == tuple(internal_payloads[1])

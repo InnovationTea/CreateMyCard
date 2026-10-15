@@ -1,5 +1,8 @@
 # 蓝牙耳机第一层意图规则
 
+- `BluetoothDeviceOverviewEarbudPairChargingFull@1` 覆盖左耳、右耳、盒三处电量和整体/盒充电状态。
+  这四项输入齐全即可，不要求耳机名称、连接状态或左右耳充电状态；允许无动作2×2请求。
+
 ## BluetoothDeviceOverview
 
 本节只适用于 `GetEarphoneInfo`，不扩展到其它业务。以本轮实际 `userQuery` 为意图来源，
@@ -140,3 +143,16 @@ EarbudPairCompact 现可选展示连接状态和仓电量。双动作需求包�
 模板覆盖必须满足本轮字段显示条件：EarbudTripleHero 与 EarbudPairFull 的三项充电状态不齐全时不覆盖任何充电状态；EarbudPairFull 的名称与连接状态至少存在一项。动作候选保留原始列表，局部禁止项通过 excludedActionIds 排除，按过滤后可用动作数选择布局；无法识别禁止项范围时关闭自动补动作。
 
 - `BluetoothDeviceOverviewEarbudPairRingFull@1`：无动作2×2 Full，必需名称与左右耳电量，不需要盒电量或连接状态。顶部名称、双环内圆形 L/R 标识、环下对应百分比；leftChargingStatusDesc 与 rightChargingStatusDesc 独立可选，只有一项也应展示对应一侧，不适用三项状态成组显示规则。无需图标素材，沿用通用字段覆盖与布局规则。
+
+
+耳机名称与连接状态同时存在时，显示必须随运行时 isConnected 更新：名称作为标题时，
+已连接显示名称，未连接显示请求 title，title 缺省或空字符串时显示“蓝牙耳机”；
+名称作为补充信息时，未连接隐藏名称且不占位，连接状态位置继续显示“未连接”。
+未提供连接状态的模板保持原有名称展示，不根据名称文本猜测连接状态。
+支持 title 的上述模板必须逐字传入非空 cardComposition.businessTitleCandidate；缺省省略 title。不得依据当前样例连接值删除名称或状态绑定。
+
+## 蓝牙关联动作
+
+声明蓝牙内嵌事件的模板可消费 `event.open.settings.bluetooth` 或 `event.setBluetoothMode`。
+前者打开设置页，后者按用户明确要求固定开启或关闭蓝牙；0=开启、1=关闭，不根据耳机连接状态自动切换。
+不得把星闪、Wi-Fi、移动数据等其它开关绑定到耳机业务；事件参数由服务端从有效候选注入。

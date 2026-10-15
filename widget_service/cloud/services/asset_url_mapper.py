@@ -76,14 +76,19 @@ class AssetUrlMapper:
                     changed |= self._rewrite_property(styles, "backgroundImage", restore)
         if not changed:
             return dsl
-        return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+        return "\n".join(
+            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+            for row in rows
+        )
 
     def restore_design_token(self, token: str) -> str:
         """只还原极简协议的素材属性，不做整段字符串替换或改写 DataModel。"""
         if "https://" not in token and "http://" not in token:
             return token
-        # 按归档组件结构还原模板素材地址。
-        rows = parse_compact_dsl_rows(token, skip_compact_dsl_validation=True)
+        # 按归档组件结构还原模板素材地址，不展开语义布局源文。
+        rows = parse_compact_dsl_rows(
+            token, expand_layouts=False, skip_compact_dsl_validation=True,
+        )
         restored_rows: list[list[Any]] = []
         changed = False
         for row in rows:
@@ -100,7 +105,10 @@ class AssetUrlMapper:
             restored_rows.append([row.component_id, row.component_type, props, list(row.children)])
         if not changed:
             return token
-        return "\n".join(json.dumps(row, ensure_ascii=False) for row in restored_rows)
+        return "\n".join(
+            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+            for row in restored_rows
+        )
 
     def _restore_nested_icons(self, component_type: str, props: dict[str, Any]) -> bool:
         """只还原登记组件的嵌套素材位，保留正文、事件及数据中的同名字段。"""

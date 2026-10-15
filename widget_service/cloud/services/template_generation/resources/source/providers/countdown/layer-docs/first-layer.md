@@ -17,3 +17,9 @@
 - 事件名和目标日期只允许通过模板 Prop 使用本轮可信文本；不支持由天数反推事件名、目标日期、完成率
   或进度，这些内容不能由静态文案补造。
 - 根据 `userQuery` 判断出的必须显示倒计时字段不是倒计时天数时，不得选择。
+
+## 出行闹钟动作
+
+`CountdownOverviewTravelSupport@1` 可按用户明确要求消费 `event.open.clock.alarm` 或
+`event.open.clock.alarmTab`，仅表示打开闹钟首页或闹钟 Tab，不表示设置闹钟或创建提醒。
+通用目标日倒计时不扩展闹钟、秒表或定时器事件。

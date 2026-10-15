@@ -31,18 +31,17 @@ DesignToken。Provider 模板是受信资源，不需要用 DesignToken 缩短�
 
 当前迁移范围：
 
-- `weather`：`ViewWeather` → 35 个 UI 模板
-- `calendar`：`GetCalendarEvents` → 29 个日期/日程 UI 模板
-- `battery`：`GetPhoneBatteryInfo` → 18 个电量 UI 模板
-- `system-memory`：`GetSystemMemInfo` → 3 个内存 UI 模板
-- `health-sport`：`GetHealthAndSportSummary` → 32 个活动、运动、心率和睡眠 UI 模板
-- `countdown`：`GetCountdownDays` → 11 个倒计时 UI 模板
-- `earphone`：`GetEarphoneInfo` → 25 个耳机状态/电量 UI 模板
+- `weather`：`ViewWeather` → 44 个 UI 模板
+- `calendar`：`GetCalendarEvents` → 51 个日期/日程 UI 模板
+- `battery`：`GetPhoneBatteryInfo` → 37 个电量 UI 模板
+- `health-sport`：`GetHealthAndSportSummary` → 39 个活动、运动、心率和睡眠 UI 模板
+- `countdown`：`GetCountdownDays` → 10 个倒计时 UI 模板
+- `earphone`：`GetEarphoneInfo` → 32 个耳机状态/电量 UI 模板
 - `layout`：无数据能力 → 24 个支持 `...children` 的布局模板；仅含 `Wide` 的布局用于 `2x4`
-- `action`：无数据能力 → 5 个 Props 驱动的动作模板
+- `action`：无数据能力 → 6 个 Props 驱动的动作模板
 
-除 `GetSystemMemInfo` 使用 Bundle 本地 Schema 外，
-其余能力均只读引用正式能力注册表。新增或修改 `.cardtpl` 后必须重新加载 Provider Bundle，
+六个业务 Provider 均只读引用 `app-11.7.7.300_rom-7.0` 正式能力快照。
+系统内存三个模板及其本地 Schema、专属主题已下线。新增或修改 `.cardtpl` 后必须重新加载 Provider Bundle，
 再重建 CardPlan 清单并运行 Provider Template 测试。
 
 Provider 若需要覆盖外层布局 Action 的底托透明度，可在模板根组件样式中声明受信内部属性

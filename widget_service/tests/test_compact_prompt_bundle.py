@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from config.config import get_settings
+from models.generation import TaskSpec
 from services.compact_layout_runtime import layout_ids_for_size
 from services.compact_prompt_loader import (
     FRAGMENT,
@@ -15,6 +16,7 @@ from services.compact_prompt_loader import (
     assemble_prompts,
     read_prompt,
 )
+from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
@@ -92,7 +94,7 @@ def test_info_block_contract_is_noninteractive() -> None:
     assert progress_example in create_prompt
     assert "不使用 `dataIds` 或" in create_prompt
     assert "`S-title-dual-content` 的两个 `126×50vp` 槽" in create_prompt
-    assert '"height":50,"primaryText":"{{ \'明天 \' +' in create_prompt
+    assert '"variant":"stacked","primaryText":"{{ \'明天 \' +' in create_prompt
     assert "每行只承载一个动态业务值" in create_prompt
 
 
@@ -118,7 +120,8 @@ def test_anchor_layout_requires_main_and_nonempty_support_information() -> None:
 
     assert isinstance(create_prompt, str)
     assert isinstance(plan_prompt, str)
-    assert "一个主信息组与至少一个可由核心组件承载的独立其它信息组" in create_prompt
+    assert "一个主信息组与至少一个独立其它信息组" in create_prompt
+    assert "左下可以使用 `SecondaryBody` 承载辅助事实" in create_prompt
     assert "不要求固定三项，但至少一项" in create_prompt
     assert "只在标题中展示的地点、对象或范围上下文不计入" in create_prompt
     assert "没有独立支撑事实时排除 `S-title-anchor`" in create_prompt
@@ -155,11 +158,32 @@ def test_secondary_body_contract_groups_related_items() -> None:
     assert "标题、按钮、布局容器和其它 `SecondaryBody` 都不满足搭配条件" in prompt
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_owned_action_layout_comparison_is_size_scoped_and_reaches_plan(size: str) -> None:
+    create = read_prompt(DEFAULT_SOURCE, "create", size=size)
+    rule = "先比较内容组与直属操作的归属，再比较操作数量"
+    task = TaskSpec(userQuery="查看设备状态及操作", size=size, dataModelSchema={"data": {}})
+    plan = read_prompt(DEFAULT_SOURCE, "plan", size=size)
+    messages = PromptBuilder().build_compact_plan(task, create + "\n\n" + plan, "{}")
+    system = messages[0].get("content")
+    assert isinstance(system, str)
+    assert (rule in create) == (size == "2x4")
+    assert (rule in system) == (size == "2x4")
+    assert "不只按操作数量选布局" in system
+    if size == "2x4":
+        assert "紧凑区容量不成立时仍比较其它合法布局，不强行分区" in system
 def test_secondary_body_repair_does_not_add_non_core_companions() -> None:
     repair_prompt = read_prompt(DEFAULT_SOURCE, "repair", size="2x2")
-
-    assert "`SecondaryBody` 只能辅助同一语义分区内的核心信息组件" in repair_prompt
+    assert "`SecondaryBody` 只能辅助整卡中已存在的核心信息组件" in repair_prompt
     assert "不能通过增加按钮、标题或另一个" in repair_prompt
+
+
+def test_agent_stage_instruction_does_not_forbid_registered_semantic_layout() -> None:
+    task = TaskSpec(userQuery="查看设备状态", size="2x4", dataModelSchema={"data": {}})
+    scope = PromptBuilder._compact_generation_scope(task)
+    assert "最终 DSL 使用 Layout" in scope
+    assert "Region 选择内容变体" in scope
+    assert "不输出布局 ID、Card 或 Region 节点" not in scope
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -210,7 +234,7 @@ def test_core_does_not_repeat_final_prohibition_checklist() -> None:
     )
 
 
-def test_two_by_two_layout_prompt_delegates_derived_sizes_to_flex_layout() -> None:
+def test_two_by_two_layout_prompt_delegates_geometry_to_semantic_templates() -> None:
     source = (DEFAULT_SOURCE / "layouts/2x2.md").read_text(encoding="utf-8")
     layouts = dict(FRAGMENT.findall(source)).get("s-layouts", "")
 
@@ -228,17 +252,17 @@ def test_two_by_two_layout_prompt_delegates_derived_sizes_to_flex_layout() -> No
         assert removed_budget not in layouts
 
     for retained_contract in (
-        "`padding:12`",
-        "`padding:8`",
-        "`layoutWeight`",
-        "动作按钮固定高 `36vp`",
-        "固定 `40×40vp` 槽",
-        '"alignContent":"center"',
+        "Layout是root",
+        "不输出Row/Column/Stack",
+        "padding8",
+        "40×40槽居中",
+        "按钮36vp",
+        '"Layout"',
     ):
         assert retained_contract in layouts
 
 
-def test_two_by_four_layout_prompt_delegates_derived_sizes_to_flex_layout() -> None:
+def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() -> None:
     source = (DEFAULT_SOURCE / "layouts/2x4.md").read_text(encoding="utf-8")
     fragments = dict(FRAGMENT.findall(source))
     layouts = fragments.get("w-layouts", "")
@@ -252,9 +276,6 @@ def test_two_by_four_layout_prompt_delegates_derived_sizes_to_flex_layout() -> N
         "26 + 6 + 36 + 6 + 36",
         "38 + 8 + 36 + 8 + 36",
         "title 20 + 4 + body 86",
-        "132×126vp",
-        "132×57vp",
-        "116×110vp",
         '"layoutWeight":15',
         '"layoutWeight":8',
         '"height":20',
@@ -262,29 +283,52 @@ def test_two_by_four_layout_prompt_delegates_derived_sizes_to_flex_layout() -> N
         assert removed_budget not in layouts
 
     for retained_contract in (
-        "`padding:12`",
-        "`padding:8`",
-        "Sub-118 内纵向主要角色使用 `6vp` 间距",
-        "Sub-140 使用 `8vp`",
-        '"layoutWeight":1',
-        '"height":"matchParent"',
+        "132×126vp",
+        "132×57vp",
+        "116×110vp",
+        "紧凑版主要角色间距6vp",
+        "宽版8vp",
+        '"Layout"',
+        '"Region"',
     ):
         assert retained_contract in layouts
 
     for sub_layout in (
-        "Sub-118-A",
-        "Sub-118-B",
-        "Sub-118-C",
-        "Sub-118-D",
-        "Sub-140-A",
-        "Sub-140-B",
-        "Sub-140-C",
-        "Sub-140-D",
-        "Sub-140-F",
-        "Sub-140-G",
-        "Sub-140-H",
+        "center",
+        "title-content",
+        "title-hero-support",
+        "title-content-action",
+        "title-two-ratios",
+        "title-hero-support-action",
+        "four-ratios",
+        "four-items",
     ):
         assert sub_layout in layouts
+
+    create_prompt = assemble_prompts(DEFAULT_SOURCE, size="2x4").get("create")
+    assert isinstance(create_prompt, str)
+    for naming_rule in (
+        "不自行缩写、拼接或增删后缀",
+        "Group 的 `hero-support` 只有 `[hero, support]`",
+        "第四项 PillButton",
+        "没有内部按钮时选择已登记的 `title-hero-support`",
+    ):
+        assert naming_rule in layouts
+        assert naming_rule in create_prompt
+
+    for example_rule in (
+        "本章的genui片段只展示布局层，不是可直接提交的完整DSL",
+        "先选父区，再按直属角色选variant",
+        "第二、第三个是固定槽，不是另外两个Region",
+        "children数量按直属组件ID计",
+        "紧凑与宽版都支持的四种Region结构",
+        "仅宽版支持的四种Region结构",
+        "四行SecondaryBody至少占70vp",
+        "四格，不是父布局W-four-slots",
+        "否则形成多个父节点",
+    ):
+        assert example_rule in layouts
+        assert example_rule in create_prompt
 
     for removed_preset in (
         "neutral-footer",
@@ -354,7 +398,7 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
         "### `CardButton`",
     ):
         assert dedicated_heading not in catalog
-    assert "`width`、`height`、`layoutWeight`、`flexShrink`、`margin`" in catalog
+    assert "新语义源不填写width、height、layoutWeight、flexShrink、margin" in catalog
     assert "fontColor" not in selection
     assert "fontColor" not in catalog
     assert "组件不声明文字颜色" in catalog
@@ -426,6 +470,15 @@ def test_size_component_rules_separate_shared_and_dedicated_components() -> None
     assert "整卡改选为 `W-top-bottom`" in two_by_four_fragments.get(
         "wide-components",
         "",
+    )
+    wide_components = two_by_four_fragments.get("wide-components", "")
+    text_block_contract = wide_components.split(
+        "### 2x4 专属组件：`TextBlock`",
+        maxsplit=1,
+    )[1].split("###", maxsplit=1)[0]
+    assert (
+        "| `items[].label` | 显示值 | 静态 / Expression / PathBinding"
+        in text_block_contract
     )
     assert "2x4 专属组件：`SummaryList`" not in two_by_four_fragments.get(
         "wide-components",

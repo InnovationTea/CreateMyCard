@@ -1,4 +1,4 @@
-"""质量评分方案和历史对比；只读取已落盘证据，绝不触发生成或评分。"""
+"""读取质量评分方案和已保存的评分结果，提供批次与单条对比。"""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from typing import Any
 from .postprocess import PostprocessManager
 
 PASS_DEFINITION = (
-    "Web 范围无问题率 = 有完整评分、上下界均为 100 且无确认或待确认问题的样本数"
-    " / 本次所选样本总数；待评不计通过，不代表训练验收通过率。"
+    "声明检查范围无问题率 = 有完整评分、上下界均为 100 且无确认或待确认问题的样本数"
+    " / 本次所选样本总数；待评不计通过。"
 )
 
 
@@ -74,23 +74,36 @@ def _sample(result: dict[str, Any], meta: dict[str, Any]) -> dict[str, Any]:
         and facts.get("verdict") == "范围内未扣分"
         and not issues
     )
+    image_url = None
+    for artifact in result.get("artifacts", []):
+        url = artifact.get("url")
+        if artifact.get("key") != "capture" or not isinstance(url, str):
+            continue
+        if url.startswith("/debug/batch/runs/"):
+            image_url = url
     return {
+        "sampleId": meta.get("sampleId"),
+        "imageUrl": image_url,
         "score": score,
         "scoreLow": low,
         "verdict": facts.get("verdict") or "待评",
         "query": query,
         "size": size,
+        "appVersion": context.get("appVersion"),
         "issues": dict.fromkeys(issues, 1),
         "confirmedIssues": dict.fromkeys([k for k, v in issues.items() if v == "确认"], 1),
         "pendingIssues": dict.fromkeys([k for k, v in issues.items() if v != "确认"], 1),
         "passed": passed,
         "policy": detail.get("policy"),
         "evidenceVersion": evidence.get("schemaVersion"),
+        "comparisonScope": evidence.get("comparisonScope"),
+        "gaps": evidence.get("gaps", []),
     }
 
 
 def _result_set(
-    manager: PostprocessManager, run_id: str, execution_id: str | None
+    manager: PostprocessManager, run_id: str, execution_id: str | None,
+    selected_sample_id: str | None = None,
 ) -> dict[str, Any]:
     executions = manager.executions(run_id)
     selected = None
@@ -112,6 +125,8 @@ def _result_set(
     samples: dict[str, dict[str, Any]] = {}
     for meta in dashboard.get("samples", []):
         sample_id = meta.get("sampleId")
+        if selected_sample_id is not None and sample_id != selected_sample_id:
+            continue
         if not isinstance(sample_id, str) or sample_id in samples:
             raise ValueError("评分结果样本 ID 无效或重复")
         try:
@@ -120,7 +135,7 @@ def _result_set(
             result = {"facts": {"verdict": f"待评：结果不可读（{type(exc).__name__}）"}}
         samples[sample_id] = _sample(result, meta)
     if not samples:
-        raise ValueError(f"批次 {run_id} 的最新评分无样本结果，不能用旧结果或零分替代")
+        raise ValueError(f"批次 {run_id} 的所选评分没有对应样本结果，请核对样本及执行版本")
     scores = []
     passed = 0
     for sample in samples.values():
@@ -161,10 +176,17 @@ def compare(
     right_run_id: str,
     left_execution_id: str | None = None,
     right_execution_id: str | None = None,
+    left_sample_id: str | None = None,
+    right_sample_id: str | None = None,
 ) -> dict[str, Any]:
-    left = _result_set(manager, left_run_id, left_execution_id)
-    right = _result_set(manager, right_run_id, right_execution_id)
+    if bool(left_sample_id) != bool(right_sample_id):
+        raise ValueError("单条对比必须同时指定左右样本")
+    left = _result_set(manager, left_run_id, left_execution_id, left_sample_id)
+    right = _result_set(manager, right_run_id, right_execution_id, right_sample_id)
     left_samples, right_samples = left.get("samples", {}), right.get("samples", {})
+    if left_sample_id and right_sample_id:
+        left_samples = {"单条对比": left_samples.get(left_sample_id)}
+        right_samples = {"单条对比": right_samples.get(right_sample_id)}
     policy_matches = _same_policy(left.get("policy"), right.get("policy"))
     warnings = []
     if not policy_matches:
@@ -195,6 +217,10 @@ def compare(
             alignment = "policy-mismatch"
         elif a.get("evidenceVersion") != b.get("evidenceVersion"):
             alignment = "evidence-mismatch"
+        elif a.get("appVersion") != b.get("appVersion"):
+            alignment = "evidence-mismatch"
+        elif a.get("comparisonScope") != b.get("comparisonScope"):
+            alignment = "evidence-mismatch"
         elif a.get("score") is None or b.get("score") is None:
             alignment = "pending-score"
         else:
@@ -207,13 +233,15 @@ def compare(
         rows.append({
             "sampleId": sample_id, "alignment": alignment,
             "left": a, "right": b, "scoreDelta": delta,
+            "scoreLowDelta": round(b.get("scoreLow") - a.get("scoreLow"), 2)
+            if delta is not None else None,
             "issueDiff": _diff((a or {}).get("issues", {}), (b or {}).get("issues", {})),
         })
     comparable = policy_matches and same_selection and all_aligned
     if not all_aligned:
         warnings.append("部分样本的 ID、上下文、参数或检测版本无法对齐，相关分差留空")
     if left.get("scored") != left.get("total") or right.get("scored") != right.get("total"):
-        warnings.append("存在待评样本；均分仅覆盖有分子集，缺证据不应解释为质量下降")
+        warnings.append("存在待评样本；均分仅按已评分样本计算")
     public_left = {k: v for k, v in left.items() if k not in {"samples", "policy"}}
     public_right = {k: v for k, v in right.items() if k not in {"samples", "policy"}}
     return {

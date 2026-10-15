@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from dataclasses import dataclass
+from copy import deepcopy
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -165,7 +166,6 @@ _ACTION_ID_BY_BUSINESS = {
     "CalendarOverview": "event.viewCalendarEvent",
     "CountdownOverview": "event.open.clock.alarm",
     "HeartRateOverview": "event.open.health.sport",
-    "ResourceUsageOverview": "event.open.settings.storage",
     "SleepOverview": "event.open.health.sleep",
     "WeatherOverview": "event.open.weather",
     "WorkoutOverview": "event.open.health.sport",
@@ -236,9 +236,6 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("HeartRateOverview", "max"): 168,
     ("HeartRateOverview", "min"): 112,
     ("HeartRateOverview", "updatedAt"): "今天 09:00",
-    ("ResourceUsageOverview", "available"): "5.2 GB",
-    ("ResourceUsageOverview", "total"): "12 GB",
-    ("ResourceUsageOverview", "usage"): 56.7,
     ("SleepOverview", "asleep"): "23:15",
     ("SleepOverview", "deepDuration"): "1小时42分",
     ("SleepOverview", "duration"): "7小时1分",
@@ -332,6 +329,7 @@ class TemplatePreviewCase:
     optional_data: tuple[str, ...]
     file_name: str
     messages: tuple[dict[str, Any], ...]
+    preview_state: str = ""
 
     def manifest_entry(self) -> dict[str, Any]:
         return {
@@ -348,10 +346,13 @@ class TemplatePreviewCase:
             "secondaryData": list(self.secondary_data),
             "optionalData": list(self.optional_data),
             "file": self.file_name,
+            "previewState": self.preview_state,
         }
 
 
-def build_template_preview_cases() -> tuple[TemplatePreviewCase, ...]:
+def build_template_preview_cases(
+    *, earphone_connection_states: bool = False,
+) -> tuple[TemplatePreviewCase, ...]:
     """Expand every business Provider Template into a local A2UI preview case."""
     registry = CardPlanRegistry(
         disabled_provider_ids=(),
@@ -368,14 +369,50 @@ def build_template_preview_cases() -> tuple[TemplatePreviewCase, ...]:
     cases: list[TemplatePreviewCase] = []
     for index, definition in enumerate(definitions, start=1):
         case_id = f"T{index:03d}"
-        cases.append(_build_case(case_id, definition, profile, registry))
+        case = _build_case(case_id, definition, profile, registry)
+        if earphone_connection_states and _has_earphone_name_and_connection(definition):
+            cases.extend(_earphone_connection_previews(case))
+        else:
+            cases.append(case)
     return tuple(cases)
 
 
-def write_template_preview_dataset(output_dir: Path) -> dict[str, Any]:
+def _has_earphone_name_and_connection(definition: TemplateDefinition) -> bool:
+    if definition.business_id != "BluetoothDeviceOverview":
+        return False
+    paths = {binding.path for binding in definition.bindings.values()}
+    return {"/earphoneName", "/isConnected"}.issubset(paths)
+
+
+def _earphone_connection_previews(case: TemplatePreviewCase) -> tuple[TemplatePreviewCase, ...]:
+    previews = []
+    for connected in (True, False):
+        state = "已连接" if connected else "未连接"
+        suffix = "connected" if connected else "disconnected"
+        messages = deepcopy(case.messages)
+        for message in messages:
+            update = message.get("updateDataModel")
+            if not isinstance(update, dict):
+                continue
+            earphone = update.get("value", {}).get("data", {}).get("earphone")
+            if not isinstance(earphone, dict):
+                raise ValueError(f"耳机预览缺少数据模型：{case.template_id}")
+            earphone["isConnected"] = connected
+            earphone["earphoneName"] = "FreeBuds Pro" if connected else "未连接耳机"
+        previews.append(replace(
+            case, case_id=f"{case.case_id}-{suffix}",
+            file_name=f"{case.case_id}-{suffix}.json", preview_state=state,
+            description=f"{state} · {case.description}", messages=messages,
+        ))
+    return tuple(previews)
+
+
+def write_template_preview_dataset(
+    output_dir: Path, *, earphone_connection_states: bool = False,
+) -> dict[str, Any]:
     """Write one A2UI array per template and return the generated manifest."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    cases = build_template_preview_cases()
+    cases = build_template_preview_cases(earphone_connection_states=earphone_connection_states)
     expected_files = {case.file_name for case in cases}
     for stale in output_dir.glob("T*.json"):
         if stale.name not in expected_files:

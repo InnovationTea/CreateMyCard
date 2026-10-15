@@ -1,0 +1,35 @@
+#Template BatteryOverviewChargingTypePercentFull@1(props: {})
+data = {
+    percentText: $path("/batterySOCText"),
+    charging: $path("/chargingStatusDesc"),
+    pluggedType: $path("/pluggedTypeDesc")
+}
+
+Column(
+  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
+   "padding": {"top": 4}, "itemMargin": 4, "justifyContent": "start", "alignItems": "center",
+   "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text(
+    data.charging,
+    {"width": 112, "height": 24, "fontSize": 16, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0}
+  ),
+  Column(
+    {"width": "matchParent", "layoutWeight": 1, "justifyContent": "center",
+     "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(
+      data.percentText,
+      {"width": 102, "height": 48, "fontSize": 38, "fontWeight": 700,
+       "fontColor": $theme('primaryColor'), "textAlign": "center", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}
+    )
+  ),
+  Text(
+    data.pluggedType,
+    {"width": 106, "height": 16, "fontSize": 12, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0}
+  )
+)
+#End

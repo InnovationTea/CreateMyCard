@@ -115,6 +115,7 @@ async def generate_template_a2ui(
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
     trusted_template_sample_overrides: dict[str, Any] | None = None,
+    max_body_repairs: int = _MAX_BODY_REPAIRS,
 ) -> TemplateEngineOutput:
     """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
     logger.info(
@@ -335,6 +336,7 @@ async def generate_template_a2ui(
             template_plans=template_plans,
             registry=registry,
             model_client=model_client,
+            max_body_repairs=max_body_repairs,
         )
     except TemplateGenerationError:
         raise
@@ -444,6 +446,7 @@ async def _generate_selected_templates(
     registry: CardPlanRegistry,
     model_client: Any,
     template_plans: tuple[TemplatePlan, ...] = (),
+    max_body_repairs: int = _MAX_BODY_REPAIRS,
 ) -> TemplateEngineOutput:
     generic_paths: list[str] = []
     for plan in template_plans:
@@ -514,7 +517,7 @@ async def _generate_selected_templates(
                 f"{_MODULE} template_body_validation_failed "
                 f"repair_count={repair_count} detail={exc}"
             )
-            if repair_count >= _MAX_BODY_REPAIRS:
+            if repair_count >= max_body_repairs:
                 raise TemplateGenerationError("template body validation failed") from exc
             repair_count += 1
             messages = build_ux_mixed_validation_retry_prompt(

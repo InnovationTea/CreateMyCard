@@ -29,8 +29,13 @@ class TemplateModelClient:
         self,
         runtime: ModelExecutionRuntime,
         request_context: ModelRequestContext,
+        *,
+        fail_fast: bool = False,
     ) -> None:
         settings = get_settings()
+        self._fail_fast = fail_fast
+        if fail_fast:
+            settings = settings.model_copy(update={"enable_model_failure_retry": False})
         self._backend = settings.design_compact_model_backend
         self._request_context = request_context
         self._client = UnifiedModelClient(
@@ -87,6 +92,10 @@ class TemplateModelClient:
         )
 
     async def _generate_body(self, prompt: list[dict[str, str]], phase: str) -> str:
+        if self._fail_fast:
+            return await self._body_client.generate(
+                self._backend, prompt, self._request_context, phase=phase,
+            )
         for attempt in (1, 2):
             try:
                 return await self._body_client.generate(
@@ -117,11 +126,13 @@ class TemplateModelClient:
 def create_template_model_client(
     runtime: ModelExecutionRuntime | None,
     request_context: ModelRequestContext,
+    *,
+    fail_fast: bool = False,
 ) -> TemplateModelClient:
     """真实模型关闭时保持 dev 原有 mock 路由，不让模板测试污染既有用例。"""
     if runtime is None or get_settings().enable_a2ui_model_mock:
         raise TemplateModelUnavailable("template routing requires the real shared model runtime")
-    return TemplateModelClient(runtime, request_context)
+    return TemplateModelClient(runtime, request_context, fail_fast=fail_fast)
 
 
 def _parse_json_object(raw: str) -> dict[str, Any]:
