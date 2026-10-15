@@ -258,8 +258,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
     # 包含各业务场景及 26 个 Support 模板的双业务动作组合；
-    # 移除系统内存的单业务及双 Support 样例。
-    assert len(all_cases) == 226
+    # 合并 main 的系统内存移除及本分支七个新增 Full。
+    assert len(all_cases) == 233
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -350,7 +350,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 226
+    assert len(targeted_cases) == 233
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -362,6 +362,12 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "BatteryOverviewTemperatureFull@1",
         "BatteryOverviewPercentTextFull@1",
         "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewPercentHealthDetailsFull@1",
+        "BatteryOverviewPercentHealthCurrentDetailsFull@1",
+        "BatteryOverviewChargingTemperatureFull@1",
+        "BatteryOverviewTemperatureStatusFull@1",
+        "BatteryOverviewPercentStatusFull@1",
+        "BatteryOverviewChargingTypePercentFull@1",
         "BatteryOverviewChargingDiagnosticsFull@1",
         "BatteryOverviewCurrentVoltageFull@1",
         "BatteryOverviewHealthLevelFull@1",
@@ -700,10 +706,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 226
+    assert summary.total == 233
     assert summary.failed == 0
     assert summary.missing == 0
-    assert summary.not_generated == 226
+    assert summary.not_generated == 233
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

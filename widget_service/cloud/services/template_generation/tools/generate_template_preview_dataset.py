@@ -15,6 +15,8 @@ if str(_CLOUD_ROOT) not in sys.path:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output_dir", type=Path, help="输出 manifest.json 和 TNNN.json 的目录")
+    parser.add_argument("--earphone-connection-states", action="store_true",
+                        help="为同时绑定名称和连接状态的耳机模板生成两种状态")
     return parser.parse_args()
 
 
@@ -25,7 +27,9 @@ def main() -> int:
 
     args = parse_args()
     output_dir = args.output_dir.resolve()
-    manifest = write_template_preview_dataset(output_dir)
+    manifest = write_template_preview_dataset(
+        output_dir, earphone_connection_states=args.earphone_connection_states,
+    )
     layout_counts = manifest["countsByLayout"]
     size_counts = manifest["countsBySize"]
     print(

@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 213 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
+- [x] 220 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull`、`WideHalf` 后缀。
 - [x] 业务模板尺寸和动作组合默认由后缀推导；历史上仅为 2x4 槽位设计、但后缀无法表达尺寸的模板可在
   `provider.json` 中用 `supportedCardSizes` 显式覆盖。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
@@ -37,7 +37,7 @@
 
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 37 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 43 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 51 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 10 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 32 | 启用 |
@@ -53,6 +53,22 @@
 
 ## BatteryOverview
 
+- `BatteryOverviewChargingTemperatureFull@1`：充电温度Full，参考HealthTemperature的小标题、
+  大字状态与温度辅行，左下角“电量: N%”；顶部title优先使用传入标题，缺省显示“手机电池”。
+  充电状态、温度文本、电量文本均必需，无图标或按钮。
+  2x2使用SingleFocusLayout，使用start/end对齐，不依赖健康、充电器类型或数值电量。
+- `BatteryOverviewTemperatureStatusFull@1`：居中title/温度/电量三段Full，title缺省为“手机电池”，
+  只必需温度；电量文本、充电状态和充电器类型可选，辅助状态保留在底行左侧。
+- `BatteryOverviewPercentStatusFull@1`：充电状态 Hero 的无按钮 Full，只必需电量文本，
+  可选充电状态、健康、等级、温度和更新时间；充电状态独立显示在左下角。
+
+- `BatteryOverviewPercentHealthCurrentDetailsFull@1`：2x2 无动作百分比、健康与电流详情；
+  必需剩余电量文本、充电状态、电池健康和当前电流，复用百分比健康详情 Full 的排版，
+  不依赖图标、数值电量、充电器类型或电压，保留电流原始文本及单位。
+
+- `BatteryOverviewPercentHealthDetailsFull@1`：2x2 无动作百分比与健康详情；必需剩余电量文本、
+  充电状态、电池健康和充电器类型，不依赖图标、数值电量或电量等级，沿用百分比详情 Full 排版。
+
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
 - 数据能力：`GetPhoneBatteryInfo`；模板数：26。
 
@@ -61,7 +77,7 @@
 | ✅ | `BatteryOverviewPercentRingHero@1` | 约 2x1.7；百分比环 Hero + 1 个 PillAction | `/batterySOC` | 无 | 无 |
 | ✅ | `BatteryOverviewPercentRingCompact@1` | 约 2x1；圆角底板内左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、可选 16vp 内图标，不展示充电状态；用于宽版右列 2x1 组合槽位 | `/batterySOC` | 无 | 无 |
 | ✅ | `BatteryOverviewPercentStatusCompact@1` | 约 2x1；圆角底板内左侧电量百分比大字与充电状态辅行，右侧 40vp 电量环、可选 16vp 内图标，不展示标题；用于宽版右列 2x1 组合槽位 | `/batterySOC` | `/chargingStatusDesc` | 无 |
-| ✅ | `BatteryOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewFull@1` | 完整 2x2；无 Action 的单 Full，环内电池图标可选，无图标时显示“E”圆形文字标识 | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewCompact@1` | 约 2x1；36vp 环形进度 Compact + 2 个 PillAction，电量图标可选 | `/batterySOC` | `/chargingStatusDesc` | 无 |
@@ -78,7 +94,7 @@
 | ✅ | `BatteryOverviewChargingRingHero@1` | 约 2x1.7；充电状态环 Hero + 1 个 PillAction | `/batterySOC` | `/chargingStatusDesc` | 无 |
 | ✅ | `BatteryOverviewChargeStatusHero@1` | 约 2x2 焦点面板；顶部标题（默认“手机”，电池温度可用时替换为电池温度文本）+ 44vp 电量环（可选手机图标）+ 百分比标题和“手机电量”副标题，不展示充电状态与充电器类型 | `/batterySOC` | 无 | `/chargingStatusDesc`<br>`/pluggedTypeDesc`<br>`/batteryTemperatureText` |
 | ✅ | `BatteryOverviewSupportHero@1` | 约 1.5x2 竖版电量面板（预留 1.5x2 槽位）；内部元素与 Support 一致：左侧电量主行 + 可选辅行（充电状态优先，回退电池温度），右侧 40vp 电量环、可选 16vp 手机图标，事件在模板内部 | `/batterySOC` | 无 | `/chargingStatusDesc`<br>`/batterySOCText`<br>`/batteryTemperatureText` |
-| ✅ | `BatteryOverviewTemperatureFull@1` | 完整 2x2；电池温度单 Full | `/batteryTemperatureText` | `/pluggedTypeDesc`<br>`/updatedAt` | 无 |
+| ✅ | `BatteryOverviewTemperatureFull@1` | 完整 2x2；电池温度单 Full，温度图标可选 | `/batteryTemperatureText` | `/pluggedTypeDesc`<br>`/updatedAt` | 无 |
 | ✅ | `BatteryOverviewStatusWideFull@1` | 完整 4x2；左侧电量环+百分比+充电器状态（可选），右侧电池温度（可选）与电池健康信息块，两个信息块右侧各支持可选 24vp 图标（`temperatureIcon`/`healthIcon`），事件在模板内部 | `/batterySOC` | 无 | `/healthStatusDesc`<br>`/batteryTemperatureText`<br>`/pluggedTypeDesc`<br>`/chargingStatusDesc` |
 | ✅ | `BatteryOverviewTemperatureHero@1` | 约 2x1.7 焦点面板；顶部手机电池温度标题行（温度图标可选）+ 温度大字 + 充电状态/充电器辅行，用于 `WideTwoFocus` 系列双焦点布局 | `/batteryTemperatureText` | 无 | `/pluggedTypeDesc`<br>`/chargingStatusDesc` |
 | ✅ | `BatteryOverviewTemperatureRingHero@1` | 约 2x1.7 面板；标题行展示电池温度，中部电量环在左、环内固定 16x16 电池图标（必选 `batteryIcon`）、百分比与充电状态在右，用于 `WideFullHeroAction` 系列布局 | `/batterySOC` | `/batteryTemperatureText` | `/chargingStatusDesc` |
@@ -265,3 +281,26 @@ HeroTitle 的温度与现象均可选：同时可用时显示“现象 | 温度�
 | `BluetoothDeviceOverviewEarbudTripleHero@1` | 三列图标电量及下方充电状态，单个 PillAction | 名称、三处电量；三处充电状态可选，齐全才显示 |
 
 EarbudPairCompact 的可选字段：`/batteryLevel`、`/isConnected`；必需字段不变。
+
+## 充电状态、百分比文本与充电器类型
+
+新增 `BatteryOverviewChargingTypePercentFull@1`，参考 PercentLevelFull 的居中三段式：
+顶部实际充电状态16fp、中间电量文本38fp/700、底部实际充电器类型12fp。
+三项字段均必需，无数值电量、图标、按钮或额外健康/等级数据要求。
+2x2 单焦点使用 SingleFocusLayout；2x4 与天气 Full 组合使用 WideTwoFullLayout，
+沿用通用检索和规划，不增加 query 特判或全局转换校验放宽。
+
+充电类型百分比 Full 的宽卡内容区为102vp：顶部24vp、底部16vp、间距4vp、顶部内边距4vp，
+中部弹性容器承载48vp电量文本，总最小高度100vp；底行不得随中部固定高度溢出。
+
+## 耳机三处电量与充电状态Full
+
+新增 `BluetoothDeviceOverviewEarbudPairChargingFull@1`，参考EarbudPairFull的标题、
+大字主状态和左耳/右耳/盒三列电量。只要求三处电量及chargingStatusDesc，
+不依赖名称、连接状态或左右耳充电状态；title可选，缺省为“蓝牙耳机”。
+图标可选，无素材时显示左/右/盒；无按钮，2×2使用SingleFocusLayout。
+
+TemperatureStatusFull当前布局为居中三段式：顶部16fp title，缺省“手机电池”；
+中间30fp温度，底部12fp“电量: ”加 /batterySOCText，只有温度必需。
+电量、充电状态、充电器类型均可选；辅助信息存在时左侧展示，电量在右侧，
+仅有电量时底行居中。没有任何底行数据时省略；请求标题非空时逐字传入title。

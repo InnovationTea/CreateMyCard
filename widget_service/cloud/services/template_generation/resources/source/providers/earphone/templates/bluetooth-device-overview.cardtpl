@@ -124,7 +124,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewHero@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewHero@1(props: { title?: string, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -146,7 +146,8 @@ Column(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
     #if data.left && data.right
-    Text(data.name,
+    #if props.title
+    Text(Expr(data.connected ? data.name : props.title),
         {
             "width": "matchParent",
             "height": 16,
@@ -157,7 +158,21 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
+    #else
+    Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+        {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #endif
     #else
     Text("耳机播控",
         {
@@ -172,7 +187,7 @@ Column(
         }
     ),
     #endif
-    Text(Expr(`${data.connected}? '已链接' : '未链接'`),
+    Text(Expr(`${data.connected}? '已连接' : '未连接'`),
         {
             "width": "matchParent",
             "fontSize": 18,
@@ -261,8 +276,9 @@ Column(
         )
     ),
     #else
-    Text(data.name,
+    Text(Expr(data.connected ? data.name : ''),
         {
+            "visibility": Expr(data.connected ? 'visible' : 'none'),
             "width": "matchParent",
             "height": 16,
             "fontSize": 12,
@@ -349,7 +365,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudsPhoneWideFull@1(props: { sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudsPhoneWideFull@1(props: { title?: string, sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -372,7 +388,8 @@ Column(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
     #if data.battery
-    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : data.name + ' · 未连接 · 充电盒 ' + data.battery + '%'),
+    #if props.title
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : props.title + ' · 未连接 · 充电盒 ' + data.battery + '%'),
         {
             "width": "matchParent",
             "fontSize": 11,
@@ -383,9 +400,9 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
     #else
-    Text(Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : '蓝牙耳机' + ' · 未连接 · 充电盒 ' + data.battery + '%'),
         {
             "width": "matchParent",
             "fontSize": 11,
@@ -396,7 +413,36 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
+    #endif
+    #else
+    #if props.title
+    Text(Expr(data.connected ? data.name + ' · 已连接' : props.title + ' · 未连接'),
+        {
+            "width": "matchParent",
+            "fontSize": 11,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textAlign": "start",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #else
+    Text(Expr(data.connected ? data.name + ' · 已连接' : '蓝牙耳机' + ' · 未连接'),
+        {
+            "width": "matchParent",
+            "fontSize": 11,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textAlign": "start",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #endif
     #endif
     Row(
         {
@@ -579,7 +625,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudsDynamicWideFull@1(props: { sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudsDynamicWideFull@1(props: { title?: string, sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -607,7 +653,8 @@ Column(
             "alignItems": "top",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Text(Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
+        #if props.title
+        Text(Expr(data.connected ? data.name + ' · 已连接' : props.title + ' · 未连接'),
             {
                 "width": "matchParent",
                 "fontSize": 12,
@@ -619,7 +666,22 @@ Column(
                 "layoutWeight": 1,
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name + ' · 已连接' : '蓝牙耳机' + ' · 未连接'),
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis",
+                "layoutWeight": 1,
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
+        #endif
         #if props.sourceIcon
         Image(props.sourceIcon,
             {
@@ -1025,7 +1087,7 @@ Row(
 )
 #End
 
-#Template BluetoothDeviceOverviewNameAndConnectionSupport@1(props: { bluetoothIconOrDeviceIcon?: asset, actionId?: string })
+#Template BluetoothDeviceOverviewNameAndConnectionSupport@1(props: { title?: string, bluetoothIconOrDeviceIcon?: asset, actionId?: string })
 data = {
     name: $path("/earphoneName"),
     connected: $path("/isConnected")
@@ -1057,7 +1119,8 @@ Row(
                 "constraintSize": {"minWidth": 0, "minHeight": 0},
                 "layoutWeight": 1,
             },
-            Text(data.name,
+            #if props.title
+            Text(Expr(data.connected ? data.name : props.title),
                 {
                     "fontSize": 14,
                     "height": 24,
@@ -1067,7 +1130,20 @@ Row(
                     "textOverflow": "ellipsis",
                     "constraintSize": {"minWidth": 0, "minHeight": 0}
                 }
-            ),
+            )
+            #else
+            Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+                {
+                    "fontSize": 14,
+                    "height": 24,
+                    "fontWeight": 700,
+                    "fontColor": $theme('primaryColor'),
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
+            )
+            #endif
             Text(Expr(data.connected ? '已连接' : '未连接'),
                 {
                     "fontSize": 12,
@@ -1561,7 +1637,11 @@ Column(
     { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
     #if data.name
       #if data.connected
-        Text(data.name, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
+        #if props.title
+        Text(Expr(data.connected ? data.name : props.title), { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
+        #else
+        Text(Expr(data.connected ? data.name : '蓝牙耳机'), { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
+        #endif
       #elseif props.title
         Text(props.title, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
       #else
@@ -1771,7 +1851,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewCompleteWideFull@1(props: { sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewCompleteWideFull@1(props: { title?: string, sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -1799,7 +1879,8 @@ Column(
             "alignItems": "top",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Text(Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
+        #if props.title
+        Text(Expr(data.connected ? data.name + ' · 已连接' : props.title + ' · 未连接'),
             {
                 "width": "matchParent",
                 "fontSize": 12,
@@ -1811,7 +1892,22 @@ Column(
                 "layoutWeight": 1,
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name + ' · 已连接' : '蓝牙耳机' + ' · 未连接'),
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis",
+                "layoutWeight": 1,
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
+        #endif
         #if props.sourceIcon
         Image(props.sourceIcon,
             {
@@ -1954,7 +2050,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudPairCompact@1(props: { caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudPairCompact@1(props: { title?: string, caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     name: $path("/earphoneName"),
     left: $path("/leftBatteryLevel"),
@@ -1980,7 +2076,8 @@ Column(
             "itemMargin": 4,
             "alignItems": "center"
         },
-        Text(data.name,
+        #if props.title
+        Text(Expr(data.connected ? data.name : props.title),
             {
                 "fontSize": 12,
                 "fontWeight": 700,
@@ -1990,7 +2087,20 @@ Column(
                 "flexShrink": 1,
                 "constraintSize": {"minWidth": 0, "maxWidth": 74}
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+            {
+                "fontSize": 12,
+                "fontWeight": 700,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "flexShrink": 1,
+                "constraintSize": {"minWidth": 0, "maxWidth": 74}
+            }
+        )
+        #endif
         Text("|",
             {
                 "width": 6,
@@ -2135,7 +2245,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewCompletePhoneWideFull@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewCompletePhoneWideFull@1(props: { title?: string, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -2157,7 +2267,8 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : data.name + ' · 未连接 · 充电盒 ' + data.battery + '%'),
+    #if props.title
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : props.title + ' · 未连接 · 充电盒 ' + data.battery + '%'),
         {
             "width": "matchParent",
             "fontSize": 11,
@@ -2168,7 +2279,21 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
+    #else
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : '蓝牙耳机' + ' · 未连接 · 充电盒 ' + data.battery + '%'),
+        {
+            "width": "matchParent",
+            "fontSize": 11,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textAlign": "start",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #endif
     Row(
         {
             "width": "matchParent",
@@ -2763,7 +2888,7 @@ Row(
 )
 #End
 
-#Template BluetoothDeviceOverviewMusicFull@1(props: { deviceIcon: asset })
+#Template BluetoothDeviceOverviewMusicFull@1(props: { title?: string, deviceIcon: asset })
 data = {
     name: $path("/earphoneName"),
     connected: $path("/isConnected"),
@@ -2782,7 +2907,8 @@ Column(
             "width": "matchParent",
             "itemMargin": 14
         },
-        Text(data.name,
+        #if props.title
+        Text(Expr(data.connected ? data.name : props.title),
             {
                 "height": 16,
                 "fontSize": 12,
@@ -2790,7 +2916,18 @@ Column(
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+            {
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1
+            }
+        )
+        #endif
         Row(
             {
                 "width": "matchParent",

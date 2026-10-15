@@ -281,7 +281,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 243
+    assert len(registry.provider_template_ids) == 250
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -299,11 +299,18 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewHealthTemperatureHero@1",
         "BatteryOverviewPercentTextFull@1",
         "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewPercentHealthDetailsFull@1",
+        "BatteryOverviewPercentHealthCurrentDetailsFull@1",
+        "BatteryOverviewChargingTemperatureFull@1",
+        "BatteryOverviewTemperatureStatusFull@1",
+        "BatteryOverviewPercentStatusFull@1",
+        "BatteryOverviewChargingTypePercentFull@1",
         "BatteryOverviewStatusSummaryHero@1",
         "BatteryOverviewStatusLevelSummaryHero@1",
         "BatteryOverviewChargingLevelSummaryHero@1",
         "BluetoothDeviceOverviewConnectionSupport@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudPairChargingFull@1",
         "BluetoothDeviceOverviewEarbudTripleHero@1",
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
@@ -3152,6 +3159,9 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudsFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairChargingFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairChargingFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairChargingFull@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarphoneCaseHero@1", "deviceIcon"),
         ("BluetoothDeviceOverviewEarphoneCaseCompact@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarphoneHero@1", "deviceIcon"),
@@ -3526,6 +3536,12 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewHealthTemperatureHero@1",
         "BatteryOverviewPercentTextFull@1",
         "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewPercentHealthDetailsFull@1",
+        "BatteryOverviewPercentHealthCurrentDetailsFull@1",
+        "BatteryOverviewChargingTemperatureFull@1",
+        "BatteryOverviewTemperatureStatusFull@1",
+        "BatteryOverviewPercentStatusFull@1",
+        "BatteryOverviewChargingTypePercentFull@1",
         "BatteryOverviewStatusSummaryHero@1",
         "BatteryOverviewStatusLevelSummaryHero@1",
         "BatteryOverviewChargingLevelSummaryHero@1",
