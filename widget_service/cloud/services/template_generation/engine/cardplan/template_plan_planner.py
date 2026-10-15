@@ -831,12 +831,11 @@ def _wide_plan_score(
             continue
         definition = registry.require_template(slot.template_id)
         support_fields = set(definition.primary_data) | set(definition.secondary_data)
-        other_fields = {
-            field
-            for other_index, other in enumerate(plan.business_slots)
-            if other_index != support_index and other.business_id == slot.business_id
-            for field in other.covered_explicit_fields
-        }
+        other_fields: set[str] = set()
+        for other_index, other in enumerate(plan.business_slots):
+            if other_index == support_index or other.business_id != slot.business_id:
+                continue
+            other_fields.update(other.covered_explicit_fields)
         support_novelty += len(support_fields - other_fields)
     requested_order = tuple(intent.required_output_fields_by_capability)
     actual_order = tuple(dict.fromkeys(slot.capability_id for slot in plan.business_slots))
