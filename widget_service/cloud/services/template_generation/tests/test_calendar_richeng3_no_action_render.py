@@ -235,90 +235,189 @@ def _children(
     return result
 
 
-def _assert_date_all_day_spacing(root_id: str, components: dict[str, dict[str, Any]]) -> None:
+def _assert_reference_timeline(
+    timeline: dict[str, Any],
+    components: dict[str, dict[str, Any]],
+    *,
+    top: int,
+    detail_fields: tuple[str, str],
+) -> None:
+    assert timeline.get("component") == "Row"
+    assert _styles(timeline).get("height") == 54
+    assert timeline.get("itemMargin") == 8
+    axis, text_group = _children(timeline, components)
+    assert _styles(axis).get("width") == 8
+    assert _styles(axis).get("height") == 54
+    assert _styles(axis).get("padding") == {"top": 6, "bottom": 2}
+    assert axis.get("itemMargin") == 4
+    dot, line = _children(axis, components)
+    assert _styles(dot).get("width") == _styles(dot).get("height") == 8
+    assert _styles(dot).get("borderWidth") == 1.5
+    assert _styles(line).get("width") == 1
+    assert _styles(line).get("height") == 34
+    assert _styles(line).get("vertical") is True
+    assert 6 + 8 + 4 + 34 + 2 == 54
+    assert 12 + (8 - 1) / 2 == 15.5  # 竖线位于空心节点的水平中心。
+    assert _styles(text_group).get("layoutWeight") == 1
+    assert text_group.get("itemMargin") == 4
+    title, details = _children(text_group, components)
+    assert _styles(title).get("height") == 20
+    assert _styles(title).get("fontSize") == 14
+    assert _styles(title).get("fontWeight") == 700
+    assert "/events/0/title" in str(title.get("content"))
+    assert details.get("itemMargin") == 2
+    texts = _children(details, components)
+    assert len(texts) == 2
+    for text, field in zip(texts, detail_fields, strict=True):
+        assert _styles(text).get("height") == 14
+        assert _styles(text).get("fontSize") == 10
+        assert _styles(text).get("fontWeight") == 400
+        assert _styles(text).get("maxLines") == 1
+        assert f"/events/0/{field}" in str(text.get("content"))
+    # 126vp 内容宽度扣除节点8及间隔8，文本可用110；无负边距或越界。
+    assert 126 - 8 - 8 == 110
+    assert top + 20 + 4 + 14 + 2 + 14 <= 138
+
+
+def _assert_count_notes_reference(root_id: str, components: dict[str, dict[str, Any]]) -> None:
     root = components.get(root_id)
     assert isinstance(root, dict)
     assert root.get("itemMargin") == 2
     assert _styles(root).get("justifyContent") == "spaceBetween"
-    upper, lower = _children(root, components)
-    upper_id, lower_id = upper.get("id"), lower.get("id")
-    assert isinstance(upper_id, str) and isinstance(lower_id, str)
-    assert upper.get("itemMargin") == lower.get("itemMargin") == 4
-    header, title = _children(upper, components)
-    assert _styles(header).get("height") == 24
-    assert _styles(header).get("alignItems") == "top"
+    header, timeline = _children(root, components)
+    assert _styles(header).get("height") == 16
+    assert _styles(header).get("alignItems") == "center"
+    assert header.get("itemMargin") == 2
     header_text, badge = _children(header, components)
+    assert header_text.get("content") == "近期日程安排"
+    assert _styles(header_text).get("width") == 73
     assert _styles(header_text).get("height") == 16
     assert _styles(header_text).get("fontSize") == 12
-    assert _styles(header_text).get("fontWeight") == 500
-    assert _styles(badge).get("width") == _styles(badge).get("height") == 14
-    assert _styles(title).get("height") == 28
-    assert _styles(title).get("fontSize") == 18
-    assert _styles(title).get("fontWeight") == 700
-    assert _natural_height(upper_id, components) == 56
-    assert _natural_height(lower_id, components) == 36
-    for text in _children(lower, components):
-        assert _styles(text).get("height") == 16
-        assert _styles(text).get("fontSize") == 12
-        assert _styles(text).get("fontWeight") == 400
-        assert _styles(text).get("maxLines") == 1
-    # 根内高 126，底组 36：两条辅助信息顶部与参考款同为 y=102/122。
-    assert 150 - 12 - _natural_height(lower_id, components) == 102
+    assert _styles(header_text).get("fontWeight") == 400
+    assert _styles(badge).get("width") == _styles(badge).get("height") == 16
+    assert 12 + 73 + 2 == 87
+    timeline_id = timeline.get("id")
+    assert isinstance(timeline_id, str)
+    top = 150 - 12 - _natural_height(timeline_id, components)
+    assert top == 84
+    _assert_reference_timeline(
+        timeline, components, top=84, detail_fields=("dtStart", "description")
+    )
+    assert (top, top + 24, top + 40) == (84, 108, 124)
 
 
-def _assert_two_reference_rows(root_id: str, components: dict[str, dict[str, Any]]) -> None:
+def _assert_reference_list_rows(root_id: str, components: dict[str, dict[str, Any]]) -> None:
     root = components.get(root_id)
     assert isinstance(root, dict)
-    assert root.get("itemMargin") == 10
+    assert root.get("itemMargin") == 4
     header, body = _children(root, components)
-    assert _styles(header).get("height") == 20
-    header_text, _badge = _children(header, components)
-    assert _styles(header_text).get("fontSize") == 14
+    assert _styles(header).get("height") == 16
+    header_text, badge = _children(header, components)
+    assert _styles(header_text).get("fontSize") == 12
     assert _styles(header_text).get("fontWeight") == 400
-    assert _styles(body).get("height") == 96
-    assert body.get("itemMargin") == 0
+    assert _styles(badge).get("width") == _styles(badge).get("height") == 16
+    assert _styles(body).get("height") == 106
+    assert body.get("itemMargin") == 8
     children = _children(body, components)
-    assert [item.get("component") for item in children] == [
-        "Row",
-        "Divider",
-        "Row",
-        "Divider",
-        "Row",
-    ]
-    y = 12 + 20 + 10
-    row_index = 0
-    for component in children:
+    assert [item.get("component") for item in children] == ["Row", "Row", "Row"]
+    y = 12 + 16 + 4
+    for row_index, component in enumerate(children):
         component_id = component.get("id")
         assert isinstance(component_id, str)
         styles = _styles(component)
-        if component.get("component") == "Row":
-            assert y == (42, 80, 118)[row_index]
-            assert styles.get("height") == 20
-            assert component.get("itemMargin") == 24
-            note, start = _children(component, components)
-            note_styles, start_styles = _styles(note), _styles(start)
-            assert note_styles.get("width") == 200
-            assert note_styles.get("height") == 20
-            assert note_styles.get("fontSize") == 12
-            assert note_styles.get("fontWeight") == 700
-            assert start_styles.get("width") == 52
-            assert start_styles.get("height") == 16
-            assert start_styles.get("fontSize") == 12
-            assert start_styles.get("fontWeight") == 500
-            assert start_styles.get("textAlign") == "end"
-            assert start_styles.get("margin") == {"top": 2}
-            assert note_styles.get("maxLines") == start_styles.get("maxLines") == 1
-            assert f"/events/{row_index}/description" in str(note.get("content"))
-            assert f"/events/{row_index}/dtStart" in str(start.get("content"))
-            assert 12 + note_styles["width"] + component["itemMargin"] == 236
-            assert y + start_styles["margin"]["top"] == (44, 82, 120)[row_index]
-            row_index += 1
-        else:
-            assert y in {71, 109}
-            assert styles.get("height") == 1
-            assert styles.get("margin") == {"bottom": 8}
-        y += _natural_height(component_id, components)
-    assert y == 138
+        assert y == (32, 70, 108)[row_index]
+        assert styles.get("height") == 30
+        assert styles.get("padding") == {"left": 8, "right": 8, "top": 6, "bottom": 8}
+        assert styles.get("borderRadius") == 8
+        assert isinstance(styles.get("backgroundColor"), str)
+        assert component.get("itemMargin") == 8
+        note, start = _children(component, components)
+        note_styles, start_styles = _styles(note), _styles(start)
+        assert note_styles.get("width") == 200
+        assert start_styles.get("width") == 52
+        assert start_styles.get("textAlign") == "end"
+        assert note_styles.get("fontColor") != start_styles.get("fontColor")
+        for text_style in (note_styles, start_styles):
+            assert text_style.get("height") == 16
+            assert text_style.get("fontSize") == 12
+            assert text_style.get("fontWeight") == 400
+            assert text_style.get("maxLines") == 1
+        assert f"/events/{row_index}/description" in str(note.get("content"))
+        assert f"/events/{row_index}/dtStart" in str(start.get("content"))
+        assert 12 + 8 + 200 + 8 == 228
+        assert y + 6 == (38, 76, 114)[row_index]
+        y += _natural_height(component_id, components) + 8
+    assert y - 8 == 138  # 保留参考30高和8间距，正文整体上移4以保留12vp底边距。
+
+
+def _assert_countdown_reference(root_id: str, components: dict[str, dict[str, Any]]) -> None:
+    root = components.get(root_id)
+    assert isinstance(root, dict)
+    assert _styles(root).get("justifyContent") == "spaceBetween"
+    upper, lower = _children(root, components)
+    upper_id, lower_id = upper.get("id"), lower.get("id")
+    assert isinstance(upper_id, str) and isinstance(lower_id, str)
+    assert upper.get("itemMargin") == 6
+    header, timeline = _children(upper, components)
+    assert _styles(header).get("height") == 16
+    assert len(_children(header, components)) == 1  # 无数量字段，不复制参考中的固定1徽标。
+    # 子节点自然高76；额外1vp容纳真机逐段取整，避免末行出现1px裁切。
+    assert _natural_height(upper_id, components) == 77
+    _check_widths(upper_id, components, 126)
+    _assert_reference_timeline(timeline, components, top=34, detail_fields=("startDate", "dtStart"))
+    assert 12 + 16 + 6 == 34
+    assert lower.get("itemMargin") == 4
+    assert _natural_height(lower_id, components) == 36
+    assert 150 - 12 - 36 == 102
+    rows = _children(lower, components)
+    assert len(rows) == 2
+    expected = (("倒计时", "countdownDays", "天"), ("提前", "remindTime/0", "分钟提醒"))
+    for row, (prefix, field, suffix) in zip(rows, expected, strict=True):
+        assert _styles(row).get("height") == 16
+        assert row.get("itemMargin") == 4
+        first, number, last = _children(row, components)
+        assert first.get("content") == prefix
+        assert last.get("content") == suffix
+        assert f"/events/0/{field}" in str(number.get("content"))
+        for text in (first, number, last):
+            assert _styles(text).get("fontSize") == 12
+            assert _styles(text).get("height") == 16
+            assert _styles(text).get("maxLines") == 1
+        number_styles = _styles(number)
+        assert number_styles.get("fontWeight") == 700
+        assert number_styles.get("flexShrink") == 1
+        constraint = number_styles.get("constraintSize")
+        assert isinstance(constraint, dict)
+        assert constraint.get("minWidth") == 0
+        assert constraint.get("maxWidth") == 42
+        assert _styles(first).get("fontWeight") == _styles(last).get("fontWeight") == 400
+        assert number_styles.get("fontColor") != _styles(first).get("fontColor")
+        # 两静态中文标签按整字宽计，数字槽最多42；最长提醒行122 <=126。
+        assert (len(prefix) + len(suffix)) * 12 + 2 * 4 + 42 <= 126
+
+
+def _assert_mixed_date_title_reference(root_id: str, components: dict[str, dict[str, Any]]) -> None:
+    root = components.get(root_id)
+    assert isinstance(root, dict)
+    assert root.get("itemMargin") == 6
+    assert _styles(root).get("justifyContent") == "spaceBetween"
+    assert _styles(root).get("alignItems") == "center"
+    header, center, date = _children(root, components)
+    assert _styles(header).get("height") == _styles(date).get("height") == 16
+    assert _styles(header).get("fontWeight") == 500
+    assert _styles(date).get("fontWeight") == 400
+    for text in (header, date):
+        assert _styles(text).get("fontSize") == 12
+        assert _styles(text).get("textAlign") == "center"
+    assert _styles(center).get("height") == 58
+    assert _styles(center).get("justifyContent") == "center"
+    (title,) = _children(center, components)
+    assert _styles(title).get("height") == 58
+    assert _styles(title).get("fontSize") == 24
+    assert _styles(title).get("fontWeight") == 700
+    assert _styles(title).get("maxLines") == 1
+    assert _styles(title).get("textAlign") == "center"
+    assert 16 + 6 + 58 + 6 + 16 == 102
 
 
 @pytest.mark.parametrize("case", _CASES, ids=lambda case: case.suffix)
@@ -336,7 +435,8 @@ def test_requested_fields_compile_inside_the_actual_calendar_slot(
     assert "今天" not in serialized
     assert _natural_height(root_id, components) <= (102 if case.mixed else 126)
     width = 110 if case.mixed else (126 if case.size == "2x2" else 276)
-    _check_widths(root_id, components, width)
+    if case.suffix != "DateCountdownReminderFull":
+        _check_widths(root_id, components, width)
     for item in content:
         assert item.get("component") not in {"Button", "Image"}
         assert "onClick" not in item
@@ -347,16 +447,24 @@ def test_requested_fields_compile_inside_the_actual_calendar_slot(
             assert all(value >= 0 for value in margin.values())
         if item.get("component") == "Text":
             font_size = styles.get("fontSize")
-            assert isinstance(font_size, (int, float)) and font_size <= 18
+            is_mixed_calendar_title = case.suffix == "DateTitleFull" and (
+                "/data/calendar/events/0/title" in str(item.get("content"))
+            )
+            font_limit = 24 if is_mixed_calendar_title else 18
+            assert isinstance(font_size, (int, float)) and font_size <= font_limit
             assert styles.get("textOverflow") == "ellipsis"
     if case.mixed:
         whole = json.dumps(list(components.values()), ensure_ascii=False)
         for path in _WEATHER_PATHS:
             assert f"/data/weather{path}" in whole
     if case.event_count == 3:
-        _assert_two_reference_rows(root_id, components)
+        _assert_reference_list_rows(root_id, components)
     if case.suffix == "EventCountNotesFull":
-        _assert_date_all_day_spacing(root_id, components)
+        _assert_count_notes_reference(root_id, components)
+    if case.suffix == "DateCountdownReminderFull":
+        _assert_countdown_reference(root_id, components)
+    if case.mixed:
+        _assert_mixed_date_title_reference(root_id, components)
 
 
 @pytest.mark.parametrize("case", (_CASES[0], _CASES[1], _CASES[3]), ids=lambda case: case.suffix)
