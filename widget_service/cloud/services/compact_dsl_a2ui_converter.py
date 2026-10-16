@@ -1921,8 +1921,9 @@ def _normalize_component(
     props = _expand_component_design(component)
     if normalize_axis_aliases:
         _repair_axis_value_aliases(component.component_type, props)
-        if component.component_type == "Row" and props.get("alignItems") == "baseline":
-            props["alignItems"] = "bottom"
+    # Recipe的字底对齐须使用Form已有枚举，包含无独立unit的单Text行。
+    if component.component_type == "Row" and props.get("alignItems") == "baseline":
+        props["alignItems"] = "bottom"
     resolved_props: dict[str, Any] = {}
     for property_name, value in props.items():
         resolved_props[property_name] = _resolve_tokens(
