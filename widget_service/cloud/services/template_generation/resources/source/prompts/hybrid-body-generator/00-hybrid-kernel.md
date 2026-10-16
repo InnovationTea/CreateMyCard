@@ -2,7 +2,7 @@
 promptGroup: hybrid-body-generator
 fragmentId: hybrid-kernel
 order: 0
-promptVersion: hybrid-body-prompt/0.25
+promptVersion: hybrid-body-prompt/0.26
 protocolVersion: tersedsl-nested-2-hybrid/0.2
 contractVersion: hybrid-body-contract/0.5
 ---

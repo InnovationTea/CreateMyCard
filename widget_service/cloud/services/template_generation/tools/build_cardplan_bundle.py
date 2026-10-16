@@ -17,12 +17,12 @@ PROMPT_GROUPS = {
         "card-template-planner",
     ),
     "body": (
-        "hybrid-body-prompt/0.25",
+        "hybrid-body-prompt/0.26",
         "tersedsl-nested-2-hybrid/0.2",
         "hybrid-body-generator",
     ),
     "ux_mixed": (
-        "ux-mixed-prompt/0.16",
+        "ux-mixed-prompt/0.17",
         "tersedsl-nested-2-ux-mixed/0.5",
         "ux-mixed-generator",
     ),

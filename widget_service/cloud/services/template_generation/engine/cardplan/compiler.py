@@ -60,6 +60,7 @@ from services.template_generation.engine.tersel_converter import (
     serialize_task_spec_data,
 )
 
+from .action_labels import LABEL_ACTION_TEMPLATES, validate_action_label
 from .business_actions import supports_business_action
 from .fusion_ball_background import (
     FusionBallPalette,
@@ -744,16 +745,16 @@ def _validate_card_params(
         return
     if not isinstance(action, dict) or set(action) != {"label", "id"}:
         raise TerselConversionError("card@1 action must contain label and id.")
-    pair = (action.get("label"), action.get("id"))
-    approved = {(item.display_label, item.action_id) for item in contract.action_bindings}
-    if pair not in approved:
+    action_id = action.get("id")
+    selected_binding = next(
+        (item for item in contract.action_bindings if item.action_id == action_id), None,
+    )
+    if selected_binding is None:
         raise TerselConversionError("card@1 action label/id pair is not approved.")
-    if action["id"] in contract.content_action_ids:
+    validate_action_label(selected_binding, action.get("label"))
+    if action_id in contract.content_action_ids:
         raise TerselConversionError("content Action cannot be used by card@1.")
     event_ids = {item.id for item in task_spec.eventCandidates}
-    selected_binding = next(
-        item for item in contract.action_bindings if item.action_id == action["id"]
-    )
     if selected_binding.event_id not in event_ids:
         raise TerselConversionError("card@1 action is not in TaskSpec.")
 
@@ -948,6 +949,7 @@ def _expand_call(
         definition.asset_parameter_semantic_tags,
         contract,
         variant.parameters_schema,
+        action_template_id=wire_id,
     )
     params = _normalize_charging_settings_button(
         wire_id, params, provider_binding_roots, task_spec.size
@@ -1136,12 +1138,8 @@ def _wrap_action_template(
     )
     if binding is None or action_id not in contract.content_action_ids:
         raise TerselConversionError(f"Action Provider Template is not approved: {wire_id}")
-    if action_component in {"PillAction", "CompactAction", "CompactSubtitleAction"} and (
-        params.get("label") != binding.display_label
-    ):
-        raise TerselConversionError(
-            f"{action_component} label/actionId pair is not approved."
-        )
+    if wire_id in LABEL_ACTION_TEMPLATES:
+        validate_action_label(binding, params.get("label"))
     if (
         action_component == "CompactSubtitleAction"
         and binding.display_subtitle
@@ -4538,8 +4536,19 @@ def _validate_template_params(
     asset_tags: dict[str, tuple[str, ...]],
     contract: HybridBodyContract,
     parameter_schema: dict[str, Any] | None = None,
+    *,
+    action_template_id: str | None = None,
 ) -> None:
     for key, value in params.items():
+        if key == "label" and action_template_id in LABEL_ACTION_TEMPLATES:
+            action_id = params.get("actionId")
+            binding = next(
+                (item for item in contract.action_bindings if item.action_id == action_id), None,
+            )
+            if binding is None or action_id not in contract.content_action_ids:
+                raise TerselConversionError("Action label requires an approved content Action.")
+            validate_action_label(binding, value)
+            continue
         if (
             parameter_schema
             and key.casefold().endswith("path")
@@ -5672,7 +5681,9 @@ def _compile_card_shell(
             "alignContent": "center",
             "onClick": [{"call": binding.call, "args": binding.args}],
         }
-        label_values: tuple[Any, ...] = (binding.display_label, "compact-action")
+        label_values: tuple[Any, ...] = (
+            validate_action_label(binding, action.get("label")), "compact-action",
+        )
         if action_style is not None:
             label_values = (
                 *label_values,
@@ -9224,7 +9235,7 @@ def _lower_ux_action(
         if size != "2x4" and not allow_action_tile_2x2:
             raise TerselConversionError("ActionTile is only available for 2x4.")
         return _lower_action_tile(
-            binding.display_label,
+            validate_action_label(binding, params.get("label", binding.display_label)),
             icon,
             background,
             foreground,
