@@ -324,6 +324,12 @@ def build_template_retrieval_prompt(
         "ViewWeather 默认包含 /location/prefectureName、/current/temperatureText 和"
         "/current/condition，再叠加用户明确要求的字段；这些默认字段仍必须来自"
         "candidateOutputFieldsByCapability，不能补充 schema 中不存在的字段；"
+        "运动心率/心跳类卡片同理：用户未逐字点名具体心率字段时，"
+        "应将 GetHealthAndSportSummary 的默认心率展示字段 "
+        "/exerciseHeartRateAvg 视为用户意图；“心跳快不快”“心率高不高”等程度问法"
+        "不得推定为 /exerciseHeartRateMax 或 /exerciseHeartRateMin，"
+        "除非用户逐字明确要求最高/最低心率；该默认字段同样必须来自 "
+        "candidateOutputFieldsByCapability，不能补充其中不存在的字段。"
         "事件参数（如 actionCandidates args 中用于跳转的 entityId）不是展示字段，"
         "不得加入 requiredOutputFieldsByCapability。"
         "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
@@ -1329,10 +1335,13 @@ def _candidate_with_complete_field_coverage_or_pair(
             for template_id in candidate.available_template_ids
             if provider_template_layout_kind(template_id) == "Full"
         )
+        # In a 2x4 composition the narrow auxiliary slot is a Support slot.
+        # Keep Compact as a legacy fallback for existing providers, but prefer
+        # the semantically correct Support shape whenever it is available.
         compact_ids = sorted(
             template_id
             for template_id in candidate.available_template_ids
-            if provider_template_layout_kind(template_id) == "Compact"
+            if provider_template_layout_kind(template_id) in {"Compact", "Support"}
         )
         pair_ids = set(full_ids) | set(compact_ids)
         if (
@@ -1664,6 +1673,7 @@ def _template_can_participate_in_size(
         "Full",
         "Hero",
         "Compact",
+        "Support",
     }
 
 

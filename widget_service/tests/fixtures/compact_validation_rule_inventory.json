@@ -66,13 +66,6 @@
     },
     {
       "module": "semantic/display.py",
-      "function": "_collect_semantic_text_errors",
-      "code": "COMPACT_DISPLAY_WIND_METRIC_LABEL",
-      "class": "semantic",
-      "category": "display"
-    },
-    {
-      "module": "semantic/display.py",
       "function": "_collect_unbound_action_hint_errors",
       "code": "COMPACT_DISPLAY_UNBOUND_ACTION_HINT",
       "class": "semantic",

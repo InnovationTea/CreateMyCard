@@ -28,6 +28,7 @@ function measureCompleteText(element: HTMLElement, text: string): string {
     "text-transform",
   ]) probe.style.setProperty(property, computed.getPropertyValue(property));
   Object.assign(probe.style, { position: "fixed", visibility: "hidden", whiteSpace: "nowrap", left: "-100000px" });
+  if (computed.whiteSpace === "pre") probe.style.whiteSpace = "pre";
   document.body.appendChild(probe);
   const originalWidth = element.style.width;
   try {

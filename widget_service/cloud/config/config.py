@@ -154,6 +154,9 @@ class Settings(BaseSettings):
         "deepseek_official_http_url",
         "https://api.deepseek.com/chat/completions",
     )
+    deepseek_official_http_use_sdk: bool = (
+        CONFIG.get("deepseek_official_http_use_sdk", "true") == "true"
+    )
     deepseek_official_http_api_key: str = CONFIG.get(
         "deepseek_official_http_api_key",
         "",
@@ -210,6 +213,9 @@ class Settings(BaseSettings):
         CONFIG.get("enable_default_capability_registry_fallback") == "true"
     )
     enable_validation_failure_retry: bool = CONFIG.get("enable_validation_failure_retry") == "true"
+    enable_drop_plan_fact_validation: bool = (
+        CONFIG.get("enable_drop_plan_fact_validation", "false") == "true"
+    )
     enable_widget_edit: bool = CONFIG.get("enable_widget_edit") == "true"
     enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
     enable_widget_directive_commands: bool = (

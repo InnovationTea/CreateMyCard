@@ -32,7 +32,6 @@ async def request_template_source_dsl(
     model_runtime: ModelExecutionRuntime | None,
     model_request_context: ModelRequestContext,
     enable_fusion_ball: bool,
-    fail_fast: bool = False,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
     trusted_template_sample_overrides: dict[str, Any] | None = None,
@@ -40,16 +39,9 @@ async def request_template_source_dsl(
     """请求模板引擎并返回当前 Processor 可直接消费的源 DSL。"""
     if not isinstance(enable_fusion_ball, bool):
         raise TypeError("enable_fusion_ball must be boolean")
-    if fail_fast:
-        model_client = create_template_model_client(
-            model_runtime, model_request_context, fail_fast=True,
-        )
-    else:
-        model_client = create_template_model_client(model_runtime, model_request_context)
+    model_client = create_template_model_client(model_runtime, model_request_context)
     template_bindings = tuple(enrich_template_bindings(list(effective_bindings)))
     engine_options: dict[str, Any] = {"enable_fusion_ball": enable_fusion_ball}
-    if fail_fast:
-        engine_options["max_body_repairs"] = 0
     if trusted_template_candidate_ids:
         engine_options["trusted_template_candidate_ids"] = trusted_template_candidate_ids
     if trusted_template_action_ids:

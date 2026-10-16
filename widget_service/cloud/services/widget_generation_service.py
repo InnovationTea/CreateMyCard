@@ -46,6 +46,7 @@ from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairAr
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
+from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
 from services.compact_plan import (
     CompactPlanValidationError,
     compact_plan_omitted_facts,
@@ -1287,8 +1288,15 @@ class WidgetGenerationService:
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
                 compact_plan=accepted_compact_plan,
+                plan_information_coverage_as_warning=(
+                    quality_repair_attempt_count > 0
+                    and not settings.enable_drop_plan_fact_validation
+                ),
                 allowed_omitted_plan_fact_indexes=(
-                    compact_repair_tracker.allowed_omitted_fact_indexes
+                    compact_repair_tracker.validation_omitted_fact_indexes(
+                        accepted_compact_plan,
+                        validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                    )
                     if compact_repair_tracker is not None
                     else ()
                 ),
@@ -1643,6 +1651,15 @@ class WidgetGenerationService:
         design_token = None
         if policy.stores_design_token:
             design_token = model_client.extract_genui_payload(source_dsl)
+            preserve_compact_source = (
+                policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                and not source_generated_by_jsx
+            )
+            if preserve_compact_source:
+                design_token = serialize_compact_dsl_source(
+                    latest_processing_result.source_dsl,
+                    skip_compact_dsl_validation=source_generated_by_template,
+                )
         final_artifact_build_started_at = time.perf_counter()
         artifact = self._build_artifact(
             genui,
@@ -1709,7 +1726,10 @@ class WidgetGenerationService:
                 latest_processing_result.source_dsl,
                 accepted_compact_plan,
                 task_spec.model_dump(mode="json", exclude_none=True),
-                compact_repair_tracker.allowed_omitted_fact_indexes,
+                compact_repair_tracker.validation_omitted_fact_indexes(
+                    accepted_compact_plan,
+                    validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                ),
             )
         omitted_requirements = [
             str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")
@@ -2082,7 +2102,6 @@ class WidgetGenerationService:
                 need_fallback=need_fallback,
             )
         template_source_generator.processor_kind = policy.processor_kind
-        template_source_generator.fail_fast = policy.operation == "generateWidgetCardCompactDsl"
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
             policy.protocol_profile_id
         ).get_profile()

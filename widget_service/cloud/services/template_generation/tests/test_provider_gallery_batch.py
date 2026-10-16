@@ -253,18 +253,23 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert not stale_input.exists()
-    assert len(manifest.providers) == 8
+    assert len(manifest.providers) == 9
     all_cases = []
     for provider in manifest.providers:
         all_cases.extend(provider.cases)
-    # 包含各业务场景及 26 个 Support 模板的双业务动作组合；
-    # 移除系统内存的单业务及双 Support 样例。
-    assert len(all_cases) == 226
+    # 包含各业务场景及 28 个 Support 模板的双业务动作组合；
+    # 移除系统内存的单业务及双 Support 样例；当前时间业务贡献 4 个
+    # 单业务（其中 2 个为缺失 Compact/Hero 模板占位）+ 2 个双段落组合
+    # 用例。
+    assert len(all_cases) == 246
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
         if not case.missingReason:
-            assert case.expectsFusionBall is (case.providerSlug != "two-support")
+            # 当前时间业务未列入任何融球主题的 businessIds，同双业务段落一样不出融球。
+            assert case.expectsFusionBall is (
+                case.providerSlug not in {"two-support", "current-time"}
+            )
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -350,7 +355,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 226
+    assert len(targeted_cases) == 244
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -362,6 +367,12 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "BatteryOverviewTemperatureFull@1",
         "BatteryOverviewPercentTextFull@1",
         "BatteryOverviewPercentDetailsFull@1",
+        "BatteryOverviewPercentHealthDetailsFull@1",
+        "BatteryOverviewPercentHealthCurrentDetailsFull@1",
+        "BatteryOverviewChargingTemperatureFull@1",
+        "BatteryOverviewTemperatureStatusFull@1",
+        "BatteryOverviewPercentStatusFull@1",
+        "BatteryOverviewChargingTypePercentFull@1",
         "BatteryOverviewChargingDiagnosticsFull@1",
         "BatteryOverviewCurrentVoltageFull@1",
         "BatteryOverviewHealthLevelFull@1",
@@ -700,13 +711,13 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 226
+    assert summary.total == 246
     assert summary.failed == 0
-    assert summary.missing == 0
-    assert summary.not_generated == 226
+    assert summary.missing == 2
+    assert summary.not_generated == 244
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
-    assert len(reloaded.providers) == 8
+    assert len(reloaded.providers) == 9
 
 
 def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path: Path) -> None:
@@ -841,9 +852,10 @@ def test_support_inputs_cover_every_template_and_feasible_action_counts(tmp_path
             if template.suffix == "Support":
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
-    # 两个天气 Support 不提供自身动作，各少一个双动作场景。
-    assert len(provider.cases) == len(expected_templates) * 3 - 2 == 76
-    assert len({case.caseId for case in provider.cases}) == 76
+    # 两个天气 Support 不提供自身动作，各少一个双动作场景；当前时间 Support
+    # 与仅注册一个动作的天气 Support 配对，再少一个双动作场景。
+    assert len(provider.cases) == len(expected_templates) * 3 - 3 == 81
+    assert len({case.caseId for case in provider.cases}) == 81
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -869,11 +881,11 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
-    assert summary.total == 76
-    assert summary.success == 76
+    assert summary.total == 81
+    assert summary.success == 81
     assert summary.missing == 0
     assert summary.failed == summary.not_generated == 0
-    assert len(service.requests) == 76
+    assert len(service.requests) == 81
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
     for template_ids in service.template_candidate_ids:
         assert len(template_ids) == 2
