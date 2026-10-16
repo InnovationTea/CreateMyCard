@@ -146,7 +146,7 @@ def normalize(f, origin):
         root=f.get("root_cause_id") or f.get("rootCauseId"),
         family=family,
         message=(
-            "评分提示：拨号未提供号码，按当前口径不扣分；不代表真实拨号已验证。原记录："
+            "拨号未提供号码，按当前规则不扣分。原记录："
             if phone_number_note
             else ""
         )

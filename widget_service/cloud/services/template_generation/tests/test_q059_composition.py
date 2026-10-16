@@ -1,4 +1,4 @@
-"""Q059 完整组合链路及旧 CompactAction 样式回归。"""
+"""Q059 完整组合链路及 CompactAction 槽位样式回归。"""
 
 import json
 from pathlib import Path
@@ -22,6 +22,8 @@ async def test_q059_composes_full_with_two_actions(tmp_path):
     assert nodes is not None
     actions = [node for node in nodes if node.get("onClick")]
     assert len(actions) == 2
+    assert all("backgroundColor" not in node.get("styles", {}) for node in actions)
+    assert all("borderRadius" not in node.get("styles", {}) for node in actions)
     assert "bluetooth_entry" in text and "code=a001" in text
     assert "示例数据" not in text
     assert "14:00" in text
@@ -47,7 +49,11 @@ def test_compact_action_default_keeps_original_type_size():
         {},
         theme.reference_values,
     )
+    root_options = root.values[0]
+    assert {"padding", "backgroundColor", "borderRadius"}.isdisjoint(root_options)
     row = root.children[0]
+    row_options = row.values[0]
+    assert "padding" not in row_options
     # 上游重构后标签文本由 Row 下的 Column 包裹（图标是 Row 的另一个子节点）
     label = row.children[0].children[0]
     styles = next(value for value in label.values if isinstance(value, dict))

@@ -13,8 +13,8 @@
       "capabilityId": "GetCountdownDays",
       "dataDomain": "/data/countdown",
       "dataSchema": {
-        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
-        "version": "app-11.7.5.205_rom-6.0"
+        "path": "capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json",
+        "version": "app-11.7.7.300_rom-7.0"
       }
     }
   ],
@@ -134,7 +134,10 @@
     },
     {
       "templateId": "CountdownOverviewTravelSupport@1",
-      "supportedEventIds": ["event.open.clock.alarm"],
+      "supportedEventIds": [
+        "event.open.clock.alarm",
+        "event.open.clock.alarmTab"
+      ],
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "出行倒计时 Support，在双业务布局中展示出发主题和剩余天数，可在胶囊内部绑定闹钟跳转。",

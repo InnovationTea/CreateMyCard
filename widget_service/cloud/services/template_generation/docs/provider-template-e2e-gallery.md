@@ -4,7 +4,7 @@
 
 该工具用于让开发者或 AI Agent 一次性生成全部业务 Provider 的 2×2 场景画廊，验证当前模板能否通过正式
 `generate_widget_card_terse_dsl_nested2` 服务入口完成能力裁决、模板路由、A2UI 转换和最终校验。每个场景
-只生成一种高版本外观，请求中的 `deviceInfo.prdVer` 固定使用 `11.7.5.206`，经公共构建链写入
+只生成一种高版本外观，请求中的 `deviceInfo.prdVer` 固定使用 `11.7.7.330`，`deviceInfo.romVersion` 为 `7.0`，经公共构建链写入
 `TaskSpec.appVersion`，模板生成器再使用该已有字段完成请求级裁决。
 
 它与 [Provider 原子模板预览](provider-template-preview-gallery.md) 的定位不同：原子预览不调用模型，适合逐个
@@ -45,11 +45,11 @@ Support 作为首段一次，优先匹配可用天气 Support；天气模板匹�
 
 | 外观 | 路由请求版本来源 | 预期 |
 | --- | --- | --- |
-| 融球 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 达到配置最低版本；单业务 2x2 Compact/Full/Hero 与 2x4 WideFull 命中融球 Theme 时展开融球背景 |
+| 融球 | 请求 `deviceInfo.prdVer = 11.7.7.330` | 达到配置最低版本；单业务 2x2 Compact/Full/Hero 与 2x4 WideFull 命中融球 Theme 时展开融球背景 |
 
 画廊验证前需在服务 `CONFIG` 中配置 `fusion_ball_min_prd_version=11.7.5.206`。批跑结果会校验路由请求版本
 门禁和最终 A2UI 是否按模板融球契约出现受控背景；Artifact TaskSpec 中的 `appVersion` 应与请求版本一致。
-没有融球 Theme 的业务即使使用 11.7.5.206 也不应伪造融球背景。画廊不再生成低版本非融球对照用例。
+没有融球 Theme 的业务即使使用 11.7.7.330 也不应伪造融球背景。画廊不再生成低版本非融球对照用例。
 双业务组合同样只使用高版本，并以 `HeroContent` 主业务确定整卡主题；主业务具有融球主题时，整卡统一展开
 一次该业务的背景。当前天气标题 + 日程内容组合应呈现日程融球主题，不使用天气主题。画廊按主业务支持情况
 标注并校验实际融球结果。
@@ -129,7 +129,7 @@ Planner 对已选省电事件复用素材的 `power-saving` 语义标签，允�
 
 ### 双业务素材校验
 
-素材来源为 `cloud/data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json`，
+素材来源为 `cloud/data/capabilities/app-11.7.7.300_rom-7.0/asset_capabilities.json`，
 每个 Support 独立取候选后再合并请求，模板槽位仍独立校验：
 
 | 业务图标槽位 | 当前画廊资源 | 约束 |
@@ -156,7 +156,7 @@ Planner 对已选省电事件复用素材的 `power-saving` 语义标签，允�
 其 `batteryIcon` 使用 `battery` 语义约束表达当前充电状态，省电绿叶仍只用于省电语义。
 倒计时主行用独立 Row 包含“剩余 N 天”，辅助标题保持下一行，防止标题中的“天”被误算为重复单位；
 心率只保留一个可选 heartIcon 的 Support。
-应用时长、系统内存仍因数据能力未注册保留缺失场景；应用品牌和内存槽位也不能借用其他业务资源。
+指定应用时长、系统内存模板及专属场景已下线；新增使用时长排行暂未提供业务模板。
 以上是测试素材选择，不是生产素材全集。生产按当前候选描述、槽位语义以及实际状态匹配，
 双业务基础温度 Support 允许气温温度计或匹配当前状态的图标；状态未知或缺少状态资源时可使用温度计，
 两类都不可用才省略。单业务天气只允许状态图标，输入候选不包含温度计；多云样例没有匹配状态素材时
@@ -195,11 +195,11 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-当前应生成 7 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 141 个用例；
-其中 61 个 Support 配对用例。无模型 dry-run 中 8 个状态为 `missing`，133 个状态为 `not_generated`。
-应用使用时长能力已下线，其单业务和配对场景不再生成；系统内存等其它缺失场景仍独立记录。
-Support 事件从模板 `supportedEventIds` 与当前注册事件的交集选取；倒计时不绑定事件，
-与天气配对时只有 0/1 动作，不再生成借用闹钟的 2 动作案例。其它单业务独立操作策略保持不变。
+当前应生成 6 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 226 个用例；
+其中 76 个 Support 配对用例。无模型 dry-run 中 0 个状态为 `missing`，226 个状态为 `not_generated`。
+指定应用使用时长和系统内存模板已下线，其单业务和配对场景不再生成；其它缺失场景仍独立记录。
+Support 事件从模板 `supportedEventIds` 与当前注册事件的交集选取；出行倒计时可绑定已声明的闹钟入口，
+通用倒计时不借用闹钟事件。其它单业务独立操作策略保持不变。
 Provider 或模板调整后数量可以变化，应以重新生成的
 输入 manifest 为准，不能继续复用旧结果目录中的数量。
 
@@ -228,7 +228,7 @@ widget_service/.venv312/bin/python \
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
-- Provider 画廊不提供融球命令行开关；每个输入场景只构造 `deviceInfo.prdVer = 11.7.5.206` 的高版本请求，
+- Provider 画廊不提供融球命令行开关；每个输入场景只构造 `deviceInfo.prdVer = 11.7.7.330` 的高版本请求，
   公共构建链将其写入 `TaskSpec.appVersion`，`TemplateSourceGenerator` 再结合
   `CONFIG.fusion_ball_min_prd_version` 完成融球裁决；配置缺失、非法或高于输入版本时仍会关闭融球。
 - `--input-root`、`--output-root`：覆盖默认临时目录。

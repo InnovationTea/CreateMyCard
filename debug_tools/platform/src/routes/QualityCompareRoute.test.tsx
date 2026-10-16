@@ -26,6 +26,8 @@ function mockApi(value = comparison, status = 200) {
       { runId: 'left', name: null, status: 'completed' }, { runId: 'right', name: '新版', status: 'completed' },
     ] });
     if (url.startsWith('/debug/batch/quality/compare?')) return response(status === 200 ? value : { detail: '尚无已完成评分结果' }, status);
+    if (url === '/debug/batch/runs/left') return response({ samples: [{ id: 'before', query: '天气', size: '2x2' }] });
+    if (url === '/debug/batch/runs/right') return response({ samples: [{ id: 'after', query: '天气', size: '2x2' }] });
     throw new Error(`unexpected request: ${url}`);
   });
 }
@@ -35,6 +37,38 @@ function open(path = '/quality/compare') {
 
 describe('QualityCompareRoute', () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+
+  it('explicitly selects different sample IDs and shows bound pictures side by side without POST', async () => {
+    const fetchMock = mockApi({ ...comparison, rows: [{ ...comparison.rows[0],
+      left: { ...side, sampleId: 'before', imageUrl: '/debug/batch/runs/left/picture.png' },
+      right: { ...side, sampleId: 'after', imageUrl: '/debug/batch/runs/right/picture.png' },
+      scoreLowDelta: 5,
+    }] });
+    open();
+    await within(screen.getByLabelText('右侧批次')).findByRole('option', { name: '新版 · right' });
+    fireEvent.change(screen.getByLabelText('对比方式'), { target: { value: 'single' } });
+    fireEvent.change(screen.getByLabelText('左侧批次'), { target: { value: 'left' } });
+    fireEvent.change(screen.getByLabelText('右侧批次'), { target: { value: 'right' } });
+    await within(screen.getByLabelText('左侧样本（优化前）')).findByRole('option', { name: 'before · 2x2 · 天气' });
+    await within(screen.getByLabelText('右侧样本（优化后）')).findByRole('option', { name: 'after · 2x2 · 天气' });
+    fireEvent.change(screen.getByLabelText('左侧样本（优化前）'), { target: { value: 'before' } });
+    fireEvent.change(screen.getByLabelText('右侧样本（优化后）'), { target: { value: 'after' } });
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/compare?'))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '加载对比' }));
+    await screen.findByRole('heading', { name: '单条优化前后对比' });
+    expect(screen.getByRole('img', { name: '样本 before 的评分截图' })).toHaveAttribute('src', '/debug/batch/runs/left/picture.png');
+    expect(screen.getByRole('img', { name: '样本 after 的评分截图' })).toHaveAttribute('src', '/debug/batch/runs/right/picture.png');
+    const url = new URL(String(fetchMock.mock.calls.find(([input]) => String(input).includes('/compare?'))![0]), 'http://localhost');
+    expect(url.searchParams.get('leftSampleId')).toBe('before');
+    expect(url.searchParams.get('rightSampleId')).toBe('after');
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    fireEvent.change(screen.getByLabelText('对比方式'), { target: { value: 'batch' } });
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '加载对比' }));
+    await screen.findByRole('heading', { name: '逐样本对比' });
+    const last = fetchMock.mock.calls.filter(([input]) => String(input).includes('/compare?')).at(-1)!;
+    expect(String(last[0])).not.toContain('SampleId');
+  });
 
   it('loads chosen batches read-only and separates confirmed/suspected issues', async () => {
     const fetchMock = mockApi(); open();

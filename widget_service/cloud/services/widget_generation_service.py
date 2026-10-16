@@ -46,6 +46,7 @@ from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairAr
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
+from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
 from services.compact_plan import (
     CompactPlanValidationError,
     compact_plan_omitted_facts,
@@ -662,9 +663,16 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # 纯模板入口不依赖通用生成 Prompt；仅原始协议或允许 fallback 时按需加载。
+        template_fallback_to_fusion = (
+            template_source_generator is not None
+            and policy.operation == "generateWidgetCardCompactDsl"
+            and source_load_result is None
+        )
+        # Compact 模板失败必须能从 Fusion Plan 重启，不受 JSX 开关影响。
         prompt_started_at = time.perf_counter()
-        needs_model_prompt = template_source_generator is None or need_fallback
+        needs_model_prompt = (
+            template_source_generator is None or need_fallback or template_fallback_to_fusion
+        )
         prompt: list[dict[str, str]] = []
         if needs_model_prompt:
             from services.prompt_builder import PromptBuilder
@@ -773,11 +781,31 @@ class WidgetGenerationService:
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
         source_generated_by_template = False
+        validated_template_source: str | None = None
         accepted_compact_plan: dict | None = None
         accepted_compact_plan_warnings: tuple[str, ...] = ()
         compact_agent_messages: list[dict[str, str]] | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
+        from services.layout_theme_contract import uses_post_layout_theme
+        from services.square_photo_expansion import expansion_enabled
+
+        def colorless_source() -> bool:
+            return uses_post_layout_theme(
+                policy.operation, template_source=source_generated_by_template,
+                jsx_source=source_generated_by_jsx,
+            )
+
+        direct_fusion_request = (
+            uses_post_layout_theme(policy.operation)
+            and template_source_generator is None
+            and not try_jsx
+        )
+        defer_size_notification = (
+            generation_mode == "create"
+            and direct_fusion_request
+            and expansion_enabled(task_spec.model_dump(mode="json", exclude_none=True))
+        )
 
         async def generate_compact_plan() -> dict:
             """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
@@ -934,13 +962,14 @@ class WidgetGenerationService:
             nonlocal effective_generation_prompt
             nonlocal model_call_phase
             nonlocal source_generated_by_jsx, source_generated_by_template
+            nonlocal validated_template_source, latest_processing_result
             source_generated_by_jsx = False
             source_generated_by_template = False
             original_small_display_roles.clear()
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
                 trace_phase("dsl")
-            if before_model_call is not None:
+            if before_model_call is not None and not defer_size_notification:
                 await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
                 try:
@@ -948,31 +977,50 @@ class WidgetGenerationService:
                         f"{_MODULE} template_source_generation_started operation={policy.operation}"
                     )
                     result = await template_source_generator(
-                        task_spec,
-                        processing_context.card_spec,
-                        tuple(effective_bindings),
+                        task_spec.model_copy(deep=True),
+                        copy.deepcopy(processing_context.card_spec),
+                        copy.deepcopy(tuple(effective_bindings)),
                     )
                     report_ops_metrics(body={"templateProposal": 1})
                     generated_dsl = require_generated_dsl(result)
                     source_generated_by_template = True
+                    if template_fallback_to_fusion:
+                        template_errors = await evaluate_source_dsl(generated_dsl)
+                        if template_errors:
+                            raise A2UIModelGenerationError("; ".join(template_errors))
+                        validated_template_source = generated_dsl
                     return generated_dsl
                 except Exception as exc:
-                    fallback = (
-                        "jsx"
-                        if try_jsx
-                        else ("original_protocol_flow" if need_fallback else "none")
-                    )
+                    source_generated_by_template = False
+                    if template_fallback_to_fusion:
+                        fallback = "fusion_plan"
+                        original_small_display_roles.clear()
+                        latest_processing_result = DslProcessingResult(source_dsl="")
+                        trace_record(
+                            "template.fallback",
+                            stage="template",
+                            status="failed",
+                            details={
+                                "fallback": fallback,
+                                "errorType": type(exc).__name__,
+                                "reason": str(exc),
+                            },
+                        )
+                    elif try_jsx:
+                        fallback = "jsx"
+                    else:
+                        fallback = "original_protocol_flow" if need_fallback else "none"
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
                         f"operation={policy.operation} fallback={fallback} "
                         f"reason={type(exc).__name__} "
                         f"detail={json_for_log(str(exc))}"
                     )
-                    if not try_jsx and not need_fallback:
+                    if fallback == "none":
                         raise A2UIModelGenerationError(
                             "Template source generation failed without fallback"
                         ) from exc
-            if try_jsx:
+            if try_jsx and not template_fallback_to_fusion:
                 try:
                     logger.info(f"{_MODULE} jsx_generation_started operation={policy.operation}")
                     bridge = JsxA2UIBridge()
@@ -1258,9 +1306,17 @@ class WidgetGenerationService:
             processing_context_for_source = replace(
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
+                colorless_layout=colorless_source(),
                 compact_plan=accepted_compact_plan,
+                plan_information_coverage_as_warning=(
+                    quality_repair_attempt_count > 0
+                    and not settings.enable_drop_plan_fact_validation
+                ),
                 allowed_omitted_plan_fact_indexes=(
-                    compact_repair_tracker.allowed_omitted_fact_indexes
+                    compact_repair_tracker.validation_omitted_fact_indexes(
+                        accepted_compact_plan,
+                        validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                    )
                     if compact_repair_tracker is not None
                     else ()
                 ),
@@ -1399,7 +1455,11 @@ class WidgetGenerationService:
                 )
             artifact_validator = ArtifactValidator(asset_mapper.mapping)
             artifact_validation_started_at = time.perf_counter()
-            validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            colorless = colorless_source()
+            if colorless:
+                validation_errors = artifact_validator.validate_layout(artifact, protocol_profile)
+            else:
+                validation_errors = artifact_validator.validate(artifact, protocol_profile)
             if validation_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
             validation_prompt_contexts = getattr(
@@ -1470,6 +1530,8 @@ class WidgetGenerationService:
             return [item.repair_message() for item in validation_issues]
 
         async def evaluate_source_dsl(source_dsl: str) -> list[str]:
+            if source_generated_by_template and source_dsl == validated_template_source:
+                return []
             if quality_repair_attempt_count == 0:
                 trace_phase("validation")
             with (
@@ -1613,6 +1675,15 @@ class WidgetGenerationService:
         design_token = None
         if policy.stores_design_token:
             design_token = model_client.extract_genui_payload(source_dsl)
+            preserve_compact_source = (
+                policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                and not source_generated_by_jsx
+            )
+            if preserve_compact_source:
+                design_token = serialize_compact_dsl_source(
+                    latest_processing_result.source_dsl,
+                    skip_compact_dsl_validation=source_generated_by_template,
+                )
         final_artifact_build_started_at = time.perf_counter()
         artifact = self._build_artifact(
             genui,
@@ -1632,6 +1703,18 @@ class WidgetGenerationService:
                 source_load_result.artifact_digest if source_load_result else None
             ),
         )
+        if colorless_source():
+            from services.post_layout_theme import theme_artifact
+
+            artifact = await theme_artifact(
+                artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
+                ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                allow_expansion=defer_size_notification,
+                final_layout=design_token,
+            )
+        final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
+        if defer_size_notification and before_model_call is not None:
+            await before_model_call(final_size)
         trace_step(
             "artifact.final.built",
             stage="artifactBuild",
@@ -1679,7 +1762,10 @@ class WidgetGenerationService:
                 latest_processing_result.source_dsl,
                 accepted_compact_plan,
                 task_spec.model_dump(mode="json", exclude_none=True),
-                compact_repair_tracker.allowed_omitted_fact_indexes,
+                compact_repair_tracker.validation_omitted_fact_indexes(
+                    accepted_compact_plan,
+                    validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                ),
             )
         omitted_requirements = [
             str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")
@@ -1711,7 +1797,7 @@ class WidgetGenerationService:
             status=response_plan.status,
             artifactUrl=artifact_save_result.artifactUrl,
             artifactDigest=artifact_save_result.artifactDigest,
-            suggestSize=card_spec.suggestSize,
+            suggestSize=final_size,
             message=response_plan.message,
             removedCapabilities=removed,
             errorCode=response_plan.errorCode,

@@ -249,7 +249,7 @@ async def test_upload_errors_are_classified_only_at_upload_boundary(
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom6.0-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-6.0",
+            capabilityRegistryVersion="app-11.7.7.300_rom-7.0",
             createdAt=1,
         ),
     )

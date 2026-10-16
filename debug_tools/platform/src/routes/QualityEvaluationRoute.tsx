@@ -71,7 +71,7 @@ export function QualityEvaluationRoute() {
   }, []);
   return <div className="quality-page">
     <header className="batch-center-header"><div><h1>评估方案（当前版本）</h1>
-      <p>这是当前方案，不代表历史评分参数。历史结果以对应评分看板的 policy 快照为准。</p></div>
+      <p>此处展示当前方案。历史评分使用对应执行中保存的参数快照。</p></div>
       <nav className="quality-links"><Link to="/quality">选择批次</Link><Link to="/quality/compare">批次对比</Link></nav>
     </header>
     {error && <div className="batch-error" role="alert">{error}</div>}

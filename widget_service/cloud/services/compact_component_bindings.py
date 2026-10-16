@@ -126,7 +126,10 @@ COMPACT_COMPONENT_BINDING_CONTRACTS: dict[
     "PillButton": {},
     "CircleButton": {},
     "TopTextBottomValue": {"items[].value": DISPLAY_BINDING},
-    "TextBlock": {"items[].value": DISPLAY_BINDING},
+    "TextBlock": {
+        "items[].label": DISPLAY_BINDING,
+        "items[].value": DISPLAY_BINDING,
+    },
     "CardButton": {},
 }
 

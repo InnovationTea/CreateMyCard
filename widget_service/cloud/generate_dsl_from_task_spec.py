@@ -18,6 +18,7 @@ from services.generation_pipeline import (
     DslProcessorKind,
     get_dsl_processor,
 )
+from services.post_layout_theme import select_theme
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import A2UIProtocolRegistry
 
@@ -60,6 +61,7 @@ async def generate_dsl_from_task_spec(task_spec: dict[str, Any]) -> GeneratedDsl
             ),
             design_profile_id=design_profile_id,
             layout_scope=PromptBuilder.layout_scope(validated_task_spec),
+            colorless_layout=True,
         )
         result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(
             compact_dsl,
@@ -68,7 +70,10 @@ async def generate_dsl_from_task_spec(task_spec: dict[str, Any]) -> GeneratedDsl
         if result.errors:
             error_message = "; ".join(item.repair_message() for item in result.errors)
             raise A2UIModelGenerationError(error_message)
-        return GeneratedDsl(compact_dsl=result.source_dsl, dsl=result.standard_dsl)
+        final_dsl, _ = await select_theme(
+            result.standard_dsl, task_spec_value, model_client, final_layout=result.source_dsl,
+        )
+        return GeneratedDsl(compact_dsl=result.source_dsl, dsl=final_dsl)
     finally:
         await model_client.aclose()
 

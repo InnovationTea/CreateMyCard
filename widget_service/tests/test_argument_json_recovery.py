@@ -30,7 +30,7 @@ def _content():
 
 @pytest.fixture
 def registry():
-    return CapabilityRegistry(version="app-11.7.5.205_rom-6.0")
+    return CapabilityRegistry(version="app-11.7.7.300_rom-7.0")
 
 
 def _payload(raw):

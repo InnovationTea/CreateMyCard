@@ -40,7 +40,6 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "BluetoothDeviceOverviewConnectionSupport@1": (0,),
     "CountdownOverviewTravelSupport@1": (0,),
     "HeartRateOverviewSupport@1": (0,),
-    "ResourceUsageOverviewSupport@1": (0, 1),
     "ScheduleOverviewTimeSupport@1": (0,),
     "ScheduleOverviewLocationSupport@1": (0,),
     "ScheduleOverviewStartTimeSupport@1": (0,),
@@ -187,7 +186,8 @@ def test_support_ux_contract_covers_every_registered_support() -> None:
     supports = {
         name for name in get_cardplan_registry().templates if name.endswith("Support@1")
     }
-    assert supports == set(_SUPPORT_PRIMARY_TEXT_INDEXES)
+    # CurrentTimeOverviewSupport 无参数、无操作位，不参与排版与动作契约。
+    assert supports == set(_SUPPORT_PRIMARY_TEXT_INDEXES) | {"CurrentTimeOverviewSupport@1"}
 
 
 @pytest.mark.parametrize(("template_id", "binding", "unit", "caption"), (
@@ -242,7 +242,6 @@ def test_heart_rate_support_keeps_two_direct_text_lines_without_forced_width() -
     ("BatteryOverviewSupport@1", 40, 16),
     ("BluetoothDeviceOverviewChargeSupport@1", 40, 16),
     ("BluetoothDeviceOverviewConnectionSupport@1", 40, 16),
-    ("ResourceUsageOverviewSupport@1", 44, 20),
 ))
 def test_support_ux_preserves_progress_and_inner_icon_sizes(
     template_id: str, ring_size: int, icon_size: int,
@@ -381,12 +380,14 @@ def test_all_support_actions_are_optional_and_bound_to_root(with_action: bool) -
         assert isinstance(options, dict)
         # 以下历史模板仍使用覆盖层，本轮未改动其样式。
         legacy_overlays = {
-            "ResourceUsageOverviewSupport@1",
             "BluetoothDeviceOverviewEarbudsSupport@1",
         }
+        # 当前时间 Support 按契约不接收操作位：无 actionId 参数，注入也不产生点击。
+        action_less_supports = {"CurrentTimeOverviewSupport@1"}
+        supports_action = with_action and template_id not in action_less_supports
         if template_id not in legacy_overlays:
-            assert bool(options.get("onClick")) == with_action, template_id
-        assert _serialize_node(root).count('"onClick":') == int(with_action), template_id
+            assert bool(options.get("onClick")) == supports_action, template_id
+        assert _serialize_node(root).count('"onClick":') == int(supports_action), template_id
         assert "onclick" not in options
 
 
