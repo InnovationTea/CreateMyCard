@@ -886,7 +886,10 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   当前归属：语义／布局与视觉约束，`semantic/layout/geometry.py`。2026-10-15 按确认仅在高度校验
   视图中忽略 2x4 语义展开生成 Column 的 8vp 纵向间距；参考槽位同步使用该视图，其它高度约束不变。
-  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。
+  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。2026-10-16 将
+  所有受支持尺寸中不超过 `35vp` 的纵向高度溢出诊断降为 warning，保留规则标识及 Occupancy 并继续
+  转换，交由端侧灵动布局处理；同一张卡不同层级的诊断分别记录。溢出量超过 `35vp` 和高度无法闭合
+  仍阻断。严重程度调整不改变本项分类和实际文件。
 
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
 

@@ -474,6 +474,12 @@ BASE-02 至 BASE-04 不阻止纯等价拆分，但不能把已知冲突的旧建
 该约束必须同时出现在新诊断与模型说明中，不能因旧文案退出模型请求而丢失。
 本期 warning 继续通过 `CompactDslValidationResult.warnings` 返回字符串，并沿用流水线已有的
 `COMPACT_DSL_VALIDATION_WARNING` 及日志路径；不增加成功返回结果上的诊断字段，不将警告转成待修复错误。
+当前业务策略将所有受支持尺寸中的纵向高度超限统一按溢出量分级。校验器按
+`requiredHeight - availableHeight` 计算溢出量；不超过 `35vp` 的诊断降为 warning，交由端侧灵动布局
+处理。warning 文本保留 `COMPACT_LAYOUT_HEIGHT_OVERFLOW` 规则标识、实际占用、可用高度和超限值，
+沿用上述结果及日志出口，不进入结构化 error、`qualityErrors` 或模型 repair。同一张卡不同层级的
+诊断分别记录。溢出量超过 `35vp` 及高度无法闭合仍保持阻断；本节的 error 诊断示例继续代表这些
+严格场景。
 
 ## 5. 修复建议解耦与简单配置接口
 

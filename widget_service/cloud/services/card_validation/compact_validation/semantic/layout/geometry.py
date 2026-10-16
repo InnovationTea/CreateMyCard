@@ -13,9 +13,7 @@ from services.card_validation.compact_validation.diagnostics import (
 )
 from services.card_validation.compact_validation.text import _format_vp, _non_negative_number
 from services.compact_component_runtime import visual_recipe_part
-from services.compact_dsl_a2ui_converter import (
-    ComponentRow,
-)
+from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_reference_canvas import reference_dimension
 from services.compact_region_layout import reference_region_boxes
 
@@ -47,8 +45,9 @@ def _collect_height_budget_errors(
     protocol_profile: dict[str, Any] | None = None,
     *,
     layout_origins: dict[str, str] | None = None,
+    warnings: list[str],
 ) -> None:
-    """Reject vertical layouts whose declared minimum height cannot fit."""
+    """检查纵向最小高度；高度溢出不阻断，交由灵动布局解决。"""
     size = card_spec.get("suggestSize") or task_spec.get("size")
     components = _height_budget_components(components, size, layout_origins)
     components_by_id = {component.component_id: component for component in components}
@@ -92,6 +91,27 @@ def _collect_height_budget_errors(
             continue
         overflow = required_height - available_height
         breakdown = _column_height_breakdown(component, components_by_id)
+        message = (
+            f"component {component.component_id}: vertical layout requires at "
+            f"least {_format_vp(required_height)}vp within "
+            f"{_format_vp(available_height)}vp; it overflows by "
+            f"{_format_vp(overflow)}vp. Occupancy: {breakdown}."
+        )
+        legacy_message = (
+            f"component {component.component_id}: vertical layout requires at "
+            f"least {_format_vp(required_height)}vp within "
+            f"{_format_vp(available_height)}vp; it overflows by "
+            f"{_format_vp(overflow)}vp. Regroup facts or choose a layout with "
+            f"enough body space; preserve required text, actions, font sizes and "
+            f"fixed design heights. Weight, clipping, flex shrink and distributed "
+            f"alignment cannot eliminate content height. Occupancy: {breakdown}."
+        )
+        if _is_non_blocking_height_overflow(
+            size=size,
+            overflow=overflow,
+        ):
+            warnings.append(f"COMPACT_LAYOUT_HEIGHT_OVERFLOW: {legacy_message}")
+            continue
         removable_title_icon = _removable_title_icon_candidate(
             component,
             components_by_id,
@@ -111,21 +131,8 @@ def _collect_height_budget_errors(
                 code="COMPACT_LAYOUT_HEIGHT_OVERFLOW",
                 validation_class="semantic",
                 category="layout",
-                message=(
-                    f"component {component.component_id}: vertical layout requires at "
-                    f"least {_format_vp(required_height)}vp within "
-                    f"{_format_vp(available_height)}vp; it overflows by "
-                    f"{_format_vp(overflow)}vp. Occupancy: {breakdown}."
-                ),
-                legacy_message=(
-                    f"component {component.component_id}: vertical layout requires at "
-                    f"least {_format_vp(required_height)}vp within "
-                    f"{_format_vp(available_height)}vp; it overflows by "
-                    f"{_format_vp(overflow)}vp. Regroup facts or choose a layout with "
-                    f"enough body space; preserve required text, actions, font sizes and "
-                    f"fixed design heights. Weight, clipping, flex shrink and distributed "
-                    f"alignment cannot eliminate content height. Occupancy: {breakdown}."
-                ),
+                message=message,
+                legacy_message=legacy_message,
                 expected={
                     "maximumHeight": available_height,
                     "heightTolerance": height_tolerance,
@@ -139,6 +146,17 @@ def _collect_height_budget_errors(
                 component_id=component.component_id,
             ),
         )
+
+
+def _is_non_blocking_height_overflow(
+    *,
+    size: Any,
+    overflow: float,
+) -> bool:
+    """最小需求高度溢出35vp ，交由灵动布局解决"""
+    return (
+            overflow <= 35.0 + 1e-7
+    )
 
 
 def _collect_unresolved_height_error(

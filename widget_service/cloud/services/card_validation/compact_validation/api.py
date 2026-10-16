@@ -176,6 +176,7 @@ def validate_compact_dsl(
     _collect_height_budget_errors(
         budget_components, task_spec, card_spec, errors, protocol_profile,
         layout_origins=context.layout_origins,
+        warnings=warnings,
     )
     _collect_text_width_budget_errors(
         budget_components, task_spec, card_spec, errors, protocol_profile,
