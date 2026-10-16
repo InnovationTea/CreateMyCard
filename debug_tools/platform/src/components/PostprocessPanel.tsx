@@ -30,7 +30,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
   const [selected, setSelected] = useState<string[]>([]);
   const [configs, setConfigs] = useState<Record<string, Record<string, unknown>>>({});
   const [busy, setBusy] = useState(false);
-  const [rerunningPluginId, setRerunningPluginId] = useState('');
+  const [rerunningPluginIds, setRerunningPluginIds] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [deviceTargets, setDeviceTargets] = useState<Target[]>([]);
   const [deviceEmulators, setDeviceEmulators] = useState<Emulator[]>([]);
@@ -43,7 +43,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
     if (preferredTargetId && value.targets.some((target) => target.id === preferredTargetId)) {
       setConfigs((current) => ({
         ...current,
-        'device-gallery': { ...current['device-gallery'], targetId: preferredTargetId },
+        'device-capture': { ...current['device-capture'], targetId: preferredTargetId },
       }));
     }
   };
@@ -95,6 +95,16 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
 
   const waitingExecution = executions.find((item) => item.status === 'waiting');
   const active = executions.some((item) => ['queued', 'running'].includes(item.status));
+  const activePluginIds = useMemo(() => {
+    const ids = new Set<string>();
+    executions.forEach((execution) => {
+      if (!['queued', 'running'].includes(execution.status)) return;
+      execution.plugins.forEach((plugin) => {
+        if (!plugin.status || ['queued', 'running'].includes(plugin.status)) ids.add(plugin.id);
+      });
+    });
+    return ids;
+  }, [executions]);
   const activeCount = executions.reduce((count, execution) => count + (
     ['queued', 'running'].includes(execution.status) ? execution.plugins.length : 0
   ), 0);
@@ -127,7 +137,8 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
     return latest;
   }, [executions]);
   const displayedPluginIds = Array.from(latestByPlugin.keys());
-  const newSelected = selected.filter((pluginId) => pluginId !== 'quality-score' && !historyByPlugin.has(pluginId));
+  const newSelected = selected.filter((pluginId) => pluginId !== 'quality-score'
+    && !historyByPlugin.has(pluginId) && !activePluginIds.has(pluginId));
 
   useEffect(() => {
     if (!waitingExecution) return;
@@ -194,14 +205,15 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
   };
 
   const rerun = async (pluginId: string) => {
-    setRerunningPluginId(pluginId); setError('');
+    if (activePluginIds.has(pluginId) || rerunningPluginIds.includes(pluginId)) return;
+    setRerunningPluginIds((current) => [...current, pluginId]); setError('');
     try {
       await startPostprocess(runId, [pluginId], configs, true);
       await onStarted();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
-      setRerunningPluginId('');
+      setRerunningPluginIds((current) => current.filter((id) => id !== pluginId));
     }
   };
 
@@ -222,7 +234,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
     </button>
     {open && <div className="postprocess-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
       <section className="postprocess-dialog" role="dialog" aria-modal="true" aria-label="后处理插件">
-        <header className="postprocess-dialog-header"><div><h2>后处理插件</h2><p>勾选插件后并行执行；依赖插件会自动加入，并在所需结果就绪后运行。</p></div><button type="button" aria-label="关闭后处理插件" onClick={() => setOpen(false)}>×</button></header>
+        <header className="postprocess-dialog-header"><div><h2>后处理插件</h2><p>可继续提交或重跑其他插件；独立任务并行执行，依赖或结果读写冲突时等待。</p></div><button type="button" aria-label="关闭后处理插件" onClick={() => setOpen(false)}>×</button></header>
         {error && <div className="batch-error" role="alert">{error}</div>}
         <div className="postprocess-unified-view">
           <section className="postprocess-plugin-grid" aria-label="可选后处理插件">
@@ -242,7 +254,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
                 />
                 <span><b>{plugin.name}</b><small>{plugin.description ?? plugin.id}</small>
                   {dependencies.length > 0 && <em>依赖：{dependencies.map((id) => pluginById.get(id)?.name ?? id).join(' → ')}</em>}
-                  {plugin.id === 'device-gallery' && checked && <span className="postprocess-device-profile">
+                  {plugin.id === 'device-capture' && checked && <span className="postprocess-device-profile">
                     {deviceTargets.length ? <select aria-label="真机截图在线设备"
                       value={String(configs[plugin.id]?.targetId ?? '')}
                       onClick={(event) => event.stopPropagation()}
@@ -271,7 +283,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
               </label>;
             })}
           </section>
-          <footer className="postprocess-dialog-actions"><span>{newSelected.length ? `将并行执行 ${newSelected.length} 个新增插件` : selected.length ? '已选插件均已运行，可单独再次运行' : '尚未选择插件'}</span><button type="button" disabled={busy || active || !newSelected.length || (newSelected.includes('device-gallery') && !configs['device-gallery']?.targetId)} onClick={run}>{busy ? '正在提交…' : active ? '后处理正在执行' : waitingExecution ? '更新自动执行配置' : runStatus === 'completed' ? '开始后处理' : '完成后自动执行'}</button></footer>
+          <footer className="postprocess-dialog-actions"><span>{newSelected.length ? active ? `将按依赖执行 ${newSelected.length} 个新增插件` : `将并行执行 ${newSelected.length} 个新增插件` : selected.length ? '已选插件均已提交或已运行，可单独再次运行' : '尚未选择插件'}</span><button type="button" disabled={busy || !newSelected.length || (newSelected.includes('device-capture') && !configs['device-capture']?.targetId)} onClick={run}>{busy ? '正在提交…' : waitingExecution ? '更新自动执行配置' : runStatus === 'completed' ? active ? '继续运行后处理' : '开始后处理' : '完成后自动执行'}</button></footer>
           <section className="postprocess-inline-results">
             <header><strong>执行结果</strong><small>自动展示运行中插件与每个插件的最新一次结果</small></header>
             {!displayedPluginIds.length && <div className="batch-empty">尚无后处理执行记录</div>}
@@ -279,9 +291,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
               const plugin = pluginById.get(pluginId);
               const latest = latestByPlugin.get(pluginId);
               const progress = latest?.result.progress;
-              const isActiveResult = latest
-                ? ['queued', 'running'].includes(latest.execution.status)
-                : false;
+              const isActiveResult = activePluginIds.has(pluginId);
               const canOpenDashboard = latest?.execution.status !== 'waiting';
               return <article key={pluginId}><div><strong>{plugin?.name ?? pluginId}</strong>
                 {!latest && <small>尚未执行</small>}
@@ -291,7 +301,7 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
                 {progress && <div className="postprocess-inline-progress"><i style={{ width: `${progress.total
                   ? Math.round(progress.completed * 100 / progress.total) : 0}%` }} /></div>}
                 {latest?.result.error && <em className="postprocess-result-error">{latest.result.error}</em>}
-              </div>{latest && <><span className={`batch-status ${latest.result.status ?? latest.execution.status}`}>{executionStatusLabel(latest.result.status ?? latest.execution.status)}</span><div className="postprocess-result-actions">{pluginId !== 'quality-score' && !isActiveResult && <button type="button" disabled={active || Boolean(rerunningPluginId)} onClick={() => rerun(pluginId)}>{rerunningPluginId === pluginId ? '提交中…' : '再次运行'}</button>}{canOpenDashboard && <Link
+              </div>{latest && <><span className={`batch-status ${latest.result.status ?? latest.execution.status}`}>{executionStatusLabel(latest.result.status ?? latest.execution.status)}</span><div className="postprocess-result-actions">{pluginId !== 'quality-score' && !isActiveResult && <button type="button" disabled={rerunningPluginIds.includes(pluginId)} onClick={() => rerun(pluginId)}>{rerunningPluginIds.includes(pluginId) ? '提交中…' : '再次运行'}</button>}{canOpenDashboard && <Link
                 to={`/batch/runs/${encodeURIComponent(runId)}/postprocess/${encodeURIComponent(latest.execution.executionId)}/plugins/${encodeURIComponent(pluginId)}`}
                 target="_blank"
                 rel="noopener noreferrer"

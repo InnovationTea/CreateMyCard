@@ -1,9 +1,9 @@
 {
   "apiVersion": "batch-postprocess-v2",
-  "id": "device-gallery",
-  "name": "真机截图画廊",
-  "version": "2.0.1",
-  "description": "在 HarmonyOS 设备或模拟器上逐样本渲染，并生成内嵌真机截图的离线 HTML 画廊。",
+  "id": "device-capture",
+  "name": "真机截图",
+  "version": "3.0.0",
+  "description": "仅采集截图和渲染证据，供画廊及其它插件复用。",
   "entrypoint": "builtin",
   "dependence": [],
   "outputs": [
@@ -37,14 +37,6 @@
       "dataType": "metrics",
       "renderer": "kpi",
       "required": true
-    },
-    {
-      "key": "device-gallery",
-      "scope": "dataset",
-      "title": "真机截图画廊",
-      "dataType": "link",
-      "renderer": "link",
-      "required": true
     }
   ],
   "presentation": {
@@ -69,12 +61,22 @@
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "required": ["targetId"],
+    "required": [
+      "targetId"
+    ],
     "properties": {
       "targetId": {
         "type": "string",
         "minLength": 1,
         "title": "在线设备"
+      },
+      "captureDelaySeconds": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 30,
+        "deprecated": true,
+        "title": "历史截图时延配置",
+        "description": "仅兼容旧执行记录；实际时延以 debug_tool.yaml 中 capture_delay_seconds 为准。"
       }
     }
   }

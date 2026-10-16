@@ -55,7 +55,7 @@ Checkpoint = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 class PostprocessManager:
-    """以独立队列执行后处理插件依赖图。"""
+    """并发调度后处理依赖图，隔离存在读写冲突的执行记录。"""
 
     def __init__(
         self,
@@ -73,6 +73,11 @@ class PostprocessManager:
         self.timeout_seconds = timeout_seconds
         self.queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
         self.worker: asyncio.Task[None] | None = None
+        self.execution_tasks: set[asyncio.Task[None]] = set()
+        self.execution_condition = asyncio.Condition()
+        self.execution_resources: dict[
+            tuple[str, str], tuple[set[str], set[str]]
+        ] = {}
         self.closing = False
 
     async def start(self) -> None:
@@ -103,6 +108,16 @@ class PostprocessManager:
         if self.worker is not None:
             self.worker.cancel()
             await asyncio.gather(self.worker, return_exceptions=True)
+        tasks = list(self.execution_tasks)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        while not self.queue.empty():
+            run_id, execution_id = self.queue.get_nowait()
+            try:
+                self._finish_dispatch_error(run_id, execution_id, interrupted=True)
+            finally:
+                self.queue.task_done()
 
     def plugins(self) -> list[dict[str, Any]]:
         manifests: list[dict[str, Any]] = []
@@ -138,11 +153,14 @@ class PostprocessManager:
         expanded_ids = self._expand_dependencies(plugin_ids, available)
         requested_ids = set(plugin_ids)
         executed_plugin_ids = self._executed_plugin_ids(run_id)
+        history = self._latest_plugin_history(run_id) if rerun else {}
+        retry_ids = self._retry_plugin_ids(plugin_ids, available, history) if rerun else set()
         selected: list[dict[str, Any]] = []
         for plugin_id in expanded_ids:
-            explicitly_requested = plugin_id in requested_ids
             already_completed = plugin_id in executed_plugin_ids
-            should_rerun = rerun and explicitly_requested
+            should_rerun = plugin_id in retry_ids
+            if rerun and not should_rerun:
+                continue
             if already_completed and not should_rerun:
                 continue
             manifest = available.get(plugin_id)
@@ -151,6 +169,11 @@ class PostprocessManager:
             config = (configs or {}).get(plugin_id, {})
             if not isinstance(config, dict):
                 raise ValueError(f"插件配置必须是对象: {plugin_id}")
+            reuse_config = plugin_id not in requested_ids or plugin_id not in (configs or {})
+            if rerun and reuse_config:
+                previous_config = history.get(plugin_id, {}).get("config")
+                if isinstance(previous_config, dict):
+                    config = {**previous_config, **config}
             schema = manifest.get("configSchema", {"type": "object"})
             errors = list(Draft202012Validator(schema).iter_errors(config))
             if errors:
@@ -359,10 +382,70 @@ class PostprocessManager:
     async def _worker_loop(self) -> None:
         while True:
             run_id, execution_id = await self.queue.get()
-            try:
-                await self._execute(run_id, execution_id)
-            finally:
-                self.queue.task_done()
+            task = asyncio.create_task(self._execute_queued(run_id, execution_id))
+            self.execution_tasks.add(task)
+            task.add_done_callback(self.execution_tasks.discard)
+
+    def _execution_access(self, run_id: str, execution_id: str) -> tuple[set[str], set[str]]:
+        state = self.get_execution(run_id, execution_id)
+        manifests = {item["id"]: item for item in self._run_manifests(run_id)}
+        writes: set[str] = set()
+        reads: set[str] = set()
+        for plugin in state.get("plugins") or []:
+            plugin_id = str(plugin.get("id") or "")
+            writes.add(plugin_id)
+            manifest = manifests.get(plugin_id, {})
+            reads.update(manifest.get("dependence") or [])
+        return writes, reads - writes
+
+    def _execution_conflicts(
+        self, key: tuple[str, str], writes: set[str], reads: set[str]
+    ) -> bool:
+        for previous_key, access in self.execution_resources.items():
+            if previous_key == key:
+                break
+            if previous_key[0] != key[0]:
+                continue
+            other_writes, other_reads = access
+            if writes.intersection(other_writes | other_reads) or reads.intersection(other_writes):
+                return True
+        return False
+
+    async def _execute_queued(self, run_id: str, execution_id: str) -> None:
+        key = (run_id, execution_id)
+        try:
+            writes, reads = self._execution_access(run_id, execution_id)
+            async with self.execution_condition:
+                self.execution_resources[key] = (writes, reads)
+                await self.execution_condition.wait_for(
+                    lambda: not self._execution_conflicts(key, writes, reads)
+                )
+            await self._execute(run_id, execution_id)
+        except asyncio.CancelledError:
+            self._finish_dispatch_error(run_id, execution_id, interrupted=True)
+            raise
+        except Exception as exc:
+            self._finish_dispatch_error(run_id, execution_id, error=exc)
+        finally:
+            async with self.execution_condition:
+                self.execution_resources.pop(key, None)
+                self.execution_condition.notify_all()
+            self.queue.task_done()
+
+    def _finish_dispatch_error(
+        self, run_id: str, execution_id: str, *,
+        interrupted: bool = False, error: Exception | None = None,
+    ) -> None:
+        path = self._execution_dir(run_id, execution_id) / "execution.json"
+        state = self._read_json(path)
+        state.update({
+            "status": "interrupted" if interrupted else "failed",
+            "finishedAt": utc_now(),
+            "error": (
+                "调试后端关闭导致后处理中断" if interrupted else f"{type(error).__name__}: {error}"
+            ),
+        })
+        atomic_write_json(path, state)
 
     async def _execute(self, run_id: str, execution_id: str) -> None:
         execution_dir = self._execution_dir(run_id, execution_id)
@@ -459,9 +542,13 @@ class PostprocessManager:
                     arguments: tuple[Any, ...] = (
                         run_id, plugin_dir, dict(selection.get("config") or {})
                     )
-                    if len(inspect.signature(runner).parameters) >= 4:
+                    parameters = inspect.signature(runner).parameters
+                    if "checkpoint" in parameters:
                         arguments = (*arguments, builtin_checkpoint)
-                    result = await runner(*arguments)
+                    keywords = {}
+                    if "upstream_results" in parameters:
+                        keywords["upstream_results"] = upstream
+                    result = await runner(*arguments, **keywords)
                 else:
                     result = await self._run_script_plugin(
                         run_id,
@@ -1057,6 +1144,53 @@ class PostprocessManager:
                 if result is not None:
                     results[plugin_id] = result
         return results
+
+    @staticmethod
+    def _retry_plugin_ids(
+        plugin_ids: list[str],
+        manifests: dict[str, dict[str, Any]],
+        history: dict[str, dict[str, Any]],
+    ) -> set[str]:
+        """只展开本次真正需要执行的依赖分支；已可复用的结果是分支边界。"""
+        required: set[str] = set()
+        requested = set(plugin_ids)
+
+        def visit(plugin_id: str) -> None:
+            if plugin_id in required:
+                return
+            required.add(plugin_id)
+            manifest = manifests.get(plugin_id)
+            if manifest is None:
+                raise ValueError(f"后处理插件不存在: {plugin_id}")
+            for dependency_id in manifest.get("dependence") or []:
+                previous = history.get(dependency_id, {})
+                reusable = previous.get("status") in {"success", "partial", "skipped"}
+                if dependency_id in requested or not reusable:
+                    visit(dependency_id)
+
+        for plugin_id in plugin_ids:
+            visit(plugin_id)
+        return required
+
+    def _latest_plugin_history(self, run_id: str) -> dict[str, dict[str, Any]]:
+        """读取最近一次终态及原配置，不加载逐样本大产物。"""
+        history: dict[str, dict[str, Any]] = {}
+        active_statuses = {"", "waiting", "queued", "running"}
+        for execution in self.executions(run_id):
+            interrupted = execution.get("status") == "interrupted"
+            for plugin in execution.get("plugins") or []:
+                if not isinstance(plugin, dict):
+                    continue
+                plugin_id = str(plugin.get("id") or "")
+                if not plugin_id or plugin_id in history:
+                    continue
+                status = str(plugin.get("status") or "")
+                if interrupted and status in active_statuses:
+                    status = "interrupted"
+                if status in active_statuses:
+                    continue
+                history[plugin_id] = {**plugin, "status": status}
+        return history
 
     def _executed_plugin_ids(self, run_id: str) -> set[str]:
         plugin_ids: set[str] = set()

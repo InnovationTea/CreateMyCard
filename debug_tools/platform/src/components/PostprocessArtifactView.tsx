@@ -156,7 +156,7 @@ function ImageGallery({ items }: { items: RecordRow[] }) {
   useEffect(() => {
     setActiveIndex((current) => Math.min(current, Math.max(0, items.length - 1)));
   }, [items.length]);
-  if (!items.length) return <div className="postprocess-empty">暂无校验截图</div>;
+  if (!items.length) return <div className="postprocess-empty">暂无图片</div>;
   const item = items[activeIndex] ?? items[0];
   const url = typeof item.url === 'string' ? item.url : '';
   const dsl = typeof item.dsl === 'string' ? item.dsl : '';
@@ -238,7 +238,7 @@ export function PostprocessArtifactView({ artifact }: { artifact: PostprocessArt
     body = <RecordTable rows={rows} />;
   } else if (artifact.dataType === 'matrix') {
     body = <MatrixView value={artifact.data} />;
-  } else if (artifact.dataType === 'image' && renderer === 'gallery') {
+  } else if (artifact.dataType === 'image' && renderer === 'gallery' && (rows.length > 0 || !artifact.url)) {
     body = <ImageGallery items={rows} />;
   } else if (artifact.dataType === 'image' && artifact.url) {
     body = <figure><img src={artifact.url} alt={artifact.alt ?? artifact.title ?? '插件图片产物'} />

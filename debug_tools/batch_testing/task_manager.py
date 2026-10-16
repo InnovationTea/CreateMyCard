@@ -15,7 +15,8 @@ from typing import Any
 from ..postprocess_plugins.device_capture import DeviceCaptureManager
 from ..postprocess_plugins.device_capture import run_builtin as run_device_capture_plugin
 from ..postprocess_plugins.gallery import BatchGalleryManager
-from ..postprocess_plugins.gallery import run_builtin as run_gallery_plugin
+from ..postprocess_plugins.gallery.capture import run_capture as run_browser_capture_plugin
+from ..postprocess_plugins.gallery.report import run_gallery as run_gallery_report
 from ..postprocess_plugins.validation_failure_gallery import (
     ValidationFailureGalleryManager,
 )
@@ -87,12 +88,16 @@ class BatchTaskManager:
             self.output_root,
             plugins_root,
             builtin_runners={
-                "browser-gallery": partial(run_gallery_plugin, self.gallery_manager),
+                "browser-capture": partial(run_browser_capture_plugin, self.gallery_manager),
+                "browser-gallery": partial(run_gallery_report, self.gallery_manager, "browser"),
                 "validation-failure-gallery": partial(
                     run_validation_failure_gallery_plugin,
                     self.validation_failure_gallery_manager,
                 ),
                 "device-gallery": partial(
+                    run_gallery_report, self.device_capture_manager, "device"
+                ),
+                "device-capture": partial(
                     run_device_capture_plugin,
                     self.device_capture_manager,
                 ),
@@ -402,46 +407,63 @@ class BatchTaskManager:
         return run
 
     def gallery_path(self, run_id: str) -> Path:
-        return self.gallery_manager.gallery_path(run_id)
+        path = self._latest_plugin_file(run_id, "browser-gallery", "gallery.html")
+        return path if path is not None else self.gallery_manager.gallery_path(run_id)
+
+    def _latest_plugin_file(self, run_id: str, plugin_id: str, relative: str) -> Path | None:
+        result: Path | None = None
+        for execution in self.postprocess_manager.executions(run_id):
+            execution_id = str(execution.get("executionId") or "")
+            try:
+                result = self.postprocess_manager.asset_path(
+                    run_id, execution_id, plugin_id, relative
+                )
+            except KeyError:
+                continue
+            break
+        return result
 
     def validation_failure_items(self, run_id: str) -> list[dict[str, Any]]:
         return self.validation_failure_gallery_manager.items(run_id)
 
     def device_capture_path(self, run_id: str, sample_id: str, kind: str) -> Path:
-        filename = f"{sample_id}.png" if kind == "card" else f"{sample_id}.jpeg"
-        relative = Path("card" if kind == "card" else "full") / filename
-        for execution in self.postprocess_manager.executions(run_id):
-            execution_id = str(execution.get("executionId") or "")
-            path = (
-                self.output_root
-                / run_id
-                / "postprocess"
-                / execution_id
-                / "plugins"
-                / "device-gallery"
-                / relative
-            )
-            if path.is_file():
-                return path
+        valid_id = re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", sample_id)
+        if valid_id is None or kind not in {"card", "full"}:
+            raise KeyError(sample_id)
+        for plugin_id in ("device-capture", "device-gallery"):
+            for suffix in ("png", "jpeg"):
+                relative = f"{kind}/{sample_id}.{suffix}"
+                path = self._latest_plugin_file(run_id, plugin_id, relative)
+                if path is not None:
+                    return path
         return self.device_capture_manager.image_path(run_id, sample_id, kind)
 
     def device_gallery_path(self, run_id: str) -> Path:
-        for execution in self.postprocess_manager.executions(run_id):
-            execution_id = str(execution.get("executionId") or "")
-            path = (
-                self.output_root
-                / run_id
-                / "postprocess"
-                / execution_id
-                / "plugins"
-                / "device-gallery"
-                / "gallery.html"
-            )
-            if path.is_file():
-                return path
-        return self.device_capture_manager.gallery_path(run_id)
+        path = self._latest_plugin_file(run_id, "device-gallery", "gallery.html")
+        return path if path is not None else self.device_capture_manager.gallery_path(run_id)
 
     def sample_device_capture(self, run_id: str, sample_id: str) -> dict[str, Any]:
+        for plugin_id in ("device-capture", "device-gallery"):
+            for execution in self.postprocess_manager.executions(run_id):
+                execution_id = str(execution.get("executionId") or "")
+                try:
+                    result = self.postprocess_manager.sample_result(
+                        run_id, execution_id, plugin_id, sample_id
+                    )
+                except KeyError:
+                    continue
+                facts = result.get("facts") or {}
+                captured = {
+                    "id": sample_id, "status": result.get("status"),
+                    "size": facts.get("size"),
+                    "error": result.get("summary") if result.get("status") != "success" else "",
+                }
+                for artifact in result.get("artifacts") or []:
+                    if artifact.get("key") == "device-capture":
+                        captured["cardUrl"] = artifact.get("url")
+                    elif artifact.get("key") == "device-full-capture":
+                        captured["fullUrl"] = artifact.get("url")
+                return captured
         return self.device_capture_manager.sample(run_id, sample_id)
 
     async def _scheduler_loop(self) -> None:

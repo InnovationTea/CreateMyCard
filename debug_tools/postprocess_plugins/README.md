@@ -18,13 +18,13 @@ uv sync
 
 | 插件 | Python 外依赖 | 是否需要额外配置 |
 | --- | --- | --- |
-| `browser-gallery` | Node.js、npm、`playwright-core`、Edge/Chrome/Chromium | 非标准安装路径的浏览器需配置环境变量 |
+| `browser-capture` | Node.js、npm、`playwright-core`、Edge/Chrome/Chromium | 非标准安装路径的浏览器需配置环境变量 |
 | `validation-failure-gallery` | Node.js、npm、`playwright-core`、Edge/Chrome/Chromium | 同上 |
-| `device-gallery` | DevEco JDK、SDK、HDC、Hvigor、ArkTS 渲染工程、HarmonyOS 设备或模拟器 | 必须配置 `debug_tool.yaml` |
+| `device-capture` | DevEco JDK、SDK、HDC、Hvigor、ArkTS 渲染工程、HarmonyOS 设备或模拟器 | 必须配置 `debug_tool.yaml` |
 
 ### 浏览器截图插件
 
-这两个插件会由 Python 子进程调用 Node.js 截图脚本。仓库只声明 `playwright-core`，不会下载 Playwright
+浏览器截图和校验失败画廊会由 Python 子进程调用 Node.js 截图脚本。仓库只声明 `playwright-core`，不会下载 Playwright
 自带的浏览器；需要本机已安装 Edge、Chrome 或 Chromium。从仓库根目录执行：
 
 ```powershell
@@ -46,7 +46,7 @@ uv run debug_tools
 
 ### 真机截图插件
 
-`device-gallery` 复用 `device_debug` 的 Render Session。先安装 DevEco Studio 及对应 SDK，再在
+`device-capture` 复用 `device_debug` 的 Render Session。先安装 DevEco Studio 及对应 SDK，再在
 `debug_tools/debug_tool.yaml` 中配置本机工具链和模拟器目录：
 
 ```yaml
@@ -66,7 +66,13 @@ platform:
     auto_start_emulator: false
 ```
 
-内置工程位于 `debug_tools/a2ui_render`，插件配置只接受本次执行的 `targetId`。插件自动选择最新 HAP：
+内置工程位于 `debug_tools/a2ui_render`，插件面板仅配置本次执行的 `targetId`。
+截图前等待默认 1 秒，通过 `debug_tools/debug_tool.yaml` 中
+`platform.device_capture.capture_delay_seconds` 设置 0～30 秒，0 表示关闭额外等待，修改后重启调试后端。
+页面不提供时延配置，旧执行记录中的 `captureDelaySeconds` 仅兼容读取，不覆盖本机 YAML。
+每个样本收到就绪终态、确认应用
+前台后再等待，截图重试也执行该等待；取消时立即中断。实际时延保存至截图元数据和汇总事实。
+只重生成画廊仍复用已有图片；调整时延后应再次运行真机截图，再次运行真机画廊。插件自动选择最新 HAP：
 真机和未知目标要求 signed，模拟器可使用 unsigned。App 的 `A2UI_RUN` 终态决定成功、警告或失败，
 卡片裁切严格使用 App 返回的 `cropPx`。
 
@@ -83,6 +89,22 @@ platform:
 需要本地模拟器时，在插件面板点击“启动本地模拟器”。平台读取 `emulator`、
 `emulator_instance_root` 和 `emulator_image_root`，等待所选实例的 HDC 端口上线并自动选中返回的
 `targetId`；启动进程退出或等待超时会在面板显示明确错误。
+
+## 业务插件依赖与离线画廊
+
+- `data-analysis`：统一分析全部请求 Trace 与最终产物，输出逐请求、逐样本和数据集统计；口径见其 README。
+- `browser-capture`、`device-capture`：只截图并保留证据，不生成 HTML；真机目标配置属于 `device-capture`。
+- `browser-gallery`、`device-gallery`：直接依赖对应截图插件和 `data-analysis`，共用离线模板。
+- `quality-score`：依赖 `browser-capture` 和 `data-analysis`；外部导入评分不启用这两项依赖。
+- `component-recall`、`validation-failure-gallery`：依赖分析插件，本期保留其专属分析及中间产物截图。
+
+重生成画廊复用成功、部分完成或跳过的前置结果；失败、中断或尚未执行的必要依赖自动递归补跑，共享依赖
+只跑一次。依赖补跑沿用最近终态配置，本次依赖配置字段覆盖历史值并重新校验。显式目标提供新配置时整体
+采用新配置，未提供时沿用历史配置，防止历史互斥选项混入。更新已成功的数据仍须显式重跑前置
+插件，再重跑画廊；旧历史不修改。
+两种画廊均支持筛选联动指标、排序、列数、放大和精简布局；只内嵌自身路线图片，离线打开无需服务。
+内置插件可声明 `upstream_results` 关键字参数接收直接依赖规范化结果，checkpoint 按参数名称识别。
+示例插件无需依赖分析插件。旧结果继续只读兼容，新截图和 HTML 位于各自历史执行目录。
 
 ## v2 清单
 
@@ -125,12 +147,15 @@ platform:
 清单存在 deferred 产物时入口必须实现 `finalize`。
 
 `id` 只能包含字母、数字、点、下划线和短横线，最长 80 个字符。`dependence` 是按声明顺序排列的插件
-名称列表；宿主会自动补齐依赖、拒绝不存在或形成循环的依赖，并行运行彼此没有依赖关系的插件。插件的
+名称列表；宿主会自动补齐依赖、拒绝不存在或形成循环的依赖，并行运行彼此没有依赖关系的插件。
+首次运行与重跑的独立执行记录也可并行；同批次内写入相同插件或读写依赖结果存在冲突时按提交顺序等待，
+只读取相同历史依赖的记录可并行。插件的
 `upstreamResults` 只包含其直接依赖结果，不包含用户同次勾选的其它独立插件。`configSchema` 使用 JSON Schema
 2020-12，前后端均会校验。`entrypoint: "builtin"` 只供内置插件使用。
 
 普通“开始后处理”只运行尚无执行历史的插件。依赖插件已有历史时，宿主将其最新规范化结果放入
-`upstreamResults`，不会重复执行；只有用户点击该插件的“再次运行”时才创建新的执行记录。
+`upstreamResults`，不会重复执行。显式“再次运行”会同时恢复失败或中断的必要依赖；可复用的依赖分支保持
+原结果，未执行的依赖自动补齐。下游等待本次依赖完成，依赖仍失败时不运行下游业务。
 
 ## 函数与上下文
 

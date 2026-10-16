@@ -167,6 +167,8 @@ async def run_builtin(
     target_id = config.get("targetId")
     if not isinstance(target_id, str) or not target_id:
         raise ValueError("真机截图必须选择当前在线设备")
+    device_config = getattr(manager, "config", None)
+    capture_delay = device_config.capture_delay_seconds if device_config is not None else 1.0
     if not hasattr(manager, "renderer"):
         return await _run_legacy_host(manager, run_id)
     if manager.renderer is None:
@@ -179,46 +181,39 @@ async def run_builtin(
     log = output_dir / "device.log"
     session = await manager.renderer.session(target_id, log)
     sample_results: list[dict[str, Any]] = []
-    gallery_items: list[dict[str, Any]] = []
     warning_count = 0
     async with session:
         for index, sample in enumerate(samples):
             sample_id = str(sample.get("id") or "")
             size = manager.resolve_size(run_dir, sample)
-            result = await _capture_sample(session, run_dir, output_dir, sample_id, size)
+            result = await _capture_sample(
+                session, run_dir, output_dir, sample_id, size, capture_delay
+            )
             sample_results.append(result)
             warnings = result.get("facts", {}).get("warnings", [])
             if isinstance(warnings, list) and warnings:
                 warning_count += 1
-            gallery_items.append(
-                {
-                    "id": sample_id,
-                    "size": size,
-                    "error": "" if result.get("status") == "success" else result.get("summary", ""),
-                    **({"file": f"{sample_id}.png"} if result.get("status") == "success" else {}),
-                }
-            )
             if checkpoint is not None:
                 checkpoint_result = checkpoint(_checkpoint(sample_results, index + 1, len(samples)))
                 if inspect.isawaitable(checkpoint_result):
                     await checkpoint_result
-    await asyncio.to_thread(_write_gallery, summary, gallery_items, output_dir)
     succeeded = sum(1 for item in sample_results if item.get("status") == "success")
     failed = sum(1 for item in sample_results if item.get("status") == "failed")
     skipped = len(sample_results) - succeeded - failed
-    status = "success" if failed == 0 and skipped == 0 else "partial" if succeeded else "failed"
+    status = "success" if failed == 0 and skipped == 0 else "partial"
     return {
         "status": status,
         "sampleResults": sample_results,
         "datasetResult": {
             "status": status,
-            "summary": f"真机画廊已生成：成功 {succeeded}，失败 {failed}，跳过 {skipped}",
+            "summary": f"真机截图已完成：成功 {succeeded}，失败 {failed}，跳过 {skipped}",
             "facts": {
                 "succeeded": succeeded,
                 "failed": failed,
                 "skipped": skipped,
                 "warningSamples": warning_count,
                 "targetId": target_id,
+                "captureDelaySeconds": capture_delay,
             },
             "artifacts": [
                 {
@@ -230,7 +225,6 @@ async def run_builtin(
                         {"label": "跳过", "value": skipped},
                     ],
                 },
-                {"key": "device-gallery", "label": "打开真机截图画廊", "path": "gallery.html"},
             ],
         },
     }
@@ -242,6 +236,7 @@ async def _capture_sample(
     output_dir: Path,
     sample_id: str,
     size: str,
+    capture_delay_seconds: float,
 ) -> dict[str, Any]:
     if not _SAFE_ID.fullmatch(sample_id):
         return {"sampleId": sample_id, "status": "failed", "summary": "样本标识无效"}
@@ -258,7 +253,9 @@ async def _capture_sample(
     card = output_dir / "card" / f"{sample_id}.png"
     full = output_dir / "full" / f"{sample_id}.png"
     try:
-        capture = await session.render(genui, size, card, full)
+        capture = await session.render(
+            genui, size, card, full, capture_delay_seconds=capture_delay_seconds
+        )
     except asyncio.CancelledError:
         raise
     except RenderFailure as exc:
@@ -284,6 +281,7 @@ async def _capture_sample(
             "artifacts": [],
         }
     metadata = capture.public()
+    metadata["captureDelaySeconds"] = capture_delay_seconds
     facts = dict(metadata)
     facts.pop("cropPx", None)
     facts.update(captureStatus="success", size=size)
@@ -335,40 +333,13 @@ async def _run_legacy_host(manager: Any, run_id: str) -> dict[str, Any]:
     queue = getattr(manager, "queue", None)
     if queue is not None:
         await queue.join()
-    gallery = manager.build_gallery(run_id)
     return {
         "status": "success",
         "sampleResults": [],
         "datasetResult": {
             "status": "success",
-            "summary": "真机画廊已生成",
+            "summary": "旧宿主截图已完成",
             "facts": {},
-            "artifacts": [
-                {
-                    "key": "device-gallery",
-                    "label": "打开真机截图画廊",
-                    "url": gallery.get("url", ""),
-                }
-            ],
+            "artifacts": [{"key": "capture-summary", "data": []}],
         },
     }
-
-
-def _write_gallery(
-    summary: dict[str, Any],
-    items: list[dict[str, Any]],
-    output_dir: Path,
-) -> None:
-    from ..gallery.plugin import BatchGalleryManager
-
-    document = BatchGalleryManager.build_html(
-        summary,
-        {"items": items},
-        output_dir / "card",
-        gallery_title="真机截图画廊",
-        gallery_subtitle="A2UI_Render 自动裁切结果，不替代正式验收",
-        image_alt_suffix="真机卡片截图",
-        missing_title="无真机截图",
-        missing_message="该样本没有可用的真机截图",
-    )
-    (output_dir / "gallery.html").write_text(document, encoding="utf-8")

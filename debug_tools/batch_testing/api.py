@@ -463,7 +463,7 @@ def register_batch_routes(
             path = task_manager.device_capture_path(run_id, sample_id, kind)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="真机截图不存在") from exc
-        media_type = "image/png" if kind == "card" else "image/jpeg"
+        media_type = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
         return FileResponse(path, media_type=media_type)
 
     @app.get("/debug/batch/runs/{run_id}/gallery.html")

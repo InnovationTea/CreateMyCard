@@ -64,6 +64,15 @@ class FakeServiceController:
 
 
 class FakeGalleryManager:
+    capture_base_url = "http://localhost/debug"
+
+    def _safe_run_dir(self, run_id: str) -> Path:
+        return self.output_root / run_id
+
+    async def capture(self, url: str, _output_dir: Path) -> dict:
+        self.started.append(url.split("/")[-2])
+        return {"items": []}
+
     def __init__(self) -> None:
         self.started: list[str] = []
 
@@ -517,6 +526,7 @@ async def test_scheduler_runs_only_one_execution_and_advances_queue(tmp_path: Pa
     )
     controller = FakeServiceController()
     gallery = FakeGalleryManager()
+    gallery.output_root = tmp_path / "output"
     manager = BatchTaskManager(
         datasets_root,
         tmp_path / "output",
@@ -574,7 +584,9 @@ async def test_postprocessing_only_starts_after_manual_request(tmp_path: Path) -
         }
     )
     capture = FakeDeviceCaptureManager()
+    capture.output_root = tmp_path / "output"
     gallery = FakeGalleryManager()
+    gallery.output_root = tmp_path / "output"
     manager = BatchTaskManager(
         datasets_root,
         tmp_path / "output",
@@ -607,13 +619,18 @@ async def test_postprocessing_only_starts_after_manual_request(tmp_path: Path) -
     postprocess_result = manager.postprocess_manager.enqueue(
         first_run_id,
         ["browser-gallery", "device-gallery"],
-        {"device-gallery": {"targetId": "target-one"}},
+        {"device-capture": {"targetId": "target-one"}},
     )
     await manager.postprocess_manager.queue.join()
 
     assert postprocess_result.get("status") == "queued"
     assert gallery.started == [first_run_id]
     assert capture.enqueued == [first_run_id]
+    execution_id = postprocess_result.get("executionId")
+    assert isinstance(execution_id, str)
+    completed = manager.postprocess_manager.get_execution(first_run_id, execution_id)
+    for plugin in completed.get("plugins", []):
+        assert plugin.get("status") != "failed"
     await manager.close()
 
 
@@ -655,6 +672,7 @@ def test_task_api_exposes_datasets_tasks_copy_and_scheduler(tmp_path: Path) -> N
     datasets_root = tmp_path / "Datasets"
     _write_dataset(datasets_root, "request_dataset")
     capture = FakeDeviceCaptureManager()
+    capture.output_root = tmp_path / "output"
     manager = BatchTaskManager(
         datasets_root,
         tmp_path / "output",
@@ -684,7 +702,7 @@ def test_task_api_exposes_datasets_tasks_copy_and_scheduler(tmp_path: Path) -> N
         f"/debug/batch/runs/{run_id}/postprocess",
         json={
             "pluginIds": ["browser-gallery", "device-gallery"],
-            "configs": {"device-gallery": {"targetId": "target-one"}},
+            "configs": {"device-capture": {"targetId": "target-one"}},
         },
     )
     old_gallery = client.post(f"/debug/batch/runs/{run_id}/gallery")

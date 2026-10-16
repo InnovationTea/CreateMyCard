@@ -303,6 +303,8 @@ class RenderSession:
         size: str,
         card_path: Path,
         full_path: Path,
+        *,
+        capture_delay_seconds: float = 0.0,
     ) -> CaptureResult:
         if not self._prepared:
             raise DeviceError("Render Session 尚未准备完成")
@@ -332,7 +334,9 @@ class RenderSession:
             raise DeviceError("READY 终态缺少 cropPx")
         if not await self._wait_foreground():
             raise DeviceError("App 在 READY 后未保持前台稳定")
-        await self._capture(run_id, parameters, full_path)
+        await self._capture(
+            run_id, parameters, full_path, capture_delay_seconds=capture_delay_seconds
+        )
         await asyncio.to_thread(self._crop, full_path, card_path, terminal.crop)
         return CaptureResult(
             run_id=run_id,
@@ -490,12 +494,18 @@ class RenderSession:
             await asyncio.sleep(0.1)
         return False
 
-    async def _capture(self, run_id: str, parameters: list[str], full_path: Path) -> None:
+    async def _capture(
+        self, run_id: str, parameters: list[str], full_path: Path, *,
+        capture_delay_seconds: float = 0.0,
+    ) -> None:
         full_path.parent.mkdir(parents=True, exist_ok=True)
         remote = f"/data/local/tmp/a2ui-{run_id}.jpeg"
         downloaded = full_path.with_suffix(".source.jpeg")
         try:
             for _attempt in range(self.config.capture_attempts):
+                if capture_delay_seconds > 0:
+                    await self._say(f"组件加载等待 {capture_delay_seconds:g} 秒后截图")
+                    await asyncio.sleep(capture_delay_seconds)
                 await self.devices.hdc(
                     self.target.serial,
                     ["shell", "snapshot_display", "-f", remote],

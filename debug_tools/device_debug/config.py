@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +44,7 @@ class Config:
     build_timeout: float = 300.0
     render_timeout: float = 30.0
     capture_attempts: int = 6
+    capture_delay_seconds: float = 1.0
     start_timeout: float = 120.0
     start_poll: float = 2.0
     node_source: str = "configured"
@@ -63,6 +65,14 @@ class Config:
         values = platform.get("device_capture", {})
         if not isinstance(values, dict):
             raise DeviceError("设备配置必须是对象", 503)
+        capture_delay = values.get("capture_delay_seconds", 1.0)
+        valid_delay_type = (
+            isinstance(capture_delay, (int, float)) and not isinstance(capture_delay, bool)
+        )
+        if not valid_delay_type:
+            raise DeviceError("capture_delay_seconds 必须为 0 到 30 秒的数值", 503)
+        if not math.isfinite(capture_delay) or not 0.0 <= capture_delay <= 30.0:
+            raise DeviceError("capture_delay_seconds 必须为 0 到 30 秒的数值", 503)
         try:
             toolchain = load_toolchain(config_path)
         except ToolchainError as exc:
@@ -97,6 +107,7 @@ class Config:
             build_timeout=float(values.get("command_timeout_seconds", 300.0)),
             render_timeout=float(values.get("render_timeout_seconds", 30.0)),
             capture_attempts=max(1, int(values.get("capture_attempts", 6))),
+            capture_delay_seconds=float(capture_delay),
             start_timeout=float(values.get("emulator_start_timeout_seconds", 120.0)),
             start_poll=max(0.2, float(values.get("emulator_poll_seconds", 2.0))),
             node_source=toolchain.node_source,

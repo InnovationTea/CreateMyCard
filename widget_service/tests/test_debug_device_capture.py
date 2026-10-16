@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
+import yaml
 from debug_tools.batch_testing.postprocess import PostprocessManager
 from debug_tools.device_debug.api import register_device_routes
 from debug_tools.device_debug.commands import DeviceError
@@ -313,6 +315,7 @@ class FakeCapture:
 class FakeSession:
     def __init__(self) -> None:
         self.rendered: list[tuple[str, str]] = []
+        self.capture_delays: list[float] = []
 
     async def __aenter__(self) -> FakeSession:
         return self
@@ -320,9 +323,13 @@ class FakeSession:
     async def __aexit__(self, *_args: Any) -> None:
         return None
 
-    async def render(self, source: Path, size: str, card: Path, full: Path) -> FakeCapture:
+    async def render(
+        self, source: Path, size: str, card: Path, full: Path, *,
+        capture_delay_seconds: float = 0.0,
+    ) -> FakeCapture:
         sample_id = source.parents[1].name
         self.rendered.append((sample_id, size))
+        self.capture_delays.append(capture_delay_seconds)
         if sample_id == "Q002":
             raise RuntimeError("设备断开")
         card.parent.mkdir(parents=True, exist_ok=True)
@@ -376,6 +383,7 @@ async def test_plugin_uses_one_session_and_isolates_sample_failure(tmp_path: Pat
     )
     assert renderer.session_count == 1
     assert session.rendered == [("Q001", "2x2"), ("Q002", "2x2"), ("Q003", "2x4")]
+    assert session.capture_delays == [1.0, 1.0, 1.0]
     assert [item.get("status") for item in result["sampleResults"]] == [
         "success",
         "failed",
@@ -383,7 +391,7 @@ async def test_plugin_uses_one_session_and_isolates_sample_failure(tmp_path: Pat
     ]
     assert result["datasetResult"]["facts"]["warningSamples"] == 1
     assert len(checkpoints) == 3
-    assert (tmp_path / "v2/gallery.html").is_file()
+    assert not (tmp_path / "v2/gallery.html").exists()
 
 
 @pytest.mark.asyncio
@@ -393,6 +401,123 @@ async def test_plugin_requires_target_id(tmp_path: Path) -> None:
     manager = DeviceCaptureManager(tmp_path, renderer=FakeRenderer(FakeSession()))
     with pytest.raises(ValueError, match="在线设备"):
         await run_builtin(manager, run_id, tmp_path / "v2", {})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("delay", [0.0, 0.5, 30.0])
+async def test_plugin_passes_configured_delay_to_each_sample(tmp_path: Path, delay: float) -> None:
+    _write_run(tmp_path, "run_delay")
+    session = FakeSession()
+    manager = DeviceCaptureManager(tmp_path, renderer=FakeRenderer(session))
+    manager.config = replace(_config(tmp_path), capture_delay_seconds=delay)
+    result = await run_builtin(
+        manager, "run_delay", tmp_path / "capture",
+        {"targetId": "target", "captureDelaySeconds": 2},
+    )
+    assert session.capture_delays == [delay, delay, delay]
+    samples = result.get("sampleResults")
+    assert isinstance(samples, list)
+    first = samples[0]
+    assert first.get("facts", {}).get("captureDelaySeconds") == delay
+    artifacts = first.get("artifacts")
+    assert isinstance(artifacts, list)
+    assert artifacts[0].get("data", {}).get("captureDelaySeconds") == delay
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("delay", [-1, 31, "2", True, float("nan"), float("inf")])
+async def test_config_rejects_invalid_delay_before_opening_device(
+    tmp_path: Path, delay: Any
+) -> None:
+    config_path = tmp_path / "debug_tool.yaml"
+
+    config_path.write_text(yaml.safe_dump({"platform": {"device_capture": {
+        "capture_delay_seconds": delay,
+    }}}), encoding="utf-8")
+    with pytest.raises(DeviceError, match="0 到 30"):
+        Config.load(config_path)
+
+
+@pytest.mark.parametrize("delay", [None, 0.0, 1.5, 30.0])
+def test_config_loads_capture_delay_from_yaml(tmp_path: Path, monkeypatch, delay):
+    paths = _config(tmp_path)
+    toolchain = SimpleNamespace(
+        hdc=paths.hdc, sdk_home=paths.sdk, java_home=paths.java,
+        node_executable=paths.node, hvigor=paths.hvigor, ohpm=paths.ohpm,
+        emulator=paths.emulator, path_variables={}, node_source="configured",
+    )
+    monkeypatch.setattr("debug_tools.device_debug.config.load_toolchain", lambda _path: toolchain)
+    values: dict[str, Any] = {
+        "emulator_instance_root": str(paths.instances),
+        "emulator_image_root": str(paths.images),
+        "output_root": str(paths.output),
+    }
+    if delay is not None:
+        values["capture_delay_seconds"] = delay
+    config_path = tmp_path / "debug_tool.yaml"
+
+    config_path.write_text(
+        yaml.safe_dump({"platform": {"device_capture": values}}), encoding="utf-8"
+    )
+    loaded = Config.load(config_path)
+    assert loaded.capture_delay_seconds == (1.0 if delay is None else delay)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("delay", [0.0, 1.5])
+@pytest.mark.parametrize("retry_capture", [False, True])
+async def test_session_waits_after_ready_before_snapshot(
+    tmp_path: Path, monkeypatch, delay: float, retry_capture: bool
+):
+    target = Target("target", "serial", "emulator", "emulator")
+    devices = FakeDevices(target)
+
+    async def sleep(seconds):
+        devices.calls.append(["test-sleep", str(seconds)])
+
+    monkeypatch.setattr("debug_tools.device_debug.runner.asyncio.sleep", sleep)
+    session = RenderSession(_config(tmp_path), devices, target, tmp_path / "device.log")
+    session._prepared = True
+    if retry_capture:
+        guard_results = iter([False, True])
+        monkeypatch.setattr(session, "_white_guard", lambda _path: next(guard_results))
+    source = tmp_path / "sample.jsonl"
+    source.write_text("{}\n", encoding="utf-8")
+    await session.render(
+        source, "2x2", tmp_path / "card.png", tmp_path / "full.png", capture_delay_seconds=delay
+    )
+    snapshot_indices = [
+        index for index, args in enumerate(devices.calls)
+        if args[:2] == ["shell", "snapshot_display"]
+    ]
+    assert len(snapshot_indices) == (2 if retry_capture else 1)
+    if delay > 0:
+        for snapshot_index in snapshot_indices:
+            assert devices.calls[snapshot_index - 1] == ["test-sleep", str(delay)]
+            assert devices.calls[snapshot_index - 2][:4] == ["shell", "aa", "dump", "-a"]
+    else:
+        assert ["test-sleep", "0.0"] not in devices.calls
+
+
+@pytest.mark.asyncio
+async def test_cancel_during_capture_delay_does_not_take_snapshot(tmp_path: Path, monkeypatch):
+    target = Target("target", "serial", "emulator", "emulator")
+    devices = FakeDevices(target)
+
+    async def sleep(seconds):
+        if seconds == 2.5:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr("debug_tools.device_debug.runner.asyncio.sleep", sleep)
+    session = RenderSession(_config(tmp_path), devices, target, tmp_path / "device.log")
+    session._prepared = True
+    source = tmp_path / "sample.jsonl"
+    source.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(asyncio.CancelledError):
+        await session.render(
+            source, "2x2", tmp_path / "card.png", tmp_path / "full.png", capture_delay_seconds=2.5
+        )
+    assert not any(args[:2] == ["shell", "snapshot_display"] for args in devices.calls)
 
 
 @pytest.mark.asyncio
@@ -410,7 +535,7 @@ async def test_capture_metadata_passes_checkpoint_and_final_host_validation(tmp_
 
     def checkpoint(value: dict[str, Any]) -> None:
         normalized = PostprocessManager._normalize_stage(
-            "device-gallery",
+            "device-capture",
             value,
             manifest,
             asset_root=output_dir,
@@ -425,7 +550,7 @@ async def test_capture_metadata_passes_checkpoint_and_final_host_validation(tmp_
         checkpoint,
     )
     normalized = PostprocessManager._normalize_stage(
-        "device-gallery",
+        "device-capture",
         result,
         manifest,
         asset_root=output_dir,
@@ -446,7 +571,7 @@ async def test_capture_metadata_passes_checkpoint_and_final_host_validation(tmp_
     data = metadata.get("data")
     assert isinstance(data, dict)
     assert data.get("cropPx") == {"left": 0, "top": 0, "width": 10, "height": 10}
-    assert (output_dir / "gallery.html").is_file()
+    assert not (output_dir / "gallery.html").exists()
 
 
 def test_crop_object_is_not_an_index_fact() -> None:

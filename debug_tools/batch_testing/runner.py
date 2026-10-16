@@ -25,6 +25,7 @@ from debug_tools.end_to_end_debug.backend.debug_agent.upstream_ws_client import 
     UpstreamToolError,
     parse_legacy_stream_content,
 )
+from debug_tools.file_io import atomic_write_text
 
 from .artifacts import (
     download_artifact,
@@ -54,12 +55,7 @@ def utc_now() -> str:
 
 def atomic_write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(f"{path.suffix}.tmp")
-    temporary.write_text(
-        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    atomic_write_text(path, json.dumps(value, ensure_ascii=False, indent=2) + "\n")
 
 
 def normalize_endpoint(base_url: str) -> str:

@@ -2,10 +2,10 @@
   "apiVersion": "batch-postprocess-v2",
   "id": "quality-score",
   "name": "质量评分（Web／外部卡片）",
-  "version": "1.2.0",
+  "version": "3.0.0",
   "description": "支持 Web 批跑和 DSL＋截图＋Query 导入，共用四类扣分模型，展示问题、分数及批次／单条对比。",
   "entrypoint": "plugin.py",
-  "dependence": ["browser-gallery"],
+  "dependence": ["browser-capture", "data-analysis"],
   "timeoutSeconds": 60,
   "configSchema": {
     "type": "object", "additionalProperties": false,
