@@ -131,6 +131,7 @@ async def test_standalone_fixed_rounds_preserve_result_and_exception(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_online_restores_nested_facts_before_formatting_and_preserves_records(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

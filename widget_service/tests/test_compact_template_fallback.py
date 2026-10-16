@@ -30,7 +30,7 @@ from services.widget_generation_service import WidgetGenerationService
     "failure",
     ["match", "generation", "empty", "conversion", "processor_exception",
      "asset_mapping", "validation", "validator_exception", "success",
-     "fusion_repair", "fusion_exhausted"],
+     "fusion_repair", "fusion_exhausted", "empty_recovers", "empty_exhausted"],
 )
 async def test_template_attempt_falls_back_to_fresh_fusion(
     monkeypatch, failure, repair_enabled, jsx_enabled,
@@ -38,8 +38,10 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     calls: list[str] = []
     processed: list[tuple[str, bool]] = []
     saved: list[str] = []
+    themed: list[str] = []
     notifications: list[str] = []
     fallback_events: list[dict] = []
+    body_attempts: list[list[dict[str, str]]] = []
     settings = get_settings().model_copy(update={
         "enable_a2ui_model_mock": False,
         "enable_artifact_validation": True,
@@ -55,8 +57,14 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     )
 
     async def template(generator, task_spec, card_spec, _bindings):
-        assert generator.fail_fast
         calls.append("template")
+        if failure in {"empty_recovers", "empty_exhausted"}:
+            client = TemplateModelClient(object(), ModelRequestContext(
+                session_id="session", interaction_id="interaction", device_id="device",
+                country_code="CN", app_version="11.7.7.331", app_name="CreateMyCard",
+            ))
+            client._sleep = skip_sleep
+            return await client.generate([{"role": "user", "content": task_spec.userQuery}])
         # 即使失败的模板实现修改输入，Fusion 也必须使用完整的原输入。
         task_spec.userQuery = "discarded-template-query"
         card_spec["title"] = "discarded-template-title"
@@ -65,6 +73,15 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
         if failure == "generation":
             raise RuntimeError("template generation failed")
         return "" if failure == "empty" else "template-source"
+
+    async def generate_body(_client, _backend, prompt, _context, **_kwargs):
+        body_attempts.append(copy.deepcopy(prompt))
+        if failure == "empty_recovers" and len(body_attempts) == 2:
+            return "template-source"
+        raise ModelTransportError("empty body", code="MODEL_EMPTY_OUTPUT")
+
+    async def skip_sleep(_delay):
+        return None
 
     async def generate(_client, prompt, profile=None, **_kwargs):
         model_format = (profile or {}).get("format")
@@ -96,6 +113,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
 
     def process(source, context):
         processed.append((source, context.skip_compact_dsl_validation))
+        assert context.colorless_layout == (source != "template-source")
         assert context.card_spec.get("title") == "静态卡片"
         if source == "template-source":
             assert context.compact_plan is None
@@ -129,6 +147,10 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
                 return ["invalid template binding"]
         return []
 
+    async def theme(artifact, *_args, **_kwargs):
+        themed.append(artifact.genui)
+        return artifact
+
     async def save(store, artifact):
         saved.append(artifact.genui)
         assert store.design_token == artifact.genui
@@ -147,6 +169,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
         pytest.fail("template failure must bypass JSX")
 
     monkeypatch.setattr(TemplateSourceGenerator, "__call__", template)
+    monkeypatch.setattr(UnifiedModelClient, "generate", generate_body)
     monkeypatch.setattr(A2UIModelClient, "generate", generate)
     monkeypatch.setattr(A2UIModelClient, "generate_repair", repair)
     monkeypatch.setattr(service_module, "get_dsl_processor", lambda _kind: SimpleNamespace(
@@ -154,9 +177,15 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     ))
     monkeypatch.setattr(AssetUrlMapper, "rewrite_standard", rewrite)
     monkeypatch.setattr(service_module.ArtifactValidator, "validate", validate)
+    monkeypatch.setattr(service_module.ArtifactValidator, "validate_layout", validate)
+    monkeypatch.setattr("services.post_layout_theme.theme_artifact", theme)
     monkeypatch.setattr(service_module, "JsxA2UIBridge", unexpected_jsx)
     monkeypatch.setattr(service_module, "trace_record", trace_record)
     monkeypatch.setattr(ArtifactStore, "save", save)
+    # 本测试使用占位 DSL，序列化由独立测试覆盖，这里只验证路线和上下文隔离。
+    monkeypatch.setattr(
+        service_module, "serialize_compact_dsl_source", lambda source, **_kw: source,
+    )
     request = GenerateWidgetCardRequest(
         uid="test-user", prdVer="11.7.7.331", device={"romVersion": "7.0"},
         userQuery="生成一个名为静态卡片的卡片", size="2x2", title="静态卡片",
@@ -171,11 +200,15 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     expected_status = GenerationStatus.FAILED if terminal_failure else GenerationStatus.SUCCESS
     assert response.status == expected_status
     assert notifications == ["2x2"]
-    if failure == "success":
+    if failure in {"empty_recovers", "empty_exhausted"}:
+        assert len(body_attempts) == 2
+        assert body_attempts[0] == body_attempts[1]
+    if failure in {"success", "empty_recovers"}:
         assert calls == ["template"]
         assert processed == [("template-source", True)]
         assert saved == ["template-source"]
         assert fallback_events == []
+        assert themed == []
     else:
         expected_calls = ["template", "raw-json", "compact-dsl"]
         final_source = "fusion-source"
@@ -185,15 +218,22 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
         assert calls == expected_calls
         assert processed[-1] == (final_source, False)
         assert saved == ([] if terminal_failure else [final_source])
+        assert themed == ([] if terminal_failure else [final_source])
         assert len(fallback_events) == 1
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("phase", ["template-retrieval-query", "advanced-mixed-body"])
-@pytest.mark.parametrize("fail_fast", [False, True])
-async def test_template_model_retry_policy(monkeypatch, phase, fail_fast) -> None:
+@pytest.mark.parametrize(
+    "phase", ["template-retrieval-query", "advanced-mixed-body", "advanced-mixed-body-repair"],
+)
+@pytest.mark.parametrize("model_retry_enabled", [False, True])
+@pytest.mark.parametrize("error_code", ["MODEL_EMPTY_OUTPUT", "MODEL_OUTPUT_TRUNCATED"])
+@pytest.mark.parametrize("recovers", [False, True])
+async def test_template_model_retry_policy(
+    monkeypatch, phase, model_retry_enabled, error_code, recovers,
+) -> None:
     settings = get_settings().model_copy(update={
-        "enable_model_failure_retry": True,
+        "enable_model_failure_retry": model_retry_enabled,
         "enable_openai_fallback": True,
     })
     monkeypatch.setattr("services.template_generation.model_client.get_settings", lambda: settings)
@@ -201,30 +241,37 @@ async def test_template_model_retry_policy(monkeypatch, phase, fail_fast) -> Non
         session_id="session", interaction_id="interaction", device_id="device",
         country_code="CN", app_version="11.7.7.331", app_name="CreateMyCard",
     )
-    client = TemplateModelClient(object(), request_context, fail_fast=fail_fast)
+    client = TemplateModelClient(object(), request_context)
     attempts: list[str] = []
     delays: list[float] = []
+    prompt = [{"role": "user", "content": "原始模板填充输入"}]
 
     async def generate(_client, _backend, _prompt, _context, **kwargs):
         attempts.append(kwargs.get("phase"))
-        raise ModelTransportError("empty body", code="MODEL_EMPTY_OUTPUT")
+        assert _prompt == prompt
+        if recovers and len(attempts) == 2:
+            return "template-source"
+        raise ModelTransportError("model failed", code=error_code)
 
     async def sleep(delay):
         delays.append(delay)
 
     monkeypatch.setattr(UnifiedModelClient, "generate", generate)
     client._sleep = sleep
-    with pytest.raises(ModelTransportError, match="empty body"):
-        await client.generate([], phase=phase)
-    body_retry = phase == "advanced-mixed-body" and not fail_fast
+    body_retry = phase != "template-retrieval-query" and error_code == "MODEL_EMPTY_OUTPUT"
+    if body_retry and recovers:
+        assert await client.generate(prompt, phase=phase) == "template-source"
+    else:
+        with pytest.raises(ModelTransportError, match="model failed"):
+            await client.generate(prompt, phase=phase)
     assert len(attempts) == (2 if body_retry else 1)
     assert len(delays) == (1 if body_retry else 0)
-    if fail_fast:
-        plans = client._client._provider_plans("openai")
-        assert len(plans) == 1
-        assert plans[0].max_retry_attempts == 0
-    else:
-        assert client._client.settings.enable_model_failure_retry
+    body_plans = client._body_client._provider_plans("openai")
+    assert len(body_plans) == 1
+    assert body_plans[0].max_retry_attempts == 0
+    assert client._client.settings is settings
+    assert client._client.settings.enable_model_failure_retry is model_retry_enabled
+    assert client._client.settings.enable_openai_fallback
 
 
 @pytest.mark.asyncio

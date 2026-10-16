@@ -787,6 +787,25 @@ class WidgetGenerationService:
         compact_agent_messages: list[dict[str, str]] | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
+        from services.layout_theme_contract import uses_post_layout_theme
+        from services.square_photo_expansion import expansion_enabled
+
+        def colorless_source() -> bool:
+            return uses_post_layout_theme(
+                policy.operation, template_source=source_generated_by_template,
+                jsx_source=source_generated_by_jsx,
+            )
+
+        direct_fusion_request = (
+            uses_post_layout_theme(policy.operation)
+            and template_source_generator is None
+            and not try_jsx
+        )
+        defer_size_notification = (
+            generation_mode == "create"
+            and direct_fusion_request
+            and expansion_enabled(task_spec.model_dump(mode="json", exclude_none=True))
+        )
 
         async def generate_compact_plan() -> dict:
             """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
@@ -950,7 +969,7 @@ class WidgetGenerationService:
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
                 trace_phase("dsl")
-            if before_model_call is not None:
+            if before_model_call is not None and not defer_size_notification:
                 await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
                 try:
@@ -1287,6 +1306,7 @@ class WidgetGenerationService:
             processing_context_for_source = replace(
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
+                colorless_layout=colorless_source(),
                 compact_plan=accepted_compact_plan,
                 plan_information_coverage_as_warning=(
                     quality_repair_attempt_count > 0
@@ -1435,7 +1455,11 @@ class WidgetGenerationService:
                 )
             artifact_validator = ArtifactValidator(asset_mapper.mapping)
             artifact_validation_started_at = time.perf_counter()
-            validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            colorless = colorless_source()
+            if colorless:
+                validation_errors = artifact_validator.validate_layout(artifact, protocol_profile)
+            else:
+                validation_errors = artifact_validator.validate(artifact, protocol_profile)
             if validation_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
             validation_prompt_contexts = getattr(
@@ -1679,6 +1703,18 @@ class WidgetGenerationService:
                 source_load_result.artifact_digest if source_load_result else None
             ),
         )
+        if colorless_source():
+            from services.post_layout_theme import theme_artifact
+
+            artifact = await theme_artifact(
+                artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
+                ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                allow_expansion=defer_size_notification,
+                final_layout=design_token,
+            )
+        final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
+        if defer_size_notification and before_model_call is not None:
+            await before_model_call(final_size)
         trace_step(
             "artifact.final.built",
             stage="artifactBuild",
@@ -1761,7 +1797,7 @@ class WidgetGenerationService:
             status=response_plan.status,
             artifactUrl=artifact_save_result.artifactUrl,
             artifactDigest=artifact_save_result.artifactDigest,
-            suggestSize=card_spec.suggestSize,
+            suggestSize=final_size,
             message=response_plan.message,
             removedCapabilities=removed,
             errorCode=response_plan.errorCode,
@@ -2102,7 +2138,6 @@ class WidgetGenerationService:
                 need_fallback=need_fallback,
             )
         template_source_generator.processor_kind = policy.processor_kind
-        template_source_generator.fail_fast = policy.operation == "generateWidgetCardCompactDsl"
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
             policy.protocol_profile_id
         ).get_profile()

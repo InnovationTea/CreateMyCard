@@ -12,6 +12,7 @@ from services.compact_high_level_components import (
     CompactRow,
     ComponentRow,
 )
+from services.theme_style_roles import in_layout_phase
 
 SEMANTIC_LAYOUT_TYPES = frozenset({"Layout", "Region", "Group"})
 LAYOUT_IDS = frozenset({
@@ -313,8 +314,11 @@ class _Compiler:
         sub_id = self.generated(identifier, "sub")
         outer_props = {"width": "matchParent", "height": "matchParent", "layoutWeight": 1}
         if compact:
-            outer_props.update(padding=self.panel_padding, backgroundColor="#99FFFFFF",
-                               borderRadius=16, clip=True)
+            outer_props.update(padding=self.panel_padding, borderRadius=16, clip=True)
+            if in_layout_phase():
+                outer_props["surfaceRole"] = "panel"
+            else:
+                outer_props["backgroundColor"] = "#99FFFFFF"
         self.add(identifier, "Column", outer_props, (sub_id,), identifier)
         sub_props = {"width": "matchParent", "height": "matchParent", "alignItems": "start",
                      "justifyContent": "start", "itemMargin": gap}
