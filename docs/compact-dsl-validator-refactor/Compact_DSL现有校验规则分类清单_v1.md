@@ -11,6 +11,12 @@
 
 ## Fusion 融合后的当前生效约定
 
+2026-10-16：修复语义布局展开重新解析时遗漏模板来源上下文的问题（issue #570）。
+组件类型白名单仍属语法／组件，唯一判定位置为 compact_dsl_a2ui_converter.py 的
+_parse_component_header；generation_pipeline.py 只透传 skip_compact_dsl_validation，
+expand_compact_semantic_layout 将其交给共享解析器。不新增校验分支或错误码，普通模型输入、
+未知组件、保留属性及语义布局角色／尺寸约束保持不变；覆盖模板内部组件与普通输入边界回归。
+
 2026-10-15：TextBlock.items[].label 与 items[].value 一致允许静态值、完整 Expression 和
 PathBinding。该调整归属语法／组件的共享绑定合同，落点 compact_component_bindings.py；直接
 PathBinding 的 string/number/integer 类型相容性仍归属语义／数据绑定，不在分类入口复制检查。
