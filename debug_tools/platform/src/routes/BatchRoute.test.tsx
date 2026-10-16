@@ -34,6 +34,24 @@ function renderDetail() {
 describe('BatchRoute', () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
+  it('shows the collection failure when a successful sample has no preview', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === '/debug/batch/tasks/task_1') return response({
+        taskId: 'task_1', name: '产物收集回归', sampleCount: 1,
+        runs: [{ runId: 'run_001', status: 'completed' }],
+      });
+      if (url === '/debug/batch/runs/run_001') return response(run);
+      if (url.endsWith('/samples/Q001')) return response({
+        summary: { id: 'Q001', status: 'success', error: 'DNS 下载失败' }, attempts: [],
+      });
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    renderDetail();
+    await userEvent.click(await screen.findByText('Q001'));
+    expect(await screen.findByText('渲染产物不可用：DNS 下载失败')).toBeInTheDocument();
+  });
+
   it('loads task history and opens sample Trace in a new tab', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input);

@@ -50,6 +50,7 @@ _RENDERERS_BY_DATA_TYPE = {
 }
 _FACT_TYPES = (str, int, float, bool)
 BuiltinRunner = Callable[[str, Path, dict[str, Any]], Awaitable[dict[str, Any]]]
+ConfigResolver = Callable[[str, dict[str, Any]], dict[str, Any]]
 Checkpoint = Callable[[dict[str, Any]], Awaitable[None]]
 
 
@@ -62,11 +63,13 @@ class PostprocessManager:
         plugins_root: Path,
         *,
         builtin_runners: dict[str, BuiltinRunner] | None = None,
+        config_resolver: ConfigResolver | None = None,
         timeout_seconds: float = 900.0,
     ) -> None:
         self.output_root = output_root.resolve()
         self.plugins_root = plugins_root.resolve()
         self.builtin_runners = builtin_runners or {}
+        self.config_resolver = config_resolver
         self.timeout_seconds = timeout_seconds
         self.queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
         self.worker: asyncio.Task[None] | None = None
@@ -152,6 +155,8 @@ class PostprocessManager:
             errors = list(Draft202012Validator(schema).iter_errors(config))
             if errors:
                 raise ValueError(f"插件配置无效: {plugin_id}: {errors[0].message}")
+            if self.config_resolver is not None:
+                config = self.config_resolver(plugin_id, config)
             if plugin_id == "quality-score":
                 selected_samples = self._quality_samples(self._read_json(summary_path), config)
                 config = {"sampleIds": [sample.get("id") for sample in selected_samples]}
@@ -384,6 +389,10 @@ class PostprocessManager:
                 raise ValueError(f"后处理插件不存在: {plugin_id}")
             plugin_dir = execution_dir / "plugins" / plugin_id
             plugin_dir.mkdir(parents=True, exist_ok=True)
+            asset_base_url = (
+                f"/debug/batch/runs/{quote(run_id, safe='')}/postprocess/"
+                f"{quote(execution_id, safe='')}/assets/{quote(plugin_id, safe='')}"
+            )
 
             async def save_checkpoint(
                 stage: dict[str, Any],
@@ -392,7 +401,13 @@ class PostprocessManager:
             ) -> None:
                 persisted_stage = stage
                 if normalize_builtin:
-                    persisted_stage = self._normalize_stage(plugin_id, stage, manifest)
+                    persisted_stage = self._normalize_stage(
+                        plugin_id,
+                        stage,
+                        manifest,
+                        asset_root=plugin_dir,
+                        asset_base_url=asset_base_url,
+                    )
                     persisted_stage["status"] = "running"
                     persisted_stage["progress"] = dict(stage.get("progress") or {})
                 summary = self._persist_stage(
@@ -456,7 +471,13 @@ class PostprocessManager:
                         upstream,
                         save_checkpoint,
                     )
-                normalized = self._normalize_stage(plugin_id, result, manifest)
+                normalized = self._normalize_stage(
+                    plugin_id,
+                    result,
+                    manifest,
+                    asset_root=plugin_dir,
+                    asset_base_url=asset_base_url,
+                )
             except Exception as exc:
                 normalized = {
                     "id": plugin_id,
@@ -1171,6 +1192,9 @@ class PostprocessManager:
         plugin_id: str,
         value: dict[str, Any],
         manifest: dict[str, Any],
+        *,
+        asset_root: Path | None = None,
+        asset_base_url: str = "",
     ) -> dict[str, Any]:
         status = value.get("status")
         if status not in _RESULT_STATUSES:
@@ -1187,6 +1211,8 @@ class PostprocessManager:
                     item,
                     manifest=manifest,
                     scope="sample",
+                    asset_root=asset_root,
+                    asset_base_url=asset_base_url,
                 )
             else:
                 normalized = dict(item)
@@ -1197,6 +1223,8 @@ class PostprocessManager:
                 dataset_value,
                 manifest=manifest,
                 scope="dataset",
+                asset_root=asset_root,
+                asset_base_url=asset_base_url,
             )
         else:
             dataset_result = dataset_value

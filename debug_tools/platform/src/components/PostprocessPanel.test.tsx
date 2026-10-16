@@ -14,6 +14,9 @@ describe('PostprocessPanel', () => {
         { apiVersion: 'batch-postprocess-v2', id: 'browser-gallery', name: '浏览器渲染画廊', version: '2.0.0', configSchema: { type: 'object' } },
         { apiVersion: 'batch-postprocess-v2', id: 'device-gallery', name: '真机截图画廊', version: '2.0.0', dependence: ['browser-gallery'], configSchema: { type: 'object' } },
       ] });
+      if (url === '/debug/device/targets') return response({ targets: [{
+        id: 'device_one', name: 'Pura Test', serial: 'USB123', kind: 'physical',
+      }], emulators: [] });
       if (url.endsWith('/postprocess') && init?.method === 'POST') return response({ executionId: 'exec_1', status: 'queued' });
       throw new Error(`unexpected request: ${url}`);
     }));
@@ -40,6 +43,7 @@ describe('PostprocessPanel', () => {
 
     fireEvent.click(await screen.findByRole('checkbox', { name: '真机截图画廊' }));
     expect(screen.getByRole('checkbox', { name: '浏览器渲染画廊' })).toBeChecked();
+    fireEvent.change(screen.getByLabelText('真机截图在线设备'), { target: { value: 'device_one' } });
     fireEvent.click(screen.getByRole('button', { name: '开始后处理' }));
 
     await waitFor(() => expect(onStarted).toHaveBeenCalled());
@@ -72,6 +76,42 @@ describe('PostprocessPanel', () => {
     );
   });
 
+  it('starts and selects a local emulator for device capture', async () => {
+    let online = false;
+    vi.mocked(fetch).mockImplementation(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url === '/debug/batch/postprocess/plugins') return response({ items: [{
+        apiVersion: 'batch-postprocess-v2', id: 'device-gallery', name: '真机截图画廊',
+        version: '2.0.0', configSchema: { type: 'object' },
+      }] });
+      if (url === '/debug/device/targets') return response({
+        targets: online ? [{
+          id: 'emulator-target', name: 'Pura X', serial: '127.0.0.1:5555', kind: 'emulator',
+        }] : [],
+        emulators: [{ id: 'emulator-a', name: 'Pura X', path: 'local', ready: true }],
+      });
+      if (url === '/debug/device/emulators/emulator-a/start') return response({
+        id: 'emulator-a', status: 'running', message: '正在启动本地模拟器',
+      });
+      if (url === '/debug/device/operations/emulator-a') {
+        online = true;
+        return response({
+          id: 'emulator-a', status: 'success', message: '模拟器已连接 HDC，可以开始截图',
+          targetId: 'emulator-target', serial: '127.0.0.1:5555',
+        });
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+    render(<MemoryRouter><PostprocessPanel runId="run_1" runStatus="completed"
+      selectedSampleId="Q001" executions={[]} onStarted={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: '后处理插件' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: '真机截图画廊' }));
+    fireEvent.click(screen.getByRole('button', { name: '启动本地模拟器 · Pura X' }));
+    await waitFor(() => expect(screen.getByLabelText('真机截图在线设备'))
+      .toHaveValue('emulator-target'), { timeout: 2500 });
+    expect(screen.getByText('模拟器已连接 HDC，可以开始截图')).toBeInTheDocument();
+  });
+
   it('allows updating the waiting plugin configuration before completion', async () => {
     const onStarted = vi.fn(async () => undefined);
     render(<MemoryRouter><PostprocessPanel
@@ -93,6 +133,7 @@ describe('PostprocessPanel', () => {
     const gallery = await screen.findByRole('checkbox', { name: '浏览器渲染画廊' });
     expect(gallery).toBeChecked();
     fireEvent.click(screen.getByRole('checkbox', { name: '真机截图画廊' }));
+    fireEvent.change(screen.getByLabelText('真机截图在线设备'), { target: { value: 'device_one' } });
     fireEvent.click(screen.getByRole('button', { name: '更新自动执行配置' }));
 
     await waitFor(() => expect(onStarted).toHaveBeenCalled());
@@ -126,6 +167,7 @@ describe('PostprocessPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /后处理插件/ }));
     fireEvent.click(await screen.findByRole('checkbox', { name: '真机截图画廊' }));
+    fireEvent.change(screen.getByLabelText('真机截图在线设备'), { target: { value: 'device_one' } });
     expect(screen.getByText('将并行执行 1 个新增插件')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '开始后处理' }));
     await waitFor(() => expect(onStarted).toHaveBeenCalledTimes(1));

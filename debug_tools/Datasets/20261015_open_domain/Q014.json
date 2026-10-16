@@ -1,0 +1,51 @@
+{
+    "content": {
+        "functionName": "generateWidgetCardCompactDsl",
+        "romVersion": "SGT-AL10 7.0.0.105",
+        "bundleName": "com.omega_w_0823.hmservice",
+        "candidateEventCandidates": [],
+        "size": "2x4",
+        "candidateDataBindings": [],
+        "candidateAssetIds": [],
+        "description": "含已过期演出",
+        "userQuery": "生成一张静态卡片，展示上海的演唱会安排，今天是2026年11月2日，以下为搜索结果：李荣浩黑马巡回演唱会上海站9月25-26日上海体育场，潘玮柏MAD LOVE ULTRA巡回演唱会上海站9月19日上海虹口足球场，泠鸢yousa羁绊环游线个人演唱会上海站10月3日回响之地前滩馆，Charlie Puth Whatever's Clever世界巡演上海站10月31日虹口足球场，邓紫棋IAMGLORIA世界巡回演唱会上海站11月14日上海体育场。",
+        "title": "演出清单含过期"
+    },
+    "deviceInfo": {
+        "countryCode": "CN",
+        "deviceFormation": "HDSpeaker",
+        "deviceType": 0,
+        "locale": "zh-CN",
+        "phoneType": "SGT-AL10",
+        "prdVer": "11.8.8.512",
+        "sysVer": "EmotionUI_9.0.0",
+        "time": "20261102090000000"
+    },
+    "pagination": {
+        "limit": 5,
+        "start": ""
+    },
+    "session": {
+        "interactionId": "14",
+        "isNew": false,
+        "sessionId": "5ca62863-5ba6-46d0-8ea6-2b895da629f6"
+    },
+    "userAuth": {
+        "user": {}
+    },
+    "utterance": {
+        "original": "",
+        "type": "text"
+    },
+    "version": "1.0",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.105",
+    "bundleName": "com.omega_w_0823.hmservice",
+    "candidateEventCandidates": [],
+    "size": "2x4",
+    "candidateDataBindings": [],
+    "candidateAssetIds": [],
+    "description": "含已过期演出",
+    "userQuery": "生成一张静态卡片，展示上海的演唱会安排，今天是2026年11月2日，以下为搜索结果：李荣浩黑马巡回演唱会上海站9月25-26日上海体育场，潘玮柏MAD LOVE ULTRA巡回演唱会上海站9月19日上海虹口足球场，泠鸢yousa羁绊环游线个人演唱会上海站10月3日回响之地前滩馆，Charlie Puth Whatever's Clever世界巡演上海站10月31日虹口足球场，邓紫棋IAMGLORIA世界巡回演唱会上海站11月14日上海体育场。",
+    "title": "演出清单含过期"
+}

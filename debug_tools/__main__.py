@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--trace-root",
         type=Path,
         default=None,
-        help="微服务开发调试 Trace 根目录；默认读取 debug_agent.yaml，可由环境变量覆盖",
+        help="微服务开发调试 Trace 根目录；默认读取 debug_tool.yaml，可由环境变量覆盖",
     )
     return parser
 

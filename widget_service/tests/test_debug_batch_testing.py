@@ -559,3 +559,121 @@ def test_debug_apps_serve_harmonyos_fonts_from_render_assets(app):
     assert response.headers.get("content-type") == "font/ttf"
     assert response.content
     assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["success", "degraded"])
+@pytest.mark.parametrize("collection_failure", ["none", "download", "trace"])
+async def test_generation_terminal_is_visible_before_collection(
+    tmp_path, monkeypatch, status, collection_failure
+):
+    from debug_tools.batch_testing import runner
+
+    dataset_root = tmp_path / "datasets"
+    _write_dataset(dataset_root, "Q001")
+    collecting = asyncio.Event()
+    release = asyncio.Event()
+    calls = 0
+    clock = [1.0]
+    monkeypatch.setattr(runner.time, "perf_counter", lambda: clock[0])
+
+    async def invoke(_endpoint, _request, _timeout):
+        nonlocal calls
+        calls += 1
+        clock[0] = 1.125
+        return {"status": status, "data": {"artifactUrl": "https://example.test/card.md"}}
+
+    def download(_url, _path, _roots):
+        if collection_failure == "download":
+            raise OSError("下载失败")
+        return _artifact_text()
+
+    async def import_trace(*_args):
+        collecting.set()
+        await release.wait()
+        clock[0] = 30.0
+        if collection_failure == "trace":
+            raise OSError("导入失败")
+        return {"status": "complete"}
+
+    monkeypatch.setattr(runner, "download_artifact", download)
+    manager = BatchRunManager(
+        dataset_root,
+        tmp_path / "output",
+        tmp_path / "traces",
+        tmp_path / "cloud",
+        invoke=invoke,
+    )
+    monkeypatch.setattr(manager, "_import_trace", import_trace)
+    started = manager.start_run(["Q001"], "ws://localhost/tools", 1, 2)
+    run_id = started.get("runId")
+    assert isinstance(run_id, str)
+    task = manager.tasks.get(run_id)
+    assert task is not None
+    try:
+        await asyncio.wait_for(collecting.wait(), 3)
+        summary = manager.get_sample(run_id, "Q001").get("summary")
+        assert isinstance(summary, dict)
+        assert summary.get("status") == status
+        assert summary.get("elapsedMs") == 125.0
+        assert not task.done()
+    finally:
+        release.set()
+        await task
+    summary = manager.get_sample(run_id, "Q001").get("summary")
+    assert isinstance(summary, dict)
+    assert summary.get("status") == status
+    assert summary.get("elapsedMs") == 125.0
+    assert summary.get("attemptCount") == 1
+    assert bool(summary.get("error")) == (collection_failure != "none")
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_slow_download_does_not_delay_generation_status(tmp_path, monkeypatch):
+    from threading import Event
+
+    from debug_tools.batch_testing import runner
+
+    dataset_root = tmp_path / "datasets"
+    _write_dataset(dataset_root, "Q001")
+    downloading = asyncio.Event()
+    release = Event()
+    loop = asyncio.get_running_loop()
+
+    async def invoke(_endpoint, _request, _timeout):
+        return {"status": "success", "data": {"artifactUrl": "https://example.test/card.md"}}
+
+    def download(_url, _path, _roots):
+        loop.call_soon_threadsafe(downloading.set)
+        assert release.wait(5)
+        return _artifact_text()
+
+    async def import_trace(*_args):
+        return {"status": "complete"}
+
+    monkeypatch.setattr(runner, "download_artifact", download)
+    manager = BatchRunManager(
+        dataset_root,
+        tmp_path / "output",
+        tmp_path / "traces",
+        tmp_path / "cloud",
+        invoke=invoke,
+    )
+    monkeypatch.setattr(manager, "_import_trace", import_trace)
+    started = manager.start_run(["Q001"], "ws://localhost/tools", 1, 0)
+    run_id = started.get("runId")
+    assert isinstance(run_id, str)
+    task = manager.tasks.get(run_id)
+    assert task is not None
+    try:
+        await asyncio.wait_for(downloading.wait(), 3)
+        summary = manager.get_sample(run_id, "Q001").get("summary")
+        assert isinstance(summary, dict)
+        assert summary.get("status") == "success"
+        assert isinstance(summary.get("elapsedMs"), float)
+        assert summary.get("artifactAvailable") is False
+        assert not task.done()
+    finally:
+        release.set()
+        await task

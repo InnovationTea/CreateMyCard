@@ -16,28 +16,47 @@ _BLOCK_PATTERN = re.compile(
 DEFAULT_MAX_ARTIFACT_BYTES = 20 * 1024 * 1024
 
 
-def download_artifact(
-    artifact_url: str,
-    output_path: Path,
-    artifact_roots: tuple[Path, ...],
-    max_bytes: int = DEFAULT_MAX_ARTIFACT_BYTES,
-) -> str:
-    """优先读取本地 mock artifact，必要时下载服务返回的 HTTP(S) URL。"""
+def find_local_artifact(artifact_url: str, artifact_roots: tuple[Path, ...]) -> Path | None:
+    """只按响应文件名在可信根目录中查找，不访问响应指定的本地路径。"""
 
     parsed_url = urlsplit(artifact_url)
     name = Path(parsed_url.path).name or Path(parsed_url.netloc).name
     if not name or name in {".", ".."}:
         raise ValueError("artifactUrl 缺少文件名")
+    found: Path | None = None
     for root in artifact_roots:
-        candidates = (root / name, root / "mock_obs" / name)
+        resolved_root = root.resolve()
+        candidates = (resolved_root / name, resolved_root / "mock_obs" / name)
         for candidate in candidates:
-            if not candidate.is_file():
-                continue
-            content = candidate.read_bytes()
-            if len(content) > max_bytes:
-                raise ValueError("artifact 超过大小限制")
-            output_path.write_bytes(content)
-            return content.decode("utf-8")
+            resolved = candidate.resolve()
+            if resolved.is_relative_to(resolved_root) and resolved.is_file():
+                found = resolved
+                break
+        if found is not None:
+            break
+    return found
+
+
+def download_artifact(
+    artifact_url: str,
+    output_path: Path,
+    artifact_roots: tuple[Path, ...],
+    max_bytes: int = DEFAULT_MAX_ARTIFACT_BYTES,
+    *,
+    local_only: bool = False,
+) -> str:
+    """优先读取本地 mock artifact，必要时下载服务返回的 HTTP(S) URL。"""
+
+    parsed_url = urlsplit(artifact_url)
+    local_artifact = find_local_artifact(artifact_url, artifact_roots)
+    if local_artifact is not None:
+        content = local_artifact.read_bytes()
+        if len(content) > max_bytes:
+            raise ValueError("artifact 超过大小限制")
+        output_path.write_bytes(content)
+        return content.decode("utf-8")
+    if local_only:
+        raise FileNotFoundError("可信本地目录中未找到 artifact")
     if parsed_url.scheme not in {"http", "https"}:
         raise ValueError("artifactUrl 不是受支持的 HTTP(S) 地址")
     request = Request(artifact_url, headers={"User-Agent": "CreateMyCard-batch"})
@@ -56,6 +75,9 @@ def parse_artifact_blocks(content: str) -> dict[str, Any]:
         if name in blocks:
             raise ValueError(f"artifact 存在重复 block: {name}")
         body = match.group("body")
+        if name == "genui":
+            blocks[name] = body
+            continue
         try:
             blocks[name] = json.loads(body)
         except json.JSONDecodeError:

@@ -1,0 +1,51 @@
+{
+    "content": {
+        "functionName": "generateWidgetCardCompactDsl",
+        "romVersion": "SGT-AL10 7.0.0.105",
+        "bundleName": "com.omega_w_0823.hmservice",
+        "candidateEventCandidates": [],
+        "size": "2x4",
+        "candidateDataBindings": [],
+        "candidateAssetIds": [],
+        "description": "十月北京演出安排",
+        "userQuery": "生成一张静态卡片，展示2026年10月北京的演唱会安排：10月2日五月天诺亚方舟演唱会鸟巢国家体育场，10月5日朴树好好活着演唱会工人体育场，10月8日华晨宇火星演唱会凯迪拉克中心，10月11日新裤子乐队的夏天展览剧场，10月15日陈奕迅FEAR and DREAMS演唱会首都体育馆，10月18日万能青年旅店冀西南林路行 MAO Livehouse，10月23日李宗盛有歌之年演唱会国家体育馆，10月29日草东没有派对北京站场馆待定。",
+        "title": "十月演出清单"
+    },
+    "deviceInfo": {
+        "countryCode": "CN",
+        "deviceFormation": "HDSpeaker",
+        "deviceType": 0,
+        "locale": "zh-CN",
+        "phoneType": "SGT-AL10",
+        "prdVer": "11.8.8.512",
+        "sysVer": "EmotionUI_9.0.0",
+        "time": "20260921090000000"
+    },
+    "pagination": {
+        "limit": 5,
+        "start": ""
+    },
+    "session": {
+        "interactionId": "2",
+        "isNew": false,
+        "sessionId": "57cbb8a0-58cb-4a33-89cb-bbc65acbbd59"
+    },
+    "userAuth": {
+        "user": {}
+    },
+    "utterance": {
+        "original": "",
+        "type": "text"
+    },
+    "version": "1.0",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.105",
+    "bundleName": "com.omega_w_0823.hmservice",
+    "candidateEventCandidates": [],
+    "size": "2x4",
+    "candidateDataBindings": [],
+    "candidateAssetIds": [],
+    "description": "十月北京演出安排",
+    "userQuery": "生成一张静态卡片，展示2026年10月北京的演唱会安排：10月2日五月天诺亚方舟演唱会鸟巢国家体育场，10月5日朴树好好活着演唱会工人体育场，10月8日华晨宇火星演唱会凯迪拉克中心，10月11日新裤子乐队的夏天展览剧场，10月15日陈奕迅FEAR and DREAMS演唱会首都体育馆，10月18日万能青年旅店冀西南林路行 MAO Livehouse，10月23日李宗盛有歌之年演唱会国家体育馆，10月29日草东没有派对北京站场馆待定。",
+    "title": "十月演出清单"
+}

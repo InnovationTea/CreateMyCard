@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 
 from debug_tools.batch_testing import register_batch_routes
 from debug_tools.card_renderer.api import register_renderer_conversion_routes
+from debug_tools.device_debug.api import register_device_routes
 from debug_tools.paths import DEBUG_TOOLS_ROOT, REPOSITORY_ROOT
 
 FRONTEND_DIST = DEBUG_TOOLS_ROOT / "dist"
@@ -51,6 +52,7 @@ def create_frontend_app(
     )
     register_renderer_asset_routes(app)
     register_renderer_conversion_routes(app)
+    register_device_routes(app)
 
     @app.get("/debug/health")
     @app.get("/debug/skills")

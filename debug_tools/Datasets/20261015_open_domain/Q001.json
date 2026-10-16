@@ -1,0 +1,51 @@
+{
+    "content": {
+        "functionName": "generateWidgetCardCompactDsl",
+        "romVersion": "SGT-AL10 7.0.0.105",
+        "bundleName": "com.omega_w_0823.hmservice",
+        "candidateEventCandidates": [],
+        "size": "2x4",
+        "candidateDataBindings": [],
+        "candidateAssetIds": [],
+        "description": "近两月上海演唱会时间",
+        "userQuery": "生成一张静态卡片，展示最近两个月（2026年9月和10月）上海的演唱会时间安排。9月：李荣浩黑马巡回演唱会上海站9月25-26日上海体育场，潘玮柏MAD LOVE ULTRA巡回演唱会上海站9月19日上海虹口足球场，张智霖在巡回演唱会上海站9月19日上海东方体育中心。10月：泠鸢yousa羁绊环游线个人演唱会上海站10月3日回响之地前滩馆，Charlie Puth Whatever's Clever世界巡演上海站10月31日虹口足球场。",
+        "title": "上海演唱会"
+    },
+    "deviceInfo": {
+        "countryCode": "CN",
+        "deviceFormation": "HDSpeaker",
+        "deviceType": 0,
+        "locale": "zh-CN",
+        "phoneType": "SGT-AL10",
+        "prdVer": "11.8.8.512",
+        "sysVer": "EmotionUI_9.0.0",
+        "time": "20260921035929765"
+    },
+    "pagination": {
+        "limit": 5,
+        "start": ""
+    },
+    "session": {
+        "interactionId": "3",
+        "isNew": false,
+        "sessionId": "02624c9e-041d-4325-9942-f8df741306ff"
+    },
+    "userAuth": {
+        "user": {}
+    },
+    "utterance": {
+        "original": "",
+        "type": "text"
+    },
+    "version": "1.0",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.105",
+    "bundleName": "com.omega_w_0823.hmservice",
+    "candidateEventCandidates": [],
+    "size": "2x4",
+    "candidateDataBindings": [],
+    "candidateAssetIds": [],
+    "description": "近两月上海演唱会时间",
+    "userQuery": "生成一张静态卡片，展示最近两个月（2026年9月和10月）上海的演唱会时间安排。9月：李荣浩黑马巡回演唱会上海站9月25-26日上海体育场，潘玮柏MAD LOVE ULTRA巡回演唱会上海站9月19日上海虹口足球场，张智霖在巡回演唱会上海站9月19日上海东方体育中心。10月：泠鸢yousa羁绊环游线个人演唱会上海站10月3日回响之地前滩馆，Charlie Puth Whatever's Clever世界巡演上海站10月31日虹口足球场。",
+    "title": "上海演唱会"
+}

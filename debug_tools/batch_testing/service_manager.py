@@ -16,167 +16,24 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 import psutil
-import yaml
 
+from .managed_config import (
+    canonical_name,
+    config_path,
+    read_configuration,
+    runtime_values,
+    sensitive,
+    validate_changes,
+    yaml_document,
+)
 from .runner import atomic_write_json
 
 _ENV_PREFIX = "WIDGET_SERVICE_"
-@dataclass(frozen=True)
-class ServiceConfigField:
-    env_suffix: str
-    yaml_section: str
-    yaml_name: str
-    value_type: type
-    default: Any
-    exposed: bool = True
-
-
-_SERVICE_CONFIG: dict[str, ServiceConfigField] = {
-    "startupTimeoutSeconds": ServiceConfigField(
-        "DEBUG_SERVICE_STARTUP_TIMEOUT_SECONDS",
-        "batch_testing",
-        "service_startup_timeout_seconds",
-        float,
-        30.0,
-        False,
-    ),
-    "enableGenerationTraceRecording": ServiceConfigField(
-        "ENABLE_GENERATION_TRACE_RECORDING",
-        "batch_testing",
-        "enable_generation_trace_recording",
-        bool,
-        False,
-        False,
-    ),
-    "generationTraceRoot": ServiceConfigField(
-        "GENERATION_TRACE_ROOT",
-        "batch_testing",
-        "trace_root",
-        str,
-        "workspace/traces",
-        False,
-    ),
-    "enableA2uiModelMock": ServiceConfigField(
-        "ENABLE_A2UI_MODEL_MOCK",
-        "batch_testing",
-        "enable_a2ui_model_mock",
-        bool,
-        True,
-    ),
-    "designCompactModelBackend": ServiceConfigField(
-        "DESIGN_COMPACT_MODEL_BACKEND",
-        "model",
-        "design_compact_model_backend",
-        str,
-        "openai",
-    ),
-    "openaiMasterClient": ServiceConfigField(
-        "OPENAI_MASTER_CLIENT", "model", "openai_master_client", str, "deepseek_official_http"
-    ),
-    "openaiFallbackClient": ServiceConfigField(
-        "OPENAI_FALLBACK_CLIENT", "model", "openai_fallback_client", str, "llmclient"
-    ),
-    "deepseekOfficialHttpModel": ServiceConfigField(
-        "DEEPSEEK_OFFICIAL_HTTP_MODEL",
-        "model",
-        "deepseek_official_http_model",
-        str,
-        "deepseek-flash",
-    ),
-    "deepseekOfficialHttpTemperature": ServiceConfigField(
-        "DEEPSEEK_OFFICIAL_HTTP_TEMPERATURE",
-        "model",
-        "deepseek_official_http_temperature",
-        float,
-        0.7,
-    ),
-    "deepseekOfficialHttpTopP": ServiceConfigField(
-        "DEEPSEEK_OFFICIAL_HTTP_TOP_P", "model", "deepseek_official_http_top_p", float, 0.9
-    ),
-    "deepseekOfficialHttpMaxTokens": ServiceConfigField(
-        "DEEPSEEK_OFFICIAL_HTTP_MAX_TOKENS", "model", "deepseek_official_http_max_tokens", int, 8192
-    ),
-    "deepseekOfficialHttpEnableThinking": ServiceConfigField(
-        "DEEPSEEK_OFFICIAL_HTTP_ENABLE_THINKING",
-        "model",
-        "deepseek_official_http_enable_thinking",
-        bool,
-        False,
-    ),
-    "modelMaxConcurrency": ServiceConfigField(
-        "MODEL_MAX_CONCURRENCY", "model", "model_max_concurrency", int, 20, False
-    ),
-    "modelQueueTimeoutSeconds": ServiceConfigField(
-        "MODEL_QUEUE_TIMEOUT_SECONDS", "model", "model_queue_timeout_seconds", float, 120.0, False
-    ),
-    "modelRequestTimeoutSeconds": ServiceConfigField(
-        "MODEL_REQUEST_TIMEOUT_SECONDS",
-        "model",
-        "model_request_timeout_seconds",
-        float,
-        120.0,
-        False,
-    ),
-    "enableModelFailureRetry": ServiceConfigField(
-        "ENABLE_MODEL_FAILURE_RETRY", "model", "enable_model_failure_retry", bool, False
-    ),
-    "modelFailureMaxRetryAttempts": ServiceConfigField(
-        "MODEL_FAILURE_MAX_RETRY_ATTEMPTS", "model", "model_failure_max_retry_attempts", int, 1
-    ),
-    "fallbackModelFailureMaxRetryAttempts": ServiceConfigField(
-        "FALLBACK_MODEL_FAILURE_MAX_RETRY_ATTEMPTS",
-        "model",
-        "fallback_model_failure_max_retry_attempts",
-        int,
-        1,
-    ),
-    "enableOpenaiFallback": ServiceConfigField(
-        "ENABLE_OPENAI_FALLBACK", "model", "enable_openai_fallback", bool, True
-    ),
-    "enableValidationFailureRetry": ServiceConfigField(
-        "ENABLE_VALIDATION_FAILURE_RETRY",
-        "batch_testing",
-        "enable_validation_failure_retry",
-        bool,
-        False,
-    ),
-    "validationFailureMaxRepairAttempts": ServiceConfigField(
-        "VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS",
-        "batch_testing",
-        "validation_failure_max_repair_attempts",
-        int,
-        1,
-    ),
-    "enableCompactDslInterfaceRetry": ServiceConfigField(
-        "ENABLE_COMPACT_DSL_INTERFACE_RETRY",
-        "batch_testing",
-        "enable_compact_dsl_interface_retry",
-        bool,
-        False,
-    ),
-    "compactDslInterfaceRetryCount": ServiceConfigField(
-        "COMPACT_DSL_INTERFACE_RETRY_COUNT",
-        "batch_testing",
-        "compact_dsl_interface_retry_count",
-        int,
-        1,
-    ),
-    "enableArtifactValidation": ServiceConfigField(
-        "ENABLE_ARTIFACT_VALIDATION",
-        "batch_testing",
-        "enable_artifact_validation",
-        bool,
-        True,
-        False,
-    ),
-    "enableArtifactDownloadMock": ServiceConfigField(
-        "ENABLE_ARTIFACT_DOWNLOAD_MOCK",
-        "batch_testing",
-        "enable_artifact_download_mock",
-        bool,
-        True,
-        False,
-    ),
+_NONNEGATIVE_FIELDS = {
+    "compact_dsl_interface_retry_count",
+    "fallback_model_failure_max_retry_attempts",
+    "model_failure_max_retry_attempts",
+    "validation_failure_max_repair_attempts",
 }
 
 _BATCH_CONFIG: dict[str, tuple[str, type, Any]] = {
@@ -187,43 +44,22 @@ _BATCH_CONFIG: dict[str, tuple[str, type, Any]] = {
 }
 
 
-def _parse_env_file(path: Path) -> dict[str, str]:
-    values: dict[str, str] = {}
-    if not path.is_file():
-        return values
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", maxsplit=1)
-        values[key.strip()] = value.strip().strip('"').strip("'")
-    return values
+def _debug_tool_config(project_root: Path) -> dict[str, Any]:
+    return yaml_document(config_path(project_root))
 
 
-def _debug_agent_config(project_root: Path) -> dict[str, Any]:
-    relative = Path("debug_tools/end_to_end_debug/backend/debug_agent.yaml")
-    candidates = (project_root / relative, project_root.parent / relative)
-    path = next((candidate for candidate in candidates if candidate.is_file()), None)
-    if path is None:
-        return {}
-    try:
-        value = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError):
-        return {}
-    return value if isinstance(value, dict) else {}
+def _canonical_name(name: str) -> str:
+    return canonical_name(name)
 
 
-def _yaml_value(config: dict[str, Any], section_name: str, field_name: str, default: Any) -> Any:
-    section = config.get(section_name)
-    if not isinstance(section, dict):
-        return default
-    return section.get(field_name, default)
+def _environment_name(name: str) -> str:
+    return f"{_ENV_PREFIX}{_canonical_name(name).upper()}"
 
 
-def _coerce(value: object, value_type: type, default: Any) -> Any:
-    if value is None:
-        return default
-    if value_type is bool:
+def _coerce(value: object, template: Any) -> Any:
+    if template is None:
+        return value
+    if isinstance(template, bool):
         if isinstance(value, bool):
             return value
         normalized = str(value).strip().lower()
@@ -232,58 +68,58 @@ def _coerce(value: object, value_type: type, default: Any) -> Any:
         if normalized in {"false", "0", "no", "off"}:
             return False
         raise ValueError(f"无法解析布尔配置: {value}")
-    if value_type is int:
+    if isinstance(template, int):
         if isinstance(value, bool):
             raise ValueError("布尔值不能作为整数配置")
         return int(value)
-    if value_type is float:
+    if isinstance(template, float):
         if isinstance(value, bool):
             raise ValueError("布尔值不能作为数值配置")
         return float(value)
-    return str(value)
+    if isinstance(template, (dict, list, tuple)) and isinstance(value, str):
+        return json.loads(value)
+    if isinstance(template, str):
+        return str(value)
+    return value
+
+
+def _mapping(value: object, description: str) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"debug_tool.yaml 中 {description} 必须是对象")
+    return {str(key): item for key, item in value.items()}
 
 
 def load_service_defaults(project_root: Path) -> dict[str, Any]:
-    """只读取允许下发到浏览器的非敏感配置。"""
+    return read_configuration(project_root).public()
 
-    yaml_config = _debug_agent_config(project_root)
-    dotenv = _parse_env_file(project_root / ".env")
-    values: dict[str, Any] = {}
-    sources: dict[str, str] = {}
-    for public_name, field in _SERVICE_CONFIG.items():
-        if not field.exposed:
-            continue
-        environment_name = f"{_ENV_PREFIX}{field.env_suffix}"
-        raw_value = _yaml_value(
-            yaml_config,
-            field.yaml_section,
-            field.yaml_name,
-            field.default,
-        )
-        source = "debug_agent.yaml"
-        if environment_name in dotenv:
-            raw_value = dotenv[environment_name]
-            source = ".env"
-        if environment_name in os.environ:
-            raw_value = os.environ[environment_name]
-            source = "environment"
-        try:
-            values[public_name] = _coerce(raw_value, field.value_type, field.default)
-        except (TypeError, ValueError):
-            values[public_name] = field.default
-            source = "default_invalid_override"
-        sources[public_name] = source
-    return {"values": values, "sources": sources}
+
+def resolve_artifact_workspace(
+    project_root: Path,
+    service_config: dict[str, Any] | None = None,
+) -> Path:
+    values = service_config or {}
+    if "workspace_root" not in values:
+        values = read_configuration(project_root).values
+    value = values.get("workspace_root", project_root / "cloud/workspace")
+    if not isinstance(value, (str, Path)) or not str(value).strip():
+        raise ValueError("微服务 workspace_root 必须是非空路径")
+    workspace = Path(value)
+    if not workspace.is_absolute():
+        workspace = project_root / workspace
+    return workspace.resolve()
 
 
 def load_batch_defaults(project_root: Path) -> dict[str, Any]:
-    yaml_config = _debug_agent_config(project_root)
+    yaml_config = _debug_tool_config(project_root)
     section = yaml_config.get("batch_testing")
     batch_config = section if isinstance(section, dict) else {}
     result: dict[str, Any] = {}
-    for public_name, (yaml_name, value_type, default) in _BATCH_CONFIG.items():
+    for public_name, (yaml_name, _value_type, default) in _BATCH_CONFIG.items():
         try:
-            result[public_name] = _coerce(batch_config.get(yaml_name), value_type, default)
+            raw_value = batch_config.get(yaml_name, default)
+            result[public_name] = _coerce(raw_value, default)
         except (TypeError, ValueError):
             result[public_name] = default
     concurrency = result.get("concurrency")
@@ -292,83 +128,51 @@ def load_batch_defaults(project_root: Path) -> dict[str, Any]:
         or isinstance(concurrency, bool)
         or not 1 <= concurrency <= 16
     ):
-        raise ValueError("debug_agent.yaml 中 batch_testing.concurrency 必须在 1 到 16 之间")
+        raise ValueError("debug_tool.yaml 中 batch_testing.concurrency 必须在 1 到 16 之间")
     max_retries = result.get("maxRetries")
     if (
         not isinstance(max_retries, int)
         or isinstance(max_retries, bool)
         or not 0 <= max_retries <= 5
     ):
-        raise ValueError("debug_agent.yaml 中 batch_testing.max_retries 必须在 0 到 5 之间")
+        raise ValueError("debug_tool.yaml 中 batch_testing.max_retries 必须在 0 到 5 之间")
     request_timeout = result.get("requestTimeoutSeconds")
     if not isinstance(request_timeout, (int, float)) or not 1 <= request_timeout <= 3600:
         raise ValueError(
-            "debug_agent.yaml 中 batch_testing.request_timeout_seconds 必须在 1 到 3600 之间"
+            "debug_tool.yaml 中 batch_testing.request_timeout_seconds 必须在 1 到 3600 之间"
         )
     trace_root = result.get("traceRoot")
     if not isinstance(trace_root, str) or not trace_root.strip():
-        raise ValueError("debug_agent.yaml 中 batch_testing.trace_root 不能为空")
-    return result
-
-
-def _resolved_service_config(config: dict[str, Any], project_root: Path) -> dict[str, Any]:
-    yaml_config = _debug_agent_config(project_root)
-    dotenv = _parse_env_file(project_root / ".env")
-    result: dict[str, Any] = {}
-    for public_name, field in _SERVICE_CONFIG.items():
-        environment_name = f"{_ENV_PREFIX}{field.env_suffix}"
-        raw_value = _yaml_value(
-            yaml_config,
-            field.yaml_section,
-            field.yaml_name,
-            field.default,
-        )
-        if environment_name in dotenv:
-            raw_value = dotenv[environment_name]
-        if environment_name in os.environ:
-            raw_value = os.environ[environment_name]
-        if field.exposed and public_name in config:
-            raw_value = config.get(public_name)
-        result[public_name] = _coerce(raw_value, field.value_type, field.default)
-    startup_timeout = result.get("startupTimeoutSeconds")
-    if not isinstance(startup_timeout, (int, float)) or not 1 <= startup_timeout <= 300:
-        raise ValueError(
-            "debug_agent.yaml 中 batch_testing.service_startup_timeout_seconds "
-            "必须在 1 到 300 之间"
-        )
-    for name in (
-        "modelMaxConcurrency",
-        "modelFailureMaxRetryAttempts",
-        "fallbackModelFailureMaxRetryAttempts",
-        "validationFailureMaxRepairAttempts",
-        "compactDslInterfaceRetryCount",
-    ):
-        value = result.get(name)
-        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise ValueError(f"{name} 必须是非负整数")
+        raise ValueError("debug_tool.yaml 中 batch_testing.trace_root 不能为空")
     return result
 
 
 def validate_service_config(config: dict[str, Any], project_root: Path) -> dict[str, Any]:
-    defaults = load_service_defaults(project_root)["values"]
-    exposed_names = {name for name, field in _SERVICE_CONFIG.items() if field.exposed}
-    unknown = sorted(set(config).difference(exposed_names))
-    if unknown:
-        raise ValueError(f"包含不支持的微服务配置: {', '.join(unknown)}")
-    result = dict(defaults)
-    for public_name, raw_value in config.items():
-        field = _SERVICE_CONFIG[public_name]
-        result[public_name] = _coerce(raw_value, field.value_type, field.default)
-    for name in (
-        "modelFailureMaxRetryAttempts",
-        "fallbackModelFailureMaxRetryAttempts",
-        "validationFailureMaxRepairAttempts",
-        "compactDslInterfaceRetryCount",
-    ):
-        value = result.get(name)
+    """仅返回合法的批跑临时覆盖，不固化默认值。"""
+    configuration = read_configuration(project_root)
+    result = validate_changes(configuration, config, exposed=True)
+    _validate_nonnegative_fields(result)
+    return result
+
+
+def _validate_nonnegative_fields(config: dict[str, Any]) -> None:
+    for name in _NONNEGATIVE_FIELDS:
+        value = config.get(name)
+        if value is None:
+            continue
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise ValueError(f"{name} 必须是非负整数")
-    return result
+
+
+def _service_startup_timeout(project_root: Path) -> float:
+    config = _debug_tool_config(project_root)
+    batch = _mapping(config.get("batch_testing"), "batch_testing")
+    timeout = _coerce(batch.get("service_startup_timeout_seconds", 30.0), 30.0)
+    if not isinstance(timeout, (int, float)) or not 1 <= timeout <= 300:
+        raise ValueError(
+            "debug_tool.yaml 中 batch_testing.service_startup_timeout_seconds 必须在 1 到 300 之间"
+        )
+    return float(timeout)
 
 
 def managed_endpoint(port: int) -> str:
@@ -394,6 +198,7 @@ class ManagedServiceController:
         self.state_path = self.output_root / "managed_service.json"
         self.service: ManagedService | None = None
         self.last_log_path: Path | None = None
+        self.last_public_config: dict[str, Any] | None = None
         self._lifecycle_lock = asyncio.Lock()
 
     async def recover_orphan(self) -> None:
@@ -422,30 +227,44 @@ class ManagedServiceController:
             return await self._ensure(config)
 
     async def _ensure(self, config: dict[str, Any]) -> str:
-        overrides = validate_service_config(config, self.project_root)
-        validated = _resolved_service_config(overrides, self.project_root)
+        configuration = read_configuration(self.project_root)
+        configuration.values.update(validate_changes(configuration, config, exposed=True))
+        validated = runtime_values(configuration)
+        public_config: dict[str, Any] = {}
+        for name, value in validated.items():
+            if sensitive(name):
+                continue
+            if name.endswith("system_prompt"):
+                value = configuration.values.get(name)
+            public_config[name] = value
+        self.last_public_config = public_config
+        _validate_nonnegative_fields(validated)
         fingerprint = hashlib.sha256(
             json.dumps(validated, sort_keys=True, ensure_ascii=False).encode("utf-8")
         ).hexdigest()
         if self.service is not None:
             running = self.service.process.returncode is None
             if running and self.service.fingerprint == fingerprint:
+                public_config.update(server_host="127.0.0.1", server_port=self.service.port)
                 return managed_endpoint(self.service.port)
             await self.stop()
         port = self._find_available_port()
+        public_config.update(server_host="127.0.0.1", server_port=port)
 
         log_root = self.output_root / "service_logs"
         log_root.mkdir(parents=True, exist_ok=True)
         log_path = log_root / f"service_{fingerprint[:12]}.log"
         self.last_log_path = log_path
         environment = os.environ.copy()
+        for key in list(environment):
+            if canonical_name(key) in validated:
+                del environment[key]
+        for name, value in validated.items():
+            environment[_environment_name(name)] = self._environment_value(value)
+            if name.endswith("system_prompt"):
+                environment[f"{_environment_name(name)}_FILE"] = self._environment_value(value)
         environment[f"{_ENV_PREFIX}SERVER_HOST"] = "127.0.0.1"
         environment[f"{_ENV_PREFIX}SERVER_PORT"] = str(port)
-        for public_name, value in validated.items():
-            suffix = _SERVICE_CONFIG[public_name].env_suffix
-            if suffix == "DEBUG_SERVICE_STARTUP_TIMEOUT_SECONDS":
-                continue
-            environment[f"{_ENV_PREFIX}{suffix}"] = self._environment_value(value)
         command = [sys.executable, str(self.project_root / "cloud" / "start_websocket_server.py")]
         creation_flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
         log_handle = log_path.open("ab")
@@ -473,7 +292,7 @@ class ManagedServiceController:
                 "port": port,
             },
         )
-        await self._wait_until_ready(port, float(validated["startupTimeoutSeconds"]))
+        await self._wait_until_ready(port, _service_startup_timeout(self.project_root))
         return managed_endpoint(port)
 
     async def status(self) -> dict[str, Any]:
@@ -525,9 +344,7 @@ class ManagedServiceController:
                     pass
                 await asyncio.sleep(0.2)
         await self.stop()
-        raise RuntimeError(
-            f"受管微服务启动超时，无法访问 {url}，日志: {self.last_log_path}"
-        )
+        raise RuntimeError(f"受管微服务启动超时，无法访问 {url}，日志: {self.last_log_path}")
 
     @staticmethod
     def _find_available_port() -> int:
@@ -540,6 +357,8 @@ class ManagedServiceController:
     def _environment_value(value: Any) -> str:
         if isinstance(value, bool):
             return "true" if value else "false"
+        if isinstance(value, (dict, list, tuple)):
+            return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
         return str(value)
 
 
