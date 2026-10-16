@@ -24,6 +24,7 @@ from services.generation_pipeline import (
 from services.single_step_250.converter import convert_compact_dsl_to_a2ui
 from services.single_step_250.resources import MODEL_FORMAT
 from services.single_step_contract import compact_font_requirements
+from services.single_step_edit import EDIT_FORMAT, source_digest
 from services.single_step_output import SingleStepOutputError, extract_single_step_output
 from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import SourceArtifactError, SourceArtifactLoadResult
@@ -105,6 +106,40 @@ def _converted_standard(standard):
     return convert_compact_dsl_to_a2ui(_as_legacy_source(standard), size="2x4")
 
 
+def _edit_patch_response(messages, desired):
+    if desired == "not-json":
+        return desired
+    payload = json.loads(messages[1].get("content", "{}"))
+    original = payload.get("previousGenui")
+    query = payload.get("editInstruction")
+    assert isinstance(original, str) and isinstance(query, str)
+    field = "fontSize"
+    identity = "title"
+    for candidate in ("backgroundColor", "color", "fontSize"):
+        if candidate in query:
+            field = candidate
+            break
+    for candidate in ("progress", "root", "title"):
+        if candidate in query:
+            identity = candidate
+            break
+    source_update = json.loads(original.splitlines()[1]).get("updateComponents", {})
+    desired_update = json.loads(desired.splitlines()[1]).get("updateComponents", {})
+    source_nodes = source_update.get("components")
+    desired_nodes = desired_update.get("components")
+    assert isinstance(source_nodes, list) and isinstance(desired_nodes, list)
+    node = next(item for item in source_nodes if item.get("id") == identity)
+    edited = next(item for item in desired_nodes if item.get("id") == identity)
+    styles = node.get("styles", {})
+    before = {"exists": field in styles}
+    if field in styles:
+        before["value"] = styles.get(field)
+    return json.dumps({"sourceDigest": source_digest(original), "changes": [{
+        "componentId": identity, "property": f"styles.{field}", "before": before,
+        "value": edited.get("styles", {}).get(field), "requestQuote": query,
+    }]}, ensure_ascii=False)
+
+
 @pytest.fixture
 def single_step_run(monkeypatch):
     settings = get_settings()
@@ -123,8 +158,11 @@ def single_step_run(monkeypatch):
         envelope=None, profiles=[], theme_calls=[],
     )
 
-    def standard_output(client, profile):
-        source = _as_legacy_source(state.standard)
+    def standard_output(client, profile, messages):
+        if (profile or {}).get("format") == EDIT_FORMAT:
+            source = _edit_patch_response(messages, state.standard)
+        else:
+            source = _as_legacy_source(state.standard)
         if state.envelope is None:
             return source
         raw = f"```{state.envelope}\n{source}\n```"
@@ -144,16 +182,16 @@ def single_step_run(monkeypatch):
                                    "componentHints": ["EmphasisText"]}],
                 "layoutHints": ["W-top-bottom"],
             }}, ensure_ascii=False)
-        if model_format == MODEL_FORMAT:
-            return standard_output(_client, profile)
+        if model_format in {MODEL_FORMAT, EDIT_FORMAT}:
+            return standard_output(_client, profile, messages)
         return state.compact_source
 
     async def repair(_client, messages, profile=None, **_kwargs):
         model_format = (profile or {}).get("format")
         state.calls.append(("repair", model_format, copy.deepcopy(messages)))
         state.profiles.append(copy.deepcopy(profile))
-        if model_format == MODEL_FORMAT:
-            return standard_output(_client, profile)
+        if model_format in {MODEL_FORMAT, EDIT_FORMAT}:
+            return standard_output(_client, profile, messages)
         return state.repaired_compact_source
 
     def process(source, _context):
@@ -311,7 +349,7 @@ async def test_all_edit_entries_use_expanded_source_without_token(
     assert edited.status == GenerationStatus.SUCCESS
     assert len(state.calls) == 1
     assert not state.theme_calls
-    assert state.calls[0][1] == MODEL_FORMAT
+    assert state.calls[0][1] == EDIT_FORMAT
     content = state.calls[0][2][1].get("content")
     assert isinstance(content, str)
     payload = json.loads(content)
@@ -359,8 +397,10 @@ def test_prompt_is_isolated_from_fusion_and_previous_input_is_data():
     assert payload.get("previousGenui") == "untrusted source"
     assert "untrusted source" not in prompt[0].get("content", "")
     assert "W-plan-guided" not in prompt[0].get("content", "")
-    repair = SingleStepPromptBuilder.build_repair(prompt, "bad", [{"message": "invalid"}])
-    assert len(repair) == 2
+    repair = SingleStepPromptBuilder.build_repair(
+        prompt, "bad", [{"message": "invalid"}], dsl_format=EDIT_FORMAT,
+    )
+    assert len(repair) == 4
     assert repair[0].get("content", "").startswith(prompt[0].get("content", ""))
 
 
@@ -535,7 +575,7 @@ async def test_edit_result_can_be_edited_again_without_compact_token(single_step
         assert state.saved[-1][1] is None
     assert len(state.calls) == 2
     assert not state.theme_calls
-    assert all(call[1] == MODEL_FORMAT for call in state.calls)
+    assert all(call[1] == EDIT_FORMAT for call in state.calls)
 
 
 def _compact_text(font=18):
@@ -736,11 +776,11 @@ async def test_edit_repair_also_extracts_jsonl(single_step_run, monkeypatch):
     state.standard = "not-json"
     response = await service.generate_widget_card_compact_dsl(GenerateWidgetCardRequest(
         uid="single-step-test", prdVer="11.7.7.331", device={"romVersion": "7.0"},
-        userQuery="仅把标题改为20", sourceArtifactUrl=created.artifactUrl,
+        userQuery="仅把标题字号改为20", sourceArtifactUrl=created.artifactUrl,
     ))
     assert response.status == GenerationStatus.SUCCESS
     assert [call[0] for call in state.calls] == ["generate", "repair"]
-    assert all(call[1] == MODEL_FORMAT for call in state.calls)
+    assert all(call[1] == EDIT_FORMAT for call in state.calls)
 
 
 @pytest.mark.parametrize("text", [
@@ -858,12 +898,69 @@ async def test_themed_card_edit_keeps_font_background_and_progress_overrides(
         state.standard = "\n".join(json.dumps(row, ensure_ascii=False) for row in edited)
         current = await service.generate_widget_card_compact_dsl(GenerateWidgetCardRequest(
             uid="single-step-test", prdVer="11.7.7.331", device={"romVersion": "7.0"},
-            userQuery=f"仅修改{identity}的{key}为{value}", sourceArtifactUrl=current.artifactUrl,
+            userQuery=f"仅修改{identity}的styles.{key}为{value}",
+            sourceArtifactUrl=current.artifactUrl,
         ))
         assert current.status == GenerationStatus.SUCCESS
         assert original.model_dump_json() == original_json
-        assert state.saved[-1][0].genui == _converted_standard(state.standard)
+        actual = [json.loads(line) for line in state.saved[-1][0].genui.splitlines()]
+        assert actual == edited
     assert len(state.calls) == 3
     assert len(state.theme_calls) == 1
     final = state.saved[-1][0].genui
     assert "#FF9C27B0" in final and "#FFE8F0FE" in final
+
+
+@pytest.mark.parametrize("mode", ["full_rewrite", "downstream_change"])
+@pytest.mark.asyncio
+async def test_edit_never_saves_non_target_changes_or_falls_back_to_create(
+    single_step_run, monkeypatch, mode,
+):
+    state = single_step_run
+    service = WidgetGenerationService()
+    created = await service.generate_widget_card_compact_dsl(_request())
+    assert created.status == GenerationStatus.SUCCESS
+    source = state.saved[-1][0]
+    source_json = source.model_dump_json()
+    loaded = SourceArtifactLoadResult(
+        artifact=source, design_token=None, artifact_digest="sha256:source",
+        url_hash="source", read_latency_ms=0.0, parse_latency_ms=0.0, download_mode="mock",
+    )
+    monkeypatch.setattr("services.source_artifact_repository.SourceArtifactRepository.load",
+                        lambda *_args: loaded)
+    monkeypatch.setattr(get_settings(), "validation_failure_max_repair_attempts", 1)
+    state.standard = _standard(font_size=18)
+    state.calls.clear()
+    state.theme_calls.clear()
+    if mode == "full_rewrite":
+        monkeypatch.setattr(
+            "test_single_step_generation._edit_patch_response",
+            lambda _messages, desired: _as_legacy_source(desired),
+        )
+    else:
+        original_build = WidgetGenerationService._build_artifact
+
+        def alter_unrequested_height(service, *args, **kwargs):
+            artifact = original_build(service, *args, **kwargs)
+            records = [json.loads(line) for line in artifact.genui.splitlines()]
+            update = records[1].get("updateComponents", {})
+            components = update.get("components")
+            assert isinstance(components, list)
+            styles = components[0].get("styles")
+            assert isinstance(styles, dict)
+            styles["height"] = 120
+            artifact.genui = "\n".join(json.dumps(record, ensure_ascii=False) for record in records)
+            return artifact
+
+        monkeypatch.setattr(WidgetGenerationService, "_build_artifact", alter_unrequested_height)
+    response = await service.generate_widget_card_compact_dsl(GenerateWidgetCardRequest(
+        uid="single-step-test", prdVer="11.7.7.331", device={"romVersion": "7.0"},
+        userQuery="仅把标题字号改为18", sourceArtifactUrl=created.artifactUrl,
+    ))
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
+    assert len(state.saved) == 1
+    assert len(state.calls) == 2
+    assert all(call[1] == EDIT_FORMAT for call in state.calls)
+    assert not state.theme_calls
+    assert source.model_dump_json() == source_json

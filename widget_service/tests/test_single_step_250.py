@@ -89,23 +89,23 @@ def test_output_keeps_original_compact_rows_until_250_processor(monkeypatch):
     assert result == source
 
 
-def test_edit_has_original_visual_prompt_but_expanded_source_and_explicit_font_priority():
+def test_edit_uses_field_patch_without_original_creation_rules():
     task = TaskSpec(userQuery="标题改16号字", size="2x4", dataModelSchema={})
     prompt = SingleStepPromptBuilder.build(task, {}, previous_genui="EXPANDED_SOURCE")
     system = prompt[0].get("content", "")
     payload = json.loads(prompt[1].get("content", ""))
     original_create = PromptBuilder().build_design_compact(task, SYSTEM_PROMPT)[0].get("content")
-    assert original_create in system
+    assert original_create not in system
     assert "EXPANDED_SOURCE" not in system
     assert payload.get("previousGenui") == "EXPANDED_SOURCE"
     assert "previousDesignToken" not in system
-    assert "视觉修改优先于创建样例" in system
-    assert "输出仍为上述250极简协议" in system
+    assert "只输出一个JSON对象" in system
+    assert "不按任何创建默认规格修正原卡" in system
 
 
 def test_repair_uses_original_250_repair_template():
     task = TaskSpec(userQuery="标题改16号字", size="2x4", dataModelSchema={})
-    prompt = SingleStepPromptBuilder.build(task, {}, previous_genui="source")
+    prompt = SingleStepPromptBuilder.build(task, {})
     errors = [{"message": "invalid"}]
     actual = SingleStepPromptBuilder.build_repair(prompt, "invalid compact", errors)
     expected = PromptBuilder().build_repair(

@@ -87,6 +87,7 @@ from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.single_step_250.resources import MODEL_FORMAT as SINGLE_STEP_MODEL_FORMAT
 from services.single_step_250.resources import UPSTREAM_COMMIT as SINGLE_STEP_UPSTREAM_COMMIT
+from services.single_step_edit import EDIT_FORMAT, SingleStepEditProcessor, source_digest
 from services.single_step_processor import SingleStep250Processor
 from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import (
@@ -371,7 +372,7 @@ class WidgetGenerationService:
                 source_load_result = await to_thread.run_sync(
                     partial(
                         SourceArtifactRepository.restore_asset_paths,
-                        restore_genui=not policy.stores_design_token,
+                        restore_genui=not policy.stores_design_token and not policy.single_step,
                     ),
                     source_load_result,
                     asset_mapping,
@@ -789,6 +790,8 @@ class WidgetGenerationService:
             SingleStep250Processor(post_layout_theme=single_step_theme)
             if policy.single_step else get_dsl_processor(policy.processor_kind)
         )
+        if policy.single_step and source_load_result is not None:
+            processor = SingleStepEditProcessor(source_load_result.artifact.genui)
         from services.prompt_builder import PromptBuilder
 
         report_ops_metrics(body={"cardSizeCode": 1 if card_spec.suggestSize == "2x4" else 0})
@@ -1379,10 +1382,11 @@ class WidgetGenerationService:
             if not processing_result.errors:
                 try:
                     asset_mapping_started_at = time.perf_counter()
-                    processing_result = replace(
-                        processing_result,
-                        standard_dsl=asset_mapper.rewrite_standard(processing_result.standard_dsl),
-                    )
+                    if not isinstance(processor, SingleStepEditProcessor):
+                        processing_result = replace(
+                            processing_result,
+                            standard_dsl=asset_mapper.rewrite_standard(processing_result.standard_dsl),
+                        )
                     with trace_attempt(**validation_attempts):
                         trace_step(
                             "dsl.asset_mapping.completed",
@@ -1518,6 +1522,18 @@ class WidgetGenerationService:
                         validation_errors.append(
                             f"removed data path remains in edited genui: {removed_root}"
                         )
+            if isinstance(processor, SingleStepEditProcessor):
+                preservation_errors = processor.preservation_errors(artifact.genui)
+                validation_errors.extend(preservation_errors)
+                trace_record(
+                    "single_step.edit.patch_verified", stage="singleStepEdit",
+                    status="failed" if preservation_errors else "success",
+                    json_artifacts={"edit_patch_audit": {
+                        "sourceDigest": source_digest(processor.original),
+                        "changes": processor.applied_changes,
+                        "errors": preservation_errors,
+                    }},
+                )
             with trace_attempt(**validation_attempts):
                 trace_step(
                     "artifact_validation.completed",
@@ -2257,13 +2273,13 @@ class WidgetGenerationService:
     def _single_step_policy(
         policy: GenerationRoutePolicy, *, is_edit: bool,
     ) -> GenerationRoutePolicy:
-        """保留后端和实际协议，仅将生成表示切换为独立250极简协议。"""
+        """保留后端；新建用250极简协议，编辑用独立字段补丁。"""
         return replace(
             policy,
             processor_kind=DslProcessorKind.STANDARD_A2UI,
-            source_format=SINGLE_STEP_MODEL_FORMAT,
-            model_profile_id=SINGLE_STEP_MODEL_FORMAT,
-            model_format=SINGLE_STEP_MODEL_FORMAT,
+            source_format=EDIT_FORMAT if is_edit else SINGLE_STEP_MODEL_FORMAT,
+            model_profile_id=EDIT_FORMAT if is_edit else SINGLE_STEP_MODEL_FORMAT,
+            model_format=EDIT_FORMAT if is_edit else SINGLE_STEP_MODEL_FORMAT,
             design_profile_id=None,
             validation_failure_blocking=True,
             stores_design_token=False,

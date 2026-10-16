@@ -312,6 +312,10 @@ class A2UIModelClient:
         protocol_profile: dict,
     ) -> str:
         """按目标 DSL 格式统一处理各模型后端的原始输出。"""
+        if protocol_profile.get("format") == "single-step-edit-patch":
+            from services.single_step_edit import extract_edit_patch
+
+            return extract_edit_patch(raw_output)
         if protocol_profile.get("singleStepOutput") is True:
             try:
                 dsl_text = extract_single_step_output(raw_output)
