@@ -20,6 +20,7 @@ from services.widget_generation_service import WidgetGenerationService
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
     monkeypatch,
 ) -> None:
@@ -128,6 +129,7 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_runtime_plan_mode_repairs_missing_composition_before_dsl(
     monkeypatch,
 ) -> None:

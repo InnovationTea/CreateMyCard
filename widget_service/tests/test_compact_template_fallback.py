@@ -38,6 +38,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     calls: list[str] = []
     processed: list[tuple[str, bool]] = []
     saved: list[str] = []
+    themed: list[str] = []
     notifications: list[str] = []
     fallback_events: list[dict] = []
     body_attempts: list[list[dict[str, str]]] = []
@@ -112,6 +113,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
 
     def process(source, context):
         processed.append((source, context.skip_compact_dsl_validation))
+        assert context.colorless_layout == (source != "template-source")
         assert context.card_spec.get("title") == "静态卡片"
         if source == "template-source":
             assert context.compact_plan is None
@@ -145,6 +147,10 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
                 return ["invalid template binding"]
         return []
 
+    async def theme(artifact, *_args, **_kwargs):
+        themed.append(artifact.genui)
+        return artifact
+
     async def save(store, artifact):
         saved.append(artifact.genui)
         assert store.design_token == artifact.genui
@@ -171,6 +177,8 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     ))
     monkeypatch.setattr(AssetUrlMapper, "rewrite_standard", rewrite)
     monkeypatch.setattr(service_module.ArtifactValidator, "validate", validate)
+    monkeypatch.setattr(service_module.ArtifactValidator, "validate_layout", validate)
+    monkeypatch.setattr("services.post_layout_theme.theme_artifact", theme)
     monkeypatch.setattr(service_module, "JsxA2UIBridge", unexpected_jsx)
     monkeypatch.setattr(service_module, "trace_record", trace_record)
     monkeypatch.setattr(ArtifactStore, "save", save)
@@ -200,6 +208,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
         assert processed == [("template-source", True)]
         assert saved == ["template-source"]
         assert fallback_events == []
+        assert themed == []
     else:
         expected_calls = ["template", "raw-json", "compact-dsl"]
         final_source = "fusion-source"
@@ -209,6 +218,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
         assert calls == expected_calls
         assert processed[-1] == (final_source, False)
         assert saved == ([] if terminal_failure else [final_source])
+        assert themed == ([] if terminal_failure else [final_source])
         assert len(fallback_events) == 1
 
 

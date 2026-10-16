@@ -20,7 +20,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 
 
 @pytest.mark.parametrize(
-    "version", ("app-11.7.5.205_rom-6.0", "app-11.7.7.300_rom-7.0")
+    "version", ("app-11.7.7.300_rom-7.0",)
 )
 def test_app_usage_is_absent_from_runtime_capability_snapshots(version: str) -> None:
     path = get_settings().data_root / "capabilities" / version / "data_capabilities.json"

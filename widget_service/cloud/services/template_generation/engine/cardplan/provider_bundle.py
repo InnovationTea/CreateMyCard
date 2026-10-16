@@ -234,14 +234,12 @@ class ProviderTemplateEntry(StrictModel):
     @model_validator(mode="after")
     def declared_sizes_are_valid(self) -> ProviderTemplateEntry:
         sizes = self.declared_supported_card_sizes
-        if sizes is not None and (not sizes or len(sizes) != len(set(sizes))):
-            raise ValueError(
-                "Provider supportedCardSizes must be non-empty and contain unique sizes"
-            )
-        if sizes is not None and self.capability_id is None:
-            raise ValueError(
-                "Provider supportedCardSizes is only valid for business Templates"
-            )
+        if sizes is None:
+            return self
+        if self.capability_id is None:
+            raise ValueError("Provider supportedCardSizes requires a business Template")
+        if not sizes or len(sizes) != len(set(sizes)):
+            raise ValueError("Provider supportedCardSizes must be nonempty and unique")
         return self
 
     @model_validator(mode="after")

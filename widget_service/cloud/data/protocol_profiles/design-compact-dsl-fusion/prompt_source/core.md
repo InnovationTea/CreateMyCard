@@ -1,6 +1,6 @@
 ---
 name: card-core
-description: 输入输出、绑定、事件授权、素材来源及配色；不定义组件选型、组合或布局槽位。
+description: 输入输出、绑定、事件授权、素材来源及主题阶段边界；不定义组件选型、组合或布局槽位。
 ---
 
 # 核心协议
@@ -60,8 +60,8 @@ description: 输入输出、绑定、事件授权、素材来源及配色；不�
 - 仅通过登记组件的素材属性使用候选，不生成独立图片、emoji、网络 URL、base64、data URI 或猜测路径。
 - 先给按钮分配准确动作图标，再从未占用候选给标题选匹配图标，不为标题撤掉准确按钮图标。可选图标无匹配时省略，必需图标无匹配时换合法组件或布局，保留动作。
 - 默认同一 src 只用一次；独立同类对象、列表重复语义或用户明确要求可复用，各尺寸图标预算仍须满足。
-- SVG 图标按可染色素材处理；合同要求时写 fillColor，自动配色组件不增加该属性。位图保留原色，不写 fillColor。
-- 背景图仅在用户明确要求且素材确属背景/壁纸时使用，不将图标、Logo 拉伸为背景。
+- 单色 SVG 在末尾按主题染色，多色素材及位图保留原色；布局阶段不输出 fillColor。
+- 背景及用户明确的颜色偏好交给末尾主题阶段；不将图标、Logo 拉伸为背景。
 <!-- /prompt:input-candidates -->
 
 <!-- prompt:output -->
@@ -69,7 +69,7 @@ description: 输入输出、绑定、事件授权、素材来源及配色；不�
 
 Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行连续排列，每行一个严格 JSON 数组：
 ```genui
-["root","Layout",{"layout":"S-title-content","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main"]]
+["root","Layout",{"layout":"S-title-content"},["header","main"]]
 ["header","SingleLineTitle",{"title":"卡片标题","fontSize":12}]
 ["main","Group",{"variant":"hero-support"},["primary","support"]]
 ["primary","EmphasisText",{"mainText":"主要内容","fontSize":18}]
@@ -132,31 +132,10 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 <!-- /prompt:typography -->
 
 <!-- prompt:palette -->
-# 十二、配色
+# 十二、布局与主题边界
 
-用户明确配色优先；否则按主业务选固定浅色微渐变：天气/设备/耳机/电量/未知业务蓝色，睡眠/专注/运动/健康紫色，日程/会议/倒计时暖色。多业务无主次用蓝色，不依据样例切换静态告警色。
-
-| 色板 | 渐变起点 | 渐变终点 | 图表主色 | 轨道/动作色 |
-|---|---|---|---|---|
-| 蓝 | #FFCBDDFE | #FFF1F6FE | #FF1F4799 | #331F4799 |
-| 紫 | #FFDBCCFF | #FFF6F2FF | #FF563D99 | #33563D99 |
-| 暖 | #FFFFE0CC | #FFFFF7F2 | #FF8C4B1C | #338C4B1C |
-
-root 写 `linearGradient:{"direction":"RightBottom","colors":[[起点,0],[终点,1]]}`，用真实色值，不同时写 angle、backgroundColor、背景图、阴影或装饰节点。明确要求纯色时用对应终点色，自定义背景保证对比度。
-文字色由组件提供，不输出文字颜色；自动配色按钮不写动作色。需显式颜色的图表按表填写，SVG 按组件合同染色，位图保留原色。
-内容背板2x2为 #CCFFFFFF、2x4为 #99FFFFFF；仅在登记位置使用，不额外套背板、描边、阴影或分隔线。真实动态状态色与多色位图可作局部色彩。
-
-## 融球背景
-
-仅在当前入口允许、2x2单业务、一个内容组、独立事实不超过3项且显式动作不超过1个时优先使用；主题标题和 CTA 不计事实，不为使用融球删必要内容。单会议默认暖色微渐变，明确要求融球才用 schedule-cool；列表、多分区、多组指标和2x4不用融球。
-
-| 业务 | root design |
-|---|---|
-| 明确要求融球的单会议 | fusion-ball-schedule-cool |
-| 其它单日程/提醒 | fusion-ball-schedule-warm |
-| 睡眠/专注 | fusion-ball-sleep-violet |
-| 倒计时/纪念日/运动 | fusion-ball-sport-orange |
-| 耳机/手机电量 | fusion-ball-battery-teal |
-
-融球只写 design，不叠加其它背景或球体参数；图表主色 #FFFFFFFF、轨道 #33FFFFFF，文字和按钮自动适配，不套浅色卡白背板。
+本阶段只生成内容、布局、动作和必要的背板角色，不选择主题、不输出颜色值、渐变、背景图或融球 design。布局定稿后由主题阶段处理用户配色偏好，不能因此改变布局。
+已有内容背板使用 `surfaceRole:"panel"`；可点击背板仍是内容背板，不新增背板、描边、阴影或装饰分隔线。按钮底托由组件提供。
+尺度、留白及主辅关系遵守组件与布局合同，不为装饰使用无比例语义的进度组件，不通过拉大组内间距填满画布。
+单色图标由末尾主题染色，多色素材保留原色；仍须满足候选、图标位和数量限制。天气、充电等动态状态不能由固定图标永久断言。
 <!-- /prompt:palette -->

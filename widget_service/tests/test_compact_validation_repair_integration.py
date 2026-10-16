@@ -57,7 +57,7 @@ def _source() -> CompactDslArtifactSource:
         taskSpec=task.model_dump(mode="json"),
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom6.0-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-6.0",
+            capabilityRegistryVersion="app-11.7.7.300_rom-7.0",
             createdAt=0,
         ),
     )
@@ -131,6 +131,7 @@ async def test_standalone_fixed_rounds_preserve_result_and_exception(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_online_restores_nested_facts_before_formatting_and_preserves_records(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

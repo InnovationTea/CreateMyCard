@@ -11,6 +11,12 @@
 
 ## Fusion 融合后的当前生效约定
 
+2026-10-16：修复语义布局展开重新解析时遗漏模板来源上下文的问题（issue #570）。
+组件类型白名单仍属语法／组件，唯一判定位置为 compact_dsl_a2ui_converter.py 的
+_parse_component_header；generation_pipeline.py 只透传 skip_compact_dsl_validation，
+expand_compact_semantic_layout 将其交给共享解析器。不新增校验分支或错误码，普通模型输入、
+未知组件、保留属性及语义布局角色／尺寸约束保持不变；覆盖模板内部组件与普通输入边界回归。
+
 2026-10-15：TextBlock.items[].label 与 items[].value 一致允许静态值、完整 Expression 和
 PathBinding。该调整归属语法／组件的共享绑定合同，落点 compact_component_bindings.py；直接
 PathBinding 的 string/number/integer 类型相容性仍归属语义／数据绑定，不在分类入口复制检查。
@@ -1098,3 +1104,13 @@ BASE-02 至 BASE-04 同样不在本次文档更新中修正规则。新反馈涉
 当前 147 个结构化规则码均已有关联通过用例；保留的字符串位置不冒充已完成结构化迁移。
 未来出现 `false` 的位置仍需补充分支用例；静态迁移一致性通过不等同于行为或整条修复链路验收通过。
 最新测试结果与待完成事项见[实施与验证记录](Compact_DSL重构实施与验证记录.md)。
+# 后置主题阶段补充（2026-10-14）
+
+- `theme_phase_validator.py`：语法／阶段边界。布局颜色字段只接受内部语义角色，最终产物
+  不得残留角色；不改变既有组件、事实、绑定和几何判定。
+- `semantic/layout/assets.py`：语义／布局与视觉。内部无颜色布局不要求作者提供 SVG 色值，
+  由展开器标注角色并在末尾填色；原色素材保留，原素材候选校验仍执行。
+- `pipeline.py`：编排。内部布局推迟 quality 对比度检查；末尾主题使用完整发布校验。
+- `contrast_validator.py`：质量／视觉对比度。后置主题全幅图片兄弟层无法由祖先底色推导，
+  记录渲染复核警告，不伪报默认白底1:1；显式不透明背板恢复确定底色检查。
+  仅识别固定后置图片包装，不改变模板方案及普通纯色/渐变检查，不属于 Compact 布局规则。

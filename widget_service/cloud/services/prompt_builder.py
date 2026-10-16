@@ -24,7 +24,6 @@ from services.compact_composition_planner import (
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
-from services.fusion_ball_expander import fusion_ball_enabled
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
 _MODULE = "[Prompt Builder]"
@@ -91,12 +90,6 @@ SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_I
 EDIT_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_edit_prompt(DESIGN_COMPACT_PROFILE_ID)
 REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(DESIGN_COMPACT_PROFILE_ID)
 
-_FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
-
-本次请求未启用融球能力。忽略本提示词中所有允许使用融球的场景、规则和示例。
-禁止在任何组件中生成 `fusion-ball-*` Design Token，也禁止用其它组件、渐变、圆形、
-光斑或其它方式模拟融球效果。root 必须按非融球背景规则生成。"""
-
 _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
 本次 TaskSpec 已由程序识别为 2x2 单目标倒计时，参考 FEWSHOT_2x2 的 V23，
@@ -113,8 +106,7 @@ _COUNTDOWN_DISPLAY_ROUTE_LOCK = """# 本次请求固定场景路由（最高优�
   无法提取目标名称时固定使用“倒计时”。
 - 单位只能写“天”，禁止写“天后开始”“天后参加”等长后缀；不得增加日期、状态、
   action_area 或整卡点击，也不得重组为 countdown_group 或其它自由布局。
-- 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
-  `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
+- 本锁只固定布局，主题在布局定稿后处理。"""
 
 _COUNTDOWN_ACTION_ROUTE_LOCK = """# 本次请求固定场景路由（最高优先级）
 
@@ -133,8 +125,7 @@ FEWSHOT_2x2 的 V25，使用标题主次内容单按钮结构，
   不得改绑 root，也不得用普通 Text 模拟按钮。
 - 顶部标题只能是活动、事件等倒计时目标名称；存在可用动态标题且用户要求展示时优先绑定，
   禁止使用日期或时间作为标题，无法提取目标名称时固定使用“倒计时”。
-- 本锁只固定布局。背景仍服从运行时融球开关：允许时使用
-  `fusion-ball-sport-orange`，不允许时使用主提示词第十二节倒计时对应的暖色微渐变。"""
+- 本锁只固定布局，主题在布局定稿后处理。"""
 
 _TWO_BY_TWO_COUNTDOWN_WEATHER_ROUTE_LOCK = """# 本次 2x2 倒计时与天气路由（高优先级）
 
@@ -327,40 +318,6 @@ _ACTION_QUERY_MARKERS = (
     "navigate",
 )
 _PURE_DISPLAY_MARKERS = ("纯展示", "只展示", "不要点击", "不可点击", "不需要操作")
-_CUSTOM_BACKGROUND_MARKERS = (
-    "背景",
-    "配色",
-    "颜色",
-    "渐变",
-    "纯色",
-    "深色",
-    "浅色",
-    "蓝色",
-    "紫色",
-    "暖色",
-    "青色",
-    "绿色",
-    "粉色",
-    "粉红色",
-    "红色",
-    "橙色",
-    "黑色",
-    "白色",
-)
-_DENSE_CONTENT_MARKERS = (
-    "列表",
-    "多条",
-    "多项",
-    "多个指标",
-    "三件",
-    "三条",
-    "三个",
-    "三项",
-    "四个",
-    "四项",
-    "对比",
-    "概览",
-)
 _SIDE_EFFECT_EVENT_MARKERS = (
     "clicktoapi",
     "clicktocallphone",
@@ -1200,43 +1157,6 @@ class PromptBuilder:
         )
 
     @staticmethod
-    def _fusion_ball_recommendation(task_spec: TaskSpec) -> str:
-        """仅对高置信的简单 2x2 单业务提供轻量推荐。"""
-        if task_spec.size != "2x2" or PromptBuilder._data_block_count(task_spec) != 1:
-            return ""
-        if _contains_any(task_spec.userQuery, _CUSTOM_BACKGROUND_MARKERS):
-            return ""
-        if _contains_any(task_spec.userQuery, _DENSE_CONTENT_MARKERS):
-            return ""
-
-        route, _ = PromptBuilder._visual_route(task_spec)
-        supported_route = route in {
-            "countdown",
-            "earphone-status",
-            "battery-readout",
-            "calendar-event",
-        }
-        if route == "health-readout":
-            supported_route = _contains_any(
-                task_spec.userQuery,
-                ("睡眠", "专注", "运动", "步数", "训练"),
-            )
-        if not supported_route:
-            return ""
-
-        if PromptBuilder._query_requests_multiple_actions(task_spec):
-            return ""
-
-        return (
-            "# 本次融球推荐（高优先级）\n\n"
-            "本轮是 2x2 单业务且内容较少，运行时已允许融球。"
-            "若最终仍是单内容组、显式动作不超过一个，且第十二节"
-            "已为当前业务登记融球 Design Token，优先使用该融球。"
-            "推荐只改变背景与对应前景色，不得为融球删除用户必需内容、"
-            "改变骨架或增加装饰节点。"
-        )
-
-    @staticmethod
     def _uses_single_countdown(task_spec: TaskSpec) -> bool:
         if task_spec.size != "2x2":
             return False
@@ -1982,12 +1902,7 @@ class PromptBuilder:
                     constructive_result=constructive_result,
                 )
                 system_prompt = f"{system_prompt}\n\n{worksheet}"
-        if fusion_ball_enabled(task_spec.appVersion):
-            recommendation = PromptBuilder._fusion_ball_recommendation(task_spec)
-            if recommendation:
-                return f"{system_prompt}\n\n{recommendation}"
-            return system_prompt
-        return f"{system_prompt}\n\n{_FUSION_BALL_DISABLED_INSTRUCTION}"
+        return system_prompt
 
     def build(
         self,
