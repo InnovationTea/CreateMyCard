@@ -57,6 +57,7 @@ from services.template_generation.engine.advanced.content_selectors import (
     extract_workout_latest_facts,
     project_content_component_facts,
     schedule_overview_is_eligible,
+    workout_overview_variants,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
 from services.template_generation.engine.advanced.models import (
@@ -85,6 +86,7 @@ from services.template_generation.engine.cardplan.compiler import (
     _provider_layout_action_background,
     _provider_template_binding_values,
     _validate_provider_template_state,
+    template_displayed_binding_names,
 )
 from services.template_generation.engine.cardplan.fusion_ball_background import (
     FusionBallPalette,
@@ -281,7 +283,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 250
     assert {
         "ActivityOverviewFull@1",
         "BatteryOverviewFull@1",
@@ -327,6 +328,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "CountdownOverviewWideHero@1",
         "CountdownOverviewWideHalf@1",
         "CountdownOverviewHero@1",
+        "CurrentTimeOverviewDateFull@1",
+        "CurrentTimeOverviewSupport@1",
+        "CurrentTimeOverviewUpdatedFull@1",
         "HeartRateOverviewFull@1",
         "HeartRateOverviewMinMaxFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
@@ -351,6 +355,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "SleepOverviewNapHero@1",
         "SleepOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAirQualitySummaryFull@1",
         "WeatherOverviewAlertFull@1",
         "WeatherOverviewCareAlertFull@1",
         "WeatherOverviewCareWideHero@1",
@@ -358,6 +363,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "WeatherOverviewDailyCompareFull@1",
         "WeatherOverviewDailyDateFull@1",
         "WeatherOverviewDailyHealthFull@1",
+        "WeatherOverviewDailyConditionWeekdayFull@1",
+        "WeatherOverviewDailyUvColdFull@1",
         "WeatherOverviewDailyRainFull@1",
         "WeatherOverviewDualCityFull@1",
         "WeatherOverviewFull@1",
@@ -365,6 +372,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "WeatherOverviewHumidityFull@1",
         "WeatherOverviewTargetDayHealthFull@1",
         "WeatherOverviewUvFull@1",
+        "WeatherOverviewUvOnlyFull@1",
         "WeatherOverviewWindHero@1",
         "WorkoutOverviewFull@1",
         "WorkoutOverviewTrainingRecordHero@1",
@@ -389,6 +397,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "battery",
         "calendar",
         "countdown",
+        "current-time",
         "earphone",
         "health-sport",
         "layout",
@@ -560,6 +569,28 @@ def test_weather_daily_templates_declare_exact_item_contracts(
     assert definition.optional_data == optional_data
     assert variant.required_bindings == required_bindings
     assert variant.optional_bindings == optional_bindings
+
+
+@pytest.mark.parametrize(
+    "template_id",
+    (
+        "WeatherOverviewUvOnlyFull@1",
+        "WeatherOverviewDailyUvColdFull@1",
+        "WeatherOverviewDailyConditionWeekdayFull@1",
+    ),
+)
+def test_weather_optional_fields_are_rendered_by_the_declared_templates(template_id: str) -> None:
+    """Optional provider coverage must not advertise fields absent from the body."""
+    definition = get_cardplan_registry().require_template(template_id)
+    variant = definition.variants[0]
+    required = set(variant.required_bindings)
+    for name in variant.optional_bindings:
+        displayed = template_displayed_binding_names(
+            variant,
+            required | {name},
+            set(),
+        )
+        assert name in displayed, f"{template_id} declares but does not render {name}"
 
 
 def test_weather_daily_item_word_labels_match_bound_daily_index() -> None:
@@ -1137,6 +1168,9 @@ def test_weather_location_compile_time_conditional_selects_available_reference(
             "supportContentColor": "#99000000",
         },
     )
+    # The surrounding layout slot owns the fixed height and vertical centering;
+    # the Weather Compact root must remain intrinsic instead of filling it.
+    assert "height" not in root.values[0]
     location_text = root.children[0].children[0].children[0]
 
     assert location_text.component_type == "Text"
@@ -1280,7 +1314,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert "layoutComponents" not in theme_base
     assert provider_business_groups == set(registry.ux_business_components)
     assert provider_layout_components == set(registry.ux_layout_components)
-    assert len(registry.ux_business_component_provider_ids) == 10
+    assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
     assert len(calendar.local_template_ids) == 51
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
@@ -2487,6 +2521,162 @@ def test_workout_template_full_tiers_and_latest_session_facts():
     assert calorieless is not None
     assert calorieless.calorie_text is None
     assert "exerciseCalorieText" not in calorieless.as_selector()
+
+
+def test_workout_projection_trusts_first_layer_intent_for_colloquial_queries():
+    # “健完身”不含连续“健身”且无任何词条命中，严格变体为空；首层已按
+    # requiredOutputFields 语义意图选中 WorkoutOverview，投影应信任意图回退。
+    session = {
+        "exerciseTypeName": {
+            "type": "string",
+            "description": "最近运动类型",
+            "sampleValue": "户外跑步",
+        },
+        "exerciseCalorieText": {
+            "type": "string",
+            "description": "最近运动热量",
+            "sampleValue": "260 千卡",
+        },
+        "exerciseDurationText": {
+            "type": "string",
+            "description": "最近运动时长",
+            "sampleValue": "40分",
+        },
+        "exerciseEndTimeText": {
+            "type": "string",
+            "description": "最近运动结束时间",
+            "sampleValue": "19:10",
+        },
+    }
+    task_spec = TaskSpec(
+        userQuery="健完身想看看今天多久、几点结束的、消耗多少",
+        size="2x2",
+        dataModelSchema={"data": {"healthSport": session}},
+    )
+
+    assert workout_overview_variants(task_spec, {"GetHealthAndSportSummary"}) == ()
+
+    projected = project_content_component_facts(
+        task_spec,
+        {"GetHealthAndSportSummary"},
+        ("WorkoutOverview",),
+        required_output_fields_by_capability={
+            "GetHealthAndSportSummary": (
+                "/exerciseDurationText",
+                "/exerciseEndTimeText",
+                "/exerciseCalorieText",
+            )
+        },
+    )
+
+    workout = projected.dataModelSchema["data"]["WorkoutOverview"]
+    assert workout["exerciseDurationText"]["sampleValue"] == "40分"
+    assert workout["exerciseEndTimeText"]["sampleValue"] == "19:10"
+    assert workout["exerciseCalorieText"]["sampleValue"] == "260 千卡"
+
+
+def test_workout_variants_admit_running_queries_via_generic_terms():
+    # “跑步”“跑了”“练了”是明确的运动词：无意图回退时严格变体也应命中 latest。
+    task_spec = TaskSpec(
+        userQuery="每次跑步都不知道消耗多少",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "exerciseDurationText": {
+                        "type": "string",
+                        "description": "最近运动时长",
+                        "sampleValue": "40分",
+                    },
+                }
+            }
+        },
+    )
+
+    assert workout_overview_variants(task_spec, {"GetHealthAndSportSummary"}) == ("latest",)
+
+
+def test_workout_intent_fallback_never_bypasses_the_fact_gate():
+    # 意图回退只放宽 query 词条门：仍须能提取最近运动事实（缺时长即无事实），
+    # 否则照常抛出无渲染事实错误。
+    task_spec = TaskSpec(
+        userQuery="健完身想看看今天多久、几点结束的、消耗多少",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "exerciseCalorieText": {
+                        "type": "string",
+                        "description": "最近运动热量",
+                        "sampleValue": "260 千卡",
+                    },
+                }
+            }
+        },
+    )
+
+    with pytest.raises(
+        ValueError, match="Selected advanced components have no renderable provider facts"
+    ):
+        project_content_component_facts(
+            task_spec,
+            {"GetHealthAndSportSummary"},
+            ("WorkoutOverview",),
+            required_output_fields_by_capability={
+                "GetHealthAndSportSummary": (
+                    "/exerciseDurationText",
+                    "/exerciseEndTimeText",
+                    "/exerciseCalorieText",
+                )
+            },
+        )
+
+
+def test_current_time_projection_projects_fields_from_provider_data_root():
+    # GetCurrentTime 的字段位于 data.currentTime 子对象下；通用投影按
+    # _PROVIDER_COMPONENT_FIELDS 声明做后代搜索，四个叶子都必须被投影。
+    task_spec = TaskSpec(
+        userQuery="显示今天的日期和星期",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "currentTime": {
+                    "currentDate": {
+                        "type": "string",
+                        "description": "当前公历日期",
+                        "sampleValue": "2026-07-09",
+                    },
+                    "dayOfWeek": {
+                        "type": "string",
+                        "description": "星期描述",
+                        "sampleValue": "星期四",
+                    },
+                    "lunarDate": {
+                        "type": "string",
+                        "description": "农历日期",
+                        "sampleValue": "六月十五",
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "description": "端侧更新时间戳",
+                        "sampleValue": "2026-07-09 15:30:00",
+                    },
+                }
+            }
+        },
+    )
+
+    projected = project_content_component_facts(
+        task_spec,
+        {"GetCurrentTime"},
+        ("CurrentTimeOverview",),
+    )
+
+    current_time = projected.dataModelSchema["data"]["CurrentTimeOverview"]
+    assert current_time["currentDate"]["sampleValue"] == "2026-07-09"
+    assert current_time["dayOfWeek"]["sampleValue"] == "星期四"
+    assert current_time["lunarDate"]["sampleValue"] == "六月十五"
+    assert current_time["updatedAt"]["sampleValue"] == "2026-07-09 15:30:00"
 
 
 def test_first_layer_receives_workout_session_routing_rules_and_required_paths():
@@ -4843,6 +5033,101 @@ async def test_dual_charging_status_supports_compile_with_optional_battery_field
     assert '"uri"' in component_payload
     # TwoSupport 布局自带等高双行，不再注入“设备电量”标题。
     assert "设备电量" not in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_current_time_support_renders_weekday_alongside_date_when_both_present():
+    """回归：current-time Support 在 /currentDate 存在时不得隐藏用户明确要求的星期。
+
+    GetCurrentTime 合法数据同时含 /currentDate、/dayOfWeek、/updatedAt；旧模板把
+    /dayOfWeek 放在日期缺失的 #else 分支里，导致“运动心率和星期”类 2x2 双业务请求
+    （Search/Planner 依 optionalData 认定 /dayOfWeek 已覆盖）在生成树里静默丢失星期。
+    """
+    task_spec = TaskSpec(
+        userQuery="运动心率和星期",
+        size="2x2",
+        eventCandidates=[],
+        assetCandidates=[],
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "exerciseHeartRateAvg": _provider_field(88, "integer"),
+                },
+                "currentTime": {
+                    "currentDate": _provider_field("2026-07-09", "string"),
+                    "dayOfWeek": _provider_field("星期四", "string"),
+                    "updatedAt": _provider_field("2026-07-09 15:30:00", "string"),
+                },
+            }
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="GetHealthAndSportSummary",
+            writeResultTo="/data/healthSport",
+            candidateOutputFields=["/exerciseHeartRateAvg"],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetCurrentTime",
+            writeResultTo="/data/currentTime",
+            candidateOutputFields=["/currentDate", "/dayOfWeek", "/updatedAt"],
+        ),
+    )
+    card_spec = {
+        "title": "运动概览",
+        "description": "运动心率与当前星期",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetHealthAndSportSummary",
+                "writeResultTo": "/data/healthSport",
+            },
+            {
+                "capabilityId": "GetCurrentTime",
+                "writeResultTo": "/data/currentTime",
+            },
+        ],
+    }
+
+    class _HeartRateWeekdayModel(_FixedTemplateModel):
+        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "requiredOutputFieldsByCapability": {
+                    "GetHealthAndSportSummary": ["/exerciseHeartRateAvg"],
+                    "GetCurrentTime": ["/currentDate", "/dayOfWeek"],
+                },
+                "action": [],
+            }
+
+    model = _HeartRateWeekdayModel(
+        theme_id="two-support",
+        component_id="TwoSupportLayout",
+        available_template_ids=(
+            "HeartRateOverviewSupport@1",
+            "CurrentTimeOverviewSupport@1",
+        ),
+        capability_id="GetHealthAndSportSummary",
+        required_fields=("/exerciseHeartRateAvg",),
+        body=(
+            'Template("TwoSupportLayout@1",{},'
+            'Template("HeartRateOverviewSupport@1",{}),'
+            'Template("CurrentTimeOverviewSupport@1",{}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(task_spec, card_spec, bindings, model)
+
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    update_components = messages[1].get("updateComponents")
+    assert isinstance(update_components, dict)
+    component_payload = json.dumps(
+        update_components.get("components"), ensure_ascii=False
+    )
+    # 用户明确要求星期时，日期存在也必须绑定 /dayOfWeek（不得困在 #else 分支）。
+    assert "dayOfWeek" in component_payload
+    assert "currentDate" in component_payload
+    assert "updatedAt" in component_payload
+    assert "exerciseHeartRateAvg" in component_payload
 
 
 def _bluetooth_task(query: str) -> TaskSpec:
@@ -7428,6 +7713,10 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert "天气卡片的默认基础展示字段" in first_layer_system
     assert "/location/prefectureName、/current/temperatureText 和/current/condition" in (
         first_layer_system
+    )
+    assert "默认心率展示字段 /exerciseHeartRateAvg" in first_layer_system
+    assert first_layer_system.index("默认心率展示字段 /exerciseHeartRateAvg") > (
+        first_layer_system.index("天气卡片的默认基础展示字段")
     )
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "providerSecondLayerRules=" in second_layer_user

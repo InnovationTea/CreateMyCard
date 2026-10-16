@@ -644,6 +644,98 @@ def test_planner_composes_new_provider_supports_and_consumes_two_actions() -> No
     )
 
 
+def test_planner_pairs_current_time_support_without_any_action() -> None:
+    # Q114 原始形态：健康 + 当前时间双 Support、无任何操作；
+    # _business_action_assignment_options 对空动作必须产出空指派选项。
+    result = TemplateSearchResult(
+        cardSize="2x2",
+        businessCandidates=(
+            TemplateBusinessCandidates(
+                capabilityId="GetHealthAndSportSummary",
+                businessId="HeartRateOverview",
+                explicitFields=("/exerciseHeartRateAvg",),
+                candidates=(
+                    TemplateSearchCandidate(
+                        templateId="HeartRateOverviewSupport@1",
+                        coveredExplicitFields=("/exerciseHeartRateAvg",),
+                    ),
+                ),
+            ),
+            TemplateBusinessCandidates(
+                capabilityId="GetCurrentTime",
+                businessId="CurrentTimeOverview",
+                explicitFields=("/updatedAt",),
+                candidates=(
+                    TemplateSearchCandidate(
+                        templateId="CurrentTimeOverviewSupport@1",
+                        coveredExplicitFields=("/updatedAt",),
+                    ),
+                ),
+            ),
+        ),
+    )
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "GetHealthAndSportSummary": ("/exerciseHeartRateAvg",),
+            "GetCurrentTime": ("/updatedAt",),
+        },
+    )
+    task_spec = TaskSpec(
+        userQuery="同时显示运动心率和数据更新时间",
+        size="2x2",
+        dataModelSchema={},
+    )
+
+    plans = plan_template_candidates(intent, result, task_spec, get_cardplan_registry())
+
+    assert plans
+    assert all(plan.layout_template_id == "TwoSupportLayout@1" for plan in plans)
+    assert all(
+        {slot.template_id for slot in plan.business_slots}
+        == {"HeartRateOverviewSupport@1", "CurrentTimeOverviewSupport@1"}
+        for plan in plans
+    )
+    assert all(not plan.action_assignments for plan in plans)
+    assert all(plan.theme_id == "2x2-two-support" for plan in plans)
+
+
+def test_current_time_standalone_card_is_rejected() -> None:
+    # CurrentTimeOverview 是配对专用业务：仅请求当前时间时不得单独成卡。
+    task = TaskSpec(
+        userQuery="显示端侧数据更新时间",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "currentTime": {
+                    "currentDate": _field("2026-07-09"),
+                    "dayOfWeek": _field("星期四"),
+                    "updatedAt": _field("2026-07-09 15:30:00"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCurrentTime",
+        writeResultTo="/data/currentTime",
+        candidateOutputFields=["/currentDate", "/dayOfWeek", "/updatedAt"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetCurrentTime", "writeResultTo": "/data/currentTime"}
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetCurrentTime": ("/updatedAt",)},
+        primaryOutputFieldByCapability={"GetCurrentTime": "/updatedAt"},
+    )
+    registry = get_cardplan_registry()
+    result = search_template_variants(intent, task, registry, (binding,), card_spec)
+
+    with pytest.raises(TemplateRetrievalMiss, match="cannot form a supported atomic plan"):
+        plan_template_candidates(intent, result, task, registry)
+
+
 def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
     plans = _support_plans()
     assert len(plans) >= 2
