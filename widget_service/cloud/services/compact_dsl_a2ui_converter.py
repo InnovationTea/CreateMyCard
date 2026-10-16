@@ -400,10 +400,14 @@ def parse_compact_dsl_rows(
     return tuple(rows)
 
 
-def expand_compact_semantic_layout(compact_dsl: str, *, size: str) -> tuple[str, dict[str, str]]:
+def expand_compact_semantic_layout(
+    compact_dsl: str, *, size: str, skip_compact_dsl_validation: bool = False,
+) -> tuple[str, dict[str, str]]:
     """显式编译与来源映射用于 Trace；绑定修复和编辑始终保留语义原文。"""
     from services.compact_semantic_layout import expand_semantic_layout_rows
-    rows = _parse_compact_rows(compact_dsl)
+    rows = _parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
     expansion = expand_semantic_layout_rows(rows, size=size)
     if not expansion.origins:
         return compact_dsl, {}

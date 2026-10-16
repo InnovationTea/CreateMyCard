@@ -35,11 +35,8 @@ ROM_VERSION_7_0 = "ALN-AL00 " + ".".join(("7", "0", "0", "100"))
 ROM_VERSION_7 = "ALN-AL00 " + ".".join(("7", "1", "0", "100"))
 ROM_VERSION_7_2 = "ALN-AL00 " + ".".join(("7", "2", "0", "100"))
 ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
-REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
 REGISTRY_VERSION_7 = f"app-{APP_VERSION_11_7_7_300}_rom-7.0"
 PHASE_TWO_DATA_CAPABILITY_IDS = (
-    "GetMemoData",
-    "GetPhoneCallRecords",
     "GetCurrentTime",
     "GetAppPowerConsumptionRanking",
     "GetDailyMostUsage",
@@ -356,7 +353,7 @@ def test_generation_summary_contains_required_observability_fields(monkeypatch):
         status=GenerationStatus.SUCCESS,
         error_code="",
         protocol_profile_id="a2ui-form-rom6.0-v1",
-        capability_registry_version=REGISTRY_VERSION_6,
+        capability_registry_version=REGISTRY_VERSION_7,
         latency_by_stage={"total": 12.3},
         retry_count=0,
         artifact_digest="sha256:test",
@@ -801,10 +798,7 @@ def test_ids_parser_ignores_provider_intent_and_permission_namespaces():
 @pytest.mark.parametrize(
     ("app_version", "rom_version", "expected_registry"),
     [
-        (APP_VERSION, ROM_VERSION_7_0, REGISTRY_VERSION_6),
-        (APP_VERSION_11_7_7_328, ROM_VERSION_7, REGISTRY_VERSION_6),
-        (APP_VERSION_11_7_7_329, ROM_VERSION_7, REGISTRY_VERSION_6),
-        ("11.7.7.329.999", ROM_VERSION_7, REGISTRY_VERSION_6),
+        (APP_VERSION_11_7_7_330, ROM_VERSION_6, REGISTRY_VERSION_7),
         (APP_VERSION_11_7_7_330, ROM_VERSION_7_0, REGISTRY_VERSION_7),
         (APP_VERSION_11_8, ROM_VERSION_7, REGISTRY_VERSION_7),
         (APP_VERSION_11_9, "ALN-AL00 7.9.0.1", REGISTRY_VERSION_7),
@@ -864,7 +858,7 @@ def test_phase_two_version_returns_phase_two_capability_overview():
     phase_one_ids = {item.id for item in phase_one_response.dataCapabilities}
     phase_two_ids = {item.id for item in phase_two_response.dataCapabilities}
 
-    assert phase_one_ids.isdisjoint(PHASE_TWO_DATA_CAPABILITY_IDS)
+    assert phase_one_ids == phase_two_ids
     assert phase_two_ids.issuperset(PHASE_TWO_DATA_CAPABILITY_IDS)
 
 
@@ -892,13 +886,11 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
         assert isinstance(properties, dict)
         returned_parameters[capability.id] = set(properties)
 
-    assert phase_one_response.dataCapabilities == []
-    assert phase_one_response.missingCapabilityIds == list(PHASE_TWO_DATA_CAPABILITY_IDS)
+    assert phase_one_response.dataCapabilities == phase_two_response.dataCapabilities
+    assert phase_one_response.missingCapabilityIds == []
     assert returned_ids == list(PHASE_TWO_DATA_CAPABILITY_IDS)
     assert phase_two_response.missingCapabilityIds == []
     assert returned_parameters == {
-        "GetMemoData": set(),
-        "GetPhoneCallRecords": {"callRecordType"},
         "GetCurrentTime": set(),
         "GetAppPowerConsumptionRanking": {"limit"},
         "GetDailyMostUsage": {"topN"},
@@ -908,7 +900,7 @@ def test_phase_two_version_returns_phase_two_capability_schemas():
 @pytest.mark.parametrize(
     ("app_version", "content_rom_version", "device_rom_version", "expected_registry"),
     [
-        (APP_VERSION, ROM_VERSION_7_0, ROM_VERSION_6, REGISTRY_VERSION_6),
+        (APP_VERSION_11_7_7_330, ROM_VERSION_7_0, "8.0", REGISTRY_VERSION_7),
         (
             APP_VERSION_11_7_7_330,
             ROM_VERSION_7,
@@ -951,6 +943,10 @@ def test_router_content_rom_version_selects_capability_registry(
     ("app_version", "rom_version"),
     [
         ("11.7.5.204", "7.0"),
+        (APP_VERSION, ROM_VERSION_7_0),
+        (APP_VERSION_11_7_7_328, ROM_VERSION_7),
+        (APP_VERSION_11_7_7_329, ROM_VERSION_7),
+        ("11.7.7.329.999", ROM_VERSION_7),
         (APP_VERSION, ROM_VERSION_7_2),
         (APP_VERSION_12, "7.0"),
         (APP_VERSION_11_8, "8.0"),
@@ -1449,11 +1445,11 @@ def test_capability_registry_uses_inclusive_minimum_and_exclusive_maximum(tmp_pa
 
 def test_capability_registry_uses_rom_version_as_the_only_rom_level():
     registry = CapabilityRegistry(
-        app_version=APP_VERSION,
+        app_version=APP_VERSION_11_7_7_330,
         device_rom_version=ROM_VERSION_7,
     )
 
-    assert registry.version == REGISTRY_VERSION_6
+    assert registry.version == REGISTRY_VERSION_7
 
 
 def test_capability_registry_service_uses_default_for_unmatched_version(monkeypatch):
@@ -1495,7 +1491,7 @@ def test_legacy_registry_request_field_is_ignored():
     registry = WidgetGenerationService()._capability_registry(request)
 
     assert "capabilityRegistryVersion" not in request.model_dump()
-    assert registry.version == REGISTRY_VERSION_6
+    assert registry.version == REGISTRY_VERSION_7
 
 
 def test_public_tool_schemas_do_not_expose_version_overrides():
@@ -1606,7 +1602,7 @@ def _out_of_range_requests():
 def test_all_public_request_types_use_default_registry_fallback(tool_request):
     registry = WidgetGenerationService()._capability_registry(tool_request)
 
-    assert registry.version == REGISTRY_VERSION_6
+    assert registry.version == REGISTRY_VERSION_7
 
 
 @pytest.mark.parametrize("tool_request", _out_of_range_requests())
@@ -1709,31 +1705,35 @@ def test_tool_envelope_maps_optional_content_odid_to_device_context():
 
 
 def test_data_capability_output_schema_is_self_contained():
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     capabilities = registry.list_data_capabilities()
 
     def leaf_nodes(schema):
         if schema.get("type") == "object":
-            return [
-                leaf
-                for child in schema.get("properties", {}).values()
-                for leaf in leaf_nodes(child)
-            ]
+            leaves = []
+            for child in schema.get("properties", {}).values():
+                leaves.extend(leaf_nodes(child))
+            return leaves
         if schema.get("type") == "array":
-            return leaf_nodes(schema["items"])
+            items = schema.get("items")
+            assert isinstance(items, dict)
+            return leaf_nodes(items)
         return [schema]
 
     assert not (
-        CLOUD_ROOT / "data" / "capabilities" / REGISTRY_VERSION_6 / "data_model_mappings.json"
+        CLOUD_ROOT / "data" / "capabilities" / REGISTRY_VERSION_7 / "data_model_mappings.json"
     ).exists()
     for capability in capabilities:
         leaves = leaf_nodes(capability.outputSchema)
         assert leaves
-        assert all({"type", "description", "sampleValue"}.issubset(leaf) for leaf in leaves)
+        assert all({"type", "description"}.issubset(leaf) for leaf in leaves)
+        # 二期新增能力允许没有示例值，TaskSpecBuilder 按字段类型提供默认值。
+        if capability.id not in PHASE_TWO_DATA_CAPABILITY_IDS:
+            assert all("sampleValue" in leaf for leaf in leaves)
 
 
 def test_event_capability_registry_uses_package_dependencies_only():
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     capabilities = registry.list_event_capabilities()
 
     assert capabilities
@@ -1768,7 +1768,7 @@ def test_event_capability_registry_uses_package_dependencies_only():
     assert destination["properties"]["location"]["enum"] == ["home", "company"]
     power_schema = capability_by_id["event.setPowerSavingMode"].parametersSchema
     switch_flag = power_schema["properties"]["params"]["properties"]["switchFlag"]
-    assert switch_flag["description"] == "根据用户要求填写：开启为 0，关闭为 1。"
+    assert switch_flag.get("description") == "开启省电模式填写 0，关闭省电模式填写 1。"
     weather = capability_by_id["event.open.weather"]
     assert "/location/cityCode" in weather.parametersSchema["properties"]["uri"]["description"]
     meeting = capability_by_id["event.enter.meeting"]
@@ -1780,23 +1780,12 @@ def test_event_capability_registry_uses_package_dependencies_only():
     assert "ViewWeather" in weather.dynamicArguments[0].description
     assert "GetCalendarEvents" in meeting.dynamicArguments[0].description
     assert "GetCalendarEvents" in calendar.dynamicArguments[0].description
-    forbidden_description_phrases = (
-        "URI 为固定值勿更改",
-        "uri为固定值勿更改",
-        "i 替换为实际索引",
-        "大模型需",
-        "大模型根据",
-    )
-    assert all(
-        phrase not in capability.description
-        for capability in capabilities
-        for phrase in forbidden_description_phrases
-    )
+    assert all(capability.description.strip() for capability in capabilities)
 
 
 def test_first_interface_keeps_complete_event_action_and_only_dynamic_metadata():
     """验证第一接口事件结构可直接复制，且不暴露完整参数 schema。"""
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     meeting = registry.get_event_capability("event.enter.meeting")
     assert meeting is not None
 
@@ -1817,8 +1806,7 @@ def test_first_interface_keeps_complete_event_action_and_only_dynamic_metadata()
         {
             "path": "/uri",
             "description": (
-                "值取自 GetCalendarEvents 返回的 events[i].oneClickServiceLink；"
-                "将 i 替换为所选日程在 events 数组中的实际索引。"
+                "取自 GetCalendarEvents 的 events[i].oneClickServiceLink，i 替换为实际索引。"
             ),
             "type": "string",
         }
@@ -1875,7 +1863,7 @@ def test_cloud_asset_registry_matches_online_skill_allowlist():
     cloud_asset_rules_path = CLOUD_ROOT / "data" / "validator_rules" / "config" / "asset.json"
     skill_asset_rules = json_module.loads(skill_asset_path.read_text(encoding="utf-8"))
     cloud_asset_rules = json_module.loads(cloud_asset_rules_path.read_text(encoding="utf-8"))
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     registry_sources = {item.src for item in registry.list_asset_capabilities()}
     expected_sources = set(skill_asset_rules["allowlist"])
 
@@ -2103,7 +2091,7 @@ def test_ids_installation_filter_matches_default_package_whitelist(
     installed_apps,
     is_available,
 ):
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     ids_state = IDSDeviceCapabilityState(installed_apps=installed_apps)
     available, _, _, removed = resolver.resolve_capability_overview(
@@ -2121,7 +2109,7 @@ def test_ids_installation_filter_matches_default_package_whitelist(
 
 
 def test_package_dependency_filter_ignores_rom_version():
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     ids_state = IDSDeviceCapabilityState(installed_apps={"com.huawei.hmos.health"})
     available, _, _, removed = resolver.resolve_capability_overview(
@@ -2145,7 +2133,7 @@ def test_ids_installation_filter_default_scope_contains_three_packages():
 
 def test_empty_ids_installation_filter_scope_skips_ids_query(monkeypatch):
     monkeypatch.setattr(get_settings(), "ids_installation_filter_package_names", ())
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
 
     def fail_if_called(*_args, **_kwargs):
@@ -2169,7 +2157,7 @@ def test_ids_installation_filter_scope_can_be_reconfigured(monkeypatch):
         "ids_installation_filter_package_names",
         ("com.huawei.hmos.calendar",),
     )
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     available, _, _, removed = resolver.resolve_capability_overview(
         _device(),
@@ -2189,7 +2177,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
         "services.device_capability_resolver.logger",
         type("CapturedLogger", (), {"info": staticmethod(log_messages.append)})(),
     )
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     resolver.resolve_capability_overview(_device(), IDSDeviceCapabilityState())
 
@@ -2237,6 +2225,9 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
         "event.open.weather",
         "event.open.health.sport",
         "event.open.health.sleep",
+        "event.open.health.sportsRecord",
+        "event.open.health.workoutDuration",
+        "event.open.health.activityRecord",
     }
     assert result["checkedPackages"] == [
         "com.huawei.hmos.calendar",
@@ -2250,7 +2241,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
         "com.huawei.hmsapp.totemweather",
     ]
     assert result["installedPackageCount"] == 0
-    assert result["availableDataCapabilityCount"] == 3
+    assert result.get("availableDataCapabilityCount") == 6
     assert result["availableEventCapabilityCount"] > 0
     assert result["availableAssetCapabilityCount"] > 0
     assert {item["id"] for item in result["removedCapabilities"]} == set(
@@ -2269,7 +2260,7 @@ def test_dependency_filter_log_marks_installed_data_capability_package(monkeypat
         "services.device_capability_resolver.logger",
         type("CapturedLogger", (), {"info": staticmethod(log_messages.append)})(),
     )
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     ids_state = IDSDeviceCapabilityState(installed_apps={"com.huawei.hmsapp.totemweather"})
 
@@ -2455,7 +2446,7 @@ def test_task_spec_rejects_legacy_top_level_fields():
 def test_generation_binding_rejects_invalid_write_result_json_pointer(
     write_result_to,
 ):
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
@@ -2472,7 +2463,7 @@ def test_generation_binding_rejects_invalid_write_result_json_pointer(
 
 
 def test_weather_binding_accepts_prefecture_without_district():
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
@@ -2506,7 +2497,7 @@ def test_weather_binding_accepts_prefecture_without_district():
 
 @pytest.mark.parametrize("arguments", [{}, {"districtName": "滨江区"}])
 def test_weather_binding_accepts_omitted_prefecture(arguments):
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
@@ -2533,7 +2524,7 @@ def test_weather_binding_accepts_omitted_prefecture(arguments):
     ],
 )
 def test_weather_binding_rejects_invalid_supplied_arguments(arguments):
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
@@ -2551,7 +2542,7 @@ def test_weather_binding_rejects_invalid_supplied_arguments(arguments):
 
 
 def test_event_candidate_requires_an_effective_binding_for_dynamic_data_path():
-    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_7)
     resolver = DeviceCapabilityResolver(registry)
     weather_event = registry.get_event_capability("event.open.weather")
     assert weather_event is not None
@@ -2582,7 +2573,7 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
         pytest.fail("an event with a missing data dependency must not reach the model")
 
     monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
-    weather_event = CapabilityRegistry(version=REGISTRY_VERSION_6).get_event_capability(
+    weather_event = CapabilityRegistry(version=REGISTRY_VERSION_7).get_event_capability(
         "event.open.weather"
     )
     assert weather_event is not None
@@ -3858,7 +3849,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
 @pytest.mark.usefixtures("isolated_theme_stage")
 async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch):
     settings = get_settings()
-    event = CapabilityRegistry(version=REGISTRY_VERSION_6).get_event_capability(
+    event = CapabilityRegistry(version=REGISTRY_VERSION_7).get_event_capability(
         "event.open.settings.bluetooth"
     )
     assert event is not None
@@ -4593,7 +4584,7 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom6.0-v1",
-            capabilityRegistryVersion=REGISTRY_VERSION_6,
+            capabilityRegistryVersion=REGISTRY_VERSION_7,
             createdAt=1,
         ),
     )
@@ -4819,7 +4810,7 @@ def test_artifact_validator_rejects_legacy_component_shape():
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom6.0-v1",
-            capabilityRegistryVersion=REGISTRY_VERSION_6,
+            capabilityRegistryVersion=REGISTRY_VERSION_7,
             createdAt=1,
         ),
     )

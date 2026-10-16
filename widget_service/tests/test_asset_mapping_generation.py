@@ -59,7 +59,7 @@ def request(**updates):
 
 
 @pytest.fixture
-def storage(tmp_path, monkeypatch):
+def storage(tmp_path, monkeypatch, isolated_theme_stage):
     settings = get_settings()
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "enable_widget_edit", True)
@@ -263,7 +263,10 @@ async def test_generation_maps_before_validation_and_saves_separate_sources(
 
 
 @pytest.mark.asyncio
-async def test_edit_and_legacy_url_migration_preserve_source_artifact(storage, monkeypatch):
+@pytest.mark.parametrize("source_version", ["app-11.7.5.205_rom-6.0", "app-11.7.7.300_rom-7.0"])
+async def test_edit_and_legacy_url_migration_preserve_source_artifact(
+    storage, monkeypatch, source_version
+):
     monkeypatch.setattr(get_settings(), "enable_artifact_validation", False)
     prompts = []
 
@@ -276,11 +279,13 @@ async def test_edit_and_legacy_url_migration_preserve_source_artifact(storage, m
     created = await service.generate_widget_card_compact_dsl(request())
     assert created.status == GenerationStatus.SUCCESS
     source = await asyncio.to_thread(SourceArtifactRepository().load, created.artifactUrl)
+    assert source.artifact.meta.capabilityRegistryVersion == "app-11.7.7.300_rom-7.0"
     source_path = storage / created.artifactUrl.rsplit("/", 1)[-1]
     original_bytes = source_path.read_bytes()
     assert source.design_token is not None
 
     legacy_artifact = source.artifact.model_copy(deep=True)
+    legacy_artifact.meta.capabilityRegistryVersion = source_version
     candidates = legacy_artifact.taskSpec.get("assetCandidates")
     assert isinstance(candidates, list)
     candidates[0]["src"] = URL
@@ -296,6 +301,16 @@ async def test_edit_and_legacy_url_migration_preserve_source_artifact(storage, m
     assert URL not in restored.artifact.genui
     assert candidates[0].get("src") == URL
     assert legacy.design_token is not None and URL in legacy.design_token
+    assert restored.artifact.meta.capabilityRegistryVersion == source_version
+
+    source_url = created.artifactUrl
+    load_artifact = SourceArtifactRepository.load
+
+    def load_historical_source(repository, url):
+        result = legacy if url == source_url else load_artifact(repository, url)
+        return result
+
+    monkeypatch.setattr(SourceArtifactRepository, "load", load_historical_source)
 
     for _ in range(2):
         edited = await service.generate_widget_card_compact_dsl(
@@ -306,6 +321,10 @@ async def test_edit_and_legacy_url_migration_preserve_source_artifact(storage, m
         )
         assert edited.status == GenerationStatus.SUCCESS
         assert edited.artifactUrl != created.artifactUrl
+        edited_source = await asyncio.to_thread(
+            SourceArtifactRepository().load, edited.artifactUrl
+        )
+        assert edited_source.artifact.meta.capabilityRegistryVersion == "app-11.7.7.300_rom-7.0"
         created = edited
     assert source_path.read_bytes() == original_bytes
     for prompt in prompts:

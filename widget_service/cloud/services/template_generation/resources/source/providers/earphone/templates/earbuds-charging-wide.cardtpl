@@ -26,7 +26,13 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
             Image(props.leftEarIcon, {"width": 20, "height": 20, "objectFit": "contain",
               "fillColor": $theme('supportContentColor')})
           #else
-            Text("L", {"fontSize": 12, "fontColor": $theme('primaryColor')})
+          Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          )
           #endif
           )
         ),
@@ -49,7 +55,13 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
             Image(props.rightEarIcon, {"width": 20, "height": 20, "objectFit": "contain",
               "fillColor": $theme('supportContentColor')})
           #else
-            Text("R", {"fontSize": 12, "fontColor": $theme('primaryColor')})
+          Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          )
           #endif
           )
         ),

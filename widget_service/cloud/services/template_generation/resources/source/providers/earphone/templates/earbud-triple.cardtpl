@@ -31,8 +31,13 @@ Column(
                 #if props.leftEarIcon
                     Image(props.leftEarIcon, { "width": 12, "height": 12, "fillColor": "#99FFFFFF" }),
                 #else
-                    Text("左", { "width": 16, "height": 16, "fontSize": 10,
-                        "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1 }),
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
                 #endif
             ),
             Text(Expr('' + data.left + '%'), {
@@ -56,8 +61,13 @@ Column(
                 #if props.rightEarIcon
                     Image(props.rightEarIcon, { "width": 12, "height": 12, "fillColor": "#99FFFFFF" }),
                 #else
-                    Text("右", { "width": 16, "height": 16, "fontSize": 10,
-                        "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1 }),
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
                 #endif
             ),
             Text(Expr('' + data.right + '%'), {
@@ -76,25 +86,25 @@ Column(
             #endif
         ),
         Column({ "width": 36, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
-            "justifyContent": "start", "alignItems": "start" },
-            Stack({ "width": 16, "height": 16, "alignContent": "center" },
+            "justifyContent": "start", "alignItems": #Expr(props.caseIcon ? "start" : "center") },
+            Stack({ "width": #Expr(props.caseIcon ? 16 : 30), "height": 16, "alignContent": "center" },
                 #if props.caseIcon
                     Image(props.caseIcon, { "width": 13.73, "height": 10, "fillColor": "#99FFFFFF" }),
                 #else
-                    Text("盒", { "width": 16, "height": 16, "fontSize": 10,
-                        "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1 }),
+                    Text("耳机盒", { "width": 30, "height": 16, "fontSize": 10,
+                        "fontWeight": 400, "textAlign": "center", "fontColor": $theme('supportContentColor'), "maxLines": 1 }),
                 #endif
             ),
             Text(Expr('' + data.case + '%'), {
                 "width": 36, "height": 16, "fontSize": 12, "fontWeight": 500,
-                "textAlign": "start", "fontColor": "#FFFFFFFF", "maxLines": 1,
+                "textAlign": #Expr(props.caseIcon ? "start" : "center"), "fontColor": "#FFFFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             }),
             #if data.leftCharge && data.rightCharge
                 #if data.caseCharge
             Text(data.caseCharge, {
                 "width": 36, "height": 14, "fontSize": 10, "fontWeight": 400,
-                "textAlign": "start", "fontColor": "#99FFFFFF", "maxLines": 1,
+                "textAlign": #Expr(props.caseIcon ? "start" : "center"), "fontColor": "#99FFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             })
                 #endif

@@ -39,7 +39,7 @@ from services.template_generation.engine.tersel_converter import Nested2Node, Te
 
 _EXPLICIT = "#FF123456"
 _ROOT = Path(__file__).resolve().parents[1]
-_ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json"
+_ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.7.300_rom-7.0/asset_capabilities.json"
 
 
 def _template_source(options: str) -> str:

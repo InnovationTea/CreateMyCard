@@ -192,6 +192,7 @@ class DesignCompactProcessor:
             )
             expanded_source, layout_origins = expand_compact_semantic_layout(
                 source_dsl, size=context.size,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
             if layout_origins:
                 trace_step(
