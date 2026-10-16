@@ -77,6 +77,9 @@ _WIDE_LAYOUTS = (
         "WideFullTwoCompactLayout", ("Hero", "Support"), ("CompactAction",), (None,)
     ),
     WideLayoutOption(
+        "WideFullTwoCompactLayout", ("Full", "Support", "Support"), allows_embedded_action=True
+    ),
+    WideLayoutOption(
         "WideFullTwoCompactLayout", ("Full", "Compact", "Compact"), allows_embedded_action=True
     ),
     WideLayoutOption("WideHalfTwoCompactLayout", ("WideHalf", "Compact", "Compact")),
@@ -421,7 +424,7 @@ def _companion_action_slots(
     task: TaskSpec,
     available_fields_by_capability: dict[str, set[str]],
 ) -> tuple[TemplatePlanBusinessSlot, ...]:
-    """为已选业务枚举可承载单动作的伴生 Compact 槽位。
+    """为已选业务枚举可承载单动作的伴生 Compact 或 Support 槽位。
 
     伴生模板虽然不承载显式字段、不进入 Search 显式字段候选，仍必须先通过
     与普通候选等价的准入检查（尺寸、必需数据、必需素材、事件），
@@ -468,12 +471,16 @@ def _companion_action_slots(
                     support_fields = _rendered_template_fields(
                         definition,
                         task,
-                        available_fields_by_capability.get(capability_by_business[business_id], set()),
+                        available_fields_by_capability.get(
+                            capability_by_business[business_id], set()
+                        ),
                     )
-                    # A layout-owned Support must add a new metric. Do not use
+                    # A layout-owned Support must add a metric or consume its own action.
                     # a Support that only repeats the Full's city/temperature/
                     # condition fields to fill an empty action-side slot.
-                    if not support_fields.difference(already_rendered_fields):
+                    adds_information = bool(support_fields.difference(already_rendered_fields))
+                    consumes_action = supports_business_action(definition, action, "2x4")
+                    if not adds_information and not consumes_action:
                         continue
                 # A Support companion is rendered in a layout-owned slot and
                 # the action is consumed by the sibling root Action slot. It

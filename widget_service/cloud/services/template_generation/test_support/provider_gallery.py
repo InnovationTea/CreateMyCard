@@ -262,6 +262,7 @@ class ProviderTemplateDefinition:
     description: str
     suffix: str
     fields: tuple[str, ...]
+    supported_card_sizes: tuple[str, ...]
     supported_event_ids: tuple[str, ...] = ()
 
 
@@ -452,6 +453,13 @@ def _load_business_definitions(provider_root: Path) -> list[BusinessDefinition]:
 
 def _template_definition(template: dict[str, Any]) -> ProviderTemplateDefinition:
     template_id = str(template["templateId"])
+    suffix = _template_suffix(template_id)
+    declared_card_sizes = template.get("supportedCardSizes")
+    supported_card_sizes = (
+        tuple(str(item) for item in declared_card_sizes)
+        if isinstance(declared_card_sizes, list)
+        else (("2x4",) if suffix.startswith("Wide") else ("2x2",))
+    )
     fields = [
         *template.get("primaryData", []),
         *template.get("secondaryData", []),
@@ -460,8 +468,9 @@ def _template_definition(template: dict[str, Any]) -> ProviderTemplateDefinition
     return ProviderTemplateDefinition(
         template_id=template_id,
         description=str(template.get("description") or "").strip(),
-        suffix=_template_suffix(template_id),
+        suffix=suffix,
         fields=_ordered_unique([str(item) for item in fields]),
+        supported_card_sizes=supported_card_sizes,
         supported_event_ids=tuple(template.get("supportedEventIds", ())),
     )
 
@@ -1086,7 +1095,7 @@ def _support_template_pairs(
     selections: list[GalleryTemplateSelection] = []
     for definition in definitions:
         for template in definition.templates:
-            if template.suffix == "Support":
+            if template.suffix == "Support" and "2x2" in template.supported_card_sizes:
                 selections.append(GalleryTemplateSelection(definition, template))
     partners = sorted(
         (
