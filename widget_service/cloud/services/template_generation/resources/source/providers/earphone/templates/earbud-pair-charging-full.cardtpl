@@ -70,19 +70,19 @@ Column(
     ),
     Column(
       {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+       "alignItems": #Expr(props.caseIcon ? "start" : "center"), "constraintSize": {"minWidth": 0}},
       Stack({"width": #Expr(props.caseIcon ? 16 : 30), "height": 16, "alignContent": "center"},
         #if props.caseIcon
         Image(props.caseIcon, {"width": 12, "height": 12,
           "fillColor": $theme('supportContentColor')}),
         #else
-        Text("耳机盒", {"width": 30, "height": 16, "fontSize": 10, "fontWeight": 400,
+        Text("耳机盒", {"width": 30, "height": 16, "fontSize": 10, "fontWeight": 400, "textAlign": "center",
           "fontColor": $theme('supportContentColor'), "maxLines": 1}),
         #endif
       ),
       Text(Expr('' + data.case + '%'),
         {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
-         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textAlign": #Expr(props.caseIcon ? "start" : "center"), "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     )
   )
