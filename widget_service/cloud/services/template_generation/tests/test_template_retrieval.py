@@ -1079,13 +1079,15 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         registry=registry,
     )
     action = projection.contract.action_bindings[0]
+    assert action.display_label is None
+    generated_label = "查看天气与日程"
     source = (
         'Template("HeroTitleContentActionLayout@1",{},'
         'Template("WeatherOverviewHeroTitle@1",{}),'
         'Template("ScheduleOverviewHeroContent@1",{}),'
         'Template("PillAction@1",'
         + json.dumps(
-            {"actionId": action.action_id, "label": action.display_label},
+            {"actionId": action.action_id, "label": generated_label},
             ensure_ascii=False,
             separators=(",", ":"),
         )
@@ -1133,7 +1135,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
     themed_text_count = 0
     action_buttons = [item for item in components if item.get("component") == "Button"]
     assert len(action_buttons) == 1
-    assert action_buttons[0].get("label") == action.display_label
+    assert action_buttons[0].get("label") == generated_label
     for component in components:
         content_key = "label" if component.get("component") == "Button" else "content"
         content = component.get(content_key)
@@ -1146,7 +1148,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         )
         is_weather_title = any(path in content for path in weather_title_paths)
         is_calendar_title = "/data/calendar/events/0/title" in content
-        if content == action.display_label or is_calendar_title or is_weather_title:
+        if content == generated_label or is_calendar_title or is_weather_title:
             expected_color = (
                 expected_support_color if is_weather_title else expected_primary_color
             )
