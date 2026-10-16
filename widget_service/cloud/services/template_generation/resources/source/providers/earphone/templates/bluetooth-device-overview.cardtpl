@@ -62,14 +62,12 @@ Column(
                 }
             ),
             #else
-            Text("左",
-                {
-                    "width": 12,
-                    "height": 12,
-                    "fontSize": 10,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.left} + '%'`),
@@ -99,14 +97,12 @@ Column(
                 }
             ),
             #else
-            Text("右",
-                {
-                    "width": 12,
-                    "height": 12,
-                    "fontSize": 10,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.right} + '%'`),
@@ -225,12 +221,12 @@ Column(
                 }
             ),
             #else
-            Text("左",
-                {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 12,
-                    "fontWeight": 500
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.left} + '%'`),
@@ -258,12 +254,12 @@ Column(
                 }
             ),
             #else
-            Text("右",
-                {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 12,
-                    "fontWeight": 500
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.right} + '%'`),
@@ -308,12 +304,12 @@ Column(
             }
         ),
         #else
-        Text("左",
-            {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 12,
-                "fontWeight": 500
-            }
+        Stack({"width": 12, "height": 12, "borderRadius": 6,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 12, "height": 12, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
         ),
         #endif
         Text(data.leftChargingStatus,
@@ -344,12 +340,12 @@ Column(
             }
         ),
         #else
-        Text("右",
-            {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 12,
-                "fontWeight": 500
-            }
+        Stack({"width": 12, "height": 12, "borderRadius": 6,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 12, "height": 12, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
         ),
         #endif
         Text(data.rightChargingStatus,
@@ -491,6 +487,14 @@ Column(
                         "objectFit": "contain"
                     }
                 )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
                 #endif
             ),
             Text(Expr('' + data.left + '%'),
@@ -544,6 +548,14 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -742,6 +754,14 @@ Column(
                         "objectFit": "contain"
                     }
                 )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
                 #endif
             ),
             Text(Expr('' + data.left + '%'),
@@ -795,6 +815,14 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -953,23 +981,43 @@ Row(
             )
         ),
         #else
-        Text(Expr('L ' + data.left + '% R ' + data.right + '%'),
-            {
-                "fontSize": 12,
-                "fontWeight": 400,
-                "height": 16,
-                "fontColor": $theme('supportContentColor')
-            }
+        Row({"width": "matchParent", "height": 16, "itemMargin": 2, "alignItems": "center"},
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("L", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.left + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')}),
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("R", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.right + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')})
         )
         #endif
         #else
-        Text(Expr('L ' + data.left + '% R ' + data.right + '%'),
-            {
-                "fontSize": 12,
-                "fontWeight": 400,
-                "height": 16,
-                "fontColor": $theme('supportContentColor')
-            }
+        Row({"width": "matchParent", "height": 16, "itemMargin": 2, "alignItems": "center"},
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("L", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.left + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')}),
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("R", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.right + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')})
         )
         #endif
     ),
@@ -1324,7 +1372,7 @@ Row(
                 }
             ),
             #else
-            Text("耳机仓",
+            Text("耳机盒",
                 {
                     "fontSize": 12,
                     "fontWeight": 500,
@@ -1479,6 +1527,14 @@ Stack(
                             "fillColor": $theme('supportContentColor')
                         }
                     ),
+                    #else
+                    Stack({"width": 16, "height": 16, "borderRadius": 8,
+                      "alignContent": "center", "flexShrink": 0,
+                      "backgroundColor": $theme('supportContentColor')},
+                      Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                        "maxLines": 1})
+                    ),
                     #endif
                     Text("左耳机",
                         {
@@ -1567,6 +1623,14 @@ Stack(
                             "height": 16,
                             "fillColor": $theme('supportContentColor')
                         }
+                    ),
+                    #else
+                    Stack({"width": 16, "height": 16, "borderRadius": 8,
+                      "alignContent": "center", "flexShrink": 0,
+                      "backgroundColor": $theme('supportContentColor')},
+                      Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                        "maxLines": 1})
                     ),
                     #endif
                     Text("右耳机",
@@ -1678,15 +1742,12 @@ Column(
                     }
                 ),
                 #else
-                Text("左",
-                    {
-                        "width": 16,
-                        "height": 16,
-                        "fontSize": 10,
-                        "fontWeight": 400,
-                        "fontColor": "#99FFFFFF",
-                        "maxLines": 1
-                    }
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 ),
                 #endif
             ),
@@ -1742,15 +1803,12 @@ Column(
                     }
                 ),
                 #else
-                Text("右",
-                    {
-                        "width": 16,
-                        "height": 16,
-                        "fontSize": 10,
-                        "fontWeight": 400,
-                        "fontColor": "#99FFFFFF",
-                        "maxLines": 1
-                    }
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 ),
                 #endif
             ),
@@ -1789,11 +1847,11 @@ Column(
                 "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34),
                 "itemMargin": 2,
                 "justifyContent": "start",
-                "alignItems": "start"
+                "alignItems": #Expr(props.caseIcon ? "start" : "center")
             },
             Stack(
                 {
-                    "width": 16,
+                    "width": #Expr(props.caseIcon ? 16 : 30),
                     "height": 16,
                     "alignContent": "center"
                 },
@@ -1806,13 +1864,13 @@ Column(
                     }
                 ),
                 #else
-                Text("盒",
+                Text("耳机盒",
                     {
-                        "width": 16,
+                        "width": 30,
                         "height": 16,
                         "fontSize": 10,
-                        "fontWeight": 400,
-                        "fontColor": "#99FFFFFF",
+                        "fontWeight": 400, "textAlign": "center",
+                        "fontColor": $theme('supportContentColor'),
                         "maxLines": 1
                     }
                 ),
@@ -1824,7 +1882,7 @@ Column(
                     "height": 16,
                     "fontSize": 12,
                     "fontWeight": 500,
-                    "textAlign": "start",
+                    "textAlign": #Expr(props.caseIcon ? "start" : "center"),
                     "fontColor": "#FFFFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1838,7 +1896,7 @@ Column(
                     "height": 14,
                     "fontSize": 10,
                     "fontWeight": 400,
-                    "textAlign": "start",
+                    "textAlign": #Expr(props.caseIcon ? "start" : "center"),
                     "fontColor": "#99FFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1967,6 +2025,14 @@ Column(
                         "objectFit": "contain"
                     }
                 )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
                 #endif
             ),
             Text(Expr('' + data.left + '%'),
@@ -2018,6 +2084,14 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -2135,18 +2209,18 @@ Column(
     Row(
         {
             "width": "matchParent",
-            "height": 12,
+            "height": 26,
             "itemMargin": #Expr(data.case ? 8 : 12),
             "justifyContent": "start",
             "alignItems": "center",
         },
-        Row(
+        Column(
             {
                 "width": 36,
-                "height": 12,
-                "itemMargin": 0,
-                "justifyContent": "spaceBetween",
-                "alignItems": "center",
+                "height": 26,
+                "itemMargin": 2,
+                "justifyContent": "start",
+                "alignItems": "start",
             },
             #if props.leftEarIcon
             Image(props.leftEarIcon,
@@ -2157,29 +2231,30 @@ Column(
                 }
             ),
             #else
-            Text("左",
-                {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 10,
-                    "fontWeight": 400
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr('' + data.left + '%'),
                 {
+                    "width": 36, "height": 12, "maxLines": 1, "flexShrink": 0,
                     "fontColor": $theme('supportContentColor'),
                     "fontSize": 10,
                     "fontWeight": 400
                 }
             )
         ),
-        Row(
+        Column(
             {
                 "width": 36,
-                "height": 12,
-                "itemMargin": 0,
-                "justifyContent": "spaceBetween",
-                "alignItems": "center",
+                "height": 26,
+                "itemMargin": 2,
+                "justifyContent": "start",
+                "alignItems": "start",
             },
             #if props.rightEarIcon
             Image(props.rightEarIcon,
@@ -2190,16 +2265,17 @@ Column(
                 }
             ),
             #else
-            Text("右",
-                {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 10,
-                    "fontWeight": 400
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr('' + data.right + '%'),
                 {
+                    "width": 36, "height": 12, "maxLines": 1, "flexShrink": 0,
                     "fontColor": $theme('supportContentColor'),
                     "fontSize": 10,
                     "fontWeight": 400
@@ -2207,13 +2283,13 @@ Column(
             )
         ),
         #if data.case
-        Row(
+        Column(
             {
                 "width": 36,
-                "height": 12,
-                "itemMargin": 0,
-                "justifyContent": "spaceBetween",
-                "alignItems": "center"
+                "height": 26,
+                "itemMargin": 2,
+                "justifyContent": "start",
+                "alignItems": #Expr(props.caseIcon ? "start" : "center")
             },
             #if props.caseIcon
             Image(props.caseIcon,
@@ -2224,19 +2300,22 @@ Column(
                 }
             ),
             #else
-            Text("盒",
+            Text("耳机盒",
                 {
+                    "width": 30, "height": 12, "maxLines": 1, "flexShrink": 0,
                     "fontColor": $theme('supportContentColor'),
                     "fontSize": 10,
-                    "fontWeight": 400
+                    "fontWeight": 400, "textAlign": "center"
                 }
             ),
             #endif
             Text(Expr('' + data.case + '%'),
                 {
+                    "width": 36, "height": 12, "maxLines": 1, "flexShrink": 0,
                     "fontColor": $theme('supportContentColor'),
                     "fontSize": 10,
-                    "fontWeight": 400
+                    "fontWeight": 400,
+                    "textAlign": #Expr(props.caseIcon ? "start" : "center")
                 }
             )
         )
@@ -2340,6 +2419,14 @@ Column(
                         "objectFit": "contain"
                     }
                 )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
                 #endif
             ),
             Text(Expr('' + data.left + '%'),
@@ -2391,6 +2478,14 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -2514,7 +2609,7 @@ Column(
             }
         ),
         #else
-        Text("耳机仓",
+        Text("耳机盒",
             {
                 "fontColor": $theme('supportContentColor'),
                 "fontSize": 10,
@@ -2813,6 +2908,14 @@ Row(
                         "fillColor": $theme('supportContentColor')
                     }
                 )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
                 #endif
             )
         ),
@@ -2880,6 +2983,14 @@ Row(
                         "objectFit": "contain",
                         "fillColor": $theme('supportContentColor')
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             )
@@ -3024,7 +3135,7 @@ Column(
             "justifyContent": "spaceBetween",
             "alignItems": "top"
         },
-        Text("耳机仓",
+        Text("耳机盒",
             {
                 "width": "matchParent",
                 "fontSize": 14,
