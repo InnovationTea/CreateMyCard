@@ -19,6 +19,7 @@ from services.compact_component_runtime import (
 )
 from services.fusion_ball_expander import (
     FUSION_BALL_DESIGN_TOKENS,
+    build_fusion_ball_content_id,
     expand_fusion_ball_components,
     fusion_ball_enabled,
     fusion_ball_palette_for_root,
@@ -31,6 +32,8 @@ from services.theme_style_roles import COLOR_FIELDS, is_role, resolve_role, unpa
 MANIFEST = Path(__file__).resolve().parents[1] / "data/post_layout_themes.json"
 SELECTION_RULES = MANIFEST.parent / "post_layout_theme_selection.md"
 PREFIX = "__post_theme_"
+FUSION_FOREGROUND_ID = build_fusion_ball_content_id("root")
+_FOREGROUND_IDS = frozenset({PREFIX + "foreground", FUSION_FOREGROUND_ID})
 FUSION_IDS = frozenset(
     {
         "fusionBallBackground",
@@ -65,7 +68,7 @@ def components(records: list[dict]) -> list[dict]:
 def foreground_signature(source: str) -> str:
     records = decode(source)
     found = components(records)
-    wrapped = any(item.get("id") == PREFIX + "foreground" for item in found)
+    wrapped = any(item.get("id") in _FOREGROUND_IDS for item in found)
     original = []
     for item in found:
         identity = item.get("id", "")
@@ -73,10 +76,10 @@ def foreground_signature(source: str) -> str:
             continue
         if wrapped and identity == "root":
             continue
-        if identity.startswith(PREFIX) and identity != PREFIX + "foreground":
+        if identity.startswith(PREFIX) and identity not in _FOREGROUND_IDS:
             continue
         value = copy.deepcopy(item)
-        if identity == PREFIX + "foreground":
+        if identity in _FOREGROUND_IDS:
             value["id"] = "root"
         styles = value.get("styles", {})
         for key in STYLE_KEYS:
@@ -348,7 +351,8 @@ def fusion_background(theme: dict, task: dict) -> list[dict]:
 def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
     records = decode(source)
     nodes = components(records)
-    collision = any(node.get("id") in FUSION_IDS for node in nodes)
+    reserved_ids = FUSION_IDS | {FUSION_FOREGROUND_ID}
+    collision = any(node.get("id") in reserved_ids for node in nodes)
     if collision or any(str(node.get("id", "")).startswith(PREFIX) for node in nodes):
         raise ValueError("Theme must only be applied once")
     palettes = load_visual_recipe_contract().get("palettes", {})
@@ -411,7 +415,8 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
     else:
         if root_styles.get("width") != "matchParent" or root_styles.get("height") != "matchParent":
             raise ValueError("Background wrapper requires a full-size foreground")
-        root["id"] = PREFIX + "foreground"
+        # 融球前景 ID 是端侧防溢出标记，不能改为普通后置主题审计前缀。
+        root["id"] = FUSION_FOREGROUND_ID if kind == "fusion" else PREFIX + "foreground"
         layers = photo_background(theme) if kind == "photo" else fusion_background(theme, task)
         background_id = PREFIX + "background" if kind == "photo" else "fusionBallBackground"
         shell = {
@@ -427,6 +432,8 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
                 "borderRadius": root_styles.get("borderRadius", 20),
             },
         }
+        if kind == "fusion":
+            shell["styles"]["backgroundColor"] = "#00000000"
         nodes[:0] = [shell, *layers]
     result = encode(records)
     if foreground_signature(source) != foreground_signature(result):
