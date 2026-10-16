@@ -28,6 +28,17 @@ describe('card renderer parser', () => {
     expect(sizeForCard('2x4')).toEqual({ width: 300, height: 150 });
   });
 
+  it('defaults dimensionless A2UI to the 2x2 canvas size', async () => {
+    const source = [
+      '{"version":"v0.9","createSurface":{"surfaceId":"preview"}}',
+      '{"version":"v0.9","updateComponents":{"surfaceId":"preview","root":"root","components":[' +
+        '{"id":"root","component":"Column","children":["text"]},' +
+        '{"id":"text","component":"Text","content":"无尺寸卡片"}]}}',
+    ].join('\n');
+
+    expect((await parseInput(source)).surface).toEqual({ width: 150, height: 150 });
+  });
+
   it('resolves size from final CardSpec before query and sample fallback', () => {
     expect(resolveCardSize(
       { suggestSize: '2x4' },
