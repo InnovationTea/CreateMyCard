@@ -66,6 +66,66 @@ def test_missing_display_fact_rechecks_completed_group_capacity(size: str) -> No
     assert feedback.get("qualityErrors") == errors
 
 
+def test_duplicate_display_fact_receives_structured_targeted_guidance() -> None:
+    task = TaskSpec(
+        userQuery="显示最高心率",
+        size="2x2",
+        dataModelSchema={"data": {}},
+    )
+    duplicate_fact = {
+        "requirement": "最高心率",
+        "dataId": "/data/health/max",
+        "expectedVisibleCount": 1,
+        "actualVisibleCount": 2,
+        "occurrences": [
+            {
+                "componentId": "primary",
+                "componentType": "EmphasizedData",
+                "property": "value",
+            },
+            {
+                "componentId": "support",
+                "componentType": "SecondaryBody",
+                "property": "items[0].value",
+            },
+        ],
+    }
+    errors = [
+        {
+            "code": "COMPACT_PLAN_COVERAGE_FAILED",
+            "stage": "validation",
+            "message": "Plan fact is displayed more than once in visible DSL.",
+            "duplicateFacts": [duplicate_fact],
+        }
+    ]
+
+    messages = PromptBuilder().build_repair(
+        [
+            {"role": "system", "content": "contract"},
+            {"role": "user", "content": "{}"},
+        ],
+        "source",
+        errors,
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+        repair_strategy={
+            "scope": "information_group",
+            "repairStrategy": "deduplicate_visible_facts",
+            "instruction": "局部去重。",
+        },
+    )
+
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert feedback.get("duplicateFacts") == [duplicate_fact]
+    assert isinstance(instruction, str)
+    assert "每个报错 dataId 修复后只能保留一个可见位置" in instruction
+    assert "只删除该 item" in instruction
+    assert "同步删除直接父级 children 引用" in instruction
+    assert "SecondaryBody 仍只能作为辅助信息" in instruction
+    assert "本次没有布局或容量错误" not in instruction
+
+
 def test_repair_prompt_localizes_semantic_layout_error_for_model() -> None:
     error = {
         "stage": "validation",

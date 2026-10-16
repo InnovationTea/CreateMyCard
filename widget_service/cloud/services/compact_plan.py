@@ -97,6 +97,9 @@ _VISIBLE_PROP_NAMES = frozenset(
         "externalText",
     }
 )
+_PROGRESS_VALUE_DRIVER_COMPONENTS = frozenset(
+    {"ProgressCircleSingle", "ProgressLine2"}
+)
 _COMPONENT_HINTS = {
     "2x2": (
         *_SHARED_FACT_COMPONENTS,
@@ -502,10 +505,33 @@ def _normalize_composition(
                          "the complete layout contract before generating.")
         groups: list[dict[str, Any]] = []
         for group in region.get("groups"):
-            normalized_group = _composition_group(group, group_schema, index_map, facts, size)
+            normalized_group = _composition_group(
+                group,
+                group_schema,
+                index_map,
+                facts,
+                size,
+            )
             if normalized_group is None:
                 return None, [warning]
-            covered.update(normalized_group.get("factIndexes"))
+            group_indexes = normalized_group.get("factIndexes")
+            if not isinstance(group_indexes, list):
+                return None, [warning]
+            duplicate_data_indexes: set[int] = set()
+            indexes_in_group: set[int] = set()
+            for fact_index in group_indexes:
+                is_duplicate = fact_index in indexes_in_group or fact_index in covered
+                indexes_in_group.add(fact_index)
+                if not is_duplicate or not 0 <= fact_index < len(facts):
+                    continue
+                if isinstance(facts[fact_index].get("dataId"), str):
+                    duplicate_data_indexes.add(fact_index)
+            if duplicate_data_indexes:
+                return None, [
+                    "composition duplicates an info_required data fact across visible "
+                    "placements; assign every dataId to exactly one visible placement."
+                ]
+            covered.update(group_indexes)
             notes.extend(normalized_group.get("placementNotes", []))
             groups.append(normalized_group)
         height = sum(group.get("referenceHeight") for group in groups)
@@ -678,10 +704,6 @@ def _composition_group(
         if component != "SingleLineTitle" or placements not in ([], ["title"]):
             return None
         placements = []
-    elif len(indexes) == 1 and placements == ["value", "displayValue"]:
-        if component not in {"ProgressCircleSingle", "ProgressLine2"}:
-            return None
-        indexes = indexes * 2
     elif len(indexes) == 1 and placements == ["value", "unit"]:
         if component != "EmphasizedData":
             return None
@@ -1159,8 +1181,24 @@ def _component_intent_context(plan: dict[str, Any]) -> str:
 @dataclass(frozen=True)
 class _CompactVisibleState:
     paths: frozenset[str]
+    path_occurrences: tuple[_CompactVisiblePathOccurrence, ...]
     literals: tuple[str, ...]
     handlers: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True)
+class _CompactVisiblePathOccurrence:
+    data_id: str
+    component_id: str
+    component_type: str
+    property_path: str
+
+    def to_payload(self) -> dict[str, str]:
+        return {
+            "componentId": self.component_id,
+            "componentType": self.component_type,
+            "property": self.property_path,
+        }
 
 
 @dataclass(frozen=True)
@@ -1169,10 +1207,12 @@ class CompactPlanCoverageResult:
 
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
+    duplicate_facts: tuple[dict[str, Any], ...] = ()
 
 
 def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleState:
     visible_paths: set[str] = set()
+    path_occurrences: list[_CompactVisiblePathOccurrence] = []
     visible_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
     for component in components:
@@ -1181,12 +1221,27 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
             for key, value in component.props.items()
             if key in _VISIBLE_PROP_NAMES
         }
+        has_separate_progress_readout = (
+            component.component_type in _PROGRESS_VALUE_DRIVER_COMPONENTS
+            and "displayValue" in visible_props
+        )
+        if has_separate_progress_readout:
+            visible_props.pop("value", None)
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
+        for property_name, value in visible_props.items():
+            _collect_visible_path_occurrences(
+                value,
+                component_id=component.component_id,
+                component_type=component.component_type,
+                property_path=property_name,
+                occurrences=path_occurrences,
+            )
         on_click = component.props.get("onClick")
         if isinstance(on_click, list):
             handlers.extend(item for item in on_click if isinstance(item, dict))
     return _CompactVisibleState(
         paths=frozenset(visible_paths),
+        path_occurrences=tuple(path_occurrences),
         literals=tuple(_normalize_text(value) for value in visible_literals),
         handlers=tuple(handlers),
     )
@@ -1200,11 +1255,36 @@ def _compact_fact_coverage_result(
     requirement = fact.get("requirement")
     label = requirement if isinstance(requirement, str) else "unknown requirement"
     data_id = fact.get("dataId")
-    if isinstance(data_id, str) and data_id not in state.paths:
-        return CompactPlanCoverageResult(
-            errors=(f"Plan fact is missing from visible DSL: {label} ({data_id}).",),
-            warnings=(),
+    if isinstance(data_id, str):
+        occurrences = tuple(
+            item for item in state.path_occurrences if item.data_id == data_id
         )
+        if not occurrences:
+            return CompactPlanCoverageResult(
+                errors=(f"Plan fact is missing from visible DSL: {label} ({data_id}).",),
+                warnings=(),
+            )
+        if len(occurrences) > 1:
+            locations = ", ".join(
+                f"{item.component_id} ({item.component_type}).{item.property_path}"
+                for item in occurrences
+            )
+            duplicate_fact = {
+                "requirement": label,
+                "dataId": data_id,
+                "expectedVisibleCount": 1,
+                "actualVisibleCount": len(occurrences),
+                "occurrences": [item.to_payload() for item in occurrences],
+            }
+            return CompactPlanCoverageResult(
+                errors=(
+                    "Plan fact is displayed more than once in visible DSL: "
+                    f"{label} ({data_id}); expected 1, got {len(occurrences)}; "
+                    f"occurrences: {locations}.",
+                ),
+                warnings=(),
+                duplicate_facts=(duplicate_fact,),
+            )
     action_id = fact.get("actionId")
     if isinstance(action_id, str):
         expected = event_handlers.get(action_id)
@@ -1247,6 +1327,7 @@ def evaluate_compact_plan_coverage(
     allowed = set(allowed_omitted_fact_indexes)
     errors: list[str] = []
     warnings: list[str] = []
+    duplicate_facts: list[dict[str, Any]] = []
     facts = plan.get("info_required")
     if not isinstance(facts, list):
         return CompactPlanCoverageResult(
@@ -1259,7 +1340,10 @@ def evaluate_compact_plan_coverage(
         result = _compact_fact_coverage_result(fact, state, event_handlers)
         if index in allowed and "actionId" not in fact:
             continue
-        if information_errors_as_warnings and "actionId" not in fact:
+        if result.duplicate_facts:
+            errors.extend(result.errors)
+            duplicate_facts.extend(result.duplicate_facts)
+        elif information_errors_as_warnings and "actionId" not in fact:
             warnings.extend(result.errors)
         else:
             errors.extend(result.errors)
@@ -1278,7 +1362,11 @@ def evaluate_compact_plan_coverage(
                 "composition; keep the CircleButton anchor layout instead of replacing it "
                 "with a text-action layout that compresses the required content."
             )
-    return CompactPlanCoverageResult(errors=tuple(errors), warnings=tuple(warnings))
+    return CompactPlanCoverageResult(
+        errors=tuple(errors),
+        warnings=tuple(warnings),
+        duplicate_facts=tuple(duplicate_facts),
+    )
 
 
 def compact_plan_coverage_errors(
@@ -1346,8 +1434,10 @@ def compact_plan_optional_drop_candidate(
     compact_dsl: str,
     plan: dict[str, Any] | None,
     task_spec: dict[str, Any],
+    *,
+    allow_must_fallback: bool = True,
 ) -> CompactOptionalDropCandidate | None:
-    """优先选 should-only 组件，并在同类候选中最小化事实损失。"""
+    """优先选 should-only 组件，并按策略决定是否允许 must 兜底。"""
     if not plan:
         return None
     facts = plan.get("info_required")
@@ -1398,7 +1488,9 @@ def compact_plan_optional_drop_candidate(
             fallback_candidates.append(candidate)
         else:
             should_only_candidates.append(candidate)
-    candidates = should_only_candidates or fallback_candidates
+    candidates = should_only_candidates
+    if not candidates and allow_must_fallback:
+        candidates = fallback_candidates
     if not candidates:
         return None
     return min(candidates, key=lambda item: len(item.fact_indexes))
@@ -2019,6 +2111,58 @@ def _collect_paths_and_literals(
     if isinstance(value, list):
         for child in value:
             _collect_paths_and_literals(child, paths, literals)
+
+
+def _collect_visible_path_occurrences(
+    value: Any,
+    *,
+    component_id: str,
+    component_type: str,
+    property_path: str,
+    occurrences: list[_CompactVisiblePathOccurrence],
+) -> None:
+    if isinstance(value, str):
+        for match in _BINDING_PATH.finditer(value):
+            occurrences.append(
+                _CompactVisiblePathOccurrence(
+                    data_id=match.group("path"),
+                    component_id=component_id,
+                    component_type=component_type,
+                    property_path=property_path,
+                )
+            )
+        return
+    if isinstance(value, dict):
+        if set(value) == {"path"} and isinstance(value.get("path"), str):
+            occurrences.append(
+                _CompactVisiblePathOccurrence(
+                    data_id=value["path"],
+                    component_id=component_id,
+                    component_type=component_type,
+                    property_path=property_path,
+                )
+            )
+            return
+        for key, child in value.items():
+            child_path = f"{property_path}.{key}"
+            _collect_visible_path_occurrences(
+                child,
+                component_id=component_id,
+                component_type=component_type,
+                property_path=child_path,
+                occurrences=occurrences,
+            )
+        return
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            child_path = f"{property_path}[{index}]"
+            _collect_visible_path_occurrences(
+                child,
+                component_id=component_id,
+                component_type=component_type,
+                property_path=child_path,
+                occurrences=occurrences,
+            )
 
 
 def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]]:

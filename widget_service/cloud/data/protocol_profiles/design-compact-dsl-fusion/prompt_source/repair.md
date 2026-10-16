@@ -20,12 +20,15 @@ description: 反馈定位、修复范围和有界删除；保留内容与固定�
 | stage/code/message | 区分 conversion/validation，识别实际问题和关联根因，不仅按通用分类猜修法 |
 | category/validatorStage/fileKind/line/jsonPointer | 结合 invalidSourceDsl 定位原组件或 Prop；不猜不存在的行号 |
 | actual/expected/fixHint | 核对实际值及约束；建议不能覆盖合同和删除授权 |
+| duplicateFacts/occurrences | 报错 dataId 的重复可见位置，逐项定位，不当成缺失事实 |
 | Occupancy | 子区实际最小占高及间距，找到共同超预算来源 |
 | Alternatives | 一个完整合法变体的全部不匹配项，不能只修 closest 的几项或混用变体 |
 | previousFailures/noProgress/consecutiveFailures | 判断是否重复根因；noProgress 或连续失败≥2时不只改 ID、颜色或无关属性 |
 | compositionRecovery/组合工作表 | 仅本轮实际提供时使用；没有时按原始组件合同和实际反馈核算 |
 
 expanded 位置来自模板展开，不是模型 Props。回到原语义 Layout/Region/Group 或业务组件修复，不输出自动生成节点，不修改模板宽高、间距、padding、权重或对齐。一个展开错误可能来自同一上游绑定或容量根因，先合并分析再修改。
+
+展示事实重复时，每个报错 dataId 只保留一个具有明确对象、标签、完整值和单位的位置，不因字号更大保留含义不清的裸值。SecondaryBody 仅删重复 item；多字段 Expression 仅移除重复引用，保留其它事实。组件仍有内容则保留，变空才删除组件行及直接父引用。不得改 Plan、删唯一展示或数据行、静态化动态值、影响未报错事实与 Action。去重后确认报错字段各出现一次、无空组件或孤立引用，核心组件及信息组语义仍成立。
 
 ## 2. 按 scope 控制改动
 
@@ -54,7 +57,7 @@ component_contract_repair 处理组件合同；parent_layout_recompose 重新分
 
 | 实际问题 | 最小合法处理 |
 |---|---|
-| InfoBlock 的 progressCircle 主值格式错误 | 保留 visual/icon/fillColor，同一数值改原始 PathBinding，百分号放 unit；不删环绕过校验 |
+| InfoBlock 的 progressCircle 主值格式错误 | 保留 visual/icon，同一数值改原始 PathBinding，百分号放 unit；不删环绕过校验 |
 | SecondaryBody 动态 label | 保留静态标签；动态部分与原 value 按显示顺序合入同项完整 value Expression，保留全部绑定 |
 | SecondaryBody 项数/字号/宽度 | 最多6项，只移除未被 Plan 要求的重复或可选项；必要项改组合。按最终单/多行使用规定字号；长值可 columns:1、maxLines:2并计新增行高 |
 | EmphasizedData 误装多段时长 | 完整绑定迁入 EmphasisText.mainText 固定18fp，辅助时长保持正文规格；不截数字或删单位 |

@@ -33,6 +33,40 @@ def test_component_contract_migrates_without_stopping_before_global_limit() -> N
     assert resumed_targeted.retryable is True
 
 
+def test_duplicate_plan_fact_uses_targeted_then_escalated_repair() -> None:
+    tracker = CompactRepairStrategyTracker()
+    issue = _issue(
+        "Plan fact is displayed more than once in visible DSL: 最高心率 "
+        "(/data/health/max); expected 1, got 2.",
+        code="COMPACT_PLAN_COVERAGE_FAILED",
+    )
+    issue["duplicateFacts"] = [
+        {
+            "requirement": "最高心率",
+            "dataId": "/data/health/max",
+            "expectedVisibleCount": 1,
+            "actualVisibleCount": 2,
+            "occurrences": [],
+        }
+    ]
+
+    first = tracker.next_directive("dsl-v1", [issue])
+    second = tracker.next_directive("dsl-v2", [issue])
+    third = tracker.next_directive("dsl-v3", [issue])
+
+    assert first.repair_strategy == "deduplicate_visible_facts"
+    assert first.scope == "information_group"
+    assert first.retry_target == "dsl_local_repair"
+    assert "每个报错 dataId 最终只在一个可见属性中出现" in first.instruction
+    assert "删除数据行" in first.instruction
+    assert second.repair_strategy == "parent_layout_recompose"
+    assert second.scope == "parent_layout"
+    assert "上一轮局部去重未闭合" in second.instruction
+    assert third.repair_strategy == "plan_guided_recompose"
+    assert third.scope == "full_dsl"
+    assert "为每个 dataId 只分配一个可见位置" in third.instruction
+
+
 def test_info_block_progress_value_error_gets_precise_non_degrading_repair() -> None:
     tracker = CompactRepairStrategyTracker()
     errors = [
@@ -142,6 +176,79 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     assert transition.fallback_attempt == 2
     assert transition.fallback_remaining_attempts == 0
     assert transition.retryable is True
+
+
+def test_capacity_recovery_drops_should_only_candidate_on_first_layout_failure() -> None:
+    tracker = CompactRepairStrategyTracker(capacity_recovery=True)
+    errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "补充开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/start",
+            }
+        ]
+    }
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {"data": {"calendar": {"start": {"type": "string"}}}},
+        "eventCandidates": [],
+    }
+    source = (
+        '["root","Column",{},["time"]]\n'
+        '["time","SecondaryBody",{"items":'
+        '[{"value":{"path":"/data/calendar/start"}}]}]'
+    )
+
+    directive = tracker.next_directive(
+        source,
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert directive.repair_strategy == "drop_optional_component"
+    assert directive.optional_drop is not None
+    assert directive.optional_drop.component_id == "time"
+    assert directive.optional_drop.contains_must_facts is False
+
+
+def test_capacity_recovery_never_uses_must_fact_as_drop_fallback() -> None:
+    tracker = CompactRepairStrategyTracker(capacity_recovery=True)
+    errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "核心状态",
+                "priority": "must",
+                "dataId": "/data/device/status",
+            }
+        ]
+    }
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {"data": {"device": {"status": {"type": "string"}}}},
+        "eventCandidates": [],
+    }
+    directives = []
+    for attempt in range(5):
+        source = (
+            f'["root","Column",{{"itemMargin":{attempt}}},["status"]]\n'
+            '["status","EmphasisText",{"mainText":'
+            '{"path":"/data/device/status"}}]'
+        )
+        directives.append(
+            tracker.next_directive(
+                source,
+                errors,
+                compact_plan=plan,
+                task_spec=task_spec,
+            )
+        )
+
+    assert all(item.repair_strategy != "drop_optional_component" for item in directives)
+    assert tracker.allowed_omitted_fact_indexes == ()
 
 
 def test_multi_region_overflow_with_missing_fact_recomposes_parent_immediately() -> None:

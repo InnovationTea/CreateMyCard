@@ -13,6 +13,7 @@ from models.capability import (
 )
 from models.generation import (
     CandidateDataBinding,
+    CompactDslRetryContext,
     DeviceContext,
     EventAction,
     GenerationOptions,
@@ -154,6 +155,7 @@ class ToolRequestEnvelope(BaseModel):
 class VersionedToolRequest(BaseModel):
     _model_request_context: ModelRequestContext | None = PrivateAttr(default=None)
     _raw_request_body: str | None = PrivateAttr(default=None)
+    _compact_dsl_retry_context: CompactDslRetryContext | None = PrivateAttr(default=None)
 
     locale: str = "zh-CN"
     uid: str
@@ -270,6 +272,8 @@ class WidgetCardServiceRequest(VersionedToolRequest):
 
 
 class GenerateWidgetCardResponse(BaseModel):
+    _compact_dsl_retry_context: CompactDslRetryContext | None = PrivateAttr(default=None)
+
     status: GenerationStatus
     artifactUrl: str = ""
     artifactDigest: str = ""

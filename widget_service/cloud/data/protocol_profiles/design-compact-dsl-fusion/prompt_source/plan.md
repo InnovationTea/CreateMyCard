@@ -45,7 +45,7 @@ actions 按 info_required 动作顺序逐项选择匹配 assetId；无匹配填 
 - layout/variant 选择一个完整合法父布局及从1开始的变体；动作数适配。
 - regions.path 使用从 root 开始的实际子序号；referenceWidth/referenceHeight 是扣除内边距和动作后的真实容量，不输出固定几何。
 - groups 每项代表一个组件实例。factIndexes 为 info_required 的0起始索引；placements 逐项对应真实可见 Prop，如 items[0].value、title、label。
-- 同一事件要素在同一 item；同一进度事实可重复索引对应 value/displayValue，但不增重复 info_required。静态单位不占事实索引，独立单位字段才有自己的索引。
+- 同一事件要素在同一 item；每条 dataId 事实仅一个可见 placement；进度实例也不把同一事实同时分配给 value 和 displayValue。静态单位不占事实索引，独立单位字段才有自己的索引。
 - 装饰 SingleLineTitle 可用空 factIndexes/placements，仍计高度；其它组件不得空事实。各事实和动作落在唯一正确对象，不能在父区和子区重复安排同一槽。
 - 填实际 component 及必要 variant/density/columns/lines/labelLines，按组件规格和布局预算合计。双列分别放下完整标签和值；长值用合法单列/多行。SecondaryBody 仍须搭配整卡核心组件。
 - 必填 Props、角色数及全部事实齐全；S-title-anchor 独立支撑不能为零，TextBlock 一个实例须承载所分配的2–4项。任一区 remainingHeight 为负则重组，不靠权重、缩字或遗漏闭合。

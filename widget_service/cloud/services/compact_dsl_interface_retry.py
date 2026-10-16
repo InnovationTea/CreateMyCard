@@ -7,6 +7,7 @@ from api.schemas import GenerateWidgetCardRequest, GenerateWidgetCardResponse
 from app.logger import logger
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelGenerationError
+from models.generation import CompactDslRetryContext
 from services.artifact_store import ArtifactUploadError
 from services.generation_trace_recorder import (
     trace_attempt,
@@ -45,10 +46,15 @@ async def run_compact_dsl_with_retry(
     snapshot = request.model_copy(deep=True) if enabled else request
     max_attempts = retry_count + 1 if enabled else 1
     attempt = 0
+    retry_context: CompactDslRetryContext | None = None
     while True:
         attempt += 1
         started_at = time.perf_counter()
-        context = f"request_id={request_id} attempt={attempt} max_attempts={max_attempts}"
+        recovery_mode = bool(retry_context and retry_context.capacity_recovery)
+        context = (
+            f"request_id={request_id} attempt={attempt} max_attempts={max_attempts} "
+            f"capacity_recovery={recovery_mode}"
+        )
         logger.info(f"{_MODULE} interface_attempt_started {context}")
         trace_observe_attempt("interfaceAttempts", attempt)
         with (
@@ -56,7 +62,11 @@ async def run_compact_dsl_with_retry(
             trace_span(
                 "interface.attempt",
                 stage="interfaceAttempt.total",
-                details={"attempt": attempt, "maxAttempts": max_attempts},
+                details={
+                    "attempt": attempt,
+                    "maxAttempts": max_attempts,
+                    "capacityRecovery": recovery_mode,
+                },
                 kind="group",
             ) as attempt_span,
         ):
@@ -68,6 +78,7 @@ async def run_compact_dsl_with_retry(
             )
             try:
                 attempt_request = snapshot.model_copy(deep=True) if enabled else request
+                attempt_request._compact_dsl_retry_context = retry_context
                 result = await operation(attempt_request)
             except (
                 A2UIModelGenerationError,
@@ -106,6 +117,7 @@ async def run_compact_dsl_with_retry(
                 retryable = (
                     result.status == GenerationStatus.FAILED and reason in _RETRYABLE_ERROR_CODES
                 )
+                retry_context = result._compact_dsl_retry_context if retryable else None
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(
                     f"{_MODULE} interface_attempt_finished {context} "

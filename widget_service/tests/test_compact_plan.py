@@ -312,6 +312,31 @@ def test_sparse_card_composition_groups_freshness_with_core() -> None:
     assert result.plan.get("composition") is not None
 
 
+def test_composition_rejects_duplicate_fact_placements() -> None:
+    with pytest.raises(
+        CompactPlanValidationError,
+        match="duplicates an info_required data fact across visible placements",
+    ):
+        parse_compact_plan_call(
+            freshness_plan_call(
+                composition_groups=[
+                    {
+                        "component": "EmphasisText",
+                        "factIndexes": [0, 0, 1],
+                        "placements": [
+                            "mainText",
+                            "secondaryText",
+                            "supportingText",
+                        ],
+                        "referenceHeight": 58,
+                    }
+                ]
+            ),
+            freshness_task_spec(),
+            require_composition=True,
+        )
+
+
 def test_sparse_card_composition_rejects_separate_freshness_group() -> None:
     with pytest.raises(
         CompactPlanValidationError,
@@ -1205,6 +1230,84 @@ def test_compact_dsl_must_cover_plan_data_and_action() -> None:
     assert any("打开日历" in item for item in errors)
 
 
+def test_compact_dsl_rejects_duplicate_visible_plan_data() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "dataId": "/data/calendar/events/0/title",
+                "componentHints": ["EmphasisText", "SecondaryBody"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["primary","support"]]',
+            '["primary","EmphasisText",'
+            '{"mainText":{"path":"/data/calendar/events/0/title"}}]',
+            '["support","SecondaryBody",{"items":['
+            '{"label":"会议 ","value":"{{ ${/data/calendar/events/0/title} }}"}]}]',
+            '["/data/calendar/events/0/title","设计评审"]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert len(result.errors) == 1
+    assert "displayed more than once" in result.errors[0]
+    assert "primary (EmphasisText).mainText" in result.errors[0]
+    assert "support (SecondaryBody).items[0].value" in result.errors[0]
+    assert result.duplicate_facts == (
+        {
+            "requirement": "会议标题",
+            "dataId": "/data/calendar/events/0/title",
+            "expectedVisibleCount": 1,
+            "actualVisibleCount": 2,
+            "occurrences": [
+                {
+                    "componentId": "primary",
+                    "componentType": "EmphasisText",
+                    "property": "mainText",
+                },
+                {
+                    "componentId": "support",
+                    "componentType": "SecondaryBody",
+                    "property": "items[0].value",
+                },
+            ],
+        },
+    )
+
+
+def test_duplicate_plan_data_remains_blocking_when_missing_data_is_warning() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "dataId": "/data/calendar/events/0/title",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["first","second"]]',
+            '["first","Text",{"content":{"path":"/data/calendar/events/0/title"}}]',
+            '["second","Text",{"content":{"path":"/data/calendar/events/0/title"}}]',
+            '["/data/calendar/events/0/title","设计评审"]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(
+        source,
+        plan,
+        task_spec(),
+        information_errors_as_warnings=True,
+    )
+
+    assert len(result.errors) == 1
+    assert result.warnings == ()
+
+
 def test_anchor_composition_cannot_be_replaced_by_text_action_layout() -> None:
     spec = task_spec()
     plan = {
@@ -1372,6 +1475,13 @@ def test_optional_drop_candidate_can_select_component_that_carries_must_fact() -
     assert candidate.fact_indexes == (0, 1)
     assert candidate.contains_must_facts is True
 
+    assert compact_plan_optional_drop_candidate(
+        source,
+        plan,
+        spec,
+        allow_must_fallback=False,
+    ) is None
+
     without_event = '["root","Column",{},[]]'
     assert compact_plan_coverage_errors(
         without_event,
@@ -1507,6 +1617,43 @@ def test_progress_circle_external_text_covers_numeric_plan_fact() -> None:
             '"accessibility":{"label":"设备电量百分比"},'
             '"width":52,"height":68,"fontColor":"#FF1F4799",'
             '"color":"#FF1F4799","backgroundColor":"#331F4799"}]',
+        ]
+    )
+
+    assert compact_plan_coverage_errors(source, plan, spec) == ()
+
+
+def test_progress_driver_and_readout_count_as_one_visible_fact() -> None:
+    spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "health": {
+                    "score": {
+                        "type": "integer",
+                        "description": "睡眠得分",
+                    }
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "睡眠得分",
+                "dataId": "/data/health/score",
+                "componentHints": ["ProgressLine2"],
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["score"]]',
+            '["score","ProgressLine2",'
+            '{"value":{"path":"/data/health/score"},"total":100,'
+            '"displayValue":{"path":"/data/health/score"},'
+            '"color":"#FF563D99","backgroundColor":"#33563D99"}]',
         ]
     )
 
