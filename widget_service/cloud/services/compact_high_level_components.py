@@ -219,6 +219,18 @@ def _visual_row(
     return ComponentRow(component_id, component_type, styles, children)
 
 
+def _without_fixed_height(component: ComponentRow) -> ComponentRow:
+    """Return a visual row whose height is determined by its rendered content."""
+    props = copy.deepcopy(component.props)
+    props.pop("height", None)
+    return ComponentRow(
+        component.component_id,
+        component.component_type,
+        props,
+        component.children,
+    )
+
+
 def expand_high_level_component_rows(
     components: list[ComponentRow],
     *,
@@ -758,9 +770,15 @@ def _expand_secondary_body(
             text is not None for text in texts[start:row_end]
         )
         row_height = line_height * max(layout.max_lines[start:row_end])
+        row_uses_predicted_multiline = False
         for item_index, item in enumerate(row_items, start=start):
             max_lines = layout.max_lines[item_index]
             item_height = line_height * max_lines
+            declared_max_lines = item.get("maxLines", 1)
+            uses_predicted_multiline = max_lines > declared_max_lines
+            row_uses_predicted_multiline = (
+                row_uses_predicted_multiline or uses_predicted_multiline
+            )
             if row_children:
                 separator_id = f"{row_id}_separator"
                 row_children.append(separator_id)
@@ -782,7 +800,7 @@ def _expand_secondary_body(
             text_children: list[str] = []
             label = item.get("label")
             value = copy.deepcopy(item.get("value"))
-            if max_lines > item.get("maxLines", 1) and isinstance(label, str):
+            if uses_predicted_multiline and isinstance(label, str):
                 value = _secondary_prefixed_value(label, value)
                 label = None
             if label is not None:
@@ -804,47 +822,52 @@ def _expand_secondary_body(
                 )
             value_id = f"{item_id}_value"
             text_children.append(value_id)
-            rows.append(
-                _visual_row(
-                    value_id,
-                    "SecondaryBody",
-                    "text",
-                    size=size,
-                    variant=variant,
-                    props={
-                        "content": value,
-                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
-                        "height": item_height,
-                        "maxLines": max_lines,
-                        "layoutWeight": 1,
-                    },
-                )
-            )
-            rows.append(
-                _visual_row(
-                    item_id,
-                    "SecondaryBody",
-                    "item",
-                    size=size,
-                    variant=variant,
-                    props=_secondary_item_layout(
-                        texts[item_index] if natural_row else None,
-                        row_size, item_height, layout.multiline,
-                    ),
-                    children=tuple(text_children),
-                )
-            )
-        rows.append(
-            _visual_row(
-                row_id,
+            value_row = _visual_row(
+                value_id,
                 "SecondaryBody",
-                "row",
+                "text",
                 size=size,
                 variant=variant,
-                props={"height": row_height, "alignItems": "start"},
-                children=tuple(row_children),
+                props={
+                    "content": value,
+                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    "height": item_height,
+                    "maxLines": max_lines,
+                    "layoutWeight": 1,
+                },
             )
+            if uses_predicted_multiline:
+                value_row = _without_fixed_height(value_row)
+            rows.append(value_row)
+            item_row = _visual_row(
+                item_id,
+                "SecondaryBody",
+                "item",
+                size=size,
+                variant=variant,
+                props=_secondary_item_layout(
+                    texts[item_index] if natural_row else None,
+                    row_size,
+                    item_height,
+                    layout.multiline,
+                ),
+                children=tuple(text_children),
+            )
+            if uses_predicted_multiline:
+                item_row = _without_fixed_height(item_row)
+            rows.append(item_row)
+        row = _visual_row(
+            row_id,
+            "SecondaryBody",
+            "row",
+            size=size,
+            variant=variant,
+            props={"height": row_height, "alignItems": "start"},
+            children=tuple(row_children),
         )
+        if row_uses_predicted_multiline:
+            row = _without_fixed_height(row)
+        rows.append(row)
         start = row_end
     root = _visual_row(
         component.component_id,

@@ -46,6 +46,9 @@ _SECONDARY_BODY_DYNAMIC_LABEL_MARKERS = (
 _SECONDARY_BODY_FONT_SIZE_MARKERS = (
     "secondarybody.fontsize must be the fixed recipe value",
 )
+_DUPLICATE_PLAN_FACT_PREFIX = (
+    "plan fact is displayed more than once in visible dsl:"
+)
 COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
 DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT = 4
 
@@ -144,6 +147,41 @@ def _issue_fingerprint(quality_errors: list[dict[str, Any]]) -> str:
 
 def _contains_marker(messages: str, markers: tuple[str, ...]) -> bool:
     return any(marker in messages for marker in markers)
+
+
+def _has_duplicate_plan_facts(quality_errors: list[dict[str, Any]]) -> bool:
+    for issue in quality_errors:
+        duplicate_facts = issue.get("duplicateFacts")
+        if isinstance(duplicate_facts, list) and duplicate_facts:
+            return True
+        message = str(issue.get("message") or "").strip().lower()
+        if message.startswith(_DUPLICATE_PLAN_FACT_PREFIX):
+            return True
+    return False
+
+
+def _duplicate_fact_instruction(*, scope: str) -> str:
+    instruction = (
+        "修复 duplicateFacts 列出的重复展示事实。逐项核对 occurrences，确保每个报错 "
+        "dataId 最终只在一个可见属性中出现。优先保留同时具有明确对象、标签、完整值和单位的"
+        "语义表达，不因字号更大就保留含义不清的裸值或生硬拼接。只删除其它重复绑定："
+        "重复位于 SecondaryBody 单个 item 时只删除该 item；表达式同时包含多个 dataId 时只"
+        "移除报错的重复引用，不连带删除未报错事实。组件仍有其它有效内容时保留组件；组件"
+        "变空时删除组件行并同步删除直接父级 children 引用。不得修改 accepted Plan、删除"
+        "唯一剩余展示、删除数据行、静态化动态值，或改变未报错的事实、Action、图标和区域。"
+        "完成后逐项复查报错 dataId 的可见次数恰好为1，并确认没有空组件、孤立组件或失效引用。"
+        "去重后 SecondaryBody 仍只能承担辅助信息；若核心组件或当前信息组语义不再成立，"
+        "在本轮允许范围内重组选型，但不得重新引入重复绑定。"
+    )
+    if scope == "parent_layout":
+        instruction += (
+            "上一轮局部去重未闭合；重新组织受影响信息组及其直接父布局，不再提交相同组件组合。"
+        )
+    elif scope == "full_dsl":
+        instruction += (
+            "重复问题已持续存在；从已接受 Plan 重建完整 DSL，为每个 dataId 只分配一个可见位置。"
+        )
+    return instruction
 
 
 def _fixed_side_slot_text_overflow(
@@ -288,6 +326,11 @@ def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
     return "component_contract"
 
 
+def compact_repair_issue_category(quality_errors: list[dict[str, Any]]) -> str:
+    """返回稳定的修复问题分类，供接口级恢复判定复用。"""
+    return _issue_category(quality_errors)
+
+
 def _layout_directive(
     *,
     category: str,
@@ -381,7 +424,25 @@ def _non_layout_directive(
     force_targeted: bool = False,
 ) -> CompactRepairDirective:
     repeated_root_cause = consecutive_failures >= 2 or no_progress
-    if force_targeted:
+    duplicate_plan_facts = (
+        category == "plan_coverage" and _has_duplicate_plan_facts(quality_errors)
+    )
+    if duplicate_plan_facts and category_attempt == 1 and not no_progress:
+        scope = "information_group"
+        strategy = "deduplicate_visible_facts"
+        retry_target = "dsl_local_repair"
+        instruction = _duplicate_fact_instruction(scope=scope)
+    elif duplicate_plan_facts and category_attempt == 2:
+        scope = "parent_layout"
+        strategy = "parent_layout_recompose"
+        retry_target = "dsl_recompose"
+        instruction = _duplicate_fact_instruction(scope=scope)
+    elif duplicate_plan_facts:
+        scope = "full_dsl"
+        strategy = "plan_guided_recompose"
+        retry_target = "dsl_recompose"
+        instruction = _duplicate_fact_instruction(scope=scope)
+    elif force_targeted:
         scope = "information_group" if category == "plan_coverage" else "component"
         strategy = (
             "coverage_restore"
@@ -610,10 +671,16 @@ def _drop_candidate_is_fully_removed(
 class CompactRepairStrategyTracker:
     """在单次生成请求内跟踪失败指纹并选择下一轮修复范围。"""
 
-    def __init__(self, *, max_repair_attempts: int = 10) -> None:
+    def __init__(
+        self,
+        *,
+        max_repair_attempts: int = 10,
+        capacity_recovery: bool = False,
+    ) -> None:
         if max_repair_attempts < 1:
             raise ValueError("max_repair_attempts must be at least 1")
         self._max_repair_attempts = max_repair_attempts
+        self._capacity_recovery = capacity_recovery
         self._repair_submission_count = 0
         self._previous_fingerprint: str | None = None
         self._previous_source: str | None = None
@@ -662,12 +729,15 @@ class CompactRepairStrategyTracker:
         compact_dsl: str,
         compact_plan: dict[str, Any] | None,
         task_spec: dict[str, Any],
+        *,
+        allow_must_fallback: bool = True,
     ) -> CompactOptionalDropCandidate | None:
         """从当前仍可见内容中选择下一轮唯一候选并累计省略授权。"""
         candidate = compact_plan_optional_drop_candidate(
             compact_dsl,
             compact_plan,
             task_spec,
+            allow_must_fallback=allow_must_fallback,
         )
         if candidate is None:
             return None
@@ -734,7 +804,8 @@ class CompactRepairStrategyTracker:
         allow_text_compaction = _capacity_text_compaction_relevant(
             invalid_source_dsl,
         )
-        drop_entry_due = (
+        recovery_drop_due = self._capacity_recovery and self._repair_submission_count == 0
+        drop_entry_due = recovery_drop_due or (
             self._repair_submission_count >= DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT - 1
             and self._active_fallback != "drop_optional_component"
         )
@@ -743,6 +814,7 @@ class CompactRepairStrategyTracker:
                 invalid_source_dsl,
                 compact_plan,
                 task_spec,
+                allow_must_fallback=not self._capacity_recovery,
             )
             if candidate is not None:
                 self._active_fallback = "drop_optional_component"
@@ -774,6 +846,7 @@ class CompactRepairStrategyTracker:
                         invalid_source_dsl,
                         compact_plan,
                         task_spec,
+                        allow_must_fallback=not self._capacity_recovery,
                     )
                 if candidate is None:
                     directive = _full_dsl_transition_directive(
@@ -836,6 +909,7 @@ class CompactRepairStrategyTracker:
                         invalid_source_dsl,
                         compact_plan,
                         task_spec,
+                        allow_must_fallback=not self._capacity_recovery,
                     )
                 if candidate is None:
                     self._active_fallback = None

@@ -1465,6 +1465,12 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         assert isinstance(styles, dict)
         self.assertEqual(styles.get("fontSize"), 12)
         self.assertEqual(styles.get("maxLines"), 2)
+        self.assertNotIn("height", styles)
+        for component_id in ("meta_item0", "meta_row0"):
+            container = next(node for node in nodes if node.get("id") == component_id)
+            container_styles = container.get("styles")
+            assert isinstance(container_styles, dict)
+            self.assertNotIn("height", container_styles)
         self.assertFalse(any(node.get("id") == "meta_item0_label" for node in nodes))
 
     def test_secondary_body_rejects_uncontrolled_text_shapes(self) -> None:

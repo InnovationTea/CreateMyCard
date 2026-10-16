@@ -111,8 +111,8 @@ Plan 确定展示信息的优先级与操作。运行时容量上下文开启时
      都不算核心。SecondaryBody 仍只承载辅助事实，不能将主要结论降级后仅用于满足布局。
      无硬事实的装饰 SingleLineTitle 用 factIndexes:[]、placements:[] 预留，仍计标题高度，
      不为填索引而把主读数重复放进标题。其它组件不能用空事实组。
-     一条事实用于同一进度实例的 value 和 displayValue 时，重复该索引使 placements 逐项对应，
-     不新增重复 info_required；数值附带的静态单位不占事实索引，也不把数值绑定到 unit。
+     每条 dataId 事实只能分配给一个可见 placement；进度实例也不能同时把同一事实分配给
+     value 和 displayValue。数值附带的静态单位不占事实索引，也不把数值绑定到 unit。
      独立的数据单位字段才使用它自己的事实索引；已经包含单位的完整读数不拆分。
    - 指定实际 component 和必要 variant/density/role/columns/lines/labelLines，先按原字号、行高
      核算 referenceHeight，再合计各组与gap。标题、按钮、环和组件内padding都参与预算，不重复预留。
