@@ -8686,6 +8686,7 @@ async def test_template_exception_obeys_route_failure_policy(
     template_failure_is_terminal: bool,
     template_error: Exception,
 ):
+    generic_source = '["root","EmphasisText",{"mainText":"正常"}]'
     generated_sources: list[str] = []
     model_generate_calls = 0
     template_processors: list[DslProcessorKind] = []
@@ -8699,7 +8700,7 @@ async def test_template_exception_obeys_route_failure_policy(
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             nonlocal model_generate_calls
             model_generate_calls += 1
-            return "generic-source"
+            return generic_source
 
         async def generate_repair(self, *_args: Any, **_kwargs: Any) -> str:
             pytest.fail("template exception fallback must not enter repair")
@@ -8757,7 +8758,7 @@ async def test_template_exception_obeys_route_failure_policy(
     )
     monkeypatch.setattr(ArtifactStore, "save", save)
     settings = widget_generation_service_module.get_settings().model_copy(
-        update={"CONFIG": {"enable_card_template": "true"}}
+        update={"enable_card_template": True}
     )
     monkeypatch.setattr(
         widget_generation_service_module,
@@ -8782,7 +8783,7 @@ async def test_template_exception_obeys_route_failure_policy(
         assert response.status == GenerationStatus.SUCCESS
         assert response.artifactUrl == "https://artifact.test/template-fallback"
         assert model_generate_calls == 1
-        assert generated_sources == ["generic-source"]
+        assert generated_sources == [generic_source]
     assert template_processors == [DslProcessorKind.DESIGN_COMPACT]
     assert callback_sizes == ["2x2"]
     assert source_permissions == ([] if template_failure_is_terminal else [False])
