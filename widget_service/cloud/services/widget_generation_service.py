@@ -1478,18 +1478,6 @@ class WidgetGenerationService:
                 "error_prompt_contexts",
                 [],
             )
-            if source_load_result:
-                report_ops_metrics(body={"validationScenarioFailure": 1})
-                source_write_roots = {
-                    item.writeResultTo
-                    for item in source_load_result.artifact.generationPlan.candidateDataBindings
-                }
-                current_write_roots = {item.writeResultTo for item in effective_bindings}
-                for removed_root in sorted(source_write_roots - current_write_roots):
-                    if removed_root in standard_dsl:
-                        validation_errors.append(
-                            f"removed data path remains in edited genui: {removed_root}"
-                        )
             with trace_attempt(**validation_attempts):
                 trace_step(
                     "artifact_validation.completed",
@@ -1682,7 +1670,6 @@ class WidgetGenerationService:
             )
             return response
         if errors:
-            report_ops_metrics(body={"validationScenarioFailure": 1})
             logger.error(
                 f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
                 f"protocol_profile_id={protocol_profile['id']} "

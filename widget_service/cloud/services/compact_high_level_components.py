@@ -605,6 +605,8 @@ def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentR
         children=tuple(children),
     )
     return [root, *rows]
+
+
 def _emphasis_secondary_content(component: ComponentRow) -> Any:
     value = component.props.get("secondaryText")
     if not isinstance(value, list):
