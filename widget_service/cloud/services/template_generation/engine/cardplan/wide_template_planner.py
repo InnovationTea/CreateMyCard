@@ -468,9 +468,7 @@ def _companion_action_slots(
                     support_fields = _rendered_template_fields(
                         definition,
                         task,
-                        available_fields_by_capability.get(
-                            capability_by_business[business_id], set()
-                        ),
+                        available_fields_by_capability.get(capability_by_business[business_id], set()),
                     )
                     # A layout-owned Support must add a new metric. Do not use
                     # a Support that only repeats the Full's city/temperature/

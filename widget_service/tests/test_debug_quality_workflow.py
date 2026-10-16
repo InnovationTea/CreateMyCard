@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from jsonschema import Draft202012Validator
 
-PLUGINS = Path(__file__).resolve().parents[2] / "debug_tools" / "postprocess_plugins"
+PLUGINS = Path(__file__).resolve().parents[2] / "debug_tools/postprocess_plugins"
 
 
 def write_run(root: Path, run_id: str = "run") -> dict:
