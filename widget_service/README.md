@@ -15,17 +15,16 @@ The service follows `docs/AGENTS.md`:
   right-open ranges in `cloud/data/capabilities/registry_ranges.json`.
 - `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
 - `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
-- All five interfaces use the ranges in `cloud/data/capabilities/registry_ranges.json`: App
-  `[11.7.5.205, 11.7.7.330)` with ROM `[7.0, 7.2)` maps to
-  `app-11.7.5.205_rom-6.0`, while App `[11.7.7.330, 12.0.0.0)` with ROM
-  `[7.0, 8.0)` maps to `app-11.7.7.300_rom-7.0`. An unmatched version falls back
-  to the configured default when
-  `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
+- 在线能力区间仅保留 App `[11.7.7.330, 12.0.0.0)`、ROM `[6.0, 8.0)`，命中
+  `app-11.7.7.300_rom-7.0`；未命中且
+  `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，默认也回退到二期。
+  一期能力目录已移除。编辑历史一期结果时，仅素材路径恢复使用二期清单；
+  历史结果及其版本元数据保持不变，编辑后的业务能力按本轮二期清单重新校验。
 - `generateWidgetCard` selects `mep` or the composite `openai` route through
   `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
-  the Design profile from `data/protocol_profiles/registry_ranges.json`, whose App/ROM intervals mirror the capability
-  registry intervals, and converts Design Compact DSL with that profile's `protocol.json` before validation and
+  the configured Design profile under `data/protocol_profiles/`,
+  and converts Design Compact DSL with that profile's `protocol.json` before validation and
   storage. Create requests first try the controlled Template route;
   a Template mismatch can fall back to the ordinary Design Compact model route. The generation routes share one
   policy-driven pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot

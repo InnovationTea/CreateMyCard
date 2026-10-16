@@ -35,6 +35,11 @@ def test_missing_spec_uses_default_config(
     assert helper.get("compact_dsl_argument_repair_max_attempts") == 2
     assert helper.get("enable_compact_dsl_interface_retry") == "false"
     assert helper.get("compact_dsl_interface_retry_count") == 1
+    assert "enable_post_layout_theme" not in helper
+    assert "enable_post_layout_theme" not in Settings.model_fields
+    assert helper.get("enable_photo_background_theme") == "false"
+    assert helper.get("enable_subjectless_wide_theme") == "false"
+    assert helper.get("enable_square_photo_expansion") == "false"
 
 
 def test_existing_spec_is_used_without_default_merge(
@@ -103,19 +108,15 @@ def test_settings_prefixed_environment_wins_over_bare_environment(
     assert settings.openai_master_client == "deepseek_official_http"
 
 
-@pytest.mark.parametrize("enabled", [False, True])
-def test_settings_reads_card_template_switch_from_environment(
+def test_removed_theme_switch_cannot_restore_front_loaded_theme(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    enabled: bool,
 ) -> None:
-    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_CARD_TEMPLATE", str(enabled).lower())
+    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_POST_LAYOUT_THEME", "false")
 
     settings = Settings(_env_file=tmp_path / "missing.env")
-    monkeypatch.setattr(service_module, "get_settings", lambda: settings)
 
-    assert settings.enable_card_template is enabled
-    assert service_module.WidgetGenerationService()._enable_card_template() is enabled
+    assert not hasattr(settings, "enable_post_layout_theme")
 
 
 def test_settings_reads_prompt_file_alias_from_env(

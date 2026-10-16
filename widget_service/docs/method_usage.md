@@ -43,19 +43,22 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 当前能力清单及命中区间：
 
 ```text
-App [11.7.5.205, 11.7.7.330) + ROM [7.0, 7.2) -> app-11.7.5.205_rom-6.0
-App [11.7.7.330, 12.0.0.0) + ROM [7.0, 8.0) -> app-11.7.7.300_rom-7.0
+App [11.7.7.330, 12.0.0.0) + ROM [6.0, 8.0) -> app-11.7.7.300_rom-7.0
 ```
 
 App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与
 ROM 同时重叠的配置以及不存在的目标目录。
 
-能力目录名是快照标识，不用于推导实际命中范围。当前配置下 ROM 6.x、旧 App 搭配 ROM 7.2 及以上，
-以及其它未覆盖组合没有直接命中；是否使用默认清单由回退开关决定。
+能力目录名是快照标识，不用于推导实际命中范围。旧 App 和其它未覆盖组合没有直接命中；
+是否使用默认清单由回退开关决定。一期能力目录已删除，模板已使用二期。
+历史一期结果编辑时，仅素材路径恢复读取二期清单；来源文件和版本元数据保持不变，
+编辑后的业务能力按本轮清单重新校验。其它未知版本不自动映射。
+部署时应移除或更新仍指定一期目录的能力版本环境变量，否则显式加载会报目录不存在。
+协议 Profile 配置保持不变。
 
 五个接口在能力清单版本未命中或目标目录不可用且
 `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到默认的
-`app-11.7.5.205_rom-6.0` 能力清单。
+`app-11.7.7.300_rom-7.0` 能力清单。arguments 参数修复也使用同一默认配置。
 关闭开关时，第一、第二接口返回空清单/缺失能力，三个生成接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
@@ -709,7 +712,7 @@ cloud/services/ids_client.py
 构造：
 
 ```python
-registry = CapabilityRegistry("app-11.7.5.205_rom-6.0")
+registry = CapabilityRegistry("app-11.7.7.300_rom-7.0")
 ```
 
 不传版本时可使用 device 版本推导：
@@ -1573,7 +1576,7 @@ meta
 新增能力版本：
 
 ```text
-复制 data/capabilities/app-11.7.5.205_rom-6.0 为新文件夹
+复制 data/capabilities/app-11.7.7.300_rom-7.0 为新文件夹
 修改 JSON 文件
 在 data/capabilities/registry_ranges.json 中新增不重叠的 App/ROM 区间并指向新文件夹
 ```

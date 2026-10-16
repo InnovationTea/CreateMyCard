@@ -14,7 +14,7 @@ from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_preflight import GenerationPreflight
 from services.widget_generation_service import WidgetGenerationService
 
-REGISTRY_VERSION = "app-11.7.5.205_rom-6.0"
+REGISTRY_VERSION = "app-11.7.7.300_rom-7.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
