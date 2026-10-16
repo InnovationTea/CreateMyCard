@@ -3081,7 +3081,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewMusicCompact@1(props: { musicIcon: asset, actionId?: string })
+#Template BluetoothDeviceOverviewMusicSupport@1(props: { musicIcon: asset, actionId?: string })
 data = {}
 Row(
     {
