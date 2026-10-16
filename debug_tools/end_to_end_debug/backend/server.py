@@ -73,9 +73,6 @@ def create_app(
     """
 
     config_path = DEBUG_TOOLS_ROOT / "debug_tool.yaml"
-    if not config_path.is_file():
-        raise RuntimeError(f"debug config does not exist: {config_path}")
-
     from .debug_agent.config import load_debug_config
 
     debug_config = load_debug_config(config_path, _REPO_ROOT)

@@ -18,7 +18,7 @@ export function stateClass(status: ServiceStatus, checking: boolean): string {
   return status.available ? 'available' : 'unavailable';
 }
 
-export function useBackendAvailability() {
+export function useBackendAvailability(refreshIntervalMs = 20_000) {
   const { config, updateConfig } = useWorkbench();
   const [status, setStatus] = useState<ConnectionAvailability>(INITIAL_STATUS);
   const [checking, setChecking] = useState(true);
@@ -42,9 +42,9 @@ export function useBackendAvailability() {
 
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => { void refresh(); }, 20_000);
+    const timer = window.setInterval(() => { void refresh(); }, refreshIntervalMs);
     return () => window.clearInterval(timer);
-  }, [refresh]);
+  }, [refresh, refreshIntervalMs]);
 
   const startManaged = async () => {
     setStarting(true);
@@ -82,8 +82,10 @@ export function SelectedMicroserviceStatus() {
   </span>;
 }
 
-export function BackendStatusWidget({ allowManagedStart = false }: { allowManagedStart?: boolean }) {
-  const { checking, startManaged, starting, status } = useBackendAvailability();
+export function BackendStatusWidget({ allowManagedStart = false, refreshIntervalMs = 20_000, className = '' }: {
+  allowManagedStart?: boolean; refreshIntervalMs?: number; className?: string;
+}) {
+  const { checking, startManaged, starting, status } = useBackendAvailability(refreshIntervalMs);
 
   const items: Array<[string, ServiceStatus]> = [
     ['Main Agent', status.mainAgent],
@@ -92,10 +94,10 @@ export function BackendStatusWidget({ allowManagedStart = false }: { allowManage
   ];
 
   return (
-    <aside className="backend-status-widget" aria-label="后端服务状态">
+    <aside className={`backend-status-widget ${className}`.trim()} aria-label="后端服务状态">
       <div className="backend-status-heading">
         <strong>后端服务</strong>
-        <small>{checking ? '检查中' : '每 20 秒自动检查'}</small>
+        <small>{checking ? '检查中' : `每 ${refreshIntervalMs / 1000} 秒自动检查`}</small>
       </div>
       <div className="backend-status-items">
         {items.map(([label, item]) => {

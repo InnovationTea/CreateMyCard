@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from ipaddress import ip_address
@@ -9,9 +10,13 @@ from urllib.parse import urlsplit
 
 import yaml
 from pydantic.aliases import AliasChoices
-from pydantic_settings import DotEnvSettingsSource, EnvSettingsSource
 
-from debug_tools.paths import REPOSITORY_ROOT
+from debug_tools.batch_testing.managed_config import (
+    canonical_name,
+    read_configuration,
+    runtime_values,
+)
+from debug_tools.paths import REPOSITORY_ROOT, WIDGET_SERVICE_ROOT
 
 
 def _loopback(host: str) -> bool:
@@ -46,7 +51,6 @@ class DebugConfig:
     default_profile: str
     system_prompt: Path | None = None
     quick_prompts: tuple[QuickPrompt, ...] = ()
-    model_overrides: dict[str, Any] = field(default_factory=dict)
 
     def profile(self, name: str | None = None) -> SkillProfile:
         selected = name or self.default_profile
@@ -218,9 +222,6 @@ def load_debug_config(path: Path, repo_root: Path) -> DebugConfig:
     if not profiles:
         raise ValueError(f"Debug Skill 主目录不存在可用 Skill: {skill_root}")
     quick_prompts = _load_quick_prompts(main_agent.get("ui", {}))
-    model_overrides = main_agent.get("model", {})
-    if not isinstance(model_overrides, dict):
-        raise ValueError("Debug model 配置必须是对象")
     configured_default = str(main_agent.get("default_profile", ""))
     default_profile = configured_default if configured_default in profiles else next(iter(profiles))
     return DebugConfig(
@@ -230,7 +231,6 @@ def load_debug_config(path: Path, repo_root: Path) -> DebugConfig:
         default_profile,
         prompt_path,
         quick_prompts,
-        dict(model_overrides),
     )
 
 
@@ -238,64 +238,23 @@ def load_main_agent_model_settings(
     config: DebugConfig,
     settings_type: type[Any],
     *,
-    env_file: Path | None = None,
+    project_root: Path = WIDGET_SERVICE_ROOT,
 ) -> Any:
-    """按默认 YAML、Debug YAML、.env、进程环境的顺序加载 Main Agent 模型配置。"""
+    """复用受管微服务配置来源、覆盖顺序和运行时值解析。"""
 
-    unknown_fields = set(config.model_overrides) - set(settings_type.model_fields)
-    if unknown_fields:
-        names = ", ".join(sorted(unknown_fields))
-        raise ValueError(f"Debug model 包含未知配置项: {names}")
-
-    resolved_env_file = env_file or _default_env_file(settings_type)
-    configured_keys = _configured_environment_keys(settings_type, resolved_env_file)
-    effective_overrides: dict[str, Any] = {}
-    for field_name, value in config.model_overrides.items():
-        field_info = settings_type.model_fields.get(field_name)
-        if field_info is None:
+    configuration = read_configuration(project_root, debug_path=config.config_path)
+    values = runtime_values(configuration)
+    arguments: dict[str, Any] = {}
+    for field_name, field_info in settings_type.model_fields.items():
+        canonical = canonical_name(field_name)
+        if canonical not in values:
             continue
-        aliases = _field_environment_aliases(field_name, field_info.validation_alias)
-        if aliases & configured_keys:
-            continue
-        effective_overrides[field_name] = value
-    return settings_type(_env_file=resolved_env_file, **effective_overrides)
-
-
-def _default_env_file(settings_type: type[Any]) -> Path | None:
-    configured = settings_type.model_config.get("env_file")
-    if isinstance(configured, (str, Path)):
-        return Path(configured)
-    if isinstance(configured, (tuple, list)):
-        for item in configured:
-            if isinstance(item, (str, Path)):
-                return Path(item)
-    return None
-
-
-def _configured_environment_keys(
-    settings_type: type[Any],
-    env_file: Path | None,
-) -> set[str]:
-    values = EnvSettingsSource(settings_type)()
-    if env_file is not None:
-        dotenv_values = DotEnvSettingsSource(
-            settings_type,
-            env_file=env_file,
-            env_file_encoding="utf-8",
-        )()
-        values.update(dotenv_values)
-    return {str(key).casefold() for key in values}
-
-
-def _field_environment_aliases(field_name: str, validation_alias: Any) -> set[str]:
-    aliases = {field_name.casefold()}
-    if isinstance(validation_alias, str):
-        aliases.add(validation_alias.casefold())
-    elif isinstance(validation_alias, AliasChoices):
-        for choice in validation_alias.choices:
-            if isinstance(choice, str):
-                aliases.add(choice.casefold())
-    return aliases
+        alias = field_info.validation_alias
+        if isinstance(alias, AliasChoices):
+            alias = alias.choices[0]
+        key = alias if isinstance(alias, str) else field_name
+        arguments[key] = values.get(canonical)
+    return settings_type(_env_file=None, **arguments)
 
 
 def _debug_config_path(repo_root: Path) -> Path:
@@ -363,9 +322,14 @@ def _load_quick_prompts(value: Any) -> tuple[QuickPrompt, ...]:
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
-    if not path.is_file():
-        raise ValueError(f"Debug 配置文件不存在: {path}")
-    value = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        content = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        logging.getLogger(__name__).warning(
+            "本机配置不存在，使用默认配置继续启动；请在连接配置页查看配置说明：%s", path
+        )
+        content = ""
+    value = yaml.safe_load(content) or {}
     if not isinstance(value, dict):
         raise ValueError("Debug 配置根节点必须是对象")
     return value

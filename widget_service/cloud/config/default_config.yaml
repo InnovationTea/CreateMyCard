@@ -65,6 +65,9 @@ model_queue_timeout_seconds: 120
 model_request_timeout_seconds: 120
 model_prompt_log_preview_chars: 30
 
+# 调试平台 Main Agent 与本地受管微服务共用以下模型默认值。
+# 本机覆盖统一写入 debug_tool.yaml 的 widget_backend，不再维护 main_agent.model。
+# 密钥使用对应通道的专用字段；默认配置不保存本机密钥。
 openai_master_client: llmclient
 openai_fallback_client: llmclient
 deepseek_official_http_url: https://api.deepseek.com/chat/completions

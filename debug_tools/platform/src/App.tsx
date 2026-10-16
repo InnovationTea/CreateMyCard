@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes, useLocation, useMatch } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useMatch } from 'react-router-dom';
 import { WorkbenchProvider } from './context';
 import CallHistory from './components/CallHistory';
 import SettingsPanel from './components/SettingsPanel';
@@ -18,7 +18,6 @@ import { QualityCompareRoute } from './routes/QualityCompareRoute';
 import { QualityEvaluationRoute } from './routes/QualityEvaluationRoute';
 import { ValidationFailureCaptureRoute } from './routes/ValidationFailureCaptureRoute';
 import { QualityImportRoute } from './routes/QualityImportRoute';
-import { BackendStatusWidget } from './components/BackendStatusWidget';
 
 const navigation = [
   { path: '/end-to-end', label: '端到端调试', detail: 'Main Agent · Agent 调试' },
@@ -31,13 +30,11 @@ const navigation = [
 ];
 
 function Shell() {
-  const { pathname } = useLocation();
   const isEndToEnd = useMatch('/end-to-end') !== null;
   const [hasVisitedEndToEnd, setHasVisitedEndToEnd] = useState(isEndToEnd);
   useEffect(() => {
     if (isEndToEnd) setHasVisitedEndToEnd(true);
   }, [isEndToEnd]);
-  const showBackendStatus = pathname === '/settings';
   return (
     <div className="workbench-shell">
       <aside className="navigation-rail">
@@ -68,7 +65,6 @@ function Shell() {
       </aside>
 
       <main className="workbench-main">
-        {showBackendStatus && <BackendStatusWidget allowManagedStart={pathname === '/settings'} />}
         <section className="route-content">
           {/* 保留已打开的会话和连接，导航只切换可见性，不触发卸载清理。 */}
           {(isEndToEnd || hasVisitedEndToEnd) && (

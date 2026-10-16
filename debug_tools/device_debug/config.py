@@ -50,7 +50,13 @@ class Config:
     @classmethod
     def load(cls, path: Path | None = None) -> Config:
         config_path = path or (DEBUG_TOOLS_ROOT / "debug_tool.yaml")
-        root = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        try:
+            content = config_path.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise DeviceError(
+                f"本机配置不存在，请在连接配置页查看配置说明：{config_path}", 503
+            ) from exc
+        root = yaml.safe_load(content)
         platform = root.get("platform", {}) if isinstance(root, dict) else {}
         if not isinstance(platform, dict):
             raise DeviceError("platform 配置必须是对象", 503)

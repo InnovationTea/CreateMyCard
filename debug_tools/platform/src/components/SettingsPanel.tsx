@@ -3,6 +3,7 @@ import { getServiceConfigDefaults, saveServiceConfigDefaults, type ServiceConfig
 import { useWorkbench } from '../context';
 import { endpointHasCredentials, websocketUrl } from '../config';
 import { ServiceConfigInput } from './ServiceConfigInput';
+import { BackendStatusWidget } from './BackendStatusWidget';
 import { ToolchainStatusWidget } from './ToolchainStatusWidget';
 
 export function SettingsPanel() {
@@ -77,9 +78,11 @@ export function SettingsPanel() {
     <div className="settings-scroll">
       {defaults?.localConfigExists === false && <section className="settings-card" aria-label="首次使用配置说明">
         <div className="settings-card-heading"><h2>使用前请创建本机配置</h2></div>
-        <p>首次使用前，将 <code>debug_tools/debug_tool.yaml.example</code> 复制为 <code>debug_tools/debug_tool.yaml</code>，按模板注释填写本机路径和模型配置后再启动。已有配置请勿覆盖。</p>
+        <p role="alert">未找到本机 debug_tool.yaml，平台已使用默认配置启动；设备渲染和截图暂不可用，模型调用仍需有效配置。</p>
+        <p>将 <code>debug_tools/debug_tool.yaml.example</code> 复制为 <code>debug_tools/debug_tool.yaml</code>，按模板注释填写本机路径和模型配置后重启。已有配置请勿覆盖。</p>
         <p>实际配置仅保存在本机，不提交 Git；示例中的空凭据和路径需要按实际环境填写。</p>
       </section>}
+      <BackendStatusWidget allowManagedStart refreshIntervalMs={10_000} className="settings-toolchain-status" />
       <ToolchainStatusWidget />
       <section className="settings-card">
         <div className="settings-card-heading"><h2>微服务连接</h2><span>选择当前调试使用的微服务来源</span></div>

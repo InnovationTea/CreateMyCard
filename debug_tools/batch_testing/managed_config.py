@@ -229,8 +229,8 @@ class Configuration:
         }
 
 
-def read_configuration(root: Path) -> Configuration:
-    debug_path = config_path(root)
+def read_configuration(root: Path, *, debug_path: Path | None = None) -> Configuration:
+    debug_path = debug_path if debug_path is not None else config_path(root)
     default_path = root / "cloud/config/default_config.yaml"
     env_path = root / ".env"
     config = Configuration(types=field_types(root), local_config_exists=debug_path.is_file())

@@ -1,8 +1,9 @@
 # AI Widget 调试工作台
 
-## 使用前：创建本机配置（必需）
+## 本机配置
 
-首次使用前，在仓库根目录执行以下命令；已有配置时不要覆盖：
+缺少 `debug_tool.yaml` 时仍可启动工作台，连接配置页会显示配置缺失提醒；设备渲染和截图暂不可用，
+模型调用仍需有效配置。在仓库根目录执行以下命令创建本机配置；已有配置时不要覆盖：
 
 ```powershell
 Copy-Item debug_tools/debug_tool.yaml.example debug_tools/debug_tool.yaml
@@ -13,6 +14,11 @@ macOS / Linux 可执行 `cp -n debug_tools/debug_tool.yaml.example debug_tools/d
 模板使用保留类型的示例值，路径和设备信息需要替换；空凭据不代表接口可直接调用。
 模型密钥请在本机配置或 `widget_service/.env` 中填写，不要放入示例模板。
 受管服务的 `widget_backend` 优先级高于 `.env`，不要在其中用空密钥覆盖有效凭据。
+端到端 Main Agent 与本地受管微服务共用 `widget_backend` 配置，不再维护或读取 `main_agent.model`。
+旧配置请将需要保留的模型参数放入 `widget_backend.defaults` 或已有的 `widget_backend.exposed`，
+同一参数只维护一处；模型密钥须与所选通道对应。修改后重启调试服务和本地受管微服务。
+`platform.server.bundle_name` 必须与所选 Skill 的工具声明及工具快照一致；项目内置在线 Skill 使用
+`com.omega_w_0823.hmservice`。出现“frontmatter 工具 bundle 与 Debug 配置不一致”时，检查该项并重启服务。
 
 仓库只维护 [`debug_tool.yaml.example`](debug_tool.yaml.example)。实际 `debug_tool.yaml` 已加入
 `.gitignore`，连接配置页保存的修改只留在本机。更新已有工作区前请备份自己的配置。
@@ -35,7 +41,7 @@ Node、DevEco 等外部工具未配置或路径不可用时，启动只记录提
 显式路径无效时不回退到其它版本；截图或设备操作在实际调用时报告缺失原因。修改配置后需要重启调试服务。
 
 `platform.environment` 中的任一路径变量都可以在后续路径开头以
-`${environment.<name>}` 引用；未定义、循环引用或把变量放在路径中间都会明确报错。连接配置页会每 20 秒显示
+`${environment.<name>}` 引用；未定义、循环引用或把变量放在路径中间都会明确报错。连接配置页会每 10 秒检查并显示
 Node、HDC、Hvigor、JBR 与 SDK 的实际可用状态，鼠标悬停可查看最终解析路径。
 
 
@@ -49,10 +55,10 @@ Node、HDC、Hvigor、JBR 与 SDK 的实际可用状态，鼠标悬停可查看�
 ## 设备渲染
 
 启动工作台后打开 `/debug/device-render`，刷新并选择在线设备；也可点击本地虚拟机的“启动”按钮，
-平台会轮询启动任务，待其连接 HDC 后自动选中对应模拟器。页面以目标 1fps 显示全屏，显示采集时间和
-实际帧率，支持暂停、恢复和重连。批跑后处理面板也提供相同的模拟器启动与自动选择能力。
-在左侧粘贴 A2UI JSON/JSONL 或 Compact DSL，选择尺寸后“编译并运行”。应用返回终态后，页面展示
-真实卡片截图、全屏原图、自动裁切框和警告。页面关闭不取消任务，刷新可恢复最近任务。
+平台会轮询启动任务，待其连接 HDC 后自动选中对应模拟器。批跑后处理面板也提供相同的模拟器启动与自动选择能力。
+在“输入与部署”中切换 Compact DSL、A2UI 页签并输入代码；Compact 的转换结果在 A2UI 页签查看和编辑。
+选择尺寸后点击“编译并运行”。“渲染预览”中的两个复选框分别控制浏览器预览与设备卡片截图，
+页面不再展示全屏截图。任务信息保留裁切信息和警告；页面关闭不取消任务，刷新可恢复最近任务。
 模拟器首次启动 App 时若返回 `10106102` 锁屏错误，平台会等待其异步解锁并有界重试，无需重新提交任务。
 
 ArkTS 工程内置于 `debug_tools/a2ui_render`，固定 HAR 的校验值见其 `DEPENDENCIES.md`。

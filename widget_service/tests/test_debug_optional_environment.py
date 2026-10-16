@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 from debug_tools import runtime_environment, static_site
 from debug_tools.batch_testing import api as batch_api
+from debug_tools.batch_testing import managed_config
 from debug_tools.device_debug import config as device_config
 from debug_tools.device_debug.commands import DeviceError
 from debug_tools.end_to_end_debug.backend import server
@@ -34,15 +35,22 @@ def missing_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path
 
 
 @pytest.mark.parametrize("mode", ["frontend", "full"])
-@pytest.mark.parametrize("condition", ["missing_node", "missing_deveco", "invalid_node"])
+@pytest.mark.parametrize(
+    "condition", ["missing_node", "missing_deveco", "invalid_node", "missing_config"]
+)
 def test_application_starts_without_external_tools(
     missing_environment: Path,
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
     mode: str,
     condition: str,
 ) -> None:
-    if condition == "missing_deveco":
+    if condition == "missing_config":
+        missing_environment.unlink()
+        monkeypatch.setattr(server, "DEBUG_TOOLS_ROOT", tmp_path)
+        monkeypatch.setattr(managed_config, "config_path", lambda _root: missing_environment)
+    elif condition == "missing_deveco":
         node = tmp_path / "node.exe"
         node.touch()
         missing_environment.write_text(
@@ -58,12 +66,19 @@ def test_application_starts_without_external_tools(
         app = static_site.create_frontend_app(trace_root=tmp_path / "traces")
     else:
         app = server.create_app(
-            debug_settings=DebugSettings(),
-            production_settings=SimpleNamespace(),
+            debug_settings=None if condition == "missing_config" else DebugSettings(),
+            production_settings=SimpleNamespace(server_port=8855),
             trace_root=tmp_path / "traces",
         )
     with TestClient(app) as client:
         assert client.get("/debug/").status_code == 200
+        if condition == "missing_config":
+            defaults = client.get("/debug/batch/service-config/defaults")
+            assert defaults.status_code == 200
+            assert defaults.json().get("localConfigExists") is False
+            if mode == "full":
+                assert client.get("/debug/health").status_code == 200
+                assert client.get("/debug/skills").status_code == 200
         response = client.get("/debug/device/environment")
         assert response.status_code == 200
         checks = response.json().get("checks")
@@ -95,6 +110,8 @@ def test_application_starts_without_external_tools(
             assert websocket.receive_json().get("status") == "error"
     assert "调试平台继续启动" in caplog.text
     assert app.state.device_jobs is None
+    if condition == "missing_config":
+        assert not missing_environment.exists()
 
 
 @pytest.mark.asyncio

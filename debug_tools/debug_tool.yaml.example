@@ -2,6 +2,7 @@
 # 注释为字段说明，字段值为保留真实类型的示例；路径、模型和设备信息请按本机环境替换。
 # 不包含真实凭据；密钥只填写在本机配置或微服务 .env。
 # widget_backend 的配置会覆盖 .env，不要新增空密钥覆盖有效凭据。
+# 仅维护 Skill 与界面配置；模型配置统一使用下方 widget_backend。
 main_agent:
   # Skill 根目录，相对仓库根目录
   skill_root: skills
@@ -46,61 +47,6 @@ main_agent:
       display_name: 在线卡片生成
       # 用途描述
       description: 当前在线云侧编排 Skill
-  model:
-    # 卡片生成模型后端
-    design_compact_model_backend: openai
-    # 主模型通道：llmclient / deepseek_official_http / deepseek_platform / mep
-    openai_master_client: llmclient
-    # 备用模型通道，需与对应密钥配置匹配
-    openai_fallback_client: llmclient
-    # 模型调用失败时是否重试
-    enable_model_failure_retry: false
-    # 主模型失败时是否启用备用模型
-    enable_openai_fallback: false
-    # 主模型失败最大重试次数
-    model_failure_max_retry_attempts: 1
-    # 备用模型失败最大重试次数
-    fallback_model_failure_max_retry_attempts: 1
-    # 首次重试等待秒数
-    model_failure_retry_initial_delay_seconds: 1.0
-    # 重试最长等待秒数
-    model_failure_retry_max_delay_seconds: 30.0
-    # 重试等待时间增长倍数
-    model_failure_retry_backoff_multiplier: 2.0
-    # 重试等待随机抖动比例
-    model_failure_retry_jitter_ratio: 0.2
-    # 模型请求最大并发数
-    model_max_concurrency: 20
-    # 模型排队超时秒数
-    model_queue_timeout_seconds: 120
-    # 模型请求超时秒数
-    model_request_timeout_seconds: 120
-    # DeepSeek 官方 HTTP 接口地址
-    deepseek_official_http_url: https://api.deepseek.com/chat/completions
-    # 官方接口模型名称，按账号支持的模型填写
-    deepseek_official_http_model: deepseek-flash
-    # 采样温度，取值 0 到 2
-    deepseek_official_http_temperature: 0.7
-    # 核采样概率，取值大于 0 且不超过 1
-    deepseek_official_http_top_p: 0.9
-    # 单次生成的最大 token 数
-    deepseek_official_http_max_tokens: 8192
-    # 是否启用官方接口思考模式
-    deepseek_official_http_enable_thinking: false
-    # 平台访问凭据，按所用平台填写
-    deepseek_platform_access_key: ""
-    # 平台 STS 密钥配置标识
-    deepseek_platform_secret_key_sts_config_key: ''
-    # 平台 WebSocket 接口地址
-    deepseek_platform_ws_url: ""
-    # 平台 API 凭据，按所用平台填写
-    deepseek_platform_api_key: ''
-    # 平台请求发送方标识
-    deepseek_platform_sender: example-sender
-    # 是否选择平台思考模型
-    deepseek_platform_model_select: false
-    # 平台模型标识
-    deepseek_platform_model_name: YOUR_PLATFORM_MODEL
 
 # 批量测试的稳定运行参数。创建任务页面不提供这些字段，所有任务直接复用本节配置。
 # 本地受管微服务始终在回环地址上使用运行时分配的空闲端口。
@@ -116,6 +62,8 @@ batch_testing:
   # 批跑追踪目录，相对微服务根目录
   trace_root: workspace/traces
 
+# 端到端 Main Agent 与本地受管微服务共用本节配置。
+# 未声明的字段继承微服务默认配置与 .env；本节显式值优先于 .env。
 widget_backend:
   exposed:
     # 主模型通道：llmclient / deepseek_official_http / deepseek_platform / mep
@@ -163,6 +111,10 @@ widget_backend:
     model_queue_timeout_seconds: 120
     # 模型请求超时秒数
     model_request_timeout_seconds: 120
+    # DeepSeek 官方 HTTP 接口地址
+    deepseek_official_http_url: https://api.deepseek.com/chat/completions
+    # 是否使用官方 SDK 调用
+    deepseek_official_http_use_sdk: true
     # 官方接口模型名称，按账号支持的模型填写
     deepseek_official_http_model: deepseek-flash
     # 采样温度，取值 0 到 2
@@ -175,6 +127,8 @@ widget_backend:
     deepseek_official_http_enable_thinking: false
     # 是否使用本地产物下载模拟
     enable_artifact_download_mock: true
+    # 如果使用deepseek官方接口，填入api_key
+    # deepseek_official_http_api_key: "sk-123"
 
 platform:
   environment:
@@ -205,8 +159,8 @@ platform:
     port: 8888
     # 已部署微服务 WebSocket 根地址
     upstream_base_url: ws://127.0.0.1:8855
-    # 端到端请求的宿主应用包名
-    bundle_name: com.example.hostapp
+    # 必须与所选 Skill 的工具声明及工具快照包名一致，不能替换为任意示例包名
+    bundle_name: com.omega_w_0823.hmservice
     # 主 Agent 最大执行步数
     max_steps: 20
     # 主 Agent 单次输出最大 token 数

@@ -9,22 +9,29 @@ import './device-render.css';
 
 const STORAGE = 'ai-widget-device-editor:v1';
 const LAST_RUN = 'ai-widget-device-run:v1';
-type Editor = { source: string; size: '2x2' | '2x4' };
+type InputTab = 'compact' | 'a2ui';
+type Editor = { source: string; compactSource: string; format: InputTab | 'auto'; size: '2x2' | '2x4' };
 
 function restore(): Editor {
   try {
     const value = JSON.parse(localStorage.getItem(STORAGE) ?? '{}');
     return {
       source: typeof value.source === 'string' ? value.source : '',
+      compactSource: typeof value.compactSource === 'string' ? value.compactSource : '',
+      format: value.format === 'compact' || value.format === 'a2ui' ? value.format : value.source ? 'auto' : 'compact',
       size: value.size === '2x4' ? '2x4' : '2x2',
     };
   } catch {
-    return { source: '', size: '2x2' };
+    return { source: '', compactSource: '', format: 'compact', size: '2x2' };
   }
 }
 
 export function DeviceRenderRoute() {
   const [editor, setEditor] = useState(restore);
+  const [inputTab, setInputTab] = useState<InputTab>(() => editor.format === 'compact' ? 'compact' : 'a2ui');
+  const [previewZoom, setPreviewZoom] = useState(160);
+  const [showBrowser, setShowBrowser] = useState(true);
+  const [showDevice, setShowDevice] = useState(true);
   const [targets, setTargets] = useState<Target[]>([]);
   const [emulators, setEmulators] = useState<Emulator[]>([]);
   const [checks, setChecks] = useState<Check[]>([]);
@@ -37,10 +44,6 @@ export function DeviceRenderRoute() {
   const [operation, setOperation] = useState<Operation | null>(null);
   const [run, setRun] = useState<DeviceRun | null>(null);
   const [logs, setLogs] = useState('');
-  const [paused, setPaused] = useState(false);
-  const [screenImage, setScreenImage] = useState('');
-  const [screenStatus, setScreenStatus] = useState('请选择设备');
-  const [connection, setConnection] = useState(0);
   const [runVersion, setRunVersion] = useState(0);
 
   async function refresh(preferredTargetId = '') {
@@ -51,7 +54,7 @@ export function DeviceRenderRoute() {
     setTargets(devices.targets);
     setEmulators(devices.emulators);
     setChecks(environment.checks);
-    setStatusItems(environment.status);
+    setStatusItems(environment.status.filter((item) => item.id !== 'toolchain'));
     setSelected((current) => {
       if (devices.targets.some((target) => target.id === current)) return current;
       return devices.targets.some((target) => target.id === preferredTargetId) ? preferredTargetId : '';
@@ -93,15 +96,17 @@ export function DeviceRenderRoute() {
   }, [operation?.id, operation?.status]);
 
   useEffect(() => {
+    setConverted(''); setConvertMessage('');
     if (!editor.source.trim()) { setConverted(''); setConvertMessage(''); return; }
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       deviceRequest<{ text: string }>('/convert', {
-        source: editor.source, format: 'auto', size: editor.size,
+        source: editor.source, format: editor.format, size: editor.size,
       }, { signal: controller.signal }).then((value) => {
+        if (controller.signal.aborted) return;
         setConverted(value.text); setConvertMessage('已自动识别并转换'); setError('');
       }).catch((reason) => {
-        if (reason?.name !== 'AbortError') {
+        if (!controller.signal.aborted && reason?.name !== 'AbortError') {
           setConverted('');
           setConvertMessage('');
           setError(reason instanceof Error ? reason.message : String(reason));
@@ -110,29 +115,6 @@ export function DeviceRenderRoute() {
     }, 400);
     return () => { controller.abort(); window.clearTimeout(timer); };
   }, [editor]);
-
-  useEffect(() => {
-    if (!selected || paused) { setScreenStatus(selected ? '屏幕已暂停' : '请选择设备'); return; }
-    const url = new URL(`/debug/device/targets/${encodeURIComponent(selected)}/screen`, window.location.href);
-    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(url);
-    socket.binaryType = 'blob';
-    socket.onopen = () => setScreenStatus('设备屏幕已连接');
-    socket.onmessage = (event) => {
-      if (typeof event.data === 'string') {
-        const value = JSON.parse(event.data);
-        setScreenStatus(value.status === 'error' ? value.message : '设备屏幕实时画面');
-        return;
-      }
-      const next = URL.createObjectURL(event.data);
-      setScreenImage((current) => { if (current) URL.revokeObjectURL(current); return next; });
-    };
-    socket.onerror = () => setScreenStatus('屏幕连接失败');
-    socket.onclose = () => setScreenStatus('屏幕连接已断开');
-    return () => socket.close();
-  }, [selected, paused, connection]);
-
-  useEffect(() => () => { if (screenImage) URL.revokeObjectURL(screenImage); }, [screenImage]);
 
   useEffect(() => {
     const id = run?.id ?? localStorage.getItem(LAST_RUN);
@@ -190,21 +172,45 @@ export function DeviceRenderRoute() {
         <select aria-label="卡片尺寸" value={editor.size} onChange={(event) => setEditor((value) => ({
           ...value, size: event.target.value as '2x2' | '2x4',
         }))}><option value="2x2">2x2</option><option value="2x4">2x4</option></select></div>
-        <textarea aria-label="A2UI 代码" value={editor.source} onChange={(event) => setEditor((value) => ({
-          ...value, source: event.target.value,
-        }))} placeholder="粘贴 A2UI JSON/JSONL 或 Compact DSL" />
+        <div className="device-input-tabs" role="tablist" aria-label="输入格式">
+          {(['compact', 'a2ui'] as const).map((tab) => <button key={tab} type="button" role="tab"
+            id={`device-tab-${tab}`} aria-selected={inputTab === tab} aria-controls={`device-panel-${tab}`}
+            onClick={() => setInputTab(tab)}>{tab === 'compact' ? 'Compact DSL' : 'A2UI'}</button>)}
+        </div>
+        <div className="device-input-panel" role="tabpanel" id={`device-panel-${inputTab}`}
+          aria-labelledby={`device-tab-${inputTab}`}>
+          <textarea aria-label={inputTab === 'compact' ? 'Compact DSL 代码' : 'A2UI 代码'}
+            value={inputTab === 'compact' ? editor.compactSource : editor.format === 'compact' ? converted : editor.source}
+            onChange={(event) => {
+              const source = event.target.value;
+              setConverted(''); setConvertMessage('');
+              setEditor((value) => ({ ...value, source, format: inputTab,
+                compactSource: inputTab === 'compact' ? source : value.compactSource }));
+            }} placeholder={inputTab === 'compact' ? '粘贴 Compact DSL，转换结果显示在 A2UI 页签' : '粘贴或编辑 A2UI JSON/JSONL'} />
+        </div>
         <div className="device-actions"><span>{convertMessage}</span><button disabled={!selected || !converted || busy}
           onClick={() => void action(deploy)}>编译并运行</button></div>
-        <details><summary>实际写入工程的 A2UI</summary><pre>{converted}</pre></details></section>
-      <section className="device-browser-preview"><div className="device-toolbar"><strong>浏览器预览</strong>
-        <small>与设备部署使用同一转换结果</small></div><CardRenderer key={`${editor.size}:${converted}`}
-          initialValue={converted} assetBaseUrl={DEFAULT_ASSET_BASE_URL} cardSize={editor.size}
-          previewOnly zoom={160} /></section>
-      <section className="device-preview"><div className="device-toolbar"><strong>{screenStatus}</strong><div>
-        <button disabled={!selected} onClick={() => setPaused(!paused)}>{paused ? '恢复' : '暂停'}</button>
-        <button disabled={!selected} onClick={() => setConnection((value) => value + 1)}>重新连接</button></div></div>
-        <div className="device-screen">{screenImage ? <img src={screenImage} alt="设备当前屏幕" />
-          : <p>选择在线设备后显示全屏画面</p>}</div></section>
+      </section>
+      <section className="device-render-preview" aria-label="渲染预览">
+        <div className="device-toolbar"><strong>渲染预览</strong>
+        <div className="device-preview-options">
+          <label><input type="checkbox" checked={showBrowser} onChange={(event) => setShowBrowser(event.target.checked)} />浏览器截图</label>
+          <label><input type="checkbox" checked={showDevice} onChange={(event) => setShowDevice(event.target.checked)} />真机截图</label>
+        </div>
+        </div>
+        <div className={`device-preview-grid${showBrowser && showDevice ? ' split' : ''}`}>
+          {showBrowser && <section className="device-browser-preview" aria-label="浏览器截图">
+            <h3>浏览器截图</h3><CardRenderer key={`${editor.size}:${converted}`}
+              initialValue={converted} assetBaseUrl={DEFAULT_ASSET_BASE_URL} cardSize={editor.size}
+              previewOnly zoom={previewZoom} onZoomChange={setPreviewZoom} /></section>}
+          {showDevice && <section className="device-card-preview" aria-label="真机截图">
+            <h3>真机截图</h3><div className="device-card-canvas">{run?.cardImageUrl
+              ? <img src={run.cardImageUrl} alt="本次运行的卡片截图" />
+              : <p>编译并运行后显示设备卡片截图</p>}</div>
+          </section>}
+          {!showBrowser && !showDevice && <p className="device-preview-empty">勾选上方选项查看渲染结果</p>}
+        </div>
+      </section>
     </div>
     {run && <section className="device-task"><div className="device-toolbar"><strong>
       任务 · {run.device} · {run.stage}</strong>{!terminal.has(run.status) && <button onClick={() => void action(async () => {
@@ -213,10 +219,6 @@ export function DeviceRenderRoute() {
       {run.error && <p role="alert">{run.error}</p>}
       {run.cropPx && <p>App 自动裁切：{run.cropPx.left}, {run.cropPx.top} · {run.cropPx.width} × {run.cropPx.height}px</p>}
       {run.warnings?.map((warning) => <p key={warning}>警告：{warning}</p>)}
-      {run.cardImageUrl && <div className="device-result-images"><figure><img src={run.cardImageUrl}
-        alt="本次运行的卡片截图" /><figcaption>卡片截图</figcaption></figure>
-        {run.fullImageUrl && <figure><img src={run.fullImageUrl} alt="本次运行的设备全屏截图" />
-          <figcaption>全屏原图</figcaption></figure>}</div>}
       {logs && <details><summary>运行日志</summary><pre>{logs}</pre></details>}</section>}
   </div>;
 }

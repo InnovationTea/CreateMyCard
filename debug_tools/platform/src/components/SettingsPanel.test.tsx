@@ -13,6 +13,7 @@ function mockApi(fail = false, localConfigExists = true) {
     const url = String(input);
     let body: unknown = { checks: [], status: [] };
     let status = 200;
+    if (url.endsWith('/connections/status')) body = { mainAgent: { available: true, detail: 'ok' }, deployedService: { available: true, detail: 'ok' }, managedService: { available: false, detail: '未启动' } };
     if (url.endsWith('/service-config/defaults')) {
       if (init?.method === 'PATCH') {
         if (fail) { body = { detail: '配置文件已变化，请重新加载后再保存' }; status = 409; }
@@ -39,6 +40,22 @@ async function openManaged() {
 describe('SettingsPanel', () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); });
 
+  it('places all status widgets together in order and refreshes every ten seconds', async () => {
+    mockApi();
+    const intervalSpy = vi.spyOn(window, 'setInterval');
+    render(<WorkbenchProvider><SettingsPanel /></WorkbenchProvider>);
+    const backend = screen.getByLabelText('后端服务状态');
+    const toolchain = screen.getByLabelText('本机工具链状态');
+    const device = screen.getByLabelText('设备环境状态');
+    expect(backend.nextElementSibling).toBe(toolchain);
+    expect(toolchain.nextElementSibling).toBe(device);
+    for (const widget of [backend, toolchain, device]) {
+      expect(widget).toHaveClass('backend-status-widget', 'settings-toolchain-status');
+    }
+    await waitFor(() => expect(screen.getAllByText('每 10 秒自动检查')).toHaveLength(3));
+    expect(intervalSpy.mock.calls.filter(([, delay]) => delay === 10_000)).toHaveLength(2);
+  });
+
   it('hides setup instructions when the local config exists', async () => {
     mockApi();
     await openManaged();
@@ -50,6 +67,7 @@ describe('SettingsPanel', () => {
     render(<WorkbenchProvider><SettingsPanel /></WorkbenchProvider>);
     expect(screen.queryByRole('region', { name: '首次使用配置说明' })).not.toBeInTheDocument();
     expect(await screen.findByRole('region', { name: '首次使用配置说明' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('未找到本机 debug_tool.yaml，平台已使用默认配置启动');
     mockApi(false, true);
     await userEvent.click(screen.getByRole('button', { name: '重新加载已保存配置' }));
     await waitFor(() => expect(screen.queryByRole('region', { name: '首次使用配置说明' })).not.toBeInTheDocument());
