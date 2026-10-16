@@ -1071,6 +1071,12 @@ def _provider_variant_matches_trusted_state(
             "healthTemperatureHero",
             "percentTextFull",
             "percentDetailsFull",
+            "percentHealthDetailsFull",
+            "percentHealthCurrentDetailsFull",
+            "percentStatusFull",
+            "chargingTypePercentFull",
+            "temperatureStatusFull",
+            "chargingTemperatureFull",
             "percentLevelHero",
             "percentRingCompact",
             "percentRingHero",
@@ -1092,14 +1098,14 @@ def _provider_variant_matches_trusted_state(
             return variant_name == f"{facts.state}Phone"
         return True
     if wire_id == "BluetoothDeviceOverview@1":
-        if variant_name == "musicCompact":
+        if variant_name == "musicSupport":
             # 纯歌单入口：无数据前提，也不要求耳机事实存在。
             return True
         facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         if facts is None:
             return False
-        if variant_name == "caseConnectionCompact":
-            # 仓连接 Compact：只依赖连接状态与耳机仓电量两个事实。
+        if variant_name == "connectionBatterySupport":
+            # 仓连接与电量 Support：只依赖连接状态与耳机仓电量两个事实。
             return facts.is_connected is not None and facts.case_battery_level is not None
         if variant_name in {
             "caseStatus",
@@ -1122,6 +1128,9 @@ def _provider_variant_matches_trusted_state(
             return has_left and has_right
         if variant_name == "earbudsFull":
             return has_left and has_right
+        if variant_name == "earbudPairChargingFull":
+            has_three_batteries = has_left and has_right and has_case
+            return has_three_batteries and facts.case_charging_status is not None
         if facts.is_connected is None or facts.earphone_name is None:
             return False
         if variant_name == "hero":

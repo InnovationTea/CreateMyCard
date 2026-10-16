@@ -21,11 +21,19 @@ def collect_plan_contract_errors(
     task_spec: dict[str, Any],
     compact_plan: dict[str, Any] | None,
     errors: list[str],
+    *,
+    size: str | None,
 ) -> None:
     """校验模型输出对 Plan 素材分配和语义分区的落实情况。"""
     _collect_title_icon_contract_errors(components, errors)
     _collect_title_button_icon_conflict_errors(components, errors)
-    _collect_plan_asset_assignment_errors(components, task_spec, compact_plan, errors)
+    _collect_plan_asset_assignment_errors(
+        components,
+        task_spec,
+        compact_plan,
+        errors,
+        size=size,
+    )
     _collect_anchor_support_errors(components, compact_plan, errors)
 
 
@@ -62,43 +70,16 @@ def collect_secondary_body_context_errors(
     components: list[ComponentRow],
     errors: list[str],
 ) -> None:
-    """阻止新生成的 SecondaryBody 独立承担一个语义分区。"""
-    components_by_id = {component.component_id: component for component in components}
-    parent_by_child: dict[str, str] = {}
-    for parent in components:
-        for child_id in parent.children:
-            parent_by_child[child_id] = parent.component_id
+    """阻止新生成的 SecondaryBody 在整卡没有核心信息时独立承担内容。"""
+    has_core_information = any(
+        component.component_type in CORE_INFORMATION_COMPONENT_TYPES
+        for component in components
+    )
+    if has_core_information:
+        return
     for component in components:
-        if component.component_type != "SecondaryBody":
-            continue
-        current_id = component.component_id
-        while True:
-            parent_id = parent_by_child.get(current_id)
-            parent = components_by_id.get(parent_id) if parent_id is not None else None
-            if parent is None:
-                errors.append(_isolated_secondary_body_error(component.component_id))
-                break
-            sibling_ids = [
-                child_id for child_id in parent.children if child_id != current_id
-            ]
-            sibling_component_ids = _component_subtree_ids(
-                sibling_ids,
-                components_by_id,
-            )
-            has_core_sibling = False
-            for sibling_id in sibling_component_ids:
-                sibling = components_by_id.get(sibling_id)
-                if sibling is None:
-                    continue
-                if sibling.component_type in CORE_INFORMATION_COMPONENT_TYPES:
-                    has_core_sibling = True
-                    break
-            if has_core_sibling:
-                break
-            if len(parent.children) != 1:
-                errors.append(_isolated_secondary_body_error(component.component_id))
-                break
-            current_id = parent.component_id
+        if component.component_type == "SecondaryBody":
+            errors.append(_isolated_secondary_body_error(component.component_id))
 
 
 def _collect_title_button_icon_conflict_errors(
@@ -134,6 +115,8 @@ def _collect_plan_asset_assignment_errors(
     task_spec: dict[str, Any],
     compact_plan: dict[str, Any] | None,
     errors: list[str],
+    *,
+    size: str | None,
 ) -> None:
     """确保 DSL 落实 Plan 已接受的按钮优先、标题随后素材分配。"""
     if not isinstance(compact_plan, dict):
@@ -182,6 +165,8 @@ def _collect_plan_asset_assignment_errors(
                     f"{expected_source!r}."
                 )
 
+    if size != "2x2":
+        return
     title_assignment = assignments.get("title")
     if not isinstance(title_assignment, dict):
         return
@@ -192,18 +177,15 @@ def _collect_plan_asset_assignment_errors(
     ]
     expected_title_source = asset_sources.get(title_assignment.get("assetId"))
     if not titles:
-        if expected_title_source is not None:
-            errors.append(
-                "assetAssignments.title selected an icon but DSL has no SingleLineTitle."
-            )
         return
     actual_title_icon = titles[0].props.get("icon")
+    if not isinstance(actual_title_icon, str) or not actual_title_icon.strip():
+        return
     if expected_title_source is None:
-        if isinstance(actual_title_icon, str) and actual_title_icon.strip():
-            errors.append(
-                "primary SingleLineTitle must not use an icon because its accepted Plan "
-                "asset assignment is null."
-            )
+        errors.append(
+            "primary SingleLineTitle must not use an icon because its accepted Plan "
+            "asset assignment is null."
+        )
         return
     if actual_title_icon != expected_title_source:
         errors.append(
@@ -325,8 +307,9 @@ def _planned_support_evidence(
 def _isolated_secondary_body_error(component_id: str) -> str:
     return (
         f"component {component_id}: SecondaryBody is auxiliary and cannot be the only "
-        "information component in its semantic region; pair it with a core information "
-        "component. Titles, buttons and other SecondaryBody instances do not count."
+        "information component in the card; pair it with a core information component "
+        "somewhere in the card. Titles, buttons and other SecondaryBody instances do not "
+        "count."
     )
 
 

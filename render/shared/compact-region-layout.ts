@@ -91,6 +91,7 @@ function inset(node: MiniNode, name: string, axis: Axis): number | undefined {
 /** 只将参考画布中可证明闭合的区域改成相对布局；Recipe 内部保持原样。 */
 export function adaptCompactRegions(
   input: Map<string, MiniNode>, authors: Map<string, MiniNode>, size: CardSize,
+  referenceBoxes?: Map<string, Box>,
 ): Map<string, MiniNode> {
   const output = new Map<string, MiniNode>();
   for (const [id, node] of input) output.set(id, { ...node, props: { ...node.props } });
@@ -164,6 +165,10 @@ export function adaptCompactRegions(
   }
   const reference = referenceProfile.sizes[size];
   visit("root", { width: reference.width, height: reference.height });
+  if (referenceBoxes) {
+    for (const [id, box] of boxes) referenceBoxes.set(id, box);
+    return output;
+  }
   const slots = adaptiveSlots(authors, input, size, boxes);
   const slotActions = new Set([...slots].filter(id => {
     const author = authors.get(id);
@@ -275,4 +280,11 @@ export function adaptCompactRegions(
     output.set(shellId, {type: "Column", props, children: [child]});
   }
   return output;
+}
+
+/** 展开前复用同一参考几何求解，不执行区域适配。 */
+export function compactReferenceWidths(input: Map<string, MiniNode>, size: CardSize) {
+  const boxes = new Map<string, Box>();
+  adaptCompactRegions(input, input, size, boxes);
+  return new Map([...boxes].map(([id, box]) => [id, box.width]));
 }

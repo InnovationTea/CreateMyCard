@@ -1,5 +1,11 @@
 # 蓝区默认配置。绿区 spec 配置存在时，只读取 spec，不与本文件合并。
 ENVIRONMENT: local
+enable_photo_background_theme: false
+enable_subjectless_wide_theme: false
+subjectless_wide_sample_rate: 0.10
+enable_square_music_photo_expansion: false
+enable_square_photo_expansion: false
+square_photo_expansion_sample_rate: 0.10
 
 hag_slb_url: ""
 osms_prepare_url: ""
@@ -28,6 +34,8 @@ enable_single_step_generation_fallback: false
 # 二次编辑默认走单步；关闭此项恢复原编辑路由，关闭总开关拒绝所有编辑。
 enable_single_step_widget_edit: true
 enable_widget_edit: true
+# Repair 后是否继续严格校验 Plan 展示事实；动作覆盖始终校验。
+enable_drop_plan_fact_validation: false
 enable_artifact_download_mock: true
 enable_widget_directive_commands: false
 enable_compact_dsl_argument_repair_fallback: false
@@ -70,6 +78,7 @@ model_prompt_log_preview_chars: 30
 openai_master_client: llmclient
 openai_fallback_client: llmclient
 deepseek_official_http_url: https://api.deepseek.com/chat/completions
+deepseek_official_http_use_sdk: true
 deepseek_official_http_api_key: ""
 deepseek_official_http_model: deepseek-flash
 deepseek_official_http_temperature: 0.7

@@ -1,5 +1,7 @@
 import visualRecipes from "../../../widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json";
 import { adaptCompactRegions } from "./compact-region-layout";
+import { compactReferenceWidths } from "../../shared/compact-region-layout";
+import { resolvePathBindingsInValue } from "@genui-sdk/interactions";
 
 /** Expansion contracts from the shared Fusion Compact component runtime. */
 export type MiniNode = { type: string; props: Record<string, unknown>; children: string[] };
@@ -462,12 +464,92 @@ function requireProgressCircleAccessibility(id: string, value: unknown) {
   }
 }
 
+function secondaryTextWidth(text: string, font: number) {
+  return [...text].reduce((width, character) => width + font * (character.codePointAt(0)! < 128 ? 0.6 : 1), 0);
+}
+
+function secondaryDisplayText(item: RecordValue, data?: ExpansionDataContext): string | undefined {
+  const value = item.value;
+  if (typeof value === "string" && !value.includes("{{")) return String(item.label ?? "") + value;
+  if (!data) return undefined;
+  if (typeof value === "string") {
+    const references = [...value.matchAll(/\$\{(\/[^{}]+)\}/g)];
+    if (references.length !== 1 || data.get(references[0][1]) === undefined) return undefined;
+    const body = value.replace(/^\s*\{\{/, "").replace(/\}\}\s*$/, "");
+    const literal = '(?:"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')';
+    const conditional = body.match(new RegExp(
+      '^\\s*\\$\\{(/[^{}]+)\\}\\s*(?:(==|!=)\\s*-?\\d+(?:\\.\\d+)?\\s*)?\\?\\s*('
+      + literal + ')\\s*:\\s*(' + literal + ')\\s*$',
+    ));
+    if (conditional) {
+      const actual = data.get(conditional[1]);
+      if (conditional[2] ? typeof actual !== "number" : typeof actual !== "boolean") return undefined;
+      const branches = [conditional[3], conditional[4]].map(branch =>
+        resolvePathBindingsInValue("{{ " + branch + " }}", data.get));
+      if (!branches.every(branch => typeof branch === "string")) return undefined;
+      branches.sort((left, right) => secondaryTextWidth(String(right), 1) - secondaryTextWidth(String(left), 1));
+      return String(item.label ?? "") + String(branches[0]);
+    }
+    const tokens = /\$\{\/[^{}]+\}|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+    if (!/^\s*(?:\+\s*)*$/.test(body.replace(tokens, ""))) return undefined;
+  }
+  const result = resolvePathBindingsInValue(value, data.get);
+  if (typeof result !== "string" && typeof result !== "number") return undefined;
+  return String(item.label ?? "") + String(result);
+}
+
+function secondaryBodyLayout(
+  items: RecordValue[], texts: Array<string | undefined>, columns: number,
+  separator: string, width?: number,
+) {
+  const rowSizes: number[] = [];
+  const maxLines = items.map(item => Number(item.maxLines ?? 1));
+  let multiline = items.length > columns || maxLines.includes(2);
+  for (let index = 0; index < items.length;) {
+    let rowSize = Math.min(columns, items.length - index);
+    const text = texts[index];
+    if (width !== undefined && text !== undefined) {
+      if (text.includes("\n") || secondaryTextWidth(text, 14) > width) {
+        multiline = true;
+        rowSize = 1;
+      }
+      const next = texts[index + 1];
+      if (rowSize === 2 && next !== undefined && secondaryTextWidth(text + separator + next, 14) > width) {
+        rowSize = 1;
+        multiline = true;
+      }
+    }
+    rowSizes.push(rowSize);
+    index += rowSize;
+  }
+  multiline ||= rowSizes.length > 1;
+  if (multiline && width !== undefined) {
+    texts.forEach((text, index) => {
+      if (text === undefined) return;
+      const required = secondaryTextWidth(text, 12);
+      if (text.includes("\n") || (width < required && required <= width * 2)) maxLines[index] = 2;
+    });
+  }
+  return { rowSizes, maxLines, multiline };
+}
+
+function secondaryPrefixedValue(label: string, value: unknown) {
+  const escaped = label.replaceAll("\\", "\\\\").replaceAll("'", "\\'")
+    .replaceAll("\n", "\\n").replaceAll("\r", "\\r");
+  if (record(value)) return "{{ '" + escaped + "' + ${" + value.path + "} }}";
+  if (typeof value === "string" && value.trim().startsWith("{{")) {
+    return "{{ '" + escaped + "' + (" + value.trim().slice(2, -2).trim() + ") }}";
+  }
+  return label + String(value);
+}
+
 function expandHighLevel(
   id: string,
   node: MiniNode,
   size: CardSize,
   palette: Record<string, string>,
   data?: ExpansionDataContext,
+  availableWidth?: number,
 ): Array<[string, MiniNode]> | null {
   const p = node.props;
   const type = node.type;
@@ -535,8 +617,9 @@ function expandHighLevel(
     const allowed = ["items", "role", "columns", "separator", "fontColor", "fontSize"];
     requireProps(id, type, p, ["items", "fontColor"], allowed);
     requireColor(id, type, p, "fontColor");
-    if (!Array.isArray(p.items) || p.items.length < 1 || p.items.length > 4) {
-      throw new Error(`${id}: SecondaryBody.items 需要 1–4 项。`);
+    if (!Array.isArray(p.items) || p.items.length < 1 || p.items.length > 6) {
+      const countDetail = Array.isArray(p.items) ? `，实际 ${p.items.length} 项` : "";
+      throw new Error(`${id}: SecondaryBody.items 需要 1–6 项${countDetail}。`);
     }
     // 历史 role 输入忽略；样式仅由行布局决定。
     const items = p.items.map((item, index) => {
@@ -561,20 +644,27 @@ function expandHighLevel(
     }
     const multiline = items.length > Number(columns)
       || items.some(item => item.maxLines === 2);
-    const variant = multiline ? "multiline" : undefined;
+    let variant = multiline ? "multiline" : undefined;
     requireRecipeFontSize(id, type, p, size, "text", variant);
+    const texts = items.map(item => secondaryDisplayText(item, data));
+    const layout = secondaryBodyLayout(items, texts, Number(columns), separator, availableWidth);
+    variant = layout.multiline ? "multiline" : undefined;
     const textStyles = recipe(type, size, variant).parts.text.styles;
     const lineHeight = Number(textStyles.height) / Number(textStyles.maxLines ?? 1);
     const rootChildren: string[] = [];
     const rows: Array<[string, MiniNode]> = [];
-    for (let start = 0, rowIndex = 0; start < items.length; start += Number(columns), rowIndex++) {
+    let start = 0;
+    for (let rowIndex = 0; rowIndex < layout.rowSizes.length; rowIndex++) {
+      const rowSize = layout.rowSizes[rowIndex];
       const rowId = `${id}_row${rowIndex}`;
       rootChildren.push(rowId);
       const rowChildren: string[] = [];
-      const rowItems = items.slice(start, start + Number(columns));
-      const rowHeight = lineHeight * Math.max(...rowItems.map(item => Number(item.maxLines ?? 1)));
+      const rowItems = items.slice(start, start + rowSize);
+      const naturalRow = availableWidth !== undefined
+        && texts.slice(start, start + rowSize).every(text => text !== undefined);
+      const rowHeight = lineHeight * Math.max(...layout.maxLines.slice(start, start + rowSize));
       rowItems.forEach((item, localIndex) => {
-        const maxLines = Number(item.maxLines ?? 1);
+        const maxLines = layout.maxLines[start + localIndex];
         const itemHeight = lineHeight * maxLines;
         const itemIndex = start + localIndex;
         if (rowChildren.length) {
@@ -588,7 +678,8 @@ function expandHighLevel(
         const itemId = `${id}_item${itemIndex}`;
         const itemChildren: string[] = [];
         rowChildren.push(itemId);
-        if (item.label !== undefined) {
+        const prefixValue = maxLines > Number(item.maxLines ?? 1) && typeof item.label === "string";
+        if (item.label !== undefined && !prefixValue) {
           const labelId = `${itemId}_label`;
           itemChildren.push(labelId);
           rows.push(row(labelId, type, "text", size, {
@@ -600,17 +691,22 @@ function expandHighLevel(
         const valueId = `${itemId}_value`;
         itemChildren.push(valueId);
         rows.push(row(valueId, type, "text", size, {
-          content: item.value,
+          content: prefixValue ? secondaryPrefixedValue(String(item.label), item.value) : item.value,
           fontColor: colorWithAlpha(p.fontColor as string, 0.6),
           height: itemHeight, maxLines, layoutWeight: 1,
         }, [], variant));
-        rows.push(row(itemId, type, "item", size, {
-          layoutWeight: 1, height: itemHeight, alignItems: "start",
-        }, itemChildren, variant));
+        const itemLayout: RecordValue = { layoutWeight: 1, height: itemHeight, alignItems: "start" };
+        const text = texts[itemIndex];
+        if (rowSize === 2 && naturalRow && text !== undefined) {
+          delete itemLayout.layoutWeight;
+          itemLayout.width = secondaryTextWidth(text, layout.multiline ? 12 : 14);
+        }
+        rows.push(row(itemId, type, "item", size, itemLayout, itemChildren, variant));
       });
       rows.push(row(rowId, type, "row", size, {
         height: rowHeight, alignItems: "start",
       }, rowChildren, variant));
+      start += rowSize;
     }
     return [row(id, type, "root", size, {}, rootChildren, variant), ...rows];
   }
@@ -1571,6 +1667,9 @@ export function expandCompactComponents(
 ) {
   const palette = systemPalette(input.get("root")?.props ?? {});
   input = applySystemComponentColors(input);
+  const widthNodes = new Map([...input].map(([id, node]) => [id, node.type === "SecondaryBody"
+    ? { ...node, type: "Column", props: { width: "matchParent", ...node.props } } : node]));
+  const secondaryWidths = compactReferenceWidths(widthNodes, size);
   let nodes = new Map(input);
   const putExpansion = (
     originalId: string,
@@ -1587,7 +1686,7 @@ export function expandCompactComponents(
 
   for (const [id, node] of input) {
     const parent = [...input.values()].find(item => item.children.includes(id));
-    const rows = expandHighLevel(id, node, size, palette, data);
+    const rows = expandHighLevel(id, node, size, palette, data, secondaryWidths.get(id));
     if (rows) {
       if (node.type === "CircleButton") {
         const centeredSlot = parent?.type === "Stack"

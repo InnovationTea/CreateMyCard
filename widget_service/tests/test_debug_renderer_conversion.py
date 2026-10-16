@@ -54,6 +54,26 @@ def test_auto_size_detects_wide_card(client):
     assert len([json.loads(line) for line in genui.splitlines()]) == 3
 
 
+@pytest.mark.parametrize("size,layout", [("2x2", "S-title-content"),
+                                        ("2x4", "W-split-panels")])
+def test_auto_size_detects_semantic_layout_before_expansion(client, size, layout):
+    children = ["title", "value"] if size == "2x2" else ["left", "right"]
+    rows = [["root", "Layout", {"layout": layout}, children],
+            ["title", "SingleLineTitle", {"title": "状态", "fontSize": 12}],
+            ["value", "EmphasisText", {"mainText": "正常", "fontSize": 18}]]
+    if size == "2x4":
+        rows.extend([
+            ["left", "Region", {"variant": "title-content"}, ["title", "value"]],
+            ["right", "Region", {"variant": "center"}, ["other"]],
+            ["other", "EmphasisText", {"mainText": "在线", "fontSize": 18}],
+        ])
+    source = "\n".join(json.dumps(row) for row in rows)
+    response = client.post("/debug/renderer/convert", json={"source": source, "size": "auto"})
+    assert response.status_code == 200
+    assert response.json().get("size") == size
+    assert response.json().get("genui") == convert_compact_dsl_to_a2ui(source, size=size)
+
+
 def test_single_line_title_svg_without_fill_color_renders(client):
     source = '\n'.join(
         (

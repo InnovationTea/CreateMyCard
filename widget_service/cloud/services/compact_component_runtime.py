@@ -7,9 +7,12 @@ from __future__ import annotations
 import copy
 import json
 import re
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+from services.theme_style_roles import in_layout_phase, recipe_roles, role
 
 VISUAL_RECIPE_VERSION = "visual-recipes-v1"
 _CONTRACT_PATH = (
@@ -65,6 +68,8 @@ def resolve_card_color_palette(
     fusion_ball_active: bool = False,
 ) -> dict[str, str]:
     """Resolve semantic content-color roles from the authored root surface."""
+    if in_layout_phase():
+        return {name: role(name) for name in _PALETTE_ROLES}
     palettes = _load_contract()["palettes"]
     if fusion_ball_active:
         return _palette_roles(palettes, "fusionDark")
@@ -119,7 +124,7 @@ def component_visual_recipe(
                 f"Visual recipe variant {variant} is not registered for {component_name}."
             )
         resolved = _deep_merge(resolved, variant_recipe)
-    return resolved
+    return recipe_roles(component_name, resolved) if in_layout_phase() else resolved
 
 
 def secondary_body_variant(items: list[dict[str, Any]], columns: int = 2) -> str | None:
@@ -129,6 +134,61 @@ def secondary_body_variant(items: list[dict[str, Any]], columns: int = 2) -> str
         if item.get("maxLines", 1) == 2:
             multiline = True
     return "multiline" if multiline else None
+
+
+@dataclass(frozen=True)
+class SecondaryBodyLayout:
+    row_sizes: tuple[int, ...]
+    max_lines: tuple[int, ...]
+    multiline: bool
+
+
+def secondary_body_text_width(text: str, font: float) -> float:
+    """保守字符压力估算，不作为精确字体测量或新的校验门禁。"""
+    return sum(font * (0.6 if character.isascii() else 1.0) for character in text)
+
+
+def secondary_body_layout(
+    items: list[dict[str, Any]],
+    *,
+    columns: int,
+    texts: list[str | None],
+    width: float | None,
+    separator: str,
+) -> SecondaryBodyLayout:
+    """首帧可知时按完整文字分组；未知文案不静态化，不猜测。"""
+    row_sizes: list[int] = []
+    max_lines: list[int] = []
+    multiline = secondary_body_variant(items, columns) is not None
+    for item in items:
+        max_lines.append(item.get("maxLines", 1))
+    index = 0
+    while index < len(items):
+        row_size = min(columns, len(items) - index)
+        text = texts[index]
+        if width is not None and text is not None:
+            if "\n" in text or secondary_body_text_width(text, 14.0) > width:
+                multiline = True
+                row_size = 1
+            if row_size == 2:
+                next_text = texts[index + 1]
+                if next_text is not None:
+                    combined = text + separator + next_text
+                    if secondary_body_text_width(combined, 14.0) > width:
+                        row_size = 1
+                        multiline = True
+        row_sizes.append(row_size)
+        index += row_size
+    if len(row_sizes) > 1:
+        multiline = True
+    if multiline and width is not None:
+        for index, text in enumerate(texts):
+            if text is None:
+                continue
+            required = secondary_body_text_width(text, 12.0)
+            if "\n" in text or width < required <= width * 2:
+                max_lines[index] = 2
+    return SecondaryBodyLayout(tuple(row_sizes), tuple(max_lines), multiline)
 
 
 def visual_recipe_part(

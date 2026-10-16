@@ -87,6 +87,7 @@ class TemplateModelClient:
         )
 
     async def _generate_body(self, prompt: list[dict[str, str]], phase: str) -> str:
+        # 正文空输出属于模型稳定性问题，普通创建也保留一次同输入重试。
         for attempt in (1, 2):
             try:
                 return await self._body_client.generate(

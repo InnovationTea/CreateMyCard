@@ -20,16 +20,38 @@ from services.compact_reference_canvas import reference_dimension
 from services.compact_region_layout import reference_region_boxes
 
 
+def _height_budget_components(
+    components: list[ComponentRow],
+    size: Any,
+    layout_origins: dict[str, str] | None,
+) -> list[ComponentRow]:
+    """仅在2x4高度门禁副本中忽略语义布局生成的8vp纵向间距。"""
+    if size != "2x4" or not layout_origins:
+        return components
+    result: list[ComponentRow] = []
+    for row in components:
+        origin = layout_origins.get(row.component_id, row.component_id)
+        generated_column = origin != row.component_id and row.component_type == "Column"
+        if generated_column and row.props.get("itemMargin") == 8:
+            props = {**row.props, "itemMargin": 0}
+            row = ComponentRow(row.component_id, row.component_type, props, row.children)
+        result.append(row)
+    return result
+
+
 def _collect_height_budget_errors(
     components: list[ComponentRow],
     task_spec: dict[str, Any],
     card_spec: dict[str, Any],
     errors: list[str],
     protocol_profile: dict[str, Any] | None = None,
+    *,
+    layout_origins: dict[str, str] | None = None,
 ) -> None:
     """Reject vertical layouts whose declared minimum height cannot fit."""
-    components_by_id = {component.component_id: component for component in components}
     size = card_spec.get("suggestSize") or task_spec.get("size")
+    components = _height_budget_components(components, size, layout_origins)
+    components_by_id = {component.component_id: component for component in components}
     boxes = {}
     if isinstance(size, str):
         nodes: list[dict[str, Any]] = []
@@ -70,6 +92,19 @@ def _collect_height_budget_errors(
             continue
         overflow = required_height - available_height
         breakdown = _column_height_breakdown(component, components_by_id)
+        removable_title_icon = _removable_title_icon_candidate(
+            component,
+            components_by_id,
+            size=size,
+            overflow=overflow,
+        )
+        actual: dict[str, Any] = {
+            "minimumRequiredHeight": required_height,
+            "overflow": overflow,
+            "occupancy": breakdown,
+        }
+        if removable_title_icon is not None:
+            actual["removableTitleIcon"] = removable_title_icon
         emit_error(
             errors,
             CompactDiagnostic(
@@ -100,11 +135,7 @@ def _collect_height_budget_errors(
                         "不能依靠权重、裁剪、flex shrink 或分布式对齐消除内容高度超限。"
                     ),
                 },
-                actual={
-                    "minimumRequiredHeight": required_height,
-                    "overflow": overflow,
-                    "occupancy": breakdown,
-                },
+                actual=actual,
                 component_id=component.component_id,
             ),
         )
@@ -230,6 +261,42 @@ def _single_line_title_height(component: ComponentRow, *, size: str | None = Non
     if height is None:
         raise CompactDslValidationError(["SingleLineTitle Recipe must declare a fixed height."])
     return height
+
+
+def _removable_title_icon_candidate(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    *,
+    size: Any,
+    overflow: float,
+) -> dict[str, Any] | None:
+    """为卡片容量修复标记足以闭合当前超限的可选标题图标。"""
+    if size not in ("2x2", "2x4"):
+        return None
+    _, base_styles = visual_recipe_part("SingleLineTitle", "root", size=size)
+    base_height = _non_negative_number(base_styles.get("height"))
+    if base_height is None:
+        return None
+
+    pending = list(component.children)
+    visited: set[str] = set()
+    while pending:
+        child_id = pending.pop(0)
+        if child_id in visited:
+            continue
+        visited.add(child_id)
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        if child.component_type == "SingleLineTitle" and child.props.get("icon"):
+            height_saving = _single_line_title_height(child, size=size) - base_height
+            if height_saving > 0 and height_saving + 1e-07 >= overflow:
+                return {
+                    "componentId": child.component_id,
+                    "heightSaving": height_saving,
+                }
+        pending.extend(child.children)
+    return None
 
 
 def _minimum_outer_height(

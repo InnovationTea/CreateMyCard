@@ -36,6 +36,11 @@ def test_missing_spec_uses_default_config(
     assert helper.get("enable_single_step_generation_fallback") == "false"
     assert helper.get("enable_single_step_widget_edit") == "true"
     assert helper.get("enable_widget_edit") == "true"
+    assert "enable_post_layout_theme" not in helper
+    assert "enable_post_layout_theme" not in Settings.model_fields
+    assert helper.get("enable_photo_background_theme") == "false"
+    assert helper.get("enable_subjectless_wide_theme") == "false"
+    assert helper.get("enable_square_photo_expansion") == "false"
 
 
 def test_existing_spec_is_used_without_default_merge(
@@ -102,6 +107,17 @@ def test_settings_prefixed_environment_wins_over_bare_environment(
     settings = Settings(_env_file=tmp_path / "missing.env")
 
     assert settings.openai_master_client == "deepseek_official_http"
+
+
+def test_removed_theme_switch_cannot_restore_front_loaded_theme(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_POST_LAYOUT_THEME", "false")
+
+    settings = Settings(_env_file=tmp_path / "missing.env")
+
+    assert not hasattr(settings, "enable_post_layout_theme")
 
 
 def test_settings_reads_prompt_file_alias_from_env(

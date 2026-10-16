@@ -10,9 +10,13 @@ from services.single_step_250.converter import (
     repair_compact_dsl_binding_paths,
 )
 from services.single_step_250.resources import PROFILE_DIR
+from services.single_step_theme import prepare_single_step_theme
 
 
 class SingleStep250Processor:
+    def __init__(self, *, post_layout_theme: bool = False):
+        self.post_layout_theme = post_layout_theme
+
     def process(self, source_dsl: str, context: DslProcessingContext) -> DslProcessingResult:
         try:
             source_dsl = repair_compact_dsl_binding_paths(
@@ -30,4 +34,13 @@ class SingleStep250Processor:
             issue = QualityIssue(stage="conversion", code="SINGLE_STEP_250_CONVERSION_FAILED",
                                  message=str(exc))
             return DslProcessingResult(source_dsl=source_dsl, issues=(issue,))
+        if self.post_layout_theme:
+            try:
+                standard = prepare_single_step_theme(
+                    standard, source_dsl, {**context.task_spec, "size": context.size},
+                )
+            except ValueError as exc:
+                issue = QualityIssue(stage="conversion", code="SINGLE_STEP_THEME_HANDOFF_FAILED",
+                                     message=str(exc))
+                return DslProcessingResult(source_dsl=source_dsl, issues=(issue,))
         return DslProcessingResult(source_dsl=source_dsl, standard_dsl=standard)

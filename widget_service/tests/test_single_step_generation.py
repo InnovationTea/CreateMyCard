@@ -15,13 +15,20 @@ from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore
 from services.card_validation.standard_plan_coverage import standard_plan_coverage_errors
 from services.compact_repair_strategy import CompactRepairStrategyTracker
-from services.generation_pipeline import DslProcessingResult, QualityIssue
+from services.generation_pipeline import (
+    DslProcessingResult,
+    DslProcessorKind,
+    QualityIssue,
+    get_dsl_processor,
+)
 from services.single_step_250.converter import convert_compact_dsl_to_a2ui
 from services.single_step_250.resources import MODEL_FORMAT
 from services.single_step_contract import compact_font_requirements
 from services.single_step_output import SingleStepOutputError, extract_single_step_output
 from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import SourceArtifactError, SourceArtifactLoadResult
+from services.theme_style_roles import in_layout_phase
+from services.validator import ArtifactValidator
 from services.widget_generation_service import WidgetGenerationService
 
 
@@ -113,7 +120,7 @@ def single_step_run(monkeypatch):
     state = SimpleNamespace(
         calls=[], saved=[], standard=_standard(), primary_success=False,
         compact_source="invalid-compact", repaired_compact_source="invalid-compact",
-        envelope=None, profiles=[],
+        envelope=None, profiles=[], theme_calls=[],
     )
 
     def standard_output(client, profile):
@@ -125,6 +132,9 @@ def single_step_run(monkeypatch):
 
     async def generate(_client, messages, profile=None, **_kwargs):
         model_format = (profile or {}).get("format")
+        if (profile or {}).get("id") == "post-layout-theme":
+            state.theme_calls.append(copy.deepcopy(messages))
+            return '{"themeId":"gradient-blue"}'
         state.calls.append(("generate", model_format, copy.deepcopy(messages)))
         state.profiles.append(copy.deepcopy(profile))
         if model_format == "raw-json":
@@ -146,7 +156,7 @@ def single_step_run(monkeypatch):
             return standard_output(_client, profile)
         return state.repaired_compact_source
 
-    def process(_processor, source, _context):
+    def process(source, _context):
         if state.primary_success:
             return DslProcessingResult(source_dsl=source, standard_dsl=state.standard)
         return DslProcessingResult(source_dsl=source, issues=(QualityIssue(
@@ -163,7 +173,7 @@ def single_step_run(monkeypatch):
 
     monkeypatch.setattr(A2UIModelClient, "generate", generate)
     monkeypatch.setattr(A2UIModelClient, "generate_repair", repair)
-    monkeypatch.setattr("services.generation_pipeline.DesignCompactProcessor.process", process)
+    monkeypatch.setattr(get_dsl_processor(DslProcessorKind.DESIGN_COMPACT), "process", process)
     monkeypatch.setattr(ArtifactStore, "save", save)
     monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: False)
     monkeypatch.setattr(WidgetGenerationService, "_enable_jsx_generation", lambda _self: False)
@@ -186,7 +196,13 @@ async def test_five_repairs_then_one_standard_call_and_forced_validation(single_
     assert len(state.saved) == 1
     artifact, token = state.saved[0]
     assert token is None
-    assert artifact.genui == _converted_standard(state.standard)
+    from services.post_layout_theme import foreground_signature
+
+    assert len(state.theme_calls) == 1
+    assert foreground_signature(artifact.genui) == foreground_signature(
+        _converted_standard(state.standard),
+    )
+    assert "linearGradient" in artifact.genui
     final_messages = state.calls[-1][2]
     assert "极简协议" in final_messages[0].get("content", "")
     content = final_messages[1].get("content")
@@ -214,10 +230,12 @@ async def test_switch_off_preserves_original_failure(single_step_run, monkeypatc
 @pytest.mark.asyncio
 async def test_primary_success_never_uses_single_step(single_step_run):
     single_step_run.primary_success = True
+    single_step_run.compact_source = _compact_text()
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
     assert response.status == GenerationStatus.SUCCESS
     assert [call[1] for call in single_step_run.calls] == ["raw-json", "compact-dsl"]
     assert single_step_run.saved[0][1] is not None
+    assert len(single_step_run.theme_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -227,6 +245,7 @@ async def test_bad_standard_does_not_save_or_recurse(single_step_run):
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
     assert len(single_step_run.calls) == 8
     assert not single_step_run.saved
+    assert not single_step_run.theme_calls
 
 
 @pytest.mark.asyncio
@@ -284,12 +303,14 @@ async def test_all_edit_entries_use_expanded_source_without_token(
     state.standard = _standard(font_size=20)
     state.envelope = envelope
     state.calls.clear()
+    state.theme_calls.clear()
     edited = await getattr(service, entry)(GenerateWidgetCardRequest(
         uid="single-step-test", prdVer="11.7.7.331", device={"romVersion": "7.0"},
         userQuery="仅把标题字号改为20", sourceArtifactUrl=created.artifactUrl,
     ))
     assert edited.status == GenerationStatus.SUCCESS
     assert len(state.calls) == 1
+    assert not state.theme_calls
     assert state.calls[0][1] == MODEL_FORMAT
     content = state.calls[0][2][1].get("content")
     assert isinstance(content, str)
@@ -405,8 +426,9 @@ async def test_three_repair_config_does_not_allow_early_fallback(single_step_run
 @pytest.mark.asyncio
 async def test_first_repair_success_returns_without_single_step(single_step_run, monkeypatch):
     state = single_step_run
+    state.repaired_compact_source = _compact_text()
 
-    def process(_processor, source, _context):
+    def process(source, _context):
         repaired = any(call[0] == "repair" for call in state.calls)
         issues = () if repaired else (QualityIssue(
             stage="validation", code="COMPACT_DSL_VALIDATION_FAILED", message="layout error",
@@ -415,7 +437,7 @@ async def test_first_repair_success_returns_without_single_step(single_step_run,
             source_dsl=source, standard_dsl=state.standard if repaired else "", issues=issues,
         )
 
-    monkeypatch.setattr("services.generation_pipeline.DesignCompactProcessor.process", process)
+    monkeypatch.setattr(get_dsl_processor(DslProcessorKind.DESIGN_COMPACT), "process", process)
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
     assert response.status == GenerationStatus.SUCCESS
     assert [call[1] for call in state.calls] == ["raw-json", "compact-dsl", "compact-dsl"]
@@ -500,6 +522,7 @@ async def test_edit_result_can_be_edited_again_without_compact_token(single_step
     monkeypatch.setattr("services.source_artifact_repository.SourceArtifactRepository.load",
                         load_latest)
     state.calls.clear()
+    state.theme_calls.clear()
     for font in (20, 18):
         state.standard = _standard(font_size=font)
         previous = current.artifactUrl
@@ -511,6 +534,7 @@ async def test_edit_result_can_be_edited_again_without_compact_token(single_step
         assert current.artifactUrl != previous
         assert state.saved[-1][1] is None
     assert len(state.calls) == 2
+    assert not state.theme_calls
     assert all(call[1] == MODEL_FORMAT for call in state.calls)
 
 
@@ -681,8 +705,11 @@ async def test_five_repairs_then_jsonl_fallback_without_changing_primary(single_
     assert len(state.calls) == 8
     assert all("singleStepOutput" not in profile for profile in state.profiles[:-1])
     assert state.profiles[-1].get("singleStepOutput") is True
-    actual = [json.loads(line) for line in state.saved[-1][0].genui.splitlines()]
-    assert actual == [json.loads(line) for line in _converted_standard(state.standard).splitlines()]
+    from services.post_layout_theme import foreground_signature
+
+    actual = state.saved[-1][0].genui
+    assert len(state.theme_calls) == 1
+    assert foreground_signature(actual) == foreground_signature(_converted_standard(state.standard))
 
 
 @pytest.mark.asyncio
@@ -741,3 +768,102 @@ def test_labels_in_conditions_or_non_concatenation_are_not_assumed_visible(text)
     assert standard_plan_coverage_errors(
         _standard(text=text), {"info_required": [{"text": "地点"}]}, {},
     )
+
+
+@pytest.mark.asyncio
+async def test_single_step_theme_selection_failure_uses_common_gradient(
+    single_step_run, monkeypatch,
+):
+    state = single_step_run
+    generate = A2UIModelClient.generate
+    phases = []
+
+    async def fail_theme(client, messages, profile=None, **kwargs):
+        phases.append(kwargs.get("phase"))
+        if (profile or {}).get("id") == "post-layout-theme":
+            raise A2UIModelGenerationError("theme selection unavailable")
+        return await generate(client, messages, profile, **kwargs)
+
+    monkeypatch.setattr(A2UIModelClient, "generate", fail_theme)
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert response.status == GenerationStatus.SUCCESS
+    assert phases.count("theme") == 1
+    assert len(state.calls) == 8
+    assert len(state.saved) == 1
+    assert "linearGradient" in state.saved[0][0].genui
+
+
+@pytest.mark.asyncio
+async def test_single_step_final_theme_validation_cannot_save_failure(single_step_run, monkeypatch):
+    validate = ArtifactValidator.validate
+
+    def reject_final(validator, artifact, profile):
+        if in_layout_phase():
+            return validate(validator, artifact, profile)
+        return ["TEST_FINAL_ARTIFACT_REJECTED"]
+
+    monkeypatch.setattr(ArtifactValidator, "validate", reject_final)
+    with pytest.raises(ValueError, match="Final gradient validation failed"):
+        await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert len(single_step_run.calls) == 8
+    assert len(single_step_run.theme_calls) == 1
+    assert not single_step_run.saved
+
+
+@pytest.mark.asyncio
+async def test_themed_card_edit_keeps_font_background_and_progress_overrides(
+    single_step_run, monkeypatch,
+):
+    state = single_step_run
+    records = [json.loads(line) for line in state.standard.splitlines()]
+    update = records[1].get("updateComponents")
+    assert isinstance(update, dict)
+    nodes = update.get("components")
+    assert isinstance(nodes, list)
+    nodes[0]["children"].append("progress")
+    nodes.append({"id": "progress", "component": "Progress", "value": 80, "total": 100,
+                  "type": "ring", "styles": {"width": 44, "height": 44, "strokeWidth": 6,
+                                               "color": "#FF1F4799",
+                                               "backgroundColor": "#331F4799"}})
+    state.standard = "\n".join(json.dumps(row, ensure_ascii=False) for row in records)
+    service = WidgetGenerationService()
+    current = await service.generate_widget_card_compact_dsl(_request())
+    assert current.status == GenerationStatus.SUCCESS
+    assert len(state.theme_calls) == 1
+
+    def load_latest(*_args):
+        return SourceArtifactLoadResult(
+            artifact=state.saved[-1][0], design_token=None, artifact_digest="sha256:themed",
+            url_hash="themed", read_latency_ms=0.0, parse_latency_ms=0.0, download_mode="mock",
+        )
+
+    monkeypatch.setattr("services.source_artifact_repository.SourceArtifactRepository.load",
+                        load_latest)
+    changes = [("title", "fontSize", 18), ("root", "backgroundColor", "#FFE8F0FE"),
+               ("progress", "color", "#FF9C27B0")]
+    state.calls.clear()
+    for identity, key, value in changes:
+        original = state.saved[-1][0]
+        original_json = original.model_dump_json()
+        edited = [json.loads(line) for line in original.genui.splitlines()]
+        edited_update = edited[1].get("updateComponents")
+        assert isinstance(edited_update, dict)
+        target = next(node for node in edited_update.get("components", [])
+                      if node.get("id") == identity)
+        styles = target.get("styles")
+        assert isinstance(styles, dict)
+        styles[key] = value
+        if key == "backgroundColor":
+            styles.pop("linearGradient", None)
+        state.standard = "\n".join(json.dumps(row, ensure_ascii=False) for row in edited)
+        current = await service.generate_widget_card_compact_dsl(GenerateWidgetCardRequest(
+            uid="single-step-test", prdVer="11.7.7.331", device={"romVersion": "7.0"},
+            userQuery=f"仅修改{identity}的{key}为{value}", sourceArtifactUrl=current.artifactUrl,
+        ))
+        assert current.status == GenerationStatus.SUCCESS
+        assert original.model_dump_json() == original_json
+        assert state.saved[-1][0].genui == _converted_standard(state.standard)
+    assert len(state.calls) == 3
+    assert len(state.theme_calls) == 1
+    final = state.saved[-1][0].genui
+    assert "#FF9C27B0" in final and "#FFE8F0FE" in final

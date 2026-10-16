@@ -141,6 +141,24 @@ class ContrastValidator(BaseValidator):
         root_child_ids = root_children if isinstance(root_children, list) else []
         is_fusion_scene = _FUSION_BACKGROUND_ID in root_child_ids
         is_normal_scene = _NORMAL_ROOT_ID in root_child_ids
+        photo_base = by_id.get("__post_theme_base", {})
+        photo_styles = photo_base.get("styles", {})
+        photo_styles = photo_styles if isinstance(photo_styles, dict) else {}
+        photo_layer = by_id.get("__post_theme_background", {})
+        photo_children = photo_layer.get("children", [])
+        photo_children = photo_children if isinstance(photo_children, list) else []
+        photo_wrapper = (
+            "__post_theme_background" in root_child_ids
+            and "__post_theme_base" in photo_children
+        )
+        photo_foreground = any(
+            key in root_child_ids for key in ("__post_theme_foreground", "__post_theme_contentHalf")
+        )
+        full_image = (
+            photo_base.get("component") == "Image"
+            and photo_styles.get("width") == "matchParent"
+            and photo_styles.get("height") == "matchParent"
+        )
         self._walk(
             context,
             reporter,
@@ -148,6 +166,7 @@ class ContrastValidator(BaseValidator):
             [(1.0, 1.0, 1.0)],
             is_gradient=False,
             is_fusion_scene=is_fusion_scene and not is_normal_scene,
+            is_photo_scene=photo_wrapper and photo_foreground and full_image,
         )
 
     def _walk(
@@ -159,6 +178,7 @@ class ContrastValidator(BaseValidator):
         *,
         is_gradient: bool,
         is_fusion_scene: bool,
+        is_photo_scene: bool = False,
     ) -> None:
         styles = component.get("styles")
         styles = styles if isinstance(styles, dict) else {}
@@ -171,6 +191,7 @@ class ContrastValidator(BaseValidator):
             )
             if background[3] >= _OPAQUE_ALPHA:
                 is_gradient = False
+                is_photo_scene = False
         except ValueError:
             pass
         gradient = styles.get("linearGradient") or styles.get("radialGradient")
@@ -185,7 +206,8 @@ class ContrastValidator(BaseValidator):
         if component.get("component") == "Text" and self._has_text(component.get("content")):
             color_key = "fontColor" if "fontColor" in styles else "textColor"
             foreground = styles.get(color_key)
-            if is_fusion_scene:
+            if is_fusion_scene or is_photo_scene:
+                scene = "photo" if is_photo_scene else "fusionBall"
                 component_id = component.get("id")
                 pointer = (
                     f"/updateComponents/componentsById/{component_id}/styles/{color_key}"
@@ -197,10 +219,18 @@ class ContrastValidator(BaseValidator):
                     "genui",
                     line=2,
                     json_pointer=pointer,
-                    actual={"scene": "fusionBall", "requiresRenderReview": True},
+                    actual={"scene": scene, "requiresRenderReview": True},
                     expected="端侧渲染后确认文字区域对比度",
-                    message="fusionBall 背景由兄弟装饰层合成，静态对比度不作阻塞判定",
-                    fix_hint="请在端侧渲染后复核文字可读性；仅在实际不可读时调整颜色。",
+                    message=(
+                        "photo 背景由兄弟图片层合成，静态对比度不作阻塞判定"
+                        if is_photo_scene else
+                        "fusionBall 背景由兄弟装饰层合成，静态对比度不作阻塞判定"
+                    ),
+                    fix_hint=(
+                        "请通过渲染复核文字可读性；图片不可读时退回既有主题，不改前景。"
+                        if is_photo_scene else
+                        "请在端侧渲染后复核文字可读性；仅在实际不可读时调整颜色。"
+                    ),
                     source="aesthetic-contrast",
                 )
                 return
@@ -259,6 +289,7 @@ class ContrastValidator(BaseValidator):
                     effective_backgrounds,
                     is_gradient=is_gradient,
                     is_fusion_scene=is_fusion_scene,
+                    is_photo_scene=is_photo_scene,
                 )
 
     @staticmethod

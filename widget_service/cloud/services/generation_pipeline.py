@@ -16,6 +16,7 @@ from services.card_validation.display_unit_rules import repair_repeated_display_
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
+    expand_compact_semantic_layout,
     repair_compact_dsl_binding_paths,
     repair_compact_dsl_safe_structure,
 )
@@ -78,7 +79,9 @@ class DslProcessingContext:
     layout_scope: str | None = None
     compact_plan: dict[str, Any] | None = None
     allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
+    plan_information_coverage_as_warning: bool = False
     repair_context: RepairGuidanceContext | None = None
+    colorless_layout: bool = False
 
 
 @dataclass(frozen=True)
@@ -160,9 +163,23 @@ class DesignCompactProcessor:
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
+        from services.theme_style_roles import layout_phase
+
+        with layout_phase(context.colorless_layout, context.task_spec):
+            return self._process(source_dsl, context)
+
+    def _process(
+        self, source_dsl: str, context: DslProcessingContext,
+    ) -> DslProcessingResult:
         binding_repair_started_at = time.perf_counter()
+        from services.layout_theme_contract import strip_source_colors
+        from services.theme_style_roles import in_layout_phase
+
         original_source_dsl = source_dsl
         try:
+            if in_layout_phase():
+                source_dsl = strip_source_colors(source_dsl)
+                original_source_dsl = source_dsl
             source_dsl = repair_compact_dsl_safe_structure(
                 source_dsl,
                 size=context.size,
@@ -175,6 +192,17 @@ class DesignCompactProcessor:
                 card_spec=context.card_spec,
                 skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
+            expanded_source, layout_origins = expand_compact_semantic_layout(
+                source_dsl, size=context.size,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
+            )
+            if layout_origins:
+                trace_step(
+                    "dsl.semantic_layout.expanded", stage="dsl.layoutExpansion", status="success",
+                    text_artifacts={"semantic_layout_source": source_dsl,
+                                    "semantic_layout_expanded": expanded_source},
+                    json_artifacts={"semantic_layout_origins": layout_origins},
+                )
         except CompactDslConversionError as exc:
             trace_step(
                 "dsl.binding_repair.completed",
@@ -232,6 +260,7 @@ class DesignCompactProcessor:
             context.compact_plan,
             context.task_spec,
             allowed_omitted_fact_indexes=context.allowed_omitted_plan_fact_indexes,
+            information_errors_as_warnings=context.plan_information_coverage_as_warning,
         )
         plan_errors = plan_coverage.errors
         plan_warnings = plan_coverage.warnings
@@ -276,6 +305,9 @@ class DesignCompactProcessor:
                 "plan_coverage_result": {
                     "errors": list(plan_errors),
                     "warnings": list(plan_warnings),
+                    "informationCoverageSeverity": (
+                        "warning" if context.plan_information_coverage_as_warning else "error"
+                    ),
                     "omittedFacts": [
                         fact.get("requirement") for fact in omitted_facts
                     ],
