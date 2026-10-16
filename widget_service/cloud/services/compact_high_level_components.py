@@ -119,12 +119,12 @@ def apply_system_component_colors(
     return resolved
 
 
-def _system_palette_color(palette: dict[str, str], role: str) -> str:
-    color = palette.get(role)
+def _system_palette_color(palette: dict[str, str], palette_role: str) -> str:
+    color = palette.get(palette_role)
     if in_layout_phase() and is_role(color):
         return color
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
-        raise CompactDslConversionError(f"System palette role {role} must use #AARRGGBB.")
+        raise CompactDslConversionError(f"System palette role {palette_role} must use #AARRGGBB.")
     return color
 
 

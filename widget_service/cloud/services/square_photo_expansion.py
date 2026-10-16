@@ -92,8 +92,12 @@ def expansion_reason(theme: dict, task: dict, evidence: dict) -> str | None:
     if not occupied:
         return "没有可验证的前景内容"
     bounds = theme.get("subjectBounds")
-    if (not valid_rect(bounds) or bounds[0] < 0.5 or bounds[1] < 0
-            or bounds[0] + bounds[2] > 1 or bounds[1] + bounds[3] > 1):
+    if not valid_rect(bounds):
+        return "图片主体侵入左侧内容半区"
+    bx, by, bw, bh = bounds
+    outside_right_half = bx < 0.5 or bx + bw > 1
+    outside_height = by < 0 or by + bh > 1
+    if outside_right_half or outside_height:
         return "图片主体侵入左侧内容半区"
     for item in occupied:
         if not isinstance(item, dict):
@@ -102,7 +106,9 @@ def expansion_reason(theme: dict, task: dict, evidence: dict) -> str | None:
         if not valid_rect(rect):
             return "前景占用范围无效"
         x, y, width, height = rect
-        if x < 0 or y < 0 or x + width > 1 or y + height > 1:
+        outside_horizontal = x < 0 or x + width > 1
+        outside_vertical = y < 0 or y + height > 1
+        if outside_horizontal or outside_vertical:
             return "原内容及动态预留超出2x2安全范围"
     return None
 

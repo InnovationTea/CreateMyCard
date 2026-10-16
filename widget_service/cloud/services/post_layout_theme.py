@@ -181,7 +181,9 @@ def photo_reason(photo: dict, task: dict, evidence: dict) -> str | None:
         if not valid_rect(region):
             return "主体区域配置无效"
         x, y, width, height = region
-        if x < bx or y < by or x + width > bx + bw + 1e-9 or y + height > by + bh + 1e-9:
+        outside_horizontal = x < bx or x + width > bx + bw + 1e-9
+        outside_vertical = y < by or y + height > by + bh + 1e-9
+        if outside_horizontal or outside_vertical:
             return "主体区域配置无效"
     for item in avoidance:
         if not isinstance(item, dict):
@@ -191,7 +193,9 @@ def photo_reason(photo: dict, task: dict, evidence: dict) -> str | None:
             return "内容测量不完整"
         left, top, rw, rh = rect
         for x, y, width, height in regions:
-            if left < x + width and left + rw > x and top < y + height and top + rh > y:
+            overlaps_horizontal = left < x + width and left + rw > x
+            overlaps_vertical = top < y + height and top + rh > y
+            if overlaps_horizontal and overlaps_vertical:
                 return f"主体区域与内容 {item.get('id', '')} 冲突"
     return None
 
@@ -441,7 +445,7 @@ async def select_theme(
                 source, task.get("size", "2x2"),
                 data_model_schema=task.get("dataModelSchema", {}),
             )
-        except (OSError, ValueError, TimeoutError) as exc:
+        except (OSError, ValueError) as exc:
             evidence = {"complete": False, "reason": str(exc)}
     fusion_gate = fusion_candidate_gate(task, final_layout)
     candidates = [
@@ -654,7 +658,7 @@ async def theme_artifact(
             audit["afterMeasurement"] = after_measure
             if not unchanged:
                 errors.append("THEME.GEOMETRY: rendered text geometry changed")
-        except (OSError, ValueError, TimeoutError) as exc:
+        except (OSError, ValueError) as exc:
             errors.append("THEME.MEASUREMENT: " + str(exc))
     audit["finalValidationErrors"] = errors
     if errors:
