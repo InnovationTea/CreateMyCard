@@ -11,6 +11,32 @@ SOURCE = (
     Path(__file__).resolve().parents[1]
     / "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
 )
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_merged_contract_separates_theme_and_visible_fact_ownership(size: str) -> None:
+    from services.layout_theme_contract import layout_only_prompt
+
+    source = read_prompt(SOURCE, "create", size=size)
+    messages = layout_only_prompt([{"role": "system", "content": source}])
+    content = messages[0].get("content", "")
+    assert "恰好一个可见信息位置" in content
+    assert "图形驱动 value 不另计" in content
+    assert "surfaceRole" in content
+    assert "不选择主题" in content
+    assert not re.search(r"#[0-9a-fA-F]{8}\b", content)
+
+
+def test_merged_plan_and_repair_preserve_pr568_fact_contract() -> None:
+    plan = read_prompt(SOURCE, "plan")
+    repair = read_prompt(SOURCE, "repair")
+    assert "仅一个可见 placement" in plan
+    assert "不把同一事实同时分配给 value 和 displayValue" in plan
+    assert "duplicateFacts/occurrences" in repair
+    assert "仅移除重复引用，保留其它事实" in repair
+    assert "不得改 Plan、删唯一展示或数据行" in repair
+
+
 # main fd8ce68 生成可用字段；排除明确只兼容旧输入的标题fillColor和圆环宽高。
 EXPECTED_PROPS = {
     "SingleLineTitle": [

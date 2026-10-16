@@ -327,6 +327,6 @@ def test_only_fusion_repair_prompt_source_exists() -> None:
     repair = (profiles / "design-compact-dsl-fusion/prompt_source/repair.md").read_text(
         encoding="utf-8"
     )
-    assert "高阶组件展开结果" in repair
+    assert "expanded 位置来自模板展开，不是模型 Props" in repair
     assert "previousFailures" in repair
     assert "compositionRecovery" in repair
