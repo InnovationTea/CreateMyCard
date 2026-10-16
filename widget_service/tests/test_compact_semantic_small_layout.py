@@ -233,6 +233,7 @@ def test_small_semantic_source_rejects_wrong_geometry_variant_size_and_role(
 
 def test_documented_small_templates_can_be_completed_and_converted() -> None:
     document = (SOURCE.parents[1] / "layouts/2x2.md").read_text(encoding="utf-8")
+    document += (SOURCE.parents[1] / "combinations/2x2.md").read_text(encoding="utf-8")
     layouts = set()
     groups = set()
     for block in re.findall(r"```genui\n([\s\S]*?)\n```", document):

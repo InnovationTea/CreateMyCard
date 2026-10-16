@@ -108,9 +108,9 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
     plan_system = calls[0][1][0]["content"]
     assert "submit_card_plan" in plan_system
     assert "你是 HarmonyOS 桌面卡片生成 Agent" in plan_system
-    assert "`<agent_stage>plan</agent_stage>`：只按本轮工具 Schema 提交" in plan_system
-    assert "# 2. Compact DSL 组件合同" in plan_system
-    assert "### 6.1 `EventCard`" in plan_system
+    assert "`plan`：按本轮工具 Schema 提交一次" in plan_system
+    assert "# 2. 单组件细则" in plan_system
+    assert "`EventCard`" in plan_system
     assert "| S-title-content-action |" in plan_system
     assert "FEWSHOT" not in plan_system
     assert '"composition"' not in plan_system.split("# 可用工具合同", 1)[1]
