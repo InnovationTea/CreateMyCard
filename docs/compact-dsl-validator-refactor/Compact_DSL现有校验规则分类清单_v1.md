@@ -11,6 +11,42 @@
 
 ## Fusion 融合后的当前生效约定
 
+2026-10-16：修复语义布局展开重新解析时遗漏模板来源上下文的问题（issue #570）。
+组件类型白名单仍属语法／组件，唯一判定位置为 compact_dsl_a2ui_converter.py 的
+_parse_component_header；generation_pipeline.py 只透传 skip_compact_dsl_validation，
+expand_compact_semantic_layout 将其交给共享解析器。不新增校验分支或错误码，普通模型输入、
+未知组件、保留属性及语义布局角色／尺寸约束保持不变；覆盖模板内部组件与普通输入边界回归。
+
+2026-10-15：TextBlock.items[].label 与 items[].value 一致允许静态值、完整 Expression 和
+PathBinding。该调整归属语法／组件的共享绑定合同，落点 compact_component_bindings.py；直接
+PathBinding 的 string/number/integer 类型相容性仍归属语义／数据绑定，不在分类入口复制检查。
+
+2026-10-15：Plan 展示事实覆盖调整为请求级一次硬校验。首次 DSL 评估仍严格检查全部
+Plan 事实；进入第一次模型 Repair 后，compact_plan.py 仅将非 Action 展示事实缺失转为
+warning，2×2 与 2×4 共用该逻辑。此项属于生成编排层的降级政策，不新增语法／语义校验器。
+Action 事实、事件 handler、动作素材、动作槽及其它 Compact 校验不降级。
+enable_drop_plan_fact_validation 默认关闭；开启时在 Repair 阶段恢复严格事实覆盖，仅保留程序明确
+授权的 Drop 豁免范围。
+
+2026-10-15：SecondaryBody.items数量上限由4改为6，归属语法／组件合同，仍委托
+compact_high_level_components.py的共享组件校验，不在分类入口重复实现。实际数量超过6时进入
+既有组件修复，由compact_repair_strategy.py说明可选补充项清理与Plan保护；容量归属与Drop授权不变。
+
+2026-10-14 单例检视补充：2×4 SecondaryBody 单行的完整值与静态标签共同核算宽度。
+归属语义／布局与视觉约束，落点 semantic/layout/text_width.py，复用现有同行压力函数及建议；
+api.py 仅启用该尺寸的检查。未知值或兄弟标签不估猜，不恢复其它旧门禁，2×2 发布判定不变。
+
+同日补充 2×4 语义编译反馈：共享 Runtime compact_semantic_layout.py 的既有角色数、父区变体
+检查在原失败信息中列出有序角色及该父区允许的变体；仍委托该编译器判定，校验分类入口不重复实现。
+不改变成功/失败边界、几何或检查顺序，不包含业务答案，仍通过既有转换错误路径传递。
+2026-10-15 将 `W-content-side-slots` 中“上方 CardButton、下方 InfoBlock”的顺序检查从转换错误降为
+warning；共享 Runtime 继续确定性展开原顺序，校验入口只收集建议，不复制槽位判断。槽位数量、组件角色、
+父区变体与几何检查仍为原有硬校验。
+
+2×4 多字段文本宽度检查在同一 semantic/layout/text_width.py 中复用既有安全解析器，
+不增加任意表达式求值器。已知字符串连接与简单布尔分支按完整文案核算，未知值和算术不猜测；
+2×2 原行为不变，继续沿用已有宽度错误及建议。
+
 ### 2026-10-12 最终设计对照复核
 
 当前基线为 main `69c153f5`（已包含 #506 和 #500）。语法／语义分类及 32 个活动结构化错误码不变，
@@ -65,6 +101,24 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 提示词说明只写入 fusion/prompt_source/repair.md，不恢复已删除的旧 REPAIR_SYSTEM_PROMPT.md。
 高度建议要求保留固定设计量，重组合法布局；新增规则仍按约束性质归类并复用已有运行时合同。
 
+
+## 横向固定内容预算补充（2026-10-14，Issue #538）
+
+| 检查项 | 分类与实际文件 | 归属理由及边界 |
+|---|---|---|
+| `COMPACT_LAYOUT_WIDTH_OVERFLOW` | 语义／布局与视觉约束，`semantic/layout/horizontal.py` | 判断展开后 Row 的固定内容、嵌套后代、margin 和间距能否放入当前参考分区；属于空间预算，不属于语法或绑定 |
+
+共享 `reference_region_boxes` 提供画布与权重分配，当前组件 Recipe 提供固定设计尺寸；
+不另建标题高度或文字字体估算，也不整体迁入 PR #470 的二维几何引擎。
+执行位置在 `api.py` 的现有高度与文字宽度预算之后，保持前置校验、warning 和模板跳过语义。
+错误事实通过 `CompactDiagnostic` 返回，建议在 `repair_hints.json` 登记；流水线继续负责修复编排。
+本次新增 1 个活动结构化错误码（合计 33 个），规则登记夹具与 `test_compact_horizontal_budget.py` 同步。
+未知几何、未建模约束、任意二维相交及字形裁切不在本项覆盖范围内，不把未报错等同于像素验证通过。
+
+同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
+高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
+受约束影响的后代槽位继续按未知处理，避免把分配前宽度当作实际宽度。
+该补充仍归 horizontal.py，不增加诊断码；原始 3:1 分区案例记录于 text-block-input.jsonl。
 
 ## CodeCheck 整改范围收敛（2026-10-12）
 
@@ -424,17 +478,17 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   原始诊断：component {component.component_id}: time/date range ends with a dangling separator. Bind both start and end values, or remove the separator and display the available value only.
 
-- **OBS-L4139**：`_collect_semantic_text_errors`，主脚本第 4139 行。
+- **OBS-L4139**：`_collect_semantic_text_errors`，主脚本第 4139 行，2026-10-14 已停用。
 
-  原始诊断：component {component.component_id}: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.
+  历史诊断：component {component.component_id}: calendar eventCount must not be shown as a standalone number or unit. Combine it with its time scope and schedule meaning, for example 未来7天 2项安排, inside the calendar region.
 
 - **OBS-L4153**：`_collect_semantic_text_errors`，主脚本第 4153 行。
 
   原始诊断：component {component.component_id}: reminder value must keep its minute semantics, such as 提前 15 分钟; do not display a bare numeric reminder value.
 
-- **OBS-L4163**：`_collect_semantic_text_errors`，主脚本第 4163 行。
+- **OBS-L4163**：`_collect_semantic_text_errors`，主脚本第 4163 行，2026-10-15 已停用。
 
-  原始诊断：component {component.component_id}: windLevel must include the metric label 风力, for example 风力 2级; do not show a bare 2级.
+  历史诊断：component {component.component_id}: windLevel must include the metric label 风力, for example 风力 2级; do not show a bare 2级.
 
 - **OBS-L4207**：`_collect_unbound_action_hint_errors`，主脚本第 4207 行。
 
@@ -830,7 +884,16 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
 - **OBS-L4383**：`_collect_height_budget_errors`，主脚本第 4383 行。
 
+  当前归属：语义／布局与视觉约束，`semantic/layout/geometry.py`。2026-10-15 按确认仅在高度校验
+  视图中忽略 2x4 语义展开生成 Column 的 8vp 纵向间距；参考槽位同步使用该视图，其它高度约束不变。
+  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。
+
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
+
+  补漏检查 `COMPACT_LAYOUT_HEIGHT_UNRESOLVED`：语义／布局与视觉约束；实际文件
+  `compact_validation/semantic/layout/geometry.py`。Column 可用高度未知且直接子项依赖
+  matchParent 高度或正数纵向权重时阻断。归属理由：检查布局分配能否闭合，不检查文本内容或
+  组件字段合法性；复用 reference_region_boxes，不复制求解器，保留现有高度溢出检查顺序。
 
 ### 5.8 委托检查，按被调函数内部约束再分类
 
@@ -991,7 +1054,7 @@ warning 保持原字符串返回及流水线警告码、日志路径，不进入
 | BASE-01：纵向最小高度参考画布 | `compact_dsl_validator.py` 的 `_REFERENCE_CANVAS_HEIGHT` 将 `2x2`、`2x4`、`4x2` 设为 `150.0` | [云侧方案设计](../云侧方案设计.md)“校验与重试”规定 Compact 最小高度校验采用 `160vp` | 登记差异，不在分类或等价拆分中改常量、阈值、报错文案或快照；实施行为修正前单独确认依据并补充边界回归 |
 | BASE-02：W9 无动作倒计时结构冲突 | OBS-L3455 要求背板直接包含三个 Text，OBS-L3909 又要求直接内容 Column | 同一稀疏倒计时背板同时触发，两种结构不能同时满足 | 待确认适用条件和优先级；保留等价行为及两种结构的复现，不生成保证可解的新建议 |
 | BASE-03：分离单位建议冲突 | OBS-L3378 要求同 Row 且较小文字不加 bottom padding | OBS-L825、OBS-L1154 对混合字号要求底部补偿；照旧建议修改后仍会失败 | 旧文案逐字保留；新 expected 保留实际对齐约束，不复制冲突建议，不借调整建议改变阈值 |
-| BASE-04：eventCount 适用边界 | OBS-L4139 检查所有 eventCount 引用的时间范围和日程文案 | 当前 design-compact-dsl/PROMPT.md 讲的是数量摘要；条件表达式仅输出状态时也被当前实现检查 | 作为边界待裁决，补充数量展示与条件状态、时间范围已知与未知用例，不臆造时间范围 |
+| BASE-04：eventCount 适用边界 | OBS-L4139 曾检查所有 eventCount 引用的时间范围和日程文案 | 硬校验过度约束文案实现，并会阻断仍可读的紧凑结果 | 2026-10-14 已暂时停用；保留 Prompt 指导而不作硬拒绝 |
 
 保留代码基线只是等价拆分的验收依据，不表示认可它符合总方案。最终实施前必须明确该差异是独立修复
 还是另行延期；未经确认不能同时宣称“现有行为完全一致”和“高度约定已符合总方案”。
@@ -1041,3 +1104,13 @@ BASE-02 至 BASE-04 同样不在本次文档更新中修正规则。新反馈涉
 当前 147 个结构化规则码均已有关联通过用例；保留的字符串位置不冒充已完成结构化迁移。
 未来出现 `false` 的位置仍需补充分支用例；静态迁移一致性通过不等同于行为或整条修复链路验收通过。
 最新测试结果与待完成事项见[实施与验证记录](Compact_DSL重构实施与验证记录.md)。
+# 后置主题阶段补充（2026-10-14）
+
+- `theme_phase_validator.py`：语法／阶段边界。布局颜色字段只接受内部语义角色，最终产物
+  不得残留角色；不改变既有组件、事实、绑定和几何判定。
+- `semantic/layout/assets.py`：语义／布局与视觉。内部无颜色布局不要求作者提供 SVG 色值，
+  由展开器标注角色并在末尾填色；原色素材保留，原素材候选校验仍执行。
+- `pipeline.py`：编排。内部布局推迟 quality 对比度检查；末尾主题使用完整发布校验。
+- `contrast_validator.py`：质量／视觉对比度。后置主题全幅图片兄弟层无法由祖先底色推导，
+  记录渲染复核警告，不伪报默认白底1:1；显式不透明背板恢复确定底色检查。
+  仅识别固定后置图片包装，不改变模板方案及普通纯色/渐变检查，不属于 Compact 布局规则。

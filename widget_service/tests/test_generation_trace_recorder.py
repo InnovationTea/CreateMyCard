@@ -536,6 +536,7 @@ async def test_upload_failure_keeps_trace_terminal_state(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_plan_contract_retry_has_independent_trace_counts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -552,7 +553,11 @@ async def test_plan_contract_retry_has_independent_trace_counts(
     async def generate(_client, _prompt, profile=None, **_kwargs) -> str:
         nonlocal plan_calls
         if (profile or {}).get("format") != "raw-json":
-            return "source-compact-dsl"
+            return (
+                '["root","Layout",{"layout":"S-title-content"},["title","content"]]\n'
+                '["title","SingleLineTitle",{"title":"天气","fontSize":12}]\n'
+                '["content","EmphasisText",{"mainText":"晴","fontSize":18}]'
+            )
         plan_calls += 1
         if plan_calls == 1:
             return "not-json"
@@ -641,6 +646,7 @@ async def test_plan_contract_retry_has_independent_trace_counts(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_quality_repair_records_prompt_model_and_revalidation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -675,7 +681,11 @@ async def test_quality_repair_records_prompt_model_and_revalidation(
         )
 
     async def repair(_client, _prompt, _profile=None) -> str:
-        return "repaired-source-compact-dsl"
+        return (
+            '["root","Layout",{"layout":"S-title-content"},["title","content"]]\n'
+            '["title","SingleLineTitle",{"title":"天气","fontSize":12}]\n'
+            '["content","EmphasisText",{"mainText":"晴","fontSize":18}]'
+        )
 
     monkeypatch.setattr(processor, "process", process)
     monkeypatch.setattr(A2UIModelClient, "generate_repair", repair)

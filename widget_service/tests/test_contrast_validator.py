@@ -117,6 +117,43 @@ def _component_dsl(components: list[dict[str, Any]]) -> str:
     return "\n".join(json.dumps(message) for message in messages)
 
 
+@pytest.mark.parametrize("opaque", [False, True])
+def test_post_layout_photo_contrast_requires_pixels_unless_opaque(opaque: bool) -> None:
+    components = [
+        {"id": "root", "component": "Stack",
+         "children": ["__post_theme_background", "__post_theme_foreground"]},
+        {"id": "__post_theme_background", "component": "Stack",
+         "children": ["__post_theme_base"]},
+        {"id": "__post_theme_base", "component": "Image", "src": "background.jpg",
+         "styles": {"width": "matchParent", "height": "matchParent"}},
+        {"id": "__post_theme_foreground", "component": "Column", "children": ["label"],
+         "styles": {"backgroundColor": "#FFFFFFFF" if opaque else "#33FFFFFF"}},
+        {"id": "label", "component": "Text", "content": "背景上的文字",
+         "styles": {"fontColor": "#FFFFFFFF"}},
+    ]
+    reporter = validate_card(dsl_text=_component_dsl(components))
+    contrast = [item for item in reporter.diagnostics if item.code == "VISUAL.CONTRAST"]
+    assert len(contrast) == 1
+    assert contrast[0].severity == ("error" if opaque else "warning")
+    if not opaque:
+        assert contrast[0].actual == {"scene": "photo", "requiresRenderReview": True}
+
+
+def test_post_layout_photo_name_without_full_background_is_not_exempt() -> None:
+    components = [
+        {"id": "root", "component": "Stack",
+         "children": ["__post_theme_background", "__post_theme_foreground"]},
+        {"id": "__post_theme_background", "component": "Stack", "children": []},
+        {"id": "__post_theme_foreground", "component": "Column", "children": ["label"]},
+        {"id": "label", "component": "Text", "content": "白底白字",
+         "styles": {"fontColor": "#FFFFFFFF"}},
+    ]
+    reporter = validate_card(dsl_text=_component_dsl(components))
+    contrast = [item for item in reporter.diagnostics if item.code == "VISUAL.CONTRAST"]
+    assert len(contrast) == 1
+    assert contrast[0].severity == "error"
+
+
 def _template_components(
     wrapper_ids: tuple[str, ...] = ("template_root",),
     text_color: str = "#FFFFFFFF",

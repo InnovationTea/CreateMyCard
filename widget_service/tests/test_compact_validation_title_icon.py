@@ -140,6 +140,11 @@ def test_title_height_budget_matches_rendered_recipe(size: str, with_icon: bool)
     assert diagnostic.component_id == "panel"
     assert diagnostic.actual.get("minimumRequiredHeight") == height
     assert diagnostic.actual.get("overflow") == tolerance + 1
+    candidate = diagnostic.actual.get("removableTitleIcon")
+    if with_icon:
+        assert candidate == {"componentId": "header", "heightSaving": 8}
+    else:
+        assert candidate is None
 
 
 @pytest.mark.parametrize("fill", [None, 42, False, {}, [], "red"])

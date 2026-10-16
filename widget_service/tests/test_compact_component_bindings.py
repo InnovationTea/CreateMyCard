@@ -40,6 +40,9 @@ def test_binding_registry_covers_every_model_semantic_component() -> None:
         "Row",
         "Column",
         "Stack",
+        "Layout",
+        "Region",
+        "Group",
     }
 
     assert semantic_components == set(COMPACT_COMPONENT_BINDING_CONTRACTS)
@@ -54,6 +57,10 @@ def test_binding_registry_covers_every_model_semantic_component() -> None:
         ),
         (
             "TableText",
+            {"items": [{"label": {"path": "/data/items/0/name"}, "value": "1"}]},
+        ),
+        (
+            "TextBlock",
             {"items": [{"label": {"path": "/data/items/0/name"}, "value": "1"}]},
         ),
         (
@@ -77,6 +84,45 @@ def test_allows_registered_nested_path_bindings(
     )
 
     assert errors == []
+
+
+def test_text_block_label_accepts_path_binding_and_expression() -> None:
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["details"]],
+            [
+                "details",
+                "TextBlock",
+                {
+                    "items": [
+                        {
+                            "label": {"path": "/data/items/0/name"},
+                            "value": {"path": "/data/items/0/value"},
+                        },
+                        {
+                            "label": "{{ '项目 ' + ${/data/items/1/name} }}",
+                            "value": {"path": "/data/items/1/value"},
+                        },
+                    ]
+                },
+            ],
+            ["/data/items/0/name", "照明"],
+            ["/data/items/0/value", "18千瓦时"],
+            ["/data/items/1/name", "空调"],
+            ["/data/items/1/value", "34千瓦时"],
+        ]
+    )
+
+    converted = convert_compact_dsl_to_a2ui(compact_dsl, size="2x4")
+    update = json.loads(converted.splitlines()[1])["updateComponents"]
+    components = {item["id"]: item for item in update["components"]}
+
+    assert components["details_item0_label"]["content"] == (
+        "{{ ${/data/items/0/name} }}"
+    )
+    assert components["details_item1_label"]["content"] == (
+        "{{ '项目 ' + ${/data/items/1/name} }}"
+    )
 
 
 def test_emphasis_text_secondary_accepts_ordered_path_bindings() -> None:

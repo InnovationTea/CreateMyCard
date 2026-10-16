@@ -80,3 +80,10 @@
 - 双业务 Support 按各自素材参数的 `allowedSources` 独立选图，不能共用另一业务的候选语义。
   步数、训练、睡眠和心率槽位分别受 `steps`、`workout`、`sleep`、`heart` 约束；
   天气水滴不能用于步数、睡眠或训练。没有合适素材时省略可选参数，必选图标模板不能绕过约束。
+
+## 健康关联动作
+
+活动 Support 可打开 `event.open.health.activityRecord`；训练和运动心率模板可打开
+`event.open.health.sportsRecord`；已声明内嵌动作且展示训练时长的模板可打开
+`event.open.health.workoutDuration`。这些固定入口只表示活动记录、运动记录或锻炼时长页面，
+不宣称直达当前日期或某次训练详情；睡眠仍使用原睡眠详情事件。完整白名单以模板声明为准。

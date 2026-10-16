@@ -9,7 +9,8 @@ def assert_template_compact_processing(
     compact_dsl: str, *, task_spec: dict[str, Any], card_spec: dict[str, Any],
 ) -> None:
     size = card_spec.get("suggestSize")
-    assert isinstance(size, str)
+    if not isinstance(size, str):
+        raise AssertionError("card_spec.suggestSize must be a string")
     result = DesignCompactProcessor().process(
         compact_dsl,
         DslProcessingContext(
@@ -17,5 +18,7 @@ def assert_template_compact_processing(
             protocol_profile={"version": "v0.9"}, skip_compact_dsl_validation=True,
         ),
     )
-    assert not result.errors, result.errors
-    assert result.standard_dsl
+    if result.errors:
+        raise AssertionError(result.errors)
+    if not result.standard_dsl:
+        raise AssertionError("Compact processing must produce standard DSL")

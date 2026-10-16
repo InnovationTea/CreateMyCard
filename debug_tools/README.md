@@ -156,4 +156,5 @@ npm run build
 | [`batch_testing/`](batch_testing/README.md) | 数据集、任务队列、运行结果、Trace 与受管服务 |
 | [`postprocess_plugins/`](postprocess_plugins/README.md) | 插件清单、依赖、上下文、输出和开发规范 |
 
-完整架构边界与验收项见 [`调试平台技术方案.md`](调试平台技术方案.md)。
+架构与代码组织见 [`调试平台技术方案.md`](调试平台技术方案.md)；页面会话、批跑、后处理、渲染、
+评分与 Trace 的运行及验收规则见 [`调试平台运行规范.md`](调试平台运行规范.md)。

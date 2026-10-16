@@ -9,9 +9,19 @@ import { createServer } from 'vite';
 
 const toolsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = await fs.mkdtemp(path.join(os.tmpdir(), 'web-quality-smoke-'));
+function textCard(content, width) {
+  return [
+    { version: 'v0.9', createSurface: { surfaceId: 'test', width: 160, height: 160 } },
+    { version: 'v0.9', updateComponents: { surfaceId: 'test', root: 'root', components: [
+      { id: 'root', component: 'Column', children: ['text'], styles: { width: 160, height: 160 } },
+      { id: 'text', component: 'Text', content, styles: { width, fontSize: 14, maxLines: 1, textOverflow: 'ellipsis' } },
+    ] } },
+    { version: 'v0.9', updateDataModel: { surfaceId: 'test', path: '/', value: {} } },
+  ].map((row) => JSON.stringify(row)).join('\n');
+}
 const cards = [
-  { id: 'clean', source: '["root","Column",{"width":160,"height":160},["text"]]\n["text","Text",{"content":"正常文字","fontSize":14}]' },
-  { id: 'clipped', source: '["root","Column",{"width":160,"height":160},["text"]]\n["text","Text",{"content":"文字应该完整显示而不是截断","width":30,"maxLines":1,"fontSize":14}]' },
+  { id: 'clean', source: textCard('正常文字', 140) },
+  { id: 'clipped', source: textCard('文字应该完整显示而不是截断', 30) },
   { id: 'invalid', source: 'this is not DSL' },
 ];
 const samples = cards.map((x) => ({ id: x.id, query: '测试卡片', size: '2x2', status: 'success', finalAttempt: 0 }));
@@ -49,6 +59,7 @@ try {
   const clean = capture.items.find((x) => x.id === 'clean');
   const clipped = capture.items.find((x) => x.id === 'clipped');
   const invalid = capture.items.find((x) => x.id === 'invalid');
+  assert.equal(clean.error, '');
   assert.equal(clean.quality.findings.length, 0);
   assert(clipped.quality.findings.some((x) => x.rule_id === 'GEOMETRY.CLIP_TEXT'));
   assert.equal(invalid.quality.renderFailed, true);

@@ -138,7 +138,7 @@ def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
     assert prompt[0] == {"role": "system", "content": "other design rules"}
 
 
-def test_enabled_simple_design_compact_prompt_appends_fusion_recommendation(
+def test_layout_prompt_does_not_select_fusion_even_when_version_allows_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -165,7 +165,7 @@ def test_enabled_simple_design_compact_prompt_appends_fusion_recommendation(
 
     prompt = PromptBuilder().build_design_compact(task_spec, "design rules")
 
-    assert "本次融球推荐" in prompt[0]["content"]
+    assert "本次融球推荐" not in prompt[0]["content"]
     assert "本次请求未启用融球能力" not in prompt[0]["content"]
 
 

@@ -171,8 +171,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .renderer-route .artifact-preview__source { margin-top: 8px; color: #8e98a9; font-size: 10px; }
 .renderer-route .artifact-preview__unknown { display: flex; flex-direction: column; gap: 3px; padding: 8px; color: #8690a2; border: 1px dashed #d6dce8; border-radius: 7px; font-size: 10px; }
 .renderer-route .artifact-preview__placeholder { display: grid; min-height: 60px; place-items: center; color: #a5adba; font-size: 10px; }
-.route-content > .app-shell { min-height: 0; height: 100%; overflow: hidden; }
-.route-content > .app-shell .workspace { height: 100%; min-height: 0; overflow: hidden; }
+.end-to-end-route > .app-shell { min-height: 0; height: 100%; overflow: hidden; }
+.end-to-end-route > .app-shell .workspace { height: 100%; min-height: 0; overflow: hidden; }
 
 /* The interface package switches to a two-row work area on narrow screens.
    Keep that scroll inside the route instead of letting the fixed shell grow. */

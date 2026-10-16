@@ -27,8 +27,8 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
     "capabilityId": "ViewWeather",
     "dataDomain": "/data/weather",
     "dataSchema": {
-      "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
-      "version": "app-11.7.5.205_rom-6.0"
+      "path": "capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json",
+      "version": "app-11.7.7.300_rom-7.0"
     }
   }],
   "templates": [{
@@ -546,10 +546,10 @@ PillAction 直接使用标准 Button 的 `label` 展示文本，点击事件绑�
 
 ## 当前迁移范围
 
-天气、日历、手机电量、耳机、健康运动、倒计时和系统内存当前共有
-174 个无 Variant 的业务 UI 模板，其中 22 个是 Support，另保留通用指标模板。
+天气、日历、手机电量、耳机、健康运动和倒计时当前共有
+213 个无 Variant 的业务 UI 模板，其中 26 个是 Support，另保留通用指标模板。
 Layout Provider 提供 24 个支持 `...children` 的布局模板，Action Provider 提供 6 个动作模板，
-运行时 Registry 共 204 个模板。应用使用时长能力已下线，对应模板不再进入运行目录。
+运行时 Registry 共 243 个模板。指定应用使用时长和系统内存模板已下线，不再进入运行目录。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

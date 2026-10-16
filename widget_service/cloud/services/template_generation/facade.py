@@ -39,10 +39,7 @@ async def request_template_source_dsl(
     """请求模板引擎并返回当前 Processor 可直接消费的源 DSL。"""
     if not isinstance(enable_fusion_ball, bool):
         raise TypeError("enable_fusion_ball must be boolean")
-    model_client = create_template_model_client(
-        model_runtime,
-        model_request_context,
-    )
+    model_client = create_template_model_client(model_runtime, model_request_context)
     template_bindings = tuple(enrich_template_bindings(list(effective_bindings)))
     engine_options: dict[str, Any] = {"enable_fusion_ball": enable_fusion_ball}
     if trusted_template_candidate_ids:

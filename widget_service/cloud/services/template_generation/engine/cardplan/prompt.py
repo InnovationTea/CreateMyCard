@@ -1071,6 +1071,12 @@ def _provider_variant_matches_trusted_state(
             "healthTemperatureHero",
             "percentTextFull",
             "percentDetailsFull",
+            "percentHealthDetailsFull",
+            "percentHealthCurrentDetailsFull",
+            "percentStatusFull",
+            "chargingTypePercentFull",
+            "temperatureStatusFull",
+            "chargingTemperatureFull",
             "percentLevelHero",
             "percentRingCompact",
             "percentRingHero",
@@ -1122,6 +1128,9 @@ def _provider_variant_matches_trusted_state(
             return has_left and has_right
         if variant_name == "earbudsFull":
             return has_left and has_right
+        if variant_name == "earbudPairChargingFull":
+            has_three_batteries = has_left and has_right and has_case
+            return has_three_batteries and facts.case_charging_status is not None
         if facts.is_connected is None or facts.earphone_name is None:
             return False
         if variant_name == "hero":
