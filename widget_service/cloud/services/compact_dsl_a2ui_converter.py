@@ -1735,32 +1735,34 @@ def _inline_text_fonts(
 def _single_body_slot(
     component: ComponentRow, by_id: dict[str, ComponentRow],
 ) -> tuple[list[ComponentRow], ComponentRow] | None:
+    result: tuple[list[ComponentRow], ComponentRow] | None = None
     prefix = f"{VISUAL_RECIPE_VERSION}:SecondaryBody."
-    if component.props.get("_visualRecipe") != prefix + "root":
-        return None
-    wrappers: list[ComponentRow] = []
-    seen: set[str] = set()
-    current = component
-    while current.component_type in {"Row", "Column"}:
-        if current.component_id in seen or len(current.children) != 1:
-            return None
-        marker = current.props.get("_visualRecipe")
-        if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
-            return None
-        seen.add(current.component_id)
-        wrappers.append(current)
-        child = by_id.get(current.children[0])
-        if child is None:
-            return None
-        current = child
-    if current.component_type != "Text" or current.props.get("_visualRecipe") != prefix + "text":
-        return None
-    if _positive_static_number(current.props.get("height")) is None:
-        return None
-    constraints = current.props.get("constraintSize")
-    if isinstance(constraints, dict) and constraints.get("minHeight", 0) != 0:
-        return None
-    return wrappers, current
+    if component.props.get("_visualRecipe") == prefix + "root":
+        wrappers: list[ComponentRow] = []
+        seen: set[str] = set()
+        current = component
+        while current.component_type in {"Row", "Column"}:
+            if current.component_id in seen or len(current.children) != 1:
+                break
+            marker = current.props.get("_visualRecipe")
+            if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
+                break
+            seen.add(current.component_id)
+            wrappers.append(current)
+            child = by_id.get(current.children[0])
+            if child is None:
+                break
+            current = child
+        else:
+            is_body_text = (
+                current.component_type == "Text"
+                and current.props.get("_visualRecipe") == prefix + "text"
+            )
+            if is_body_text and _positive_static_number(current.props.get("height")) is not None:
+                constraints = current.props.get("constraintSize")
+                if not isinstance(constraints, dict) or constraints.get("minHeight", 0) == 0:
+                    result = wrappers, current
+    return result
 
 
 def _align_inline_body_slots(components: list[ComponentRow]) -> list[ComponentRow]:

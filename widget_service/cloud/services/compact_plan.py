@@ -535,12 +535,13 @@ def _anchor_plan_errors(
     if not composition_is_anchor and "S-title-anchor" not in layout_hints:
         return []
     if not composition_is_anchor:
-        body_facts = [
-            fact
-            for fact in facts
-            if "actionId" not in fact
-            and fact.get("componentHints") != ["SingleLineTitle"]
-        ]
+        body_facts: list[dict[str, Any]] = []
+        for fact in facts:
+            if "actionId" in fact:
+                continue
+            if fact.get("componentHints") == ["SingleLineTitle"]:
+                continue
+            body_facts.append(fact)
         if len(body_facts) >= 2:
             return []
         return [
@@ -1423,6 +1424,8 @@ def _required_anchor_layout(
         if isinstance(hints, list) and hints and hints[0] == "CircleButton":
             return "S-title-anchor"
     return None
+
+
 def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:
     """按 TaskSpec 顺序列出可作为事实目标的叶子 JSON Pointer。"""
     schema = task_spec.get("dataModelSchema")
