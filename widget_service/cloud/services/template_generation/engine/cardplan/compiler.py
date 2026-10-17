@@ -67,6 +67,7 @@ from .fusion_ball_background import (
     apply_fusion_ball_background,
 )
 from .generic_metrics import GENERIC_HEALTH_LABELS
+from .layout_surface_policy import apply_layout_surface, configure_layout_surface
 from .models import (
     CARDTPL_SOURCE_FORMATS,
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -886,11 +887,7 @@ def _expand_call(
                 else _compact_text_roles(child)
                 for source, child in zip(call.children, children, strict=True)
             )
-        return Nested2Node(
-            call.name,
-            values,
-            children,
-        )
+        return configure_layout_surface(call, Nested2Node(call.name, values, children))
     wire_id = call.name
     if wire_id not in contract.allowed_template_ids:
         raise TerselConversionError(f"Template is not allowed: {wire_id}")
@@ -1083,7 +1080,7 @@ def _expand_call(
         state.action_occurrences.append(action_id)
         if action_id not in state.action_ids:
             state.action_ids.append(action_id)
-    return root
+    return configure_layout_surface(call, root)
 
 
 def _normalize_charging_settings_button(
@@ -8060,12 +8057,13 @@ def _instantiate_provider_layout_blueprint(
         raise TerselConversionError(
             f"Provider Layout Template child count is invalid: {definition.wire_id}"
         )
-    return _instantiate_blueprint(
+    root = _instantiate_blueprint(
         variant.root,
         params,
         theme_values=registry.theme_reference_values(contract.theme_profile_id),
         spread_children=children,
     )
+    return apply_layout_surface(root, layout_id, params)
 
 
 def _lower_single_focus_layout(
