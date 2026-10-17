@@ -81,7 +81,7 @@ def _fallback(inputs: CalendarInputs, registry: CardPlanRegistry, **kwargs: Any)
 
 @pytest.mark.parametrize(("size", "target", "fields"), _CASES)
 @pytest.mark.asyncio
-async def test_pipeline_compiles_new_full_only_after_original_miss(
+async def test_pipeline_keeps_original_matches_and_falls_back_only_after_miss(
     monkeypatch: pytest.MonkeyPatch,
     registry: CardPlanRegistry,
     size: str,
@@ -112,13 +112,15 @@ async def test_pipeline_compiles_new_full_only_after_original_miss(
 
     monkeypatch.setattr(pipeline, "plan_calendar_no_action_fallback", record_fallback)
     layout = "SingleFocusLayout@1" if size == "2x2" else "WideFullOnlyLayout@1"
+    # main 已有来源提醒 Full；该意图直接命中时不能再启用隐藏后备。
+    expected_target = "ScheduleOverviewReminderSourceFull@1" if target == _SOURCE else target
 
     class Model:
         async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             return inputs.intent.model_dump(mode="json", by_alias=True)
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return f'Template("{layout}",{{}},Template("{target}",{{}}));'
+            return f'Template("{layout}",{{}},Template("{expected_target}",{{}}));'
 
     output = await pipeline.generate_template_a2ui(
         inputs.task,
@@ -126,9 +128,12 @@ async def test_pipeline_compiles_new_full_only_after_original_miss(
         inputs.bindings,
         Model(),
     )
-    assert len(fallback_calls) == 1
-    assert fallback_calls[0] == inputs.intent
-    assert target in output.template_ids
+    if target == _SOURCE:
+        assert fallback_calls == []
+    else:
+        assert len(fallback_calls) == 1
+        assert fallback_calls[0] == inputs.intent
+    assert output.template_ids == (expected_target, layout)
     assert output.projected_task_spec.eventCandidates == []
     assert '"call":"clickToIntent"' not in output.a2ui
     assert snapshot == (
