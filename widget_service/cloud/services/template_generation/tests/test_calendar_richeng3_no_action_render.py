@@ -252,12 +252,12 @@ def _assert_reference_timeline(
     assert axis.get("itemMargin") == 4
     dot, line = _children(axis, components)
     assert _styles(dot).get("width") == _styles(dot).get("height") == 8
-    assert _styles(dot).get("borderWidth") == 1.5
+    assert _styles(dot).get("borderWidth") == pytest.approx(1.5, rel=0, abs=1e-9)
     assert _styles(line).get("width") == 1
     assert _styles(line).get("height") == 34
     assert _styles(line).get("vertical") is True
     assert 6 + 8 + 4 + 34 + 2 == 54
-    assert 12 + (8 - 1) / 2 == 15.5  # 竖线位于空心节点的水平中心。
+    assert 12 + (8 - 1) / 2 == pytest.approx(15.5, rel=0, abs=1e-9)  # 竖线位于空心节点的水平中心。
     assert _styles(text_group).get("layoutWeight") == 1
     assert text_group.get("itemMargin") == 4
     title, details = _children(text_group, components)
