@@ -74,17 +74,11 @@ class Settings(BaseSettings):
     enable_subjectless_wide_theme: bool = (
         CONFIG.get("enable_subjectless_wide_theme", "false") == "true"
     )
-    subjectless_wide_sample_rate: float = Field(
-        default=float(CONFIG.get("subjectless_wide_sample_rate", "0.10")), ge=0, le=1
-    )
     enable_square_music_photo_expansion: bool = (
         CONFIG.get("enable_square_music_photo_expansion", "false") == "true"
     )
     enable_square_photo_expansion: bool = (
         CONFIG.get("enable_square_photo_expansion", "false") == "true"
-    )
-    square_photo_expansion_sample_rate: float = Field(
-        default=float(CONFIG.get("square_photo_expansion_sample_rate", "0.10")), ge=0, le=1
     )
     hag_slb_url: str = CONFIG.get("hag_slb_url")
     osms_prepare_url: str = urljoin(hag_slb_url, CONFIG.get("osms_prepare_url"))

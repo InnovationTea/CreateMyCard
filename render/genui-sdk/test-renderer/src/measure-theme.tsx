@@ -53,18 +53,10 @@ async function main() {
     await page.setContent(`<html><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,'Microsoft YaHei',sans-serif}#surface{width:${width}px;height:${height}px;position:relative}</style><div id="surface">${markup}</div></html>`);
     await page.addScriptTag({ content: "globalThis.__name = (value) => value;" });
     await page.evaluate(() => document.fonts.ready);
-    const evidence = await page.evaluate(({ modelById, width, height, layoutSize, capsuleIds, dynamicTextReservation, textBounds }: any) => {
+    const evidence = await page.evaluate(({ modelById, width, height, layoutSize, buttonIds, dynamicTextReservation, textBounds }: any) => {
       const surface = document.getElementById("surface")!;
       const frame = surface.getBoundingClientRect();
       const occupied: any[] = [], visible: any[] = [], unsafe: string[] = [];
-      const ignoredByCapsule: Record<string, string> = {};
-      const collectCapsule = (id: string, capsule: string, visited = new Set<string>()) => {
-        if (visited.has(id)) return;
-        visited.add(id);
-        ignoredByCapsule[id] = capsule;
-        for (const child of modelById[id]?.children || []) collectCapsule(child, capsule, visited);
-      };
-      for (const id of capsuleIds) collectCapsule(id, id);
       const rect = (r: DOMRect) => [(r.x - frame.x) / width, (r.y - frame.y) / height, r.width / width, r.height / height];
       const expand = (r: DOMRect) => new DOMRect(r.x - 2, r.y - 2, r.width + 4, r.height + 4);
       const measuredTexts = new Set<string>();
@@ -74,67 +66,78 @@ async function main() {
         const bound = textBounds[id];
         const dynamic = bound?.dynamic ?? false;
         if (!dynamic) return boxes;
-        let slot = owner.getBoundingClientRect();
+        const slot = owner.getBoundingClientRect();
         const model = modelById[id];
-        // Auto-sized text is not a future width contract; reserve the parent content slot.
         const declaredWidth = model?.styles?.width;
         const fixedWidth = typeof declaredWidth === "number" || declaredWidth === "matchParent" ||
+          Number(model?.styles?.layoutWeight) > 0 ||
           (typeof declaredWidth === "string" && /^\d+(\.\d+)?%$/.test(declaredWidth));
-        if (!fixedWidth && owner.parentElement) {
-          const parentBox = owner.parentElement.getBoundingClientRect();
-          const css = getComputedStyle(owner.parentElement);
-          const left = parseFloat(css.paddingLeft) || 0, right = parseFloat(css.paddingRight) || 0;
-          slot = new DOMRect(parentBox.x + left, slot.y, Math.max(slot.width, parentBox.width - left - right), slot.height);
-        }
         const style = getComputedStyle(parent);
         const em = Number.parseFloat(style.fontSize);
-        const modelParent = Object.values(modelById).find((node: any) => node.children?.includes(id)) as any;
-        const autoAnchored = fixedWidth || modelParent?.component !== "Row" ||
-          [undefined, "start"].includes(modelParent.styles?.justifyContent);
-        let reason = bound?.reason || "unbounded-field";
-        let reservation = slot;
-        const boundedMode = ["contract-bounded", "contract-or-estimated"].includes(dynamicTextReservation.mode);
-        if (boundedMode && bound?.candidates &&
-          model?.styles?.maxLines === 1 && boxes.length <= 1 && fixedWidth && style.direction === "ltr") {
+        let anchor = style.textAlign;
+        if (anchor === "start") anchor = style.direction === "rtl" ? "right" : "left";
+        if (anchor === "end") anchor = style.direction === "rtl" ? "left" : "right";
+        if (!fixedWidth && owner.parentElement) {
+          const parentStyle = getComputedStyle(owner.parentElement);
+          const alignment = parentStyle.flexDirection.startsWith("row")
+            ? parentStyle.justifyContent : parentStyle.alignItems;
+          if (["center", "space-between", "space-around", "space-evenly"].includes(alignment)) anchor = "center";
+          else if (["end", "flex-end"].includes(alignment)) anchor = "right";
+        }
+        if (!["left", "right", "center"].includes(anchor) || !Number.isFinite(em)) {
+          unsafe.push(`unmeasured-dynamic-alignment:${id}`);
+          return boxes;
+        }
+        let reason = "estimated-current-glyphs";
+        let maxWidth = 0;
+        const singleLine = model?.styles?.maxLines === 1 && boxes.length <= 1;
+        if (bound?.candidates && singleLine) {
           const probe = document.createElement("span");
           probe.style.cssText = "position:fixed;visibility:hidden;white-space:pre;width:max-content;height:auto";
           for (const key of ["fontFamily", "fontSize", "fontWeight", "fontStyle", "fontVariant", "letterSpacing", "textTransform"] as const) {
             probe.style[key] = style[key];
           }
           document.body.appendChild(probe);
-          let maxWidth = 0;
           for (const candidate of [...bound.candidates, current]) {
             probe.textContent = candidate;
             maxWidth = Math.max(maxWidth, probe.getBoundingClientRect().width);
           }
           probe.remove();
-          const reservedWidth = maxWidth + Math.max(em / 2, maxWidth * 0.15);
-          if (reservedWidth <= slot.width && ["start", "left", "center", "right", "end"].includes(style.textAlign)) {
-            let x = slot.x;
-            if (style.textAlign === "center") x += (slot.width - reservedWidth) / 2;
-            else if (["right", "end"].includes(style.textAlign)) x += slot.width - reservedWidth;
-            const left = Math.min(x, ...boxes.map(box => box.x));
-            const right = Math.max(x + reservedWidth, ...boxes.map(box => box.right));
-            reservation = new DOMRect(left, slot.y, right - left, slot.height);
-          } else reason = "bounded-output-exceeds-slot";
-        } else if (bound?.candidates) reason = "slot-layout-not-single-line-fixed";
-        if (!bound?.candidates && dynamicTextReservation.mode === "contract-or-estimated" && layoutSize === "2x2" &&
-          current.trim() && boxes.length === 1 && model?.styles?.maxLines === 1 &&
-          autoAnchored && ["start", "left"].includes(style.textAlign) && style.direction === "ltr") {
-          const box = boxes[0];
-          const extra = Math.max(em * 0.5, box.width * 0.15);
-          const reservedWidth = box.width + extra;
-          const withinSlot = box.x >= slot.x - 1 && box.right + extra <= slot.right &&
-            (fixedWidth || box.x <= slot.x + 1);
-          if (withinSlot && reservedWidth <= slot.width * 0.65) {
-            reservation = new DOMRect(box.x, slot.y, reservedWidth, slot.height);
-            reason = "estimated-current-glyphs";
-            if (!fixedWidth) horizontalGrowth[id] = extra / width;
-          } else reason = "estimate-not-short-or-outside-slot";
+          reason = "finite-contract";
         }
+        let glyphs = boxes;
+        if (!glyphs.length && maxWidth > 0) {
+          const lineHeight = parseFloat(style.lineHeight) || em * 1.4;
+          let x = slot.x;
+          if (anchor === "center") x += slot.width / 2;
+          else if (anchor === "right") x += slot.width;
+          glyphs = [new DOMRect(x, slot.y, 0, Math.min(slot.height || lineHeight, lineHeight))];
+        }
+        if (!glyphs.length) {
+          unsafe.push(`unmeasured-dynamic-text:${id}`);
+          textReservations[id] = { reason: "unmeasured-empty-glyphs", slot: rect(slot), reservedRects: [] };
+          return [];
+        }
+        let growth = 0;
+        const reservations = glyphs.map(box => {
+          const baseWidth = Math.max(box.width, maxWidth);
+          const extra = baseWidth - box.width + Math.max(em * 0.5, baseWidth * 0.15);
+          growth = Math.max(growth, extra);
+          let left = box.x;
+          if (anchor === "center") left -= extra / 2;
+          else if (anchor === "right") left -= extra;
+          return new DOMRect(left, box.y, box.width + extra, box.height);
+        });
+        if (!fixedWidth) horizontalGrowth[id] = growth / width;
+        const left = Math.min(...reservations.map(box => box.x));
+        const top = Math.min(...reservations.map(box => box.y));
+        const right = Math.max(...reservations.map(box => box.right));
+        const bottom = Math.max(...reservations.map(box => box.bottom));
+        const reservation = new DOMRect(left, top, right - left, bottom - top);
         textReservations[id] = { reason, candidates: bound?.candidates, slot: rect(slot), reserved: rect(reservation),
+          reservedRects: reservations.map(rect), anchor,
           ...(reason === "estimated-current-glyphs" ? { risk: "future-long-text-may-overlap", extraEm: 0.5, growthRatio: 0.15 } : {}) };
-        return [reservation];
+        return reservations;
       };
       const walker = document.createTreeWalker(surface, NodeFilter.SHOW_TEXT);
       while (walker.nextNode()) {
@@ -166,6 +169,14 @@ async function main() {
         }
       }
       const measuredImages = new Set<string>();
+      for (const id of buttonIds) {
+        const owner = [...surface.querySelectorAll<HTMLElement>("[data-node-id]")]
+          .find(element => element.dataset.nodeId === id);
+        const box = owner?.getBoundingClientRect();
+        if (!box?.width || !box?.height) {
+          unsafe.push(`unmeasured-button:${id}`);
+        } else occupied.push({ id, kind: "button", rect: rect(expand(box)) });
+      }
       for (const element of surface.querySelectorAll("img,svg,canvas,[role=img]")) {
         const owner = element.closest("[data-node-id]") as HTMLElement;
         const id = owner?.dataset.nodeId || "unknown-image";
@@ -203,14 +214,14 @@ async function main() {
           growth += horizontalGrowth[child] || 0;
         }
       }
-      const subjectAvoidance = occupied.filter(item => !ignoredByCapsule[item.id]);
+      const subjectAvoidance = occupied;
       const estimatedTextIds = Object.keys(textReservations).filter(id => textReservations[id].reason === "estimated-current-glyphs");
       return { complete: occupied.length > 0, occupied, visible, unsafe, subjectAvoidance,
-        ignoredByCapsule, capsulePolicy: "whole-capsule-excluded-from-subject-avoidance-only",
-        basis: "production-web-renderer", dynamicPolicy: dynamicTextReservation.mode || "reserve-full-existing-text-slot",
+        buttonPolicy: "whole-button", buttonIds,
+        basis: "production-web-renderer", dynamicPolicy: "actual-glyphs-with-dynamic-margin",
         dynamicTextReservation, textReservations, estimatedTextIds, horizontalGrowth, viewport: { width, height }, layoutSize,
-        matchingConfidence: estimatedTextIds.length ? "heuristic-with-growth-margin" : "contract-or-full-slot", paddingVp: 2 };
-    }, { modelById, textBounds, width, height, layoutSize, capsuleIds: payload.capsuleIds || [], dynamicTextReservation: payload.dynamicTextReservation || {} });
+        matchingConfidence: estimatedTextIds.length ? "heuristic-with-growth-margin" : "contract-or-static-glyphs", paddingVp: 2 };
+    }, { modelById, textBounds, width, height, layoutSize, buttonIds: payload.buttonIds || [], dynamicTextReservation: payload.dynamicTextReservation || {} });
     if (payload.screenshot) await page.locator("#surface").screenshot({ path: payload.screenshot });
     process.stdout.write(JSON.stringify(evidence));
   } finally {

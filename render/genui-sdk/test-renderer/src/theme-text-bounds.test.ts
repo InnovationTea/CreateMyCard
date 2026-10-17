@@ -22,7 +22,7 @@ test("integer ranges enumerate all values", () => {
   assert.deepEqual(bound.candidates, ["0", "1", "2", "3", ""]);
 });
 
-test("large integer ranges fall back to a slot", () => {
+test("large integer ranges leave glyph growth to measurement", () => {
   const bound = textBound({ path: "/data/days" }, { data: { days: { type: "integer", minimum: 0, maximum: 10000 } } });
   assert.equal(bound.reason, "unbounded-field");
 });

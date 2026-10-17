@@ -1,27 +1,15 @@
-"""从现有胶囊展开合同识别主题避让例外，不修改组件结构。"""
+"""识别完整按钮占用区域；普通非交互容器不占用图片主体空间。"""
 
 from __future__ import annotations
 
-import math
 
-
-def capsule_ids(nodes: list[dict]) -> list[str]:
+def button_ids(nodes: list[dict]) -> list[str]:
     result = []
     for node in nodes:
-        if node.get("component") not in {"Button", "Row"} or not node.get("onClick"):
-            continue
-        styles = node.get("styles", {})
-        height, radius = styles.get("height"), styles.get("borderRadius")
-        if not isinstance(height, (int, float)) or not isinstance(radius, (int, float)):
-            continue
-        if not math.isfinite(height) or height <= 0 or not math.isfinite(radius):
-            continue
-        if radius < height / 2:
-            continue
-        width = styles.get("width")
-        if isinstance(width, (int, float)) and width <= height:
+        if node.get("component") != "Button" and not node.get("onClick"):
             continue
         identity = node.get("id")
-        if isinstance(identity, str):
+        # 整卡点击是画布事件，不将整个卡片误识别成按钮。
+        if isinstance(identity, str) and identity != "root":
             result.append(identity)
     return result

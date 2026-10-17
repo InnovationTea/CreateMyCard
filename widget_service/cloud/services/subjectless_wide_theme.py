@@ -1,11 +1,10 @@
 """原生宽卡无主体背景准入；不参与布局和尺寸扩展。"""
 
-import hashlib
-import math
 import re
 import unicodedata
 
 from config.config import get_settings
+from services.post_layout_theme_registry import registered_themes
 from services.square_photo_expansion import SLEEP_FIELDS
 
 
@@ -30,9 +29,6 @@ def matching_businesses(task: dict) -> set[str]:
 def wide_gate(task: dict) -> dict:
     settings = get_settings()
     query = " ".join(unicodedata.normalize("NFKC", task.get("userQuery", "")).lower().split())
-    seed = f"subjectless-wide-v1|{task.get('size')}|{query}"
-    bucket = int.from_bytes(hashlib.sha256(seed.encode()).digest()[:8], "big") % 10000
-    rate = settings.subjectless_wide_sample_rate
     businesses = sorted(matching_businesses(task))
     reason = None
     enabled = settings.enable_subjectless_wide_theme and settings.enable_photo_background_theme
@@ -44,12 +40,9 @@ def wide_gate(task: dict) -> dict:
         reason = "没有匹配业务"
     elif re.search(r"纯色|渐变|融球|不要.*(?:图|背景)|不用.*(?:图|背景)|无图", query):
         reason = "用户要求优先，不使用图片背景"
-    elif not math.isfinite(rate) or not 0 <= rate <= 1:
-        reason = "抽样比例无效"
-    elif bucket >= rate * 10000:
-        reason = "未命中10%稳定抽样" if rate == .1 else "未命中稳定抽样"
-    return {"eligible": reason is None, "reason": reason, "businesses": businesses,
-            "sampleRate": rate, "bucket": bucket, "samplingVersion": "subjectless-wide-v1"}
+    elif not registered_themes("subjectlessWidePhotos"):
+        reason = "没有启用的无主体宽卡图片"
+    return {"eligible": reason is None, "reason": reason, "businesses": businesses}
 
 
 def background_reason(photo: dict, task: dict, evidence: dict, gate: dict) -> str | None:
