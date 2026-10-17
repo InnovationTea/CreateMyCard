@@ -262,7 +262,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     # 单业务（其中 2 个为缺失 Compact/Hero 模板占位）+ 2 个双段落组合
     # 用例。
     # 两个 Q83 耳机 Support 只用于 2x4，不生成原有的 2x2 Compact 单模板用例。
-    assert len(all_cases) == 244
+    # 本次新增两款日程小卡 Full 和三条时间备注宽卡贡献三个用例。
+    assert len(all_cases) == 247
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -356,7 +357,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 242
+    assert len(targeted_cases) == 245
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -712,10 +713,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 244
+    assert summary.total == 247
     assert summary.failed == 0
     assert summary.missing == 2
-    assert summary.not_generated == 242
+    assert summary.not_generated == 245
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
