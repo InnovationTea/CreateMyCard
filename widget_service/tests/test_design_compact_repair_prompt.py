@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from models.generation import TaskSpec
 from services.prompt_builder import REPAIR_SYSTEM_PROMPT, PromptBuilder
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID
 
@@ -12,27 +13,157 @@ def _repair_feedback(messages: list[dict[str, str]]) -> dict:
     return json.loads(messages[-1]["content"])
 
 
+def test_secondary_body_item_limit_cleanup_preserves_plan_authorization() -> None:
+    assert "SecondaryBody 项数/字号/宽度" in REPAIR_SYSTEM_PROMPT
+    assert "最多6项，只移除未被 Plan 要求的重复或可选项" in REPAIR_SYSTEM_PROMPT
+    assert "除明确授权省略项外，全部 Plan must/should" in REPAIR_SYSTEM_PROMPT
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("missing_action", [False, True])
+def test_action_coverage_can_restore_legal_reachable_slot_without_global_freeze(
+    size: str, missing_action: bool,
+) -> None:
+    task = TaskSpec(userQuery="查看设备并打开设置", size=size, dataModelSchema={"data": {}})
+    message = "invalid binding"
+    code = "COMPACT_DSL_VALIDATION_FAILED"
+    if missing_action:
+        message = "Plan action is missing from visible DSL: 打开设置 (settings)."
+        code = "COMPACT_PLAN_COVERAGE_FAILED"
+    errors = [{"code": code, "stage": "validation", "message": message}]
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "source", errors, dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+        repair_strategy={"scope": "information_group", "instruction": "恢复缺失事实。"},
+    )
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert isinstance(instruction, str)
+    if missing_action:
+        assert "不能仅新增孤立组件行" in instruction
+        assert "最小必要的语义组合" in instruction
+        assert "本次没有布局或容量错误" not in instruction
+    else:
+        assert "保持待修树的合法布局" in instruction
+    assert feedback.get("qualityErrors") == errors
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_missing_display_fact_rechecks_completed_group_capacity(size: str) -> None:
+    task = TaskSpec(userQuery="查看设备信息", size=size, dataModelSchema={"data": {}})
+    errors = [{"code": "COMPACT_PLAN_COVERAGE_FAILED", "stage": "validation",
+               "message": "Plan fact is missing from visible DSL: 设备状态 (/data/status)."}]
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "source", errors, dsl_format=DESIGN_COMPACT_PROFILE_ID, task_spec=task,
+        repair_strategy={"scope": "information_group", "instruction": "恢复缺失事实。"},
+    )
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert isinstance(instruction, str)
+    assert "补齐全部字段后的容量" in instruction
+    assert "不把超过项目数的条目塞入单个辅助组件" in instruction
+    assert "本次没有布局或容量错误" not in instruction
+    assert feedback.get("qualityErrors") == errors
+
+
+def test_duplicate_display_fact_receives_structured_targeted_guidance() -> None:
+    task = TaskSpec(
+        userQuery="显示最高心率",
+        size="2x2",
+        dataModelSchema={"data": {}},
+    )
+    duplicate_fact = {
+        "requirement": "最高心率",
+        "dataId": "/data/health/max",
+        "expectedVisibleCount": 1,
+        "actualVisibleCount": 2,
+        "occurrences": [
+            {
+                "componentId": "primary",
+                "componentType": "EmphasizedData",
+                "property": "value",
+            },
+            {
+                "componentId": "support",
+                "componentType": "SecondaryBody",
+                "property": "items[0].value",
+            },
+        ],
+    }
+    errors = [
+        {
+            "code": "COMPACT_PLAN_COVERAGE_FAILED",
+            "stage": "validation",
+            "message": "Plan fact is displayed more than once in visible DSL.",
+            "duplicateFacts": [duplicate_fact],
+        }
+    ]
+
+    messages = PromptBuilder().build_repair(
+        [
+            {"role": "system", "content": "contract"},
+            {"role": "user", "content": "{}"},
+        ],
+        "source",
+        errors,
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+        repair_strategy={
+            "scope": "information_group",
+            "repairStrategy": "deduplicate_visible_facts",
+            "instruction": "局部去重。",
+        },
+    )
+
+    feedback = _repair_feedback(messages)
+    instruction = feedback.get("instruction")
+    assert feedback.get("duplicateFacts") == [duplicate_fact]
+    assert isinstance(instruction, str)
+    assert "每个报错 dataId 修复后只能保留一个可见位置" in instruction
+    assert "只删除该 item" in instruction
+    assert "同步删除直接父级 children 引用" in instruction
+    assert "SecondaryBody 仍只能作为辅助信息" in instruction
+    assert "本次没有布局或容量错误" not in instruction
+
+
+def test_repair_prompt_localizes_semantic_layout_error_for_model() -> None:
+    error = {
+        "stage": "validation",
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": (
+            "layout does not match semantic contract: action: component has multiple "
+            "parents. Choose a registered Layout/Region/Group variant; do not edit "
+            "expanded geometry."
+        ),
+    }
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "source",
+        [error],
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        repair_strategy={"scope": "parent_layout", "instruction": "重组父布局。"},
+    )
+    feedback = _repair_feedback(messages)
+    quality_errors = feedback.get("qualityErrors")
+    assert isinstance(quality_errors, list)
+    assert quality_errors[0].get("message") == (
+        "语义布局不符合合同：节点 action：组件被多个父节点同时引用。"
+        "请选择已登记的 Layout、Region 或 Group 变体，不要修改展开后的几何。"
+    )
+    assert error["message"].startswith("layout does not match semantic contract")
+
+
 def test_repair_system_prompt_requires_root_cause_and_regression_checks() -> None:
-    assert "先恢复语义事实" in REPAIR_SYSTEM_PROMPT
-    assert "再定位共同根因" in REPAIR_SYSTEM_PROMPT
-    assert "按值形态选择结构" in REPAIR_SYSTEM_PROMPT
-    assert "重算受影响子树" in REPAIR_SYSTEM_PROMPT
-    assert "最后整体回归" in REPAIR_SYSTEM_PROMPT
-    assert "TaskSpec 是值语义的唯一依据" in REPAIR_SYSTEM_PROMPT
-    assert "已经包含单位的" in REPAIR_SYSTEM_PROMPT
-    assert "不得追加或拆出单位" in REPAIR_SYSTEM_PROMPT
-    assert "无损紧凑组件替换阶段" in REPAIR_SYSTEM_PROMPT
-    assert "本阶段最多连续提交两次完整 Compact DSL" in REPAIR_SYSTEM_PROMPT
-    assert "不启用可选信息删除" in REPAIR_SYSTEM_PROMPT
-    assert "整组单行用14" in REPAIR_SYSTEM_PROMPT
-    assert "多行用12；行高分别19和16" in REPAIR_SYSTEM_PROMPT
-    assert "drop_optional_component" in REPAIR_SYSTEM_PROMPT
-    assert "唯一可删的非 Action 业务展示组件" in REPAIR_SYSTEM_PROMPT
-    assert "等待微服务根据剩余 DSL" in REPAIR_SYSTEM_PROMPT
-    assert "必须删除指定组件行及其直接父级 children 引用" in REPAIR_SYSTEM_PROMPT
-    assert "禁止原样返回" in REPAIR_SYSTEM_PROMPT
-    assert "没有 repairStrategy 的兼容调用才以上一轮 DSL 为直接修复对象" in (REPAIR_SYSTEM_PROMPT)
-    assert "首次修复时追加一次" in REPAIR_SYSTEM_PROMPT
+    for rule in (
+        "语法、引用和绑定", "合并分析", "组件合同", "组内容量", "整体回归",
+        "TaskSpec 的真实类型、单位及来源", "固定字号", "最多连续两次",
+        "不删事实、Action", "纯绑定/Props 错误不启用此容量例外",
+        "drop_optional_component", "从第4次修复起", "不要求用尽全部无损阶段",
+        "指定的一个非Action组件", "等待下一轮明确授权", "累计批准省略项",
+        "本轮必须实际删除指定组件及父引用", "不原样重交已知失败候选",
+        "无 repairStrategy 的兼容入口才默认局部最小修改",
+    ):
+        assert rule in REPAIR_SYSTEM_PROMPT
 
 
 @pytest.mark.parametrize(

@@ -6,10 +6,10 @@
   "supportedCapabilityIds": [
     "GetCalendarEvents",
     "GetCountdownDays",
+    "GetCurrentTime",
     "GetEarphoneInfo",
     "GetHealthAndSportSummary",
     "GetPhoneBatteryInfo",
-    "GetSystemMemInfo",
     "ViewWeather"
   ],
   "supportedLayoutIds": ["TwoSupportLayout"],

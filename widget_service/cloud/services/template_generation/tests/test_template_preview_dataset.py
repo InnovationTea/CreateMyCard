@@ -20,20 +20,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 216
+    assert manifest.get("templateCount") == 230
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 27,
-        "Compact": 24,
+        "Support": 30,
+        "Compact": 21,
         "Hero": 52,
-        "Full": 77,
+        "Full": 89,
         "WideHero": 5,
-        "WideFull": 26,
+        "WideFull": 28,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 181, "2x4": 35}
-    assert len(cases) == 216
+    assert manifest.get("countsBySize") == {"2x2": 191, "2x4": 39}
+    assert len(cases) == 230
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 216
+    assert len(template_ids) == 230
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -116,7 +116,6 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "clock_fill.svg",
         "earphone_case_16644.svg",
         "drop_1.svg",
-        "externaldrive_fill.svg",
         "figure_run.svg",
         "flame_fill.svg",
         "heart_fill.svg",
@@ -194,7 +193,7 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/location/prefectureName", "/location/districtName",
                 "/location/cityCode",
             )
-        elif case.template_id == "BluetoothDeviceOverviewMusicCompact@1":
+        elif case.template_id == "BluetoothDeviceOverviewMusicSupport@1":
             # 纯歌单入口：不渲染任何耳机数据，三级数据均为空。
             assert case.primary_data == ()
             assert case.secondary_data == ()
@@ -314,7 +313,7 @@ def test_earphone_ring_previews_include_required_device_icon(template_id, icon_n
         pytest.fail("图标必须与电量环位于同一个 Stack")
 
 
-def test_battery_2x2_icon_contracts_and_previews_are_required():
+def test_battery_2x2_icon_contracts_and_previews_match_declared_requirements():
     registry = get_cardplan_registry()
     covered = set()
     for case in build_template_preview_cases():
@@ -327,7 +326,10 @@ def test_battery_2x2_icon_contracts_and_previews_are_required():
         assert isinstance(properties, dict)
         if "batteryIcon" not in properties:
             continue
-        assert "batteryIcon" in variant.parameters_schema.get("required", [])
+        if case.template_id == "BatteryOverviewFull@1":
+            assert "batteryIcon" not in variant.parameters_schema.get("required", [])
+        else:
+            assert "batteryIcon" in variant.parameters_schema.get("required", [])
         update = case.messages[1].get("updateComponents")
         assert isinstance(update, dict)
         components = update.get("components")

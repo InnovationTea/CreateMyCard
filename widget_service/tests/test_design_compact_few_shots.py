@@ -10,8 +10,10 @@ import pytest
 from config.config import get_settings
 from services.card_validation import validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
+from services.compact_component_runtime import load_visual_recipe_contract
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.compact_prompt_loader import assemble_prompts
+from services.compact_semantic_layout import SEMANTIC_LAYOUT_TYPES
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import A2UIProtocolRegistry
 
@@ -396,10 +398,14 @@ def test_examples_use_only_supported_component_types(
     task: dict,
     source: str,
 ) -> None:
-    del task
     types = set(_component_types(source))
     assert "Progress" not in types, identifier
-    assert types.issubset(BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS), identifier
+    allowed = BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS | SEMANTIC_LAYOUT_TYPES
+    assert "Layout" in types, identifier
+    assert not types.intersection({"Row", "Column", "Stack"}), identifier
+    if task.get("size") == "2x2":
+        assert "Region" not in types, identifier
+    assert types.issubset(allowed), identifier
 
 
 @pytest.mark.parametrize(
@@ -503,7 +509,10 @@ def test_example_reaches_its_generation_route(
     for selected_id in set(selected).intersection(available_ids):
         assert selected_id in assembled
     if "adaptive" not in layout_scope:
-        assert f"### `{layout_scope}`" in assembled
+        if task_spec.size == "2x4":
+            assert f" {layout_scope}：" in assembled
+        else:
+            assert layout_scope in assembled
 
 
 def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
@@ -524,26 +533,23 @@ def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
 
     assert "本轮实现参考" not in assembled
     assert "# 本轮组件与布局选择" in assembled
-    assert "基础布局组件和组件" in assembled
+    assert "只使用本尺寸登记的布局与真实 Props" in assembled
     for deprecated in ("基础组件", "高阶组件", "高级组件", "普通组件", "基础组合"):
         assert deprecated not in assembled
 
 
-def _palette_rows() -> list[list[str]]:
-    palettes = []
-    for line in PROMPTS["create"].splitlines():
-        if not line.startswith("|"):
-            continue
-        colors = re.findall(r"#[A-F0-9]{8}", line)
-        if len(colors) == 6:
-            palettes.append(colors)
-    assert palettes
-    return palettes
-
-
-@pytest.mark.parametrize("colors", _palette_rows())
-def test_palette_preserves_text_hierarchy(colors: list[str]) -> None:
-    start, end, primary, secondary, button, _ = colors
+@pytest.mark.parametrize("family", ["blue", "purple", "warm"])
+def test_runtime_palette_preserves_text_hierarchy(family: str) -> None:
+    palette = load_visual_recipe_contract().get("palettes", {}).get(family)
+    assert palette
+    gradients = palette.get("gradients")
+    assert gradients
+    start, end = gradients[0]
+    roles = palette.get("roles", {})
+    primary = roles.get("primary")
+    secondary = roles.get("secondary")
+    button = roles.get("componentSecondary")
+    assert primary and secondary and button
     start_rgb = _rgba(start)[:3]
     end_rgb = _rgba(end)[:3]
     for step in range(11):
@@ -585,8 +591,7 @@ def test_example_gradients_use_registered_direction_and_stops(
 
 def test_component_catalog_excludes_removed_legacy_components() -> None:
     catalog = PROMPTS["create"]
-    allowed_section = catalog.split("# 2. Compact DSL 组件合同", maxsplit=1)[1]
-    allowed_section = allowed_section.split("## 2.1", maxsplit=1)[0]
+    allowed_section = catalog
     for component_type in HIGH_LEVEL_COMPONENTS:
         assert f"`{component_type}`" in allowed_section
     for removed_type in ("ActionUnit", "Checkbox", "TimelineUnit"):

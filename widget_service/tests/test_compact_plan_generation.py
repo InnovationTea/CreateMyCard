@@ -20,6 +20,7 @@ from services.widget_generation_service import WidgetGenerationService
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
     monkeypatch,
 ) -> None:
@@ -53,7 +54,11 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
                 },
                 ensure_ascii=False,
             )
-        return "source-compact-dsl"
+        return (
+            '["root","Layout",{"layout":"S-title-content"},["title","content"]]\n'
+            '["title","SingleLineTitle",{"title":"概览","fontSize":12}]\n'
+            '["content","EmphasisText",{"mainText":"静态卡片","fontSize":18}]'
+        )
 
     def process(source_dsl, context):
         assert context.compact_plan is not None
@@ -104,10 +109,10 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
     plan_system = calls[0][1][0]["content"]
     assert "submit_card_plan" in plan_system
     assert "你是 HarmonyOS 桌面卡片生成 Agent" in plan_system
-    assert "`<agent_stage>plan</agent_stage>`：只按本轮工具 Schema 提交" in plan_system
-    assert "# 2. Compact DSL 组件合同" in plan_system
-    assert "### 6.1 `EventCard`" in plan_system
-    assert "### `S-title-content-action`" in plan_system
+    assert "`plan`：按本轮工具 Schema 提交一次" in plan_system
+    assert "# 2. 单组件细则" in plan_system
+    assert "`EventCard`" in plan_system
+    assert "| S-title-content-action |" in plan_system
     assert "FEWSHOT" not in plan_system
     assert '"composition"' not in plan_system.split("# 可用工具合同", 1)[1]
     plan_messages = calls[0][1]
@@ -124,6 +129,7 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_runtime_plan_mode_repairs_missing_composition_before_dsl(
     monkeypatch,
 ) -> None:
@@ -135,7 +141,11 @@ async def test_runtime_plan_mode_repairs_missing_composition_before_dsl(
         model_format = str((profile or {}).get("format"))
         calls.append((model_format, copy.deepcopy(_prompt)))
         if model_format != "raw-json":
-            return "source-compact-dsl"
+            return (
+                '["root","Layout",{"layout":"S-title-content"},["title","content"]]\n'
+                '["title","SingleLineTitle",{"title":"概览","fontSize":12}]\n'
+                '["content","EmphasisText",{"mainText":"静态卡片","fontSize":18}]'
+            )
         arguments = {
             "info_required": [
                 {

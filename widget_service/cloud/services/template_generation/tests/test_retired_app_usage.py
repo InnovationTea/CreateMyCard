@@ -20,7 +20,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 
 
 @pytest.mark.parametrize(
-    "version", ("app-11.7.5.205_rom-6.0", "app-11.7.7.300_rom-7.0")
+    "version", ("app-11.7.7.300_rom-7.0",)
 )
 def test_app_usage_is_absent_from_runtime_capability_snapshots(version: str) -> None:
     path = get_settings().data_root / "capabilities" / version / "data_capabilities.json"
@@ -76,3 +76,16 @@ def test_preview_without_compatible_theme_reports_the_template(monkeypatch) -> N
 
     with pytest.raises(ValueError, match="No compatible preview theme: WeatherOverviewFull@1"):
         _preview_theme(definition, registry)
+
+
+@pytest.mark.parametrize("enable_fusion_ball", (False, True))
+def test_retired_system_memory_is_absent_from_runtime_templates(enable_fusion_ball: bool) -> None:
+    registry = CardPlanRegistry(enable_fusion_ball=enable_fusion_ball)
+
+    assert "com.huawei.system-memory.cli" not in registry.provider_bundles
+    assert "ResourceUsageOverview" not in registry.ux_business_components
+    assert "device-clean-blue-teal" not in registry.themes
+    for definition in registry.templates.values():
+        assert definition.capability_id != "GetSystemMemInfo"
+    for theme in registry.themes.values():
+        assert "GetSystemMemInfo" not in theme.supported_capability_ids

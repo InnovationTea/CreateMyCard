@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
+import re
 
 import pytest
 
@@ -23,6 +24,9 @@ async def test_generate_dsl_from_task_spec_reuses_compact_pipeline(monkeypatch):
     generated = await generate_dsl_from_task_spec(task_spec)
 
     assert generated.compact_dsl
+    assert not re.search(r"#[0-9A-Fa-f]{6,8}", generated.compact_dsl)
+    assert "@theme:" not in generated.dsl
+    assert "linearGradient" in generated.dsl
     messages = [json.loads(line) for line in generated.dsl.splitlines()]
     assert len(messages) == 3
     assert "createSurface" in messages[0]

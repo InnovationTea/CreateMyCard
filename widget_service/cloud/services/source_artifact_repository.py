@@ -10,6 +10,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
+from app.logger import logger
 from config.config import get_settings
 from core.errors import ErrorCode
 from models.artifact import WidgetArtifact
@@ -90,7 +91,16 @@ class SourceArtifactRepository:
     ) -> SourceArtifactLoadResult:
         """只规范化编辑输入副本；保留原文件和下载时计算的产物摘要。"""
         artifact = source.artifact.model_copy(deep=True)
-        registry = CapabilityRegistry(version=artifact.meta.capabilityRegistryVersion)
+        source_version = artifact.meta.capabilityRegistryVersion
+        asset_version = source_version
+        if source_version == "app-11.7.5.205_rom-6.0":
+            # 仅恢复历史素材引用；不改写来源元数据，业务能力仍由本轮生成重新裁决。
+            asset_version = "app-11.7.7.300_rom-7.0"
+            logger.info(
+                f"{_MODULE} source_asset_registry_migrated "
+                f"source_version={source_version} asset_version={asset_version}"
+            )
+        registry = CapabilityRegistry(version=asset_version)
         originals = {item.id: item.src for item in registry.list_asset_capabilities()}
         candidates = artifact.taskSpec.get("assetCandidates", [])
         if not isinstance(candidates, list):

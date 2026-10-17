@@ -648,7 +648,7 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         "TwoSupportLayout",
         (
             template("WeatherOverviewTemperatureSupport@1"),
-            template("ResourceUsageOverviewSupport@1"),
+            template("ScheduleOverviewTimeSupport@1"),
         ),
         (),
         "2x2",

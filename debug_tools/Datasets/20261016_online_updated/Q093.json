@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个桌面天气卡片，包括上海和平顶山的天气，展示上海和河南平顶山两个城市的当前天气和未来天气预报",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday",
+          "/location/cityCode"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather2",
+        "candidateOutputFields": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday",
+          "/location/cityCode"
+        ]
+      }
+    ],
+    "title": "双城天气",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "展示上海与河南平顶山两地当前与未来天气。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_uv_color"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "093",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个桌面天气卡片，包括上海和平顶山的天气，展示上海和河南平顶山两个城市的当前天气和未来天气预报",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个桌面天气卡片，包括上海和平顶山的天气，展示上海和河南平顶山两个城市的当前天气和未来天气预报",
+  "candidateDataBindings": [],
+  "title": "双城天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "展示上海与河南平顶山两地当前与未来天气。",
+  "candidateAssetIds": []
+}

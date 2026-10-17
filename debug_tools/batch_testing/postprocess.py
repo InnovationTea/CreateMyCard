@@ -130,7 +130,7 @@ class PostprocessManager:
         run_completed = summary_path.is_file() and (
             self._read_json(summary_path).get("status") == "completed"
         )
-        manifests = self._manifests()
+        manifests = self._run_manifests(run_id)
         available = {item["id"]: item for item in manifests}
         expanded_ids = self._expand_dependencies(plugin_ids, available)
         requested_ids = set(plugin_ids)
@@ -365,7 +365,7 @@ class PostprocessManager:
         state = self._read_json(state_path)
         state.update({"status": "running", "startedAt": utc_now()})
         atomic_write_json(state_path, state)
-        manifests = {item["id"]: item for item in self._manifests()}
+        manifests = {item["id"]: item for item in self._run_manifests(run_id)}
         completed_results = self._latest_plugin_results(run_id)
         selections = list(state.get("plugins") or [])
         state["plugins"] = [
@@ -761,9 +761,20 @@ class PostprocessManager:
             "artifacts": [],
         }
 
+    def _run_manifests(self, run_id: str) -> list[dict[str, Any]]:
+        manifests = self._manifests()
+        summary_path = self._run_dir(run_id) / "summary.json"
+        # 原有批跑允许在 summary 尚未生成时预先排队。
+        summary = self._read_json(summary_path) if summary_path.is_file() else {}
+        if summary.get("sourceType") == "external-quality":
+            for manifest in manifests:
+                if manifest.get("id") == "quality-score":
+                    manifest["dependence"] = []
+        return manifests
+
     @staticmethod
     def _quality_samples(summary: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
-        """在调度前校验选择，按来源顺序固化；不要在汇总阶段才假装筛选。"""
+        """在调度前校验选择，按来源顺序固定所选样本。"""
         samples = summary.get("samples")
         if not isinstance(samples, list) or not samples:
             raise ValueError("批次没有可选择的样本")
@@ -976,7 +987,7 @@ class PostprocessManager:
         except (OSError, SyntaxError, UnicodeError) as exc:
             raise ValueError("插件入口无法解析") from exc
         return any(
-            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == hook
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name == hook
             for node in module.body
         )
 

@@ -922,12 +922,25 @@ def _expand_call(
         raise TerselConversionError(
             f"Template params are invalid for {wire_id}/{size}: {errors[0].message}"
         )
+    title_fallback_template = (
+        wire_id == "BatteryOverviewChargingTemperatureFull@1"
+        or definition.business_id == "BluetoothDeviceOverview"
+    )
+    if title_fallback_template and params.get("title") == "":
+        # 这些模板将空标题视为未传；模板条件原本只判断参数是否存在。
+        params = dict(params)
+        params.pop("title", None)
     params = _normalize_template_asset_params(
         params,
         definition.asset_parameter_semantic_tags,
         contract,
         required_parameters=frozenset(
             str(item) for item in variant.parameters_schema.get("required", ())
+        ),
+        optional_semantic_fallback_parameters=(
+            frozenset({"leftEarIcon", "rightEarIcon", "caseIcon"})
+            if definition.business_id == "BluetoothDeviceOverview"
+            else frozenset()
         ),
     )
     _validate_template_params(
@@ -961,7 +974,7 @@ def _expand_call(
             "WideTwoFocusTwoActionLayout",
         }
         and task_spec.size == "2x4"
-        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact"}
+        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact", "Support"}
     )
     if (
         variant.supported_card_sizes
@@ -1195,6 +1208,12 @@ def _validate_provider_template_state(
             "healthTemperatureHero",
             "percentTextFull",
             "percentDetailsFull",
+            "percentHealthDetailsFull",
+            "percentHealthCurrentDetailsFull",
+            "percentStatusFull",
+            "chargingTypePercentFull",
+            "temperatureStatusFull",
+            "chargingTemperatureFull",
             "percentLevelHero",
             "percentLevelFull",
             "percentRingCompact",
@@ -1299,10 +1318,10 @@ def _validate_provider_template_state(
             if facts.is_connected is None or not has_case:
                 raise TerselConversionError("Case connection Hero requires connection and battery.")
             return
-        if variant_name == "caseConnectionCompact":
+        if variant_name == "connectionBatterySupport":
             if facts.is_connected is None or not has_case:
                 raise TerselConversionError(
-                    "Case connection Compact requires connection and battery."
+                    "Connection battery Support requires connection and battery."
                 )
             return
         if variant_name == "tripleBatteryWideHalf":
@@ -1353,8 +1372,15 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
             return
-        if variant_name == "musicCompact":
+        if variant_name == "musicSupport":
             # 纯歌单入口：不渲染耳机数据，因此不设任何数据前提。
+            return
+        if variant_name == "earbudPairChargingFull":
+            has_three_batteries = has_case and has_left and has_right
+            if not has_three_batteries or facts.case_charging_status is None:
+                raise TerselConversionError(
+                    "Earbud charging Full requires three batteries and a case charging state."
+                )
             return
         if variant_name == "earbudPairFull":
             if facts.is_connected is None and facts.earphone_name is None:
@@ -4605,6 +4631,7 @@ def _normalize_template_asset_params(
     contract: HybridBodyContract,
     *,
     required_parameters: frozenset[str],
+    optional_semantic_fallback_parameters: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     normalized = dict(params)
     for key, value in params.items():
@@ -4632,6 +4659,12 @@ def _normalize_template_asset_params(
             if required_tags.issubset(set(contract.asset_semantic_tags_by_source.get(source, ())))
         ]
         if len(candidates) != 1:
+            can_use_text_fallback = (
+                key in optional_semantic_fallback_parameters and key not in required_parameters
+            )
+            if can_use_text_fallback:
+                normalized.pop(key, None)
+                continue
             raise TerselConversionError(
                 f"Template asset semantics do not match {key}: {value}"
             )
@@ -5082,7 +5115,7 @@ def _template_value(
     elif value.kind == "interpolation":
         raise TerselConversionError("Template interpolation must be the first Text value.")
     elif value.kind == "expression":
-        resolved_value = _provider_runtime_expression(value, bindings)
+        resolved_value = _provider_runtime_expression(value, bindings, params)
     elif value.kind == "compile-time-conditional":
         resolved_value = _provider_compile_time_conditional(
             value,
@@ -5274,6 +5307,7 @@ def _provider_static_interpolation(
 def _provider_runtime_expression(
     value: TemplateValue,
     bindings: dict[str, str],
+    params: dict[str, Any] | None = None,
 ) -> str:
     parts: list[str] = []
     for item in value.items:
@@ -5282,6 +5316,12 @@ def _provider_runtime_expression(
             if placeholder is None:
                 raise TerselConversionError(f"Template binding is missing: {item.name}")
             parts.append(_a2ui_expression_reference(placeholder))
+            continue
+        if item.kind == "parameter":
+            parameter = params.get(item.name or "") if params is not None else None
+            if not isinstance(parameter, str):
+                raise TerselConversionError("Template Expr props must be strings.")
+            parts.append(_a2ui_expression_string(parameter))
             continue
         if item.kind == "literal" and isinstance(item.value, str):
             parts.append(item.value)
@@ -6467,6 +6507,7 @@ _PROVIDER_TEMPLATE_DIRECT_VARIANTS = {
         "earbudsDynamicWideFull": "earbuds",
         "earbudsSupport": "earbuds",
         "earbudPairFull": "earbuds",
+        "earbudPairChargingFull": "earbuds",
         "completeWideFull": "earbuds",
         "earbudPairCompact": "earbuds",
         "completePhoneWideFull": "earbuds",
@@ -6685,6 +6726,12 @@ def _validate_provider_template_layout_action_requirements(
         ),
     }
     wide_composition = wide_composition_contracts.get(layout_id)
+    if (
+        layout_id == "WideFullTwoCompactLayout"
+        and not action_names
+        and layout_kinds == ("Full", "Support", "Support")
+    ):
+        return
     if layout_id == "WideFullTwoCompactLayout" and action_names == ("CompactAction",) * 2:
         if layout_kinds != ("Full",):
             raise TerselConversionError(
@@ -6695,10 +6742,21 @@ def _validate_provider_template_layout_action_requirements(
         ("CompactAction",),
         ("CompactSubtitleAction",),
     }:
-        if layout_kinds not in {("Full", "Compact"), ("Hero", "Compact")}:
+        if layout_kinds not in {
+            ("Full", "Compact"),
+            ("Full", "Support"),
+            ("Hero", "Compact"),
+            ("Hero", "Support"),
+        }:
             raise TerselConversionError(
                 f"{layout_id} Provider Template slot combination is invalid."
             )
+        return
+    if layout_id == "WideFullTwoCompactLayout" and not action_names and layout_kinds == (
+        "Full",
+        "Support",
+        "Support",
+    ):
         return
     if layout_id == "WideHalfTwoCompactLayout" and action_names == ("CompactAction",):
         if layout_kinds != ("WideHalf", "Compact"):
@@ -9279,6 +9337,11 @@ def _lower_action_template_tree(
         values[options_index] = cleaned
         return Nested2Node(filled.component_type, tuple(values), filled.children)
     styled = apply_foreground(content)
+    # CompactAction is rendered inside a layout-owned support slot.  The slot
+    # supplies the shared surface, radius, and padding; adding an action
+    # background here would create a second nested panel inside that slot.
+    if node.component_type == "CompactAction":
+        return styled
     return _merge_node_options(styled, {"backgroundColor": background})
 
 

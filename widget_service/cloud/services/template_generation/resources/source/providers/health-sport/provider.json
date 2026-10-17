@@ -13,8 +13,8 @@
       "capabilityId": "GetHealthAndSportSummary",
       "dataDomain": "/data/healthSport",
       "dataSchema": {
-        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
-        "version": "app-11.7.5.205_rom-6.0"
+        "path": "capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json",
+        "version": "app-11.7.7.300_rom-7.0"
       }
     }
   ],
@@ -273,7 +273,11 @@
         "/exerciseHeartRateAvg",
         "/exerciseHeartRateMax"
       ],
-      "supportedEventIds": ["event.open.health.sport"],
+      "supportedEventIds": [
+        "event.open.health.sport",
+        "event.open.health.sportsRecord",
+        "event.open.health.workoutDuration"
+      ],
       "assetParameterSemanticTags": {
         "timeIcon": ["timer"],
         "actionIcon": ["run"]
@@ -294,7 +298,11 @@
         "/exerciseTypeName"
       ],
       "secondaryData": [],
-      "supportedEventIds": ["event.open.health.sport"]
+      "supportedEventIds": [
+        "event.open.health.sport",
+        "event.open.health.sportsRecord",
+        "event.open.health.workoutDuration"
+      ]
     },
     {
       "templateId": "HeartRateOverviewFull@1",
@@ -575,7 +583,10 @@
     },
     {
       "templateId": "ActivityOverviewSupport@1",
-      "supportedEventIds": ["event.open.health.sport"],
+      "supportedEventIds": [
+        "event.open.health.sport",
+        "event.open.health.activityRecord"
+      ],
       "assetParameterSemanticTags": {
         "stepsIcon": [
           "steps"
@@ -593,7 +604,11 @@
     },
     {
       "templateId": "WorkoutOverviewSupport@1",
-      "supportedEventIds": ["event.open.health.sport"],
+      "supportedEventIds": [
+        "event.open.health.sport",
+        "event.open.health.sportsRecord",
+        "event.open.health.workoutDuration"
+      ],
       "assetParameterSemanticTags": {
         "sourceIcon": [
           "workout"
@@ -615,7 +630,10 @@
     },
     {
       "templateId": "HeartRateOverviewSupport@1",
-      "supportedEventIds": ["event.open.health.sport"],
+      "supportedEventIds": [
+        "event.open.health.sport",
+        "event.open.health.sportsRecord"
+      ],
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "心率 Support：主行展示运动平均心率及单位，辅助行展示指标说明；可选 24vp 心脏图标，根节点可绑定事件。",

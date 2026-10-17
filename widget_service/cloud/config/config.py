@@ -67,13 +67,32 @@ class Settings(BaseSettings):
     else:
         CONFIG: ConfigHelper = ConfigHelper("cloud")
     WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
+    enable_photo_background_theme: bool = (
+        CONFIG.get("enable_photo_background_theme", "false") == "true"
+    )
+    post_layout_measure_command: list[str] = Field(default_factory=list)
+    enable_subjectless_wide_theme: bool = (
+        CONFIG.get("enable_subjectless_wide_theme", "false") == "true"
+    )
+    subjectless_wide_sample_rate: float = Field(
+        default=float(CONFIG.get("subjectless_wide_sample_rate", "0.10")), ge=0, le=1
+    )
+    enable_square_music_photo_expansion: bool = (
+        CONFIG.get("enable_square_music_photo_expansion", "false") == "true"
+    )
+    enable_square_photo_expansion: bool = (
+        CONFIG.get("enable_square_photo_expansion", "false") == "true"
+    )
+    square_photo_expansion_sample_rate: float = Field(
+        default=float(CONFIG.get("square_photo_expansion_sample_rate", "0.10")), ge=0, le=1
+    )
     hag_slb_url: str = CONFIG.get("hag_slb_url")
     osms_prepare_url: str = urljoin(hag_slb_url, CONFIG.get("osms_prepare_url"))
     osms_complete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_complete_url"))
     osms_query_url: str = urljoin(hag_slb_url, CONFIG.get("osms_query_url"))
     osms_delete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_delete_url"))
     hag_osms_ak: str = CONFIG.get("hag_osms_ak")
-    capability_registry_version: str = "app-11.7.5.205_rom-6.0"
+    capability_registry_version: str = "app-11.7.7.300_rom-7.0"
     # src → 云侧 URL 映射；模型使用原始 src，标准 A2UI 生成后精确替换，未命中保留原路径。
     asset_src_url_mapping: dict = _parse_json_config(CONFIG.get("asset.src.url.mapping"), {})
     design_compact_profile_id: str = "design-compact-dsl"
@@ -154,6 +173,9 @@ class Settings(BaseSettings):
         "deepseek_official_http_url",
         "https://api.deepseek.com/chat/completions",
     )
+    deepseek_official_http_use_sdk: bool = (
+        CONFIG.get("deepseek_official_http_use_sdk", "true") == "true"
+    )
     deepseek_official_http_api_key: str = CONFIG.get(
         "deepseek_official_http_api_key",
         "",
@@ -210,6 +232,9 @@ class Settings(BaseSettings):
         CONFIG.get("enable_default_capability_registry_fallback") == "true"
     )
     enable_validation_failure_retry: bool = CONFIG.get("enable_validation_failure_retry") == "true"
+    enable_drop_plan_fact_validation: bool = (
+        CONFIG.get("enable_drop_plan_fact_validation", "false") == "true"
+    )
     enable_widget_edit: bool = CONFIG.get("enable_widget_edit") == "true"
     enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
     enable_widget_directive_commands: bool = (

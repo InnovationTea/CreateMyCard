@@ -41,7 +41,7 @@ def test_examples_preserve_requested_fields_samples_and_registered_actions(
     case = provider.cases[index]
     assert case.caseId == "template-example-" + example.id
     assert case.targetTemplateId == example.template_id
-    assert case.prdVer == "11.7.5.206"
+    assert case.prdVer == "11.7.7.330"
     payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
     request = gallery._request_from_envelope(payload)
     assert request.title == (example.card_title or example.title.split(" ", maxsplit=1)[-1])

@@ -1,0 +1,91 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个可以从家里导航到公司的卡片，点击可一键导航去公司",
+    "candidateDataBindings": [],
+    "title": "通勤导航",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.startNavigate",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "latitude": "",
+                "location": "company",
+                "longitude": ""
+              }
+            }
+          }
+        }
+      }
+    ],
+    "description": "从家里导航到公司，点击一键导航。",
+    "candidateAssetIds": [
+      "asset.icon_car",
+      "asset.location_north_up_right_fill",
+      "asset.local_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.320",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "102",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个可以从家里导航到公司的卡片，点击可一键导航去公司",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个可以从家里导航到公司的卡片，点击可一键导航去公司",
+  "candidateDataBindings": [],
+  "title": "通勤导航",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.startNavigate",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "latitude": "",
+              "location": "company",
+              "longitude": ""
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "从家里导航到公司，点击一键导航。",
+  "candidateAssetIds": [
+    "asset.icon_car",
+    "asset.location_north_up_right_fill",
+    "asset.local_fill"
+  ]
+}

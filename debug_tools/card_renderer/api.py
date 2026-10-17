@@ -39,9 +39,13 @@ def register_renderer_conversion_routes(app: FastAPI) -> None:
         size: Literal["2x2", "2x4"] = "2x2"
         try:
             if request.size == "auto":
-                for row in parse_compact_dsl_rows(request.source):
+                for row in parse_compact_dsl_rows(request.source, expand_layouts=False):
                     if not isinstance(row, ComponentRow):
                         continue
+                    layout = row.props.get("layout")
+                    if row.component_type == "Layout" and isinstance(layout, str):
+                        size = "2x4" if layout.startswith("W-") else "2x2"
+                        break
                     width = row.props.get("width")
                     if isinstance(width, (int, float)) and width >= 240:
                         size = "2x4"

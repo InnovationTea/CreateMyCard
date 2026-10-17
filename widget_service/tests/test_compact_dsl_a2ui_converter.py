@@ -1274,6 +1274,47 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             1,
         )
 
+    def test_secondary_body_accepts_up_to_six_items_without_losing_bindings(self) -> None:
+        for size in ("2x2", "2x4"):
+            for columns in (1, 2):
+                for count in (1, 4, 5, 6):
+                    with self.subTest(size=size, columns=columns, count=count):
+                        items = []
+                        data_rows = []
+                        for index in range(count):
+                            path = f"/data/detail{index}"
+                            value = {"path": path} if index % 2 == 0 else f"{{{{ ${{{path}}} }}}}"
+                            items.append({"label": f"项{index} ", "value": value})
+                            data_rows.append([path, f"{index}项"])
+                        source = _serialize([
+                            ["root", "Column", {"width": "matchParent"}, ["details"]],
+                            ["details", "SecondaryBody", {
+                                "items": items, "columns": columns,
+                                "fontSize": 14 if count == 1 else 12,
+                            }],
+                            *data_rows,
+                        ])
+                        result = convert_compact_dsl_to_a2ui(
+                            source, size=size, protocol_profile=self.profile,
+                        )
+                        update = json.loads(result.splitlines()[1]).get("updateComponents")
+                        assert isinstance(update, dict)
+                        nodes = update.get("components")
+                        assert isinstance(nodes, list)
+                        by_id = {}
+                        for node in nodes:
+                            by_id[node.get("id")] = node
+                        for index in range(count):
+                            value_node = by_id.get(f"details_item{index}_value")
+                            assert isinstance(value_node, dict)
+                            self.assertEqual(
+                                value_node.get("content"), f"{{{{ ${{/data/detail{index}}} }}}}",
+                            )
+                            styles = value_node.get("styles")
+                            assert isinstance(styles, dict)
+                            self.assertEqual(styles.get("fontSize"), 14 if count == 1 else 12)
+                            self.assertEqual(styles.get("height"), 19 if count == 1 else 16)
+
     def test_secondary_body_styles_follow_rows_in_both_sizes(self) -> None:
         cases = [(2, 14, 19, ["details_row0"]), (1, 12, 16, ["details_row0", "details_row1"])]
         for size in ("2x2", "2x4"):
@@ -1289,7 +1330,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                                     "columns": columns,
                                     "fontSize": font_size,
                                     "items": [
-                                        {"label": "电量 ", "value": {"path": "/data/percent"}},
+                                        {"label": "电 ", "value": {"path": "/data/percent"}},
                                         {"value": "{{ '状态 ' + ${/data/status} }}"},
                                     ],
                                 },
@@ -1323,17 +1364,122 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     else:
                         self.assertIsNone(separator)
 
+    def test_secondary_body_automatically_packs_known_text_without_losing_bindings(self) -> None:
+        for size, font, row_ids in (
+            ("2x2", 12, ["meta_row0", "meta_row1"]),
+            ("2x4", 14, ["meta_row0"]),
+        ):
+            with self.subTest(size=size):
+                source = _serialize([
+                    ["root", "Column", {"width": "matchParent", "padding": 12}, ["meta"]],
+                    ["meta", "SecondaryBody", {
+                        "width": "matchParent", "fontSize": 14, "separator": " | ",
+                        "items": [
+                            {"value": {"path": "/data/date"}},
+                            {"value": "{{ ${/data/weekday} }}"},
+                        ],
+                    }],
+                    ["/data/date", "2026-08-06"],
+                    ["/data/weekday", "星期四"],
+                ])
+                messages = convert_compact_dsl_to_a2ui(source, size=size).splitlines()
+                update = json.loads(messages[1]).get("updateComponents")
+                assert isinstance(update, dict)
+                nodes = update.get("components")
+                assert isinstance(nodes, list)
+                by_id = {node.get("id"): node for node in nodes}
+                meta = by_id.get("meta")
+                value = by_id.get("meta_item0_value")
+                assert isinstance(meta, dict)
+                assert isinstance(value, dict)
+                self.assertEqual(meta.get("children"), row_ids)
+                self.assertEqual(value.get("content"), "{{ ${/data/date} }}")
+                styles = value.get("styles")
+                assert isinstance(styles, dict)
+                self.assertEqual(styles.get("fontSize"), font)
+                self.assertEqual(styles.get("height"), 16 if font == 12 else 19)
+                separator = by_id.get("meta_row0_separator")
+                if size == "2x2":
+                    self.assertIsNone(separator)
+                else:
+                    assert isinstance(separator, dict)
+                    self.assertEqual(separator.get("content"), " | ")
+                    first = by_id.get("meta_item0")
+                    second = by_id.get("meta_item1")
+                    assert isinstance(first, dict)
+                    assert isinstance(second, dict)
+                    first_styles = first.get("styles")
+                    second_styles = second.get("styles")
+                    assert isinstance(first_styles, dict)
+                    assert isinstance(second_styles, dict)
+                    self.assertGreater(first_styles.get("width"), second_styles.get("width"))
+                data_update = json.loads(messages[2]).get("updateDataModel")
+                assert isinstance(data_update, dict)
+                self.assertEqual(data_update.get("value"), {
+                    "data": {"date": "2026-08-06", "weekday": "星期四"},
+                })
+
+    def test_secondary_body_wraps_long_single_value_and_keeps_unknown_values(self) -> None:
+        cases = [
+            ({"value": "完整的长补充信息需要自动换行"}, 12, 2),
+            ({"value": {"path": "/unknown"}}, 14, 1),
+        ]
+        for item, font, lines in cases:
+            with self.subTest(item=item):
+                source = _serialize([
+                    ["root", "Column", {}, ["meta"]],
+                    ["meta", "SecondaryBody", {
+                        "width": 126, "fontSize": 14, "items": [item],
+                    }],
+                ])
+                update = json.loads(
+                    convert_compact_dsl_to_a2ui(source, size="2x2").splitlines()[1]
+                ).get("updateComponents")
+                assert isinstance(update, dict)
+                nodes = update.get("components")
+                assert isinstance(nodes, list)
+                value = next(node for node in nodes if node.get("id") == "meta_item0_value")
+                styles = value.get("styles")
+                assert isinstance(styles, dict)
+                self.assertEqual(styles.get("fontSize"), font)
+                self.assertEqual(styles.get("maxLines"), lines)
+
+    def test_secondary_body_wraps_label_with_value_without_staticizing_binding(self) -> None:
+        source = _serialize([
+            ["root", "Column", {}, ["meta"]],
+            ["meta", "SecondaryBody", {
+                "width": 126, "fontSize": 14,
+                "items": [{"label": "更新时间 ", "value": {"path": "/updated"}}],
+            }],
+            ["/updated", "2026-08-06 09:00"],
+        ])
+        update = json.loads(
+            convert_compact_dsl_to_a2ui(source, size="2x2").splitlines()[1]
+        ).get("updateComponents")
+        assert isinstance(update, dict)
+        nodes = update.get("components")
+        assert isinstance(nodes, list)
+        value = next(node for node in nodes if node.get("id") == "meta_item0_value")
+        self.assertEqual(value.get("content"), "{{ '更新时间 ' + ${/updated} }}")
+        styles = value.get("styles")
+        assert isinstance(styles, dict)
+        self.assertEqual(styles.get("fontSize"), 12)
+        self.assertEqual(styles.get("maxLines"), 2)
+        self.assertNotIn("height", styles)
+        for component_id in ("meta_item0", "meta_row0"):
+            container = next(node for node in nodes if node.get("id") == component_id)
+            container_styles = container.get("styles")
+            assert isinstance(container_styles, dict)
+            self.assertNotIn("height", container_styles)
+        self.assertFalse(any(node.get("id") == "meta_item0_label" for node in nodes))
+
     def test_secondary_body_rejects_uncontrolled_text_shapes(self) -> None:
         invalid_props = [
+            {"items": []},
+            {"items": [{"value": "正文"} for _ in range(7)]},
             {"items": [{"value": "正文"}], "columns": 3},
             {
                 "items": [{"label": {"path": "/data/label"}, "value": "正文"}],
-                "fontColor": "#FF1F4799",
-            },
-            {
-                "role": "body",
-                "items": [{"value": "正文"}],
-                "fontSize": 18,
                 "fontColor": "#FF1F4799",
             },
         ]
@@ -1438,15 +1584,23 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         ["content", component_type, invalid_props],
                     ]
                 )
-                with self.assertRaisesRegex(
-                    CompactDslConversionError,
-                    "fontSize must be the fixed Recipe value",
-                ):
-                    convert_compact_dsl_to_a2ui(
+                if component_type == "SecondaryBody":
+                    invalid_result = convert_compact_dsl_to_a2ui(
                         invalid_dsl,
                         size="2x2",
                         protocol_profile=self.profile,
                     )
+                    self.assertEqual(invalid_result, legacy_result)
+                else:
+                    with self.assertRaisesRegex(
+                        CompactDslConversionError,
+                        "fontSize must be the fixed Recipe value",
+                    ):
+                        convert_compact_dsl_to_a2ui(
+                            invalid_dsl,
+                            size="2x2",
+                            protocol_profile=self.profile,
+                        )
 
     def test_secondary_body_metadata_accepts_contract_multiline_mode(self) -> None:
         compact_dsl = _serialize(
@@ -1474,12 +1628,12 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["metadata_item0_value"]["styles"]["height"], 32)
         self.assertEqual(components["metadata_item0_value"]["styles"]["maxLines"], 2)
 
-    def test_secondary_body_font_size_error_explains_line_layout(self) -> None:
+    def test_secondary_body_ignores_declared_font_size_and_uses_recipe(self) -> None:
         cases = [
-            (2, 12, "Recipe value 14", "single row"),
-            (3, 14, "Recipe value 12", "multiple rows"),
+            (2, 12, 14),
+            (3, 14, 12),
         ]
-        for item_count, font_size, expected_value, expected_context in cases:
+        for item_count, font_size, expected_font_size in cases:
             with self.subTest(item_count=item_count):
                 items = [{"value": f"详情{index}"} for index in range(item_count)]
                 compact_dsl = _serialize(
@@ -1497,17 +1651,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     ]
                 )
 
-                with self.assertRaises(CompactDslConversionError) as context:
-                    convert_compact_dsl_to_a2ui(
-                        compact_dsl,
-                        size="2x2",
-                        protocol_profile=self.profile,
-                    )
-
-                message = str(context.exception)
-                self.assertIn(expected_value, message)
-                self.assertIn(expected_context, message)
-                self.assertIn("changing columns, items or maxLines", message)
+                result = convert_compact_dsl_to_a2ui(
+                    compact_dsl,
+                    size="2x2",
+                    protocol_profile=self.profile,
+                )
+                update = json.loads(result.splitlines()[1])["updateComponents"]
+                components = {item["id"]: item for item in update["components"]}
+                value = components["details_item0_value"]
+                self.assertEqual(value["styles"]["fontSize"], expected_font_size)
 
     def test_expands_info_block_progress_visual_and_two_event_card_items(self) -> None:
         compact_dsl = _serialize(
@@ -3578,6 +3730,94 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ),
             compact_dsl,
         )
+
+    def test_repairs_unique_trailing_brace_and_dotted_field_paths(self) -> None:
+        rows = [
+            ["root", "Column", {}, ["location", "wind"]],
+            [
+                "location",
+                "Text",
+                {"content": {"path": "/data/calendar/events/0/eventLocation}"}},
+            ],
+            [
+                "wind",
+                "Text",
+                {
+                    "content": (
+                        "{{ ${/data/weather/current/windDirection} + ' ' + "
+                        "${/data/weather/current.windLevel} + '级' }}"
+                    )
+                },
+            ],
+            ["/data/calendar/events/0/eventLocation", "会议室"],
+            ["/data/weather/current/windDirection", "东南风"],
+            ["/data/weather/current/windLevel", 2],
+        ]
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "calendar": {
+                        "events": [
+                            {"eventLocation": {"type": "string"}},
+                        ]
+                    },
+                    "weather": {
+                        "current": {
+                            "windDirection": {"type": "string"},
+                            "windLevel": {"type": "integer"},
+                        }
+                    },
+                }
+            }
+        }
+
+        repaired = repair_compact_dsl_binding_paths(
+            _serialize(rows),
+            task_spec=task_spec,
+            card_spec={"dataBindings": []},
+        )
+        repaired_rows = [json.loads(line) for line in repaired.splitlines()]
+
+        self.assertEqual(
+            repaired_rows[1][2]["content"]["path"],
+            "/data/calendar/events/0/eventLocation",
+        )
+        self.assertEqual(
+            repaired_rows[2][2]["content"],
+            (
+                "{{ ${/data/weather/current/windDirection} + ' ' + "
+                "${/data/weather/current/windLevel} + '级' }}"
+            ),
+        )
+
+    def test_does_not_repair_dotted_path_when_schema_match_is_ambiguous(self) -> None:
+        rows = [
+            ["root", "Column", {}, ["value"]],
+            [
+                "value",
+                "Text",
+                {"content": {"path": "/data/weather/current.wind.level"}},
+            ],
+        ]
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "weather": {
+                        "current": {"wind.level": {"type": "integer"}},
+                        "current.wind": {"level": {"type": "integer"}},
+                    }
+                }
+            }
+        }
+        compact_dsl = _serialize(rows)
+
+        repaired = repair_compact_dsl_binding_paths(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec={"dataBindings": []},
+        )
+
+        self.assertEqual(repaired, compact_dsl)
 
     def test_does_not_replace_different_event_item_index(self) -> None:
         event_handler = {

@@ -1,5 +1,7 @@
 """验证 Design Compact 修复路由的失败指纹与逐级升级。"""
 
+import pytest
+
 from services.compact_repair_strategy import CompactRepairStrategyTracker
 
 
@@ -22,12 +24,47 @@ def test_component_contract_migrates_without_stopping_before_global_limit() -> N
     assert first.repair_strategy == "component_contract_repair"
     assert first.scope == "component"
     assert first.retry_target == "dsl_local_repair"
+    assert "容量修复的受控选型例外" not in first.instruction
     assert second.repair_strategy == "plan_guided_recompose"
     assert second.scope == "full_dsl"
     assert second.retry_target == "dsl_recompose"
     assert resumed_targeted.repair_strategy == "component_contract_repair"
     assert resumed_targeted.retry_target == "dsl_local_repair"
     assert resumed_targeted.retryable is True
+
+
+def test_duplicate_plan_fact_uses_targeted_then_escalated_repair() -> None:
+    tracker = CompactRepairStrategyTracker()
+    issue = _issue(
+        "Plan fact is displayed more than once in visible DSL: 最高心率 "
+        "(/data/health/max); expected 1, got 2.",
+        code="COMPACT_PLAN_COVERAGE_FAILED",
+    )
+    issue["duplicateFacts"] = [
+        {
+            "requirement": "最高心率",
+            "dataId": "/data/health/max",
+            "expectedVisibleCount": 1,
+            "actualVisibleCount": 2,
+            "occurrences": [],
+        }
+    ]
+
+    first = tracker.next_directive("dsl-v1", [issue])
+    second = tracker.next_directive("dsl-v2", [issue])
+    third = tracker.next_directive("dsl-v3", [issue])
+
+    assert first.repair_strategy == "deduplicate_visible_facts"
+    assert first.scope == "information_group"
+    assert first.retry_target == "dsl_local_repair"
+    assert "每个报错 dataId 最终只在一个可见属性中出现" in first.instruction
+    assert "删除数据行" in first.instruction
+    assert second.repair_strategy == "parent_layout_recompose"
+    assert second.scope == "parent_layout"
+    assert "上一轮局部去重未闭合" in second.instruction
+    assert third.repair_strategy == "plan_guided_recompose"
+    assert third.scope == "full_dsl"
+    assert "为每个 dataId 只分配一个可见位置" in third.instruction
 
 
 def test_info_block_progress_value_error_gets_precise_non_degrading_repair() -> None:
@@ -48,22 +85,50 @@ def test_info_block_progress_value_error_gets_precise_non_degrading_repair() -> 
     assert "不得删除 visual" in directive.instruction
 
 
-def test_secondary_body_font_size_error_gets_recipe_aware_repair() -> None:
+@pytest.mark.parametrize("count", [0, 7])
+def test_secondary_body_item_overflow_guides_optional_removal_without_dropping_plan(
+    count: int,
+) -> None:
+    tracker = CompactRepairStrategyTracker()
+    directive = tracker.next_directive("dsl-v1", [
+        _issue(f"details: SecondaryBody.items requires 1 to 6 entries (got {count})."),
+    ])
+    assert directive.repair_strategy == "component_contract_repair"
+    if count == 0:
+        assert "优先删除" not in directive.instruction
+    else:
+        assert "优先删除重复、与需求无关或已接受Plan未要求的可选补充项" in directive.instruction
+        assert "整理为1–6项" in directive.instruction
+        assert "不得按数组顺序直接截掉末尾项" in directive.instruction
+        assert "删除Plan要求的must/should事实" in directive.instruction
+        assert "仍需现有Drop授权" in directive.instruction
+        assert "不为6项放宽布局预算" in directive.instruction
+
+
+@pytest.mark.parametrize("font_size", [14, 12])
+def test_secondary_body_font_size_error_gets_recipe_aware_repair(font_size: int) -> None:
     tracker = CompactRepairStrategyTracker()
     errors = [
         _issue(
-            "weather_line: SecondaryBody.fontSize must be the fixed Recipe value 14. "
-            "Current SecondaryBody has role=supporting with 2 items."
+            f"weather_line: SecondaryBody.fontSize must be the fixed Recipe value {font_size}. "
+            "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row "
+            "and fontSize 12 / lineHeight 16 for multiple rows."
         )
     ]
 
     directive = tracker.next_directive("dsl-v1", errors)
 
     assert directive.repair_strategy == "component_contract_repair"
-    assert "1–2 项 supporting 固定为 14" in directive.instruction
-    assert "3–4 项 supporting 固定为 12" in directive.instruction
-    assert "按最终 role 和项目数重新选择字号" in directive.instruction
-    assert "不得仅为缩小字号伪装成 metadata" in directive.instruction
+    assert "只把 fontSize 改为错误信息给出的固定 Recipe 值" in directive.instruction
+    assert "只有一行且各项 maxLines 都为 1（默认 1）" in directive.instruction
+    assert "固定为 14fp/19vp" in directive.instruction
+    assert "超过一行或任一项 maxLines 为 2" in directive.instruction
+    assert "整组固定为 12fp/16vp，行间距为 2vp" in directive.instruction
+    assert "两项同行用 14；两项 columns:1 分行用 12" in directive.instruction
+    assert "按最终行布局重新核算字号与高度" in directive.instruction
+    assert "不得仅为缩小字号拆散信息组或删除事实" in directive.instruction
+    for obsolete in ("role", "body", "metadata", "supporting"):
+        assert obsolete not in directive.instruction
 
 
 def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None:
@@ -105,10 +170,177 @@ def test_layout_capacity_escalates_from_rebudget_to_full_recomposition() -> None
     assert fallback_second.repair_strategy == "compact_component"
     assert fallback_second.fallback_attempt == 1
     assert fallback_second.fallback_remaining_attempts == 1
+    for directive in (first, second, third, fallback_first, fallback_second):
+        assert "容量修复的受控选型例外" not in directive.instruction
     assert transition.repair_strategy == "plan_guided_recompose"
     assert transition.fallback_attempt == 2
     assert transition.fallback_remaining_attempts == 0
     assert transition.retryable is True
+
+
+def test_capacity_recovery_drops_should_only_candidate_on_first_layout_failure() -> None:
+    tracker = CompactRepairStrategyTracker(capacity_recovery=True)
+    errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "补充开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/start",
+            }
+        ]
+    }
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {"data": {"calendar": {"start": {"type": "string"}}}},
+        "eventCandidates": [],
+    }
+    source = (
+        '["root","Column",{},["time"]]\n'
+        '["time","SecondaryBody",{"items":'
+        '[{"value":{"path":"/data/calendar/start"}}]}]'
+    )
+
+    directive = tracker.next_directive(
+        source,
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert directive.repair_strategy == "drop_optional_component"
+    assert directive.optional_drop is not None
+    assert directive.optional_drop.component_id == "time"
+    assert directive.optional_drop.contains_must_facts is False
+
+
+def test_capacity_recovery_never_uses_must_fact_as_drop_fallback() -> None:
+    tracker = CompactRepairStrategyTracker(capacity_recovery=True)
+    errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "核心状态",
+                "priority": "must",
+                "dataId": "/data/device/status",
+            }
+        ]
+    }
+    task_spec = {
+        "size": "2x2",
+        "dataModelSchema": {"data": {"device": {"status": {"type": "string"}}}},
+        "eventCandidates": [],
+    }
+    directives = []
+    for attempt in range(5):
+        source = (
+            f'["root","Column",{{"itemMargin":{attempt}}},["status"]]\n'
+            '["status","EmphasisText",{"mainText":'
+            '{"path":"/data/device/status"}}]'
+        )
+        directives.append(
+            tracker.next_directive(
+                source,
+                errors,
+                compact_plan=plan,
+                task_spec=task_spec,
+            )
+        )
+
+    assert all(item.repair_strategy != "drop_optional_component" for item in directives)
+    assert tracker.allowed_omitted_fact_indexes == ()
+
+
+def test_multi_region_overflow_with_missing_fact_recomposes_parent_immediately() -> None:
+    tracker = CompactRepairStrategyTracker()
+    errors = [
+        _issue(
+            "Plan fact is missing from visible DSL: 天气预警。",
+            code="COMPACT_PLAN_COVERAGE_FAILED",
+        ),
+        {
+            "stage": "validation",
+            "code": "COMPACT_DSL_VALIDATION_FAILED",
+            "message": (
+                "component meeting_panel: vertical layout requires at least "
+                "114vp within 110vp"
+            ),
+            "compactDiagnostics": [
+                {
+                    "code": "COMPACT_LAYOUT_HEIGHT_OVERFLOW",
+                    "componentId": "meeting_panel",
+                }
+            ],
+        },
+        {
+            "stage": "validation",
+            "code": "COMPACT_DSL_VALIDATION_FAILED",
+            "message": (
+                "component weather_panel: vertical layout requires at least "
+                "124vp within 110vp"
+            ),
+            "compactDiagnostics": [
+                {
+                    "code": "COMPACT_LAYOUT_HEIGHT_OVERFLOW",
+                    "componentId": "weather_panel",
+                }
+            ],
+        },
+    ]
+
+    directive = tracker.next_directive("dsl-v1", errors)
+
+    assert directive.category == "layout_capacity"
+    assert directive.repair_strategy == "parent_layout_recompose"
+    assert directive.scope == "parent_layout"
+    assert "多个语义分区同时容量超限" in directive.instruction
+    assert "先恢复缺失事实" in directive.instruction
+
+
+def test_capacity_text_compaction_exception_is_sent_only_when_relevant() -> None:
+    tracker = CompactRepairStrategyTracker()
+    source = "\n".join(
+        [
+            '["value","EmphasizedData",{"value":96}]',
+            '["details","TextBlock",{"items":[]}]',
+        ]
+    )
+    directive = tracker.next_directive(
+        source,
+        [_issue("component body: vertical layout requires at least 142vp within 126vp")],
+    )
+
+    assert "容量修复的受控选型例外" in directive.instruction
+    assert "一个SecondaryBody.items" in directive.instruction
+
+
+def test_fixed_side_slot_primary_text_overflow_prefers_split_panels() -> None:
+    tracker = CompactRepairStrategyTracker()
+    source = "\n".join(
+        [
+            '["root","Layout",{"layout":"W-content-side-slots"},'
+            '["content","exercise_slot","action_slot"]]',
+            '["content","Region",{"variant":"center"},["summary"]]',
+            '["summary","EmphasisText",{"mainText":"运动复盘"}]',
+            '["exercise_slot","InfoBlock",{"variant":"slot",'
+            '"primaryText":"户外跑步","secondaryText":"完整运动明细"}]',
+            '["action_slot","CardButton",{"label":"打开锻炼页","onClick":[]}]',
+        ]
+    )
+    errors = [
+        _issue(
+            "component exercise_slot_primary: text width overflow; complete text "
+            "needs about 294vp in one line, but its allocated text area is 116vp."
+        )
+    ]
+
+    directive = tracker.next_directive(source, errors)
+
+    assert directive.category == "layout_capacity"
+    assert directive.repair_strategy == "parent_layout_recompose"
+    assert directive.scope == "parent_layout"
+    assert "优先比较并改用 W-split-panels" in directive.instruction
+    assert "保留全部事实和 Action" in directive.instruction
 
 
 def test_root_layout_mismatch_takes_priority_over_capacity_error() -> None:
@@ -122,6 +354,22 @@ def test_root_layout_mismatch_takes_priority_over_capacity_error() -> None:
             "Compact layout does not match scope W-plan-guided: "
             "slot root must have 2 children, got 3."
         ),
+    ]
+
+    directive = tracker.next_directive("dsl-v1", errors)
+
+    assert directive.category == "layout_structure"
+    assert directive.repair_strategy == "parent_layout_recompose"
+    assert directive.scope == "parent_layout"
+
+
+def test_chinese_semantic_layout_error_uses_structure_route() -> None:
+    tracker = CompactRepairStrategyTracker()
+    errors = [
+        _issue(
+            "语义布局不符合合同：节点 today：当前父区域不支持 Region.variant；"
+            "请选择已登记的 Layout、Region 或 Group 变体。"
+        )
     ]
 
     directive = tracker.next_directive("dsl-v1", errors)
@@ -189,8 +437,14 @@ def test_compact_fallback_bridges_contract_repair_then_resumes_drop() -> None:
     assert resumed_drop.optional_drop.component_id == "time"
 
 
-def test_compact_fallback_can_drop_one_program_selected_should_component() -> None:
-    tracker = CompactRepairStrategyTracker()
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize(
+    ("max_attempts", "fourth_is_layout"), [(5, True), (3, True), (5, False)],
+)
+def test_fourth_repair_can_drop_should_component_only_with_layout_error_and_budget(
+    size: str, max_attempts: int, fourth_is_layout: bool,
+) -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=max_attempts)
     errors = [
         _issue("component body: vertical layout requires at least 142vp within 126vp")
     ]
@@ -205,7 +459,7 @@ def test_compact_fallback_can_drop_one_program_selected_should_component() -> No
         ]
     }
     task_spec = {
-        "size": "2x2",
+        "size": size,
         "dataModelSchema": {
             "data": {
                 "calendar": {
@@ -223,20 +477,34 @@ def test_compact_fallback_can_drop_one_program_selected_should_component() -> No
         ]
     )
 
-    drop = None
-    for attempt in range(1, 7):
-        drop = tracker.next_directive(
-            source if attempt >= 5 else f"dsl-v{attempt}",
+    for _ in range(3):
+        directive = tracker.next_directive(
+            source,
             errors,
             compact_plan=plan,
             task_spec=task_spec,
         )
-        if drop.repair_strategy == "drop_optional_component":
-            break
+        assert directive.repair_strategy != "drop_optional_component"
+        assert tracker.allowed_omitted_fact_indexes == ()
 
-    assert drop is not None
+    fourth_errors = errors if fourth_is_layout else [_issue("time: unsupported prop unitText")]
+    drop = tracker.next_directive(
+        source, fourth_errors, compact_plan=plan, task_spec=task_spec,
+    )
+    if max_attempts == 3:
+        assert drop.repair_strategy == "exhausted"
+        assert tracker.allowed_omitted_fact_indexes == ()
+        return
+    if not fourth_is_layout:
+        assert drop.repair_strategy == "component_contract_repair"
+        assert tracker.allowed_omitted_fact_indexes == ()
+        return
     assert drop.repair_strategy == "drop_optional_component"
     assert drop.fallback_stage == "drop_optional_component"
+    assert drop.fallback_attempt == 0
+    assert drop.fallback_remaining_attempts == 2
+    assert "已进入有界删除兜底" in drop.instruction
+    assert "上一轮没有执行 Drop" not in drop.instruction
     assert drop.optional_drop is not None
     assert drop.optional_drop.component_id == "time"
     assert drop.optional_drop.contains_must_facts is False

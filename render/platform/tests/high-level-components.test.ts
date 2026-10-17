@@ -438,6 +438,79 @@ test("SecondaryBody 保留绑定、按行布局切换字号并忽略历史角色
   assert.equal(multilineStyles.maxLines, 2);
 });
 
+test("SecondaryBody 支持 1–6 项，保留全部绑定并拒绝超过上限", () => {
+  for (const size of ["2x2", "2x4"] as const) {
+    for (const columns of [1, 2]) {
+      for (const count of [1, 4, 5, 6]) {
+        const items = Array.from({ length: count }, (_, index) => ({
+          label: `项${index} `, value: { path: `/data/detail${index}` },
+        }));
+        const dataRows = items.map((item, index) => JSON.stringify([item.value.path, `${index}项`]));
+        const source = [
+          JSON.stringify(["root", "Column", { width: "matchParent" }, ["details"]]),
+          JSON.stringify(["details", "SecondaryBody", {
+            items, columns, fontSize: count === 1 ? 14 : 12,
+          }]),
+          ...dataRows,
+        ].join("\n");
+        const graph = compileMiniDsl(source, { size }).graph;
+        for (const [index, item] of items.entries()) {
+          const props = graph.getNode(`details_item${index}_value`)?.props;
+          assert.deepEqual(props?.content, item.value);
+          const styles = props?.styles as Record<string, unknown>;
+          assert.equal(styles.fontSize, count === 1 ? 14 : 12);
+          assert.equal(styles.height, count === 1 ? 19 : 16);
+        }
+      }
+    }
+  }
+  for (const count of [0, 7]) {
+    const items = Array.from({ length: count }, () => ({ value: "补充" }));
+    assert.throws(() => compileMiniDsl(JSON.stringify(["root", "SecondaryBody", { items }])),
+      new RegExp(`SecondaryBody.items 需要 1–6 项，实际 ${count} 项`));
+  }
+});
+
+test("SecondaryBody 按完整日期与星期自动分行，宽槽保留自然占宽和分隔空格", () => {
+  const source = [
+    '["root","Column",{"width":"matchParent","padding":12},["meta"]]',
+    '["meta","SecondaryBody",{"width":"matchParent","fontSize":14,"items":[{"value":{"path":"/date"}},{"value":"{{ ${/weekday} }}"}]}]',
+    '["/date","2026-08-06"]',
+    '["/weekday","星期四"]',
+  ].join("\n");
+  const small = compileMiniDsl(source, { size: "2x2" }).graph;
+  assert.deepEqual(small.getNode("meta")?.children, ["meta_row0", "meta_row1"]);
+  const smallValue = small.getNode("meta_item0_value")?.props;
+  assert.deepEqual(smallValue?.content, { path: "/date" });
+  assert.equal((smallValue?.styles as Record<string, unknown>).fontSize, 12);
+  assert.equal((smallValue?.styles as Record<string, unknown>).height, 16);
+  assert.equal(small.getNode("meta_row0_separator"), null);
+  const wide = compileMiniDsl(source, { size: "2x4" }).graph;
+  assert.deepEqual(wide.getNode("meta")?.children, ["meta_row0"]);
+  assert.equal(wide.getNode("meta_row0_separator")?.props.content, " | ");
+  const first = wide.getNode("meta_item0")?.props.styles as Record<string, unknown>;
+  const second = wide.getNode("meta_item1")?.props.styles as Record<string, unknown>;
+  assert.ok(Number(first.width) > Number(second.width));
+});
+
+test("SecondaryBody 长单项声明两行，未知绑定保持原布局", () => {
+  for (const [value, font, lines] of [["完整的长补充信息需要自动换行", 12, 2], [{ path: "/unknown" }, 14, 1]]) {
+    const source = JSON.stringify(["root", "SecondaryBody", {
+      width: 126, fontSize: 14, items: [{ value }],
+    }]);
+    const graph = compileMiniDsl(source).graph;
+    const styles = graph.getNode("root_item0_value")?.props.styles as Record<string, unknown>;
+    assert.equal(styles.fontSize, font);
+    assert.equal(styles.maxLines, lines);
+  }
+  const labeled = compileMiniDsl([
+    '["root","SecondaryBody",{"width":126,"fontSize":14,"items":[{"label":"更新时间 ","value":{"path":"/updated"}}]}]',
+    '["/updated","2026-08-06 09:00"]',
+  ].join("\n")).graph;
+  assert.equal(labeled.getNode("root_item0_value")?.props.content, "{{ '更新时间 ' + ${/updated} }}");
+  assert.equal(labeled.getNode("root_item0_label"), null);
+});
+
 test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
   const item = (index: number) => ({ label: `指标${index}`, value: `${index}` });
   for (const count of [2, 3, 4]) {
@@ -459,6 +532,7 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
     assert.equal(graph.getNode("root")?.children.length, count);
     assert.equal(rootStyles.itemMargin, 8);
     assert.equal(rootStyles.height, "matchParent");
+    assert.equal(rootStyles.alignItems, "top");
     assert.equal(rootStyles.justifyContent, "start");
     assert.equal(rootStyles.layoutWeight, 1);
     assert.deepEqual(rootStyles.constraintSize, {
@@ -466,6 +540,7 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
     });
     assert.ok(graph.getNode(`root_item${count - 1}`));
     assert.equal(itemStyles.layoutWeight, 1);
+    assert.equal(itemStyles.height, "matchParent");
     assert.equal(itemStyles.backgroundColor, "#99FFFFFF");
     assert.deepEqual(graph.getNode("root_item0")?.children, [
       "root_item0_label_slot",

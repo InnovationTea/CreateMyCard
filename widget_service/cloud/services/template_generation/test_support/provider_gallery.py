@@ -32,8 +32,8 @@ from services.widget_generation_service import WidgetGenerationService
 
 INPUT_SCHEMA_VERSION = "provider-template-gallery-input/4"
 OUTPUT_SCHEMA_VERSION = "provider-template-gallery-output/2"
-FUSION_PRD_VERSION = "11.7.5.206"
-DEFAULT_ROM_VERSION = "6.0"
+FUSION_PRD_VERSION = "11.7.7.330"
+DEFAULT_ROM_VERSION = "7.0"
 DEFAULT_BUNDLE_NAME = "com.huawei.genui.evaluation"
 
 _TEMPLATE_GENERATION_ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +43,7 @@ _CAPABILITY_ROOT = (
     Path(__file__).resolve().parents[3]
     / "data"
     / "capabilities"
-    / "app-11.7.5.205_rom-6.0"
+    / "app-11.7.7.300_rom-7.0"
 )
 _CURRENT_CASE_ID: ContextVar[str] = ContextVar("provider_gallery_case_id", default="")
 
@@ -63,9 +63,9 @@ _PROVIDER_NAMES = {
     "battery": "设备电量",
     "calendar": "日历日程",
     "countdown": "倒计时",
+    "current-time": "当前时间",
     "earphone": "蓝牙耳机",
     "health-sport": "运动健康",
-    "system-memory": "系统内存",
     "weather": "天气",
 }
 
@@ -75,8 +75,8 @@ _BUSINESS_DESCRIPTIONS = {
     "BluetoothDeviceOverview": ("蓝牙耳机", "展示耳机连接状态和左右耳电量"),
     "CalendarOverview": ("日历日程", "展示下一项日程"),
     "CountdownOverview": ("倒计时", "展示距离元旦还有多少天"),
+    "CurrentTimeOverview": ("当前时间", "展示今天日期、星期、农历和端侧更新时间"),
     "HeartRateOverview": ("运动心率", "展示最近一次运动的平均心率"),
-    "ResourceUsageOverview": ("系统内存", "展示内存占用率和可用内存"),
     "SleepOverview": ("睡眠情况", "展示昨晚睡眠情况的时长、得分和状态"),
     "WeatherOverview": ("天气", "展示上海青浦当前温度、天气和空气质量"),
     "WorkoutOverview": ("运动记录", "展示最近一次运动的类型、时长和热量"),
@@ -85,10 +85,10 @@ _BUSINESS_DESCRIPTIONS = {
 _CAPABILITY_ARGUMENTS = {
     "GetCalendarEvents": {"futureDays": 7},
     "GetCountdownDays": {"targetDate": "2027-01-01"},
+    "GetCurrentTime": {},
     "GetEarphoneInfo": {},
     "GetHealthAndSportSummary": {"targetDayOffset": 0},
     "GetPhoneBatteryInfo": {},
-    "GetSystemMemInfo": {},
     "ViewWeather": {
         "districtName": "青浦区",
         "forecastDays": 1,
@@ -97,38 +97,35 @@ _CAPABILITY_ARGUMENTS = {
 }
 
 _ACTION_IDS_BY_BUSINESS = {
-    "ActivityOverview": ("event.open.health.sport", "event.open.settings.dnd"),
+    "ActivityOverview": ("event.open.health.activityRecord", "event.open.settings.dnd"),
     "BatteryOverview": (
         "event.open.settings.battery",
         "event.setPowerSavingMode",
     ),
     "BluetoothDeviceOverview": (
-        "event.open.settings.bluetooth",
+        "event.setBluetoothMode",
         "event.open.music.daily",
     ),
     "CalendarOverview": ("event.viewCalendarEvent", "event.enter.meeting"),
-    "CountdownOverview": ("event.open.clock.alarm", "event.open.settings.dnd"),
-    "HeartRateOverview": ("event.open.health.sport", "event.open.settings.dnd"),
-    "ResourceUsageOverview": (
-        "event.clean.memory",
-        "event.open.settings.storage",
-    ),
+    "CountdownOverview": ("event.open.clock.alarmTab", "event.open.settings.dnd"),
+    "CurrentTimeOverview": (),
+    "HeartRateOverview": ("event.open.health.sportsRecord", "event.open.settings.dnd"),
     "SleepOverview": ("event.open.health.sleep", "event.open.settings.dnd"),
     "WeatherOverview": ("event.open.weather", "event.startNavigate"),
-    "WorkoutOverview": ("event.open.health.sport", "event.open.settings.dnd"),
+    "WorkoutOverview": ("event.open.health.sportsRecord", "event.open.settings.dnd"),
 }
 
 _ACTION_QUERIES_BY_BUSINESS = {
-    "ActivityOverview": ("查看运动健康详情", "打开免打扰设置"),
+    "ActivityOverview": ("查看活动记录", "打开免打扰设置"),
     "BatteryOverview": ("打开电池设置", "开启省电模式"),
-    "BluetoothDeviceOverview": ("打开蓝牙设置", "打开每日音乐"),
+    "BluetoothDeviceOverview": ("开启蓝牙", "打开每日音乐"),
     "CalendarOverview": ("查看日程详情", "进入会议"),
     "CountdownOverview": ("打开闹钟", "打开免打扰设置"),
-    "HeartRateOverview": ("查看运动健康详情", "打开免打扰设置"),
-    "ResourceUsageOverview": ("一键清理内存", "打开存储设置"),
+    "CurrentTimeOverview": (),
+    "HeartRateOverview": ("查看运动记录", "打开免打扰设置"),
     "SleepOverview": ("查看睡眠详情", "打开免打扰设置"),
     "WeatherOverview": ("打开当前城市天气详情", "导航回家"),
-    "WorkoutOverview": ("查看运动健康详情", "打开免打扰设置"),
+    "WorkoutOverview": ("查看运动记录", "打开免打扰设置"),
 }
 
 _ASSET_IDS_BY_TEMPLATE_PREFIX = {
@@ -264,6 +261,7 @@ class ProviderTemplateDefinition:
     description: str
     suffix: str
     fields: tuple[str, ...]
+    supported_card_sizes: tuple[str, ...]
     supported_event_ids: tuple[str, ...] = ()
 
 
@@ -454,6 +452,13 @@ def _load_business_definitions(provider_root: Path) -> list[BusinessDefinition]:
 
 def _template_definition(template: dict[str, Any]) -> ProviderTemplateDefinition:
     template_id = str(template["templateId"])
+    suffix = _template_suffix(template_id)
+    declared_card_sizes = template.get("supportedCardSizes")
+    supported_card_sizes = (
+        tuple(str(item) for item in declared_card_sizes)
+        if isinstance(declared_card_sizes, list)
+        else (("2x4",) if suffix.startswith("Wide") else ("2x2",))
+    )
     fields = [
         *template.get("primaryData", []),
         *template.get("secondaryData", []),
@@ -462,8 +467,9 @@ def _template_definition(template: dict[str, Any]) -> ProviderTemplateDefinition
     return ProviderTemplateDefinition(
         template_id=template_id,
         description=str(template.get("description") or "").strip(),
-        suffix=_template_suffix(template_id),
+        suffix=suffix,
         fields=_ordered_unique([str(item) for item in fields]),
+        supported_card_sizes=supported_card_sizes,
         supported_event_ids=tuple(template.get("supportedEventIds", ())),
     )
 
@@ -741,6 +747,12 @@ def _request_envelope(
         target_template.description if target_template is not None else business_description
     )
     data_bindings = _single_template_data_bindings(definition, target_template)
+    # 无注册动作的业务（如当前时间）没有动作场景文案，回退为无操作单内容场景。
+    if (
+        scenario_id in {"single-one-action", "single-two-actions"}
+        and not _ACTION_IDS_BY_BUSINESS.get(definition.business_id)
+    ):
+        scenario_id = "single-content"
     action_count = 0
     if scenario_id == "single-two-actions":
         action_count = 2
@@ -1082,10 +1094,15 @@ def _support_template_pairs(
     selections: list[GalleryTemplateSelection] = []
     for definition in definitions:
         for template in definition.templates:
-            if template.suffix == "Support":
+            if template.suffix == "Support" and "2x2" in template.supported_card_sizes:
                 selections.append(GalleryTemplateSelection(definition, template))
     partners = sorted(
-        selections,
+        (
+            item
+            for item in selections
+            # 组合请求按内容业务取动作文案；无注册动作的业务只作首段。
+            if _ACTION_QUERIES_BY_BUSINESS.get(item.business.business_id)
+        ),
         key=lambda item: (
             item.business.capability_id != "ViewWeather",
             not item.template.supported_event_ids,

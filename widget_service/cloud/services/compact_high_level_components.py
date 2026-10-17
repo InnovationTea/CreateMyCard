@@ -14,8 +14,17 @@ from services.compact_component_runtime import (
     CompactComponentRuntimeError,
     component_visual_recipe,
     resolve_card_color_palette,
-    secondary_body_variant,
+    secondary_body_layout,
+    secondary_body_text_width,
     visual_recipe_part,
+)
+from services.theme_style_roles import (
+    alpha_role,
+    component_roles,
+    in_layout_phase,
+    is_role,
+    native_asset,
+    role,
 )
 
 
@@ -80,6 +89,11 @@ def apply_system_component_colors(
     """Inject runtime-owned color roles before validating and expanding components."""
     resolved: list[ComponentRow] = []
     for component in components:
+        if in_layout_phase():
+            component = ComponentRow(
+                component.component_id, component.component_type,
+                component_roles(component.component_type, component.props), component.children,
+            )
         font_role = _SYSTEM_FONT_ROLE_BY_COMPONENT.get(component.component_type)
         icon_role = _SYSTEM_ICON_ROLE_BY_COMPONENT.get(component.component_type)
         if font_role is None and icon_role is None:
@@ -105,10 +119,12 @@ def apply_system_component_colors(
     return resolved
 
 
-def _system_palette_color(palette: dict[str, str], role: str) -> str:
-    color = palette.get(role)
+def _system_palette_color(palette: dict[str, str], palette_role: str) -> str:
+    color = palette.get(palette_role)
+    if in_layout_phase() and is_role(color):
+        return color
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
-        raise CompactDslConversionError(f"System palette role {role} must use #AARRGGBB.")
+        raise CompactDslConversionError(f"System palette role {palette_role} must use #AARRGGBB.")
     return color
 
 
@@ -203,6 +219,18 @@ def _visual_row(
     return ComponentRow(component_id, component_type, styles, children)
 
 
+def _without_fixed_height(component: ComponentRow) -> ComponentRow:
+    """Return a visual row whose height is determined by its rendered content."""
+    props = copy.deepcopy(component.props)
+    props.pop("height", None)
+    return ComponentRow(
+        component.component_id,
+        component.component_type,
+        props,
+        component.children,
+    )
+
+
 def expand_high_level_component_rows(
     components: list[ComponentRow],
     *,
@@ -228,6 +256,7 @@ def expand_high_level_component_rows(
     for parent in components:
         for child_id in parent.children:
             parents[child_id] = parent
+    secondary_widths = _secondary_body_widths(components, size)
     generated_ids: set[str] = set()
     expanded: list[ComponentRow] = []
     expanders = {
@@ -259,6 +288,11 @@ def expand_high_level_component_rows(
             rows = [component]
         elif component.component_type in {"PillButton", "CircleButton"}:
             rows = expander(component, size, color_palette=color_palette)
+        elif component.component_type == "SecondaryBody":
+            rows = expander(
+                component, size, data_model=data_model,
+                available_width=secondary_widths.get(component.component_id),
+            )
         elif component.component_type in {
             "EmphasizedData",
             "InfoBlock",
@@ -291,6 +325,11 @@ def expand_high_level_component_rows(
         if expander is not None:
             rows = _allocate_expanded_ids(component, rows, existing_ids | generated_ids)
         for index, row in enumerate(rows):
+            if in_layout_phase() and row.component_type == "Image":
+                if native_asset(row.props.get("src")):
+                    props = dict(row.props)
+                    props.pop("fillColor", None)
+                    row = ComponentRow(row.component_id, row.component_type, props, row.children)
             is_original_root = index == 0 and row.component_id == component.component_id
             if not is_original_root and row.component_id in existing_ids:
                 raise CompactDslConversionError(
@@ -401,7 +440,7 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
     fill_color = header.props.get("fillColor")
     if fill_color is not None and not has_icon:
         raise CompactDslConversionError("SingleLineTitle.fillColor requires icon.")
-    if "fillColor" in header.props:
+    if "fillColor" in header.props and not (in_layout_phase() and is_role(fill_color)):
         if not isinstance(fill_color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", fill_color):
             raise CompactDslConversionError("SingleLineTitle.fillColor must use #AARRGGBB.")
     if has_icon:
@@ -416,8 +455,9 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
             f"SingleLineTitle.height must be {expected_height} when provided."
         )
     color = header.props.get("fontColor")
-    if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
-        raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
+    if not (in_layout_phase() and is_role(color)):
+        if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
+            raise CompactDslConversionError("SingleLineTitle.fontColor must use #AARRGGBB.")
     generated_ids = {f"{header.component_id}_title"}
     if has_icon:
         generated_ids.add(f"{header.component_id}_icon")
@@ -565,6 +605,8 @@ def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentR
         children=tuple(children),
     )
     return [root, *rows]
+
+
 def _emphasis_secondary_content(component: ComponentRow) -> Any:
     value = component.props.get("secondaryText")
     if not isinstance(value, list):
@@ -600,9 +642,11 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
     )
     _require_color(component, "fontColor")
     items = component.props.get("items")
-    if not isinstance(items, list) or not 1 <= len(items) <= 4:
+    if not isinstance(items, list) or not 1 <= len(items) <= 6:
+        count_detail = f" (got {len(items)})" if isinstance(items, list) else ""
         raise CompactDslConversionError(
-            f"{component.component_id}: SecondaryBody.items requires 1 to 4 entries."
+            f"{component.component_id}: SecondaryBody.items requires 1 to 6 entries"
+            f"{count_detail}."
         )
     # 旧 DSL 的 role 只作为兼容输入忽略，不参与样式、容量或标签校验。
     columns = component.props.get("columns", 2)
@@ -640,45 +684,103 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
     return items
 
 
-def _secondary_body_variant(component: ComponentRow, items: list[dict[str, Any]]) -> str | None:
-    return secondary_body_variant(items, component.props.get("columns", 2))
+def _secondary_body_widths(components: list[ComponentRow], size: str) -> dict[str, float]:
+    from services.compact_region_layout import reference_region_boxes
+
+    if size not in {"2x2", "2x4"}:
+        return {}
+    nodes: list[dict[str, Any]] = []
+    secondary_ids: set[str] = set()
+    for component in components:
+        props = component.props
+        kind = component.component_type
+        if kind == "SecondaryBody":
+            kind = "Column"
+            props = {"width": "matchParent", **props}
+            secondary_ids.add(component.component_id)
+        nodes.append({
+            "id": component.component_id, "component": kind,
+            "styles": props, "children": list(component.children),
+        })
+    widths: dict[str, float] = {}
+    if secondary_ids:
+        boxes = reference_region_boxes(nodes, size=size)
+        for identifier in secondary_ids:
+            box = boxes.get(identifier)
+            if box is not None and box.width is not None:
+                widths[identifier] = box.width
+    return widths
 
 
-def _expand_secondary_body(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _secondary_sample_schema(value: Any) -> Any:
+    """只用首帧真实值构造现有只读文字求值器的输入，不改输出绑定。"""
+    result: Any
+    if isinstance(value, dict):
+        result = {}
+        for key, child in value.items():
+            result[key] = _secondary_sample_schema(child)
+    elif isinstance(value, list):
+        result = [_secondary_sample_schema(child) for child in value]
+    else:
+        kind = None
+        if isinstance(value, bool):
+            kind = "boolean"
+        elif isinstance(value, str):
+            kind = "string"
+        elif isinstance(value, (int, float)):
+            kind = "number"
+        result = {"type": kind, "sampleValue": value}
+    return result
+
+
+def _expand_secondary_body(
+    component: ComponentRow, size: str, *,
+    data_model: dict[str, Any] | None = None,
+    available_width: float | None = None,
+) -> list[ComponentRow]:
+    from services.compact_composition_context import small_card_display_text
+
     if size not in {"2x2", "2x4"}:
         raise CompactDslConversionError("SecondaryBody requires a 2x2 or 2x4 card.")
     items = _secondary_body_items(component)
-    variant = _secondary_body_variant(component, items)
-    font_size_context = (
-        "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row and "
-        "fontSize 12 / lineHeight 16 for multiple rows. Recompute fontSize after "
-        "changing columns, items or maxLines; do not change bindings or delete facts."
+    task = {"dataModelSchema": _secondary_sample_schema(data_model or {})}
+    texts: list[str | None] = []
+    for item in items:
+        text = small_card_display_text(item.get("value"), task)
+        if text is not None:
+            text = item.get("label", "") + text
+        texts.append(text)
+    columns = component.props.get("columns", 2)
+    separator = component.props.get("separator", " | ")
+    layout = secondary_body_layout(
+        items, columns=columns, texts=texts, width=available_width, separator=separator,
     )
-    _validate_recipe_font_size(
-        component,
-        component_name="SecondaryBody",
-        part_name="text",
-        size=size,
-        variant=variant,
-        expectation_context=font_size_context,
-    )
+    variant = "multiline" if layout.multiline else None
     recipe = _visual_recipe("SecondaryBody", size=size, variant=variant)
     text_styles = recipe["parts"]["text"]["styles"]
     line_height = text_styles["height"] / text_styles.get("maxLines", 1)
-    columns = component.props.get("columns", 2)
     rows: list[ComponentRow] = []
     root_children: list[str] = []
-    separator = component.props.get("separator", " | ")
-    for row_index, start in enumerate(range(0, len(items), columns)):
+    start = 0
+    for row_index, row_size in enumerate(layout.row_sizes):
         row_id = f"{component.component_id}_row{row_index}"
         root_children.append(row_id)
         row_children: list[str] = []
-        row_end = start + columns
+        row_end = start + row_size
         row_items = items[start:row_end]
-        row_height = line_height * max(item.get("maxLines", 1) for item in row_items)
+        natural_row = available_width is not None and all(
+            text is not None for text in texts[start:row_end]
+        )
+        row_height = line_height * max(layout.max_lines[start:row_end])
+        row_uses_predicted_multiline = False
         for item_index, item in enumerate(row_items, start=start):
-            max_lines = item.get("maxLines", 1)
+            max_lines = layout.max_lines[item_index]
             item_height = line_height * max_lines
+            declared_max_lines = item.get("maxLines", 1)
+            uses_predicted_multiline = max_lines > declared_max_lines
+            row_uses_predicted_multiline = (
+                row_uses_predicted_multiline or uses_predicted_multiline
+            )
             if row_children:
                 separator_id = f"{row_id}_separator"
                 row_children.append(separator_id)
@@ -699,6 +801,10 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
             row_children.append(item_id)
             text_children: list[str] = []
             label = item.get("label")
+            value = copy.deepcopy(item.get("value"))
+            if uses_predicted_multiline and isinstance(label, str):
+                value = _secondary_prefixed_value(label, value)
+                label = None
             if label is not None:
                 label_id = f"{item_id}_label"
                 text_children.append(label_id)
@@ -718,44 +824,53 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
                 )
             value_id = f"{item_id}_value"
             text_children.append(value_id)
-            rows.append(
-                _visual_row(
-                    value_id,
-                    "SecondaryBody",
-                    "text",
-                    size=size,
-                    variant=variant,
-                    props={
-                        "content": copy.deepcopy(item["value"]),
-                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
-                        "height": item_height,
-                        "maxLines": max_lines,
-                        "layoutWeight": 1,
-                    },
-                )
-            )
-            rows.append(
-                _visual_row(
-                    item_id,
-                    "SecondaryBody",
-                    "item",
-                    size=size,
-                    variant=variant,
-                    props={"layoutWeight": 1, "height": item_height, "alignItems": "start"},
-                    children=tuple(text_children),
-                )
-            )
-        rows.append(
-            _visual_row(
-                row_id,
+            value_row = _visual_row(
+                value_id,
                 "SecondaryBody",
-                "row",
+                "text",
                 size=size,
                 variant=variant,
-                props={"height": row_height, "alignItems": "start"},
-                children=tuple(row_children),
+                props={
+                    "content": value,
+                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    "height": item_height,
+                    "maxLines": max_lines,
+                    "layoutWeight": 1,
+                },
             )
+            if uses_predicted_multiline:
+                value_row = _without_fixed_height(value_row)
+            rows.append(value_row)
+            item_row = _visual_row(
+                item_id,
+                "SecondaryBody",
+                "item",
+                size=size,
+                variant=variant,
+                props=_secondary_item_layout(
+                    texts[item_index] if natural_row else None,
+                    row_size,
+                    item_height,
+                    layout.multiline,
+                ),
+                children=tuple(text_children),
+            )
+            if uses_predicted_multiline:
+                item_row = _without_fixed_height(item_row)
+            rows.append(item_row)
+        row = _visual_row(
+            row_id,
+            "SecondaryBody",
+            "row",
+            size=size,
+            variant=variant,
+            props={"height": row_height, "alignItems": "start"},
+            children=tuple(row_children),
         )
+        if row_uses_predicted_multiline:
+            row = _without_fixed_height(row)
+        rows.append(row)
+        start = row_end
     root = _visual_row(
         component.component_id,
         "SecondaryBody",
@@ -765,6 +880,36 @@ def _expand_secondary_body(component: ComponentRow, size: str) -> list[Component
         children=tuple(root_children),
     )
     return [root, *rows]
+
+
+def _secondary_item_layout(
+    text: str | None, row_size: int, height: float, multiline: bool,
+) -> dict[str, Any]:
+    props: dict[str, Any] = {"height": height, "alignItems": "start", "layoutWeight": 1}
+    if row_size == 2 and text is not None:
+        props.pop("layoutWeight")
+        props["width"] = secondary_body_text_width(text, 12.0 if multiline else 14.0)
+    return props
+
+
+def _secondary_prefixed_value(label: str, value: Any) -> str:
+    escaped = label.replace("\\", "\\\\").replace("'", "\\'")
+    escaped = escaped.replace("\n", "\\n").replace("\r", "\\r")
+    literal = "'" + escaped + "'"
+    if isinstance(value, dict):
+        path = value.get("path")
+        if not isinstance(path, str):
+            raise CompactDslConversionError("SecondaryBody value requires a real binding path.")
+        suffix = "${" + path + "}"
+    elif isinstance(value, str) and _is_complete_expression(value):
+        suffix = "(" + value.strip().removeprefix("{{").removesuffix("}}").strip() + ")"
+    elif isinstance(value, str):
+        return label + value
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        suffix = repr(value)
+    else:
+        raise CompactDslConversionError("SecondaryBody value must be display text.")
+    return "{{ " + literal + " + " + suffix + " }}"
 
 
 def _h_bar_chart_items(component: ComponentRow) -> list[dict[str, Any]]:
@@ -2520,7 +2665,7 @@ def _event_card_item_rows(
             variant=variant,
             props={
                 "borderColor": component.props["fontColor"],
-                "backgroundColor": "#00FFFFFF",
+                "backgroundColor": role("transparent") if in_layout_phase() else "#00FFFFFF",
                 "alignContent": "center",
             },
         ),
@@ -3057,6 +3202,8 @@ def _require_string_display_value(component: ComponentRow, name: str) -> None:
 
 def _require_color(component: ComponentRow, name: str) -> None:
     value = component.props.get(name)
+    if in_layout_phase() and is_role(value):
+        return
     if isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{8}", value):
         return
     raise CompactDslConversionError(
@@ -3065,6 +3212,8 @@ def _require_color(component: ComponentRow, name: str) -> None:
 
 
 def _color_with_alpha(color: str, opacity: float) -> str:
+    if in_layout_phase() and is_role(color):
+        return alpha_role(color, opacity)
     alpha = round(int(color[1:3], 16) * opacity)
     return f"#{alpha:02X}{color[3:]}"
 

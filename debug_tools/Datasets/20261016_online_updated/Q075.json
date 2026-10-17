@@ -1,0 +1,65 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成健康运动的睡眠卡片，展示睡眠得分、睡眠状态、夜间睡眠时长、深睡时长、入睡时间和醒来时间等睡眠数据",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {},
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/fallAsleepTimeText",
+          "/nightSleepDurationText",
+          "/sleepScore",
+          "/sleepStatus",
+          "/wakeupTimeText"
+        ]
+      }
+    ],
+    "title": "健康运动睡眠",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "展示睡眠得分、状态、时长、入睡与醒来时间等数据。",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.emoji_sleep"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "075",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成健康运动的睡眠卡片，展示睡眠得分、睡眠状态、夜间睡眠时长、深睡时长、入睡时间和醒来时间等睡眠数据",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成健康运动的睡眠卡片，展示睡眠得分、睡眠状态、夜间睡眠时长、深睡时长、入睡时间和醒来时间等睡眠数据",
+  "candidateDataBindings": [],
+  "title": "健康运动睡眠",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "展示睡眠得分、状态、时长、入睡与醒来时间等数据。",
+  "candidateAssetIds": []
+}

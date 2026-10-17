@@ -127,6 +127,7 @@ def test_two_by_four_fixed_slot_recipes_share_height_and_shrink_policy() -> None
     assert info["height"] == action["height"] == 57
     assert info["flexShrink"] == action["flexShrink"] == 0
     assert info_recipe["parts"]["primary"]["styles"]["fontSize"] == 14
+    assert info_recipe["parts"]["secondary"]["styles"]["textOverflow"] == "ellipsis"
     assert action_recipe["parts"]["label"]["styles"]["fontSize"] == 14
     assert component_visual_recipe("InfoBlock", size="2x2")["parts"]["primary"][
         "styles"
@@ -254,7 +255,7 @@ def test_secondary_body_visual_recipe_uses_single_and_multiple_line_styles() -> 
     base = component_visual_recipe("SecondaryBody", size="2x2")
     multiline = component_visual_recipe("SecondaryBody", size="2x2", variant="multiline")
     assert set(base.get("variants", {})) == {"multiline"}
-    assert base["metrics"] == {"minimumItems": 1, "maximumItems": 4}
+    assert base["metrics"] == {"minimumItems": 1, "maximumItems": 6}
     assert base["parts"]["text"]["styles"]["fontSize"] == 14
     assert base["parts"]["text"]["styles"]["fontWeight"] == 400
     assert base["parts"]["text"]["styles"]["height"] == 19
@@ -283,15 +284,19 @@ def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> Non
     assert components["CardButton"]["parts"]["icon"]["styles"]["height"] == 24
     assert components["CardButton"]["parts"]["placeholder"]["styles"]["width"] == 24
     assert components["CardButton"]["parts"]["placeholder"]["styles"]["height"] == 24
+    assert components["CardButton"]["parts"]["label"]["styles"]["textOverflow"] == "ellipsis"
     assert components["CircleButton"]["parts"]["root"]["styles"]["width"] == 40
     assert components["CircleButton"]["parts"]["root"]["styles"]["height"] == 40
     text_block_parts = components["TextBlock"]["parts"]
     assert text_block_parts["label"]["styles"]["textOverflow"] == "ellipsis"
     assert text_block_parts["value"]["styles"]["textOverflow"] == "ellipsis"
+    assert components["InfoBlock"]["parts"]["secondary"]["styles"][
+        "textOverflow"
+    ] == "ellipsis"
     other_components = {
         name: recipe
         for name, recipe in components.items()
-        if name != "TextBlock"
+        if name not in {"InfoBlock", "TextBlock", "CardButton"}
     }
     assert "ellipsis" not in json.dumps(other_components)
 

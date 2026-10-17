@@ -52,7 +52,7 @@ from services.template_generation.engine.tersel_converter import TerselConversio
 from services.template_generation.test_support import provider_gallery
 
 _ROOT = Path(__file__).resolve().parents[1]
-_EVENT_PATH = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/event_capabilities.json"
+_EVENT_PATH = _ROOT.parents[1] / "data/capabilities/app-11.7.7.300_rom-7.0/event_capabilities.json"
 _EVENTS = json.loads(_EVENT_PATH.read_text(encoding="utf-8"))
 _EVENT_IDS = tuple(event.get("id") for event in _EVENTS)
 _APPROVED = {
@@ -60,8 +60,12 @@ _APPROVED = {
         "event.open.settings.battery", "event.open.settings.batteryHealth",
         "event.setPowerSavingMode",
     ],
-    "BluetoothDeviceOverviewNameAndConnectionSupport@1": ["event.open.settings.bluetooth"],
-    "BluetoothDeviceOverviewNameAndChargeSupport@1": ["event.open.settings.bluetooth"],
+    "BluetoothDeviceOverviewNameAndConnectionSupport@1": [
+        "event.open.settings.bluetooth", "event.setBluetoothMode",
+    ],
+    "BluetoothDeviceOverviewNameAndChargeSupport@1": [
+        "event.open.settings.bluetooth", "event.setBluetoothMode",
+    ],
     "WeatherOverviewConditionSupport@1": ["event.open.weather"],
     "WeatherOverviewFeelsLikeWindSupport@1": [],
     "WeatherOverviewTemperatureSupport@1": [
@@ -110,32 +114,38 @@ _APPROVED = {
         "event.enter.meeting"
     ],
     "CountdownOverviewTravelSupport@1": [
-        "event.open.clock.alarm"
+        "event.open.clock.alarm", "event.open.clock.alarmTab",
     ],
     "BluetoothDeviceOverviewEarbudsSupport@1": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth", "event.setBluetoothMode",
     ],
     "BluetoothDeviceOverviewChargeSupport@1": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth", "event.setBluetoothMode",
     ],
     "BluetoothDeviceOverviewConnectionSupport@1": [
-        "event.open.settings.bluetooth"
+        "event.open.settings.bluetooth", "event.setBluetoothMode",
+    ],
+    "BluetoothDeviceOverviewConnectionBatterySupport@1": [],
+    "BluetoothDeviceOverviewMusicSupport@1": [
+        "event.open.music.favorite"
     ],
     "ActivityOverviewSupport@1": [
-        "event.open.health.sport"
+        "event.open.health.sport",
+        "event.open.health.activityRecord",
     ],
     "WorkoutOverviewSupport@1": [
-        "event.open.health.sport"
+        "event.open.health.sport",
+        "event.open.health.sportsRecord",
+        "event.open.health.workoutDuration",
     ],
     "HeartRateOverviewSupport@1": [
-        "event.open.health.sport"
+        "event.open.health.sport",
+        "event.open.health.sportsRecord",
     ],
     "SleepOverviewSupport@1": [
         "event.open.health.sleep"
     ],
-    "ResourceUsageOverviewSupport@1": [
-        "event.clean.memory"
-    ]
+    "CurrentTimeOverviewSupport@1": [],
 }
 
 
@@ -215,6 +225,24 @@ def _contract(events: tuple[str, ...], **updates: object) -> HybridBodyContract:
     return contract.model_copy(update=updates)
 
 
+@pytest.mark.parametrize("event_id", ("event.open.settings.bluetooth", "event.setBluetoothMode"))
+def test_bluetooth_events_form_two_support_plans(event_id: str) -> None:
+    plans = _plans(
+        (
+            "BluetoothDeviceOverviewConnectionSupport@1",
+            "WeatherOverviewTemperatureSupport@1",
+        ),
+        (event_id,),
+    )
+
+    assert plans
+    for plan in plans:
+        assert plan.layout_template_id == "TwoSupportLayout@1"
+        assignments = plan.action_assignments
+        assert len(assignments) == 1
+        assert assignments[0].action_id == event_id
+
+
 @pytest.mark.parametrize("template_id", tuple(_APPROVED))
 def test_support_allowlist_exactly_matches_approved_policy(template_id: str) -> None:
     definition = get_cardplan_registry().require_template(template_id)
@@ -240,7 +268,8 @@ def test_support_event_business_matrix(template_id: str, event_id: str) -> None:
     definition = get_cardplan_registry().require_template(template_id)
     expected = _APPROVED.get(template_id)
     assert expected is not None
-    assert supports_business_action(definition, _binding(event_id), "2x2") is (
+    card_size = definition.variants[0].supported_card_sizes[0]
+    assert supports_business_action(definition, _binding(event_id), card_size) is (
         event_id in expected
     )
 
@@ -256,6 +285,32 @@ def test_manifest_rejects_invalid_event_type_ids(value: object) -> None:
             description="天气",
             entry="templates/weather-overview.cardtpl",
             supportedEventIds=value,
+        )
+
+
+def test_manifest_can_scope_a_support_template_to_2x4() -> None:
+    entry = ProviderTemplateEntry(
+        templateId="BluetoothDeviceOverviewMusicSupport@1",
+        businessId="BluetoothDeviceOverview",
+        capabilityId="GetEarphoneInfo",
+        description="歌单入口",
+        entry="templates/bluetooth-device-overview.cardtpl",
+        supportedCardSizes=["2x4"],
+    )
+
+    assert entry.supported_card_sizes == ("2x4",)
+
+
+@pytest.mark.parametrize("value", ([], ["2x4", "2x4"]))
+def test_manifest_rejects_empty_or_duplicate_supported_card_sizes(value: object) -> None:
+    with pytest.raises(ValueError, match="supportedCardSizes must be nonempty and unique"):
+        ProviderTemplateEntry(
+            templateId="BluetoothDeviceOverviewMusicSupport@1",
+            businessId="BluetoothDeviceOverview",
+            capabilityId="GetEarphoneInfo",
+            description="歌单入口",
+            entry="templates/bluetooth-device-overview.cardtpl",
+            supportedCardSizes=value,
         )
 
 
@@ -414,7 +469,7 @@ def test_prompt_projects_only_matching_action_instances() -> None:
 def test_gallery_support_events_come_from_each_template_allowlist(tmp_path: Path) -> None:
     manifest = provider_gallery.write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
-    assert len(provider.cases) == 79
+    assert len(provider.cases) == 78
     assert all(case.targetTemplateId != "CountdownOverviewSupport@1" for case in provider.cases)
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
@@ -434,11 +489,26 @@ def test_gallery_support_events_come_from_each_template_allowlist(tmp_path: Path
     ("use_planner", "wrong_target"),
     ((True, False), (False, False), (False, True)),
 )
+@pytest.mark.parametrize(("owner_template", "event_id", "switch_flag"), (
+    ("BatteryOverviewSupport@1", "event.open.settings.battery", None),
+    ("BluetoothDeviceOverviewConnectionSupport@1", "event.setBluetoothMode", 0),
+    ("BluetoothDeviceOverviewConnectionSupport@1", "event.setBluetoothMode", 1),
+    ("BluetoothDeviceOverviewNameAndConnectionSupport@1", "event.setBluetoothMode", 0),
+    ("BluetoothDeviceOverviewNameAndConnectionSupport@1", "event.setBluetoothMode", 1),
+    ("BluetoothDeviceOverviewNameAndChargeSupport@1", "event.setBluetoothMode", 0),
+    ("BluetoothDeviceOverviewNameAndChargeSupport@1", "event.setBluetoothMode", 1),
+    ("ActivityOverviewSupport@1", "event.open.health.activityRecord", None),
+    ("WorkoutOverviewSupport@1", "event.open.health.sportsRecord", None),
+    ("WorkoutOverviewSupport@1", "event.open.health.workoutDuration", None),
+    ("HeartRateOverviewSupport@1", "event.open.health.sportsRecord", None),
+    ("CountdownOverviewTravelSupport@1", "event.open.clock.alarmTab", None),
+))
 def test_real_compiler_enforces_support_event_ownership(
     use_planner: bool, wrong_target: bool,
+    owner_template: str, event_id: str, switch_flag: int | None,
 ) -> None:
-    template_ids = ("BatteryOverviewSupport@1", "CountdownOverviewTravelSupport@1")
-    events = ("event.open.settings.battery",)
+    template_ids = (owner_template, "WeatherOverviewTemperatureSupport@1")
+    events = (event_id,)
     registry = get_cardplan_registry()
     plans = _plans(template_ids, events)
     data: dict[str, object] = {}
@@ -454,8 +524,18 @@ def test_real_compiler_enforces_support_event_ownership(
         assert root is not None
         data_bindings.append({"capabilityId": capability_id, "writeResultTo": root})
     task = _task(events).model_copy(update={"dataModelSchema": {"data": data}})
+    if owner_template == "BluetoothDeviceOverviewConnectionSupport@1":
+        assets = provider_gallery._load_asset_capabilities(provider_gallery._CAPABILITY_ROOT)
+        asset = assets.get("asset.icon_earphone")
+        assert asset is not None
+        task.assetCandidates = [asset]
+    expected_event = task.eventCandidates[0]
+    if switch_flag is not None:
+        params = expected_event.args.get("params")
+        assert isinstance(params, dict)
+        params["switchFlag"] = switch_flag
     card_spec = {
-        "title": "电量倒计时", "description": "查看电池设置",
+        "title": "双业务动作", "description": "执行对应业务的明确动作",
         "suggestSize": "2x2", "dataBindings": data_bindings,
     }
     projection = build_ux_mixed_prompt(
@@ -467,10 +547,13 @@ def test_real_compiler_enforces_support_event_ownership(
     contract = projection.contract
     if not use_planner:
         contract = contract.model_copy(update={"allowed_template_plans": ()})
-    event_owner = "CountdownOverview" if wrong_target else "BatteryOverview"
+    owner_business = registry.require_template(owner_template).business_id
+    event_owner = "WeatherOverview" if wrong_target else owner_business
     children: list[str] = []
     for slot in plans[0].business_slots:
         params = {"actionId": events[0]} if slot.business_id == event_owner else {}
+        if slot.template_id == "BluetoothDeviceOverviewConnectionSupport@1":
+            params["deviceIcon"] = "resources/base/media/icon_earphone.svg"
         children.append(f'Template("{slot.template_id}",{json.dumps(params)})')
     source = 'Template("TwoSupportLayout@1",{},' + ",".join(children) + ");"
     profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
@@ -488,3 +571,9 @@ def test_real_compiler_enforces_support_event_ownership(
         messages = [json.loads(line) for line in result.a2ui.splitlines() if line.strip()]
         assert provider_gallery._count_a2ui_actions(messages) == 1
         assert result.stats.action_used_ids == events
+        rendered_actions = []
+        for message in messages:
+            components = message.get("updateComponents", {}).get("components", [])
+            for component in components:
+                rendered_actions.extend(component.get("onClick", []))
+        assert rendered_actions == [{"call": expected_event.call, "args": expected_event.args}]

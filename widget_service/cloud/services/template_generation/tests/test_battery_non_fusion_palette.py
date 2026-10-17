@@ -1,4 +1,4 @@
-"""手机电量非融球配色与耳机一致，同时隔离内存、融球和双业务主题。"""
+"""手机电量非融球配色与耳机一致，同时保留融球和双业务主题。"""
 
 import json
 
@@ -23,15 +23,16 @@ def test_battery_green_palette_matches_earphone_without_changing_layout() -> Non
     registry = get_cardplan_registry(False)
     battery = registry.require_theme("battery-device-green")
     earphone = registry.require_theme("audio-product-neutral-violet")
-    memory = registry.require_theme("device-clean-blue-teal")
 
     assert battery.reference_values == earphone.reference_values
     assert battery.root_style.get("backgroundColor") == earphone.root_style.get("backgroundColor")
     assert "linearGradient" not in battery.root_style
     assert battery.supported_capability_ids == ("GetPhoneBatteryInfo",)
-    assert memory.supported_capability_ids == ("GetSystemMemInfo",)
-    for key in ("padding", "borderRadius", "justifyContent", "alignItems", "clip"):
-        assert battery.root_style.get(key) == memory.root_style.get(key)
+    assert battery.root_style.get("padding") == 12
+    assert battery.root_style.get("borderRadius") == 20
+    assert battery.root_style.get("justifyContent") == "spaceBetween"
+    assert battery.root_style.get("alignItems") == "start"
+    assert battery.root_style.get("clip") is True
 
 
 def test_battery_green_theme_does_not_change_other_routes() -> None:
@@ -40,9 +41,7 @@ def test_battery_green_theme_does_not_change_other_routes() -> None:
     assert registry.first_layer_theme_ids(("BluetoothDeviceOverview",)) == (
         "audio-product-neutral-violet",
     )
-    assert registry.first_layer_theme_ids(("ResourceUsageOverview",)) == (
-        "device-clean-blue-teal",
-    )
+    assert "device-clean-blue-teal" not in registry.themes
     assert registry.require_layout_theme(
         "TwoSupportLayout", ("GetPhoneBatteryInfo", "ViewWeather"),
     ) == "2x2-two-support"

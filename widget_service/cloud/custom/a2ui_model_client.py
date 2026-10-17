@@ -100,6 +100,7 @@ class A2UIModelClient:
             raise ValueError(f"Unsupported A2UI model backend: {backend}")
         settings = get_settings()
         self.settings = settings
+        self.operation_name = operation_name
         self.use_mock = settings.enable_a2ui_model_mock if use_mock is None else use_mock
         self.backend = backend
         self.transport = transport
@@ -161,6 +162,13 @@ class A2UIModelClient:
             )
 
         try:
+            profile_format = (protocol_profile or {}).get("format", "")
+            planning = (protocol_profile or {}).get("id") == "compact-info-plan"
+            from services.layout_theme_contract import layout_only_prompt, uses_post_layout_theme
+
+            fusion_layout = uses_post_layout_theme(self.operation_name)
+            if fusion_layout and ("compact" in profile_format or planning):
+                prompt = layout_only_prompt(prompt, planning=planning)
             if self.use_mock:
                 raw_output = self._load_mock_data(protocol_profile, prompt)
             else:

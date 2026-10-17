@@ -210,6 +210,7 @@ def test_plan_and_compact_errors_keep_distinct_codes(monkeypatch: pytest.MonkeyP
 
     def coverage(*args: object, **kwargs: object) -> CompactPlanCoverageResult:
         assert kwargs.get("allowed_omitted_fact_indexes") == (0,)
+        assert kwargs.get("information_errors_as_warnings") is True
         return CompactPlanCoverageResult(errors=("missing fact",), warnings=("plan warning",))
 
     monkeypatch.setattr(generation_pipeline, "evaluate_compact_plan_coverage", coverage)
@@ -225,6 +226,7 @@ def test_plan_and_compact_errors_keep_distinct_codes(monkeypatch: pytest.MonkeyP
         protocol_profile={},
         compact_plan={"info_required": []},
         allowed_omitted_plan_fact_indexes=(0,),
+        plan_information_coverage_as_warning=True,
     )
     result = DesignCompactProcessor().process(INVALID, context)
     assert [item.code for item in result.errors] == [
@@ -238,6 +240,43 @@ def test_plan_and_compact_errors_keep_distinct_codes(monkeypatch: pytest.MonkeyP
         "COMPACT_PLAN_COVERAGE_WARNING", "COMPACT_PLAN_FACT_OMITTED",
     ]
     assert all(item.prompt_context == {} for item in warnings)
+
+
+def test_duplicate_plan_fact_context_reaches_repair_issue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from services import generation_pipeline
+
+    duplicate_fact = {
+        "requirement": "最高心率",
+        "dataId": "/data/health/max",
+        "expectedVisibleCount": 1,
+        "actualVisibleCount": 2,
+        "occurrences": [],
+    }
+
+    def coverage(*args: object, **kwargs: object) -> CompactPlanCoverageResult:
+        return CompactPlanCoverageResult(
+            errors=("duplicate fact",),
+            warnings=(),
+            duplicate_facts=(duplicate_fact,),
+        )
+
+    monkeypatch.setattr(generation_pipeline, "evaluate_compact_plan_coverage", coverage)
+    context = DslProcessingContext(
+        size="2x2",
+        task_spec=TASK,
+        card_spec={"suggestSize": "2x2"},
+        protocol_profile={},
+        compact_plan={"info_required": []},
+    )
+
+    result = DesignCompactProcessor().process(INVALID, context)
+
+    plan_issue = next(
+        item for item in result.errors if item.code == "COMPACT_PLAN_COVERAGE_FAILED"
+    )
+    assert plan_issue.prompt_context == {"duplicateFacts": [duplicate_fact]}
 
 
 @pytest.mark.parametrize("runtime_context", [False, True])
@@ -278,7 +317,7 @@ def test_repair_keeps_history_recovery_and_internal_record(
     assert "invalidSourceDsl" not in payload
     assert {"role": "assistant", "content": TALL} in prompt
     assert quality_errors == before
-    assert "Occupancy:" in content
+    assert "关键占用：" in content
     assert "compactDiagnostics" not in content
 
 
@@ -288,6 +327,6 @@ def test_only_fusion_repair_prompt_source_exists() -> None:
     repair = (profiles / "design-compact-dsl-fusion/prompt_source/repair.md").read_text(
         encoding="utf-8"
     )
-    assert "高阶组件展开结果" in repair
+    assert "expanded 位置来自模板展开，不是模型 Props" in repair
     assert "previousFailures" in repair
     assert "compositionRecovery" in repair

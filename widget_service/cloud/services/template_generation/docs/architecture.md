@@ -13,9 +13,13 @@ flowchart LR
     SPEC --> GEN[generate_source_dsl]
     GEN -->|create + try_template| TG[Template Generation]
     TG -->|Processor 源 DSL| PROC[DesignCompactProcessor]
-    GEN -->|Compact 回退或 edit| MODEL[原 Compact 模型]
+    GEN -->|Compact 回退| PLAN[Fusion Info Plan]
+    PLAN --> MODEL[Compact 模型]
+    GEN -->|edit| MODEL
     MODEL --> PROC
     PROC --> VAL[ArtifactValidator]
+    PROC -->|模板转换失败| PLAN
+    VAL -->|模板校验失败| PLAN
     VAL --> RETRY[RetryController / Compact repair]
     RETRY --> STORE[ArtifactStore]
     STORE --> RESP[ResponsePlanner]
@@ -38,15 +42,15 @@ template_generation -X-> ArtifactValidator / ArtifactStore / ResponsePlanner
 
 Compact 和 Tersel 入口分别构造 `TemplateSourceGenerator` 对象，并设置各自的模板候选、Action、样例覆盖等
 差异属性。`WidgetGenerationService._generate_widget_card_with_policy()` 只负责向对象绑定当前 Processor、
-Form Profile、模型运行时和请求上下文，再将其注入公共生成链。回退策略仍在公共 `generate_source_dsl()` 中
+Form Profile、模型运行时和请求上下文，再将其注入公共生成链。回退策略在公共 `generate_source_dsl()` 中
 执行，不进入模板模块。
 
 | 场景 | Compact | Tersel |
 | --- | --- | --- |
 | create | 先尝试 Template | 只允许 Template |
 | edit | 跳过 Template，进入原 Compact edit | 入口直接 `failed` |
-| Template 不匹配或模块异常 | 同一次 `generate_source_dsl` 回退原 Compact 模型 | 不回退，转为生成失败 |
-| Template 已返回，Processor/Validator 失败 | 进入公共 Compact repair | 进入公共 Compact repair |
+| Template 不匹配或模块异常 | 同一次 `generate_source_dsl` 从 Fusion Info Plan 重新生成 | 不回退，转为生成失败 |
+| Template 已返回，Processor/Validator 失败 | 首次失败即从 Fusion Info Plan 重新生成 | 直接失败；公共模型 prompt 未加载，不调用通用 repair |
 | repair 最终失败 | `VALIDATION_FAILED`，不保存 | 同左 |
 | ArtifactStore 失败 | 不回退 Template 或模型 | 同左 |
 
@@ -104,8 +108,8 @@ Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派
 `themes/<theme-id>/theme.json` 加载。`themes/base/theme-base.json` 仅保存跨主题一致的 UX Token、尺寸预算
 和内容颜色属性映射，不保存任何具体主题值。
 
-注册表或 Controls 无法严格加载时，模板路由不可用。Compact 是否继续原生成链取决于
-`need_fallback`；Tersel 不回退。
+注册表或 Controls 无法严格加载时，模板路由不可用。普通 Compact 创建从 Fusion Info Plan
+重新生成；Tersel 不回退。
 
 默认 Search 首层 Prompt 不接收任何 Theme。融球开关关闭后，Planner、旧 LLM 首层 Prompt、二层与
 编译阶段复用同一过滤视图，因此伪造融球 Theme ID 会按未知 Theme 拒绝，而不是在最终转换时静默忽略。
@@ -191,8 +195,11 @@ Plan，只能补全开放 Props 与可信素材，不得跨 Plan 混用 Layout�
 9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后执行 artifact 校验。A2UI-Compact 不接受
    或保留 `FusionBall` 云端组件。
 
-二层输出发生 `TerselConversionError` 时，模板模块在首次生成后最多使用两次二层修复。
-这与模块返回后的公共 Compact repair 是两套不同的质量阶段。
+两个入口都保留模板原有内部策略：首层公共模型重试和主备切换由原配置控制；正文
+`MODEL_EMPTY_OUTPUT` 保留一次相同输入重试；二层输出发生 `TerselConversionError` 时，
+首次生成后最多执行 `_MAX_BODY_REPAIRS=2` 次模型修复，确定性脚本修复保持不变。
+普通 Compact 创建仅在模板黑盒最终失败、或返回结果在外层转换／校验失败后启动 Fusion Info Plan，
+不向模板传入用于覆盖内部策略的参数。独立入口最终失败时直接返回失败。
 
 ## 4. 数据形态变换
 
@@ -209,8 +216,8 @@ Plan，只能补全开放 Props 与可信素材，不得跨 Plan 混用 Layout�
   -> 最终标准 A2UI
 ```
 
-回转 Design Compact DSL 的目的是让 Template 产物与原 Compact 产物共用同一 Processor、Validator、
-repair 和 artifact 格式，并在 `designcompactdsl` 中保留可回放的源 Token。
+回转 Design Compact DSL 的目的是让 Template 产物与原 Compact 产物共用同一 Processor、Validator
+和 artifact 格式，并在 `designcompactdsl` 中保留可回放的源 Token。模板失败不作为 Fusion repair 输入。
 
 ## 5. 失败分类
 
@@ -223,16 +230,20 @@ repair 和 artifact 格式，并在 `designcompactdsl` 中保留可回放的源 
 | `TemplateSourceAdapterError` | A2UI/Profile/Compact 回转 | 模板 A2UI 不能成为当前 Processor 源格式 |
 | `CompactDslConversionError` | 模板本地回转或公共 Processor | Design Compact 语法或语义转换失败 |
 
-模板模块将其中大部分拒绝以异常传回公共 source generator。是回退还是失败由入口的
-`need_fallback` 决定，不应在模板内部吞掉异常后自行构造业务响应。
+模板模块将拒绝以异常传回公共 source generator。普通 Compact 创建入口的模板失败统一回退
+Fusion，优先于 JSX 和 `need_fallback`；独立模板入口仍无普通模型兜底。模板内部不自行构造业务响应。
 
 ## 6. 并发、通知与重试
 
 - `before_model_call` 在公共 `generate_source_dsl()` 进入 Template 或原模型前统一执行。
 - Template 首层和二层通过 `TemplateModelClient` 复用同一 `ModelExecutionRuntime`。
-- Compact 的 Template 尝试失败后转原模型，仍属于同一次 source generation，不重复下发开始通知。
-- 模板内部的二层修复最多 2 次；公共 Compact repair 由服务配置和 `RetryController` 控制。
-- source DSL 一旦成功返回，后续 Processor、Validator、repair 或保存失败都不会重跑 Template。
+- Compact 的模板生成、转换、素材映射或 Artifact 校验失败后，从 Fusion Info Plan 重启，
+  不重复下发开始通知，不走 JSX，不消耗 Fusion repair 额度；质量修复关闭时仍执行该回退。
+- 模板调用使用独立输入副本，失败时清空模板来源标记和处理结果，Fusion 使用完整原始业务输入。
+  模板成功的转换与校验结果直接复用，避免重复执行。失败原因记录在 `template.fallback` Trace。
+- 两个入口均保留二层最多 2 次编译修复、正文空输出最多两次调用及首层原调用策略。
+- Fusion 的 Plan 与公共 Compact repair 使用原配置，任何后续失败均不重跑 Template；保存或上传失败
+  不触发路线切换。
 
 ## 7. 安全和可维护性不变量
 

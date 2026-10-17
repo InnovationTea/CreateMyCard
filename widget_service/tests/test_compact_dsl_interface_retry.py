@@ -10,7 +10,7 @@ from config.config import Settings, get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelGenerationError
 from models.artifact import ArtifactMeta, WidgetArtifact
-from models.generation import ModelRequestContext
+from models.generation import CompactDslRetryContext, ModelRequestContext
 from services import artifact_store
 from services.artifact_store import ArtifactStore, ArtifactUploadError
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
@@ -208,6 +208,41 @@ async def test_each_attempt_preserves_original_request_fields_and_private_contex
     assert "size" not in request.model_fields_set
 
 
+@pytest.mark.asyncio
+async def test_retry_propagates_capacity_recovery_context_only_to_next_attempt():
+    calls = []
+
+    async def generate(attempt_request):
+        calls.append(attempt_request)
+        if len(calls) == 1:
+            assert attempt_request._compact_dsl_retry_context is None
+            failure = make_response(
+                GenerationStatus.FAILED,
+                ErrorCode.VALIDATION_FAILED,
+            )
+            failure._compact_dsl_retry_context = CompactDslRetryContext(
+                failure_category="layout_capacity",
+                capacity_recovery=True,
+            )
+            return failure
+        assert attempt_request._compact_dsl_retry_context == CompactDslRetryContext(
+            failure_category="layout_capacity",
+            capacity_recovery=True,
+        )
+        return make_response()
+
+    result = await run_compact_dsl_with_retry(
+        generate,
+        make_request(),
+        enabled=True,
+        retry_count=1,
+        request_id="capacity-recovery",
+    )
+
+    assert result.status == GenerationStatus.SUCCESS
+    assert len(calls) == 2
+
+
 @pytest.mark.parametrize("value", [-1, 1.5, 1.0, True, "bad", "1.5", None])
 def test_invalid_retry_count_config_is_rejected(value):
     with pytest.raises(ValidationError, match="compact_dsl_interface_retry_count"):
@@ -249,7 +284,7 @@ async def test_upload_errors_are_classified_only_at_upload_boundary(
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom6.0-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-6.0",
+            capabilityRegistryVersion="app-11.7.7.300_rom-7.0",
             createdAt=1,
         ),
     )
