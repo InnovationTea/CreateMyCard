@@ -75,6 +75,8 @@ def _layout_source(layout: str, variant: str = "standard", action: bool = False)
     assert kinds is not None
     if variant == "stacked-info":
         kinds = ["SingleLineTitle", "InfoBlock", "InfoBlock"]
+    if layout == "S-content-dual-action" and variant == "actions-only":
+        kinds = ["PillButton", "PillButton"]
     if action:
         kinds.append("PillButton")
     leaves = []

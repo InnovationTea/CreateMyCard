@@ -34,6 +34,44 @@ function renderDetail() {
 describe('BatchRoute', () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
+  it('filters first-draft failures independently from final status and batch retries', async () => {
+    const sampleMetrics = {
+      firstDsl: 'failed', firstRequestStatus: 'success', firstRequestDelivered: true,
+      qualityRepairAttempts: 1, modelPhysicalCalls: 4, repairObservedAttempts: 1,
+      modelObservedAttempts: 1, terminalAttempts: 1, missingInformationWarnings: 1,
+    };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === '/debug/batch/tasks/task_1') return response({
+        taskId: 'task_1', name: '生成质量', datasetId: 'request_dataset', sampleCount: 2,
+        requestOverrides: {}, concurrency: 4, maxRetries: 1, timeoutSeconds: 300,
+        backendMode: 'deployed', serviceConfig: {},
+        runs: [{ runId: 'run_001', status: 'completed' }],
+      });
+      if (url === '/debug/batch/runs/run_001') return response({
+        ...run, samples: [
+          { ...run.samples[0], generationMetrics: sampleMetrics },
+          { ...run.samples[0], id: 'Q002', attemptCount: 2,
+            generationMetrics: { ...sampleMetrics, firstDsl: 'passed', missingInformationWarnings: 0 } },
+        ],
+      });
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    renderDetail();
+    expect(await screen.findByText('Q002')).toBeInTheDocument();
+    const filter = screen.getByRole('combobox', { name: '生成质量筛选' });
+    await userEvent.selectOptions(filter, 'first_failed');
+    expect(screen.getByText('Q001')).toBeInTheDocument();
+    expect(screen.queryByText('Q002')).not.toBeInTheDocument();
+    expect(screen.getByText('信息缺失告警 1 项')).toBeInTheDocument();
+    await userEvent.selectOptions(filter, 'retried');
+    expect(screen.queryByText('Q001')).not.toBeInTheDocument();
+    expect(screen.getByText('Q002')).toBeInTheDocument();
+    await userEvent.selectOptions(filter, 'missing_information');
+    expect(screen.getByText('Q001')).toBeInTheDocument();
+    expect(screen.queryByText('Q002')).not.toBeInTheDocument();
+  });
+
   it('loads task history and opens sample Trace in a new tab', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input);

@@ -253,6 +253,13 @@
             {"path": [1], "types": ["PillButton"], "eventPolicy": "require"},
             {"path": [2], "types": ["PillButton"], "eventPolicy": "require"}
           ]
+        },
+        {
+          "rules": [
+            {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 8, "justifyContent": "center"}, "childCount": 2},
+            {"path": [0], "types": ["PillButton"], "eventPolicy": "require"},
+            {"path": [1], "types": ["PillButton"], "eventPolicy": "require"}
+          ]
         }
       ]
     },

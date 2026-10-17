@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -9,7 +9,49 @@ function response(body: unknown, status = 200): Response {
 }
 
 describe('BatchTaskCenterRoute', () => {
-  afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('shows tasks before a slow scheduler response and coalesces polling while requests are pending', async () => {
+    vi.useFakeTimers();
+    let resolveScheduler!: (value: Response) => void;
+    const pendingScheduler = new Promise<Response>((resolve) => { resolveScheduler = resolve; });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === '/debug/batch/tasks') return response({ items: [{
+        taskId: 'task_1', name: '任务不等待调度', datasetId: 'request_dataset', sampleCount: 1,
+        runCount: 0, backendMode: 'deployed', createdAt: '', updatedAt: '',
+      }] });
+      if (url === '/debug/batch/scheduler') return pendingScheduler;
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    render(<MemoryRouter><BatchTaskCenterRoute /></MemoryRouter>);
+    expect(screen.getByRole('status')).toHaveTextContent('正在加载任务记录');
+    expect(screen.queryByText(/暂无匹配任务/)).not.toBeInTheDocument();
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByText('任务不等待调度')).toBeInTheDocument();
+    await act(async () => { vi.advanceTimersByTime(5000); });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      resolveScheduler(response({ paused: false, active: null, queue: [] }));
+    });
+    await act(async () => { vi.advanceTimersByTime(1000); });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('keeps a slow list request in flight when the scheduler request fails early', async () => {
+    vi.useFakeTimers();
+    let resolveTasks!: (value: Response) => void;
+    const pendingTasks = new Promise<Response>((resolve) => { resolveTasks = resolve; });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input) === '/debug/batch/tasks') return pendingTasks;
+      throw new Error('scheduler unavailable');
+    });
+    render(<MemoryRouter><BatchTaskCenterRoute /></MemoryRouter>);
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () => { resolveTasks(response({ items: [] })); });
+    expect(screen.getByRole('alert')).toHaveTextContent('scheduler unavailable');
+  });
 
   it('shows the persisted queue and resumes it explicitly', async () => {
     let paused = true;

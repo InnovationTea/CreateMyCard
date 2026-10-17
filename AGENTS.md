@@ -114,10 +114,12 @@
 - `docs/compact-dsl-validator-refactor/Compact_DSL校验器重构方案_v3.md`：Compact 校验器专项重构及迁移验收依据；配套规则分类清单维护检查项归属。
 - `skills/harmony-card-generation-online/`：按照目标链路设计的在线云侧编排 Skill，需随方案持续优化。
 - `skills/harmony-card-generation-offline/`：离线直出 Skill，用于不走云侧微服务时由主 Agent 端到端生成、修复、评审或解释本地 `genui` 与 `cardspec` 产物；只能作为兜底、调试和历史视觉参考，不作为在线链路协议依据。
-- `skills/harmony-card-template-generation/`：独立的模板驱动生成 Skill，由主 Agent 从固定布局和受控组件变体中选择一个模板并生成本地 `genui` 与 `cardspec`；不调用在线或离线生成 Skill。
-- `skills/harmony-card-generation-offline/reference/capability/event-capability/click-event.md`：事件能力清单。
-- `skills/harmony-card-generation-offline/reference/capability/data-capability/`：端侧数据能力清单，持续扩充中。
-- `skills/harmony-card-generation-offline/reference/design/asset-library.md`：端侧素材库清单。
+- `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/`：Fusion 提示词源文件与运行时布局合同，需与云侧方案和实现同步维护。
+- `widget_service/cloud/services/compact_*.py`：Compact 计划、组合、布局与修复实现；校验逻辑仍按专项方案归入校验模块。
+- `debug_tools/batch_testing/` 与 `debug_tools/platform/`：批跑后端与调试平台前端；架构和运行口径分别见调试平台技术方案与运行规范。
+- `debug_tools/Datasets/` 与 `widget_service/tests/`：批跑数据集与微服务回归测试，按改动影响选择验证范围。
+- `widget_service/cloud/data/capabilities/`：云侧版本化数据、事件与素材能力注册表及版本范围配置；在线链路以此作为能力配置来源。
+- `skills/harmony-card-generation-offline/reference/`：离线能力与设计参考资料，仅用于离线流程和历史参考。
 
 ## 优先级
 
@@ -126,8 +128,9 @@
 1. `docs/云侧方案设计.md`
 2. 本文件 `AGENTS.md`
 3. `skills/harmony-card-generation-online/` 下的在线云侧编排 Skill 实现与参考资料
-4. `skills/harmony-card-template-generation/` 下的独立模板生成方案、正式模板和校验配置
-5. `skills/harmony-card-generation-offline/` 下的离线 Skill、历史模板和样例 `.dat`
+4. `skills/harmony-card-generation-offline/` 下的离线 Skill、历史模板和样例 `.dat`
+
+当前维护的生成 Skill 为在线和离线两套；已移除的设计生成、独立模板生成 Skill 不再作为实现入口或协议依据。
 
 历史模板只能作为视觉参考，不能作为协议依据。模板中出现的旧尺寸、`theme`、emoji、网络图、未声明事件或不合规属性，不得复制到新实现。
 

@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 """为 Design Compact 质量修复选择逐级升级的执行范围。"""
 
+import copy
 import hashlib
 import json
 import re
@@ -13,6 +14,10 @@ from services.compact_high_level_components import CompactDslConversionError
 from services.compact_plan import (
     CompactOptionalDropCandidate,
     compact_plan_optional_drop_candidate,
+)
+from services.compact_repair_context import (
+    JOINT_RECOMPOSITION_INSTRUCTION,
+    repair_topology_fingerprint,
 )
 
 _CAPACITY_MARKERS = (
@@ -35,6 +40,28 @@ _ROOT_STRUCTURE_MARKERS = (
     "compact layout does not match scope",
     "layout does not match",
     "语义布局不符合合同",
+    "component rows must form one tree rooted at root",
+    "unreachable component(s):",
+    "cyclic component reference",
+    "missing component reference",
+    "component has multiple parents",
+    " has multiple parents:",
+    "the root component is missing",
+)
+_TREE_STRUCTURE_CODES = frozenset(
+    {
+        "COMPACT_COMPONENT_DUPLICATE_CHILD",
+        "COMPACT_COMPONENT_MULTIPLE_PARENTS",
+        "COMPACT_COMPONENT_EMPTY_CONTAINER",
+    }
+)
+
+_TREE_RECOMPOSE_INSTRUCTION = (
+    " 先检查以 root 为根的完整组件树：所有引用存在、每个节点只有一个父引用、"
+    "没有环或孤立节点，并核对父区允许的角色和有序 children。"
+    "不得只把孤立节点挂到不接受该角色的 Region；必要时重组受控 Group 或更换合法父布局。"
+    "保留全部事实、绑定、标签、单位和动作，不通过删除孤立业务节点规避错误；"
+    "结构闭合后重新核算各区容量，不修改展开后的内部几何。"
 )
 _INFO_BLOCK_PROGRESS_VALUE_MARKERS = (
     "infoblock.primarytext must be a finite number or complete numeric percentage",
@@ -84,6 +111,7 @@ class CompactRepairDirective:
     optional_drop: CompactOptionalDropCandidate | None = None
     approved_omitted_fact_indexes: tuple[int, ...] = ()
     stop_reason: str | None = None
+    joint_context: dict[str, Any] | None = None
 
     def to_prompt_payload(self) -> dict[str, Any]:
         """转换成可进入修复提示词和 Trace 的稳定字段。"""
@@ -122,6 +150,8 @@ class CompactRepairDirective:
             )
         if self.stop_reason is not None:
             payload["stopReason"] = self.stop_reason
+        if self.joint_context is not None:
+            payload["jointRecomposition"] = copy.deepcopy(self.joint_context)
         return payload
 
 
@@ -311,9 +341,20 @@ def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
     messages = "\n".join(
         str(issue.get("message") or "").lower() for issue in quality_errors
     )
+    for issue in quality_errors:
+        diagnostics = issue.get("compactDiagnostics", [])
+        if not isinstance(diagnostics, list):
+            continue
+        for diagnostic in diagnostics:
+            if isinstance(diagnostic, dict):
+                code = diagnostic.get("code")
+                if isinstance(code, str):
+                    codes.add(code)
     # 根布局尚未匹配正式骨架时，容量超限通常只是非法拓扑的派生结果。
     # 先重建父布局，避免把整卡结构问题误路由为局部高度微调。
-    if _contains_marker(messages, _ROOT_STRUCTURE_MARKERS):
+    if codes & _TREE_STRUCTURE_CODES or _contains_marker(messages, _ROOT_STRUCTURE_MARKERS):
+        return "layout_structure"
+    if re.search(r"component [^\n]*\.children references [^\n]* more than once", messages):
         return "layout_structure"
     if _contains_marker(messages, _CAPACITY_MARKERS):
         return "layout_capacity"
@@ -329,6 +370,16 @@ def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
 def compact_repair_issue_category(quality_errors: list[dict[str, Any]]) -> str:
     """返回稳定的修复问题分类，供接口级恢复判定复用。"""
     return _issue_category(quality_errors)
+
+
+def _joint_repair_relevant(category: str, quality_errors: list[dict[str, Any]]) -> bool:
+    if category in {"layout_capacity", "layout_structure", "plan_coverage"}:
+        return True
+    for issue in quality_errors:
+        message = str(issue.get("message") or "").lower()
+        if _contains_marker(message, ("plan-assigned", "assetassignments action")):
+            return True
+    return False
 
 
 def _layout_directive(
@@ -397,6 +448,8 @@ def _layout_directive(
             "局部与父布局修复均未解决根因；放弃上一轮 Compact DSL 的旧拓扑，"
             "从已接受 Plan 的全部硬事实和动作重新构造完整 DSL。"
         )
+    if category == "layout_structure":
+        instruction += _TREE_RECOMPOSE_INSTRUCTION
     if category == "layout_capacity" and allow_text_compaction:
         instruction += _CAPACITY_TEXT_COMPACTION_INSTRUCTION
     return CompactRepairDirective(
@@ -692,6 +745,10 @@ class CompactRepairStrategyTracker:
         self._fallback_submission_limit = 0
         self._optional_drop_candidate: CompactOptionalDropCandidate | None = None
         self._allowed_omitted_fact_indexes: list[int] = []
+        self._joint_categories: list[str] = []
+        self._failed_topologies: set[str] = set()
+        self._layout_failure_seen = False
+        self._joint_full_recompose_seen = False
 
     @property
     def allowed_omitted_fact_indexes(self) -> tuple[int, ...]:
@@ -757,6 +814,17 @@ class CompactRepairStrategyTracker:
     ) -> CompactRepairDirective:
         """根据当前失败和请求内历史选择局部修复或结构重组。"""
         category = _issue_category(quality_errors)
+        previous_category = self._joint_categories[-1] if self._joint_categories else None
+        previous_layout_failure = self._layout_failure_seen
+        relevant = _joint_repair_relevant(category, quality_errors)
+        topology = repair_topology_fingerprint(invalid_source_dsl) if relevant else None
+        revisited_topology = topology is not None and topology in self._failed_topologies
+        if relevant:
+            self._joint_categories.append(category)
+            if topology is not None:
+                self._failed_topologies.add(topology)
+        if category in {"layout_capacity", "layout_structure"}:
+            self._layout_failure_seen = True
         fingerprint = _issue_fingerprint(quality_errors)
         if fingerprint == self._previous_fingerprint:
             self._consecutive_failures += 1
@@ -771,6 +839,19 @@ class CompactRepairStrategyTracker:
         self._category_attempts[category] = category_attempt
         self._previous_fingerprint = fingerprint
         self._previous_source = normalized_source
+        changed_constraint = previous_category is not None and category != previous_category
+        persistent_capacity = category == "layout_capacity" and category_attempt >= 2
+        joint_progress_failed = changed_constraint or revisited_topology or persistent_capacity
+        joint_inputs_available = compact_plan is not None and task_spec is not None
+        joint_recompose = (
+            joint_inputs_available and previous_layout_failure and relevant
+        )
+        joint_recompose = joint_recompose and joint_progress_failed
+        joint_recompose = joint_recompose and not self._joint_full_recompose_seen
+        full_recompose_seen = self._previous_strategy == "plan_guided_recompose"
+        full_recompose_seen = full_recompose_seen or (
+            joint_inputs_available and self._joint_full_recompose_seen
+        )
 
         if self._repair_submission_count >= self._max_repair_attempts:
             directive = _exhausted_directive(
@@ -959,7 +1040,7 @@ class CompactRepairStrategyTracker:
                     allow_text_compaction=allow_text_compaction,
                 )
                 self._fallback_submission_count += 1
-        elif is_layout_failure and self._previous_strategy == "plan_guided_recompose":
+        elif is_layout_failure and full_recompose_seen:
             self._active_fallback = "compact_component"
             directive = _compact_component_fallback_directive(
                 category=category,
@@ -980,6 +1061,15 @@ class CompactRepairStrategyTracker:
                 category_attempt=category_attempt,
                 no_progress=no_progress,
                 force_targeted=True,
+            )
+        elif joint_recompose:
+            directive = _full_dsl_transition_directive(
+                category=category,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+                instruction=JOINT_RECOMPOSITION_INSTRUCTION,
             )
         elif is_layout_failure:
             prefer_split_panels = _fixed_side_slot_text_overflow(
@@ -1008,6 +1098,18 @@ class CompactRepairStrategyTracker:
             )
         if directive.retryable:
             self._repair_submission_count += 1
+            if joint_inputs_available and directive.repair_strategy == "plan_guided_recompose":
+                self._joint_full_recompose_seen = True
+        if joint_inputs_available and relevant:
+            directive = replace(
+                directive,
+                joint_context={
+                    "observedCategories": list(self._joint_categories),
+                    "layoutPreviouslyFailed": previous_layout_failure,
+                    "revisitedTopology": revisited_topology,
+                    "topologyFingerprint": topology,
+                },
+            )
         if self._allowed_omitted_fact_indexes:
             directive = replace(
                 directive,

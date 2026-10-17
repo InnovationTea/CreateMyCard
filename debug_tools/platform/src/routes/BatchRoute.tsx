@@ -15,6 +15,8 @@ import {
 } from '../batchApi';
 import { DEFAULT_ASSET_BASE_URL } from '../config';
 import { PostprocessPanel } from '../components/PostprocessPanel';
+import { BatchMetrics, firstDraftLabel } from '../components/BatchMetrics';
+import { BatchRetryParameters } from '../components/BatchRetryParameters';
 import { serviceConfigLabel } from '../serviceConfig';
 
 const ACTIVE_STATUSES = new Set(['queued', 'preparing', 'running', 'stopping']);
@@ -68,6 +70,7 @@ export function BatchRoute() {
   const [detailTab, setDetailTab] = useState('preview');
   const [statusFilter, setStatusFilter] = useState('all');
   const [traceFilter, setTraceFilter] = useState('all');
+  const [generationFilter, setGenerationFilter] = useState('all');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showCustomParams, setShowCustomParams] = useState(false);
@@ -119,8 +122,13 @@ export function BatchRoute() {
     if (statusFilter !== 'all' && sample.status !== statusFilter) return false;
     if (traceFilter === 'warning' && !['missing', 'partial', 'invalid'].includes(sample.traceStatus)) return false;
     if (traceFilter === 'available' && sample.traceStatus !== 'complete') return false;
+    const metrics = sample.generationMetrics;
+    if (generationFilter === 'first_failed' && metrics?.firstDsl !== 'failed') return false;
+    if (generationFilter === 'before_dsl_failure' && metrics?.firstDsl !== 'before_dsl_failure') return false;
+    if (generationFilter === 'retried' && sample.attemptCount < 2) return false;
+    if (generationFilter === 'missing_information' && !(metrics?.missingInformationWarnings)) return false;
     return true;
-  }), [run, statusFilter, traceFilter]);
+  }), [run, statusFilter, traceFilter, generationFilter]);
 
   const activeAttempt = finalAttempt(detail);
   const activeCardSize = resolveCardSize(
@@ -225,10 +233,53 @@ export function BatchRoute() {
           <div className="batch-progress"><span style={{ width: `${progress}%` }} /></div>
           <div className="batch-metrics"><span><b>{completed}/{total}</b>已完成 / 总样本</span><span><b>{run?.success ?? 0}</b>成功</span><span><b>{run?.degraded ?? 0}</b>降级</span><span><b>{run?.failed ?? 0}</b>失败</span><span><b>{run?.averageElapsedMs ?? 0}ms</b>平均耗时</span><span><b>{run?.traceWarnings ?? 0}</b>Trace 告警</span></div>
           <div className="batch-run-meta"><span>{run ? run.runId : '任务尚无执行记录'}</span><span>{run ? serviceStatusLabel(run.serviceStatus) : task?.toolWsBaseUrl}</span></div>
+          {run && <BatchMetrics run={run} />}
+          {run && <BatchRetryParameters run={run} />}
         </section>
         <section className="batch-workspace">
-          <div className="batch-table-panel"><div className="batch-table-toolbar"><strong>样本结果</strong><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">全部状态</option><option value="success">成功</option><option value="degraded">降级</option><option value="failed">失败</option><option value="unsupported">不支持</option></select><select value={traceFilter} onChange={(event) => setTraceFilter(event.target.value)}><option value="all">全部 Trace</option><option value="available">Trace 正常</option><option value="warning">Trace 告警</option></select></div>
-            <div className="batch-table-scroll"><table><thead><tr><th>样本</th><th>状态</th><th>耗时</th><th>尝试</th><th>Trace</th></tr></thead><tbody>{visibleSamples.map((sample) => <tr key={sample.id} className={selectedSampleId === sample.id ? 'is-selected' : ''} onClick={() => setSelectedSampleId(sample.id)}><td><strong>{sample.id}</strong><small>{sample.title}</small></td><td><span className={`batch-status ${sample.status}`}>{statusLabel(sample.status)}</span>{sample.errorCode && <small>{sample.errorCode}</small>}</td><td>{sample.elapsedMs ? `${sample.elapsedMs}ms` : '—'}</td><td>{sample.attemptCount}</td><td><span className={`batch-trace ${sample.traceStatus}`}>{sample.traceStatus}</span><small>{sample.traceRecordCount} 条</small></td></tr>)}</tbody></table>{!visibleSamples.length && <div className="batch-empty">{run ? '暂无匹配结果' : '尚无执行结果'}</div>}</div>
+          <div className="batch-table-panel">
+            <div className="batch-table-toolbar">
+              <strong>样本结果</strong>
+              <select aria-label="样本状态" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <option value="all">全部状态</option><option value="success">成功</option>
+                <option value="degraded">降级</option><option value="failed">失败</option>
+                <option value="unsupported">不支持</option>
+              </select>
+              <select aria-label="Trace 状态" value={traceFilter} onChange={(event) => setTraceFilter(event.target.value)}>
+                <option value="all">全部 Trace</option><option value="available">Trace 正常</option>
+                <option value="warning">Trace 告警</option>
+              </select>
+              <select aria-label="生成质量筛选" value={generationFilter} onChange={(event) => setGenerationFilter(event.target.value)}>
+                <option value="all">全部生成结果</option><option value="first_failed">首稿失败</option>
+                <option value="before_dsl_failure">生成前失败</option><option value="retried">批跑重试</option>
+                <option value="missing_information">交付信息缺失告警</option>
+              </select>
+            </div>
+            <div className="batch-table-scroll">
+              <table>
+                <thead><tr><th>样本</th><th>最终状态</th><th>首稿</th><th>耗时</th><th>批跑尝试</th><th>Trace</th></tr></thead>
+                <tbody>{visibleSamples.map((sample) => <tr key={sample.id}
+                  className={selectedSampleId === sample.id ? 'is-selected' : ''}
+                  onClick={() => setSelectedSampleId(sample.id)}>
+                  <td><strong>{sample.id}</strong><small>{sample.title}</small></td>
+                  <td><span className={`batch-status ${sample.status}`}>{statusLabel(sample.status)}</span>
+                    {sample.errorCode && <small>{sample.errorCode}</small>}
+                    {!!sample.generationMetrics?.missingInformationWarnings && <small className="batch-missing-warning">
+                      信息缺失告警 {sample.generationMetrics.missingInformationWarnings} 项
+                    </small>}
+                  </td>
+                  <td><span className={`batch-first-draft ${sample.generationMetrics?.firstDsl ?? 'unknown'}`}>
+                    {firstDraftLabel(sample)}
+                  </span></td>
+                  <td>{sample.elapsedMs ? `${sample.elapsedMs}ms` : '—'}</td>
+                  <td>{sample.attemptCount}</td>
+                  <td><span className={`batch-trace ${sample.traceStatus}`}>{sample.traceStatus}</span>
+                    <small>{sample.traceRecordCount} 条</small>
+                  </td>
+                </tr>)}</tbody>
+              </table>
+              {!visibleSamples.length && <div className="batch-empty">{run ? '暂无匹配结果' : '尚无执行结果'}</div>}
+            </div>
           </div>
           <div className="batch-detail-panel"><div className="batch-detail-tabs">{['preview', 'request', 'response', 'artifact'].map((tab) => <button type="button" key={tab} className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{({ preview: '预览', request: '请求', response: '响应', artifact: '产物' } as Record<string, string>)[tab]}</button>)}{run && detail && <Link className="batch-trace-button" to={`/batch/runs/${encodeURIComponent(run.runId)}/samples/${encodeURIComponent(detail.summary.id)}/trace`} target="_blank" rel="noopener noreferrer">Trace</Link>}</div>
             <div className="batch-detail-body">{!detail && <div className="batch-empty">选择已完成的样本查看详情</div>}{detail && detailTab === 'preview' && <div className={`batch-render-comparison ${detail.deviceCapture?.cardUrl ? 'has-device' : ''}`}><section>{activeAttempt?.genui ? <CardRenderer key={`${run?.runId}-${selectedSampleId}`} initialValue={activeAttempt.genui} assetBaseUrl={DEFAULT_ASSET_BASE_URL} cardSize={activeCardSize} appVersion={resolveAppVersion(activeAttempt.blocks, activeAttempt.request)} previewOnly zoom={previewZoom} onZoomChange={setPreviewZoom} /> : <div className="batch-empty">该样本没有可预览的 GenUI</div>}</section>{detail.deviceCapture?.cardUrl && <section><strong>真机渲染</strong><div className="device-capture-preview"><img src={detail.deviceCapture.cardUrl} alt={`${detail.summary.title ?? detail.summary.id} 真机渲染截图`} /><a href={detail.deviceCapture.fullUrl} target="_blank" rel="noopener noreferrer">查看全屏原图 ↗</a></div></section>}{!detail.deviceCapture?.cardUrl && detail.deviceCapture?.status !== 'not_requested' && <section><strong>真机渲染</strong><div className="batch-empty">{detail.deviceCapture?.error || '真机截图尚不可用'}</div></section>}</div>}{detail && detailTab === 'request' && <pre>{jsonText(activeAttempt?.request)}</pre>}{detail && detailTab === 'response' && <pre>{jsonText(activeAttempt?.response)}</pre>}{detail && detailTab === 'artifact' && <pre>{jsonText(activeAttempt?.blocks)}</pre>}</div>
