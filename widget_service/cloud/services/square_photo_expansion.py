@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import math
 import re
 import unicodedata
 
@@ -67,8 +66,6 @@ def expansion_enabled(task: dict) -> bool:
 
 
 def expansion_reason(theme: dict, task: dict, evidence: dict) -> str | None:
-    from services.post_layout_theme import valid_rect
-
     gate = expansion_gate(task)
     if not gate["eligible"]:
         return gate["reason"]
@@ -81,6 +78,13 @@ def expansion_reason(theme: dict, task: dict, evidence: dict) -> str | None:
     if theme.get("frame") != {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1,
                               "imageHeight": 1, "align": "topStart"}:
         return "扩展背景必须使用完整预置构图"
+    return "真实卡片宽高未知，缺少扩展主体避让的尺寸无关依据"
+
+
+def _expansion_geometry_reason(theme: dict, evidence: dict) -> str | None:
+    """开发诊断中的归一化边界检查，不作为云侧准入依据。"""
+    from services.post_layout_theme import valid_rect
+
     if not evidence.get("complete") or evidence.get("unsafe"):
         return "原2x2前景测量不完整或已有溢出"
     occupied = evidence.get("occupied", [])
@@ -128,22 +132,8 @@ def expand_square(source: str, theme: dict, task: dict) -> str:
         "children": [PREFIX + "foreground"],
         "styles": {"width": "50%", "height": "matchParent", "alignContent": "topStart"},
     })
-    # 标准协议通常不声明画布尺寸；已有声明时仅更新既有字段。
-    for row in records:
-        surface = row.get("createSurface", {})
-        if "width" in surface:
-            old_width = surface["width"]
-            if (not isinstance(old_width, (int, float))
-                    or not math.isfinite(old_width) or old_width <= 0):
-                raise ValueError("Invalid source surface width")
-            surface["width"] = old_width * 2
     result = encode(records)
-    comparison = copy.deepcopy(records)
-    originals = decode(source)
-    for original, changed in zip(originals, comparison, strict=True):
-        if "createSurface" in original:
-            changed["createSurface"] = original.get("createSurface")
-    if foreground_signature(source) != foreground_signature(encode(comparison)):
+    if foreground_signature(source) != foreground_signature(result):
         raise ValueError("Expansion changed original foreground, bindings or actions")
     return result
 

@@ -1,4 +1,4 @@
-"""UX 图片按尺寸、完整按钮及所有已登记视口匹配，不依赖抽样。"""
+"""UX 图片不猜测真实宽高；无主体按布局匹配，有主体保守回退。"""
 
 import asyncio
 import copy
@@ -31,14 +31,9 @@ def ux(identity):
 
 
 def evidence(size, rects):
-    views = []
-    viewports = registry.load_theme_registry().get("matching", {}).get("viewports", {}).get(size)
-    assert viewports
-    for viewport in viewports:
-        views.append({"complete": True, "buttonPolicy": "whole-button", "viewport": viewport,
-                      "occupied": [{"id": str(index), "rect": rect}
-                                   for index, rect in enumerate(rects)], "unsafe": []})
-    return {**views[0], "responsive": views[1:]}
+    return {"basis": "layout-only", "complete": True, "deviceGeometryKnown": False,
+            "contentIds": [str(index) for index in range(len(rects))],
+            "occupied": [{"id": str(index), "rect": rect} for index, rect in enumerate(rects)]}
 
 
 @pytest.mark.parametrize("identity,query,rect", [
@@ -57,11 +52,15 @@ def evidence(size, rects):
     ("sleep-wide", "睡眠", [.65, .2, .3, .6]),
     ("concert-wide", "音乐", [.55, .2, .3, .6]),
 ])
-def test_approved_content_regions(identity, query, rect):
+def test_only_subjectless_photos_match_without_device_geometry(identity, query, rect):
     theme = ux(identity)
     size = theme.get("size")
-    assert themes.photo_reason(theme, {"size": size, "userQuery": query},
-                               evidence(size, [rect]), final_layout=SPORT_LAYOUT) is None
+    reason = themes.photo_reason(theme, {"size": size, "userQuery": query},
+                                 evidence(size, [rect]), final_layout=SPORT_LAYOUT)
+    if theme.get("subjectless"):
+        assert reason is None
+    else:
+        assert "真实卡片宽高未知" in reason
 
 
 @pytest.mark.parametrize("identity,query,rect", [
@@ -91,18 +90,10 @@ def test_button_interior_is_not_empty_even_when_its_label_avoids_subject():
     assert themes.photo_reason(ux("weather-square"), task, measured) is not None
 
 
-@pytest.mark.parametrize("mutation", ["missing", "legacy", "outside", "unsafe"])
-def test_every_adaptive_viewport_must_pass(mutation):
+@pytest.mark.parametrize("basis", [None, "production-web-renderer", "explicit-test-viewport"])
+def test_test_viewports_cannot_authorize_runtime_photos(basis):
     measured = evidence("2x4", [[.1, .1, .2, .2]])
-    second = measured.get("responsive", [])[0]
-    if mutation == "missing":
-        measured["responsive"] = []
-    elif mutation == "legacy":
-        second.pop("buttonPolicy")
-    elif mutation == "outside":
-        second["occupied"] = [{"id": "button", "rect": [.4, .9, .4, .2]}]
-    else:
-        second["unsafe"] = ["unmeasured-button:button"]
+    measured["basis"] = basis
     assert themes.photo_reason(ux("sport-center-wide"),
                                {"size": "2x4", "userQuery": "运动"}, measured,
                                final_layout=SPORT_LAYOUT) is not None
@@ -141,18 +132,12 @@ def test_subjectless_layout_does_not_override_business_or_user_preference(query)
                                final_layout=SPORT_LAYOUT) is not None
 
 
-@pytest.mark.parametrize("mutation", ["empty", "invalid", "outside", "incomplete"])
-def test_subjectless_layout_still_requires_valid_occupied_geometry(mutation):
+@pytest.mark.parametrize("field,value", [
+    ("contentIds", []), ("contentIds", None), ("deviceGeometryKnown", True), ("complete", False),
+])
+def test_subjectless_layout_requires_dimension_free_content_evidence(field, value):
     measured = evidence("2x4", [[.4, .25, .4, .3]])
-    second = measured.get("responsive", [])[0]
-    if mutation == "empty":
-        second["occupied"] = []
-    elif mutation == "invalid":
-        second["occupied"] = [{"id": "button", "rect": None}]
-    elif mutation == "outside":
-        second["occupied"] = [{"id": "button", "rect": [.4, .8, .4, .3]}]
-    else:
-        second["complete"] = False
+    measured[field] = value
     assert themes.photo_reason(ux("sport-center-wide"),
                                {"size": "2x4", "userQuery": "运动"}, measured,
                                final_layout=SPORT_LAYOUT) is not None
@@ -188,26 +173,13 @@ def test_sleep_subjectless_policy_keeps_size_business_and_user_gates(size, query
                                evidence(size, [[.5, .5, .3, .2]])) is not None
 
 
-@pytest.mark.parametrize("mutation", [
-    "unsafe", "missing-viewport", "legacy-buttons", "incomplete", "empty", "invalid", "outside",
+@pytest.mark.parametrize("field,value", [
+    ("basis", None), ("basis", "explicit-test-viewport"), ("basis", "production-web-renderer"),
+    ("complete", False), ("contentIds", []), ("contentIds", None), ("deviceGeometryKnown", True),
 ])
-def test_sleep_subjectless_policy_keeps_measurement_safety(mutation):
+def test_sleep_subjectless_policy_does_not_accept_fake_device_geometry(field, value):
     measured = evidence("2x2", [[.5, .5, .3, .2]])
-    second = measured.get("responsive", [])[0]
-    if mutation == "unsafe":
-        second["unsafe"] = ["unmeasured-dynamic-text:sleep"]
-    elif mutation == "missing-viewport":
-        measured["responsive"] = []
-    elif mutation == "legacy-buttons":
-        second["buttonPolicy"] = "legacy"
-    elif mutation == "incomplete":
-        second["complete"] = False
-    elif mutation == "empty":
-        second["occupied"] = []
-    elif mutation == "invalid":
-        second["occupied"] = [{"id": "button", "rect": None}]
-    else:
-        second["occupied"] = [{"id": "button", "rect": [.8, .8, .3, .3]}]
+    measured[field] = value
     assert themes.photo_reason(ux("sleep-square"), {"size": "2x2", "userQuery": "睡眠"},
                                measured) is not None
 
@@ -215,8 +187,8 @@ def test_sleep_subjectless_policy_keeps_measurement_safety(mutation):
 @pytest.mark.parametrize("enabled", [True, False])
 def test_sleep_photo_selection_respects_global_image_switch(monkeypatch, enabled):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", enabled)
-    measurement = AsyncMock(return_value=evidence("2x2", [[.5, .5, .3, .2]]))
-    monkeypatch.setattr(themes, "measure", measurement)
+    process = AsyncMock(side_effect=RuntimeError("Cloud must not render a guessed viewport"))
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", process)
     source = themes.encode([{"updateComponents": {"components": [
         {"id": "root", "component": "Column", "children": ["title"],
          "styles": {"width": "matchParent", "height": "matchParent"}},
@@ -229,7 +201,9 @@ def test_sleep_photo_selection_respects_global_image_switch(monkeypatch, enabled
     ))
     assert (audit.get("themeId") == identity) is enabled
     assert themes.foreground_signature(source) == themes.foreground_signature(result)
-    assert measurement.await_count == int(enabled)
+    process.assert_not_called()
+    assert audit.get("deviceGeometryKnown") is False
+    assert "measurement" not in audit
 
 
 @pytest.mark.parametrize("identity,field,value", [
@@ -248,8 +222,6 @@ def test_subjectless_policy_validation(identity, field, value):
 
 def test_subjectless_photo_selected_without_changing_layout(monkeypatch):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", True)
-    monkeypatch.setattr(themes, "measure", AsyncMock(
-        return_value=evidence("2x4", [[.4, .25, .4, .3]])))
     source = themes.encode([{"updateComponents": {"components": [
         {"id": "root", "component": "Column", "children": ["title"],
          "styles": {"width": "matchParent", "height": "matchParent"}},
@@ -288,8 +260,9 @@ def test_noninteractive_panels_remain_empty_but_clickable_cards_are_content():
     assert button_ids(nodes) == ["card", "button"]
 
 
-def test_expansion_geometry_still_checks_both_viewports():
+def test_expansion_geometry_diagnostics_check_all_supplied_samples():
     before = evidence("2x2", [[.1, .1, .3, .2]])
+    before["responsive"] = [copy.deepcopy(before)]
     after = copy.deepcopy(before)
     for view in [before, *before.get("responsive", [])]:
         view["visible"] = [{"id": "text", "text": "ok", "rect": [.1, .1, .3, .2]}]
@@ -337,22 +310,20 @@ def test_retained_feature_gates_no_longer_sample(monkeypatch, module, pool, size
         assert gate(task).get("eligible") is True
 
 
-@pytest.mark.parametrize("model_id", ["photo-ux-weather-square", "gradient-blue", "invalid"])
+@pytest.mark.parametrize("model_id", ["photo-ux-sleep-square", "gradient-blue", "invalid"])
 def test_eligible_photo_always_wins_without_user_override(monkeypatch, model_id):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", True)
-    monkeypatch.setattr(themes, "measure", AsyncMock(
-        return_value=evidence("2x2", [[.1, .1, .2, .2]])))
     source = themes.encode([{"updateComponents": {"components": [
         {"id": "root", "component": "Column", "children": ["title"],
          "styles": {"width": "matchParent", "height": "matchParent"}},
-        {"id": "title", "component": "Text", "content": "天气", "styles": {}},
+        {"id": "title", "component": "Text", "content": "睡眠", "styles": {}},
     ]}}])
     client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({"themeId": model_id})))
     result, audit = asyncio.run(themes.select_theme(
-        source, {"size": "2x2", "userQuery": "天气"}, client,
+        source, {"size": "2x2", "userQuery": "睡眠"}, client,
     ))
-    assert audit.get("themeId") == "photo-ux-weather-square"
-    assert audit.get("candidates") == ["photo-ux-weather-square"]
+    assert audit.get("themeId") == "photo-ux-sleep-square"
+    assert audit.get("candidates") == ["photo-ux-sleep-square"]
     assert themes.foreground_signature(source) == themes.foreground_signature(result)
 
 
@@ -366,6 +337,7 @@ def test_explicit_theme_preferences_override_photos(query):
     ("contentRegions", []), ("contentRegions", [[0, 0, 2, 1]]),
     ("subjectRegions", [[0, 0, 0, 1]]),
     ("measurementPolicy", "legacy-capsule-exemption"),
+    ("matchingPolicy", "whole-buttons-responsive"),
     ("subjectBounds", [0, 0, .1, .1]),
 ])
 def test_invalid_ux_regions_rejected_at_config_load(field, value):

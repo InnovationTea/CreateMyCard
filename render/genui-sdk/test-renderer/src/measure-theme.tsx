@@ -1,4 +1,4 @@
-// Reuses the production Web renderer. Reads one JSON request from stdin, writes evidence only.
+// Development diagnostics only. Explicit test dimensions are not device geometry evidence.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -11,10 +11,10 @@ async function main() {
   let input = "";
   for await (const chunk of process.stdin) input += chunk.toString();
   const payload = JSON.parse(input);
-  const width = payload.viewport?.width ?? (payload.size === "2x4" ? 300 : 150);
-  const height = payload.viewport?.height ?? 150;
+  const width = payload.viewport?.width;
+  const height = payload.viewport?.height;
   if (![width, height].every(value => typeof value === "number" && Number.isFinite(value) && value > 0 && value <= 4096)) {
-    throw new Error("Invalid measurement viewport");
+    throw new Error("Explicit test viewport width and height are required");
   }
   const layoutSize = payload.layoutSize || payload.size;
   const records = payload.source.trim().split(/\r?\n/).map((line: string) => JSON.parse(line));
@@ -218,7 +218,8 @@ async function main() {
       const estimatedTextIds = Object.keys(textReservations).filter(id => textReservations[id].reason === "estimated-current-glyphs");
       return { complete: occupied.length > 0, occupied, visible, unsafe, subjectAvoidance,
         buttonPolicy: "whole-button", buttonIds,
-        basis: "production-web-renderer", dynamicPolicy: "actual-glyphs-with-dynamic-margin",
+        basis: "explicit-test-viewport", deviceGeometryKnown: false,
+        dynamicPolicy: "actual-glyphs-with-dynamic-margin",
         dynamicTextReservation, textReservations, estimatedTextIds, horizontalGrowth, viewport: { width, height }, layoutSize,
         matchingConfidence: estimatedTextIds.length ? "heuristic-with-growth-margin" : "contract-or-static-glyphs", paddingVp: 2 };
     }, { modelById, textBounds, width, height, layoutSize, buttonIds: payload.buttonIds || [], dynamicTextReservation: payload.dynamicTextReservation || {} });

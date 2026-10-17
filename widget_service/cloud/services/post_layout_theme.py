@@ -1,8 +1,7 @@
-"""冻结 A2UI 后选择受控主题；几何未知时不使用图片。"""
+"""冻结 A2UI 后选择主题；无主体图按布局匹配，未知几何不放行有主体图。"""
 
 from __future__ import annotations
 
-import asyncio
 import copy
 import hashlib
 import json
@@ -25,14 +24,14 @@ from services.post_layout_theme_registry import (
     selection_rules,
     user_background_roles,
 )
-from services.theme_content_regions import button_ids
+from services.theme_content_regions import layout_evidence_reason, photo_layout_evidence
 from services.theme_layout_summary import (
     layout_summary,
     matches_subjectless_layout,
     theme_description,
 )
 from services.theme_selection_policy import default_palette_family, fusion_candidate_gate
-from services.theme_style_roles import COLOR_FIELDS, is_role, resolve_role, unpainted_document
+from services.theme_style_roles import COLOR_FIELDS, is_role, resolve_role
 
 PREFIX = "__post_theme_"
 FUSION_FOREGROUND_ID = build_fusion_ball_content_id("root")
@@ -95,62 +94,6 @@ def foreground_signature(source: str) -> str:
     return hashlib.sha256(serialized.encode()).hexdigest()
 
 
-async def measure(
-    source: str, size: str, *, data_model_schema: dict | None = None,
-    layout_size: str | None = None, viewports: list[dict] | None = None,
-) -> dict:
-    if viewports is None:
-        viewports = load_theme_registry().get("matching", {}).get("viewports", {}).get(size, [])
-    measurements = []
-    for viewport in viewports:
-        measurements.append(await _measure_viewport(
-            source, size, viewport, data_model_schema=data_model_schema, layout_size=layout_size,
-        ))
-    if not measurements:
-        return {"complete": False, "reason": "未配置自适应测量视口"}
-    return {**measurements[0], "responsive": measurements[1:]}
-
-
-async def _measure_viewport(
-    source: str, size: str, viewport: dict, *, data_model_schema: dict | None = None,
-    layout_size: str | None = None,
-) -> dict:
-    command = get_settings().post_layout_measure_command
-    if not command:
-        return {"complete": False, "reason": "未配置渲染测量器"}
-    process = await asyncio.create_subprocess_exec(
-        *command,
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    payload = json.dumps(
-        {
-            "source": unpainted_document(source),
-            "size": size,
-            "layoutSize": layout_size or size,
-            "buttonIds": button_ids(components(decode(source))),
-            "viewport": viewport,
-            "dataModelSchema": data_model_schema or {},
-            "dynamicTextReservation": load_theme_registry()
-            .get("matching", {}).get("dynamicTextReservation", {}),
-        },
-        ensure_ascii=False,
-    ).encode()
-    try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(payload), timeout=45)
-    except (TimeoutError, asyncio.CancelledError):
-        process.kill()
-        await process.communicate()
-        raise
-    if process.returncode:
-        raise ValueError("Renderer measurement failed: " + stderr.decode(errors="replace")[-800:])
-    evidence = json.loads(stdout)
-    if not isinstance(evidence, dict):
-        raise ValueError("Renderer evidence must be an object")
-    return evidence
-
-
 def schema_field_names(value: Any) -> list[str]:
     if not isinstance(value, dict):
         return []
@@ -193,22 +136,16 @@ def photo_reason(
     required_layout = photo.get("subjectlessLayout")
     if required_layout and not matches_subjectless_layout(final_layout, required_layout):
         return "无主体图片需要左侧主内容、右侧上下双槽的定稿布局"
-    measurements = [evidence, *evidence.get("responsive", [])]
-    if photo.get("measurementPolicy") == "whole-buttons-responsive":
-        expected = load_theme_registry().get("matching", {}).get("viewports", {})
-        actual = [item.get("viewport") for item in measurements]
-        if actual != expected.get(task.get("size")):
-            return "缺少完整自适应视口测量"
-        if any(item.get("buttonPolicy") != "whole-button" for item in measurements):
-            return "缺少完整按钮占用测量"
-    for measurement in measurements:
-        reason = _photo_geometry_reason(photo, measurement)
-        if reason:
-            return reason
+    reason = layout_evidence_reason(evidence)
+    if reason:
+        return reason
+    if photo.get("subjectless") is not True:
+        return "真实卡片宽高未知，无法确认主体与文字、完整按钮及图标避让"
     return None
 
 
 def _photo_geometry_reason(photo: dict, evidence: dict) -> str | None:
+    """开发诊断中的归一化避让检查，不作为云侧准入依据。"""
     if evidence.get("complete") is not True:
         return evidence.get("reason", "无法可靠测量内容")
     occupied = evidence.get("occupied")
@@ -481,15 +418,10 @@ async def select_theme(
     source: str, task: dict, client: Any, *, allow_expansion: bool = False,
     final_layout: str | None = None,
 ) -> tuple[str, dict]:
-    evidence = {"complete": False, "reason": "图片主题已关闭"}
+    evidence = {"basis": "layout-only", "complete": False, "deviceGeometryKnown": False,
+                "reason": "图片主题已关闭"}
     if get_settings().enable_photo_background_theme:
-        try:
-            evidence = await measure(
-                source, task.get("size", "2x2"),
-                data_model_schema=task.get("dataModelSchema", {}),
-            )
-        except (OSError, ValueError) as exc:
-            evidence = {"complete": False, "reason": str(exc)}
+        evidence = photo_layout_evidence(components(decode(source)))
     fusion_gate = fusion_candidate_gate(task, final_layout)
     candidates = [
         item for item in presets(task)
@@ -553,7 +485,8 @@ async def select_theme(
             "以下为本次最终主题选择合同，优先于上面原规则的默认推荐："
             "布局已定稿。只能从候选选择一个themeId，不输出色值、不改布局。"
             "选择顺序：用户明确要求的主题 > preferredExpansions > eligiblePhotos > 其它候选。"
-            "eligiblePhotos已通过业务、尺寸和各图片配置的布局/避让检查，"
+            "eligiblePhotos已通过业务、逻辑规格及无主体图片的布局条件，"
+            "云侧不知道实际卡片宽高，不声称已通过真实像素避让。"
             "不要因业务同时属于其它类别而跳过。"
             "没有用户指定其它主题且eligiblePhotos非空时，从eligiblePhotos中选择；"
             "否则严格按以下原融合方案规则选择，不额外偏好融球。"
@@ -621,7 +554,8 @@ async def select_theme(
         "themeId": selected,
         "theme": theme,
         "rejected": rejected,
-        "measurement": evidence,
+        "layoutEvidence": evidence,
+        "deviceGeometryKnown": False,
         "subjectlessWideGate": wide_audit,
         "fusionEligibility": fusion_gate,
         "defaultPalette": family,
@@ -629,6 +563,7 @@ async def select_theme(
         "selectorError": choice_error,
         "candidates": list(allowed),
         "geometryUnchanged": True,
+        "geometryCheckBasis": "foreground-structure",
         "foregroundSignature": foreground_signature(source),
         "sourceSize": task.get("size"),
         "outputSize": theme.get("size", task.get("size")),
@@ -688,36 +623,6 @@ async def theme_artifact(
     if audit.get("userColors"):
         audit["userColorContrastWarnings"] = [e for e in errors if e.startswith("VISUAL.CONTRAST")]
         errors = [e for e in errors if not e.startswith("VISUAL.CONTRAST")]
-    before_measure = audit.get("measurement", {})
-    if before_measure.get("complete") and theme.get("kind") in {"photo", "fusion"}:
-        try:
-            after_measure = await measure(
-                themed.genui, audit.get("outputSize", "2x2"),
-                data_model_schema=task.get("dataModelSchema", {}),
-                layout_size=task.get("size") if expanded else None,
-            )
-            if expanded:
-                from services.square_photo_expansion import same_square_geometry
-
-                reference_viewports = []
-                for view in [after_measure, *after_measure.get("responsive", [])]:
-                    viewport = view.get("viewport", {})
-                    reference_viewports.append({"width": viewport.get("width", 300) / 2,
-                                                "height": viewport.get("height", 150)})
-                expansion_before = await measure(
-                    source, task.get("size"), viewports=reference_viewports,
-                    data_model_schema=task.get("dataModelSchema", {}),
-                )
-                audit["expansionBeforeMeasurement"] = expansion_before
-                unchanged = same_square_geometry(expansion_before, after_measure)
-            else:
-                unchanged = same_visible_geometry(before_measure, after_measure)
-            audit["renderGeometryUnchanged"] = unchanged
-            audit["afterMeasurement"] = after_measure
-            if not unchanged:
-                errors.append("THEME.GEOMETRY: rendered text geometry changed")
-        except (OSError, ValueError) as exc:
-            errors.append("THEME.MEASUREMENT: " + str(exc))
     audit["finalValidationErrors"] = errors
     if errors:
         themed = artifact.model_copy(deep=True)

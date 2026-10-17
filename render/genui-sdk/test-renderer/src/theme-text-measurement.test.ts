@@ -14,7 +14,8 @@ function text(id: string, content: any, styles = {}) {
   } };
 }
 
-function measure(size: string, nodes: any[], schema = {}, data: any = { value: "23:15" }, rootStyles = {}) {
+function measure(size: string, nodes: any[], schema = {}, data: any = { value: "23:15" }, rootStyles = {},
+  viewport = { width: size === "2x4" ? 362 : 181, height: 181 }) {
   const source = [
     { version: "v0.9", createSurface: {
       surfaceId: "test", catalogId: "ohos.a2ui.extended.catalog.form",
@@ -27,7 +28,8 @@ function measure(size: string, nodes: any[], schema = {}, data: any = { value: "
     { version: "v0.9", updateDataModel: { surfaceId: "test", path: "/", value: { data } } },
   ].map(row => JSON.stringify(row)).join("\n");
   const result = spawnSync(process.execPath, [cli, "--tsconfig", config, entry], {
-    input: JSON.stringify({ source, size, dataModelSchema: { data: schema },
+    input: JSON.stringify({ source, size, viewport,
+      dataModelSchema: { data: schema },
       dynamicTextReservation: { mode: "contract-or-estimated" }, buttonIds: ["button"]
         .filter(id => nodes.some(node => node.id === id)),
     }),
@@ -39,6 +41,35 @@ function measure(size: string, nodes: any[], schema = {}, data: any = { value: "
 
 function close(actual: number, expected: number) {
   assert.ok(Math.abs(actual - expected) < 0.03, `${actual} != ${expected}`);
+}
+
+test("diagnostics require an explicit viewport instead of guessing from card size", () => {
+  const result = spawnSync(process.execPath, [cli, "--tsconfig", config, entry], {
+    input: JSON.stringify({ size: "2x4" }), encoding: "utf8", timeout: 45000,
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Explicit test viewport width and height are required/);
+});
+
+for (const [size, width, height, asset] of [
+  ["2x2", 163, 197, "bg_ux_sleep_square.jpg"],
+  ["2x4", 389, 181, "bg_ux_sport_center_wide.jpg"],
+] as const) {
+  test(`${size}: matchParent background fills a supplied nonstandard viewport`, { skip: !enabled }, () => {
+    const evidence = measure(size, [{ id: "photo", component: "Image",
+      src: `resources/base/media/${asset}`,
+      styles: { width: "matchParent", height: "matchParent", objectFit: "fill" },
+    }], {}, {}, { padding: 0 }, { width, height });
+    assert.equal(evidence.basis, "explicit-test-viewport");
+    assert.equal(evidence.deviceGeometryKnown, false);
+    assert.deepEqual(evidence.viewport, { width, height });
+    const photo = evidence.occupied.find((item: any) => item.id === "photo");
+    assert.ok(photo);
+    const imageRect = [photo.rect[0] + 2 / width, photo.rect[1] + 2 / height,
+      photo.rect[2] - 4 / width, photo.rect[3] - 4 / height];
+    [0, 0, 1, 1].forEach((value, index) => close(imageRect[index], value));
+    assert.deepEqual(evidence.unsafe, []);
+  });
 }
 
 function checkGrowth(evidence: any, id: string, anchor = "left") {
@@ -100,8 +131,8 @@ test("multiline dynamic content reserves each glyph line, not its row", { skip: 
   assert.ok(boxes.length > 1);
   assert.equal(reserved.length, boxes.length);
   for (let index = 0; index < boxes.length; index++) {
-    const width = boxes[index].rect[2] * 300;
-    close(reserved[index][2] * 300, width + Math.max(6, width * 0.15));
+    const width = boxes[index].rect[2] * evidence.viewport.width;
+    close(reserved[index][2] * evidence.viewport.width, width + Math.max(6, width * 0.15));
   }
 });
 
@@ -144,9 +175,9 @@ test("automatic numbers reserve downstream units and icons without moving them",
   assert.ok(growth > 0);
   const unit = evidence.visible.find((item: any) => item.id === "unit");
   const occupied = evidence.occupied.find((item: any) => item.id === "unit");
-  close(occupied.rect[2], unit.rect[2] + 4 / 300 + growth);
+  close(occupied.rect[2], unit.rect[2] + 4 / evidence.viewport.width + growth);
   const icon = evidence.occupied.find((item: any) => item.id === "icon");
-  close(icon.rect[2], 24 / 300 + growth);
+  close(icon.rect[2], 24 / evidence.viewport.width + growth);
 });
 
 test("whole buttons remain occupied, independent of their short labels", { skip: !enabled }, () => {
@@ -157,6 +188,6 @@ test("whole buttons remain occupied, independent of their short labels", { skip:
   ]);
   assert.equal(evidence.buttonPolicy, "whole-button");
   const button = evidence.occupied.find((item: any) => item.kind === "button");
-  close(button.rect[2] * 300, 124);
-  close(button.rect[3] * 150, 44);
+  close(button.rect[2] * evidence.viewport.width, 124);
+  close(button.rect[3] * evidence.viewport.height, 44);
 });

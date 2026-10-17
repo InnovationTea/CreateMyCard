@@ -70,7 +70,6 @@ class Settings(BaseSettings):
     enable_photo_background_theme: bool = (
         CONFIG.get("enable_photo_background_theme", "false") == "true"
     )
-    post_layout_measure_command: list[str] = Field(default_factory=list)
     enable_subjectless_wide_theme: bool = (
         CONFIG.get("enable_subjectless_wide_theme", "false") == "true"
     )

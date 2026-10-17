@@ -6,6 +6,7 @@ import unicodedata
 from config.config import get_settings
 from services.post_layout_theme_registry import registered_themes
 from services.square_photo_expansion import SLEEP_FIELDS
+from services.theme_content_regions import layout_evidence_reason
 
 
 def matching_businesses(task: dict) -> set[str]:
@@ -58,6 +59,4 @@ def background_reason(photo: dict, task: dict, evidence: dict, gate: dict) -> st
     dimensions = ("slotWidth", "slotHeight", "imageWidth", "imageHeight")
     if any(frame.get(key, 1) != 1 for key in dimensions):
         return "不允许运行态裁切或定位"
-    if not evidence.get("complete"):
-        return "布局测量未完成"
-    return None
+    return layout_evidence_reason(evidence)

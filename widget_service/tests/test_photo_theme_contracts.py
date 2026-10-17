@@ -72,13 +72,13 @@ def test_capsules_and_round_buttons_both_occupy_the_whole_area():
 
 def test_subject_avoidance_cannot_use_legacy_capsule_exemptions():
     photo = {"size": "2x2", "business": "weather", "subjectBounds": [.6, .1, .4, .6]}
-    task = {"size": "2x2", "userQuery": "天气"}
     content = {"id": "title", "rect": [.1, .1, .3, .1]}
     capsule = {"id": "pill_text", "rect": [.1, .5, .8, .2]}
     evidence = {"complete": True, "occupied": [content, capsule], "subjectAvoidance": [content]}
-    assert "冲突" in themes.photo_reason(photo, task, evidence)
-    assert "冲突" in themes.photo_reason(photo, task, {**evidence, "subjectAvoidance": [capsule]})
-    assert themes.photo_reason(photo, task, {**evidence, "complete": False}) is not None
+    assert "冲突" in themes._photo_geometry_reason(photo, evidence)
+    changed = {**evidence, "subjectAvoidance": [capsule]}
+    assert "冲突" in themes._photo_geometry_reason(photo, changed)
+    assert themes._photo_geometry_reason(photo, {**evidence, "complete": False}) is not None
 
 
 def test_expansion_only_adds_half_width_wrapper_and_background():

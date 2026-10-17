@@ -44,7 +44,7 @@ _THEME = {
         "name": _TEXT, "description": _TEXT, "sizes": _SIZES,
         "sourceSize": {"enum": ["2x2"]},
         "businessDescription": _TEXT,
-        "measurementPolicy": {"const": "whole-buttons-responsive"},
+        "matchingPolicy": {"const": "layout-only"},
         "subjectless": {"type": "boolean"},
         "subjectlessLayout": {
             "type": "object", "required": ["layout", "orientation"],
@@ -138,6 +138,8 @@ def _validate_theme(theme: dict) -> None:
 
 
 def _validate_photo(theme: dict) -> None:
+    if "measurementPolicy" in theme:
+        raise ValueError("Runtime photo matching must not depend on device measurements")
     pool = theme.get("pool")
     sizes = theme.get("sizes", [])
     if len(sizes) != 1 or (pool != "photos" and sizes != ["2x4"]):
@@ -157,9 +159,7 @@ def _validate_photo(theme: dict) -> None:
         if regions is not None:
             _check(regions, {"type": "array", "minItems": 1, "items": rectangle}, "subjectRegions")
     if theme.get("composition") == "native":
-        _check(theme.get("measurementPolicy"), {"const": "whole-buttons-responsive"},
-               "measurementPolicy")
-    if theme.get("measurementPolicy") == "whole-buttons-responsive":
+        _check(theme.get("matchingPolicy"), {"const": "layout-only"}, "matchingPolicy")
         _validate_native_photo(theme)
     if pool == "squareExpansions":
         if theme.get("sourceSize") != "2x2" or theme.get("composition") != "square-left":
@@ -208,16 +208,12 @@ def validate_registry(payload: dict) -> None:
             raise ValueError(f"Duplicate theme ID: {identity}")
         by_id[identity] = theme
     _validate_selection(payload.get("selection"), by_id)
-    _check(payload.get("matching"), {"type": "object"}, "matching")
-    viewports = payload.get("matching", {}).get("viewports")
-    viewport = {"type": "object", "required": ["width", "height"],
-                "additionalProperties": False,
-                "properties": {axis: {"type": "integer", "minimum": 1, "maximum": 4096}
-                               for axis in ("width", "height")}}
-    _check(viewports, {"type": "object", "required": ["2x2", "2x4"],
-                       "additionalProperties": {"type": "array", "minItems": 2,
-                                                "uniqueItems": True, "items": viewport}},
-           "matching.viewports")
+    _check(payload.get("matching"), {
+        "type": "object", "additionalProperties": False,
+        "required": ["mode", "unknownGeometryPolicy"],
+        "properties": {"mode": {"const": "layout-only"},
+                       "unknownGeometryPolicy": {"const": "reject-subject-photos"}},
+    }, "matching")
     overrides = payload.get("userColorOverrides")
     _check(overrides, {"type": "object", "required": ["namedColors", "neutralLight",
                                                      "neutralDark", "legacyPanelColors"],
