@@ -54,6 +54,15 @@ _FULL_TEXT_QUERY = re.compile(
     r"\b(?:full\s+text|without\s+(?:truncation|ellipsis))\b",
     re.IGNORECASE,
 )
+_TIME_NOTES_ALL_QUERY = re.compile(r"各是|(?:每|各)(?:条|项|场)|逐条|逐项|各自")
+_TIME_NOTES_NEGATED_LIST_QUERY = re.compile(
+    r"(?:不要|无需|不必|不用|不需要|别|不)(?:再)?(?:显示|展示|列出|看|列|按|用)?"
+    r"(?:全部|所有|每(?:个|条|项|场)|各(?:个|条|项|场)|逐条|逐项|各自|列表|清单)"
+)
+_TIME_NOTES_FIRST_ONLY_QUERY = re.compile(
+    r"(?:只|仅)(?:要|需|需要|看|显示|展示|保留)?"
+    r"(?:首|下(?:一)?(?:个|条|项|场)|最近的?(?:一|1|日程|会议|活动|安排))"
+)
 
 
 @dataclass(frozen=True)
@@ -98,6 +107,12 @@ _LIST_SHAPES = (
         ("description",),
         with_count=True,
     ),
+)
+_THREE_TIME_NOTES_SHAPE = _ListShape(
+    "ScheduleOverviewEventCountThreeTimeNotesWideFull@1",
+    3,
+    ("dtStart", "description"),
+    with_count=True,
 )
 
 
@@ -175,6 +190,13 @@ def plan_calendar_list_no_action_fallback(
 
 
 def _select_list_shape(intent: TemplateSearchIntent, query: str) -> _ListSelection | None:
+    selection = _select_existing_list_shape(intent, query)
+    if selection is None:
+        selection = _select_three_time_notes_shape(intent, query)
+    return selection
+
+
+def _select_existing_list_shape(intent: TemplateSearchIntent, query: str) -> _ListSelection | None:
     result: _ListSelection | None = None
     original = intent.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID, ())
     requested = frozenset(original)
@@ -197,6 +219,35 @@ def _select_list_shape(intent: TemplateSearchIntent, query: str) -> _ListSelecti
         normalized = intent.model_copy(update={"required_output_fields_by_capability": required})
         result = _ListSelection(shape, normalized)
         break
+    return result
+
+
+def _select_three_time_notes_shape(
+    intent: TemplateSearchIntent, query: str
+) -> _ListSelection | None:
+    """只补齐明确逐条的时间和备注；候选标题、结束时间不变成额外展示。"""
+    result: _ListSelection | None = None
+    if not (_ALL_EVENTS_QUERY.search(query) or _TIME_NOTES_ALL_QUERY.search(query)):
+        return result
+    if _QUERY_ROW_LIMIT.search(query) or _TIME_NOTES_FIRST_ONLY_QUERY.search(query):
+        return result
+    if _TIME_NOTES_NEGATED_LIST_QUERY.search(query):
+        return result
+    original = intent.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID, ())
+    requested = frozenset(original)
+    shape = _THREE_TIME_NOTES_SHAPE
+    if requested == shape.required_fields():
+        return _ListSelection(shape, intent)
+    if not _uniform_partial_list(requested, shape):
+        return result
+    expanded = list(original)
+    for path in shape.ordered_fields():
+        if path not in requested:
+            expanded.append(path)
+    required = dict(intent.required_output_fields_by_capability)
+    required[CALENDAR_CAPABILITY_ID] = tuple(expanded)
+    normalized = intent.model_copy(update={"required_output_fields_by_capability": required})
+    result = _ListSelection(shape, normalized)
     return result
 
 

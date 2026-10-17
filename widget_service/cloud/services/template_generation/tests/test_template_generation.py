@@ -428,6 +428,7 @@ def test_business_template_suffix_or_declaration_drives_size_and_data_tiers():
         "BluetoothDeviceOverviewConnectionBatterySupport@1": ("2x4",),
         "BluetoothDeviceOverviewMusicSupport@1": ("2x4",),
         "WeatherOverviewThreeDayForecastFull@1": ("2x4",),
+        "ScheduleOverviewDateTitleFull@1": ("2x4",),
     }
     layout_kinds = {
         "HeroTitle",
@@ -1319,7 +1320,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 51
+    assert len(calendar.local_template_ids) == 56
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -3628,7 +3629,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 51
+    assert len(calendar.local_template_ids) == 56
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
