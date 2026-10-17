@@ -15,7 +15,7 @@
 | Renderer | `render/genui-sdk/renderer/src/` | `debug_tools/card_renderer/runtime/renderer/src/` | 由 `sync:renderer-runtime` 确定性同步。registry、`renderTree`、动态子节点、循环或 TextInput 写回行为变化时同步。 |
 | 视觉 Recipe | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json` | 由云侧 Python 高阶组件模块读取 | 单一真实来源，不复制。Recipe 版本、组件参数或布局几何变化会立即影响构建，需同步适配展开逻辑和测试期望。 |
 | 布局契约 | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/layout-contracts-v1.json` | 当前不被浏览器运行时直接导入 | 间接契约。更新后应检查生成 DSL 是否引入新布局字段，并评估 parser、components、renderer 是否需要同步；不要为它创建本地副本。 |
-| 卡片素材 | `render/platform/public/resources/` | Python `/resources/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。新增或替换素材会直接生效；目录迁移时必须同时修改 `debug_tools/static_site.py`、`debug_tools/platform/vite.config.ts` 和资源兼容测试。 |
+| 卡片素材 | 根目录 `resources/`，按云侧素材清单同步到 `render/platform/public/resources/` | Python `/resources/...` 路由和 Vite 本地中间件直接读取共享目录 | 使用 `scripts/sync_assets.py --sync` 更新登记素材；运行时不复制到 dist。目录迁移时同步静态路由与 Vite 中间件。 |
 | 背景素材 | `render/platform/public/background_assets/` | Python `/background_assets/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。目录或命名规则变化时同步两套服务入口和测试。 |
 | Concert One 字体 | `render/platform/public/fonts/ConcertOne-Regular.ttf` | `debug_tools/card_renderer/frontend/src/assets/ConcertOne-Regular.ttf` | 二进制副本。源文件哈希变化时重新复制并执行 Vite build。 |
 | HarmonyOS 字体 | `render/platform/public/fonts/harmonyos/` | CSS `/fonts/harmonyos/` 引用、Python 资源路由和 Vite 本地中间件 | 实时目录依赖，不复制。字体目录变化时同步 `styles.css`、`debug_tools/static_site.py` 和两处 Vite 配置。 |
@@ -137,3 +137,19 @@ git diff --check
 还需用浏览器至少检查一张基础组件卡、一张高阶组件卡、一张含本地图片的卡、一次点击动作和一次
 TextInput/DataModel 编辑；检查桌面与窄屏布局，并确认控制台没有新增错误。同步提交或交付说明中应记录
 上游 Git 版本、实际同步的映射项、保留的本地差异和验证结果，作为下一次同步的比较基线。
+
+## 云侧登记素材同步
+
+云侧各能力快照 `asset_capabilities.json` 的 `src` 是同步范围，源文件位于仓库根目录 `resources/`。
+在仓库根目录执行：
+
+```powershell
+.\.venv\Scripts\python.exe debug_tools/scripts/sync_assets.py --sync
+.\.venv\Scripts\python.exe debug_tools/scripts/sync_assets.py --check
+```
+
+脚本按 src 去重，先确认源文件完整，再原样补齐或覆盖浏览器共享目录与真机工程
+`debug_tools/a2ui_render/entry/src/main/resources/base/media/`，不修改素材路径或文件名大小写。
+不删除清单外的应用图标等工程资源。`--check` 逐文件比较 SHA-256，缺失或内容不同返回非零。
+当前清单为 141 张，两端各有 141 张登记素材，摘要与源文件一致。浏览器资源实时读取，无需复制到 dist；
+真机须重新构建 HAP，资源变化会使设备构建缓存失效。

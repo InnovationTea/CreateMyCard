@@ -52,3 +52,11 @@ hdc hilog -x -T A2UIRunner -e manual-001 -v wrap
 ```
 
 终态为 `READY`、`READY_WITH_WARNINGS` 或 `FAILED`。`READY` 日志中的 `cropPx` 是相对物理屏幕的裁剪矩形。直接点击启动 App 时，会在默认 `150×150vp` 容器中加载 `resources/rawfile/test.json`。
+
+## 图片素材
+
+本工程的 `entry/src/main/resources/base/media/` 按微服务能力清单同步，源图片来自仓库根目录 `resources/`。
+在仓库根目录运行 `.\.venv\Scripts\python.exe debug_tools/scripts/sync_assets.py --sync`，
+再运行相同脚本的 `--check`，同时核对浏览器共享素材和本工程文件的 SHA-256。
+登记的 141 张素材原样复制，保留原始路径和大小写，不删除清单外的工程图标。
+更新资源后重新执行截图会重新构建并安装 HAP；历史截图不会自动更新。
