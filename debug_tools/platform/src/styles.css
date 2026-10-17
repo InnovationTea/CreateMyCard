@@ -464,8 +464,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 }
 
 @media (max-width: 760px) {
-  .workbench-shell { display: block; position: relative; }
-  .navigation-rail { position: relative; z-index: 10; display: flex; width: 100%; height: 104px; min-height: 104px; padding: 5px 12px 3px; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+  .workbench-shell { display: flex; flex-direction: column; position: relative; }
+  .navigation-rail { position: relative; z-index: 10; display: flex; flex: 0 0 auto; width: 100%; height: auto; min-height: 104px; padding: 5px 12px 3px; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
   .brand-lockup { align-items: center; padding: 0 4px 6px; }
   .brand-lockup .brand-mark { width: 28px; height: 28px; font-size: 11px; }
   .brand-lockup strong { font-size: 12px; }
@@ -477,7 +477,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .nav-item strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
   .nav-item small { display: none; }
   .rail-footer { display: none; }
-  .workbench-main { height: calc(100dvh - 104px); }
+  .workbench-main { height: auto; }
   .route-content { padding: 0; }
   .history-mobile-toggle { display: inline-block; }
   .call-history { display: flex; flex: 0 0 28px; width: 100%; height: 28px; min-height: 28px; margin: 0; overflow: visible; border: 0; background: transparent; box-shadow: none; }

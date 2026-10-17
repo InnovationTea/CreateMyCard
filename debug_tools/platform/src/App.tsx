@@ -6,6 +6,7 @@ import SettingsPanel from './components/SettingsPanel';
 import { EndToEndRoute } from './routes/EndToEndRoute';
 import { InterfaceRoute } from './routes/InterfaceRoute';
 import { RendererRoute } from './routes/RendererRoute';
+import { DslValidationRoute } from './routes/DslValidationRoute';
 import { BatchRoute } from './routes/BatchRoute';
 import { BatchTraceRoute } from './routes/BatchTraceRoute';
 import { BatchTaskCenterRoute } from './routes/BatchTaskCenterRoute';
@@ -23,6 +24,7 @@ const navigation = [
   { path: '/end-to-end', label: '端到端调试', detail: 'Main Agent · Agent 调试' },
   { path: '/interface', label: '接口调试', detail: 'WebSocket · API 调试' },
   { path: '/renderer', label: '卡片渲染', detail: 'GenUI · 预览检查' },
+  { path: '/dsl-validation', label: 'DSL 校验', detail: '粘贴源码 · 错误定位 · 预览' },
   { path: '/batch', label: '批量测试', detail: '数据集 · Trace 分析' },
   { path: '/quality', label: '质量评分', detail: '样本选择 · 评分与对比' },
   { path: '/settings', label: '连接配置', detail: '地址 · 固定参数' },
@@ -78,6 +80,7 @@ function Shell() {
             <Route path="/end-to-end" element={null} />
             <Route path="/interface" element={<InterfaceRoute />} />
             <Route path="/renderer" element={<RendererRoute />} />
+            <Route path="/dsl-validation" element={<DslValidationRoute />} />
             <Route path="/batch" element={<BatchTaskCenterRoute />} />
             <Route path="/batch/new" element={<BatchTaskCreateRoute />} />
             <Route path="/batch/tasks/:taskId" element={<BatchRoute />} />

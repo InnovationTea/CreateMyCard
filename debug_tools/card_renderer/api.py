@@ -27,6 +27,10 @@ def register_renderer_conversion_routes(app: FastAPI) -> None:
 
     ensure_cloud_import_path()
 
+    from debug_tools.card_renderer.validation import register_validation_routes
+
+    register_validation_routes(app)
+
     from services.compact_dsl_a2ui_converter import (
         CompactDslConversionError,
         ComponentRow,

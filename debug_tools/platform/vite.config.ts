@@ -107,6 +107,9 @@ export default defineConfig({
       '/debug/renderer/convert': {
         target: 'http://127.0.0.1:8888',
       },
+      '/debug/renderer/validate': {
+        target: 'http://127.0.0.1:8888',
+      },
       '/debug/batch': {
         target: 'http://127.0.0.1:8888',
       },
