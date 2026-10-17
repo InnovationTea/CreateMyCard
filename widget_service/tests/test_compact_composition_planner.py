@@ -12,7 +12,7 @@ def test_anchor_candidate_uses_circle_button_from_plan_preference() -> None:
             {
                 "requirement": "会议提醒",
                 "dataId": "/data/calendar/reminder",
-                "componentHints": ["SecondaryBody"],
+                "componentHints": ["EmphasisText"],
             },
             {
                 "requirement": "更新时间",
@@ -35,7 +35,7 @@ def test_anchor_candidate_uses_circle_button_from_plan_preference() -> None:
                     "reminder": {
                         "type": "string",
                         "description": "会议提醒摘要",
-                        "sampleValue": "重要日程，提前15分钟提醒",
+                        "sampleValue": "会议提醒",
                     }
                 },
                 "meta": {
@@ -59,22 +59,27 @@ def test_anchor_candidate_uses_circle_button_from_plan_preference() -> None:
 
     result = feasible_composition_candidates("2x2", plan, task)
 
-    assert result["status"] == "reference_candidates"
-    assert result["candidates"][0]["layout"] == "S-title-anchor"
-    groups = [
-        group
-        for region in result["candidates"][0]["regions"]
-        for group in region["groups"]
-    ]
+    assert result.get("status") == "reference_candidates"
+    candidates = result.get("candidates")
+    assert isinstance(candidates, list) and candidates
+    candidate = candidates[0]
+    assert candidate.get("layout") == "S-title-anchor"
+    regions = candidate.get("regions")
+    assert isinstance(regions, list)
+    groups = []
+    for region in regions:
+        region_groups = region.get("groups")
+        assert isinstance(region_groups, list)
+        groups.extend(region_groups)
     action = next(group for group in groups if group.get("actionId"))
-    assert action["component"] == "CircleButton"
-    assert action["accessibilityLabel"] == "打开免打扰设置"
-    assert action["requiresAccurateIcon"] is True
-    blueprint = composition_structure_blueprint("2x2", result["candidates"][0])
+    assert action.get("component") == "CircleButton"
+    assert action.get("accessibilityLabel") == "打开免打扰设置"
+    assert action.get("requiresAccurateIcon") is True
+    blueprint = composition_structure_blueprint("2x2", candidate)
     blueprint_action = next(
         item for item in blueprint if item.get("component") == "CircleButton"
     )
-    assert blueprint_action["groupParameters"] == {
+    assert blueprint_action.get("groupParameters") == {
         "accessibilityLabel": "打开免打扰设置",
         "requiresAccurateIcon": True,
     }

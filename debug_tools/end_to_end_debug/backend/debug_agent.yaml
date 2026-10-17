@@ -25,7 +25,7 @@ model:
   design_compact_model_backend: openai
   openai_master_client: llmclient
   openai_fallback_client: llmclient
-  enable_model_failure_retry: false
+  enable_model_failure_retry: true
   enable_openai_fallback: false
   model_failure_max_retry_attempts: 1
   fallback_model_failure_max_retry_attempts: 1
@@ -55,15 +55,15 @@ model:
 # 本地受管微服务始终在回环地址上使用运行时分配的空闲端口。
 batch_testing:
   concurrency: 4
-  max_retries: 1
+  max_retries: 0
   request_timeout_seconds: 300
   service_startup_timeout_seconds: 30
   enable_generation_trace_recording: true
   trace_root: workspace/traces
-  enable_a2ui_model_mock: true
-  enable_validation_failure_retry: false
-  validation_failure_max_repair_attempts: 1
-  enable_compact_dsl_interface_retry: false
+  enable_a2ui_model_mock: false
+  enable_validation_failure_retry: true
+  validation_failure_max_repair_attempts: 5
+  enable_compact_dsl_interface_retry: true
   compact_dsl_interface_retry_count: 1
   enable_artifact_validation: true
   enable_artifact_download_mock: true

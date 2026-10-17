@@ -20,3 +20,17 @@ CORE_INFORMATION_COMPONENT_TYPES = frozenset(
         "TopTextBottomValue",
     }
 )
+
+SHARED_FACT_COMPONENTS = (
+    "SingleLineTitle", "DoubleLineTitle", "Badge", "EmphasizedData", "EmphasisText",
+    "SecondaryBody", "InfoBlock", "H_BarChart", "NumericRatioStack", "ProgressCircleSingle",
+    "ProgressCircle", "TableText", "EventCard", "PillButton",
+)
+
+MODEL_COMPONENT_TYPES_BY_SIZE = {
+    "2x2": (*SHARED_FACT_COMPONENTS, "DataDisplay", "CircleButton"),
+    "2x4": (
+        *SHARED_FACT_COMPONENTS, "ProgressLine2", "TextBlock", "CardButton",
+        "TopTextBottomValue", "SummaryList",
+    ),
+}

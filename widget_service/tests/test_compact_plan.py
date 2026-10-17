@@ -648,7 +648,7 @@ def test_dual_action_plan_tool_only_offers_the_unique_layout() -> None:
     }
 
 
-def test_dual_action_plan_is_normalized_to_compact_content_and_pill_buttons() -> None:
+def test_dual_action_plan_preserves_content_hints_and_normalizes_buttons() -> None:
     payload = {
         "name": "submit_card_plan",
         "arguments": {
@@ -687,12 +687,13 @@ def test_dual_action_plan_is_normalized_to_compact_content_and_pill_buttons() ->
         dual_action_task_spec(),
     )
 
-    assert result.plan["layoutHints"] == ["S-content-dual-action"]
-    facts = result.plan["info_required"]
-    assert facts[0]["componentHints"] == ["TableText"]
-    assert facts[1]["componentHints"] == ["TableText"]
-    assert facts[2]["componentHints"] == ["PillButton"]
-    assert facts[3]["componentHints"] == ["PillButton"]
+    assert result.plan.get("layoutHints") == ["S-content-dual-action"]
+    facts = result.plan.get("info_required")
+    assert isinstance(facts, list)
+    assert facts[0].get("componentHints") == ["ProgressCircleSingle", "EmphasizedData"]
+    assert facts[1].get("componentHints") == ["SecondaryBody", "TableText"]
+    assert facts[2].get("componentHints") == ["PillButton"]
+    assert facts[3].get("componentHints") == ["PillButton"]
 
 
 def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
@@ -750,7 +751,7 @@ def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
     }
 
 
-def test_action_coverage_reports_exact_event_argument_mismatch() -> None:
+def test_action_coverage_accepts_equivalent_switch_flag() -> None:
     spec = dual_action_task_spec()
     plan = {
         "info_required": [
@@ -774,10 +775,7 @@ def test_action_coverage_reports_exact_event_argument_mismatch() -> None:
 
     errors = compact_plan_coverage_errors(source, plan, spec)
 
-    assert len(errors) == 1
-    assert '"switchFlag":0' in errors[0]
-    assert '"switchFlag":1' in errors[0]
-    assert "do not infer, invert, or rewrite parameter values" in errors[0]
+    assert not errors
 
 
 def test_plan_tool_requires_explicit_asset_assignments_for_candidates() -> None:

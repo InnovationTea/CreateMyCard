@@ -11,6 +11,7 @@ from services.card_validation.compact_validation.model_feedback import compact_i
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
+    compact_text_block_capacity_context,
     composition_implementation_conflicts,
     composition_recovery_context,
     repair_action_labels,
@@ -24,6 +25,11 @@ from services.compact_composition_planner import (
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
+from services.compact_plan_output import (
+    PLAN_JSON_OUTPUT_INSTRUCTION,
+    plan_output_format_feedback,
+)
+from services.compact_repair_context import joint_repair_contract
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
 _MODULE = "[Prompt Builder]"
@@ -1719,7 +1725,12 @@ class PromptBuilder:
             "这是同一条生成对话的第一阶段。Plan 未被工具结果接受前，只能提交"
             ' {"name":"submit_card_plan","arguments":{...}}；'
             "收到 submit_card_plan 成功结果后，按后续消息继续生成 Compact DSL。"
+            f"\n{PLAN_JSON_OUTPUT_INSTRUCTION}"
         )
+        if "# TextBlock 槽位容量合同" not in effective_system_prompt:
+            capacity_contract = compact_text_block_capacity_context(task_spec.size)
+            if capacity_contract:
+                effective_system_prompt += f"\n\n{capacity_contract}"
         return [
             {"role": "system", "content": effective_system_prompt},
             {"role": "user", "content": generation_user_content},
@@ -1727,7 +1738,7 @@ class PromptBuilder:
                 "role": "user",
                 "content": (
                     "<agent_stage>plan</agent_stage>\n"
-                    "先提交一个 submit_card_plan JSON 工具调用包。"
+                    f"{PLAN_JSON_OUTPUT_INSTRUCTION}"
                     "本阶段不要输出 Compact DSL、Markdown 或解释。"
                 ),
             },
@@ -1760,7 +1771,10 @@ class PromptBuilder:
                             "ok": False,
                             "errors": list(errors),
                         },
+                        "outputFormat": plan_output_format_feedback(invalid_output),
                         "instruction": (
+                            PLAN_JSON_OUTPUT_INSTRUCTION
+                            + " "
                             "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
                             "但应移除模型自行新增且用户未要求的装饰标题事实。"
                             "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
@@ -1910,6 +1924,9 @@ class PromptBuilder:
             compact_plan,
             include_examples=include_examples,
         )
+        capacity_contract = compact_text_block_capacity_context(task_spec.size)
+        if capacity_contract:
+            system_prompt = f"{system_prompt}\n\n{capacity_contract}"
         if compact_plan is not None:
             runtime_prompt_context_enabled = (
                 get_settings().enable_design_compact_runtime_prompt_context
@@ -2063,6 +2080,15 @@ class PromptBuilder:
                 payload["instruction"] += f" 本轮修复路由：{strategy_instruction.strip()}"
         if is_design_compact:
             omissions = _approved_omissions(compact_plan, repair_strategy)
+            if compact_plan is not None and task_spec is not None:
+                payload["repairObligations"] = joint_repair_contract(
+                    compact_plan, task_spec.model_dump(mode="json"), omissions
+                )
+                payload["instruction"] += (
+                    " repairObligations 按已接受合同列出本轮联动核对项；"
+                    "按scope修复后同时核对结构、保留事实、完整动作、素材归属和各区容量，"
+                    "不以某一条错误消失代替整体通过。"
+                )
             if omissions:
                 payload["approvedOmissions"] = omissions
                 payload["instruction"] += (

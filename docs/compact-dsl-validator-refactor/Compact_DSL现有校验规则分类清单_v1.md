@@ -1,5 +1,15 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-17：纯双动作布局与开关事件比较补充：
+
+| 检查项 | 分类与实际落点 | 归属理由及边界 |
+|---|---|---|
+| actions-only 结构与几何 | 共享语义布局编译 `compact_semantic_layout.py`、布局合同 | 只增加同名布局的无内容变体，按钮尺寸与标准内容变体不变 |
+| actions-only 必要事实授权 | 语义／跨文件一致性，`semantic/plan_contracts.py` | 已接受 Plan 必须恰好两个不同动作且无展示事实，不豁免覆盖检查 |
+| 组件槽位角色与确定容量下界 | 生成侧共享 `compact_slot_compatibility.py`，组合候选复用 | 读取既有布局和 Recipe；未知不判可行，不新增发布错误码或复制几何校验 |
+| 设置开关整数标记等价 | 语义／有效能力，`semantic/effective.py`；共享比较 `event_matching.py` | 仅同一合法设置开关的 0/1 等价，Plan 覆盖、素材和最终产物共用，其他字段精确比较 |
+
+
 > 2026-10-12 Fusion 融合修订：本文原有数量、源码位置和验证结果描述融合前版本。当前分支同步 main `69c153f5`；本次按用户要求将 PR 净差异压成单个提交，SVG 填色按用户要求保留 PR497 前规则，迁移去向与实际验证见 [Fusion 融合记录](Compact_DSL_Fusion融合记录.md)。旧规则不得因目录合并重新启用。
 
 - 日期：2026-09-30
@@ -10,6 +20,26 @@
 
 
 ## Fusion 融合后的当前生效约定
+
+2026-10-17：2×2 单业务唯一只读详情支持服务端派生的整卡动作承载。
+compact_whole_card_click.py 只提供已登记动作、对象与用户按钮要求的共享适用性合同，
+compact_plan.py 在接受阶段保留动作事实并派生 wholeCardActionId，不由模型自行授权。
+根点击与完整 handler、唯一入口、按钮素材的一致性归语义／跨文件一致性，落点
+semantic/plan_contracts.py；布局动作槽计数仍归语义／布局，委托 compact_layout_runtime.py，
+api.py 仅透传复核后的 handler，不复制适用性或计数判定。组件、绑定、容量及端侧事件协议不变；
+无已接受整卡上下文、2×4、模板与无 Plan 路径继续原合同。
+
+2026-10-17：请求内跨结构、容量、覆盖与动作素材的联合重组归生成修复编排，
+由 compact_repair_strategy.py 消费历史类别及源稿拓扑摘要；compact_repair_context.py
+仅提取拓扑和已接受合同摘要，不产生校验错误。PromptBuilder 交接联合核对清单。
+结构、事实、动作、素材及几何的判定、严重级别、顺序和 Drop 授权均保留原归属与行为。
+
+2026-10-17：TextBlock 槽位容量属于生成合同与组合建议，宽度参数仍由
+compact_component_runtime.py 的 Recipe 提供，compact_composition_context.py 交接实际槽宽，
+compact_composition_planner.py 共用最小宽度合同；不改语义／布局的横向预算判定。
+组件树的重复引用、多父引用、空容器仍归语法／组件；不可达等编译检查保留原落点。
+compact_repair_strategy.py 仅消费已有诊断与兼容说明，统一路由至布局结构重组；
+不在修复路由复制判定、不新增校验项或错误码。
 
 2026-10-16：修复语义布局展开重新解析时遗漏模板来源上下文的问题（issue #570）。
 组件类型白名单仍属语法／组件，唯一判定位置为 compact_dsl_a2ui_converter.py 的

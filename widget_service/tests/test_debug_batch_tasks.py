@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 from typing import Any
 
 import pytest
@@ -10,6 +12,7 @@ from debug_tools.batch_testing import service_manager
 from debug_tools.batch_testing.api import register_batch_routes
 from debug_tools.batch_testing.runner import (
     BatchRunManager,
+    BatchRunState,
     apply_request_overrides,
 )
 from debug_tools.batch_testing.service_manager import (
@@ -138,6 +141,45 @@ def _task_payload(dataset_id: str) -> dict[str, Any]:
     }
 
 
+@pytest.mark.parametrize("backend_mode", ["managed", "deployed"])
+def test_retry_snapshot_is_frozen_for_each_run_and_not_inferred_for_deployed(
+    tmp_path, backend_mode,
+):
+    datasets_root = tmp_path / "Datasets"
+    _write_dataset(datasets_root, "request_dataset")
+    manager = BatchTaskManager(
+        datasets_root, tmp_path / "output", tmp_path / "traces", tmp_path / "cloud",
+        service_controller=FakeServiceController(),
+    )
+    payload = _task_payload("request_dataset")
+    payload["backendMode"] = backend_mode
+    if backend_mode == "managed":
+        payload["serviceConfig"] = {
+            "enableCompactDslInterfaceRetry": True, "compactDslInterfaceRetryCount": 2,
+            "enableValidationFailureRetry": True, "validationFailureMaxRepairAttempts": 5,
+        }
+    task = manager.create_task(payload)
+    task_id = task.get("taskId")
+    assert isinstance(task_id, str)
+    execution = manager.enqueue(task_id)
+    run_id = execution.get("runId")
+    assert isinstance(run_id, str)
+    snapshot = execution.get("retryConfigSnapshot")
+    assert isinstance(snapshot, dict)
+    if backend_mode == "deployed":
+        assert snapshot == {}
+    else:
+        assert snapshot.get("qualityRepairMaxAttempts") == 5
+        path = tmp_path / "output/tasks" / f"{task_id}.json"
+        persisted = json.loads(path.read_text(encoding="utf-8"))
+        config = persisted.get("serviceConfig")
+        assert isinstance(config, dict)
+        config["validationFailureMaxRepairAttempts"] = 3
+        path.write_text(json.dumps(persisted), encoding="utf-8")
+        run = manager.get_run(run_id)
+        assert run.get("retryConfigSnapshot", {}).get("qualityRepairMaxAttempts") == 5
+
+
 def test_dataset_root_lists_direct_child_folders_only(tmp_path: Path) -> None:
     datasets_root = tmp_path / "Datasets"
     dataset = _write_dataset(datasets_root, "request_dataset")
@@ -193,9 +235,7 @@ def test_request_overrides_update_public_fields_without_mutating_source() -> Non
 
 
 def test_service_defaults_never_return_sensitive_keys(tmp_path: Path) -> None:
-    config_path = (
-        tmp_path / "debug_tools" / "end_to_end_debug" / "backend" / "debug_agent.yaml"
-    )
+    config_path = tmp_path / "debug_tools" / "end_to_end_debug" / "backend" / "debug_agent.yaml"
     config_path.parent.mkdir(parents=True)
     config_path.write_text(
         "model:\n"
@@ -224,6 +264,38 @@ def test_service_defaults_never_return_sensitive_keys(tmp_path: Path) -> None:
     serialized = json.dumps(result)
     assert "API_KEY" not in serialized
     assert "secret-value" not in serialized
+
+
+@pytest.mark.parametrize("use_bundled_config", [True, False])
+def test_managed_retry_defaults_use_real_model_and_full_repair_budget(
+    tmp_path: Path, monkeypatch, use_bundled_config: bool,
+) -> None:
+    for field in service_manager._SERVICE_CONFIG.values():
+        monkeypatch.delenv(f"WIDGET_SERVICE_{field.env_suffix}", raising=False)
+    if use_bundled_config:
+        relative = Path("debug_tools/end_to_end_debug/backend/debug_agent.yaml")
+        config_path = tmp_path / relative
+        config_path.parent.mkdir(parents=True)
+        source = Path(__file__).resolve().parents[2] / relative
+        config_path.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    defaults = load_service_defaults(tmp_path).get("values")
+    assert isinstance(defaults, dict)
+    expected = {
+        "enableA2uiModelMock": False,
+        "enableModelFailureRetry": True,
+        "modelFailureMaxRetryAttempts": 1,
+        "fallbackModelFailureMaxRetryAttempts": 1,
+        "enableCompactDslInterfaceRetry": True,
+        "compactDslInterfaceRetryCount": 1,
+        "enableValidationFailureRetry": True,
+        "validationFailureMaxRepairAttempts": 5,
+    }
+    validated = service_manager.validate_service_config({}, tmp_path)
+    for name, value in expected.items():
+        assert defaults.get(name) == value
+        assert validated.get(name) == value
+    assert load_batch_defaults(tmp_path).get("maxRetries") == 0
 
 
 def test_task_definition_is_persisted_and_repeatable(tmp_path: Path) -> None:
@@ -432,6 +504,205 @@ def test_delete_task_rejects_queued_execution(tmp_path: Path) -> None:
     assert manager.get_task(task_id).get("taskId") == task_id
 
 
+def test_task_overviews_never_compute_trace_metrics_or_expand_older_runs(tmp_path, monkeypatch):
+    datasets_root = tmp_path / "Datasets"
+    _write_dataset(datasets_root, "request_dataset")
+    manager = BatchTaskManager(
+        datasets_root,
+        tmp_path / "output",
+        tmp_path / "traces",
+        tmp_path / "cloud",
+        service_controller=FakeServiceController(),
+    )
+    task = manager.create_task(_task_payload("request_dataset"))
+    task_id = task.get("taskId")
+    assert isinstance(task_id, str)
+    for index in range(3):
+        run_id = f"batch_{index}"
+        manager._write_execution(
+            {
+                "runId": run_id,
+                "taskId": task_id,
+                "status": "completed",
+                "createdAt": f"2026-10-17T00:00:0{index}Z",
+                "summary": {"samples": [{"id": "nested"}]},
+            }
+        )
+        run_dir = manager.output_root / run_id
+        run_dir.mkdir(parents=True)
+        summary = {
+            "runId": run_id,
+            "status": "completed",
+            "completed": index,
+            "samples": [{"id": "Q001"}],
+            "generationMetrics": {"version": 1},
+        }
+        (run_dir / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    calls: list[str] = []
+    original = manager.run_manager.get_run
+
+    def read_summary(run_id: str, *, include_metrics: bool = True) -> dict[str, Any]:
+        assert include_metrics is False
+        calls.append(run_id)
+        return original(run_id, include_metrics=False)
+
+    def forbid_metrics(*_args):
+        raise AssertionError("任务摘要不得扫描 Trace")
+
+    monkeypatch.setattr(manager.run_manager, "get_run", read_summary)
+    monkeypatch.setattr("debug_tools.batch_testing.runner.enrich_run_metrics", forbid_metrics)
+    monkeypatch.setattr(manager.gallery_manager, "status", forbid_metrics)
+    monkeypatch.setattr(manager.device_capture_manager, "status", forbid_metrics)
+    tasks = manager.list_tasks()
+    assert calls == ["batch_2"]
+    assert len(tasks) == 1
+    latest = tasks[0].get("latestRun")
+    assert isinstance(latest, dict)
+    assert latest.get("completed") == 2
+    assert tasks[0].get("runCount") == 3
+    assert all(key not in latest for key in ("samples", "summary", "generationMetrics"))
+    manager.active_run_id = "batch_2"
+    manager.queue = ["batch_1"]
+    scheduler = manager.scheduler_state()
+    active = scheduler.get("active")
+    assert isinstance(active, dict)
+    assert "samples" not in active
+    queue = scheduler.get("queue")
+    assert isinstance(queue, list)
+    assert "summary" not in queue[0]
+    detail = manager.get_task(task_id)
+    runs = detail.get("runs")
+    assert isinstance(runs, list)
+    assert len(runs) == 3
+    assert all("samples" not in run for run in runs)
+
+
+@pytest.mark.parametrize("change", ["enqueue", "dequeue"])
+def test_scheduler_query_keeps_queue_snapshot_during_concurrent_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str,
+) -> None:
+    datasets_root = tmp_path / "Datasets"
+    _write_dataset(datasets_root, "request_dataset")
+    manager = BatchTaskManager(
+        datasets_root, tmp_path / "output", tmp_path / "traces", tmp_path / "cloud",
+        service_controller=FakeServiceController(),
+    )
+    task = manager.create_task(_task_payload("request_dataset"))
+    task_id = task.get("taskId")
+    assert isinstance(task_id, str)
+    initial_ids: list[str] = []
+    for _ in range(2):
+        execution = manager.enqueue(task_id)
+        run_id = execution.get("runId")
+        assert isinstance(run_id, str)
+        initial_ids.append(run_id)
+    reading = Event()
+    release = Event()
+    original_read = manager._read_execution
+
+    def read_execution(run_id: str) -> dict[str, Any]:
+        execution = original_read(run_id)
+        if run_id == initial_ids[0] and not reading.is_set():
+            reading.set()
+            assert release.wait(timeout=5), "调度查询未解除读取等待"
+        return execution
+
+    monkeypatch.setattr(manager, "_read_execution", read_execution)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        query = pool.submit(manager.scheduler_state)
+        try:
+            assert reading.wait(timeout=5), "调度查询未开始读取执行记录"
+            if change == "enqueue":
+                manager.enqueue(task_id)
+            else:
+                asyncio.run(manager.stop_run(initial_ids[0]))
+        finally:
+            release.set()
+        state = query.result(timeout=5)
+    queued = state.get("queue")
+    assert isinstance(queued, list)
+    observed_ids: list[str] = []
+    for position, execution in enumerate(queued, start=1):
+        assert isinstance(execution, dict)
+        run_id = execution.get("runId")
+        assert isinstance(run_id, str)
+        observed_ids.append(run_id)
+        assert execution.get("queuePosition") == position
+    assert observed_ids == initial_ids
+    expected_length = 3 if change == "enqueue" else 1
+    assert len(manager.queue) == expected_length
+
+
+@pytest.mark.parametrize("next_active", [None, "batch_next"])
+def test_scheduler_query_keeps_active_identity_and_paused_state_during_transition(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, next_active: str | None,
+) -> None:
+    manager = BatchTaskManager(
+        tmp_path / "Datasets", tmp_path / "output", tmp_path / "traces", tmp_path / "cloud",
+        service_controller=FakeServiceController(),
+    )
+    manager.active_run_id = "batch_active"
+    reading = Event()
+    release = Event()
+    observed_ids: list[str] = []
+
+    def read_active(run_id: str) -> dict[str, Any]:
+        observed_ids.append(run_id)
+        reading.set()
+        assert release.wait(timeout=5), "调度查询未解除读取等待"
+        return {"runId": run_id, "status": "running"}
+
+    monkeypatch.setattr(manager, "_execution_public", read_active)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        query = pool.submit(manager.scheduler_state)
+        try:
+            assert reading.wait(timeout=5), "调度查询未开始读取活动执行"
+            manager.active_run_id = next_active
+            manager.paused = True
+        finally:
+            release.set()
+        state = query.result(timeout=5)
+    active = state.get("active")
+    assert isinstance(active, dict)
+    assert observed_ids == ["batch_active"]
+    assert state.get("activeRunId") == active.get("runId") == "batch_active"
+    assert state.get("paused") is False
+    assert manager.active_run_id == next_active
+    assert manager.paused is True
+
+
+def test_running_progress_persistence_does_not_rescan_all_sample_traces(tmp_path, monkeypatch):
+    runner = BatchRunManager(
+        tmp_path / "dataset",
+        tmp_path / "output",
+        tmp_path / "traces",
+        tmp_path / "cloud",
+    )
+    state = BatchRunState(
+        run_id="batch_test",
+        run_token="test",
+        endpoint="ws://localhost",
+        concurrency=4,
+        max_retries=1,
+        timeout_seconds=300.0,
+        samples=[],
+        output_dir=tmp_path / "output/batch_test",
+        status="running",
+    )
+    calls: list[str] = []
+
+    def capture(summary: dict[str, Any], _run_dir: Path) -> dict[str, Any]:
+        calls.append(str(summary.get("status")))
+        return {**summary, "generationMetrics": {"version": 1}}
+
+    monkeypatch.setattr("debug_tools.batch_testing.runner.enrich_run_metrics", capture)
+    runner._persist_state(state)
+    assert not calls
+    state.status = "completed"
+    runner._persist_state(state)
+    assert calls == ["completed"]
+
+
 def test_create_and_enqueue_adds_first_execution_after_existing_queue(tmp_path: Path) -> None:
     datasets_root = tmp_path / "Datasets"
     _write_dataset(datasets_root, "request_dataset")
@@ -462,6 +733,8 @@ def test_create_and_enqueue_adds_first_execution_after_existing_queue(tmp_path: 
         first.get("taskId"),
         second.get("taskId"),
     ]
+
+
 @pytest.mark.asyncio
 async def test_scheduler_runs_only_one_execution_and_advances_queue(tmp_path: Path) -> None:
     datasets_root = tmp_path / "Datasets"
