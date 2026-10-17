@@ -115,6 +115,13 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 本次新增 1 个活动结构化错误码（合计 33 个），规则登记夹具与 `test_compact_horizontal_budget.py` 同步。
 未知几何、未建模约束、任意二维相交及字形裁切不在本项覆盖范围内，不把未报错等同于像素验证通过。
 
+2026-10-17 根据 2x2 与 2x4 灵动布局实测增加严重程度分级：当前 Row 的有效间距能够完全吸收溢出
+且溢出不超过 16vp 时降为 warning；根 Row 的 2x2/2x4 阈值分别为 10vp/32vp；位于父 Row 分配的
+正数 `layoutWeight` 横向权重区域内时，2x2/2x4 阈值分别为 24vp/52vp。判断顺序为间距、根布局、
+横向权重区域，warning 保留 Occupancy 与降级原因。固定局部 Row、超过对应阈值和无法确定分配的场景
+仍为 error。文字宽度预算先于本项执行并保持严格；同一产物存在文字宽度错误时，不能被本项 warning
+放行。该调整不改变检查项分类、实际文件、错误码及调用顺序。
+
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
 高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
 受约束影响的后代槽位继续按未知处理，避免把分配前宽度当作实际宽度。
@@ -886,7 +893,12 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   当前归属：语义／布局与视觉约束，`semantic/layout/geometry.py`。2026-10-15 按确认仅在高度校验
   视图中忽略 2x4 语义展开生成 Column 的 8vp 纵向间距；参考槽位同步使用该视图，其它高度约束不变。
-  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。
+  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。2026-10-17 将
+  不超过 `35vp` 的纵向高度溢出按可压缩来源分级：根 Column、直接父节点为 Column 的正数
+  `layoutWeight` Column，或溢出可完全由当前 Column 的有效 `itemMargin` 间距总量吸收时降为 warning，
+  保留规则标识、Occupancy 和降级原因并继续转换，交由端侧灵动布局处理。父 Row 中的横向权重不作为
+  高度降级依据；同一张卡不同层级的诊断分别判断和记录。其它固定局部 Column、溢出量超过 `35vp`
+  和高度无法闭合仍阻断。严重程度调整不改变本项分类和实际文件。
 
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
 

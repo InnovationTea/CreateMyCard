@@ -1,4 +1,4 @@
-"""Issue #538：三个固定圆环超过分区宽度，须拦截并进入既有修复复检。"""
+"""Issue #538：横向固定内容预算及灵动布局 warning 分级。"""
 
 import json
 from copy import deepcopy
@@ -7,10 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.card_validation import validate_compact_dsl
 from services.card_validation.compact_validation.diagnostics import DiagnosticCollector
 from services.card_validation.compact_validation.semantic.layout.horizontal import (
     _collect_horizontal_budget_errors,
+    _non_blocking_width_overflow_reason,
 )
 from services.compact_dsl_a2ui_converter import (
     ComponentRow,
@@ -131,18 +132,17 @@ def test_original_issue_fixture_reports_exact_horizontal_budget() -> None:
 
 
 @pytest.mark.parametrize("clip", [True, False])
-def test_public_validation_reports_width_and_repair_hint(clip: bool) -> None:
-    with pytest.raises(CompactDslValidationError) as captured:
-        validate_compact_dsl(_source(clip=clip), task_spec=_TASK, card_spec={})
-    diagnostics = captured.value.diagnostics
-    assert len(diagnostics) == 1
-    diagnostic = diagnostics[0]
-    assert diagnostic.code == "COMPACT_LAYOUT_WIDTH_OVERFLOW"
-    assert diagnostic.component_id == "buds"
-    assert diagnostic.actual.get("overflow") == 52
-    assert diagnostic.fix_hint is not None
-    assert "绑定" in diagnostic.fix_hint
-    assert "SingleLineTitle" not in str(captured.value)
+def test_public_validation_downgrades_weighted_width_overflow(clip: bool) -> None:
+    result = validate_compact_dsl(_source(clip=clip), task_spec=_TASK, card_spec={})
+
+    assert len(result.warnings) == 1
+    warning = result.warnings[0]
+    assert warning.startswith("COMPACT_LAYOUT_WIDTH_OVERFLOW:")
+    assert "component buds" in warning
+    assert "requires at least 168vp within 116vp" in warning
+    assert "it overflows by 52vp" in warning
+    assert "Occupancy:" in warning
+    assert "Fallback: weighted_flexible_layout" in warning
 
 
 @pytest.mark.parametrize("count, weight", [(2, 1), (3, 3)])
@@ -164,6 +164,95 @@ def _basic_rows(*, width: int = 100, gap: int = 6) -> list[ComponentRow]:
         ComponentRow("a", "Image", {"width": 52, "height": 52, "flexShrink": 0}, ()),
         ComponentRow("b", "Image", {"width": 52, "height": 52, "flexShrink": 0}, ()),
     ]
+
+
+@pytest.mark.parametrize(
+    "size, overflow, expected",
+    [
+        ("2x2", 10.0, "root_flexible_layout"),
+        ("2x2", 10.0001, None),
+        ("2x4", 32.0, "root_flexible_layout"),
+        ("2x4", 32.0001, None),
+    ],
+)
+def test_root_width_warning_limits(
+    size: str,
+    overflow: float,
+    expected: str | None,
+) -> None:
+    root = ComponentRow("root", "Row", {}, ())
+
+    assert (
+        _non_blocking_width_overflow_reason(
+            node=root,
+            by_id={"root": root},
+            parents={},
+            size=size,
+            overflow=overflow,
+            compressible_gap=0.0,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "size, overflow, expected",
+    [
+        ("2x2", 24.0, "weighted_flexible_layout"),
+        ("2x2", 24.0001, None),
+        ("2x4", 52.0, "weighted_flexible_layout"),
+        ("2x4", 52.0001, None),
+    ],
+)
+def test_weighted_width_warning_limits(
+    size: str,
+    overflow: float,
+    expected: str | None,
+) -> None:
+    root = ComponentRow("root", "Row", {}, ("area",))
+    area = ComponentRow("area", "Column", {"layoutWeight": 1}, ("inner",))
+    inner = ComponentRow("inner", "Row", {}, ())
+
+    assert (
+        _non_blocking_width_overflow_reason(
+            node=inner,
+            by_id={"root": root, "area": area, "inner": inner},
+            parents={"area": "root", "inner": "area"},
+            size=size,
+            overflow=overflow,
+            compressible_gap=0.0,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "overflow, compressible_gap, expected",
+    [
+        (16.0, 16.0, "compressible_item_margin"),
+        (16.0001, 17.0, None),
+        (12.0, 8.0, None),
+    ],
+)
+def test_gap_width_warning_requires_full_absorption_within_limit(
+    overflow: float,
+    compressible_gap: float,
+    expected: str | None,
+) -> None:
+    root = ComponentRow("root", "Column", {}, ("fixed",))
+    fixed = ComponentRow("fixed", "Row", {}, ())
+
+    assert (
+        _non_blocking_width_overflow_reason(
+            node=fixed,
+            by_id={"root": root, "fixed": fixed},
+            parents={"fixed": "root"},
+            size="2x2",
+            overflow=overflow,
+            compressible_gap=compressible_gap,
+        )
+        == expected
+    )
 
 
 def test_nested_weighted_wrappers_cannot_hide_fixed_descendants() -> None:
@@ -217,9 +306,8 @@ def test_unknown_geometry_and_invalid_tree_do_not_create_width_facts(change: str
     assert not _check(rows)
 
 
-@pytest.mark.parametrize("fixed", [False, True])
 @pytest.mark.asyncio
-async def test_pipeline_repairs_and_rechecks_width_without_dropping_rings(fixed: bool) -> None:
+async def test_pipeline_does_not_repair_nonblocking_width_overflow() -> None:
     context = DslProcessingContext(
         size="2x4",
         task_spec=deepcopy(_TASK),
@@ -227,15 +315,12 @@ async def test_pipeline_repairs_and_rechecks_width_without_dropping_rings(fixed:
         protocol_profile=_PROFILE,
     )
     processor = DesignCompactProcessor()
-    attempts: list[list[str]] = []
 
     def evaluate(source: str) -> list[str]:
         return [issue.repair_message() for issue in processor.process(source, context).errors]
 
     def repair(_source_dsl: str, errors: list[str]) -> str:
-        attempts.append(errors)
-        assert any("horizontal layout requires" in message for message in errors)
-        return _source(weight=3 if fixed else 1)
+        pytest.fail(f"non-blocking width overflow must not trigger repair: {errors}")
 
     result = await RetryController().run(
         lambda: _source(),
@@ -244,9 +329,9 @@ async def test_pipeline_repairs_and_rechecks_width_without_dropping_rings(fixed:
         max_repair_attempts=2,
         repair=repair,
     )
-    assert result.retryCount == (1 if fixed else 2)
-    assert bool(result.errors) is not fixed
-    assert len(attempts) == result.retryCount
+    assert result.retryCount == 0
+    assert not result.errors
+    assert not result.repairAttempted
     assert result.result.count('"ProgressCircle"') == 3
 
 
@@ -262,7 +347,7 @@ def test_template_skip_remains_at_pipeline_boundary() -> None:
     assert not any("horizontal layout requires" in issue.message for issue in result.errors)
 
 
-def test_pipeline_preserves_structured_width_evidence() -> None:
+def test_pipeline_preserves_width_warning_evidence() -> None:
     context = DslProcessingContext(
         size="2x4",
         task_spec=deepcopy(_TASK),
@@ -270,16 +355,15 @@ def test_pipeline_preserves_structured_width_evidence() -> None:
         protocol_profile=_PROFILE,
     )
     result = DesignCompactProcessor().process(_source(), context)
-    assert len(result.errors) == 1
-    payload = result.errors[0].to_prompt_payload()
-    diagnostics = payload.get("compactDiagnostics")
-    assert isinstance(diagnostics, list) and len(diagnostics) == 1
-    diagnostic = diagnostics[0]
-    assert diagnostic.get("code") == "COMPACT_LAYOUT_WIDTH_OVERFLOW"
-    actual = diagnostic.get("actual")
-    assert isinstance(actual, dict)
-    assert actual.get("minimumRequiredWidth") == 168
-    assert diagnostic.get("fixHint")
+    assert not result.errors
+    warnings = [issue for issue in result.issues if issue.severity == "warning"]
+    assert len(warnings) == 1
+    warning = warnings[0]
+    assert warning.code == "COMPACT_DSL_VALIDATION_WARNING"
+    assert "COMPACT_LAYOUT_WIDTH_OVERFLOW" in warning.message
+    assert "requires at least 168vp within 116vp" in warning.message
+    assert "Occupancy:" in warning.message
+    assert "Fallback: weighted_flexible_layout" in warning.message
 
 
 @pytest.mark.parametrize("size, canvas_width", [("2x2", 150), ("2x4", 300)])
@@ -311,9 +395,7 @@ def test_unreachable_cycle_does_not_hang_or_pollute_reachable_budget() -> None:
 
 
 def test_original_text_block_fixture_reports_minimum_width_constraints() -> None:
-    path = (
-        Path(__file__).parent / "fixtures/compact_horizontal_overflow/text-block-input.jsonl"
-    )
+    path = Path(__file__).parent / "fixtures/compact_horizontal_overflow/text-block-input.jsonl"
     errors = _check(_expanded(path.read_text(encoding="utf-8")))
     by_id = {}
     for diagnostic in errors.records:
@@ -392,12 +474,18 @@ def test_static_maximum_caps_declared_width_without_hiding_descendants() -> None
 
 
 @pytest.mark.parametrize(
-    "count, width, overflow", [(2, 276, False), (3, 276, False), (4, 276, True), (4, 280, False)]
+    "count, width, warning_reason",
+    [
+        (2, 276, None),
+        (3, 276, None),
+        (4, 276, "compressible_item_margin"),
+        (4, 280, None),
+    ],
 )
 def test_text_block_public_validation_uses_recipe_minimums(
     count: int,
     width: int,
-    overflow: bool,
+    warning_reason: str | None,
 ) -> None:
     items = [{"label": "耳机", "value": "80%"} for _ in range(count)]
     rows = [
@@ -405,11 +493,11 @@ def test_text_block_public_validation_uses_recipe_minimums(
         ["details", "TextBlock", {"width": width, "items": items}],
     ]
     source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    if overflow:
-        with pytest.raises(CompactDslValidationError) as captured:
-            validate_compact_dsl(source, task_spec=_TASK, card_spec={})
-        assert any(
-            item.code == "COMPACT_LAYOUT_WIDTH_OVERFLOW" for item in captured.value.diagnostics
-        )
+    result = validate_compact_dsl(source, task_spec=_TASK, card_spec={})
+    if warning_reason is not None:
+        assert len(result.warnings) == 1
+        assert "COMPACT_LAYOUT_WIDTH_OVERFLOW" in result.warnings[0]
+        assert "it overflows by 4vp" in result.warnings[0]
+        assert f"Fallback: {warning_reason}" in result.warnings[0]
     else:
-        assert validate_compact_dsl(source, task_spec=_TASK, card_spec={}).warnings == ()
+        assert result.warnings == ()

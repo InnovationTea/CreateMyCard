@@ -13,11 +13,12 @@ from services.card_validation.compact_validation.diagnostics import (
 )
 from services.card_validation.compact_validation.text import _format_vp, _non_negative_number
 from services.compact_component_runtime import visual_recipe_part
-from services.compact_dsl_a2ui_converter import (
-    ComponentRow,
-)
+from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_reference_canvas import reference_dimension
 from services.compact_region_layout import reference_region_boxes
+
+_HEIGHT_OVERFLOW_WARNING_LIMIT = 35.0
+_EPSILON = 1e-7
 
 
 def _height_budget_components(
@@ -47,11 +48,16 @@ def _collect_height_budget_errors(
     protocol_profile: dict[str, Any] | None = None,
     *,
     layout_origins: dict[str, str] | None = None,
+    warnings: list[str],
 ) -> None:
-    """Reject vertical layouts whose declared minimum height cannot fit."""
+    """检查纵向最小高度；高度溢出部分不阻断，交由灵动布局解决。"""
     size = card_spec.get("suggestSize") or task_spec.get("size")
     components = _height_budget_components(components, size, layout_origins)
     components_by_id = {component.component_id: component for component in components}
+    parents: dict[str, str] = {}
+    for parent in components:
+        for child_id in parent.children:
+            parents[child_id] = parent.component_id
     boxes = {}
     if isinstance(size, str):
         nodes: list[dict[str, Any]] = []
@@ -92,6 +98,33 @@ def _collect_height_budget_errors(
             continue
         overflow = required_height - available_height
         breakdown = _column_height_breakdown(component, components_by_id)
+        message = (
+            f"component {component.component_id}: vertical layout requires at "
+            f"least {_format_vp(required_height)}vp within "
+            f"{_format_vp(available_height)}vp; it overflows by "
+            f"{_format_vp(overflow)}vp. Occupancy: {breakdown}."
+        )
+        legacy_message = (
+            f"component {component.component_id}: vertical layout requires at "
+            f"least {_format_vp(required_height)}vp within "
+            f"{_format_vp(available_height)}vp; it overflows by "
+            f"{_format_vp(overflow)}vp. Regroup facts or choose a layout with "
+            f"enough body space; preserve required text, actions, font sizes and "
+            f"fixed design heights. Weight, clipping, flex shrink and distributed "
+            f"alignment cannot eliminate content height. Occupancy: {breakdown}."
+        )
+        height_warning = _non_blocking_height_overflow_reason(
+            component=component,
+            components_by_id=components_by_id,
+            parents=parents,
+            size=size,
+            overflow=overflow,
+        )
+        if height_warning is not None:
+            warnings.append(
+                f"COMPACT_LAYOUT_HEIGHT_OVERFLOW: {legacy_message} Fallback: {height_warning}."
+            )
+            continue
         removable_title_icon = _removable_title_icon_candidate(
             component,
             components_by_id,
@@ -111,21 +144,8 @@ def _collect_height_budget_errors(
                 code="COMPACT_LAYOUT_HEIGHT_OVERFLOW",
                 validation_class="semantic",
                 category="layout",
-                message=(
-                    f"component {component.component_id}: vertical layout requires at "
-                    f"least {_format_vp(required_height)}vp within "
-                    f"{_format_vp(available_height)}vp; it overflows by "
-                    f"{_format_vp(overflow)}vp. Occupancy: {breakdown}."
-                ),
-                legacy_message=(
-                    f"component {component.component_id}: vertical layout requires at "
-                    f"least {_format_vp(required_height)}vp within "
-                    f"{_format_vp(available_height)}vp; it overflows by "
-                    f"{_format_vp(overflow)}vp. Regroup facts or choose a layout with "
-                    f"enough body space; preserve required text, actions, font sizes and "
-                    f"fixed design heights. Weight, clipping, flex shrink and distributed "
-                    f"alignment cannot eliminate content height. Occupancy: {breakdown}."
-                ),
+                message=message,
+                legacy_message=legacy_message,
                 expected={
                     "maximumHeight": available_height,
                     "heightTolerance": height_tolerance,
@@ -139,6 +159,41 @@ def _collect_height_budget_errors(
                 component_id=component.component_id,
             ),
         )
+
+
+def _non_blocking_height_overflow_reason(
+    *,
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    parents: dict[str, str],
+    size: Any,
+    overflow: float,
+) -> str | None:
+    """按间距容量和纵向弹性层级判断高度溢出是否可降级。"""
+    if not isinstance(size, str) or size not in {"2x2", "2x4"}:
+        return None
+    if overflow > _HEIGHT_OVERFLOW_WARNING_LIMIT + _EPSILON:
+        return None
+
+    child_count = 0
+    for child_id in component.children:
+        if child_id in components_by_id:
+            child_count += 1
+    compressible_gap = _vertical_gap(component, child_count)
+    if overflow <= compressible_gap + _EPSILON:
+        return "compressible_item_margin"
+    if component.component_id == "root":
+        return "root_flexible_layout"
+
+    parent_id = parents.get(component.component_id)
+    parent = components_by_id.get(parent_id) if parent_id is not None else None
+    layout_weight = _non_negative_number(component.props.get("layoutWeight")) or 0.0
+    is_vertical_weighted = (
+        parent is not None and parent.component_type == "Column" and layout_weight > 0.0
+    )
+    if is_vertical_weighted:
+        return "weighted_flexible_layout"
+    return None
 
 
 def _collect_unresolved_height_error(
