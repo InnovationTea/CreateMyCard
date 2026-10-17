@@ -1,6 +1,8 @@
 """CodeCheck 整改不改变异常降级、配色角色和图片边界判断。"""
 
+import ast
 import asyncio
+import inspect
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
@@ -8,12 +10,52 @@ import pytest
 
 from config.config import get_settings
 from services import post_layout_theme as themes
+from services import post_layout_theme_registry as registry
 from services import square_photo_expansion as expansion
 from services.compact_high_level_components import (
     CompactDslConversionError,
     _system_palette_color,
 )
 from services.theme_style_roles import layout_phase, role
+
+
+def test_registry_comprehension_clauses_stay_on_single_lines():
+    tree = ast.parse(inspect.getsource(registry))
+    violations = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.comprehension):
+            continue
+        if node.target.lineno != node.iter.end_lineno:
+            violations.append(f"multiline for clause at line {node.target.lineno}")
+        for condition in node.ifs:
+            if condition.lineno != condition.end_lineno:
+                violations.append(f"multiline if clause at line {condition.lineno}")
+    assert not violations, violations
+
+
+def test_registry_frame_schema_keeps_all_required_positive_dimensions():
+    assert registry._FRAME == {
+        "type": "object", "additionalProperties": False,
+        "required": ["slotWidth", "slotHeight", "imageWidth", "imageHeight", "align"],
+        "properties": {
+            "slotWidth": {"type": "number", "exclusiveMinimum": 0},
+            "slotHeight": {"type": "number", "exclusiveMinimum": 0},
+            "imageWidth": {"type": "number", "exclusiveMinimum": 0},
+            "imageHeight": {"type": "number", "exclusiveMinimum": 0},
+            "align": {"enum": ["topStart", "topEnd", "center", "bottomStart", "bottomEnd"]},
+        },
+    }
+
+
+def test_registry_fusion_schema_keeps_three_required_argb_colors():
+    background = registry._BACKGROUNDS.get("fusion")
+    assert background is not None
+    color = {"type": "string", "pattern": r"^#[0-9A-Fa-f]{8}$"}
+    assert background.get("properties", {}).get("ballColors") == {
+        "type": "object", "required": ["large", "medium", "small"],
+        "additionalProperties": False,
+        "properties": {"large": color, "medium": color, "small": color},
+    }
 
 
 def layout_source():

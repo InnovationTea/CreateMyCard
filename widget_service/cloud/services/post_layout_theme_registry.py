@@ -25,8 +25,10 @@ _FRAME = {
     "type": "object", "additionalProperties": False,
     "required": ["slotWidth", "slotHeight", "imageWidth", "imageHeight", "align"],
     "properties": {
-        **{key: {"type": "number", "exclusiveMinimum": 0} for key in
-           ("slotWidth", "slotHeight", "imageWidth", "imageHeight")},
+        "slotWidth": {"type": "number", "exclusiveMinimum": 0},
+        "slotHeight": {"type": "number", "exclusiveMinimum": 0},
+        "imageWidth": {"type": "number", "exclusiveMinimum": 0},
+        "imageHeight": {"type": "number", "exclusiveMinimum": 0},
         "align": {"enum": ["topStart", "topEnd", "center", "bottomStart", "bottomEnd"]},
     },
 }
@@ -79,8 +81,8 @@ _BACKGROUNDS = {
                "properties": {
                    "ballColors": {"type": "object", "required": ["large", "medium", "small"],
                                   "additionalProperties": False,
-                                  "properties": {name: _COLOR for name in
-                                                 ("large", "medium", "small")}},
+                                  "properties": {"large": _COLOR, "medium": _COLOR,
+                                                 "small": _COLOR}},
                    "glassColor": _COLOR, "shellColor": _COLOR,
                    "blurRadius": {"type": "number", "minimum": 0},
                }},
