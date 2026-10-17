@@ -457,7 +457,11 @@ def _normalize_composition(
     layout = load_layout_contract().get("layouts", {}).get(value.get("layout"), {})
     if variant > len(layout.get("patterns", [])):
         return None, [warning]
-    action_count = sum(1 for fact in facts if "actionId" in fact)
+    action_count = 0
+    for fact in facts:
+        if "actionId" not in fact:
+            continue
+        action_count += 1
     action_range = layout.get("actionCount", {})
     if not action_range.get("min", 0) <= action_count <= action_range.get("max", action_count):
         return None, ["composition layout cannot carry all required actions; "
@@ -1917,7 +1921,11 @@ def _normalize_dual_action_plan(
             "Two required 2x2 actions force layoutHints to S-content-dual-action."
         )
 
-    content_facts = [fact for fact in facts if "actionId" not in fact]
+    content_facts: list[dict[str, Any]] = []
+    for fact in facts:
+        if "actionId" in fact:
+            continue
+        content_facts.append(fact)
     fallback_component = "TableText" if len(content_facts) >= 2 else "EmphasisText"
     for fact in facts:
         hints = fact.get("componentHints")

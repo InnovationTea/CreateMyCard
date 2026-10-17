@@ -791,13 +791,15 @@ def _strip_optional_genui_fence(compact_dsl: str) -> str:
         for block_index, block in enumerate(json_blocks, 1):
             try:
                 json.loads(block)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as parse_exc:
                 try:
                     repaired_value = json_repair.loads(block)
                     is_compact_row = isinstance(repaired_value, list) and bool(repaired_value)
                     is_compact_row = is_compact_row and isinstance(repaired_value[0], str)
                     if not is_compact_row:
-                        raise ValueError("repaired Compact DSL block must be a JSON array")
+                        raise ValueError(
+                            "repaired Compact DSL block must be a JSON array"
+                        ) from parse_exc
                     repaired_block = json.dumps(
                         repaired_value,
                         ensure_ascii=False,
@@ -2271,7 +2273,7 @@ def _schema_binding_path_candidates(
             candidates.add(variant)
         suffix = variant
         if variant == "/data" or variant.startswith("/data/"):
-            suffix = variant[len("/data") :]
+            suffix = variant.removeprefix("/data")
         for root in roots:
             candidate = f"{root.rstrip('/')}{suffix}"
             if candidate != path and _schema_node_at_path(schema, candidate) is not None:
