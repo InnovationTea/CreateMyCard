@@ -89,6 +89,13 @@ Issue #538 新增 `COMPACT_LAYOUT_WIDTH_OVERFLOW`，归入语义／布局与视�
 不整体引入 PR #470 的二维估算引擎，不改变原有非阻断警告和模板来源跳过。
 当前活动结构化错误码增至 33 个；上述 32 个为 2026-10-12 的基线记录。
 
+2026-10-17 根据 2x2 与 2x4 灵动布局实测，对该规则增加来源受限的 warning 分级：有效间距能够完全
+吸收且溢出不超过 16vp；根 Row 在 2x2/2x4 中分别不超过 10vp/32vp；位于父 Row 横向权重区域内的
+Row 在 2x2/2x4 中分别不超过 24vp/52vp。判断顺序为间距、根布局、横向权重区域；固定局部 Row、
+超过对应阈值和无法确定分配的场景仍为 error。warning 保留 Occupancy 与降级原因，不进入模型修复。
+文字宽度预算仍先执行且保持严格，不受横向几何 warning 阈值影响。本次只调整既有检查项的严重程度，
+不新增诊断码，不改变其语义／布局与视觉约束归属。
+
 ## 1. 重构目标与范围
 
 本次重构覆盖：
@@ -474,12 +481,14 @@ BASE-02 至 BASE-04 不阻止纯等价拆分，但不能把已知冲突的旧建
 该约束必须同时出现在新诊断与模型说明中，不能因旧文案退出模型请求而丢失。
 本期 warning 继续通过 `CompactDslValidationResult.warnings` 返回字符串，并沿用流水线已有的
 `COMPACT_DSL_VALIDATION_WARNING` 及日志路径；不增加成功返回结果上的诊断字段，不将警告转成待修复错误。
-当前业务策略将所有受支持尺寸中的纵向高度超限统一按溢出量分级。校验器按
-`requiredHeight - availableHeight` 计算溢出量；不超过 `35vp` 的诊断降为 warning，交由端侧灵动布局
-处理。warning 文本保留 `COMPACT_LAYOUT_HEIGHT_OVERFLOW` 规则标识、实际占用、可用高度和超限值，
-沿用上述结果及日志出口，不进入结构化 error、`qualityErrors` 或模型 repair。同一张卡不同层级的
-诊断分别记录。溢出量超过 `35vp` 及高度无法闭合仍保持阻断；本节的 error 诊断示例继续代表这些
-严格场景。
+当前业务策略按溢出量与可压缩来源共同决定纵向高度超限的严重程度。校验器按
+`requiredHeight - availableHeight` 计算溢出量；不超过 `35vp` 且属于根 Column、直接父节点为 Column 的
+正数 `layoutWeight` Column，或溢出可完全由当前 Column 的有效 `itemMargin` 间距总量吸收时，诊断降为
+warning，交由端侧灵动布局处理。`layoutWeight` 只有在父 Column 中才代表纵向分配，父 Row 中的横向
+权重不能作为高度降级依据。warning 文本保留 `COMPACT_LAYOUT_HEIGHT_OVERFLOW` 规则标识、实际占用、
+可用高度、超限值及降级原因，沿用上述结果及日志出口，不进入结构化 error、`qualityErrors` 或模型
+repair。同一张卡不同层级的诊断分别判断和记录。其它固定局部 Column、溢出量超过 `35vp` 及高度
+无法闭合仍保持阻断；本节的 error 诊断示例继续代表这些严格场景。
 
 ## 5. 修复建议解耦与简单配置接口
 

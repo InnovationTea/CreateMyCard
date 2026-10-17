@@ -43,6 +43,90 @@ def _errors(source: str, **kwargs: object) -> CompactDslValidationError:
     return captured.value
 
 
+def test_two_by_four_height_over_126_is_non_blocking_warning() -> None:
+    items = [
+        {
+            "title": "澳大利亚网球公开赛",
+            "time": "1月11日-31日",
+            "location": "墨尔本公园硬地赛场",
+        },
+        {
+            "title": "法国网球公开赛",
+            "time": "5月24日-6月7日",
+            "location": "巴黎罗兰·加洛斯红土场地",
+        },
+        {
+            "title": "温布尔登网球锦标赛",
+            "time": "日期待官方公布",
+            "location": "伦敦全英俱乐部草地赛场",
+        },
+        {
+            "title": "美国网球公开赛",
+            "time": "日期待官方公布",
+            "location": "纽约法拉盛草地公园硬地赛场",
+        },
+    ]
+    rows = (
+        [
+            "root",
+            "Column",
+            {
+                "width": "matchParent",
+                "height": "matchParent",
+                "padding": 12,
+                "itemMargin": 6,
+            },
+            ["title", "body"],
+        ],
+        ["title", "SingleLineTitle", {"title": "2027网球大满贯", "fontSize": 12}],
+        [
+            "body",
+            "Column",
+            {
+                "width": "matchParent",
+                "itemMargin": 8,
+                "alignItems": "start",
+                "justifyContent": "start",
+                "layoutWeight": 1,
+            },
+            ["events"],
+        ],
+        ["events", "EventCard", {"items": items, "density": "compact"}],
+        ["/state/ready", True],
+    )
+    source = "\n".join(json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in rows)
+    context = DslProcessingContext(
+        size="2x4",
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+        task_spec={
+            "size": "2x4",
+            "appVersion": "11.7.5.208",
+            "dataModelSchema": {"state": {"ready": {"type": "boolean"}}},
+        },
+        protocol_profile={"version": "v0.9"},
+    )
+
+    result = DesignCompactProcessor().process(source, context)
+
+    assert result.errors == ()
+    assert result.standard_dsl
+    warnings = [item for item in result.issues if item.severity == "warning"]
+    assert len(warnings) == 2
+    assert all(item.code == "COMPACT_DSL_VALIDATION_WARNING" for item in warnings)
+    assert all("COMPACT_LAYOUT_HEIGHT_OVERFLOW" in item.message for item in warnings)
+    assert any("at least 158vp within 126vp" in item.message for item in warnings)
+    assert any("at least 140vp within 108vp" in item.message for item in warnings)
+    assert all("it overflows by 32vp" in item.message for item in warnings)
+    assert any(
+        "component root" in item.message and "Fallback: root_flexible_layout" in item.message
+        for item in warnings
+    )
+    assert any(
+        "component body" in item.message and "Fallback: weighted_flexible_layout" in item.message
+        for item in warnings
+    )
+
+
 def test_model_whitelist_precedes_layout_and_expansion(monkeypatch: pytest.MonkeyPatch) -> None:
     def forbidden(*_args: object, **_kwargs: object) -> None:
         pytest.fail("模型组件白名单失败后不应继续匹配布局或展开")
