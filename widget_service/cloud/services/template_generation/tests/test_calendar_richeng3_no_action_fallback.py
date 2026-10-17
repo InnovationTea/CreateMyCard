@@ -68,6 +68,26 @@ _CASES = (
         "显示下个日程标题、开始时间、开始日期、倒计时天数和提前提醒时间",
     ),
 )
+_PER_EVENT_QUERIES = (
+    pytest.param("显示日程数量，逐项展示日程标题、开始时间和备注", id="per_item"),
+    pytest.param("显示日程数量，以及日程各自的标题、开始时间和备注", id="each_event"),
+    pytest.param(
+        "不用逐项显示日期，但要逐项展示日程标题、开始时间和备注，并显示日程数量",
+        id="negated_then_positive_per_item",
+    ),
+    pytest.param(
+        "不要只显示第一条日程，逐项展示日程标题、开始时间和备注，并显示日程数量",
+        id="negated_first_only",
+    ),
+    pytest.param(
+        "不要再只显示第一条日程，逐项展示日程标题、开始时间和备注，并显示日程数量",
+        id="negated_first_only_again",
+    ),
+    pytest.param(
+        "不允许只显示第一条日程，逐项展示日程标题、开始时间和备注，并显示日程数量",
+        id="forbidden_first_only",
+    ),
+)
 
 
 def _event(schema: dict[str, Any]) -> dict[str, Any]:
@@ -105,6 +125,29 @@ def _case(case: Case, *, view_candidate: bool = False) -> CalendarInputs:
         }
     )
     return CalendarInputs(task, bindings, card, intent)
+
+
+def _event_count_inputs(query: str, event_count: int = 3) -> CalendarInputs:
+    inputs = _case(_CASES[0])
+    schema = deepcopy(inputs.task.dataModelSchema)
+    data = schema.get("data")
+    assert isinstance(data, dict)
+    calendar = data.get("calendar")
+    assert isinstance(calendar, dict)
+    first_event = _event(schema)
+    events = []
+    authorized = ["/eventCount"]
+    for index in range(event_count):
+        events.append(deepcopy(first_event))
+        for field in ("title", "dtStart", "description"):
+            authorized.append(f"/events/{index}/{field}")
+    calendar["events"] = events
+    count_field = calendar.get("eventCount")
+    assert isinstance(count_field, dict)
+    count_field["sampleValue"] = event_count
+    task = inputs.task.model_copy(update={"userQuery": query, "dataModelSchema": schema})
+    binding = inputs.bindings[0].model_copy(update={"candidateOutputFields": authorized})
+    return inputs._replace(task=task, bindings=(binding,))
 
 
 def _mixed() -> CalendarInputs:
@@ -204,6 +247,74 @@ async def test_new_single_shapes_formally_compile_all_fields_without_action(
     assert '"Button"' not in output.a2ui
     for field in inputs.bindings[0].candidateOutputFields:
         assert f"/data/calendar{field}" in output.a2ui
+    assert inputs == original
+
+
+@pytest.mark.parametrize("query", _PER_EVENT_QUERIES)
+def test_event_count_single_fallback_rejects_per_event_requests(query: str) -> None:
+    inputs = _event_count_inputs(query)
+    original = deepcopy(inputs)
+    assert _fallback(inputs, _registry()) is None
+    assert inputs == original
+
+
+@pytest.mark.parametrize("query", _PER_EVENT_QUERIES)
+@pytest.mark.asyncio
+async def test_per_event_requests_do_not_compile_as_first_event_only(
+    monkeypatch: pytest.MonkeyPatch, query: str
+) -> None:
+    inputs = _event_count_inputs(query)
+    original = deepcopy(inputs)
+    _configure(monkeypatch, _registry())
+    with pytest.raises(pipeline.TemplateRouteNotApplicable):
+        await _compile(inputs, "SingleFocusLayout@1", ("ScheduleOverviewEventCountNotesFull@1",))
+    assert inputs == original
+
+
+@pytest.mark.parametrize(
+    ("event_count", "query"),
+    [
+        pytest.param(1, _CASES[0].query, id="original_84f7"),
+        pytest.param(
+            3,
+            "显示日程数量，只看下一项的标题、开始时间和备注",
+            id="next_event_with_multiple_inputs",
+        ),
+        pytest.param(
+            3,
+            "不要逐项展示日程，只看下一项的标题、开始时间和备注，并显示日程数量",
+            id="negated_per_item",
+        ),
+        pytest.param(
+            3,
+            "不用显示日程各自的标题、开始时间和备注，只看下一项，并显示日程数量",
+            id="negated_each_event",
+        ),
+        pytest.param(
+            3,
+            "显示日程各自的标题、开始时间和备注，但仅显示第一条日程及日程数量",
+            id="each_event_limited_to_first",
+        ),
+        pytest.param(
+            3,
+            "显示日程数量，下个日程的标题、开始时间和备注两个字段各自一行",
+            id="next_event_fields_on_separate_lines",
+        ),
+        pytest.param(
+            3,
+            "显示日程数量，下个日程的标题、开始时间和备注逐项展示",
+            id="next_event_fields_itemized",
+        ),
+    ],
+)
+def test_event_count_single_fallback_preserves_first_event_requests(
+    event_count: int, query: str
+) -> None:
+    inputs = _event_count_inputs(query, event_count)
+    original = deepcopy(inputs)
+    fallback = _fallback(inputs, _registry())
+    assert fallback is not None
+    assert fallback.intent == inputs.intent
     assert inputs == original
 
 

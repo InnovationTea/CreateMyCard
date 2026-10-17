@@ -51,6 +51,23 @@ _ADDITIONAL_MULTIPLE_EVENTS_QUERY = re.compile(
     r"[两二三四五六七八九十\d]+(?:条|项)"
     r"(?:日程|会议|活动|安排|都|的(?:日期|标题|时间|地点|提醒)|(?=[，。；、\s]|$))"
 )
+_ITEMIZED_EVENTS_QUERY = re.compile(
+    r"(?:逐项|各自)(?:显示|展示|列出|查看|呈现)?(?:日程|会议|活动|安排)|"
+    r"(?:日程|会议|活动|安排)的?(?:逐项|各自)"
+)
+_NEGATED_ITEMIZED_EVENTS_QUERY = re.compile(
+    r"(?:不要|无需|不必|不用|不需要|不能|不许|禁止|不允许|别|不)(?:再)?"
+    r"(?:显示|展示|列出|看|列|按|用)?(?:(?:日程|会议|活动|安排)的?)?(?:逐项|各自)"
+)
+_ITEMIZED_FIRST_ONLY_QUERY = re.compile(
+    r"(?:只|仅)(?:要|需|需要|看|显示|展示|保留)?"
+    r"(?:首(?:个|条|项|场)|第一(?:个|条|项|场)|下(?:一)?(?:个|条|项|场)|"
+    r"最近的?(?:一|1|日程|会议|活动|安排))"
+)
+_NEGATED_FIRST_ONLY_QUERY = re.compile(
+    r"(?:不要|无需|不必|不用|不需要|不能|不许|禁止|不允许|别|不)(?:再)?"
+    + _ITEMIZED_FIRST_ONLY_QUERY.pattern
+)
 _EXCLUSIVE_CONTEXT_QUERY = re.compile(
     r"(?:只|仅)(?:要|需|想)?(?:显示|展示|呈现|保留|看)|"
     r"(?:只|仅)(?:要|需)|仅(?:日期|开始|时间|地点)|"
@@ -93,6 +110,12 @@ def plan_calendar_no_action_fallback(
     query = _NEGATIVE_ACTION.sub("", task_spec.userQuery)
     if _ACTION_QUERY.search(query) or _MULTIPLE_EVENTS_QUERY.search(query):
         return result
+    itemized_query = _NEGATED_ITEMIZED_EVENTS_QUERY.sub("", query)
+    first_only_query = _NEGATED_FIRST_ONLY_QUERY.sub("", query)
+    if _ITEMIZED_EVENTS_QUERY.search(itemized_query) and not _ITEMIZED_FIRST_ONLY_QUERY.search(
+        first_only_query
+    ):
+        return result
     normalized = normalize_calendar_reminder_intent(intent, task_spec, coverage_bindings)
     normalized, bindings = _wide_reminder_inputs(normalized, task_spec, coverage_bindings)
     requested = normalized.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID, ())
@@ -107,14 +130,10 @@ def plan_calendar_no_action_fallback(
     }
     if target in compact_targets and _RICHENG3_FULL_TEXT_QUERY.search(query):
         return result
-    three_fields = frozenset(
-        f"{_EVENT}{field}" for field in ("startDate", "dtStart", "eventLocation")
-    )
-    if task_spec.size == "2x4" and frozenset(requested) == three_fields:
+    if target == "ScheduleOverviewDatedMeetingWideFull@1" and f"{_EVENT}title" not in requested:
         if _EXCLUSIVE_CONTEXT_QUERY.search(query):
             return result
-    if target == "ScheduleOverviewDatedMeetingWideFull@1" and f"{_EVENT}title" not in requested:
-        # 四字段请求复用原五字段模板时，未列为硬需求的标题也必须已获候选授权。
+        # 三、四字段复用不能违反排他要求，额外展示字段也必须已获候选授权。
         required = {
             f"{_EVENT}{field}"
             for field in ("startDate", "title", "dtStart", "dtEnd", "eventLocation")

@@ -199,6 +199,28 @@ def test_extra_requested_fields_are_not_dropped(
     assert _fallback(inputs._replace(intent=intent), registry) is None
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "显示日程日期、开始时间、结束时间和地点，不要标题",
+        "只显示日程日期、开始时间、结束时间和地点",
+    ],
+    ids=["explicit-no-title", "only-four-fields"],
+)
+def test_four_field_reuse_respects_explicit_title_exclusion(
+    registry: CardPlanRegistry, query: str
+) -> None:
+    inputs = _case(_DATED_TARGET)
+    inputs = inputs._replace(task=inputs.task.model_copy(update={"userQuery": query}))
+    original = deepcopy(inputs)
+    assert inputs.intent.required_output_fields_by_capability.get(_CAP) == _DATE_FIELDS
+    assert _TITLE in inputs.bindings[0].candidateOutputFields
+    with pytest.raises(TemplateRetrievalMiss):
+        _old_plans(inputs, registry)
+    assert _fallback(inputs, registry) is None
+    assert inputs == original
+
+
 @pytest.mark.parametrize("target", [_TITLE_TARGET, _DATED_TARGET])
 @pytest.mark.parametrize(
     "query",
@@ -258,12 +280,24 @@ def test_mixed_business_and_distinct_roots_still_reject(
     assert _fallback(inputs._replace(intent=intent), registry) is None
 
 
-def test_existing_five_field_branch_preserves_original_intent(registry: CardPlanRegistry) -> None:
+@pytest.mark.parametrize(
+    "query",
+    [
+        "显示日程日期、标题、开始时间、结束时间和地点",
+        "只显示日程日期、标题、开始时间、结束时间和地点",
+    ],
+    ids=["five-fields", "only-five-fields"],
+)
+def test_existing_five_field_branch_preserves_original_intent(
+    registry: CardPlanRegistry, query: str
+) -> None:
     inputs = _case(_DATED_TARGET)
     intent = inputs.intent.model_copy(
         update={"required_output_fields_by_capability": {_CAP: _FIVE_FIELDS}}
     )
-    inputs = inputs._replace(intent=intent)
+    inputs = inputs._replace(
+        intent=intent, task=inputs.task.model_copy(update={"userQuery": query})
+    )
     result = _fallback(inputs, registry)
     assert result is not None
     assert result.intent == inputs.intent
