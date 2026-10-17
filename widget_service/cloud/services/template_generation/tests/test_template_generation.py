@@ -186,7 +186,7 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/daily/0/temperatureRangeText",
 )
 _WEATHER_PALETTE = ("#FF1F1F99", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFF24131", "#FFFF8833", "#FFE68073")
+_SPORT_PALETTE = ("#FFCC4033", "#FFFF7919", "#FFFF8E80")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -6846,7 +6846,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
 
     assert output.template_ids == ("CountdownOverviewFull@1", "SingleFocusLayout@1")
     assert "countdownDays" in output.a2ui
-    assert "倒计时" in output.a2ui
+    assert "还剩" in output.a2ui
     assert "运动倒计时" not in output.a2ui
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     update = messages[1].get("updateComponents")
@@ -6874,9 +6874,9 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert isinstance(root_styles, dict)
         assert root_styles.get("backgroundColor") == "#FFFFF0E6"
     expected_ball_colors = {
-        "fusionBallLarge": "#FFF24131",
-        "fusionBallMedium": "#FFFF8833",
-        "fusionBallSmall": "#FFE68073",
+        "fusionBallLarge": "#FFCC4033",
+        "fusionBallMedium": "#FFFF7919",
+        "fusionBallSmall": "#FFFF8E80",
     }
     for ball_id, expected_color in expected_ball_colors.items():
         if not enable_fusion_ball:

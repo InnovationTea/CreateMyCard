@@ -502,6 +502,9 @@
       "secondaryData": [
         "/nightSleepDurationText"
       ],
+      "supportedEventIds": [
+        "event.open.clock.alarmTab"
+      ],
       "assetParameterSemanticTags": {
         "sourceIcon": [
           "sleep"
