@@ -387,13 +387,16 @@ def _allocate_expanded_ids(
 
 
 def _validate_circle_button_slot(parent: ComponentRow | None) -> None:
-    if (
-        parent is None
-        or parent.component_type != "Stack"
-        or parent.props.get("width") != 40
-        or parent.props.get("height") != 40
-        or parent.props.get("alignContent") != "center"
-    ):
+    if parent is None:
+        raise CompactDslConversionError("CircleButton requires a centered 40x40 Stack slot.")
+    if parent.component_type != "Stack":
+        raise CompactDslConversionError("CircleButton requires a centered 40x40 Stack slot.")
+    is_centered_40vp_slot = (
+        parent.props.get("width") == 40
+        and parent.props.get("height") == 40
+        and parent.props.get("alignContent") == "center"
+    )
+    if not is_centered_40vp_slot:
         raise CompactDslConversionError("CircleButton requires a centered 40x40 Stack slot.")
 
 
@@ -629,8 +632,6 @@ def _emphasis_secondary_content(component: ComponentRow) -> Any:
         f"${{{path}}}" for path in paths
     )
     return f"{{{{ {body} }}}}"
-
-
 
 
 def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
@@ -1395,6 +1396,7 @@ def _normalized_progress_binding(
     total: int | float,
     data_model: dict[str, Any] | None,
 ) -> Any:
+    result: Any
     if isinstance(value, str):
         match = re.fullmatch(
             r"\s*\{\{\s*\$\{(?P<path>/[^{}]+)\}\s*"
@@ -1415,41 +1417,52 @@ def _normalized_progress_binding(
                     )
             if found:
                 _normalized_progress_literal(component, prop_name, initial_value, total=total)
-            return _normalized_progress_binding(
+            result = _normalized_progress_binding(
                 component,
                 prop_name,
                 {"path": path},
                 total=total,
                 data_model=data_model,
             )
-    if not _is_path_binding(value):
-        return _normalized_progress_literal(
+        else:
+            result = _normalized_progress_literal(
+                component,
+                prop_name,
+                value,
+                total=total,
+            )
+    elif not _is_path_binding(value):
+        result = _normalized_progress_literal(
             component,
             prop_name,
             value,
             total=total,
         )
-    path = value.get("path")
-    found, initial_value = _json_pointer_value(data_model or {}, path)
-    if not found:
-        return copy.deepcopy(value)
-    if not isinstance(initial_value, (int, float, str)) or isinstance(
-        initial_value,
-        bool,
-    ):
-        return copy.deepcopy(value)
-    numeric_value = _normalized_progress_literal(
-        component,
-        prop_name,
-        initial_value,
-        total=total,
-    )
-    if not isinstance(initial_value, str):
-        return copy.deepcopy(value)
-    derived_path = f"/__display{path}/progressValue"
-    if data_model is not None:
-        _set_json_pointer(data_model, derived_path, numeric_value)
-    return {"path": derived_path}
+    else:
+        path = value.get("path")
+        found, initial_value = _json_pointer_value(data_model or {}, path)
+        if not found:
+            result = copy.deepcopy(value)
+        elif not isinstance(initial_value, (int, float, str)) or isinstance(
+            initial_value,
+            bool,
+        ):
+            result = copy.deepcopy(value)
+        else:
+            numeric_value = _normalized_progress_literal(
+                component,
+                prop_name,
+                initial_value,
+                total=total,
+            )
+            if not isinstance(initial_value, str):
+                result = copy.deepcopy(value)
+            else:
+                derived_path = f"/__display{path}/progressValue"
+                if data_model is not None:
+                    _set_json_pointer(data_model, derived_path, numeric_value)
+                result = {"path": derived_path}
+    return result
 
 
 def _normalized_progress_literal(
@@ -1526,22 +1539,27 @@ def _expand_pill_button(
         size=size,
     )
     props = {**recipe_props, **copy.deepcopy(component.props)}
-    root_props = {
-        name: copy.deepcopy(value)
-        for name, value in props.items()
-        if name
-        in {
-            "width",
-            "height",
-            "borderRadius",
-            "padding",
-            "flexShrink",
-            "layoutWeight",
-            "margin",
-        }
+    root_props: dict[str, Any] = {}
+    root_prop_names = {
+        "width",
+        "height",
+        "borderRadius",
+        "padding",
+        "flexShrink",
+        "layoutWeight",
+        "margin",
     }
+    for name, value in props.items():
+        if name not in root_prop_names:
+            continue
+        root_props[name] = copy.deepcopy(value)
     root_props["backgroundColor"] = action_surface
-    root_props["onClick"] = copy.deepcopy(props["onClick"])
+    on_click = props.get("onClick")
+    if on_click is None:
+        raise CompactDslConversionError(
+            f"{component.component_id}: PillButton.onClick is required."
+        )
+    root_props["onClick"] = copy.deepcopy(on_click)
     icon = props.get("icon")
     if not isinstance(icon, str):
         root_props.update(
@@ -1649,26 +1667,31 @@ def _expand_circle_button(
     action_ink = _system_palette_color(color_palette, "primary")
     action_surface = _system_palette_color(color_palette, "componentSecondary")
     icon_id = f"{component.component_id}_icon"
-    root_props = {
-        name: copy.deepcopy(value)
-        for name, value in props.items()
-        if name
-        in {
-            "width",
-            "height",
-            "borderRadius",
-            "padding",
-            "flexShrink",
-            "layoutWeight",
-            "margin",
-        }
+    root_props: dict[str, Any] = {}
+    root_prop_names = {
+        "width",
+        "height",
+        "borderRadius",
+        "padding",
+        "flexShrink",
+        "layoutWeight",
+        "margin",
     }
+    for name, value in props.items():
+        if name not in root_prop_names:
+            continue
+        root_props[name] = copy.deepcopy(value)
+    on_click = props.get("onClick")
+    if on_click is None:
+        raise CompactDslConversionError(
+            f"{component.component_id}: CircleButton.onClick is required."
+        )
     root_props.update(
         {
             "backgroundColor": action_surface,
             "alignContent": "center",
             "clip": True,
-            "onClick": copy.deepcopy(props["onClick"]),
+            "onClick": copy.deepcopy(on_click),
             "accessibility": copy.deepcopy(props["accessibility"]),
         }
     )
