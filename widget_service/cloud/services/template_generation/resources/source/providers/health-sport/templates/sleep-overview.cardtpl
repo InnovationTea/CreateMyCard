@@ -2042,7 +2042,7 @@ Row(
 )
 #End
 
-#Template SleepOverviewScoreDetailWideFull@1(props: { sourceIcon?: asset })
+#Template SleepOverviewScoreDetailWideFull@1(props: { sourceIcon?: asset, actionId?: string })
 data = {
     score: $path("/sleepScore"),
     duration: $path("/nightSleepDurationText"),
@@ -2058,6 +2058,7 @@ Row(
         "height": "matchParent",
         "itemMargin": 8,
         "clip": true,
+        "onClick": EventAction(props?.actionId),
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
