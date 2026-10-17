@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "把卡片改成4x2尺寸的常用设置开关卡片，包含Wi-Fi、蓝牙、移动数据、省电模式、清理内存等常用设置开关，每个按钮都可以点击，点击后可以打开或关闭对应功能",
+    "candidateDataBindings": [],
+    "title": "常用开关·4x2",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.setWifiMode",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "wlan",
+              "switchFlag": 0
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.setBluetoothMode",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "bluetooth",
+              "switchFlag": 0
+            }
+          }
+        }
+      }
+    ],
+    "description": "4x2 常用设置开关卡片，可点击开关对应功能。",
+    "candidateAssetIds": [
+      "asset.wifi",
+      "asset.ic_Bluetooth"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "117",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "把卡片改成4x2尺寸的常用设置开关卡片，包含Wi-Fi、蓝牙、移动数据、省电模式、清理内存等常用设置开关，每个按钮都可以点击，点击后可以打开或关闭对应功能",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "把卡片改成4x2尺寸的常用设置开关卡片，包含Wi-Fi、蓝牙、移动数据、省电模式、清理内存等常用设置开关，每个按钮都可以点击，点击后可以打开或关闭对应功能",
+  "candidateDataBindings": [],
+  "title": "常用开关·4x2",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "4x2 常用设置开关卡片，可点击开关对应功能。",
+  "candidateAssetIds": []
+}

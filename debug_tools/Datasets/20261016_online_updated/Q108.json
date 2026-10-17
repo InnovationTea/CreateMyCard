@@ -1,0 +1,73 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "将杭州2天1晚秋日漫游完整行程生成一张大尺寸桌面卡片，包含Day1：09:00-11:30灵隐寺祈福、11:30-13:00知竹素菜馆午餐、13:30-16:30浙江省博物馆新馆、17:00-19:00清河坊历史文化街区、赵府私厨晚餐、如家商旅酒店住宿；Day2：09:30-11:30小河直街、11:30-13:00胜利河美食街午餐、13:30-15:30拱宸桥桥西直街、15:30返程。目标日期2026年10月17日，使用GetCountdownDays数据能力展示距离出发的倒计时天数。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-10-17"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "杭州漫游倒计时",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "杭州2天1晚秋日漫游完整行程，倒计时展示距离出发天数。",
+    "candidateAssetIds": [
+      "asset.ic_calender"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.339",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "108",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "将杭州2天1晚秋日漫游完整行程生成一张大尺寸桌面卡片，包含Day1：09:00-11:30灵隐寺祈福、11:30-13:00知竹素菜馆午餐、13:30-16:30浙江省博物馆新馆、17:00-19:00清河坊历史文化街区、赵府私厨晚餐、如家商旅酒店住宿；Day2：09:30-11:30小河直街、11:30-13:00胜利河美食街午餐、13:30-15:30拱宸桥桥西直街、15:30返程。目标日期2026年10月17日，使用GetCountdownDays数据能力展示距离出发的倒计时天数。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "将杭州2天1晚秋日漫游完整行程生成一张大尺寸桌面卡片，包含Day1：09:00-11:30灵隐寺祈福、11:30-13:00知竹素菜馆午餐、13:30-16:30浙江省博物馆新馆、17:00-19:00清河坊历史文化街区、赵府私厨晚餐、如家商旅酒店住宿；Day2：09:30-11:30小河直街、11:30-13:00胜利河美食街午餐、13:30-15:30拱宸桥桥西直街、15:30返程。目标日期2026年10月17日，使用GetCountdownDays数据能力展示距离出发的倒计时天数。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-10-17"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "杭州漫游倒计时",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "杭州2天1晚秋日漫游完整行程，倒计时展示距离出发天数。",
+  "candidateAssetIds": []
+}

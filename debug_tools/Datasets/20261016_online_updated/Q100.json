@@ -1,0 +1,62 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我生成一个本周日倒计时桌面卡片",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-08-30"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "周日倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "本周日倒计时桌面卡片。",
+    "candidateAssetIds": [
+      "asset.ic_calender"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.339",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "100",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我生成一个本周日倒计时桌面卡片",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我生成一个本周日倒计时桌面卡片",
+  "candidateDataBindings": [],
+  "title": "周日倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "本周日倒计时桌面卡片。",
+  "candidateAssetIds": []
+}

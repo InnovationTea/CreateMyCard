@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "把卡片搞好看一点，优化卡片的外观设计，让常用设置开关卡片更美观，配色更协调，布局更精致",
+    "candidateDataBindings": [],
+    "title": "常用开关·美化",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.setWifiMode",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "wlan",
+              "switchFlag": 0
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.setBluetoothMode",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "bluetooth",
+              "switchFlag": 0
+            }
+          }
+        }
+      }
+    ],
+    "description": "优化常用设置开关卡片外观，配色协调、布局精致。",
+    "candidateAssetIds": [
+      "asset.wifi",
+      "asset.ic_Bluetooth"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "114",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "把卡片搞好看一点，优化卡片的外观设计，让常用设置开关卡片更美观，配色更协调，布局更精致",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "把卡片搞好看一点，优化卡片的外观设计，让常用设置开关卡片更美观，配色更协调，布局更精致",
+  "candidateDataBindings": [],
+  "title": "常用开关·美化",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "优化常用设置开关卡片外观，配色协调、布局精致。",
+  "candidateAssetIds": []
+}
