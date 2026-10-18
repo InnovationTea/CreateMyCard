@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CardPreview } from './render';
 import { CardSize, ComponentNode, parseInput, RendererDocument } from './parser';
+import { resolveConversionUrl } from './endpoint';
 import { SAMPLE_COMPACT } from './fixtures';
 import './styles.css';
 

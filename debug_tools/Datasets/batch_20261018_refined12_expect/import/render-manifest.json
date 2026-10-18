@@ -1,0 +1,62 @@
+[
+  {
+    "id": "Q001",
+    "size": "2x2",
+    "file": "../dsl/Q001.jsonl"
+  },
+  {
+    "id": "Q004",
+    "size": "2x2",
+    "file": "../dsl/Q004.jsonl"
+  },
+  {
+    "id": "Q006",
+    "size": "2x2",
+    "file": "../dsl/Q006.jsonl"
+  },
+  {
+    "id": "Q009",
+    "size": "2x2",
+    "file": "../dsl/Q009.jsonl"
+  },
+  {
+    "id": "Q010",
+    "size": "2x2",
+    "file": "../dsl/Q010.jsonl"
+  },
+  {
+    "id": "Q014",
+    "size": "2x2",
+    "file": "../dsl/Q014.jsonl"
+  },
+  {
+    "id": "Q034",
+    "size": "2x2",
+    "file": "../dsl/Q034.jsonl"
+  },
+  {
+    "id": "Q037",
+    "size": "2x2",
+    "file": "../dsl/Q037.jsonl"
+  },
+  {
+    "id": "Q054",
+    "size": "2x4",
+    "file": "../dsl/Q054.jsonl"
+  },
+  {
+    "id": "Q056",
+    "size": "2x4",
+    "file": "../dsl/Q056.jsonl"
+  },
+  {
+    "id": "Q069",
+    "size": "2x4",
+    "file": "../dsl/Q069.jsonl"
+  },
+  {
+    "id": "Q076",
+    "size": "2x4",
+    "file": "../dsl/Q076.jsonl"
+  }
+]

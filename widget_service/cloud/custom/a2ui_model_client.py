@@ -392,7 +392,9 @@ class A2UIModelClient:
 
     def extract_genui_payload(self, text):
         """
-        如果响应以'''genui 开头，则剔除前后标记，返回中间的JSON字符串
+        如果响应以'''genui 开头，则剔除前后标记，返回中间的JSON字符串；
+        部分模型（如 qwen 系列）把同一次回答包在 <tool_call> 标签里返回，
+        这里一并剔除，否则 Plan 阶段会因前缀不是 JSON 直接判失败。
         否则原样返回。
         """
         text = text.strip()
@@ -400,6 +402,11 @@ class A2UIModelClient:
             content = text[len("```genui") :].strip()
             if content.endswith("```"):
                 content = content[:-3].strip()
+            return content
+        elif text.startswith("<tool_call>"):
+            content = text[len("<tool_call>") :].strip()
+            if content.endswith("</tool_call>"):
+                content = content[: -len("</tool_call>")].strip()
             return content
         else:
             return text
