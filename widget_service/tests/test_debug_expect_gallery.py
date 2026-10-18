@@ -169,6 +169,10 @@ def test_delete_rejects_regular_runs_unsafe_ids_and_active_batches(tmp_path):
     class FakeState:
         status = "running"
 
+        def __init__(self) -> None:
+            # get_run 会用 state.output_dir 做指标补全，这里补上运行目录。
+            self.output_dir = manager.output_root / run_id
+
         @staticmethod
         def public_dict() -> dict:
             return {"runId": run_id, "name": "保护", "sourceType": "external-quality"}
