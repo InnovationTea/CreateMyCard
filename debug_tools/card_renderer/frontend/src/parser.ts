@@ -8,7 +8,6 @@
 
 import { UIGraph } from '@genui-sdk/graph';
 import { JsonlStreamParser } from '@genui-sdk/parser';
-import { resolveConversionUrl } from './endpoint';
 
 export const COMPONENT_TYPES = new Set([
   'Row',
@@ -354,7 +353,7 @@ async function compileCompactDocument(
   allRows: unknown[],
   options: ParseOptions,
 ): Promise<RendererDocument> {
-  const response = await fetch(resolveConversionUrl(options.conversionUrl), {
+  const response = await fetch(options.conversionUrl ?? '/debug/renderer/convert', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ source, size: options.cardSize ?? 'auto', appVersion: options.appVersion }),
