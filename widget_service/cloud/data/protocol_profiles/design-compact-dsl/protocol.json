@@ -1,0 +1,14 @@
+{
+  "version": "v0.9",
+  "catalogId": "ohos.a2ui.extended.catalog.form",
+  "sizes": {
+    "2x2": {
+      "width": 150,
+      "height": 150
+    },
+    "2x4": {
+      "width": 300,
+      "height": 150
+    }
+  }
+}

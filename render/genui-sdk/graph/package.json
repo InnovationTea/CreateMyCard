@@ -1,0 +1,27 @@
+{
+  "name": "@genui-sdk/graph",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "npx tsx test.ts"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "tsup": "*",
+    "tsx": "^4.19.2",
+    "typescript": "*",
+    "@genui-sdk/parser": "*",
+    "@genui-sdk/llm-client": "*"
+  }
+}

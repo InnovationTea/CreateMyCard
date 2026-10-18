@@ -1,0 +1,3 @@
+*.pdf binary
+debug_tools/platform/index.html text eol=lf
+debug_tools/dist/index.html text eol=lf

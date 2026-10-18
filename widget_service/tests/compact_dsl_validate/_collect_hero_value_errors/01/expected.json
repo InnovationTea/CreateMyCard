@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component title: fontSize 20 requires a pure number/integer or a supported primary value. A directly bound measurement with a declared unit may use 20/24fp in a full-width area or 2x4 large panel when its text budget fits; ordinary names, dates, times, and statuses remain at most 18fp."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "2bda22d2cc48b30931bd614289f7dd79db60a883e6125b2c60e89c4e8a2f6fee",
+    "sample_task_spec.json": "50ccf7c5716a8a3a7e97c0212efb80595bcbf246fcdcaf5fea0e688285e632d6",
+    "sample_card_spec.json": "003ff3d88dedd65c7feaf3ce26e6a8d13e9838eec0bb7fa4651951ec57ccb413"
+  }
+}

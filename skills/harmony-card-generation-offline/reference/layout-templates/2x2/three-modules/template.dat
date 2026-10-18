@@ -1,0 +1,167 @@
+﻿[{
+  "version": "v0.9",
+  "createSurface": {
+    "surfaceId": "template-three-modules",
+    "catalogId": "ohos.a2ui.extended.catalog.form"}
+},
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "template-three-modules",
+    "components": [
+      {
+        "id": "root",
+        "component": "Column",
+        "children": [
+          "moduleHeader",
+          "moduleContent",
+          "moduleFooter"
+        ],
+        "itemMargin": 0,
+        "styles": {
+          "width": "100%",
+          "padding": {
+            "top": 4,
+            "right": 6,
+            "bottom": 4,
+            "left": 6
+          },
+          "borderRadius": 18,
+          "clip": true,
+          "shadow": "outerDefaultSM",
+          "backgroundColor": "#FFFFFFFF"
+        }
+      },
+      {
+        "id": "moduleHeader",
+        "component": "Row",
+        "children": [
+          "headerIcon",
+          "headerTitle"
+        ],
+        "itemMargin": "4vp",
+        "alignItems": "center",
+        "styles": {
+          "width": "100%",
+          "height":"24vp",
+          "backgroundColor": "#d0c1f3",
+          "borderRadius": 5
+        }
+      },
+      {
+        "id": "headerIcon",
+        "component": "Text",
+        "content": "◦",
+        "styles": {
+          "fontSize": 16,
+          "fontColor": "#8B5CF6"
+        }
+      },
+      {
+        "id": "headerTitle",
+        "component": "Text",
+        "content": "Module Title",
+        "styles": {
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "fontColor": "#E6000000",
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        }
+      },
+      {
+        "id": "moduleContent",
+        "component": "Column",
+        "children": [
+          "contentText"
+        ],
+        "justifyContent": "center",
+        "alignItems": "center",
+        "styles": {
+          "layoutWeight": 1,
+          "width": "100%",
+          "margin": {
+            "bottom": 2
+          },
+          "borderRadius": 12,
+          "backgroundColor": "#FFF5F3FF",
+          "padding": 0
+        }
+      },
+      {
+        "id": "contentText",
+        "component": "Text",
+        "content": "Content Area",
+        "styles": {
+          "fontSize": 15,
+          "fontWeight": "bold",
+          "fontColor": "#8B5CF6",
+          "maxLines": 1
+        }
+      },
+      {
+        "id": "moduleFooter",
+        "component": "Row",
+        "children": [
+          "footerIcon",
+          "footerText"
+        ],
+        "itemMargin": 4,
+        "justifyContent": "center",
+        "alignItems": "center",
+        "styles": {
+          "width": "100%",
+          "height": "28vp",
+          "borderRadius": 20,
+          "backgroundColor": "#8B5CF6",
+          "padding": {
+            "left": 12,
+            "right": 12
+          },
+          "margin": {
+            "top": 2
+          }
+        }
+      },
+      {
+        "id": "footerIcon",
+        "component": "Text",
+        "content": "✦",
+        "styles": {
+          "fontSize": 14,
+          "fontColor": "#FFFFFFFF"
+        }
+      },
+      {
+        "id": "footerText",
+        "component": "Text",
+        "content": "Action",
+        "styles": {
+          "fontSize": 14,
+          "fontWeight": "bold",
+          "fontColor": "#FFFFFFFF",
+          "maxLines": 1
+        }
+      }
+    ]
+  }
+},
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "template-three-modules",
+    "path": "/",
+    "value": {
+      "meta": {
+        "state": "ready"
+      },
+      "module": {
+        "icon": "◦",
+        "title": "Module Title",
+        "content": "Content Area",
+        "footerIcon": "✦",
+        "buttonLabel": "Action"
+      }
+    }
+  }
+}]

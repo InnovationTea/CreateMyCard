@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 weather day 0 in backboard left is split across multiple Text rows ['left0', 'split']. Merge each day into one 12fp/400 row."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "92da71d2de5ce402e9a5fa95cdc1b17b335554f272aff95c73d6db4623e3751a",
+    "sample_task_spec.json": "06fd796e98728165e1f188844c5246cdeeb38ce60a5f211e31f06bb2b0b443a7",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

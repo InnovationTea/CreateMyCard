@@ -1,0 +1,4 @@
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"backgroundColor":"comp_background_primary"},["foreground"]]
+["foreground","Column",{"width":"matchParent","height":"matchParent","padding":12,"alignItems":"start","justifyContent":"start"},["title"]]
+["title","EmphasisText",{"mainText":"Design Compact Mock"}]
+["/ui/state","ready"]

@@ -1,0 +1,22 @@
+{
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "countdown": {
+        "countdownDays": {
+          "type": "integer",
+          "sampleValue": 10
+        }
+      },
+      "other": {
+        "status": {
+          "type": "string",
+          "sampleValue": "状态"
+        }
+      }
+    }
+  },
+  "assetCandidates": [],
+  "eventCandidates": [],
+  "userQuery": "显示数据"
+}

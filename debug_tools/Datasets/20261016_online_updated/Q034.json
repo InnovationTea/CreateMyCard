@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个查看今日日程的桌面卡片，展示即将开始的日程待办时间，支持一键加入会议，卡片样式要可爱卡哇伊风格",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {},
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/entityId",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/eventLocation",
+          "/events/0/title",
+          "/events/0/oneClickServiceLink"
+        ]
+      }
+    ],
+    "title": "今日日程",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.enter.meeting",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "EnterMeeting",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ ${/data/calendar/events/0/oneClickServiceLink} }}"
+          }
+        }
+      }
+    ],
+    "description": "展示即将开始的日程待办时间，支持一键加入会议，可爱卡哇伊风格。",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_meeting"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.347",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "034",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个查看今日日程的桌面卡片，展示即将开始的日程待办时间，支持一键加入会议，卡片样式要可爱卡哇伊风格",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个查看今日日程的桌面卡片，展示即将开始的日程待办时间，支持一键加入会议，卡片样式要可爱卡哇伊风格",
+  "candidateDataBindings": [],
+  "title": "今日日程",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "展示即将开始的日程待办时间，支持一键加入会议，可爱卡哇伊风格。",
+  "candidateAssetIds": []
+}

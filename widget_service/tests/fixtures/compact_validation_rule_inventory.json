@@ -1,0 +1,236 @@
+{
+  "baseline": "106e8501 + approved Fusion rule restoration (2026-10-12)",
+  "sites": [
+    {
+      "module": "semantic/bindings.py",
+      "function": "_collect_progress_value_errors",
+      "code": "COMPACT_BINDING_PROGRESS_TYPE",
+      "class": "semantic",
+      "category": "binding"
+    },
+    {
+      "module": "semantic/bindings.py",
+      "function": "_collect_binding_data_errors",
+      "code": "COMPACT_BINDING_DATA_MISSING",
+      "class": "semantic",
+      "category": "binding"
+    },
+    {
+      "module": "semantic/cross_file.py",
+      "function": "_collect_undeclared_data_path_error",
+      "code": "COMPACT_CROSS_FILE_UNDECLARED_PATH",
+      "class": "semantic",
+      "category": "cross_file"
+    },
+    {
+      "module": "semantic/cross_file.py",
+      "function": "_collect_data_type_error",
+      "code": "COMPACT_CROSS_FILE_DATA_TYPE",
+      "class": "semantic",
+      "category": "cross_file"
+    },
+    {
+      "module": "semantic/cross_file.py",
+      "function": "_checked_data_schema",
+      "code": "COMPACT_CONTEXT_SCHEMA_INVALID",
+      "class": "semantic",
+      "category": "cross_file"
+    },
+    {
+      "module": "semantic/display.py",
+      "function": "_collect_raw_boolean_text_errors",
+      "code": "COMPACT_DISPLAY_RAW_BOOLEAN",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/display.py",
+      "function": "_collect_progress_readout_object_errors",
+      "code": "COMPACT_DISPLAY_PROGRESS_OBJECT_MISMATCH",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/display.py",
+      "function": "_collect_semantic_text_errors",
+      "code": "COMPACT_DISPLAY_DANGLING_RANGE",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/display.py",
+      "function": "_collect_semantic_text_errors",
+      "code": "COMPACT_DISPLAY_REMINDER_UNIT",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/display.py",
+      "function": "_collect_unbound_action_hint_errors",
+      "code": "COMPACT_DISPLAY_UNBOUND_ACTION_HINT",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/display.py",
+      "function": "_collect_ambiguous_metric_text_errors",
+      "code": "COMPACT_DISPLAY_AMBIGUOUS_METRIC",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/effective.py",
+      "function": "_collect_asset_reference_error",
+      "code": "COMPACT_ASSET_NOT_ALLOWED",
+      "class": "semantic",
+      "category": "effective"
+    },
+    {
+      "module": "semantic/effective.py",
+      "function": "_collect_event_candidate_error",
+      "code": "COMPACT_EVENT_NOT_ALLOWED",
+      "class": "semantic",
+      "category": "effective"
+    },
+    {
+      "module": "semantic/layout/assets.py",
+      "function": "_collect_asset_color_errors",
+      "code": "COMPACT_SVG_FILL_COLOR_MISSING",
+      "class": "semantic",
+      "category": "layout"
+    },
+    {
+      "module": "semantic/layout/geometry.py",
+      "function": "_collect_height_budget_errors",
+      "code": "COMPACT_LAYOUT_HEIGHT_OVERFLOW",
+      "class": "semantic",
+      "category": "layout"
+    },
+    {
+      "module": "semantic/layout/geometry.py",
+      "function": "_collect_unresolved_height_error",
+      "code": "COMPACT_LAYOUT_HEIGHT_UNRESOLVED",
+      "class": "semantic",
+      "category": "layout"
+    },
+    {
+      "module": "semantic/layout/horizontal.py",
+      "function": "_collect_horizontal_budget_errors",
+      "code": "COMPACT_LAYOUT_WIDTH_OVERFLOW",
+      "class": "semantic",
+      "category": "layout"
+    },
+    {
+      "module": "semantic/numeric_display.py",
+      "function": "_collect_numeric_component_errors",
+      "code": "COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_component_parent_errors",
+      "code": "COMPACT_COMPONENT_MULTIPLE_PARENTS",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_component_parent_errors",
+      "code": "COMPACT_COMPONENT_DUPLICATE_CHILD",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_container_errors",
+      "code": "COMPACT_COMPONENT_EMPTY_CONTAINER",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_HANDLER_COUNT",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_HANDLER_OBJECT",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_HANDLER_FIELDS",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_CALL_INVALID",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "_collect_on_click_structure_errors",
+      "code": "COMPACT_CLICK_ARGS_INVALID",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/components.py",
+      "function": "collect_model_component_errors",
+      "code": "COMPACT_MODEL_COMPONENT_FORBIDDEN",
+      "class": "syntax",
+      "category": "component"
+    },
+    {
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_WRAPPER",
+      "class": "syntax",
+      "category": "expression"
+    },
+    {
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_QUOTED_POINTER",
+      "class": "syntax",
+      "category": "expression"
+    },
+    {
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_REFERENCE_INCOMPLETE",
+      "class": "syntax",
+      "category": "expression"
+    },
+    {
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_REFERENCE_MISSING",
+      "class": "syntax",
+      "category": "expression"
+    },
+    {
+      "module": "syntax/expressions.py",
+      "function": "_collect_expression_context",
+      "code": "COMPACT_EXPRESSION_REFERENCE_ABSOLUTE",
+      "class": "syntax",
+      "category": "expression"
+    },
+    {
+      "module": "syntax/expressions.py",
+      "function": "_collect_path_binding",
+      "code": "COMPACT_PATH_BINDING_ABSOLUTE",
+      "class": "syntax",
+      "category": "expression"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "userQuery": "显示天气和电量",
+  "size": "2x4",
+  "eventCandidates": [
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Weather_CityCode",
+        "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "bluetooth_entry"
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "weather": {
+        "location": {
+          "cityCode": {
+            "type": "string",
+            "description": "城市编码",
+            "sampleValue": "101020100"
+          }
+        },
+        "current": {
+          "condition": {
+            "type": "string",
+            "description": "天气状况",
+            "sampleValue": "多云"
+          },
+          "temperatureC": {
+            "type": "integer",
+            "description": "当前温度",
+            "sampleValue": 29
+          }
+        }
+      },
+      "phoneBattery": {
+        "batterySOC": {
+          "type": "integer",
+          "description": "手机电量百分比",
+          "sampleValue": 68
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "充电状态",
+          "sampleValue": "未充电"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "resources/base/media/earphone_case_16644.svg",
+      "description": "本地耳机盒图标"
+    }
+  ]
+}

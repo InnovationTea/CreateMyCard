@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 large backboard weatherZone may contain at most one action control. Do not stack two buttons inside a 138x134 backboard; remove duplicate or lower-priority actions."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "9658c266ca4058a66acb73932e80cf9e6945911e8511bc7aeca87709ecbf0441",
+    "sample_task_spec.json": "a01d374d31bc95e7f5a8a063a491c8a56fd06ae0c29aca53dfcf16b0f563d10c",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "defaultPadding": 12,
+  "allowedFontSizes": [10, 12, 14, 16, 18, 20, 32, 40],
+  "allowedSpacing": [0, 2, 4, 6, 8, 10, 12, 14, 16],
+  "minClickableSize": 24,
+  "maxMeaninglessWhitespace": 18,
+  "protectedTextOverflow": ["ellipsis", "clip"],
+  "qualityWeights": {
+    "protocol": 30,
+    "layout": 25,
+    "style": 15,
+    "color": 15,
+    "asset": 10,
+    "content": 5
+  }
+}

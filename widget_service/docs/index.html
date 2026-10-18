@@ -1,0 +1,1752 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DSL Web Renderer</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --line: #d8dee9;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --brand: #0a59f7;
+      --danger: #d92d20;
+      font-family:
+        "HarmonyOS Sans SC", "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(420px, 46%) 1fr;
+      min-height: 100vh;
+    }
+
+    .left,
+    .right {
+      padding: 18px;
+      min-width: 0;
+    }
+
+    .left {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 12px;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.3;
+    }
+
+    .desc {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .toolbar,
+    .statusbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button,
+    .file-button,
+    select,
+    input[type="range"] {
+      font: inherit;
+    }
+
+    button,
+    .file-button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .file-button {
+      display: inline-flex;
+      align-items: center;
+      line-height: normal;
+    }
+
+    .file-button input {
+      display: none;
+    }
+
+    button.primary {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: #fff;
+    }
+
+    button:hover {
+      filter: brightness(0.98);
+    }
+
+    label.check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    label.control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    select {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 9px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 560px;
+      resize: none;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      outline: none;
+      color: #111827;
+      background: #fbfdff;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      tab-size: 2;
+    }
+
+    textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(10, 89, 247, 0.12);
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .right {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(10, 89, 247, 0.08), transparent 28%),
+        linear-gradient(180deg, #f8fafc, #eef2f7);
+    }
+
+    .preview-tools {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview-tools .group {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-height: 0;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background:
+        linear-gradient(45deg, rgba(0, 0, 0, 0.035) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(0, 0, 0, 0.035) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.035) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.035) 75%);
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+      background-size: 24px 24px;
+    }
+
+    .matte {
+      padding: 18px;
+      border-radius: 18px;
+      background: #242424;
+      transform-origin: center;
+      box-shadow: 0 18px 40px rgba(31, 41, 55, 0.18);
+    }
+
+    #surface {
+      position: relative;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .node {
+      min-width: 0;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+
+    .row,
+    .column,
+    .list {
+      display: flex;
+    }
+
+    .row {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .column,
+    .list {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .stack {
+      display: grid;
+      grid-template: 1fr / 1fr;
+    }
+
+    .stack > .node {
+      grid-area: 1 / 1;
+    }
+
+    .text {
+      margin: 0;
+      padding: 0;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .image {
+      display: block;
+    }
+
+    .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      font: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .divider {
+      flex-shrink: 0;
+      background: currentColor;
+    }
+
+    .progress {
+      position: relative;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.12);
+      flex-shrink: 0;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      background: var(--progress-color, #0a59f7);
+      border-radius: inherit;
+    }
+
+    .progress.circle {
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background:
+        conic-gradient(var(--progress-color, #0a59f7) var(--value), var(--progress-track, rgba(0, 0, 0, 0.12)) 0);
+    }
+
+    .progress.circle::after {
+      content: "";
+      width: calc(100% - (var(--stroke-width, 5px) * 2));
+      height: calc(100% - (var(--stroke-width, 5px) * 2));
+      border-radius: 999px;
+      background: var(--circle-bg, #fff);
+    }
+
+    .checkbox {
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 960px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .left {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      textarea {
+        min-height: 360px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="left">
+      <header>
+        <h1>DSL Web Renderer</h1>
+        <div class="desc">
+          只做 DSL 到 Web 的本地渲染，不做 Harmony UX 校验、模型重试、截图和测评。
+          支持直接打开 JSONL，以及 A2UI、极简协议、带 design token 的极简协议。
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button class="primary" id="renderButton" type="button">渲染</button>
+        <label class="file-button">
+          打开 JSONL
+          <input id="dslFile" type="file" accept=".jsonl,.json,.md,.txt,application/json,text/plain" />
+        </label>
+        <button id="clearButton" type="button">清空</button>
+        <button id="sampleA2ui" type="button">A2UI 示例</button>
+        <button id="sampleCompact" type="button">极简示例</button>
+        <button id="sampleDesign" type="button">Design 示例</button>
+        <label class="control">
+          画布
+          <select id="cardSize">
+            <option value="auto">自动</option>
+            <option value="2x2">2×2 · 160×160</option>
+            <option value="2x4">2×4 · 320×160</option>
+          </select>
+        </label>
+        <label class="check">
+          <input id="autoRender" type="checkbox" checked />
+          自动渲染
+        </label>
+      </div>
+
+      <textarea id="dslInput" spellcheck="false"></textarea>
+
+      <div class="statusbar">
+        <span id="status" class="status"></span>
+      </div>
+    </section>
+
+    <section class="right">
+      <div class="preview-tools">
+        <div class="group">
+          <span id="modeLabel">未渲染</span>
+          <span id="sizeLabel"></span>
+        </div>
+        <label class="group">
+          缩放
+          <input id="zoom" type="range" min="50" max="360" value="220" />
+          <span id="zoomValue">220%</span>
+        </label>
+      </div>
+      <div class="stage">
+        <div id="matte" class="matte">
+          <div id="surface"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const COMPONENT_TYPES = new Set([
+      "Row",
+      "Column",
+      "List",
+      "Stack",
+      "Grid",
+      "Text",
+      "Image",
+      "Divider",
+      "Progress",
+      "Button",
+      "Checkbox",
+      "Card",
+    ]);
+
+    const COLOR_TOKENS = {
+      font_primary: "#E5000000",
+      font_secondary: "#99000000",
+      font_tertiary: "#66000000",
+      font_emphasize: "#FF0A59F7",
+      font_on_primary: "#FFFFFFFF",
+      warning: "#FFE84026",
+      alert: "#FFED6F21",
+      confirm: "#FF64BB5C",
+      icon_primary: "#E5000000",
+      icon_secondary: "#99000000",
+      icon_tertiary: "#66000000",
+      icon_emphasize: "#FF0A59F7",
+      icon_on_primary: "#FFFFFFFF",
+      icon_on_tertiary: "#66FFFFFF",
+      background_primary: "#FFFFFFFF",
+      background_emphasize: "#FF0A59F7",
+      comp_background_list_card: "#FFFFFFFF",
+      comp_background_emphasize: "#FF0A59F7",
+      comp_background_tertiary: "#0C000000",
+      comp_background_secondary: "#19000000",
+      comp_background_primary_contrary: "#FFFFFFFF",
+      comp_divider: "#33000000",
+      container40: "#66000000",
+      primary50: "#7F000000",
+      multi_color_01: "#FF564AF7",
+      multi_color_02: "#FF46B1E3",
+      multi_color_03: "#FF61CFBE",
+      multi_color_04: "#FF64BB5C",
+      multi_color_05: "#FFA5D61D",
+      multi_color_06: "#FFAC49F5",
+      multi_color_07: "#FFE64566",
+      multi_color_08: "#FFE84026",
+      multi_color_09: "#FFED6F21",
+      multi_color_10: "#FFF9A01E",
+      multi_color_11: "#FFF7CE00",
+      multi_color_aux_01: "#FF8981F7",
+      multi_color_aux_02: "#FF86C5E3",
+      multi_color_aux_03: "#FF92D6CC",
+      multi_color_aux_04: "#FF92C48D",
+      multi_color_aux_05: "#FFBDDB69",
+      multi_color_aux_06: "#FFC386F0",
+      multi_color_aux_07: "#FFE67C92",
+      multi_color_aux_08: "#FFE87361",
+      multi_color_aux_09: "#FFED955F",
+      multi_color_aux_10: "#FFF9BC64",
+      multi_color_aux_11: "#FFF5DC62",
+      mask_primary: "#CC000000",
+      mask_secondary: "#99000000",
+      mask_tertiary: "#66000000",
+      mask_fourth: "#33000000",
+      mask_fifth: "#19000000",
+      mask_sixth: "#0C000000",
+    };
+
+    const DESIGN_TOKENS = {
+      Text: {
+        "display-l": { fontSize: 56, fontWeight: 300 },
+        "display-m": { fontSize: 48, fontWeight: 300 },
+        "display-s": { fontSize: 36, fontWeight: 700 },
+        "title-l": { fontSize: 30, fontWeight: 700 },
+        "title-m": { fontSize: 24, fontWeight: 700 },
+        "title-s": { fontSize: 20, fontWeight: 700 },
+        "subtitle-l": { fontSize: 18, fontWeight: 500 },
+        "subtitle-m": { fontSize: 16, fontWeight: 500 },
+        "subtitle-s": { fontSize: 14, fontWeight: 500 },
+        "body-l": { fontSize: 16, fontWeight: 500 },
+        "body-m": { fontSize: 14, fontWeight: 400 },
+        "body-s": { fontSize: 12, fontWeight: 400 },
+        "caption-l": { fontSize: 12, fontWeight: 500 },
+        "caption-m": { fontSize: 10, fontWeight: 500 },
+      },
+      Button: {
+        capsule: {
+          width: "matchParent",
+          height: 36,
+          borderRadius: 20,
+          padding: { left: 8, top: 0, right: 8, bottom: 0 },
+          backgroundColor: "comp_background_tertiary",
+          fontColor: "font_emphasize",
+          fontSize: 14,
+          fontWeight: 500,
+          maxLines: 1,
+          flexShrink: 0,
+        },
+        "icon-round": {
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          padding: 0,
+          backgroundColor: "comp_background_tertiary",
+          flexShrink: 0,
+        },
+      },
+      Progress: {
+        ring: {
+          type: "ring",
+          width: 44,
+          height: 44,
+          strokeWidth: 6,
+          backgroundColor: "comp_background_secondary",
+          color: "font_emphasize",
+        },
+        "linear-bar": {
+          type: "linear",
+          width: "matchParent",
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: "comp_background_secondary",
+        },
+        "segmented-bar": {
+          type: "linear",
+          width: "matchParent",
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: "comp_background_secondary",
+        },
+        "threshold-bar": {
+          type: "linear",
+          width: "matchParent",
+          height: 20,
+          borderRadius: 10,
+          backgroundColor: "#6B7F91",
+          color: "#C8F000",
+        },
+      },
+      Divider: {
+        line: { strokeWidth: 1, vertical: false, color: "comp_divider" },
+        bar: { strokeWidth: 8, vertical: false, color: "comp_background_tertiary" },
+      },
+      Checkbox: {
+        default: {
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          selectedColor: "comp_background_emphasize",
+          unSelectedColor: "icon_tertiary",
+          shape: "circle",
+        },
+      },
+    };
+
+    const SAMPLE_A2UI = [
+      '{"version":"v0.9","createSurface":{"surfaceId":"qingpu_weather_card",',
+      '"catalogId":"ohos.a2ui.extended.catalog.form","width":140,"height":140}}',
+      '{"version":"v0.9","updateComponents":{"surfaceId":"qingpu_weather_card","root":"root",',
+      '"components":[{"id":"root","component":"Column","children":["header","main","bottom"],',
+      '"itemMargin":6,"styles":{"width":"matchParent","height":"matchParent","padding":12,',
+      '"borderRadius":18,"clip":true,"justifyContent":"spaceBetween","linearGradient":',
+      '{"direction":"RightBottom","colors":[["#86C5E3",0],["#F5DC62",1]]}}},',
+      '{"id":"header","component":"Row","children":["title","condition"],"itemMargin":4,',
+      '"styles":{"width":116,"height":18,"justifyContent":"spaceBetween","alignItems":"center"}},',
+      '{"id":"title","component":"Text","content":"青浦天气","styles":{"width":56,"height":18,',
+      '"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1}},',
+      '{"id":"condition","component":"Text","content":"{{ ${/data/weather/current/condition} }}",',
+      '"styles":{"width":52,"height":16,"fontSize":12,"fontWeight":500,"fontColor":"#99000000",',
+      '"maxLines":1,"textAlign":"end"}},{"id":"main","component":"Row","children":["icon","temp"],',
+      '"itemMargin":6,"styles":{"width":116,"height":48,"alignItems":"center"}},',
+      '{"id":"icon","component":"Image","src":"resources/base/media/sun_max.svg",',
+      '"styles":{"width":42,"height":42,"objectFit":"contain"}},',
+      '{"id":"temp","component":"Text","content":"{{ ${/data/weather/current/temperatureText} }}",',
+      '"styles":{"width":68,"height":36,"fontSize":32,"fontWeight":700,"fontColor":"#E5000000"}},',
+      '{"id":"bottom","component":"Row","children":["humidity","action"],"itemMargin":4,',
+      '"styles":{"width":116,"height":38,"alignItems":"center"}},',
+      '{"id":"humidity","component":"Text","content":"湿度 {{ ${/data/weather/current/humidityPercent} }}%",',
+      '"styles":{"width":54,"height":28,"fontSize":12,"fontWeight":600,"fontColor":"#E5000000",',
+      '"backgroundColor":"#FFFFFFFF","borderRadius":14,"textAlign":"center"}},',
+      '{"id":"action","component":"Button","label":"详情","styles":{"width":58,"height":32,',
+      '"fontSize":14,"fontWeight":500,"fontColor":"#E5000000","backgroundColor":"#FFFFFFFF",',
+      '"borderRadius":16}}]}}',
+      '{"version":"v0.9","updateDataModel":{"surfaceId":"qingpu_weather_card","path":"/",',
+      '"value":{"data":{"weather":{"current":{"temperatureText":"26℃","condition":"多云",',
+      '"humidityPercent":68}}}}}}',
+    ].join("");
+
+    const SAMPLE_COMPACT = [
+      '["root","Column",{"width":"matchParent","height":140,"padding":12,"borderRadius":18,',
+      '"clip":true,"space":6,"linearGradient":{"direction":"RightBottom","colors":',
+      '[["#86C5E3",0],["#F5DC62",1]]},"constraintSize":{"minWidth":140,"maxWidth":140,',
+      '"minHeight":140,"maxHeight":140}},["header","main","bottom"]]',
+      '["header","Row",{"width":116,"height":18,"justifyContent":"spaceBetween",',
+      '"alignItems":"center","space":4},["title","condition"]]',
+      '["title","Text",{"width":70,"height":18,"content":"青浦天气","fontSize":14,',
+      '"fontWeight":700,"fontColor":"#E5000000"}]',
+      '["condition","Text",{"width":42,"height":18,"content":{"path":"/data/weather/current/condition"},',
+      '"fontSize":12,"fontWeight":600,"fontColor":"#E5000000","textAlign":"center"}]',
+      '["/data/weather/current/condition","多云"]',
+      '["main","Row",{"width":116,"height":48,"alignItems":"center","space":4},["icon","temp"]]',
+      '["icon","Image",{"width":40,"height":40,"src":"resources/base/media/sun_max.svg",',
+      '"objectFit":"contain"}]',
+      '["temp","Text",{"width":72,"height":40,"content":{"path":"/data/weather/current/temperatureText"},',
+      '"fontSize":32,"fontWeight":700,"fontColor":"#E5000000"}]',
+      '["/data/weather/current/temperatureText","29°C"]',
+      '["bottom","Row",{"width":116,"height":32,"alignItems":"center","space":4},["humidity","action"]]',
+      '["humidity","Text",{"width":54,"height":28,"content":"68%","fontSize":12,"fontWeight":600,',
+      '"fontColor":"#E5000000","backgroundColor":"#FFFFFFFF","borderRadius":14,"textAlign":"center"}]',
+      '["action","Button",{"width":58,"height":28,"label":"天气","fontSize":12,"fontWeight":600,',
+      '"fontColor":"#FFFFFFFF","backgroundColor":"#FF0A59F7","borderRadius":14}]',
+    ].join("\n");
+
+    const SAMPLE_DESIGN = [
+      '["root","Column",{"width":"matchParent","height":140,"padding":12,"borderRadius":18,',
+      '"clip":true,"space":6,"linearGradient":{"direction":"RightBottom","colors":',
+      '[["multi_color_aux_02",0],["multi_color_aux_11",1]]},"constraintSize":{"minWidth":140,',
+      '"maxWidth":140,"minHeight":140,"maxHeight":140}},["header","main","action"]]',
+      '["header","Row",{"width":116,"height":18,"justifyContent":"spaceBetween",',
+      '"alignItems":"center","space":4},["title","condition"]]',
+      '["title","Text",{"design":"subtitle-s","width":70,"height":18,"content":"青浦天气",',
+      '"fontColor":"font_primary","maxLines":1}]',
+      '["condition","Text",{"design":"caption-l","width":42,"height":18,',
+      '"content":{"path":"/data/weather/current/condition"},"fontColor":"font_secondary",',
+      '"textAlign":"end"}]',
+      '["/data/weather/current/condition","晴"]',
+      '["main","Row",{"width":116,"height":54,"alignItems":"center","space":4},["icon","temp"]]',
+      '["icon","Image",{"width":42,"height":42,"src":"resources/base/media/sun_max.svg",',
+      '"objectFit":"contain"}]',
+      '["temp","Text",{"design":"display-s","width":70,"height":44,',
+      '"content":{"path":"/data/weather/current/temperatureText"},"fontColor":"font_primary"}]',
+      '["/data/weather/current/temperatureText","28°C"]',
+      '["action","Button",{"design":"capsule","label":"看天气","backgroundColor":"background_emphasize",',
+      '"fontColor":"font_on_primary"}]',
+    ].join("\n");
+
+    const input = document.getElementById("dslInput");
+    const statusEl = document.getElementById("status");
+    const modeLabel = document.getElementById("modeLabel");
+    const sizeLabel = document.getElementById("sizeLabel");
+    const surfaceEl = document.getElementById("surface");
+    const matteEl = document.getElementById("matte");
+    const zoomEl = document.getElementById("zoom");
+    const zoomValueEl = document.getElementById("zoomValue");
+    const autoRenderEl = document.getElementById("autoRender");
+    const cardSizeEl = document.getElementById("cardSize");
+    const dslFileEl = document.getElementById("dslFile");
+    let renderTimer = 0;
+
+    input.value = SAMPLE_COMPACT;
+
+    document.getElementById("renderButton").addEventListener("click", render);
+    document.getElementById("clearButton").addEventListener("click", () => {
+      input.value = "";
+      render();
+    });
+    document.getElementById("sampleA2ui").addEventListener("click", () => setSample(SAMPLE_A2UI));
+    document.getElementById("sampleCompact").addEventListener("click", () => setSample(SAMPLE_COMPACT));
+    document.getElementById("sampleDesign").addEventListener("click", () => setSample(SAMPLE_DESIGN));
+    dslFileEl.addEventListener("change", async () => {
+      const file = dslFileEl.files && dslFileEl.files[0];
+      if (!file) return;
+      try {
+        input.value = await file.text();
+        render();
+      } catch (error) {
+        statusEl.className = "status error";
+        statusEl.textContent = error instanceof Error ? error.message : String(error);
+      } finally {
+        dslFileEl.value = "";
+      }
+    });
+    input.addEventListener("input", () => {
+      if (!autoRenderEl.checked) return;
+      clearTimeout(renderTimer);
+      renderTimer = window.setTimeout(render, 250);
+    });
+    zoomEl.addEventListener("input", updateZoom);
+    cardSizeEl.addEventListener("change", render);
+
+    function setSample(value) {
+      input.value = value;
+      render();
+    }
+
+    function updateZoom() {
+      const scale = Number(zoomEl.value) / 100;
+      matteEl.style.transform = `scale(${scale})`;
+      zoomValueEl.textContent = `${zoomEl.value}%`;
+    }
+
+    function render() {
+      statusEl.className = "status";
+      statusEl.textContent = "";
+      surfaceEl.innerHTML = "";
+
+      const text = input.value.trim();
+      if (!text) {
+        modeLabel.textContent = "未渲染";
+        sizeLabel.textContent = "";
+        return;
+      }
+
+      try {
+        const doc = parseInput(text);
+        const root = renderNode(doc.rootId, doc);
+        applySurfaceSize(doc.surface);
+        surfaceEl.appendChild(root);
+        fitTextToBounds(root);
+        root.style.setProperty("--circle-bg", getComputedStyle(root).backgroundColor);
+        modeLabel.textContent = doc.mode;
+        sizeLabel.textContent = `${doc.surface.width} × ${doc.surface.height}`;
+        statusEl.textContent =
+          `已渲染 ${doc.components.size} 个组件，DataModel ${doc.dataPathCount} 个路径。`;
+      } catch (error) {
+        statusEl.className = "status error";
+        statusEl.textContent = error instanceof Error ? error.message : String(error);
+        modeLabel.textContent = "解析失败";
+        sizeLabel.textContent = "";
+      }
+    }
+
+    function parseInput(text) {
+      const rows = collectJsonSegments(text)
+        .map((segment) => {
+          try {
+            return JSON.parse(segment);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+
+      const a2uiRows = rows.filter((row) => row && row.version && (
+        row.createSurface || row.updateComponents || row.updateDataModel
+      ));
+      if (a2uiRows.length > 0) {
+        return parseA2ui(a2uiRows, rows);
+      }
+
+      const compactRows = rows.filter(Array.isArray);
+      if (compactRows.length > 0) {
+        return parseCompact(compactRows);
+      }
+
+      throw new Error("没有识别到 A2UI 对象行或极简协议数组行。");
+    }
+
+    function collectJsonSegments(text) {
+      const segments = [];
+      let start = -1;
+      let stack = [];
+      let inString = false;
+      let escaped = false;
+
+      for (let index = 0; index < text.length; index += 1) {
+        const char = text[index];
+
+        if (start < 0) {
+          if (char === "{" || char === "[") {
+            start = index;
+            stack = [char];
+          }
+          continue;
+        }
+
+        if (inString) {
+          if (escaped) {
+            escaped = false;
+          } else if (char === "\\") {
+            escaped = true;
+          } else if (char === '"') {
+            inString = false;
+          }
+          continue;
+        }
+
+        if (char === '"') {
+          inString = true;
+        } else if (char === "{" || char === "[") {
+          stack.push(char);
+        } else if (char === "}" || char === "]") {
+          stack.pop();
+          if (stack.length === 0) {
+            segments.push(text.slice(start, index + 1));
+            start = -1;
+          }
+        }
+      }
+
+      return segments;
+    }
+
+    function parseA2ui(rows, allRows = rows) {
+      const data = {};
+      const components = new Map();
+      const surface = { width: null, height: null };
+      let rootId = "root";
+
+      for (const row of rows) {
+        if (row.createSurface) {
+          surface.width = numberOr(row.createSurface.width, surface.width);
+          surface.height = numberOr(row.createSurface.height, surface.height);
+        }
+
+        if (row.updateDataModel) {
+          setPath(data, row.updateDataModel.path || "/", row.updateDataModel.value);
+        }
+
+        if (row.updateComponents) {
+          rootId = row.updateComponents.root || rootId;
+          for (const item of row.updateComponents.components || []) {
+            const props = {};
+            for (const [key, value] of Object.entries(item)) {
+              if (!["id", "component", "children", "styles", "itemMargin"].includes(key)) {
+                props[key] = value;
+              }
+            }
+            Object.assign(props, item.styles || {});
+            if (item.itemMargin != null && props.space == null) props.space = item.itemMargin;
+            components.set(item.id, {
+              id: item.id,
+              type: normalizeType(item.component),
+              props,
+              children: Array.isArray(item.children) ? item.children : [],
+            });
+          }
+        }
+      }
+
+      const resolvedSurface = resolveA2uiSurface(
+        surface,
+        components.get(rootId),
+        components,
+        allRows,
+      );
+
+      return {
+        mode: "A2UI",
+        surface: resolvedSurface,
+        rootId,
+        components,
+        data,
+        dataPathCount: countLeafPaths(data),
+      };
+    }
+
+    function parseCompact(rows) {
+      const data = {};
+      const components = new Map();
+      let rootId = "root";
+
+      for (const row of rows) {
+        if (isComponentRow(row)) {
+          const id = String(row[0]);
+          const type = normalizeType(row[1]);
+          const props = normalizeDesignProps(type, { ...(row[2] || {}) });
+          const nestedStyles = props.styles && typeof props.styles === "object" ? props.styles : null;
+          if (nestedStyles) {
+            delete props.styles;
+            Object.assign(props, nestedStyles);
+          }
+          components.set(id, {
+            id,
+            type,
+            props,
+            children: Array.isArray(row[3]) ? row[3] : [],
+          });
+          if (components.size === 1 || id === "root") rootId = id;
+        } else if (isPathRow(row)) {
+          setPath(data, row[0], row[1]);
+        }
+      }
+
+      const root = components.get(rootId) || components.values().next().value;
+      const surface = selectedSurface() || inferSurface(root);
+
+      return {
+        mode: hasDesignToken(components) ? "Design Compact DSL" : "Compact DSL",
+        surface,
+        rootId: root?.id || rootId,
+        components,
+        data,
+        dataPathCount: countLeafPaths(data),
+      };
+    }
+
+    function isComponentRow(row) {
+      return row.length >= 3 && typeof row[0] === "string" && COMPONENT_TYPES.has(normalizeType(row[1]));
+    }
+
+    function isPathRow(row) {
+      return row.length === 2 && typeof row[0] === "string" && row[0].startsWith("/");
+    }
+
+    function hasDesignToken(components) {
+      for (const component of components.values()) {
+        if (component.props.__design != null) return true;
+      }
+      return false;
+    }
+
+    function normalizeDesignProps(type, props) {
+      const design = props.design;
+      if (typeof design !== "string") return props;
+      const token = DESIGN_TOKENS[type]?.[design];
+      props.__design = design;
+      delete props.design;
+      return token ? { ...token, ...props } : props;
+    }
+
+    function inferSurface(root) {
+      if (!root) return { width: 160, height: 160 };
+      const props = root.props || {};
+      const constraint = props.constraintSize || {};
+      const width = numberOr(
+        constraint.maxWidth ?? constraint.minWidth ?? props.width,
+        props.height === 140 ? 140 : 160,
+      );
+      const height = numberOr(
+        constraint.maxHeight ?? constraint.minHeight ?? props.height,
+        160,
+      );
+      return { width, height };
+    }
+
+    function resolveA2uiSurface(surface, root, components, rows) {
+      const selected = selectedSurface();
+      if (selected) return selected;
+      const suggested = sizeForCard(findSuggestSize(rows));
+      const inferred = inferSurfaceFromChildren(root, components);
+      return {
+        width: numberOr(surface.width, suggested?.width ?? inferred.width ?? 160),
+        height: numberOr(surface.height, suggested?.height ?? inferred.height ?? 160),
+      };
+    }
+
+    function selectedSurface() {
+      return sizeForCard(cardSizeEl?.value);
+    }
+
+    function sizeForCard(value) {
+      if (value === "2x2") return { width: 160, height: 160 };
+      if (value === "2x4") return { width: 320, height: 160 };
+      return null;
+    }
+
+    function findSuggestSize(rows) {
+      for (const row of rows) {
+        const candidates = [
+          row?.suggestSize,
+          row?.cardSpec?.suggestSize,
+          row?.artifact?.cardSpec?.suggestSize,
+        ];
+        const matched = candidates.find((value) => value === "2x2" || value === "2x4");
+        if (matched) return matched;
+      }
+      return "";
+    }
+
+    function inferSurfaceFromChildren(root, components) {
+      if (!root) return { width: null, height: null };
+      const props = root.props || {};
+      const numericRootWidth = numberOr(props.width, null);
+      const numericRootHeight = numberOr(props.height, null);
+      if (numericRootWidth != null && numericRootHeight != null) {
+        return { width: numericRootWidth, height: numericRootHeight };
+      }
+      // V2 uses the root radius as part of the size contract. This keeps a
+      // standalone A2UI JSONL renderable when width/height are matchParent and
+      // there is no surrounding CardSpec carrying suggestSize.
+      if (numberOr(props.borderRadius, null) === 22) {
+        return { width: 320, height: 160 };
+      }
+      const children = (root.children || [])
+        .map((id) => components.get(id))
+        .filter(Boolean);
+      if (children.length === 0) return { width: null, height: null };
+      const sizes = children.map((child) => ({
+        width: numberOr(child.props?.width, null),
+        height: numberOr(child.props?.height, null),
+      }));
+      if (sizes.some((size) => size.width == null || size.height == null)) {
+        return { width: null, height: null };
+      }
+      const gap = numberOr(props.space ?? props.itemMargin, 0);
+      const padding = edgeNumbers(props.padding);
+      if (root.type === "Row") {
+        return {
+          width: sizes.reduce((total, size) => total + size.width, 0)
+            + gap * Math.max(0, sizes.length - 1) + padding.left + padding.right,
+          height: Math.max(...sizes.map((size) => size.height))
+            + padding.top + padding.bottom,
+        };
+      }
+      if (["Column", "List", "Card"].includes(root.type)) {
+        return {
+          width: Math.max(...sizes.map((size) => size.width))
+            + padding.left + padding.right,
+          height: sizes.reduce((total, size) => total + size.height, 0)
+            + gap * Math.max(0, sizes.length - 1) + padding.top + padding.bottom,
+        };
+      }
+      return { width: null, height: null };
+    }
+
+    function renderNode(id, doc) {
+      const component = doc.components.get(id);
+      if (!component) {
+        const missing = document.createElement("div");
+        missing.className = "node text";
+        missing.textContent = "";
+        return missing;
+      }
+
+      const props = resolveProps(component.props || {}, doc.data);
+      const type = component.type;
+      let element;
+
+      if (type === "Text") {
+        element = document.createElement("p");
+        element.className = "node text";
+        element.textContent = stringify(resolveValue(props.content, doc.data));
+      } else if (type === "Image") {
+        const imageSources = resolveImageSources(props.src);
+        if (props.fillColor) {
+          element = document.createElement("canvas");
+          element.className = "node image tinted-image";
+          drawTintedImageWithFallback(element, imageSources, props);
+        } else {
+          element = document.createElement("img");
+          element.className = "node image";
+          element.alt = "";
+          let imageSourceIndex = 0;
+          element.src = imageSources[imageSourceIndex];
+          element.onerror = () => {
+            imageSourceIndex += 1;
+            if (imageSourceIndex < imageSources.length) {
+              element.src = imageSources[imageSourceIndex];
+            } else {
+              element.onerror = null;
+              element.src = fallbackImage(props.src);
+            }
+          };
+        }
+      } else if (type === "Button") {
+        element = document.createElement("button");
+        element.className = "node button";
+        element.type = "button";
+        element.textContent = stringify(props.label ?? props.actionText ?? "");
+        element.disabled = props.enabled === false;
+      } else if (type === "Divider") {
+        element = document.createElement("div");
+        element.className = "node divider";
+      } else if (type === "Progress") {
+        element = renderProgress(props);
+      } else if (type === "Checkbox") {
+        element = renderCheckbox(props);
+      } else {
+        element = document.createElement("div");
+        element.className = `node ${type.toLowerCase()}`;
+        for (const [childIndex, childId] of (component.children || []).entries()) {
+          const child = renderNode(childId, doc);
+          if (type === "Stack") {
+            child.style.gridArea = "1 / 1";
+            child.style.zIndex = String(childIndex);
+          }
+          element.appendChild(child);
+        }
+      }
+
+      applyStyles(element, props, type);
+      if (type === "Text" || type === "Button") {
+        const fontSize = numberOr(props.fontSize, null);
+        if (fontSize != null) {
+          const fallbackMinimum = Math.max(10, fontSize - 8);
+          element.dataset.minFontSize = String(
+            numberOr(props.minFontSize, fallbackMinimum),
+          );
+        }
+      }
+      element.dataset.nodeId = component.id;
+      return element;
+    }
+
+    function fitTextToBounds(root) {
+      const elements = [root, ...root.querySelectorAll(".text, .button")]
+        .filter((element) => element.matches?.(".text, .button"));
+      for (const element of elements) {
+        const minimum = Number(element.dataset.minFontSize);
+        let current = Number.parseFloat(getComputedStyle(element).fontSize);
+        if (!Number.isFinite(minimum) || !Number.isFinite(current)) continue;
+        while (
+          current > minimum
+          && (element.scrollWidth > element.clientWidth + 1
+            || element.scrollHeight > element.clientHeight + 1)
+        ) {
+          current -= 1;
+          element.style.fontSize = `${current}px`;
+        }
+      }
+    }
+
+    function renderProgress(props) {
+      const element = document.createElement("div");
+      element.className = "node progress";
+      const value = Number(resolveValue(props.value, {})) || 0;
+      const total = Number(resolveValue(props.total, {})) || 100;
+      const ratio = Math.max(0, Math.min(100, total ? (value / total) * 100 : value));
+      element.style.setProperty("--value", `${ratio}%`);
+      element.style.setProperty("--progress-color", colorValue(props.color || "#0A59F7"));
+      element.style.setProperty(
+        "--progress-track",
+        colorValue(props.backgroundColor || "rgba(0, 0, 0, 0.12)"),
+      );
+      element.style.setProperty("--stroke-width", `${numberOr(props.strokeWidth, 5)}px`);
+      if (props.type === "ring" || props.type === "circle" || props.type === "circular") {
+        element.classList.add("circle");
+      } else {
+        const bar = document.createElement("span");
+        bar.style.width = `${ratio}%`;
+        element.appendChild(bar);
+      }
+      return element;
+    }
+
+    function renderCheckbox(props) {
+      const element = document.createElement("div");
+      element.className = "node checkbox";
+      const selected = props.value === true || props.select === true;
+      element.textContent = selected ? "✓" : "";
+      element.style.background = selected
+        ? colorValue(props.selectedColor || "comp_background_emphasize")
+        : colorValue(props.unSelectedColor || "transparent");
+      return element;
+    }
+
+    function applySurfaceSize(surface) {
+      surfaceEl.style.width = `${surface.width}px`;
+      surfaceEl.style.height = `${surface.height}px`;
+      updateZoom();
+    }
+
+    function applyStyles(element, props, type) {
+      const style = {};
+      const layout = layoutStyle(props, type);
+      Object.assign(style, commonStyle(props), layout, componentStyle(props, type));
+
+      for (const [key, value] of Object.entries(style)) {
+        if (value != null && value !== "") element.style[key] = value;
+      }
+
+      if (props.onClick || props.action) {
+        element.style.cursor = "pointer";
+        element.title = actionTitle(props.onClick || props.action);
+      }
+    }
+
+    function commonStyle(props) {
+      const layoutWeight = numberOr(props.layoutWeight, null);
+      const style = {
+        width: sizeValue(props.width),
+        height: sizeValue(props.height),
+        minWidth: sizeValue(props.minWidth ?? props.constraintSize?.minWidth),
+        maxWidth: sizeValue(props.maxWidth ?? props.constraintSize?.maxWidth),
+        minHeight: sizeValue(props.minHeight ?? props.constraintSize?.minHeight),
+        maxHeight: sizeValue(props.maxHeight ?? props.constraintSize?.maxHeight),
+        padding: edgeValue(props.padding),
+        margin: edgeValue(props.margin),
+        borderRadius: sizeValue(props.borderRadius),
+        borderWidth: sizeValue(props.borderWidth),
+        borderColor: colorValue(props.borderColor),
+        opacity: props.opacity,
+        flexShrink: props.flexShrink,
+        flexGrow: layoutWeight,
+        flexBasis: layoutWeight != null ? "0%" : undefined,
+        alignSelf: alignValue(props.alignSelf),
+        overflow: props.clip === true ? "hidden" : undefined,
+        backgroundColor: colorValue(props.backgroundColor),
+        backgroundImage: gradientValue(props.linearGradient) || backgroundImageValue(props.backgroundImage),
+        boxSizing: "border-box",
+      };
+      if (layoutWeight != null) {
+        style.minWidth = "0";
+        style.minHeight = "0";
+      }
+      if (style.borderWidth && style.borderColor) style.borderStyle = "solid";
+      return style;
+    }
+
+    function layoutStyle(props, type) {
+      const gap = sizeValue(props.space ?? props.itemMargin);
+      const common = {
+        gap,
+        justifyContent: justifyValue(props.justifyContent),
+        alignItems: alignValue(props.alignItems),
+      };
+      if (type === "Row") {
+        return { display: "flex", flexDirection: "row", alignItems: "center", ...common };
+      }
+      if (type === "Column" || type === "List" || type === "Card") {
+        return { display: "flex", flexDirection: "column", alignItems: "stretch", ...common };
+      }
+      if (type === "Grid") {
+        return {
+          display: "grid",
+          gridTemplateColumns: props.columnsTemplate,
+          gridTemplateRows: props.rowsTemplate,
+          columnGap: sizeValue(props.columnGap ?? props.columnsGap),
+          rowGap: sizeValue(props.rowsGap),
+          ...common,
+        };
+      }
+      if (type === "Stack") {
+        return {
+          display: "grid",
+          gridTemplateColumns: "1fr",
+          gridTemplateRows: "1fr",
+          placeItems: gridAlignValue(props.alignContent ?? props.alignItems),
+          placeContent: gridAlignValue(props.alignContent),
+          ...common,
+        };
+      }
+      return {};
+    }
+
+    function componentStyle(props, type) {
+      if (type === "Text") {
+        const numericFontSize = numberOr(props.fontSize, null);
+        const textStyle = {
+          fontSize: sizeValue(props.fontSize),
+          fontWeight: props.fontWeight,
+          color: colorValue(props.fontColor),
+          textAlign: textAlignValue(props.textAlign),
+          lineHeight: props.lineHeight ?? (numericFontSize >= 20 ? 1.15 : 1.25),
+        };
+        if (props.maxLines === 1) {
+          textStyle.display = "block";
+          textStyle.whiteSpace = "nowrap";
+          textStyle.overflow = "hidden";
+          textStyle.textOverflow = props.textOverflow === "ellipsis" ? "ellipsis" : "clip";
+        } else if (props.maxLines) {
+          textStyle.display = "-webkit-box";
+          textStyle.WebkitBoxOrient = "vertical";
+          textStyle.WebkitLineClamp = String(props.maxLines);
+          textStyle.overflow = "hidden";
+        }
+        if (props.textOverflow === "ellipsis" && !props.maxLines) {
+          textStyle.overflow = "hidden";
+          textStyle.textOverflow = "ellipsis";
+          textStyle.whiteSpace = "nowrap";
+        }
+        return textStyle;
+      }
+
+      if (type === "Image") {
+        return {
+          objectFit: props.objectFit || "contain",
+          backgroundColor: colorValue(props.backgroundColor),
+        };
+      }
+
+      if (type === "Button") {
+        return {
+          padding: edgeValue(props.padding) || "0 12px",
+          minHeight: 0,
+          fontSize: sizeValue(props.fontSize),
+          fontWeight: props.fontWeight,
+          color: colorValue(props.fontColor || "font_on_primary"),
+          backgroundColor: colorValue(props.backgroundColor || "background_emphasize"),
+        };
+      }
+
+      if (type === "Divider") {
+        const vertical = props.vertical === true;
+        return {
+          width: vertical ? sizeValue(props.strokeWidth || props.width || 1) : sizeValue(props.width || "100%"),
+          height: vertical ? sizeValue(props.height || "100%") : sizeValue(props.strokeWidth || props.height || 1),
+          color: colorValue(props.color || "comp_divider"),
+        };
+      }
+
+      return {};
+    }
+
+    function resolveProps(props, data) {
+      const resolved = {};
+      for (const [key, value] of Object.entries(props)) {
+        if (key === "__design") {
+          resolved[key] = value;
+        } else {
+          resolved[key] = resolveValue(value, data);
+        }
+      }
+      return resolved;
+    }
+
+    function resolveValue(value, data) {
+      if (value && typeof value === "object" && !Array.isArray(value) && typeof value.path === "string") {
+        return getPath(data, value.path);
+      }
+      if (Array.isArray(value)) return value.map((item) => resolveValue(item, data));
+      if (value && typeof value === "object") {
+        if (value.call === "formatString") {
+          const args = value.args && typeof value.args === "object" ? value.args : {};
+          const format = String(args.format ?? value.format ?? "{}");
+          const values = Array.isArray(args.values) ? args.values : [];
+          let index = 0;
+          return format.replace(/\{\}/g, () => stringify(resolveValue(values[index++], data)));
+        }
+        return Object.fromEntries(
+          Object.entries(value).map(([key, item]) => [key, resolveValue(item, data)]),
+        );
+      }
+      if (typeof value === "string") return resolveTemplate(value, data);
+      return value;
+    }
+
+    function resolveTemplate(value, data) {
+      const fullExpression = value.match(/^\{\{\s*([\s\S]*?)\s*\}\}$/);
+      if (fullExpression) {
+        const expression = fullExpression[1];
+        const countdown = expression.match(
+          /^\$\{([^}]+)\}\s*==\s*0\s*\?\s*'([^']*)'\s*:\s*\(\s*\$\{([^}]+)\}\s*>\s*0\s*\?\s*\$\{([^}]+)\}\s*\+\s*'([^']*)'\s*:\s*'([^']*)'\s*\)$/,
+        );
+        if (countdown && countdown[1] === countdown[3] && countdown[1] === countdown[4]) {
+          const numeric = Number(getPath(data, countdown[1].trim()));
+          if (numeric === 0) return countdown[2];
+          return numeric > 0 ? `${numeric}${countdown[5]}` : countdown[6];
+        }
+        const booleanChoice = expression.match(
+          /^\$\{([^}]+)\}\s*\?\s*'([^']*)'\s*:\s*'([^']*)'$/,
+        );
+        if (booleanChoice) {
+          return getPath(data, booleanChoice[1].trim()) ? booleanChoice[2] : booleanChoice[3];
+        }
+        const concatenated = resolveConcatenation(expression, data);
+        if (concatenated != null) return concatenated;
+      }
+      return value.replace(/\{\{\s*\$\{([^}]+)\}\s*(?:\+\s*(['"])(.*?)\2)?\s*\}\}/g, (_, path, _q, suffix) => {
+        const resolved = getPath(data, path.trim());
+        return `${stringify(resolved)}${suffix || ""}`;
+      });
+    }
+
+    function resolveConcatenation(expression, data) {
+      let index = 0;
+      const values = [];
+
+      while (index < expression.length) {
+        index = skipWhitespace(expression, index);
+        const operand = readExpressionOperand(expression, index, data);
+        if (!operand) return null;
+        values.push(operand.value);
+        index = skipWhitespace(expression, operand.nextIndex);
+        if (index === expression.length) return values.join("");
+        if (expression[index] !== "+") return null;
+        index += 1;
+      }
+      return null;
+    }
+
+    function readExpressionOperand(expression, index, data) {
+      if (expression.startsWith("${", index)) {
+        const end = expression.indexOf("}", index + 2);
+        if (end < 0) return null;
+        const path = expression.slice(index + 2, end).trim();
+        if (!path) return null;
+        return {
+          value: stringify(getPath(data, path)),
+          nextIndex: end + 1,
+        };
+      }
+
+      const quote = expression[index];
+      if (quote !== "'" && quote !== '"') return null;
+      let value = "";
+      for (let cursor = index + 1; cursor < expression.length; cursor += 1) {
+        const character = expression[cursor];
+        if (character === quote) {
+          return { value, nextIndex: cursor + 1 };
+        }
+        if (character !== "\\") {
+          value += character;
+          continue;
+        }
+        cursor += 1;
+        if (cursor >= expression.length) return null;
+        value += unescapeExpressionCharacter(expression[cursor]);
+      }
+      return null;
+    }
+
+    function unescapeExpressionCharacter(character) {
+      const escapes = { n: "\n", r: "\r", t: "\t" };
+      return escapes[character] ?? character;
+    }
+
+    function skipWhitespace(value, index) {
+      let cursor = index;
+      while (cursor < value.length && /\s/.test(value[cursor])) cursor += 1;
+      return cursor;
+    }
+
+    function getPath(data, path) {
+      if (!path || path === "/") return data;
+      const normalized = String(path)
+        .trim()
+        .replace(/^\$\{?/, "")
+        .replace(/\}?$/, "")
+        .replace(/^\$\.?/, "")
+        .replace(/\[(\d+)\]/g, ".$1");
+      const parts = normalized
+        .split(normalized.includes("/") ? "/" : ".")
+        .filter(Boolean);
+      let node = data;
+      for (const part of parts) {
+        if (node == null) return "";
+        node = node[part];
+      }
+      return node == null ? "" : node;
+    }
+
+    function setPath(data, path, value) {
+      if (!path || path === "/") {
+        if (value && typeof value === "object") {
+          Object.assign(data, value);
+        }
+        return;
+      }
+      const parts = String(path).split("/").filter(Boolean);
+      let node = data;
+      for (let index = 0; index < parts.length; index += 1) {
+        const part = parts[index];
+        const last = index === parts.length - 1;
+        if (last) {
+          node[part] = value;
+          return;
+        }
+        if (node[part] == null || typeof node[part] !== "object") {
+          node[part] = /^\d+$/.test(parts[index + 1]) ? [] : {};
+        }
+        node = node[part];
+      }
+    }
+
+    function countLeafPaths(value) {
+      if (value == null || typeof value !== "object") return 1;
+      let count = 0;
+      for (const item of Object.values(value)) count += countLeafPaths(item);
+      return count;
+    }
+
+    function normalizeType(value) {
+      const type = String(value || "");
+      return type === "Container" ? "Column" : type;
+    }
+
+    function numberOr(value, fallback) {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      if (typeof value === "string" && /^\d+(\.\d+)?$/.test(value)) return Number(value);
+      return fallback;
+    }
+
+    function stringify(value) {
+      if (value == null) return "";
+      if (typeof value === "string") return value;
+      if (typeof value === "number" || typeof value === "boolean") return String(value);
+      return JSON.stringify(value);
+    }
+
+    function sizeValue(value) {
+      if (value == null) return undefined;
+      if (typeof value === "number") return `${value}px`;
+      if (typeof value !== "string") return undefined;
+      if (value === "matchParent" || value === "fill_container") return "100%";
+      if (/^\d+(\.\d+)?$/.test(value)) return `${value}px`;
+      return value;
+    }
+
+    function edgeValue(value) {
+      if (value == null) return undefined;
+      if (typeof value === "number" || typeof value === "string") return sizeValue(value);
+      if (typeof value !== "object") return undefined;
+      const top = sizeValue(value.top ?? 0);
+      const right = sizeValue(value.right ?? 0);
+      const bottom = sizeValue(value.bottom ?? 0);
+      const left = sizeValue(value.left ?? 0);
+      return `${top} ${right} ${bottom} ${left}`;
+    }
+
+    function edgeNumbers(value) {
+      const uniform = numberOr(value, null);
+      if (uniform != null) {
+        return { top: uniform, right: uniform, bottom: uniform, left: uniform };
+      }
+      if (!value || typeof value !== "object") {
+        return { top: 0, right: 0, bottom: 0, left: 0 };
+      }
+      return {
+        top: numberOr(value.top, 0),
+        right: numberOr(value.right, 0),
+        bottom: numberOr(value.bottom, 0),
+        left: numberOr(value.left, 0),
+      };
+    }
+
+    function colorValue(value) {
+      if (typeof value !== "string") return undefined;
+      return normalizeA2uiColor(COLOR_TOKENS[value] || value);
+    }
+
+    function normalizeA2uiColor(value) {
+      if (!/^#[0-9a-fA-F]{8}$/.test(value)) return value;
+      const alpha = parseInt(value.slice(1, 3), 16) / 255;
+      const red = parseInt(value.slice(3, 5), 16);
+      const green = parseInt(value.slice(5, 7), 16);
+      const blue = parseInt(value.slice(7, 9), 16);
+      return `rgba(${red}, ${green}, ${blue}, ${alpha.toFixed(3)})`;
+    }
+
+    function gradientValue(value) {
+      if (!value || typeof value !== "object" || !Array.isArray(value.colors)) return "";
+      const direction = {
+        RightBottom: "to right bottom",
+        LeftBottom: "to left bottom",
+        RightTop: "to right top",
+        LeftTop: "to left top",
+        Bottom: "to bottom",
+        Top: "to top",
+        Right: "to right",
+        Left: "to left",
+      }[value.direction] || "to right bottom";
+      const stops = value.colors
+        .map((item) => {
+          if (!Array.isArray(item)) return "";
+          const color = colorValue(item[0]) || item[0];
+          const offset = typeof item[1] === "number" ? ` ${item[1] * 100}%` : "";
+          return `${color}${offset}`;
+        })
+        .filter(Boolean)
+        .join(", ");
+      return stops ? `linear-gradient(${direction}, ${stops})` : "";
+    }
+
+    function backgroundImageValue(value) {
+      if (typeof value !== "string") return undefined;
+      return value.startsWith("url(") ? value : `url("${value}")`;
+    }
+
+    function justifyValue(value) {
+      return {
+        start: "flex-start",
+        center: "center",
+        end: "flex-end",
+        spaceBetween: "space-between",
+        spaceAround: "space-around",
+        spaceEvenly: "space-evenly",
+      }[value] || value;
+    }
+
+    function alignValue(value) {
+      return {
+        start: "flex-start",
+        top: "flex-start",
+        center: "center",
+        end: "flex-end",
+        bottom: "flex-end",
+      }[value] || value;
+    }
+
+    function gridAlignValue(value) {
+      return {
+        start: "start",
+        top: "start",
+        center: "center",
+        end: "end",
+        bottom: "end",
+      }[value] || value;
+    }
+
+    function textAlignValue(value) {
+      return { start: "left", end: "right" }[value] || value;
+    }
+
+    function actionTitle(action) {
+      try {
+        return JSON.stringify(action);
+      } catch {
+        return "action";
+      }
+    }
+
+    function resolveImageSources(src) {
+      if (typeof src !== "string" || !src) return [fallbackImage("")];
+      if (/^(https?:|data:|blob:|file:)/i.test(src)) return [src];
+      const normalized = src.replace(/\\/g, "/").replace(/^\.\//, "");
+      const candidates = [
+        normalized,
+        `copy-v2/${normalized}`,
+        `code/${normalized}`,
+        `sources/${normalized}`,
+      ];
+      return [...new Set(candidates.map((value) => new URL(value, location.href).href))];
+    }
+
+    function drawTintedImageWithFallback(canvas, sources, props) {
+      const candidates = [...sources, fallbackImage(props.src)];
+      let index = 0;
+      const tryNext = () => {
+        const source = candidates[index];
+        const probe = new Image();
+        probe.onload = () => {
+          const logicalWidth = numberOr(props.width, 64);
+          const logicalHeight = numberOr(props.height, 64);
+          const scale = Math.max(1, window.devicePixelRatio || 1);
+          canvas.width = Math.round(logicalWidth * scale);
+          canvas.height = Math.round(logicalHeight * scale);
+          const context = canvas.getContext("2d");
+          context.scale(scale, scale);
+          const sourceRatio = probe.naturalWidth / Math.max(1, probe.naturalHeight);
+          const targetRatio = logicalWidth / Math.max(1, logicalHeight);
+          const cover = props.objectFit === "cover";
+          let drawWidth;
+          let drawHeight;
+          if ((sourceRatio > targetRatio) !== cover) {
+            drawWidth = logicalWidth;
+            drawHeight = logicalWidth / sourceRatio;
+          } else {
+            drawHeight = logicalHeight;
+            drawWidth = logicalHeight * sourceRatio;
+          }
+          const x = (logicalWidth - drawWidth) / 2;
+          const y = (logicalHeight - drawHeight) / 2;
+          context.drawImage(probe, x, y, drawWidth, drawHeight);
+          context.globalCompositeOperation = "source-in";
+          context.fillStyle = colorValue(props.fillColor);
+          context.fillRect(0, 0, logicalWidth, logicalHeight);
+          canvas.dataset.maskReady = "true";
+        };
+        probe.onerror = () => {
+          index += 1;
+          if (index < candidates.length) tryNext();
+        };
+        probe.src = source;
+      };
+      tryNext();
+    }
+
+    function fallbackImage(src) {
+      const key = String(src || "").toLowerCase();
+      let svg;
+      if (key.includes("drop") || key.includes("rain")) svg = iconDrop();
+      else if (key.includes("sun")) svg = iconSun();
+      else if (key.includes("cold") || key.includes("snow")) svg = iconSnow();
+      else if (key.includes("calendar")) svg = iconCalendar();
+      else if (key.includes("clock")) svg = iconClock();
+      else if (key.includes("music")) svg = iconMusic();
+      else if (key.includes("bolt") || key.includes("battery")) svg = iconBattery();
+      else if (key.includes("leaf")) svg = iconLeaf();
+      else if (key.includes("location")) svg = iconLocation();
+      else if (key.includes("ear")) svg = iconEarphone();
+      else svg = iconGeneric();
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function svgBase(body) {
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${body}</svg>`;
+    }
+
+    function iconSun() {
+      return svgBase(`
+        <g fill="none" stroke="#111" stroke-width="5" stroke-linecap="round">
+          <circle cx="32" cy="32" r="14"/>
+          <path d="M32 5v7M32 52v7M5 32h7M52 32h7M13 13l5 5M46 46l5 5M51 13l-5 5M18 46l-5 5"/>
+        </g>`);
+    }
+
+    function iconDrop() {
+      return svgBase(`
+        <path d="M32 7C22 19 13 30 13 42c0 10 8 17 19 17s19-7 19-17C51 30 42 19 32 7z"
+          fill="none" stroke="#111" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M24 44c2 5 6 8 12 8" fill="none" stroke="#111" stroke-width="5"
+          stroke-linecap="round"/>`);
+    }
+
+    function iconSnow() {
+      return svgBase(`
+        <g fill="none" stroke="#111" stroke-width="5" stroke-linecap="round">
+          <path d="M32 7v50M11 20l42 24M53 20 11 44M23 12l9 8 9-8M23 52l9-8 9 8"/>
+        </g>`);
+    }
+
+    function iconCalendar() {
+      return svgBase(`
+        <rect x="9" y="12" width="46" height="43" rx="8" fill="none" stroke="#111" stroke-width="5"/>
+        <path d="M9 25h46M22 7v10M42 7v10" fill="none" stroke="#111" stroke-width="5"
+          stroke-linecap="round"/>`);
+    }
+
+    function iconClock() {
+      return svgBase(`
+        <circle cx="32" cy="32" r="24" fill="none" stroke="#111" stroke-width="5"/>
+        <path d="M32 18v16l11 7" fill="none" stroke="#111" stroke-width="5"
+          stroke-linecap="round"/>`);
+    }
+
+    function iconMusic() {
+      return svgBase(`
+        <path d="M23 44V14l28-6v30" fill="none" stroke="#111" stroke-width="5"
+          stroke-linejoin="round"/>
+        <circle cx="18" cy="46" r="8" fill="#111"/><circle cx="46" cy="40" r="8" fill="#111"/>`);
+    }
+
+    function iconBattery() {
+      return svgBase(`
+        <rect x="7" y="20" width="43" height="24" rx="5" fill="none" stroke="#111" stroke-width="5"/>
+        <path d="M54 27v10M33 21 23 35h9l-3 9 12-16h-9z" fill="#111"/>`);
+    }
+
+    function iconLeaf() {
+      return svgBase(`
+        <path d="M54 10C32 11 15 22 13 43c17 2 34-5 41-33z" fill="none" stroke="#111"
+          stroke-width="5" stroke-linejoin="round"/>
+        <path d="M17 46c10-16 21-23 33-31" fill="none" stroke="#111" stroke-width="5"
+          stroke-linecap="round"/>`);
+    }
+
+    function iconLocation() {
+      return svgBase(`
+        <path d="M32 58s20-19 20-34C52 13 43 5 32 5S12 13 12 24c0 15 20 34 20 34z"
+          fill="none" stroke="#111" stroke-width="5"/>
+        <circle cx="32" cy="24" r="7" fill="#111"/>`);
+    }
+
+    function iconEarphone() {
+      return svgBase(`
+        <path d="M18 35V24c0-8 6-15 14-15s14 7 14 15v11" fill="none" stroke="#111"
+          stroke-width="5" stroke-linecap="round"/>
+        <rect x="12" y="32" width="12" height="21" rx="6" fill="#111"/>
+        <rect x="40" y="32" width="12" height="21" rx="6" fill="#111"/>`);
+    }
+
+    function iconGeneric() {
+      return svgBase(`
+        <rect x="10" y="10" width="44" height="44" rx="10" fill="none" stroke="#111" stroke-width="5"/>
+        <path d="M18 43l10-12 7 8 6-7 7 11" fill="none" stroke="#111" stroke-width="5"
+          stroke-linecap="round" stroke-linejoin="round"/>`);
+    }
+
+    render();
+  </script>
+</body>
+</html>

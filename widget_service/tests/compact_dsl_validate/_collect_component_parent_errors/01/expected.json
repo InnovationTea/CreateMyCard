@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value has multiple parents: one and two. Each component may appear in exactly one parent children list."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "99f2e9bdf2fb481f6e296aaa3a71655e91677023e8c37506fb1f149a66e358fe",
+    "sample_task_spec.json": "8f9863fda7541f81cce95d691453d8661a4a0048b9666eb10bdee2780394b01c",
+    "sample_card_spec.json": "0b25239a3d05dcf6ae25974c5b865b78b3f1aed12e45a15e9a67cca2a357de8f"
+  }
+}

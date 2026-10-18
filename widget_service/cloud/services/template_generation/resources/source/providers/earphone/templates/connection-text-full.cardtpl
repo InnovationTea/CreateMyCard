@@ -1,0 +1,32 @@
+#Template BluetoothDeviceOverviewConnectionTextFull@1(props: { title?: string })
+data = {
+    name: $path("/earphoneName"),
+    connected: $path("/isConnected")
+}
+
+Column(
+  {"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "height": "matchParent",
+   "justifyContent": "spaceBetween", "alignItems": "start",
+   "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  #if props.title
+  Text(
+    Expr(data.connected ? data.name : props.title),
+    {"width": "matchParent", "height": 24, "fontSize": 16, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0}
+  )
+  #else
+  Text(
+    Expr(data.connected ? data.name : '蓝牙耳机'),
+    {"width": "matchParent", "height": 24, "fontSize": 16, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0}
+  )
+  #endif
+  Text(
+    Expr(data.connected ? '已连接' : '未连接'),
+    {"width": "matchParent", "height": 24, "fontSize": 16, "fontWeight": 400,
+     "fontColor": $theme('primaryColor'), "textAlign": "left", "maxLines": 1, "flexShrink": 0}
+  )
+)
+#End

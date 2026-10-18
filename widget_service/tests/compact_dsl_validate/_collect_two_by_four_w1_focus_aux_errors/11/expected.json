@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux cell cell1 references 3 dynamic facts. Keep at most two facts that fit as two short lines; drop lower-priority fields."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "90f38e6c3bafe8a15215da88e0b45339c5c2c09d3fb24fcbe6a88be3b1d20f3c",
+    "sample_task_spec.json": "4e92578b640f4b38b7659a7366554534df60aabd3a30991e982a0fcc6acf6b1e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

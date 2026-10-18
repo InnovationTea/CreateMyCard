@@ -1,0 +1,199 @@
+﻿[{
+  "version": "v0.9",
+  "createSurface": {
+    "surfaceId": "template-split-half",
+    "catalogId": "ohos.a2ui.extended.catalog.form"}
+},
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "template-split-half",
+    "components": [
+      {
+        "id": "root",
+        "component": "Column",
+        "children": [
+          "topContent",
+          "bottomRow"
+        ],
+        "itemMargin": 0,
+        "styles": {
+          "width": "100%",
+          "borderRadius": 18,
+          "clip": true,
+          "shadow": "outerDefaultSM",
+          "backgroundColor": "#FFFFFFFF",
+          "padding": {
+            "bottom": 8
+          }
+        }
+      },
+      {
+        "id": "topContent",
+        "component": "Column",
+        "children": [
+          "topIcon",
+          "topText"
+        ],
+        "itemMargin": 4,
+        "justifyContent": "center",
+        "alignItems": "center",
+        "styles": {
+          "layoutWeight": 1,
+          "width": "100%",
+          "padding": 8,
+          "backgroundColor": "#FFEDF4FF",
+          "constraintSize": {
+            "minHeight": "72vp"
+          }
+        }
+      },
+      {
+        "id": "topIcon",
+        "component": "Text",
+        "content": "☁",
+        "styles": {
+          "fontSize": 32,
+          "fontColor": "#0A59F7"
+        }
+      },
+      {
+        "id": "topText",
+        "component": "Text",
+        "content": "Top Content Area",
+        "styles": {
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "fontColor": "#E6000000",
+          "maxLines": 1,
+          "textOverflow": "ellipsis"
+        }
+      },
+      {
+        "id": "bottomRow",
+        "component": "Row",
+        "children": [
+          "bottomLeft",
+          "bottomRight"
+        ],
+        "itemMargin": 0,
+        "styles": {
+          "height": 64,
+          "width": "100%"
+        }
+      },
+      {
+        "id": "bottomLeft",
+        "component": "Column",
+        "children": [
+          "leftIcon",
+          "leftLabel"
+        ],
+        "itemMargin": 2,
+        "justifyContent": "center",
+        "alignItems": "center",
+        "styles": {
+          "layoutWeight": 1,
+          "backgroundColor": "#FFF8FAFC",
+          "padding": 0,
+          "borderRadius": 16,
+          "margin": {
+            "left": 12,
+            "right": 6,
+            "top": 4,
+            "bottom":1
+          },
+          "height": 64
+        }
+      },
+      {
+        "id": "leftIcon",
+        "component": "Text",
+        "content": "◴",
+        "styles": {
+          "fontSize": 14,
+          "fontColor": "#0A59F7"
+        }
+      },
+      {
+        "id": "leftLabel",
+        "component": "Text",
+        "content": "Date",
+        "styles": {
+          "fontSize": 10,
+          "fontColor": "#99000000",
+          "maxLines": 1
+        }
+      },
+      {
+        "id": "bottomRight",
+        "component": "Column",
+        "children": [
+          "rightIcon",
+          "rightLabel"
+        ],
+        "itemMargin": 2,
+        "justifyContent": "center",
+        "alignItems": "center",
+        "styles": {
+          "layoutWeight": 1,
+          "backgroundColor": "#FFF8FAFC",
+          "padding": 0,
+          "borderRadius": 16,
+          "margin": {
+            "left": 6,
+            "right": 12,
+            "top": 4,
+            "bottom":1
+          },
+          "height":"64vp"
+        }
+      },
+      {
+        "id": "rightIcon",
+        "component": "Text",
+        "content": "✦",
+        "styles": {
+          "fontSize": 14,
+          "fontColor": "#8B5CF6"
+        }
+      },
+      {
+        "id": "rightLabel",
+        "component": "Text",
+        "content": "Action",
+        "styles": {
+          "fontSize": 10,
+          "fontColor": "#99000000",
+          "maxLines": 1
+        }
+      }
+    ]
+  }
+},
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "template-split-half",
+    "path": "/",
+    "value": {
+      "meta": {
+        "state": "ready"
+      },
+      "top": {
+        "icon": "☁",
+        "text": "Top Content Area"
+      },
+      "bottomLeft": {
+        "icon": "◴",
+        "label": "Date",
+        "button": "Select"
+      },
+      "bottomRight": {
+        "icon": "✦",
+        "label": "Action",
+        "button": "Confirm"
+      }
+    }
+  }
+}]

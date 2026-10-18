@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "component value.props.onClick[0]: handler must contain only call and args."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "a125c2092695628da79ae7e6ab26cd21fa9f7caca942c3edc2a5e9eb2abad467",
+    "sample_task_spec.json": "8f9863fda7541f81cce95d691453d8661a4a0048b9666eb10bdee2780394b01c",
+    "sample_card_spec.json": "0b25239a3d05dcf6ae25974c5b865b78b3f1aed12e45a15e9a67cca2a357de8f"
+  }
+}

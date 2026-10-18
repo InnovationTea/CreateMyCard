@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 cards must not stack two or more full-width 276x48-59 content backboards vertically. Select the matching W skeleton; two semantic data blocks must use W9 left/right backboards."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "f999901598ee38ce9ca79413e4456fa87844c4076a0b1b0b75d756df46f03ec4",
+    "sample_task_spec.json": "24ea3250c12eb9edea83beaaf3b3de6c5b7f7135c02d2585bbb12c65b45f1309",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

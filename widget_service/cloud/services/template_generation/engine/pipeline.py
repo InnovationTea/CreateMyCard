@@ -1,0 +1,778 @@
+"""严格的两层模板路由与模板展开。"""
+
+from __future__ import annotations
+
+import inspect
+from copy import deepcopy
+from dataclasses import dataclass
+from typing import Any
+
+from app.logger import json_for_log, logger
+from models.generation import CandidateDataBinding, TaskSpec
+from services.card_validation.base import expression_references
+from services.template_generation.controls import load_template_controls
+from services.template_generation.engine.advanced.content_selectors import (
+    apply_content_selectors,
+    project_content_component_facts,
+)
+from services.template_generation.engine.advanced.data_shape import extract_data_shape
+from services.template_generation.engine.advanced.models import (
+    AdvancedScopeBrief,
+    TemplateComponentCandidate,
+    TemplateRouteSelection,
+)
+from services.template_generation.engine.advanced.scope_planner import (
+    TemplateRouteNotApplicable,
+    plan_template_route_with_llm,
+    resolve_available_capability_ids,
+    task_spec_with_selected_action,
+)
+from services.template_generation.engine.advanced.ux_mixed_framer import (
+    frame_ux_layout_root_children,
+)
+from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    build_ux_mixed_prompt,
+    build_ux_mixed_validation_retry_prompt,
+)
+from services.template_generation.engine.cardplan.battery_action_policy import (
+    resolve_battery_settings_fallback,
+)
+from services.template_generation.engine.cardplan.calendar_action_policy import (
+    resolve_calendar_view_fallback,
+)
+from services.template_generation.engine.cardplan.calendar_list_no_action_policy import (
+    plan_calendar_list_no_action_fallback,
+)
+from services.template_generation.engine.cardplan.calendar_no_action_policy import (
+    plan_calendar_no_action_fallback,
+)
+from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
+from services.template_generation.engine.cardplan.earphone_action_policy import (
+    resolve_earphone_candidate_actions,
+    restrict_earphone_action_role,
+    validate_earphone_action_exclusions,
+)
+from services.template_generation.engine.cardplan.models import (
+    CARDTPL_SOURCE_FORMATS,
+    TemplatePlan,
+)
+from services.template_generation.engine.cardplan.registry import (
+    CardPlanRegistry,
+    get_cardplan_registry,
+)
+from services.template_generation.engine.cardplan.template_plan_planner import (
+    plan_template_candidates,
+    planner_component_candidates,
+    planner_required_template_groups,
+    planner_scope,
+)
+from services.template_generation.engine.cardplan.template_retrieval import (
+    BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE,
+    TemplateRetrievalMiss,
+    TemplateRetrievalQuery,
+    TemplateSearchIntent,
+    build_template_retrieval_prompt,
+    normalize_calendar_reminder_intent,
+    normalize_redundant_date_intent,
+    restrict_search_intent_to_preferred_templates,
+    search_template_variants,
+)
+from services.template_generation.engine.tersel_converter import (
+    TerselConversionError,
+)
+from services.template_generation.postprocessing import remove_bitmap_fill_colors
+from services.template_generation.profile import (
+    TERSEL_PROTOCOL_PROFILE_ID,
+    read_tersel_protocol_profile,
+)
+
+_MODULE = "[Template Generation]"
+_MAX_BODY_REPAIRS = 2
+
+
+class TemplateGenerationError(RuntimeError):
+    """第一层已确认模板可用后，模板生成或展开失败。"""
+
+
+@dataclass(frozen=True)
+class TemplateEngineOutput:
+    a2ui: str
+    tersel: str
+    projected_task_spec: TaskSpec
+    template_ids: tuple[str, ...]
+    trusted_internal_asset_sources: tuple[str, ...]
+    expanded_component_count: int
+    theme_id: str
+
+
+async def generate_template_a2ui(
+    task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    model_client: Any,
+    *,
+    enable_fusion_ball: bool = False,
+    trusted_template_candidate_ids: tuple[str, ...] = (),
+    trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_sample_overrides: dict[str, Any] | None = None,
+) -> TemplateEngineOutput:
+    """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
+    logger.info(
+        f"{_MODULE} task_spec_received summary={json_for_log(_task_spec_log_summary(task_spec))}"
+    )
+    try:
+        selected_task_spec = _with_trusted_sample_overrides(
+            task_spec,
+            trusted_template_sample_overrides or {},
+        )
+        registry = get_cardplan_registry(enable_fusion_ball)
+        controls = load_template_controls()
+        available_capability_ids = _card_spec_capability_ids(card_spec)
+        effective_capability_ids = resolve_available_capability_ids(
+            task_spec,
+            registry,
+            available_capability_ids,
+        )
+        selected_task_spec = apply_content_selectors(
+            selected_task_spec,
+            effective_capability_ids,
+        )
+        data_shape = extract_data_shape(selected_task_spec)
+        logger.info(
+            f"{_MODULE} task_spec_after_content_selectors "
+            f"summary={json_for_log(_task_spec_log_summary(selected_task_spec))}"
+        )
+    except ValueError as exc:
+        raise TemplateRouteNotApplicable("template registry is unavailable") from exc
+
+    async def generate_json(
+        prompt: list[dict[str, str]],
+        phase: str,
+    ) -> dict[str, Any]:
+        return await model_client.generate_json(prompt, phase=phase)
+
+    try:
+        template_plans: tuple[TemplatePlan, ...] = ()
+        if controls.first_layer_component_selector == "llm":
+            registry = CardPlanRegistry(
+                source_root=registry.source_root,
+                disabled_provider_ids=tuple(registry.disabled_provider_ids),
+                disabled_template_ids=(
+                    *sorted(registry.disabled_template_ids), BATTERY_TEXT_LEVEL_FALLBACK_TEMPLATE,
+                ),
+                enable_fusion_ball=enable_fusion_ball,
+            )
+            selection = await plan_template_route_with_llm(
+                selected_task_spec,
+                data_shape,
+                generate_json,
+                registry,
+                coverage_bindings,
+                available_capability_ids,
+                card_spec,
+            )
+        else:
+            prompt = build_template_retrieval_prompt(
+                selected_task_spec,
+                registry,
+                coverage_bindings,
+            )
+            raw_query = await generate_json(prompt, "template-retrieval-query")
+            intent = TemplateSearchIntent.model_validate(raw_query)
+            intent = normalize_redundant_date_intent(intent, coverage_bindings)
+            original_intent = intent
+            intent = normalize_calendar_reminder_intent(
+                intent, selected_task_spec, coverage_bindings,
+            )
+            intent = restrict_search_intent_to_preferred_templates(
+                intent,
+                registry,
+                trusted_template_candidate_ids,
+            )
+            intent = _restrict_template_intent_actions(
+                intent,
+                trusted_template_action_ids,
+                selected_task_spec,
+            )
+            logger.info(
+                f"{_MODULE} template_retrieval_intent "
+                f"decision={json_for_log(intent.model_dump(mode='json', by_alias=True))}"
+            )
+            battery_action_is_optional = False
+            try:
+                validate_earphone_action_exclusions(intent, selected_task_spec)
+                search_result = search_template_variants(
+                    intent,
+                    selected_task_spec,
+                    registry,
+                    coverage_bindings,
+                    card_spec,
+                    preferred_template_ids=trusted_template_candidate_ids,
+                )
+                resolved_intent = resolve_calendar_view_fallback(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                    registry,
+                )
+                if resolved_intent.action_ids != intent.action_ids:
+                    logger.info(
+                        f"{_MODULE} calendar_view_fallback selected=True reason=hero_without_full"
+                    )
+                intent = resolved_intent
+                battery_action_is_optional = (
+                    selected_task_spec.size == "2x2"
+                    and tuple(intent.required_output_fields_by_capability) == (
+                        "GetPhoneBatteryInfo",
+                    )
+                    and not intent.action_ids
+                )
+                resolved_intent = resolve_battery_settings_fallback(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                )
+                if resolved_intent.action_ids != intent.action_ids:
+                    logger.info(
+                        f"{_MODULE} battery_settings_fallback selected=True "
+                        "reason=legal_hero_action_candidate"
+                    )
+                intent = resolved_intent
+                if not trusted_template_action_ids:
+                    resolved_earphone_intent = resolve_earphone_candidate_actions(
+                        intent,
+                        search_result,
+                        selected_task_spec,
+                        registry,
+                    )
+                    if resolved_earphone_intent.action_ids != intent.action_ids:
+                        search_result = restrict_earphone_action_role(
+                            search_result,
+                            len(resolved_earphone_intent.action_ids),
+                        )
+                    intent = resolved_earphone_intent
+                template_plans = plan_template_candidates(
+                    intent,
+                    search_result,
+                    selected_task_spec,
+                    registry,
+                    candidate_bindings=coverage_bindings,
+                    allow_battery_no_action_plan=battery_action_is_optional,
+                )
+            except TemplateRetrievalMiss:
+                fallback = plan_calendar_no_action_fallback(
+                    original_intent,
+                    selected_task_spec,
+                    registry,
+                    coverage_bindings,
+                    card_spec,
+                    enable_fusion_ball=enable_fusion_ball,
+                    trusted_template_candidate_ids=trusted_template_candidate_ids,
+                    trusted_template_action_ids=trusted_template_action_ids,
+                )
+                if fallback is None:
+                    fallback = plan_calendar_list_no_action_fallback(
+                        original_intent,
+                        selected_task_spec,
+                        registry,
+                        coverage_bindings,
+                        card_spec,
+                        enable_fusion_ball=enable_fusion_ball,
+                        trusted_template_candidate_ids=trusted_template_candidate_ids,
+                        trusted_template_action_ids=trusted_template_action_ids,
+                    )
+                if fallback is None:
+                    raise
+                intent = fallback.intent
+                registry = fallback.registry
+                search_result = fallback.search_result
+                template_plans = fallback.plans
+                logger.info(
+                    f"{_MODULE} calendar_no_action_fallback selected=True "
+                    "reason=original_search_or_planner_miss"
+                )
+            selection = TemplateRouteSelection(
+                scope=planner_scope(template_plans),
+                componentCandidates=planner_component_candidates(template_plans),
+                actionIds=(
+                    () if battery_action_is_optional and not template_plans[0].action_assignments
+                    else intent.action_ids
+                ),
+                requiredTemplateGroups=planner_required_template_groups(template_plans),
+                requiredOutputFieldsByCapability=intent.required_output_fields_by_capability,
+            )
+            logger.info(
+                f"{_MODULE} template_retrieval matched=True "
+                f"business_candidate_count={len(search_result.business_candidates)} "
+                f"plan_count={len(template_plans)}"
+            )
+    except TemplateRouteNotApplicable:
+        raise
+    except TemplateRetrievalMiss as exc:
+        logger.info(f"{_MODULE} template_retrieval matched=False reason={exc}")
+        raise TemplateRouteNotApplicable(str(exc)) from exc
+    except (RuntimeError, ValueError) as exc:
+        raise TemplateRouteNotApplicable(
+            f"template first-layer decision failed: {exc}"
+        ) from exc
+
+    try:
+        scope = selection.scope
+        selected_task_spec = task_spec_with_selected_action(
+            selected_task_spec,
+            selection.action_ids,
+        )
+        return await _generate_selected_templates(
+            source_task_spec=selected_task_spec,
+            card_spec=card_spec,
+            effective_capability_ids=effective_capability_ids,
+            scope=scope,
+            component_candidates=selection.component_candidates,
+            required_template_groups=selection.required_template_groups,
+            required_output_fields_by_capability=(
+                selection.required_output_fields_by_capability
+            ),
+            template_plans=template_plans,
+            registry=registry,
+            model_client=model_client,
+        )
+    except TemplateGenerationError:
+        raise
+    except (RuntimeError, ValueError) as exc:
+        logger.info(
+            f"{_MODULE} selected_template_generation_failed "
+            f"error_type={type(exc).__name__} detail={exc}"
+        )
+        raise TemplateGenerationError("selected template generation failed") from exc
+
+
+def _sample_override_child(current: Any, part: str, pointer: str) -> Any:
+    """只遍历已有样例结构，不创建缺失字段或扩展数组。"""
+    result: Any = None
+    if isinstance(current, dict) and part in current:
+        result = current[part]
+    elif isinstance(current, list) and part.isascii() and part.isdecimal():
+        index = int(part)
+        if part != str(index) or index >= len(current):
+            raise ValueError(f"trusted sample override path is unavailable: {pointer}")
+        result = current[index]
+    else:
+        raise ValueError(f"trusted sample override path is unavailable: {pointer}")
+    return result
+
+
+def _with_trusted_sample_overrides(
+    task_spec: TaskSpec,
+    sample_overrides: dict[str, Any],
+) -> TaskSpec:
+    """应用开发测试画廊声明的受信数据样例，不改变公开请求协议。"""
+    if not sample_overrides:
+        return task_spec
+    schema = deepcopy(task_spec.dataModelSchema)
+    for pointer, sample_value in sample_overrides.items():
+        if not isinstance(pointer, str) or not pointer.startswith("/data/"):
+            raise ValueError("trusted sample override path must stay under /data")
+        current: Any = schema
+        for raw_part in pointer.removeprefix("/").split("/"):
+            part = raw_part.replace("~1", "/").replace("~0", "~")
+            current = _sample_override_child(current, part, pointer)
+        if not isinstance(current, dict) or "sampleValue" not in current:
+            raise ValueError(f"trusted sample override target is not a field: {pointer}")
+        if sample_value is None or not isinstance(sample_value, (str, int, float, bool)):
+            raise ValueError(f"trusted sample override value is invalid: {pointer}")
+        current["sampleValue"] = sample_value
+    return task_spec.model_copy(update={"dataModelSchema": schema})
+
+
+def _restrict_template_intent_actions[
+    TemplateIntent: (TemplateSearchIntent, TemplateRetrievalQuery)
+](
+    intent: TemplateIntent,
+    trusted_template_action_ids: tuple[str, ...],
+    task_spec: TaskSpec,
+) -> TemplateIntent:
+    """Apply trusted gallery Action overrides before deterministic planning."""
+    if not trusted_template_action_ids:
+        return intent
+    action_ids = tuple(dict.fromkeys(trusted_template_action_ids))
+    if len(action_ids) != len(trusted_template_action_ids):
+        raise TemplateRetrievalMiss("trusted template Actions must be unique")
+    candidate_ids = {event.id for event in task_spec.eventCandidates if event.id}
+    if not set(action_ids).issubset(candidate_ids):
+        raise TemplateRetrievalMiss("trusted template Action is outside TaskSpec")
+    return intent.model_copy(update={"action_ids": action_ids})
+
+
+def _task_spec_log_summary(task_spec: TaskSpec) -> dict[str, Any]:
+    """只记录模板路由所需结构摘要，避免输出用户原始请求和完整数据结构。"""
+    return {
+        "size": task_spec.size,
+        "dataModelRootKeys": sorted(task_spec.dataModelSchema),
+        "eventCandidateCount": len(task_spec.eventCandidates),
+        "assetCandidateCount": len(task_spec.assetCandidates),
+    }
+
+
+def _prompt_size_summary(messages: list[dict[str, str]]) -> dict[str, int]:
+    system_chars = sum(
+        len(item["content"])
+        for item in messages
+        if item.get("role") == "system"
+    )
+    user_chars = sum(
+        len(item["content"])
+        for item in messages
+        if item.get("role") == "user"
+    )
+    return {
+        "messageCount": len(messages),
+        "systemPromptChars": system_chars,
+        "userPromptChars": user_chars,
+        "totalPromptChars": sum(len(item["content"]) for item in messages),
+    }
+
+
+async def _generate_selected_templates(
+    *,
+    source_task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    effective_capability_ids: set[str],
+    scope: AdvancedScopeBrief,
+    component_candidates: tuple[TemplateComponentCandidate, ...],
+    required_template_groups: tuple[tuple[str, ...], ...],
+    required_output_fields_by_capability: dict[str, tuple[str, ...]],
+    registry: CardPlanRegistry,
+    model_client: Any,
+    template_plans: tuple[TemplatePlan, ...] = (),
+) -> TemplateEngineOutput:
+    generic_paths: list[str] = []
+    for plan in template_plans:
+        for slot in plan.business_slots:
+            for path in slot.field_bindings.values():
+                if path not in generic_paths:
+                    generic_paths.append(path)
+    if registry.enabled_calendar_fallback_template_ids:
+        # 补充 Full 的最小字段不依赖旧日程投影形态。下方仍按已检索模板的
+        # required/optional 路径复制真实源字段，并由正式编译器验证绑定。
+        projected_task_spec = source_task_spec.model_copy(update={"dataModelSchema": {"data": {}}})
+    else:
+        projected_task_spec = project_content_component_facts(
+            source_task_spec,
+            effective_capability_ids,
+            scope.advanced_component_ids,
+            required_output_fields_by_capability=required_output_fields_by_capability,
+            generic_output_fields=tuple(generic_paths) if template_plans else None,
+        )
+    projected_task_spec = _with_provider_template_runtime_data(
+        source_task_spec,
+        projected_task_spec,
+        card_spec,
+        scope.advanced_component_ids,
+        component_candidates,
+        registry,
+        generic_output_fields=tuple(generic_paths) if template_plans else None,
+    )
+    projection = build_ux_mixed_prompt(
+        task_spec=projected_task_spec,
+        card_spec=card_spec,
+        scope=scope,
+        component_candidates=component_candidates,
+        required_template_groups=required_template_groups,
+        template_plans=template_plans,
+        registry=registry,
+    )
+    logger.info(
+        f"{_MODULE} second_layer_prompt_built "
+        f"summary={json_for_log(_prompt_size_summary(projection.messages))}"
+    )
+    protocol_profile = read_tersel_protocol_profile()
+    messages = projection.messages
+    repair_count = 0
+    while True:
+        phase = "advanced-mixed-body" if repair_count == 0 else "advanced-mixed-body-repair"
+        raw_output = await _generate_hybrid_body(model_client, messages, phase=phase)
+        try:
+            framed_output, _ = frame_ux_layout_root_children(
+                raw_output,
+                size=projected_task_spec.size,
+                registry=registry,
+                allowed_layout_ids=projection.allowed_layout_ids,
+            )
+            compilation = compile_ux_layout_card(
+                framed_output,
+                task_spec=projected_task_spec,
+                contract=projection.contract,
+                protocol_profile=protocol_profile,
+                registry=registry,
+                business_title=str(card_spec.get("title") or "") or None,
+                card_spec=card_spec,
+                enable_data_bindings=True,
+            )
+            break
+        except TerselConversionError as exc:
+            logger.info(
+                f"{_MODULE} template_body_validation_failed "
+                f"repair_count={repair_count} detail={exc}"
+            )
+            if repair_count >= _MAX_BODY_REPAIRS:
+                raise TemplateGenerationError("template body validation failed") from exc
+            repair_count += 1
+            messages = build_ux_mixed_validation_retry_prompt(
+                projection.messages,
+                raw_output,
+                exc,
+            )
+
+    requested_asset_sources = {
+        source
+        for item in projected_task_spec.assetCandidates
+        if isinstance(item, dict)
+        for source in (item.get("src"),)
+        if isinstance(source, str)
+    }
+    trusted_sources = tuple(
+        source
+        for source in projection.contract.allowed_asset_sources
+        if source not in requested_asset_sources and source in compilation.a2ui
+    )
+    logger.info(
+        f"{_MODULE} selected_templates_generated "
+        f"template_count={compilation.stats.template_call_count} "
+        f"expanded_component_count={compilation.stats.expanded_component_count} "
+        f"matched_plan_id={compilation.stats.matched_plan_id} "
+        f"repair_count={repair_count}"
+    )
+    return TemplateEngineOutput(
+        a2ui=remove_bitmap_fill_colors(compilation.a2ui),
+        tersel=compilation.effective_output,
+        projected_task_spec=projected_task_spec,
+        template_ids=tuple(compilation.stats.template_used_ids),
+        trusted_internal_asset_sources=trusted_sources,
+        expanded_component_count=compilation.stats.expanded_component_count,
+        theme_id=projection.theme_id,
+    )
+
+
+async def _generate_hybrid_body(
+    model_client: Any,
+    messages: list[dict[str, str]],
+    *,
+    phase: str,
+) -> str:
+    profile = {"id": TERSEL_PROTOCOL_PROFILE_ID, "format": "hybrid-card"}
+    generate = model_client.generate
+    parameters = inspect.signature(generate).parameters
+    accepts_keywords = any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+    kwargs = {"phase": phase, "suppress_prompt_log": True} if accepts_keywords else {}
+    result = generate(messages, profile, **kwargs)
+    if inspect.isawaitable(result):
+        return await result
+    return result
+
+
+def _with_provider_template_runtime_data(
+    source: TaskSpec,
+    projected: TaskSpec,
+    card_spec: dict[str, Any],
+    component_ids: tuple[str, ...],
+    component_candidates: tuple[TemplateComponentCandidate, ...],
+    registry: CardPlanRegistry,
+    *,
+    generic_output_fields: tuple[str, ...] | None = None,
+) -> TaskSpec:
+    schema = deepcopy(projected.dataModelSchema)
+    template_ids_by_component = {
+        candidate.component_id: candidate.available_template_ids
+        for candidate in component_candidates
+    }
+    changed = False
+    for component_id in component_ids:
+        capability = registry.require_ux_business_component(component_id)
+        if capability.implementation != "template":
+            continue
+        template_ids = template_ids_by_component.get(component_id, ())
+        for template_id in registry.enabled_template_ids(template_ids):
+            definition = registry.require_template(template_id)
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
+                continue
+            if not definition.capability_id:
+                continue
+            roots = _provider_binding_roots(card_spec, definition.capability_id)
+            if len(roots) != definition.binding_count:
+                continue
+            data = schema.get("data")
+            component_projection = data.pop(component_id, None) if isinstance(data, dict) else None
+            if isinstance(data, dict) and isinstance(component_projection, dict):
+                selectors = data.setdefault("_advancedSelectors", {})
+                if isinstance(selectors, dict):
+                    validation = selectors.setdefault("templateValidation", {})
+                    if isinstance(validation, dict):
+                        validation[component_id] = component_projection
+                changed = True
+            if component_id == "GenericMetricOverview" and isinstance(
+                component_projection, dict
+            ):
+                # Generic templates are intentionally not tied to a provider
+                # field list. Copy the selected scalar leaves back to their
+                # provider root so the generated path bindings remain valid.
+                provider_paths = tuple(
+                    f"/{field_name}"
+                    for field_name in component_projection
+                    if isinstance(field_name, str) and field_name
+                )
+            else:
+                provider_paths = tuple(
+                    dict.fromkeys(
+                        (
+                            *definition.required_data,
+                            *definition.optional_data,
+                            *(binding.path for binding in definition.bindings.values()),
+                        )
+                    )
+                )
+            if component_id == "GenericMetricOverview" and generic_output_fields is not None:
+                provider_paths = generic_output_fields
+            for root in roots:
+                for relative_path in provider_paths:
+                    path = f"{root.rstrip('/')}{relative_path}"
+                    value = _pointer_value(source.dataModelSchema, path)
+                    if value is None:
+                        continue
+                    _set_pointer_value(schema, path, deepcopy(value))
+                    changed = True
+    for path in _event_binding_paths(source):
+        value = _pointer_value(source.dataModelSchema, path)
+        if value is None:
+            continue
+        _set_pointer_value(schema, path, deepcopy(value))
+        changed = True
+    if not changed:
+        return projected
+    return projected.model_copy(update={"dataModelSchema": schema})
+
+
+def _event_binding_paths(task_spec: TaskSpec) -> tuple[str, ...]:
+    paths: list[str] = []
+    seen: set[str] = set()
+    for event in task_spec.eventCandidates:
+        for path in _value_binding_paths(event.args):
+            is_data_path = path == "/data" or path.startswith("/data/")
+            if not is_data_path or path in seen:
+                continue
+            seen.add(path)
+            paths.append(path)
+    return tuple(paths)
+
+
+def _value_binding_paths(value: Any) -> tuple[str, ...]:
+    if isinstance(value, str):
+        return tuple(expression_references(value))
+    if isinstance(value, dict):
+        if set(value) == {"path"} and isinstance(value.get("path"), str):
+            return (value["path"],)
+        return tuple(
+            path
+            for child in value.values()
+            for path in _value_binding_paths(child)
+        )
+    if isinstance(value, list):
+        return tuple(path for child in value for path in _value_binding_paths(child))
+    return ()
+
+
+def _provider_binding_roots(
+    card_spec: dict[str, Any],
+    capability_id: str,
+) -> tuple[str, ...]:
+    bindings = card_spec.get("dataBindings")
+    if not isinstance(bindings, list):
+        return ()
+
+    roots: list[str] = []
+    for item in bindings:
+        if not isinstance(item, dict):
+            continue
+        if item.get("capabilityId") != capability_id:
+            continue
+        root = item.get("writeResultTo")
+        if not _valid_provider_binding_root(root):
+            continue
+        roots.append(root)
+
+    if len(set(roots)) != len(roots):
+        return ()
+    return tuple(roots)
+
+
+def _valid_provider_binding_root(value: Any) -> bool:
+    return isinstance(value, str) and (value == "/data" or value.startswith("/data/"))
+
+
+def _pointer_value(value: Any, pointer: str) -> Any | None:
+    current = value
+    for part in _pointer_parts(pointer):
+        if isinstance(current, dict):
+            current = current.get(part)
+            continue
+        if isinstance(current, list) and part.isdigit():
+            index = int(part)
+            current = current[index] if index < len(current) else None
+            continue
+        return None
+    return current
+
+
+def _set_pointer_value(root: dict[str, Any], pointer: str, value: Any) -> None:
+    _set_pointer_parts(root, _pointer_parts(pointer), value)
+
+
+def _set_pointer_parts(current: Any, parts: tuple[str, ...], value: Any) -> None:
+    part = parts[0]
+    if isinstance(current, dict):
+        if len(parts) == 1:
+            current[part] = value
+            return
+        expected_type = list if parts[1].isdigit() else dict
+        child = current.get(part)
+        if not isinstance(child, expected_type):
+            child = expected_type()
+            current[part] = child
+        _set_pointer_parts(child, parts[1:], value)
+        return
+    if not isinstance(current, list) or not part.isdigit():
+        return
+    index = int(part)
+    while len(current) <= index:
+        current.append(None)
+    if len(parts) == 1:
+        current[index] = value
+        return
+    expected_type = list if parts[1].isdigit() else dict
+    child = current[index]
+    if not isinstance(child, expected_type):
+        child = expected_type()
+        current[index] = child
+    _set_pointer_parts(child, parts[1:], value)
+
+
+def _pointer_parts(pointer: str) -> tuple[str, ...]:
+    return tuple(
+        part.replace("~1", "/").replace("~0", "~")
+        for part in pointer.removeprefix("/").split("/")
+    )
+
+
+def _card_spec_capability_ids(card_spec: dict[str, Any]) -> tuple[str, ...]:
+    bindings = card_spec.get("dataBindings")
+    if not isinstance(bindings, list):
+        return ()
+    return tuple(
+        capability_id
+        for binding in bindings
+        if isinstance(binding, dict)
+        for capability_id in (binding.get("capabilityId"),)
+        if isinstance(capability_id, str)
+    )

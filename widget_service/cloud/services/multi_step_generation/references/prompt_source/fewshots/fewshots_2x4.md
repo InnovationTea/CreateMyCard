@@ -1,0 +1,497 @@
+---
+name: phone-widget-fewshots-2x4
+description: 提供符合 2×4 当前协议的端到端输入、简短分析、Plan 与 JSX 示例；共同示例边界见 fewshots_common.md。
+---
+
+# 2×4 端到端示例
+
+这些示例只演示如何把信息关系闭合为当前工具参数和布局，不是可复用的业务答案。
+
+- 示例中的实体、字段 ID、数值、文案和 Action 均为虚构；实际生成只能使用当前输入。
+- “信息分区”是生成时需要考虑的简短结论，不要求额外输出。
+- 固定槽限制的是业务组件数量，不是原始字段数量；一个支持多字段的组件可以在同一槽内表达一个完整且紧凑的信息分区。
+- 高密度不等于优先使用键值表。时间事件优先保留“事件名—时间范围—地点”的阅读层级；主值与状态优先使用有主次关系的组件；同单位指标可使用横向指标组。只有多个字段确实是同一对象的平行属性、且行标签对理解不可缺少时，才使用 `TableText` 或 `TextBlock`。
+- 同一显示 Prop 合并多个字段时，每个值必须自身带有必要语义，或组合关系一眼可知。不得把无标签的温度、湿度、开始时间和结束时间等不同含义的裸值用 `｜` 并列后交给用户猜测。
+- `submit_card_plan` 和 `submit_card_jsx` 必须遵守当前工具 Schema；若示例与组件或布局合同冲突，以合同为准。
+- 不要因为当前任务与示例领域相似就复制组件、标题或布局；应根据当前信息数量、分区关系、Action 归属和真实占位重新选择。
+
+## 示例一：一个主题的汇总与三项同级明细
+
+### 输入
+
+```json
+{
+  "userQuery": "展示本周工作室总用电量，以及照明、空调和设备用电分别是多少。",
+  "size": "2x4",
+  "actions": [],
+  "data": [
+    { "id": "studioPower.week.totalText", "type": "string", "description": "本周工作室总用电量。", "value": "96千瓦时" },
+    { "id": "studioPower.week.lightingText", "type": "string", "description": "本周照明用电量。", "value": "18千瓦时" },
+    { "id": "studioPower.week.coolingText", "type": "string", "description": "本周空调用电量。", "value": "34千瓦时" },
+    { "id": "studioPower.week.equipmentText", "type": "string", "description": "本周设备用电量。", "value": "29千瓦时" }
+  ],
+  "assetCandidates": []
+}
+```
+
+### 分析
+
+- 只有“本周工作室用电”一个信息分区。
+- 总用电量是汇总；照明、空调和设备用电是三个短小、同级的格式化明细。
+- 输入没有 Action，因此允许选择“上下双区”。上区用字号适中的 `EmphasisText` 建立汇总主次，下区用一个三项 `TextBlock` 表达同级明细；`TextBlock` 在这里承担横向信息块，而不是纵向键值表。
+
+### 计划
+
+```js
+submit_card_plan({
+  "info_required": [
+    {
+      "requirement": "本周工作室总用电量。",
+      "dataId": "studioPower.week.totalText",
+      "componentHints": ["EmphasisText"]
+    },
+    {
+      "requirement": "本周照明用电量。",
+      "dataId": "studioPower.week.lightingText",
+      "componentHints": ["TextBlock"]
+    },
+    {
+      "requirement": "本周空调用电量。",
+      "dataId": "studioPower.week.coolingText",
+      "componentHints": ["TextBlock"]
+    },
+    {
+      "requirement": "本周设备用电量。",
+      "dataId": "studioPower.week.equipmentText",
+      "componentHints": ["TextBlock"]
+    }
+  ]
+})
+```
+
+### 提交
+
+```js
+submit_card_jsx({
+  "jsx": `<Card size="2x4" appearance="solid-blue" layout="top-bottom">
+  <Region slot="title">
+    <SingleLineTitle title="本周工作室用电" />
+  </Region>
+  <Region slot="primary">
+    <EmphasisText mainText="96千瓦时" secondaryText="总用电量" dataIds={{"mainText":"studioPower.week.totalText"}} />
+  </Region>
+  <Region slot="details">
+    <TextBlock items={[{"label":"照明","parameter":"18千瓦时","dataIds":{"parameter":"studioPower.week.lightingText"}},{"label":"空调","parameter":"34千瓦时","dataIds":{"parameter":"studioPower.week.coolingText"}},{"label":"设备","parameter":"29千瓦时","dataIds":{"parameter":"studioPower.week.equipmentText"}}]} />
+  </Region>
+</Card>`,
+  "coverage": [
+    { "requirement": "展示本周工作室总用电量" },
+    { "requirement": "展示照明、空调和设备用电量" }
+  ],
+  "unmetRequirements": []
+})
+```
+
+## 示例二：两个复杂分区，各自带一个直属操作
+
+### 输入
+
+```json
+{
+  "userQuery": "做张设施卡片，同时查看温室的温度、湿度和通风模式并能调节通风，也查看冷藏区的温度、门状态和告警状态并能查看告警。",
+  "size": "2x4",
+  "actions": [
+    { "id": "facility.greenhouse.adjustVentilation", "description": "调节通风" },
+    { "id": "facility.coldRoom.viewAlerts", "description": "查看告警" }
+  ],
+  "data": [
+    { "id": "facility.greenhouse.temperatureText", "type": "string", "description": "温室当前温度。", "value": "24℃" },
+    { "id": "facility.greenhouse.humidityText", "type": "string", "description": "温室当前湿度。", "value": "63%" },
+    { "id": "facility.greenhouse.ventilationMode", "type": "string", "description": "温室当前通风模式。", "value": "自动" },
+    { "id": "facility.coldRoom.temperatureText", "type": "string", "description": "冷藏区当前温度。", "value": "-4℃" },
+    { "id": "facility.coldRoom.doorStatusText", "type": "string", "description": "冷藏区当前门状态。", "value": "已关" },
+    { "id": "facility.coldRoom.alertStatusText", "type": "string", "description": "冷藏区当前告警状态。", "value": "无" }
+  ],
+  "assetCandidates": []
+}
+```
+
+### 分析
+
+- 温室的三个状态字段和“调节通风”组成一个完整分区；冷藏区的三个状态字段和“查看告警”组成另一个完整分区。
+- 每侧用一个 `EmphasisText` 建立“温度主值 + 环境状态”层级。两个辅助字段用索引模板补出各自标签，不能只把 `63%` 与“自动”并列后让用户反推含义。
+- 两个 Action 分别直属不同分区，不应抽到统一按钮列。两侧各形成“标题 + 一个多字段主次组件 + PillButton”，选择两个 `compact-title-content-action`。
+
+### 计划
+
+```js
+submit_card_plan({
+  "info_required": [
+    {
+      "requirement": "温室当前温度。",
+      "dataId": "facility.greenhouse.temperatureText",
+      "componentHints": ["EmphasisText"]
+    },
+    {
+      "requirement": "温室当前湿度。",
+      "dataId": "facility.greenhouse.humidityText",
+      "componentHints": ["EmphasisText"]
+    },
+    {
+      "requirement": "温室当前通风模式。",
+      "dataId": "facility.greenhouse.ventilationMode",
+      "componentHints": ["EmphasisText"]
+    },
+    {
+      "requirement": "冷藏区当前温度。",
+      "dataId": "facility.coldRoom.temperatureText",
+      "componentHints": ["EmphasisText"]
+    },
+    {
+      "requirement": "冷藏区当前门状态。",
+      "dataId": "facility.coldRoom.doorStatusText",
+      "componentHints": ["EmphasisText"]
+    },
+    {
+      "requirement": "冷藏区当前告警状态。",
+      "dataId": "facility.coldRoom.alertStatusText",
+      "componentHints": ["EmphasisText"]
+    },
+    {
+      "requirement": "调节通风",
+      "actionId": "facility.greenhouse.adjustVentilation",
+      "componentHints": ["PillButton"]
+    },
+    {
+      "requirement": "查看告警",
+      "actionId": "facility.coldRoom.viewAlerts",
+      "componentHints": ["PillButton"]
+    }
+  ]
+})
+```
+
+### 提交
+
+```js
+submit_card_jsx({
+  "jsx": `<Card size="2x4" appearance="solid-green" layout="split-panels">
+  <Region slot="left" variant="compact-title-content-action">
+    <SingleLineTitle title="温室" />
+    <EmphasisText mainText="24℃" secondaryText="湿度63% ｜ 通风自动" secondaryTextTemplate="湿度{0} ｜ 通风{1}" dataIds={{"mainText":"facility.greenhouse.temperatureText","secondaryText":["facility.greenhouse.humidityText","facility.greenhouse.ventilationMode"]}} />
+    <PillButton label="调节通风" appearance="card" actionId="facility.greenhouse.adjustVentilation" />
+  </Region>
+  <Region slot="right" variant="compact-title-content-action">
+    <SingleLineTitle title="冷藏区" />
+    <EmphasisText mainText="-4℃" secondaryText="门已关 ｜ 无告警" secondaryTextTemplate="门{0} ｜ {1}告警" dataIds={{"mainText":"facility.coldRoom.temperatureText","secondaryText":["facility.coldRoom.doorStatusText","facility.coldRoom.alertStatusText"]}} />
+    <PillButton label="查看告警" appearance="card" actionId="facility.coldRoom.viewAlerts" />
+  </Region>
+</Card>`,
+  "coverage": [
+    { "requirement": "展示温室温度、湿度、通风模式并提供调节通风操作" },
+    { "requirement": "展示冷藏区温度、门状态、告警状态并提供查看告警操作" }
+  ],
+  "unmetRequirements": []
+})
+```
+
+## 示例三：丰富主内容与复合信息、操作槽
+
+### 输入
+
+```json
+{
+  "userQuery": "展示周末展会布置任务的任务名、开始和结束时间、场馆和入口，也看现场设备数量、故障情况和巡检状态，并能联系现场负责人。",
+  "size": "2x4",
+  "actions": [
+    { "id": "exhibition.manager.contact", "description": "联系负责人" }
+  ],
+  "data": [
+    { "id": "exhibition.setup.taskName", "type": "string", "description": "展会布置任务名称。", "value": "主展区布置" },
+    { "id": "exhibition.setup.startTime", "type": "string", "description": "任务开始时间。", "value": "09:00" },
+    { "id": "exhibition.setup.endTime", "type": "string", "description": "任务结束时间。", "value": "11:30" },
+    { "id": "exhibition.setup.locationText", "type": "string", "description": "任务所在场馆与入口。", "value": "A馆东入口" },
+    { "id": "exhibition.device.countText", "type": "string", "description": "现场设备数量。", "value": "12台设备" },
+    { "id": "exhibition.device.statusText", "type": "string", "description": "现场设备故障与巡检情况的完整描述。", "value": "1台故障，已巡检" }
+  ],
+  "assetCandidates": []
+}
+```
+
+### 分析
+
+- 布置任务的任务名、开始和结束时间、场馆入口属于一条事件信息。使用 `EventCard` 保留“任务名为主、时间范围与地点为次”的固有层级；开始和结束时间显示为明确的 `09:00 – 11:30` 范围，而不是两个并列时间点。
+- 设备数量与输入中已经完整描述的设备状态组成一个紧凑设备信息分区。`InfoBlock` 主、次文本各绑定一个字段，不在次文本中拼接多个动态字段。
+- “联系负责人”必须保留在独立操作槽。最终形成“左侧丰富主内容 + 右上简短 InfoBlock + 右下 CardButton”，选择“左内容右侧双槽”。
+
+### 计划
+
+```js
+submit_card_plan({
+  "info_required": [
+    {
+      "requirement": "展会布置任务名称。",
+      "dataId": "exhibition.setup.taskName",
+      "componentHints": ["EventCard"]
+    },
+    {
+      "requirement": "任务开始时间。",
+      "dataId": "exhibition.setup.startTime",
+      "componentHints": ["EventCard"]
+    },
+    {
+      "requirement": "任务结束时间。",
+      "dataId": "exhibition.setup.endTime",
+      "componentHints": ["EventCard"]
+    },
+    {
+      "requirement": "任务所在场馆与入口。",
+      "dataId": "exhibition.setup.locationText",
+      "componentHints": ["EventCard"]
+    },
+    {
+      "requirement": "现场设备数量。",
+      "dataId": "exhibition.device.countText",
+      "componentHints": ["InfoBlock"]
+    },
+    {
+      "requirement": "现场设备故障与巡检情况。",
+      "dataId": "exhibition.device.statusText",
+      "componentHints": ["InfoBlock"]
+    },
+    {
+      "requirement": "联系负责人",
+      "actionId": "exhibition.manager.contact",
+      "componentHints": ["CardButton"]
+    }
+  ]
+})
+```
+
+### 提交
+
+```js
+submit_card_jsx({
+  "jsx": `<Card size="2x4" appearance="solid-purple" layout="main-right-double">
+  <Region slot="main" variant="wide-title-content">
+    <SingleLineTitle title="展会布置" />
+    <EventCard items={[{"title":"主展区布置","time":"09:00 – 11:30","location":"A馆东入口","dataIds":{"title":"exhibition.setup.taskName","time":["exhibition.setup.startTime","exhibition.setup.endTime"],"location":"exhibition.setup.locationText"}}]} />
+  </Region>
+  <Region slot="side-top">
+    <InfoBlock primaryText="12台设备" secondaryText="1台故障，已巡检" dataIds={{"primaryText":"exhibition.device.countText","secondaryText":"exhibition.device.statusText"}} />
+  </Region>
+  <Region slot="side-bottom">
+    <CardButton text="联系负责人" actionId="exhibition.manager.contact" />
+  </Region>
+</Card>`,
+  "coverage": [
+    { "requirement": "展示展会布置任务名、时间范围、场馆和入口" },
+    { "requirement": "展示设备数量、故障情况和巡检状态" },
+    { "requirement": "提供联系现场负责人操作" }
+  ],
+  "unmetRequirements": []
+})
+```
+
+## 示例四：四个同级必要操作使用四个固定槽
+
+### 输入
+
+```json
+{
+  "userQuery": "做张居家快捷操作卡片，可以打开客厅灯、开启空调、开启新风和启动扫地机器人。",
+  "size": "2x4",
+  "actions": [
+    { "id": "home.livingRoom.lightOn", "description": "打开客厅灯" },
+    { "id": "home.airConditioner.turnOn", "description": "开启空调" },
+    { "id": "home.ventilation.turnOn", "description": "开启新风" },
+    { "id": "home.robotVacuum.start", "description": "启动扫地机器人" }
+  ],
+  "data": [],
+  "assetCandidates": [
+    { "src": "lamp_ceiling_light.svg", "description": "客厅吸顶灯" },
+    { "src": "air_fill.svg", "description": "空调" },
+    { "src": "air_open_fill.svg", "description": "新风通风" },
+    { "src": "clean_fill.svg", "description": "清洁扫地" }
+  ]
+}
+```
+
+### 分析
+
+- 四个 Action 都是用户明确要求的同级快捷操作；输入没有数据，不虚构信息模块或主内容。
+- `top-bottom` 不支持 Action，`split-panels` 每侧至多一个 Action，`main-right-double` 只有两个固定操作槽。四个必要 Action 只有 `four-blocks` 能各占一个合法槽位，因此选择四宫格，而不是为了凑满四槽拆分信息。
+- 每个操作使用一个 `CardButton`；Icon 分别从当前输入的候选中按语义选取。
+
+### 计划
+
+```js
+submit_card_plan({
+  "info_required": [
+    {
+      "requirement": "打开客厅灯",
+      "actionId": "home.livingRoom.lightOn",
+      "componentHints": ["CardButton"]
+    },
+    {
+      "requirement": "开启空调",
+      "actionId": "home.airConditioner.turnOn",
+      "componentHints": ["CardButton"]
+    },
+    {
+      "requirement": "开启新风",
+      "actionId": "home.ventilation.turnOn",
+      "componentHints": ["CardButton"]
+    },
+    {
+      "requirement": "启动扫地机器人",
+      "actionId": "home.robotVacuum.start",
+      "componentHints": ["CardButton"]
+    }
+  ]
+})
+```
+
+### 提交
+
+```js
+submit_card_jsx({
+  "jsx": `<Card size="2x4" appearance="solid-blue" layout="four-blocks">
+  <Region slot="top-left">
+    <CardButton text="打开客厅灯" icon="lamp_ceiling_light.svg" actionId="home.livingRoom.lightOn" />
+  </Region>
+  <Region slot="top-right">
+    <CardButton text="开启空调" icon="air_fill.svg" actionId="home.airConditioner.turnOn" />
+  </Region>
+  <Region slot="bottom-left">
+    <CardButton text="开启新风" icon="air_open_fill.svg" actionId="home.ventilation.turnOn" />
+  </Region>
+  <Region slot="bottom-right">
+    <CardButton text="启动扫地" icon="clean_fill.svg" actionId="home.robotVacuum.start" />
+  </Region>
+</Card>`,
+  "coverage": [
+    { "requirement": "提供打开客厅灯、开启空调、开启新风和启动扫地机器人四个操作" }
+  ],
+  "unmetRequirements": []
+})
+```
+
+## 示例五：同一领域的单环主内容与固定侧槽
+
+### 输入
+
+```json
+{
+  "userQuery": "查看便携音箱的剩余电量、供电状态、电池健康和预计充满时间，并打开设备设置。",
+  "size": "2x4",
+  "actions": [{ "id": "speaker.settings.open", "description": "打开设备设置" }],
+  "data": [
+    { "id": "speaker.battery.percentText", "type": "string", "description": "当前剩余电量。", "value": "71%" },
+    { "id": "speaker.battery.powerState", "type": "string", "description": "当前供电状态。", "value": "接入电源" },
+    { "id": "speaker.battery.healthText", "type": "string", "description": "电池健康状态。", "value": "状态良好" },
+    { "id": "speaker.battery.fullTimeText", "type": "string", "description": "预计充满时间。", "value": "约40分钟充满" }
+  ],
+  "assetCandidates": [{ "src": "battery_leaf_fill.svg", "description": "电量图标" }]
+}
+```
+
+### 分析
+
+全部字段属于便携音箱的电源状态，不因右侧有固定槽就伪造两个业务领域。剩余电量是唯一占比重点，供电状态与它同属一个 `ProgressCircleSingle`；电池健康和充满时间是次级完整信息块，设置操作占另一个固定槽。一个内容组件加两个固定模块，选择 `main-right-double`，不把电量再重复写进 `InfoBlock`。
+
+### 计划
+
+```js
+submit_card_plan({
+  "info_required": [
+    { "requirement": "音箱剩余电量", "dataId": "speaker.battery.percentText", "componentHints": ["ProgressCircleSingle"] },
+    { "requirement": "音箱供电状态", "dataId": "speaker.battery.powerState", "componentHints": ["ProgressCircleSingle"] },
+    { "requirement": "电池健康状态", "dataId": "speaker.battery.healthText", "componentHints": ["InfoBlock"] },
+    { "requirement": "预计充满时间", "dataId": "speaker.battery.fullTimeText", "componentHints": ["InfoBlock"] },
+    { "requirement": "打开设备设置", "actionId": "speaker.settings.open", "componentHints": ["CardButton"] }
+  ]
+})
+```
+
+### 提交
+
+```js
+submit_card_jsx({
+  "jsx": `<Card size="2x4" appearance="solid-green" layout="main-right-double">
+  <Region slot="main" variant="wide-title-content">
+    <SingleLineTitle title="便携音箱" />
+    <ProgressCircleSingle value="71%" icon="battery_leaf_fill.svg" label="剩余电量" secondaryLabel="接入电源" ariaLabel="便携音箱剩余电量71%，接入电源" appearance="card" size="compact" dataIds={{"value":"speaker.battery.percentText","secondaryLabel":"speaker.battery.powerState"}} />
+  </Region>
+  <Region slot="side-top">
+    <InfoBlock primaryText="状态良好" secondaryText="约40分钟充满" dataIds={{"primaryText":"speaker.battery.healthText","secondaryText":"speaker.battery.fullTimeText"}} />
+  </Region>
+  <Region slot="side-bottom">
+    <CardButton text="设备设置" actionId="speaker.settings.open" />
+  </Region>
+</Card>`,
+  "coverage": [{ "requirement": "展示电量、充电、电池健康和预计充满时间并提供设置操作" }],
+  "unmetRequirements": []
+})
+```
+
+## 示例六：不同领域分别使用专用比较组件
+
+### 输入
+
+```json
+{
+  "userQuery": "比较客厅和书房本周用电量，同时查看跑步、游泳和心肺训练的目标完成比例。",
+  "size": "2x4",
+  "actions": [],
+  "data": [
+    { "id": "energy.room.livingText", "type": "string", "description": "客厅本周用电量。", "value": "3.2千瓦时" },
+    { "id": "energy.room.studyText", "type": "string", "description": "书房本周用电量。", "value": "1.8千瓦时" },
+    { "id": "healthSport.runningGoalPercent", "type": "integer", "description": "跑步目标完成比例。", "value": 82 },
+    { "id": "healthSport.swimmingGoalPercent", "type": "integer", "description": "游泳目标完成比例。", "value": 61 },
+    { "id": "healthSport.cardioGoalPercent", "type": "integer", "description": "心肺训练目标完成比例。", "value": 34 }
+  ],
+  "assetCandidates": [
+    { "src": "figure_run.svg", "description": "跑步" },
+    { "src": "figure_pool_swim.svg", "description": "游泳" },
+    { "src": "heart_fill.svg", "description": "心肺训练" }
+  ]
+}
+```
+
+### 分析
+
+房间用电与训练目标属于不同领域，分别形成左右分区。左侧两个值同量纲且用户要求比较，使用两项 `H_BarChart`；右侧恰好三个同级百分比且各有可辨识 Icon，使用一个 `NumericRatioStack`。两个专用组件各占一个内容槽，不把五个值退化成键值表，也不产生不存在的 Action。
+
+### 计划
+
+```js
+submit_card_plan({
+  "info_required": [
+    { "requirement": "客厅本周用电量", "dataId": "energy.room.livingText", "componentHints": ["H_BarChart"] },
+    { "requirement": "书房本周用电量", "dataId": "energy.room.studyText", "componentHints": ["H_BarChart"] },
+    { "requirement": "跑步目标完成比例", "dataId": "healthSport.runningGoalPercent", "componentHints": ["NumericRatioStack"] },
+    { "requirement": "游泳目标完成比例", "dataId": "healthSport.swimmingGoalPercent", "componentHints": ["NumericRatioStack"] },
+    { "requirement": "心肺训练目标完成比例", "dataId": "healthSport.cardioGoalPercent", "componentHints": ["NumericRatioStack"] }
+  ]
+})
+```
+
+### 提交
+
+```js
+submit_card_jsx({
+  "jsx": `<Card size="2x4" appearance="solid-blue" layout="split-panels">
+  <Region slot="left" variant="compact-title-content">
+    <SingleLineTitle title="房间用电" />
+    <H_BarChart mode="light" items={[{"label":"客厅","valueUnit":"3.2千瓦时","percent":100,"dataIds":{"valueUnit":"energy.room.livingText"}},{"label":"书房","valueUnit":"1.8千瓦时","percent":56,"dataIds":{"valueUnit":"energy.room.studyText"}}]} />
+  </Region>
+  <Region slot="right" variant="compact-title-content">
+    <SingleLineTitle title="训练目标" />
+    <NumericRatioStack direction="column" appearance="card" items={[{"icon":"figure_run.svg","value":82,"unit":"%","dataIds":{"value":"healthSport.runningGoalPercent"}},{"icon":"figure_pool_swim.svg","value":61,"unit":"%","dataIds":{"value":"healthSport.swimmingGoalPercent"}},{"icon":"heart_fill.svg","value":34,"unit":"%","dataIds":{"value":"healthSport.cardioGoalPercent"}}]} />
+  </Region>
+</Card>`,
+  "coverage": [{ "requirement": "比较两个房间用电量并展示三项训练完成比例" }],
+  "unmetRequirements": []
+})
+```

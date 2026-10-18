@@ -1,0 +1,12 @@
+{
+  "genui": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Stack\",\"children\":[\"titleText\"],\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"borderRadius\":20,\"clip\":true,\"linearGradient\":{\"angle\":180,\"colors\":[[\"#FFE1EBFC\",0],[\"#FFF0F4FF\",1]]}}},{\"id\":\"titleText\",\"component\":\"Text\",\"content\":\"测试\",\"styles\":{\"width\":256,\"fontSize\":12,\"fontWeight\":400,\"fontColor\":\"#991F4594\",\"maxLines\":1,\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{\"phoneBattery\":{\"batterySOC\":68,\"nowCurrentText\":\"-151 mA\",\"voltageText\":\"4 V\",\"isBatteryPresentText\":\"在位\"}}}}}",
+  "effectiveCapabilities": {
+    "data": [],
+    "event": [],
+    "asset": [
+      {
+        "id": "missing"
+      }
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+#Template BluetoothDeviceOverviewEarbudPairChargingFull@1(props: { title?: string, caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+data = {
+    case: $path("/batteryLevel"),
+    left: $path("/leftBatteryLevel"),
+    right: $path("/rightBatteryLevel"),
+    charging: $path("/chargingStatusDesc")
+}
+Column(
+  {"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "height": "matchParent",
+   "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true,
+   "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Column(
+    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start",
+     "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(#Expr(props.title ? props.title : "蓝牙耳机"),
+      {"width": "matchParent", "height": 18, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}),
+    Text(data.charging,
+      {"width": "matchParent", "height": 26, "fontSize": 18, "fontWeight": 700,
+       "fontColor": $theme('primaryColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0})
+  ),
+  Row(
+    {"width": "matchParent", "height": 34, "itemMargin": 9, "justifyContent": "start",
+     "alignItems": "top", "flexShrink": 0, "constraintSize": {"minWidth": 0}},
+    Column(
+      {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
+       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+      Stack({"width": 16, "height": 16, "alignContent": "center"},
+        #if props.leftEarIcon
+        Image(props.leftEarIcon, {"width": 12, "height": 12,
+          "fillColor": $theme('supportContentColor')}),
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+      ),
+      Text(Expr('' + data.left + '%'),
+        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
+         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textOverflow": "ellipsis"})
+    ),
+    Column(
+      {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
+       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+      Stack({"width": 16, "height": 16, "alignContent": "center"},
+        #if props.rightEarIcon
+        Image(props.rightEarIcon, {"width": 12, "height": 12,
+          "fillColor": $theme('supportContentColor')}),
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+      ),
+      Text(Expr('' + data.right + '%'),
+        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
+         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textOverflow": "ellipsis"})
+    ),
+    Column(
+      {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
+       "alignItems": #Expr(props.caseIcon ? "start" : "center"), "constraintSize": {"minWidth": 0}},
+      Stack({"width": #Expr(props.caseIcon ? 16 : 30), "height": 16, "alignContent": "center"},
+        #if props.caseIcon
+        Image(props.caseIcon, {"width": 12, "height": 12,
+          "fillColor": $theme('supportContentColor')}),
+        #else
+        Text("耳机盒", {"width": 30, "height": 16, "fontSize": 10, "fontWeight": 400, "textAlign": "center",
+          "fontColor": $theme('supportContentColor'), "maxLines": 1}),
+        #endif
+      ),
+      Text(Expr('' + data.case + '%'),
+        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
+         "textAlign": #Expr(props.caseIcon ? "start" : "center"), "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textOverflow": "ellipsis"})
+    )
+  )
+)
+#End

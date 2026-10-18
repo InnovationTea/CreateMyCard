@@ -1,0 +1,77 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我生成一个实时观察的天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/temperatureText"
+        ]
+      }
+    ],
+    "title": "实时天气",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          }
+        }
+      }
+    ],
+    "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打电话。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_purification",
+      "asset.phone_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.330",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "055",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我生成一个实时观察的天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我生成一个实时观察的天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话",
+  "candidateDataBindings": [],
+  "title": "实时天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打电话。",
+  "candidateAssetIds": []
+}

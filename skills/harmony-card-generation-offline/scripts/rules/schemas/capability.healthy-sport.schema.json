@@ -1,0 +1,38 @@
+{
+  "capabilityId": "GetHealthAndSportSummary",
+  "preferredWriteResultTo": "/data/healthSport",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "targetDayOffset": {"type": "integer"}
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "targetDateText": {"type": "string"},
+      "sleepScore": {"type": "integer"},
+      "sleepStatus": {"type": "string"},
+      "sleepTypeDesc": {"type": "string"},
+      "nightSleepDurationText": {"type": "string"},
+      "deepSleepDurationText": {"type": "string"},
+      "totalNapDurationText": {"type": "string"},
+      "fallAsleepTimeText": {"type": "string"},
+      "wakeupTimeText": {"type": "string"},
+      "dailySteps": {"type": "integer"},
+      "dailyTotalCaloriesText": {"type": "string"},
+      "dailyDistanceText": {"type": "string"},
+      "exerciseTypeName": {"type": "string"},
+      "exerciseStartTimeText": {"type": "string"},
+      "exerciseEndTimeText": {"type": "string"},
+      "exerciseDurationText": {"type": "string"},
+      "exerciseCalorieText": {"type": "string"},
+      "exerciseHeartRateAvg": {"type": "integer"},
+      "exerciseHeartRateMax": {"type": "integer"},
+      "exerciseHeartRateMin": {"type": "integer"},
+      "updatedAt": {"type": "string"}
+    }
+  }
+}

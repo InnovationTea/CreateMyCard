@@ -1,0 +1,37 @@
+{
+  "retCode": 0,
+  "description": "OK",
+  "nameSpaces": [
+    {
+      "retCode": 0,
+      "description": "OK",
+      "dataType": "t_ids_kv_ohos_installed_apps",
+      "values": [
+        {
+          "data": {
+            "appName": "蓝牙",
+            "bundleName": "com.android.bluetooth"
+          }
+        },
+        {
+          "data": {
+            "appName": "天气",
+            "bundleName": "com.huawei.hmsapp.totemweather"
+          }
+        },
+        {
+          "data": {
+            "appName": "运动健康",
+            "bundleName": "com.huawei.hmos.health"
+          }
+        },
+        {
+          "data": {
+            "appName": "日历",
+            "bundleName": "com.huawei.hmos.calendar"
+          }
+        }
+      ]
+    }
+  ]
+}

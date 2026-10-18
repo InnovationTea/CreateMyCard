@@ -1,0 +1,5 @@
+["root","Column",{"width":"matchParent","padding":12,"itemMargin":8,"justifyContent":"spaceBetween"},["health_area","battery_area","action_area"]]
+["health_area","Text",{"content":"健康"}]
+["battery_area","Text",{"content":"电池","height":40}]
+["action_area","Column",{},["cta"]]
+["cta","Button",{"label":"开启省电模式","height":36,"width":276}]

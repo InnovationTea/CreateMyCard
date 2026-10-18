@@ -1,0 +1,25 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "family-weather-care-blue",
+  "description": "家庭天气关怀蓝",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["ViewWeather"],
+  "paletteSceneIds": ["weather.sunnyCare"],
+  "primaryColor": "#FF1F4799",
+  "supportContentColor": "#991F4799",
+  "progressBackgroundColor": "#330A59F7",
+  "rootStyle": {
+    "backgroundColor": "#FFE5EDFE",
+    "borderRadius": 18,
+    "padding": 12,
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#332E529E",
+    "contentColor": "#FF1F4799"
+  },
+  "supportContentStyle": {
+    "backgroundColor": "#1A2E529E",
+    "borderRadius": 12
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W9 backboard left contains multiple 30fp/38fp values. Keep peer metrics as ordinary complete text lines instead of manufacturing multiple hero values."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "e57ea5ab48c29f14b8ea36e032ba3b1ca6f6169d33d9383527f268599334f25a",
+    "sample_task_spec.json": "560db16136f1454b8da087dae6f3f66168046d1d678f27f0c97800d9b2ecd130",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

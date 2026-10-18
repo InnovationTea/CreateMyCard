@@ -1,0 +1,31 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "fusion-battery-teal",
+  "description": "电量与蓝牙耳机青绿融球",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["GetPhoneBatteryInfo", "GetEarphoneInfo"],
+  "paletteSceneIds": ["fusion.battery"],
+  "primaryColor": "#FFCCFFF6",
+  "supportContentColor": "#99CCFFF6",
+  "rootStyle": {
+    "backgroundColor": "#FF17734C",
+    "borderRadius": 20,
+    "padding": 12,
+    "linearGradient": {
+      "direction": "RightBottom",
+      "colors": [["#FF17734C", 0], ["#FF26BFA6", 1]]
+    },
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#33FFFFFF",
+    "contentColor": "#FFCCFFF6"
+  },
+  "fusionBallStyle": {
+    "scene": "battery",
+    "businessIds": ["BatteryOverview", "BluetoothDeviceOverview"],
+    "largeColor": "#FF1F9985",
+    "mediumColor": "#FF24B3B3",
+    "smallColor": "#FF5AB38E"
+  }
+}

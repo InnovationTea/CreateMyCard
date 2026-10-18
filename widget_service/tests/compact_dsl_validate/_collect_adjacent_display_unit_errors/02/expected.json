@@ -1,0 +1,12 @@
+{
+  "expectedErrors": [
+    "component value_row: large primary Text steps binds non-numeric field /data/healthSport/calorieText and must occupy its own row; do not append unit as a unit or label.",
+    "component steps: fontSize 30 requires a pure number/integer or a supported primary value. A directly bound measurement with a declared unit may use 20/24fp in a full-width area or 2x4 large panel when its text budget fits; ordinary names, dates, times, and statuses remain at most 18fp."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "c70100c0e24462fc2c4aeccf2225eb153883d58e4e8f1cec55938db8c9334795",
+    "sample_task_spec.json": "fe400190a2c15b37333d8bcb2fee6ad8542477e53fb5cc458d4142a41c7954d8",
+    "sample_card_spec.json": "d17f83d749e7ef6dd906c72470af20c0b3b34d24aca0c4aaaaaf8bf72b6c999e"
+  }
+}

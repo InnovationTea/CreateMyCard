@@ -1,0 +1,12 @@
+{
+  "dataModelSchema": {
+    "data": {}
+  },
+  "assetCandidates": [],
+  "eventCandidates": [
+    {
+      "call": "openWeather",
+      "args": {}
+    }
+  ]
+}

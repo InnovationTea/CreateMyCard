@@ -1,0 +1,13 @@
+{
+  "size": "4x2",
+  "dataModelSchema": {
+    "data": {}
+  },
+  "assetCandidates": [],
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ]
+}

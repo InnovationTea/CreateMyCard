@@ -1,0 +1,73 @@
+#Template BatteryOverviewCurrentVoltageFull@1(props: {})
+data = {
+    current: $path("/nowCurrentText"),
+    voltage: $path("/voltageText"),
+    percentText: $optionalPath("/batterySOCText"),
+    temperature: $optionalPath("/batteryTemperatureText"),
+    health: $optionalPath("/healthStatusDesc")
+}
+
+Column(
+  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
+   "itemMargin": 4, "justifyContent": "start", "alignItems": "start",
+   "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text("电池状态", {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+    "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "start", "alignItems": "center", "flexShrink": 0},
+    Text("实时电流", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.current, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+      "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+      "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+      "constraintSize": {"minWidth": 0}})
+  ),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "start", "alignItems": "center", "flexShrink": 0},
+    Text("电池电压", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.voltage, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+      "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+      "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+      "constraintSize": {"minWidth": 0}})
+  ),
+  #if data.percentText
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "start", "alignItems": "center", "flexShrink": 0},
+    Text("剩余电量", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.percentText, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+      "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+      "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+      "constraintSize": {"minWidth": 0}})
+  ),
+  #endif
+  #if data.temperature
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "start", "alignItems": "center", "flexShrink": 0},
+    Text("电池温度", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.temperature, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+      "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+      "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+      "constraintSize": {"minWidth": 0}})
+  ),
+  #endif
+  #if data.health
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "start", "alignItems": "center", "flexShrink": 0},
+    Text("健康状态", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.health, {"layoutWeight": 1, "height": 16, "fontSize": 12,
+      "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'),
+      "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis",
+      "constraintSize": {"minWidth": 0}})
+  ),
+  #endif
+)
+#End

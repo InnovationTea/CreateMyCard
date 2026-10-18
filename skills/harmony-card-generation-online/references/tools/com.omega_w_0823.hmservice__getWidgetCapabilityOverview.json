@@ -1,0 +1,55 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "getWidgetCapabilityOverview",
+  "description": "获取当前用户实际可用的数据能力、不可用数据能力 ID、可直接复制动作模板的精简事件概述，以及仅含 ID 和描述的精简素材概述",
+  "arguments": {},
+  "outputSchema": {
+    "properties": {
+      "dataCapabilities": {
+        "type": "Array",
+        "description": "当前用户实际可用的数据能力概述",
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "数据能力 ID 和用户可理解的说明"
+          }
+        }
+      },
+      "unavailableCapabilities": {
+        "type": "Array<String>",
+        "description": "云侧已注册但当前用户设备不可用的数据能力 ID"
+      },
+      "eventCapabilities": {
+        "type": "Array",
+        "description": "可用事件能力及可直接复制的动作模板",
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "事件能力概述"
+          }
+        }
+      },
+      "assetCandidates": {
+        "type": "Array",
+        "description": "可用素材 ID 和说明",
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "素材概述"
+          }
+        }
+      }
+    },
+    "required": [
+      "dataCapabilities",
+      "eventCapabilities",
+      "assetCandidates"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}

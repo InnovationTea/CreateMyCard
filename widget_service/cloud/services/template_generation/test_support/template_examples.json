@@ -1,0 +1,75 @@
+[
+  {
+    "id": "01-battery-status", "title": "01 电量与充电状态",
+    "template_id": "BatteryOverviewChargingRingHero@1",
+    "user_query": "做个电量卡片，显示剩余电量和充电状态，可以一键进入省电模式。",
+    "arguments": {}, "fields": ["/batterySOC", "/chargingStatusDesc"],
+    "samples": {"/batterySOC": 68, "/chargingStatusDesc": "正在充电"},
+    "event_ids": ["event.setPowerSavingMode"]
+  },
+  {
+    "id": "02-meeting-date", "title": "02 月末评审会", "card_title": "周五",
+    "template_id": "ScheduleOverviewDateFull@1",
+    "user_query": "我本月末周五下午两点的UI需求评审会，地点在深圳市龙岗区五和大道华成楼，帮我做个卡片，看会议地点，开始和结束时间，当前会议日期信息。",
+    "context": "演示基准日为2026-09-09；本月最后一个周五为2026-09-25，会议时间14:00–15:00。卡片顶部显示周五，大日期只显示25。",
+    "arguments": {"futureDays": 29},
+    "fields": ["/events/0/title", "/events/0/startDate", "/events/0/dtStart", "/events/0/dtEnd", "/events/0/eventLocation"],
+    "samples": {"/events/0/title": "UI需求评审会", "/events/0/startDate": "25", "/events/0/dtStart": "14:00", "/events/0/dtEnd": "15:00", "/events/0/eventLocation": "深圳市龙岗区五和大道华成楼"},
+    "event_ids": []
+  },
+  {
+    "id": "03-meeting-dnd", "title": "03 下一场评审会",
+    "template_id": "ScheduleOverviewTitleHero@1",
+    "user_query": "下一场日程是下午两点的UI需求评审会，地点在深圳市龙岗区五和大道华成楼，帮我做个卡片，要有会议名称，时间，和一键点击进入勿扰模式。",
+    "context": "会议时间为14:00–15:00；按钮打开系统情景模式设置页以配置勿扰，不承诺直接开启开关。仅展示会议名称和时间，地点为上下文。",
+    "arguments": {"futureDays": 7},
+    "fields": ["/events/0/title", "/events/0/dtStart", "/events/0/dtEnd"],
+    "samples": {"/events/0/title": "UI需求评审会", "/events/0/dtStart": "14:00", "/events/0/dtEnd": "15:00"},
+    "event_ids": ["event.open.settings.dnd"]
+  },
+  {
+    "id": "04-earphone-playlists", "title": "04 耳机与歌单",
+    "template_id": "BluetoothDeviceOverviewEarbudPairCompact@1",
+    "user_query": "生成一张卡片，展示耳机名称，左右耳机电量，点击进入推荐歌单和收藏歌单。",
+    "context": "推荐歌单使用音乐应用的每日30首入口。",
+    "arguments": {}, "fields": ["/earphoneName", "/leftBatteryLevel", "/rightBatteryLevel", "/isConnected"],
+    "samples": {"/earphoneName": "HUAWEI FreeBuds Pro", "/leftBatteryLevel": 76, "/rightBatteryLevel": 78, "/isConnected": true},
+    "event_ids": ["event.open.music.daily", "event.open.music.favorite"]
+  },
+  {
+    "id": "05-sleep", "title": "05 昨晚睡眠",
+    "template_id": "SleepOverviewFull@1",
+    "user_query": "帮我做一个睡眠卡片，卡片上有昨晚总睡眠时长，睡眠分数和状况。",
+    "arguments": {"targetDayOffset": 0}, "fields": ["/nightSleepDurationText", "/sleepScore", "/sleepStatus"],
+    "samples": {"/nightSleepDurationText": "7小时42分", "/sleepScore": 88, "/sleepStatus": "良好"},
+    "event_ids": []
+  },
+  {
+    "id": "06-marathon", "title": "06 广州马拉松倒计时", "card_title": "广州马拉松",
+    "template_id": "CountdownOverviewFull@1",
+    "user_query": "我要参加广州马拉松，帮我做一个卡片，看还有几天。",
+    "context": "演示基准日2026-09-09，测试目标日2026-12-13（不代表真实赛程），剩余95天。卡片标题使用广州马拉松。",
+    "arguments": {"targetDate": "2026-12-13"}, "fields": ["/countdownDays"],
+    "samples": {"/countdownDays": 95}, "event_ids": []
+  },
+  {
+    "id": "07-battery", "title": "07 手机电量",
+    "template_id": "BatteryOverviewFull@1",
+    "icon_action": true,
+    "user_query": "做一个电量卡片，显示手机当前电量，点击进入省电模式。",
+    "context": "使用Full模板与右下角IconAction，叶片图标表示开启省电模式。",
+    "arguments": {}, "fields": ["/batterySOC", "/batterySOCText", "/chargingStatusDesc", "/batteryCapacityLevelDesc"],
+    "samples": {"/batterySOC": 36, "/batterySOCText": "36%", "/chargingStatusDesc": "未充电", "/batteryCapacityLevelDesc": "正常"}, "event_ids": ["event.setPowerSavingMode"]
+  },
+  {
+    "id": "08-shenzhen-weather", "title": "08 深圳实时天气",
+    "template_id": "WeatherOverviewHero@1",
+    "user_query": "明早要出门办事，帮我做一个卡片，看深圳天气，温度和空气质量。",
+    "context": "已确认持续展示深圳实时天气、当前温度和当前空气质量，不展示明日预报。使用Hero模板，增加一个文案为查看详情的PillAction，打开当前城市天气详情。演示天气为晴，使用太阳图标。",
+    "asset_ids": ["asset.sun_max"],
+    "arguments": {"prefectureName": "深圳市", "forecastDays": 1},
+    "fields": ["/location/prefectureName", "/current/temperatureText", "/current/condition", "/current/airQuality"],
+    "samples": {"/location/prefectureName": "深圳市", "/current/temperatureText": "28°", "/current/condition": "晴", "/current/airQuality": "优"},
+    "event_ids": ["event.open.weather"]
+  }
+]

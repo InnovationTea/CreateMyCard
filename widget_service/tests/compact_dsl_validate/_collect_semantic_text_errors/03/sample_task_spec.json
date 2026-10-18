@@ -1,0 +1,16 @@
+{
+  "size": "4x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "calendar": {
+        "remindMinutes": {
+          "type": "integer",
+          "description": "提醒提前量",
+          "sampleValue": 15
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

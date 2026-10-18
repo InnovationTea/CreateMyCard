@@ -1,0 +1,37 @@
+{
+  "createSurfaceAllowedStyles": ["borderRadius", "clip"],
+  "rootBackgroundStyles": ["backgroundColor", "linearGradient", "backgroundImage"],
+  "commonStyleFields": [
+    "width", "height", "aspectRatio", "constraintSize", "margin", "padding", "borderRadius",
+    "borderWidth", "borderColor", "backgroundColor", "backgroundImage",
+    "backgroundImageSizeWithStyle", "linearGradient", "layoutWeight",
+    "flexShrink", "shadow", "visibility", "clip"
+  ],
+  "componentStyleFields": {
+    "Text": ["fontSize", "fontWeight", "fontColor", "maxLines", "minFontSize", "maxFontSize", "textAlign", "textOverflow"],
+    "Image": ["objectFit", "aspectRatio", "fillColor"],
+    "Divider": ["strokeWidth", "vertical", "color"],
+    "Progress": ["type", "color", "strokeWidth"],
+    "Button": ["fontSize", "fontWeight", "fontColor", "backgroundColor", "borderRadius"],
+    "Checkbox": ["selectedColor", "shape"],
+    "Row": ["justifyContent", "alignItems"],
+    "Column": ["justifyContent", "alignItems"],
+    "List": ["listDirection", "scrollBar"],
+    "Stack": ["alignContent"]
+  },
+  "enumValues": {
+    "justifyContent": ["start", "center", "end", "spaceAround", "spaceBetween", "spaceEvenly"],
+    "Row.alignItems": ["top", "center", "bottom"],
+    "Column.alignItems": ["start", "center", "end"],
+    "Stack.alignContent": ["topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd"],
+    "textAlign": ["start", "center", "end", "justify"],
+    "textOverflow": ["clip", "ellipsis"],
+    "objectFit": ["fill", "contain", "cover", "auto", "none", "scaleDown", "topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd", "matrix"],
+    "Progress.type": ["linear", "ring", "eclipse", "scaleRing", "capsule"],
+    "Checkbox.shape": ["circle", "rounded_square"],
+    "listDirection": ["vertical", "horizontal"],
+    "scrollBar": ["off", "auto", "on"]
+  },
+  "imageRequiredStyles": ["width", "height", "objectFit"],
+  "imageDefaultObjectFit": "contain"
+}

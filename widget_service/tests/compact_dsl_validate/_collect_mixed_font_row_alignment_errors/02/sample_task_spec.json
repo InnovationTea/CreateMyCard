@@ -1,0 +1,27 @@
+{
+  "userQuery": "昨晚睡得怎么样？帮我做张卡片，看看睡眠得分、总共睡了多久、深睡了多久。",
+  "size": "2x4",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "sleepScore": {
+          "type": "integer",
+          "description": "0到100的睡眠综合得分",
+          "sampleValue": 82
+        },
+        "nightSleepDurationText": {
+          "type": "string",
+          "description": "夜间睡眠总时长",
+          "sampleValue": "7小时1分"
+        },
+        "deepSleepDurationText": {
+          "type": "string",
+          "description": "深睡时长",
+          "sampleValue": "2小时15分"
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}

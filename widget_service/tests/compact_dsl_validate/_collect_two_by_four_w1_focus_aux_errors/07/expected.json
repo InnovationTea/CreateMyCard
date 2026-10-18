@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "2x4 W1-focus-aux Progress must be paired with a visible primary value Text of at least 18fp in the left focus zone. Do not output a standalone progress line or ring without its readout."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "694d17433ac0bd378d27a9b0fbbf2099003b911bac74e06ae77c22e94a004e1b",
+    "sample_task_spec.json": "8854a645a7026d5c2871d04672d449ac7d6d55b48e0260dc8b0b024ec630387e",
+    "sample_card_spec.json": "5e5c60ae7064d9d34acabe5e819ceba6b904c1a1103ff962bdfade1b0a2eb2d4"
+  }
+}

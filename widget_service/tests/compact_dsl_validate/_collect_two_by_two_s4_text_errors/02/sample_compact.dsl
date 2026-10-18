@@ -1,0 +1,8 @@
+["root","Column",{"padding":8,"itemMargin":8},["one","two"]]
+["one","Column",{"width":134,"height":63,"padding":12,"justifyContent":"center"},["time"]]
+["two","Column",{"width":134,"height":63,"padding":12,"justifyContent":"center"},["status"]]
+["time","Text",{"content":{"path":"/data/calendar/dtStart"},"fontSize":12,"fontWeight":400,"maxLines":1,"fontColor":"#FF563D99"}]
+["status","Text",{"content":{"path":"/data/other/status"},"fontSize":12,"fontWeight":400,"maxLines":1,"fontColor":"#FF563D99"}]
+["/data/calendar/title","会议"]
+["/data/calendar/dtStart","09:00"]
+["/data/other/status","正常"]

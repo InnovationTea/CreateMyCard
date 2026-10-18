@@ -1,0 +1,2457 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import copy
+import hashlib
+import inspect
+import json
+import time
+import uuid
+from collections.abc import Awaitable, Callable
+from dataclasses import replace
+from functools import partial
+from typing import Any
+
+from anyio import to_thread
+
+from api.schemas import (
+    CapabilityOverviewRequest,
+    CapabilityOverviewResponse,
+    DataCapabilityOverview,
+    DataCapabilitySchemasRequest,
+    DataCapabilitySchemasResponse,
+    GenerateWidgetCardRequest,
+    GenerateWidgetCardResponse,
+    WidgetCardServiceRequest,
+)
+from app.logger import json_for_log, logger
+from config.config import get_settings
+from core.errors import ErrorCode, GenerationStatus
+from custom.a2ui_model_client import (
+    A2UIModelClient,
+    A2UIModelGenerationError,
+    build_prompt_log_summary,
+    require_generated_dsl,
+)
+from custom.model_runtime import ModelExecutionRuntime
+from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
+from models.capability import AssetCapabilityOverview
+from models.generation import (
+    DEFAULT_WIDGET_SIZE,
+    CompactDslRetryContext,
+    ModelRequestContext,
+    TaskSpec,
+    WidgetSize,
+)
+from models.preflight import GenerationPreflightError
+from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairArtifactRecord
+from services.asset_url_mapper import AssetUrlMapper
+from services.capability_registry import CapabilityRegistry
+from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
+from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
+from services.compact_plan import (
+    CompactPlanValidationError,
+    compact_plan_omitted_facts,
+    parse_compact_plan_call,
+)
+from services.compact_repair_strategy import (
+    CompactRepairStrategyTracker,
+    compact_repair_issue_category,
+)
+from services.device_capability_resolver import DeviceCapabilityResolver
+from services.edit_request_normalizer import EditRequestNormalizer
+from services.generation_pipeline import (
+    DslProcessingContext,
+    DslProcessingResult,
+    DslProcessorKind,
+    GenerationRoutePolicy,
+    QualityIssue,
+    get_dsl_processor,
+)
+from services.generation_preflight import GenerationPreflight
+from services.generation_trace_recorder import (
+    GenerationTraceRecorder,
+    trace_attempt,
+    trace_details,
+    trace_flow,
+    trace_increment_attempt,
+    trace_increment_retry,
+    trace_phase,
+    trace_phase_outcome,
+    trace_record,
+    trace_span,
+    trace_step,
+)
+from services.multi_step_generation.core.bridge import JsxA2UIBridge
+from services.protocol_registry import (
+    A2UI_FORM_PROTOCOL_PROFILE_ID,
+    A2UIProtocolRegistry,
+    ProtocolProfileSelection,
+)
+from services.response_planner import ResponsePlanner
+from services.retry_controller import RetryController
+from services.source_artifact_repository import (
+    SourceArtifactError,
+    SourceArtifactLoadResult,
+    SourceArtifactRepository,
+)
+from services.template_generation import TemplateSourceGenerator
+from services.validator import ArtifactValidator
+from utils.ops_metrics import report_ops_metrics
+
+_MODULE = "[Generation Service]"
+
+
+class WidgetGenerationService:
+    """编排微服务暴露的卡片工具能力。
+
+    该类是业务主流程入口：先选择版本化能力清单并裁决候选能力，再构造 CardSpec、
+    TaskSpec 和模型提示词，最后执行模型调用、校验、artifact 保存与响应规划。
+    """
+
+    def __init__(self, model_runtime: ModelExecutionRuntime | None = None) -> None:
+        """注入应用生命周期共享的模型运行时。"""
+        self.model_runtime = model_runtime
+        self.trace_recorder = GenerationTraceRecorder()
+
+    async def widget_card_service(
+        self,
+        request: WidgetCardServiceRequest,
+    ) -> CapabilityOverviewResponse | DataCapabilitySchemasResponse | GenerateWidgetCardResponse:
+        """统一云侧卡片工具入口。
+
+        入参：
+        - request：包含 operation 和对应能力参数的统一工具请求。
+        出参：根据 operation 返回能力概述、数据能力 schema 或卡片生成结果。
+        """
+        # 兼容统一工具层时，通过 operation 分发到三个正式业务流程及协议变体。
+        logger.info(
+            f"{_MODULE} widget_card_service_dispatch_started operation={request.operation} "
+            f"prd_ver={request.prdVer} "
+            f"device_rom_version={request.device.romVersion}"
+        )
+        if request.operation == "getWidgetCapabilityOverview":
+            # overview 只需要版本上下文，不需要读取完整数据 schema，避免首轮工具返回过大。
+            return self.get_widget_capability_overview(
+                CapabilityOverviewRequest(**request.model_dump(exclude={"operation"}))
+            )
+
+        if request.operation == "getDataCapabilitySchemas":
+            # schema 是按需加载能力详情，必须明确传入主 Agent 已筛选出的数据能力 ID。
+            if not request.dataCapabilityIds:
+                report_ops_metrics(body={"getDataCapabilitySchemasInterfaceParamError": 1})
+                raise ValueError("dataCapabilityIds is required for getDataCapabilitySchemas.")
+            return self.get_data_capability_schemas(
+                DataCapabilitySchemasRequest(**request.model_dump(exclude={"operation"}))
+            )
+
+        if request.operation in {
+            "generateWidgetCard",
+            "generateWidgetCardCompactDsl",
+            "generateWidgetCardTerseDslNested2",
+        }:
+            # 生成阶段必须带原始用户需求，模型 prompt、TaskSpec 和用户话术都依赖它。
+            if not request.userQuery:
+                raise ValueError("userQuery is required for generateWidgetCard.")
+            # dataCapabilityIds 只属于 schema 加载接口，生成请求下沉时需要剔除。
+            payload = request.model_dump(
+                exclude={"operation", "dataCapabilityIds"},
+                exclude_unset=True,
+            )
+            generation_request = GenerateWidgetCardRequest(**payload)
+            if request.operation == "generateWidgetCardCompactDsl":
+                return await self.generate_widget_card_compact_dsl(generation_request)
+            if request.operation == "generateWidgetCardTerseDslNested2":
+                return await self.generate_widget_card_terse_dsl_nested2(generation_request)
+            return await self.generate_widget_card_a2ui_form(generation_request)
+
+        raise ValueError(f"Unknown operation: {request.operation}")
+
+    def get_widget_capability_overview(
+        self,
+        request: CapabilityOverviewRequest,
+    ) -> CapabilityOverviewResponse:
+        """获取能力概述。
+
+        入参：
+        - request：包含 locale、uid、device 等版本上下文。
+        出参：实际可用的数据能力概述、事件、素材及不可用能力清单。
+        """
+        logger.info(
+            f"{_MODULE} capability_overview_started prd_ver={request.prdVer} "
+            f"device_rom_version={request.device.romVersion} "
+            "request="
+            f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
+        )
+        # 三个公开接口统一按 App/ROM 二维版本区间选择能力注册表。
+        try:
+            registry = self._capability_registry(request)
+        except ValueError as exc:
+            version = self._capability_registry_version_hint(request)
+            logger.error(
+                f"{_MODULE} capability_overview_registry_missing registry_version={version} "
+                f"error={exc}"
+            )
+            return CapabilityOverviewResponse(
+                dataCapabilities=[],
+                eventCapabilities=[],
+                assetCandidates=[],
+                unavailableCapabilities=[],
+            )
+        logger.info(
+            f"{_MODULE} capability_registry_selected operation=getWidgetCapabilityOverview "
+            f"registry_version={registry.version}"
+        )
+        resolver = DeviceCapabilityResolver(registry)
+        data_capabilities, event_capabilities, asset_capabilities, removed = (
+            resolver.resolve_capability_overview(request.device)
+        )
+        response = CapabilityOverviewResponse(
+            dataCapabilities=[
+                # 第一接口只暴露数据能力 id+description，完整 schema 留给第二接口渐进加载。
+                DataCapabilityOverview(
+                    id=item.id,
+                    description=item.description,
+                )
+                for item in data_capabilities
+            ],
+            eventCapabilities=event_capabilities,
+            assetCandidates=[
+                AssetCapabilityOverview(
+                    id=item.id,
+                    description=item.overviewDescription or item.description,
+                )
+                for item in asset_capabilities
+            ],
+            unavailableCapabilities=[item.id for item in removed],
+        )
+        logger.info(
+            f"{_MODULE} capability_overview_completed registry_version={registry.version} "
+            f"data_count={len(response.dataCapabilities)} "
+            f"event_count={len(response.eventCapabilities)} "
+            f"asset_count={len(response.assetCandidates)} "
+            f"unavailable_count={len(response.unavailableCapabilities)}"
+        )
+        return response
+
+    def get_data_capability_schemas(
+        self,
+        request: DataCapabilitySchemasRequest,
+    ) -> DataCapabilitySchemasResponse:
+        """获取数据能力完整 schema。
+
+        入参：
+        - request：包含数据能力 ID 列表和版本上下文。
+        出参：已注册数据能力完整定义，以及缺失能力 ID 列表。
+        """
+        logger.info(
+            f"{_MODULE} data_capability_schemas_started "
+            f"data_capability_ids={json_for_log(request.dataCapabilityIds)} "
+            "request="
+            f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
+        )
+        # 这里返回完整 inputSchema/outputSchema，供主 Agent 生成合法 candidateDataBindings。
+        try:
+            registry = self._capability_registry(request)
+        except ValueError as exc:
+            version = self._capability_registry_version_hint(request)
+            logger.error(
+                f"{_MODULE} data_capability_schemas_registry_missing registry_version={version} "
+                f"data_capability_ids={json_for_log(request.dataCapabilityIds)} "
+                f"error={exc}"
+            )
+            return DataCapabilitySchemasResponse(
+                dataCapabilities=[],
+                missingCapabilityIds=request.dataCapabilityIds,
+            )
+        logger.info(
+            f"{_MODULE} capability_registry_selected operation=getDataCapabilitySchemas "
+            f"registry_version={registry.version}"
+        )
+        capabilities = []
+        missing = []
+        for capability_id in request.dataCapabilityIds:
+            # 单个 ID 缺失不阻断整个响应，统一放入 missingCapabilityIds 让主 Agent 自行降级。
+            capability = registry.get_data_capability(capability_id)
+            if capability is None:
+                missing.append(capability_id)
+            else:
+                capabilities.append(capability)
+        response = DataCapabilitySchemasResponse(
+            dataCapabilities=capabilities,
+            missingCapabilityIds=missing,
+        )
+        logger.info(
+            f"{_MODULE} data_capability_schemas_completed registry_version={registry.version} "
+            f"found_count={len(capabilities)} missing_ids={json_for_log(missing)}"
+        )
+        return response
+
+    @trace_flow
+    async def generate_widget_card(
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        policy: GenerationRoutePolicy,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        try_jsx: bool = False,
+        template_source_generator: TemplateSourceGenerator | None = None,
+        need_fallback: bool = True,
+    ) -> GenerateWidgetCardResponse:
+        """生成卡片。
+
+        主流程顺序：
+        1. 加载并归一化可选的上一版 artifact。
+        2. 选择能力注册表和协议 Profile，裁决数据、事件与素材候选。
+        3. 构造 CardSpec、TaskSpec 以及新建或编辑提示词。
+        4. 调用模型；模型异常重试和 DSL error 修复分别由独立开关控制。
+        5. 校验最终 DSL，保存 artifact，并生成面向主 Agent 的状态响应。
+
+        入参：
+        - request：用户需求、尺寸、候选数据绑定、候选事件、候选素材和版本上下文。
+        出参：生成状态、artifact 地址、摘要、用户话术、降级原因和有效能力。
+        """
+        generation_started_at = time.perf_counter()
+        stage_started_at = generation_started_at
+        latency_by_stage: dict[str, float] = {}
+        settings = get_settings()
+
+        request_body = self._request_body_for_artifact(request)
+        asset_mapping = dict(settings.asset_src_url_mapping)
+        generation_mode = "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
+        source_load_result = None
+        source_url_hash = ""
+        previous_design_token = None
+        inherited_categories: tuple[str, ...] = ()
+        replaced_categories: tuple[str, ...] = ()
+        trace_record(
+            "generation.started",
+            stage="generation",
+            status="started",
+            details={
+                "generationMode": generation_mode,
+                "operation": policy.operation,
+                "backend": policy.backend,
+                "sourceFormat": policy.source_format,
+            },
+            json_artifacts={"normalized_generation_request": request_body},
+            artifact_roles={"normalized_generation_request": "input"},
+        )
+
+        if generation_mode == "edit":
+            report_ops_metrics(body={"secondaryEdit": 1})
+            source_url_hash = hashlib.sha256(
+                (request.sourceArtifactUrl or "").encode("utf-8")
+            ).hexdigest()
+            if not settings.enable_widget_edit:
+                logger.warning(
+                    f"{_MODULE} widget_edit_rejected reason=feature_disabled "
+                    f"source_url_hash={source_url_hash}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.UNSUPPORTED,
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                    message="当前暂未开放卡片继续编辑能力。",
+                    errorCode=ErrorCode.WIDGET_EDIT_DISABLED.value,
+                )
+            try:
+                source_load_result = await to_thread.run_sync(
+                    SourceArtifactRepository().load,
+                    request.sourceArtifactUrl or "",
+                )
+                source_load_result = await to_thread.run_sync(
+                    partial(
+                        SourceArtifactRepository.restore_asset_paths,
+                        restore_genui=not policy.stores_design_token,
+                    ),
+                    source_load_result,
+                    asset_mapping,
+                )
+                if policy.stores_design_token:
+                    previous_design_token = self._require_source_design_token(source_load_result)
+                normalized = EditRequestNormalizer().normalize_edit(
+                    request,
+                    source_load_result.artifact,
+                )
+                request = normalized.request
+                inherited_categories = normalized.inherited_categories
+                replaced_categories = normalized.replaced_categories
+                logger.info(
+                    f"{_MODULE} source_artifact_loaded "
+                    f"source_url_hash={source_load_result.url_hash} "
+                    f"source_digest={source_load_result.artifact_digest} "
+                    "source_schema_version="
+                    f"{source_load_result.artifact.schemaVersion} "
+                    f"source_read_latency_ms={source_load_result.read_latency_ms} "
+                    f"source_parse_latency_ms={source_load_result.parse_latency_ms} "
+                    f"source_download_mode={source_load_result.download_mode} "
+                    "inherited_categories="
+                    f"{json_for_log(list(inherited_categories))} "
+                    "replaced_categories="
+                    f"{json_for_log(list(replaced_categories))}"
+                )
+                latency_by_stage["sourceArtifact"] = self._elapsed_ms(stage_started_at)
+                trace_step(
+                    "source_artifact.completed",
+                    stage="sourceArtifact",
+                    status="success",
+                    duration_ms=latency_by_stage["sourceArtifact"],
+                    details={
+                        "digest": source_load_result.artifact_digest,
+                        "downloadMode": source_load_result.download_mode,
+                        "readLatencyMs": source_load_result.read_latency_ms,
+                        "parseLatencyMs": source_load_result.parse_latency_ms,
+                        "inheritedCategories": list(inherited_categories),
+                        "replacedCategories": list(replaced_categories),
+                    },
+                    text_artifacts=(
+                        {"source_design_compact_dsl": previous_design_token}
+                        if previous_design_token is not None
+                        else None
+                    ),
+                    json_artifacts={
+                        "source_artifact": source_load_result.artifact.model_dump(
+                            mode="json",
+                            exclude_none=True,
+                        )
+                    },
+                    artifact_roles={
+                        "source_design_compact_dsl": "input",
+                        "source_artifact": "input",
+                    },
+                )
+                stage_started_at = time.perf_counter()
+            except SourceArtifactError as exc:
+                trace_step(
+                    "source_artifact.completed",
+                    stage="sourceArtifact",
+                    status="failed",
+                    duration_ms=self._elapsed_ms(stage_started_at),
+                    details={"errorCode": exc.error_code.value, "message": str(exc)},
+                )
+                logger.error(
+                    f"{_MODULE} source_artifact_load_failed "
+                    f"source_url_hash={source_url_hash} "
+                    f"error_code={exc.error_code.value} error={exc}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.FAILED,
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                    message="上一版卡片无法安全读取，本次修改未完成，原卡片不受影响。",
+                    errorCode=exc.error_code.value,
+                )
+            except ValueError as exc:
+                trace_step(
+                    "source_artifact.completed",
+                    stage="sourceArtifact",
+                    status="failed",
+                    duration_ms=self._elapsed_ms(stage_started_at),
+                    details={
+                        "errorCode": ErrorCode.SOURCE_ARTIFACT_INVALID.value,
+                        "message": str(exc),
+                    },
+                )
+                logger.error(
+                    f"{_MODULE} source_artifact_normalization_failed "
+                    f"error_code={ErrorCode.SOURCE_ARTIFACT_INVALID.value} error={exc}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.FAILED,
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                    message="上一版卡片结构不完整，本次修改未完成，原卡片不受影响。",
+                    errorCode=ErrorCode.SOURCE_ARTIFACT_INVALID.value,
+                )
+        else:
+            request = EditRequestNormalizer.normalize_create(request)
+            trace_record(
+                "source_artifact.skipped",
+                stage="sourceArtifact",
+                status="skipped",
+                details={"reason": "create_request"},
+            )
+
+        # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
+        logger.info(
+            f"{_MODULE} generate_widget_card_started generation_mode={generation_mode} "
+            f"size={request.size} "
+            f"data_binding_count={len(request.candidateDataBindings)} "
+            f"event_count={len(request.candidateEventCandidates)} "
+            f"asset_count={len(request.candidateAssetIds)} "
+            "request="
+            + json_for_log(
+                request.model_dump(
+                    mode="json",
+                    exclude={"uid", "sourceArtifactUrl"},
+                    exclude_none=True,
+                )
+            )
+        )
+        # registry 负责读取当前版本的能力清单，后续所有过滤都以这份清单为准。
+        try:
+            registry = self._capability_registry(request)
+        except ValueError as exc:
+            version = self._capability_registry_version_hint(request)
+            trace_step(
+                "registry.completed",
+                stage="registry",
+                status="failed",
+                duration_ms=self._elapsed_ms(stage_started_at),
+                details={"registryVersion": version, "message": str(exc)},
+            )
+            logger.error(
+                f"{_MODULE} generate_widget_card_registry_missing registry_version={version} "
+                f"error={exc}"
+            )
+            response = GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size,
+                message="当前 App/ROM 版本暂无可用能力清单，暂时不能生成这类卡片。",
+                errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
+                effectiveCapabilities={"data": [], "event": [], "asset": []},
+            )
+            self._log_generation_summary(
+                request,
+                capability_registry_version=version,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage={
+                    "registry": self._elapsed_ms(stage_started_at),
+                    "total": self._elapsed_ms(generation_started_at),
+                },
+            )
+            return response
+        logger.info(
+            f"{_MODULE} generate_flow_step_registry_loaded registry_version={registry.version}"
+        )
+        latency_by_stage["registry"] = self._elapsed_ms(stage_started_at)
+        trace_step(
+            "registry.completed",
+            stage="registry",
+            status="success",
+            duration_ms=latency_by_stage["registry"],
+            details={"capabilityRegistryVersion": registry.version},
+        )
+        stage_started_at = time.perf_counter()
+        # 设备可用性已由第一个接口完成；生成前置门禁只做确定性的注册表和结构校验。
+        preflight = GenerationPreflight(registry).run(request)
+        if preflight.blocking_issues:
+            issue_payloads = [item.model_dump(mode="json") for item in preflight.blocking_issues]
+            trace_step(
+                "generation_preflight.completed",
+                stage="generationPreflight",
+                status="failed",
+                duration_ms=self._elapsed_ms(stage_started_at),
+                details={"issueCount": len(issue_payloads)},
+                json_artifacts={"preflight_issues": issue_payloads},
+            )
+            logger.warning(
+                f"{_MODULE} generation_preflight_rejected "
+                f"issue_count={len(preflight.blocking_issues)} "
+                f"issues={json_for_log(issue_payloads)}"
+            )
+            report_ops_metrics(body={"generateWidgetCardCompactDslInterfaceParamError": 1})
+            raise GenerationPreflightError(preflight)
+        effective_bindings = list(preflight.effective_bindings)
+        effective_data_capabilities = list(preflight.effective_data_capabilities)
+        effective_events = list(preflight.effective_events)
+        asset_candidates = list(preflight.effective_assets)
+        asset_mapper = AssetUrlMapper(asset_mapping, {item.src for item in asset_candidates})
+        removed = list(preflight.removed_capabilities)
+        card_spec = preflight.card_spec
+        task_spec = preflight.task_spec
+        if card_spec is None or task_spec is None:
+            raise RuntimeError("generation preflight did not build generation specs")
+        latency_by_stage["generationPreflight"] = self._elapsed_ms(stage_started_at)
+        trace_step(
+            "generation_preflight.completed",
+            stage="generationPreflight",
+            status="success",
+            duration_ms=latency_by_stage["generationPreflight"],
+            details={
+                "warningCount": len(preflight.warnings),
+                "removedCapabilityCount": len(removed),
+            },
+            json_artifacts={
+                "card_spec": card_spec.model_dump(mode="json", exclude_none=True),
+                "task_spec": task_spec.model_dump(mode="json", exclude_none=True),
+                "preflight_warnings": [item.model_dump(mode="json") for item in preflight.warnings],
+            },
+            artifact_roles={
+                "card_spec": "output",
+                "task_spec": "output",
+                "preflight_warnings": "diagnostic",
+            },
+        )
+        stage_started_at = time.perf_counter()
+        # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
+        protocol_registry = A2UIProtocolRegistry(policy.protocol_profile_id)
+        protocol_profile = protocol_registry.get_profile()
+        conversion_protocol_profile = protocol_profile
+        if previous_design_token is not None:
+            token_is_valid = await self._validate_source_design_token(
+                previous_design_token,
+                source_load_result,
+                policy,
+                conversion_protocol_profile,
+            )
+            if not token_is_valid:
+                logger.error(
+                    f"{_MODULE} source_design_token_invalid "
+                    f"operation={policy.operation} source_format={policy.source_format} "
+                    f"error_code={ErrorCode.SOURCE_ARTIFACT_INVALID.value}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.FAILED,
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                    message="上一版卡片的设计数据无效，本次修改未完成，原卡片不受影响。",
+                    errorCode=ErrorCode.SOURCE_ARTIFACT_INVALID.value,
+                )
+        logger.info(
+            f"{_MODULE} generate_flow_step_protocol_loaded "
+            f"protocol_profile_id={protocol_profile['id']} "
+            f"protocol_version={protocol_profile['version']} "
+            f"operation={policy.operation} processor={policy.processor_kind} "
+            f"model_backend={policy.backend} "
+            f"design_profile_id={policy.design_profile_id or ''}"
+        )
+        latency_by_stage["protocol"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
+        logger.info(
+            f"{_MODULE} prevalidated_data_capability_loaded "
+            f"effective_binding_count={len(effective_bindings)} "
+            "effective_binding_ids="
+            f"{json_for_log([item.capabilityId for item in effective_bindings])}"
+        )
+        logger.info(
+            f"{_MODULE} event_capability_resolved effective_event_count={len(effective_events)} "
+            f"removed_count={len(removed)} "
+            "effective_events="
+            f"{json_for_log([item.model_dump(mode='json') for item in effective_events])} "
+            "preflight_warnings="
+            f"{json_for_log([item.model_dump(mode='json') for item in preflight.warnings])}"
+        )
+        logger.info(
+            f"{_MODULE} asset_capability_resolved effective_asset_count={len(asset_candidates)} "
+            f"effective_asset_ids={json_for_log([item.id for item in asset_candidates])}"
+        )
+        if request.candidateDataBindings and not effective_bindings and not effective_events:
+            # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
+            logger.warning(
+                f"{_MODULE} generate_widget_card_unsupported removed_count={len(removed)} "
+                f"error_code={ErrorCode.NO_EFFECTIVE_CAPABILITY.value}"
+            )
+            response = GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size,
+                message="当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。你可以试试天气、日历或系统状态类卡片。",
+                removedCapabilities=removed,
+                errorCode=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
+            )
+            latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+            self._log_generation_summary(
+                request,
+                protocol_profile_id=protocol_profile["id"],
+                capability_registry_version=registry.version,
+                removed=removed,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage=latency_by_stage,
+            )
+            return response
+
+        logger.info(
+            f"{_MODULE} card_and_task_spec_built data_binding_count={len(effective_bindings)} "
+            "card_spec="
+            f"{json_for_log(card_spec.model_dump(mode='json', exclude_none=True))} "
+            "task_spec="
+            f"{json_for_log(task_spec.model_dump(mode='json', exclude_none=True))} "
+            "task_data_model_schema_keys="
+            f"{json_for_log(list(task_spec.dataModelSchema))}"
+        )
+        template_fallback_to_fusion = (
+            template_source_generator is not None
+            and policy.operation == "generateWidgetCardCompactDsl"
+            and source_load_result is None
+        )
+        # Compact 模板失败必须能从 Fusion Plan 重启，不受 JSX 开关影响。
+        prompt_started_at = time.perf_counter()
+        needs_model_prompt = (
+            template_source_generator is None or need_fallback or template_fallback_to_fusion
+        )
+        prompt: list[dict[str, str]] = []
+        if needs_model_prompt:
+            from services.prompt_builder import PromptBuilder
+
+            if policy.stores_design_token:
+                design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
+                    policy.model_profile_id,
+                    size=task_spec.size,
+                )
+                prompt = PromptBuilder().build_design_token(
+                    task_spec,
+                    design_system_prompt,
+                    policy.source_format,
+                    previous_design_token=previous_design_token,
+                    defer_compact_examples=(
+                        policy.operation == "generateWidgetCardCompactDsl"
+                        and not settings.enable_a2ui_model_mock
+                    ),
+                )
+            else:
+                prompt = PromptBuilder().build(
+                    task_spec,
+                    protocol_profile,
+                    "；".join(f"{item.id}:{item.reason}" for item in removed),
+                    previous_genui=(
+                        source_load_result.artifact.genui if source_load_result else None
+                    ),
+                )
+            prompt_log_summary = build_prompt_log_summary(
+                prompt,
+                settings.model_prompt_log_preview_chars,
+            )
+            logger.info(
+                f"{_MODULE} a2ui_prompt_built prompt_summary={json_for_log(prompt_log_summary)}"
+            )
+            trace_step(
+                "dsl_prompt.built",
+                stage="promptBuild",
+                status="success",
+                duration_ms=self._elapsed_ms(prompt_started_at),
+                details=prompt_log_summary,
+                json_artifacts={"dsl_prompt_base": prompt},
+            )
+        else:
+            trace_record(
+                "dsl_prompt.skipped",
+                stage="promptBuild",
+                status="skipped",
+                duration_ms=self._elapsed_ms(prompt_started_at),
+                details={"reason": "template_without_fallback"},
+            )
+        latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
+
+        model_client = A2UIModelClient(
+            backend=policy.backend,
+            runtime=self.model_runtime,
+            request_context=self._resolve_model_request_context(request),
+            operation_name=policy.operation,
+        )
+        model_protocol_profile = {
+            "id": policy.model_profile_id,
+            "format": policy.model_format,
+        }
+        retry_controller = RetryController()
+        artifact_id = str(uuid.uuid4())
+        model_call_phase = "initial"
+        quality_repair_attempt_count = 0
+        quality_repair_failure_history: list[list[dict[str, Any]]] = []
+        compact_repair_context_history: list[dict[str, Any]] = []
+        compact_retry_context = request._compact_dsl_retry_context
+        capacity_recovery = bool(
+            compact_retry_context is not None and compact_retry_context.capacity_recovery
+        )
+        compact_repair_tracker = (
+            CompactRepairStrategyTracker(
+                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                capacity_recovery=capacity_recovery,
+            )
+            if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            else None
+        )
+        repair_records: list[RepairArtifactRecord] = []
+        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+            design_mode = "edit" if source_load_result else "create"
+            repair_prompt_type = f"design-compact-{design_mode}"
+        elif source_load_result:
+            repair_prompt_type = "edit"
+        else:
+            repair_prompt_type = "create"
+
+        processor = get_dsl_processor(policy.processor_kind)
+        from services.prompt_builder import PromptBuilder
+
+        report_ops_metrics(body={"cardSizeCode": 1 if card_spec.suggestSize == "2x4" else 0})
+        processing_context = DslProcessingContext(
+            size=card_spec.suggestSize,
+            card_spec=card_spec.model_dump(mode="json", exclude_none=True),
+            task_spec=task_spec.model_dump(mode="json", exclude_none=True),
+            protocol_profile=conversion_protocol_profile,
+            design_profile_id=policy.design_profile_id,
+            data_capabilities=effective_data_capabilities,
+            event_candidates=effective_events,
+            repair_context=RepairGuidanceContext(mode="edit" if source_load_result else "create"),
+            layout_scope=(
+                PromptBuilder.layout_scope(task_spec)
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                else None
+            ),
+        )
+        latest_processing_result = DslProcessingResult(source_dsl="")
+        source_generated_by_jsx = False
+        source_generated_by_template = False
+        validated_template_source: str | None = None
+        accepted_compact_plan: dict | None = None
+        accepted_compact_plan_warnings: tuple[str, ...] = ()
+        compact_agent_messages: list[dict[str, str]] | None = None
+        original_small_display_roles: dict[str, dict[str, Any]] = {}
+        effective_generation_prompt = prompt
+        from services.layout_theme_contract import uses_post_layout_theme
+        from services.square_photo_expansion import expansion_enabled
+
+        def colorless_source() -> bool:
+            return uses_post_layout_theme(
+                policy.operation, template_source=source_generated_by_template,
+                jsx_source=source_generated_by_jsx,
+            )
+
+        direct_fusion_request = (
+            uses_post_layout_theme(policy.operation)
+            and template_source_generator is None
+            and not try_jsx
+        )
+        defer_size_notification = (
+            generation_mode == "create"
+            and direct_fusion_request
+            and expansion_enabled(task_spec.model_dump(mode="json", exclude_none=True))
+        )
+
+        async def generate_compact_plan() -> dict:
+            """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
+            from services.prompt_builder import PromptBuilder
+
+            nonlocal accepted_compact_plan_warnings
+            nonlocal compact_agent_messages
+            nonlocal model_call_phase
+            trace_phase("plan")
+            plan_contract = A2UIProtocolRegistry.read_design_plan_prompt(
+                policy.model_profile_id,
+                size=task_spec.size,
+            )
+            plan_system_prompt = f"{prompt[0]['content']}\n\n{plan_contract.strip()}"
+            plan_prompt_started_at = time.perf_counter()
+            plan_prompt = PromptBuilder().build_compact_plan(
+                task_spec,
+                plan_system_prompt,
+                prompt[1]["content"],
+                retry_context=compact_retry_context,
+            )
+            trace_step(
+                "plan.prompt.built",
+                stage="plan.promptBuild",
+                status="success",
+                duration_ms=self._elapsed_ms(plan_prompt_started_at),
+                details={
+                    "messageCount": len(plan_prompt),
+                    "capacityRecovery": capacity_recovery,
+                    "promptSha256": hashlib.sha256(
+                        json.dumps(plan_prompt, ensure_ascii=False).encode("utf-8")
+                    ).hexdigest(),
+                },
+                json_artifacts={"plan_prompt": plan_prompt},
+            )
+            plan_profile = {"id": "compact-info-plan", "format": "raw-json"}
+            max_plan_attempts = 2
+            for attempt in range(1, max_plan_attempts + 1):
+                trace_increment_attempt("planContractAttempts")
+                with (
+                    trace_attempt(plan=attempt),
+                    trace_span(
+                        "plan.attempt",
+                        stage="plan.attempt",
+                        details={"attempt": attempt, "maxAttempts": max_plan_attempts},
+                        kind="group",
+                    ) as plan_span,
+                ):
+                    model_call_phase = "plan"
+                    plan_model_started_at = time.perf_counter()
+                    raw_plan = await self._resolve_model_result(
+                        model_client.generate(
+                            plan_prompt,
+                            plan_profile,
+                            suppress_prompt_log=attempt > 1,
+                            phase="plan",
+                        )
+                    )
+                    plan_prompt.append({"role": "assistant", "content": raw_plan})
+                    trace_record(
+                        "plan.model.completed",
+                        stage="plan.model",
+                        status="success",
+                        duration_ms=self._elapsed_ms(plan_model_started_at),
+                        text_artifacts={"plan_extracted_output": raw_plan},
+                    )
+                    parse_started_at = time.perf_counter()
+                    try:
+                        validation = parse_compact_plan_call(
+                            raw_plan,
+                            task_spec.model_dump(mode="json", exclude_none=True),
+                            static_text_source=previous_design_token,
+                            require_composition=(
+                                settings.enable_design_compact_runtime_prompt_context
+                            ),
+                        )
+                    except CompactPlanValidationError as exc:
+                        plan_span.outcome("failed", errorCount=len(exc.errors))
+                        parse_duration_ms = self._elapsed_ms(parse_started_at)
+                        logger.warning(
+                            f"{_MODULE} compact_plan_rejected "
+                            f"attempt={attempt} max_attempts={max_plan_attempts} "
+                            f"errors={json_for_log(exc.errors)}"
+                        )
+                        will_retry = attempt < max_plan_attempts
+                        trace_step(
+                            "plan.validation.completed",
+                            stage="plan.parseValidate",
+                            status="failed",
+                            duration_ms=parse_duration_ms,
+                            details={"willRetry": will_retry},
+                            text_artifacts={"plan_validation_input": raw_plan},
+                            json_artifacts={"plan_validation_errors": exc.errors},
+                            artifact_roles={
+                                "plan_validation_input": "input",
+                                "plan_validation_errors": "diagnostic",
+                            },
+                        )
+                        if not will_retry:
+                            raise A2UIModelGenerationError(
+                                "Compact Info Plan did not satisfy the plan contract"
+                            ) from exc
+                        trace_increment_retry("planContractRetries")
+                        repair_prompt_started_at = time.perf_counter()
+                        plan_prompt = PromptBuilder.build_compact_plan_repair(
+                            plan_prompt,
+                            raw_plan,
+                            exc.errors,
+                        )
+                        trace_step(
+                            "plan.prompt.built",
+                            stage="plan.promptBuild",
+                            status="success",
+                            duration_ms=self._elapsed_ms(repair_prompt_started_at),
+                            details={"reason": "contract_repair"},
+                            json_artifacts={"plan_repair_prompt": plan_prompt},
+                        )
+                        continue
+                    trace_step(
+                        "plan.validation.completed",
+                        stage="plan.parseValidate",
+                        status="success",
+                        duration_ms=self._elapsed_ms(parse_started_at),
+                        details={"warningCount": len(validation.warnings)},
+                        json_artifacts={
+                            "accepted_plan": validation.plan,
+                            "plan_warnings": list(validation.warnings),
+                        },
+                        text_artifacts={"plan_validation_input": raw_plan},
+                        artifact_roles={
+                            "plan_validation_input": "input",
+                            "accepted_plan": "output",
+                            "plan_warnings": "diagnostic",
+                        },
+                    )
+                    logger.info(
+                        f"{_MODULE} compact_plan_accepted "
+                        f"fact_count={len(validation.plan['info_required'])} "
+                        "layout_hint_count="
+                        f"{len(validation.plan.get('layoutHints', []))} "
+                        f"warning_count={len(validation.warnings)}"
+                    )
+                    if validation.warnings:
+                        logger.warning(
+                            f"{_MODULE} compact_plan_warnings "
+                            f"warnings={json_for_log(validation.warnings)}"
+                        )
+                    accepted_compact_plan_warnings = tuple(validation.warnings)
+                    compact_agent_messages = plan_prompt
+                    return validation.plan
+            raise AssertionError("Compact Plan retry loop exited unexpectedly")
+
+        async def generate_source_dsl() -> str:
+            nonlocal accepted_compact_plan
+            nonlocal compact_agent_messages
+            nonlocal effective_generation_prompt
+            nonlocal model_call_phase
+            nonlocal source_generated_by_jsx, source_generated_by_template
+            nonlocal validated_template_source, latest_processing_result
+            source_generated_by_jsx = False
+            source_generated_by_template = False
+            original_small_display_roles.clear()
+            source_fallback_started = template_source_generator is not None or try_jsx
+            if source_fallback_started:
+                trace_phase("dsl")
+            if before_model_call is not None and not defer_size_notification:
+                await before_model_call(card_spec.suggestSize)
+            if template_source_generator is not None:
+                try:
+                    logger.info(
+                        f"{_MODULE} template_source_generation_started operation={policy.operation}"
+                    )
+                    result = await template_source_generator(
+                        task_spec.model_copy(deep=True),
+                        copy.deepcopy(processing_context.card_spec),
+                        copy.deepcopy(tuple(effective_bindings)),
+                    )
+                    report_ops_metrics(body={"templateProposal": 1})
+                    generated_dsl = require_generated_dsl(result)
+                    source_generated_by_template = True
+                    if template_fallback_to_fusion:
+                        template_errors = await evaluate_source_dsl(generated_dsl)
+                        if template_errors:
+                            raise A2UIModelGenerationError("; ".join(template_errors))
+                        validated_template_source = generated_dsl
+                    return generated_dsl
+                except Exception as exc:
+                    source_generated_by_template = False
+                    if template_fallback_to_fusion:
+                        fallback = "fusion_plan"
+                        original_small_display_roles.clear()
+                        latest_processing_result = DslProcessingResult(source_dsl="")
+                        trace_record(
+                            "template.fallback",
+                            stage="template",
+                            status="failed",
+                            details={
+                                "fallback": fallback,
+                                "errorType": type(exc).__name__,
+                                "reason": str(exc),
+                            },
+                        )
+                    elif try_jsx:
+                        fallback = "jsx"
+                    else:
+                        fallback = "original_protocol_flow" if need_fallback else "none"
+                    logger.info(
+                        f"{_MODULE} template_source_generation_failed "
+                        f"operation={policy.operation} fallback={fallback} "
+                        f"reason={type(exc).__name__} "
+                        f"detail={json_for_log(str(exc))}"
+                    )
+                    if fallback == "none":
+                        raise A2UIModelGenerationError(
+                            "Template source generation failed without fallback"
+                        ) from exc
+            if try_jsx and not template_fallback_to_fusion:
+                try:
+                    logger.info(f"{_MODULE} jsx_generation_started operation={policy.operation}")
+                    bridge = JsxA2UIBridge()
+                    bridge_result = await bridge.generate(task_spec, card_spec.suggestSize)
+                    a2ui_jsonl = "\n".join(
+                        json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
+                        for msg in bridge_result.a2ui_messages
+                    )
+                    generated_dsl = require_generated_dsl(a2ui_jsonl)
+                    source_generated_by_jsx = True
+                    logger.info(
+                        f"{_MODULE} jsx_generation_completed operation={policy.operation} "
+                        f"component={bridge_result.component_name} "
+                        f"turns={bridge_result.turns} elapsed={bridge_result.elapsed_seconds}s"
+                    )
+                    return generated_dsl
+                except Exception as exc:
+                    fallback = "original_protocol_flow" if need_fallback else "none"
+                    logger.info(
+                        f"{_MODULE} jsx_generation_failed "
+                        f"operation={policy.operation} fallback={fallback} "
+                        f"reason={type(exc).__name__} "
+                        f"detail={json_for_log(str(exc))}"
+                    )
+                    report_ops_metrics(body={"templateProposal": 0})
+                    if not need_fallback:
+                        raise A2UIModelGenerationError(
+                            "JSX generation failed without fallback"
+                        ) from exc
+            logger.info(f"{_MODULE} model_source_generation_started operation={policy.operation}")
+            if policy.operation == "generateWidgetCardCompactDsl" and not model_client.use_mock:
+                if source_fallback_started:
+                    trace_phase_outcome("degraded", reason="fallback_to_model")
+                accepted_compact_plan = await generate_compact_plan()
+                trace_phase("dsl")
+                if compact_agent_messages is None:
+                    raise RuntimeError("Compact Agent conversation is missing after Plan")
+                compact_agent_messages = PromptBuilder.build_compact_dsl_continuation(
+                    compact_agent_messages,
+                    task_spec,
+                    accepted_compact_plan,
+                    plan_warnings=accepted_compact_plan_warnings,
+                )
+                effective_generation_prompt = compact_agent_messages
+                trace_record(
+                    "dsl.prompt.finalized",
+                    stage="promptBuild",
+                    status="success",
+                    details={"compactPlanApplied": True},
+                    json_artifacts={"dsl_prompt_final": effective_generation_prompt},
+                )
+            elif policy.operation == "generateWidgetCardCompactDsl":
+                if not source_fallback_started:
+                    trace_phase("dsl")
+                logger.info(f"{_MODULE} compact_plan_skipped reason=model_mock")
+                trace_record(
+                    "plan.skipped",
+                    stage="plan",
+                    status="skipped",
+                    details={"reason": "model_mock"},
+                )
+                trace_record(
+                    "dsl.prompt.finalized",
+                    stage="promptBuild",
+                    status="success",
+                    details={"compactPlanApplied": False},
+                    json_artifacts={"dsl_prompt_final": effective_generation_prompt},
+                )
+            elif not source_fallback_started:
+                trace_phase("dsl")
+            model_call_phase = "initial"
+            dsl_model_started_at = time.perf_counter()
+            with trace_details(modelPhase="initial"):
+                result = await self._resolve_model_result(
+                    model_client.generate(
+                        effective_generation_prompt,
+                        model_protocol_profile,
+                    )
+                )
+            trace_record(
+                "dsl.model.completed",
+                stage="dsl.model",
+                status="success",
+                duration_ms=self._elapsed_ms(dsl_model_started_at),
+                text_artifacts={"dsl_extracted_output": result},
+            )
+            if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                if compact_agent_messages is None:
+                    compact_agent_messages = copy.deepcopy(effective_generation_prompt)
+                compact_agent_messages.append({"role": "assistant", "content": result})
+                effective_generation_prompt = compact_agent_messages
+            return require_generated_dsl(result)
+
+        async def repair_source_dsl(
+            invalid_source_dsl: str,
+            quality_errors: list[str],
+        ) -> str | None:
+            from services.prompt_builder import PromptBuilder
+
+            nonlocal compact_agent_messages
+            nonlocal effective_generation_prompt
+            nonlocal model_call_phase, quality_repair_attempt_count
+            nonlocal source_generated_by_template
+            # 模型修复阶段切换回模型组件规则。
+            source_generated_by_template = False
+            trace_phase("repair")
+            quality_error_payloads = [
+                asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
+                for item in latest_processing_result.errors
+            ]
+            if len(quality_error_payloads) != len(quality_errors):
+                raise RuntimeError("repair quality issue state is inconsistent")
+            quality_error_stages = sorted({item["stage"] for item in quality_error_payloads})
+            repair_strategy = None
+            if compact_repair_tracker is not None:
+                directive = compact_repair_tracker.next_directive(
+                    invalid_source_dsl,
+                    quality_error_payloads,
+                    compact_plan=accepted_compact_plan,
+                    task_spec=task_spec.model_dump(mode="json", exclude_none=True),
+                )
+                repair_strategy = directive.to_prompt_payload()
+                trace_step(
+                    "repair.strategy.selected",
+                    stage="repair.strategy",
+                    status="success" if directive.retryable else "stopped",
+                    details=repair_strategy,
+                    json_artifacts={"repair_strategy": repair_strategy},
+                    artifact_roles={"repair_strategy": "diagnostic"},
+                )
+                if not directive.retryable:
+                    logger.warning(
+                        f"{_MODULE} a2ui_repair_stopped "
+                        f"repair_strategy={json_for_log(repair_strategy)} "
+                        f"quality_error_count={len(quality_errors)}"
+                    )
+                    return None
+
+            quality_repair_attempt_count += 1
+            trace_increment_attempt("qualityRepairAttempts")
+            trace_increment_retry("qualityRepairRetries")
+            with (
+                trace_attempt(qualityRepair=quality_repair_attempt_count),
+                trace_span(
+                    "repair.attempt",
+                    stage="repair.attempt",
+                    details={"attempt": quality_repair_attempt_count},
+                    kind="group",
+                ),
+            ):
+                repair_prompt_started_at = time.perf_counter()
+                active_prompt = (
+                    compact_agent_messages
+                    if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                    and compact_agent_messages is not None
+                    else effective_generation_prompt
+                )
+                repair_prompt = PromptBuilder().build_repair(
+                    active_prompt,
+                    invalid_source_dsl,
+                    quality_error_payloads,
+                    dsl_format=policy.source_format,
+                    task_spec=task_spec,
+                    compact_plan=accepted_compact_plan,
+                    previous_failures=(
+                        quality_repair_failure_history
+                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        else None
+                    ),
+                    repair_history=(
+                        compact_repair_context_history
+                        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        else None
+                    ),
+                    repair_strategy=repair_strategy,
+                    **(
+                        {"original_display_roles": original_small_display_roles}
+                        if task_spec.size == "2x2"
+                        and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        else {}
+                    ),
+                )
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                    quality_repair_failure_history.append(quality_error_payloads)
+                    history_entry: dict[str, Any] = {
+                        "repairAttempt": quality_repair_attempt_count,
+                        "sourceDsl": invalid_source_dsl,
+                        "qualityErrors": copy.deepcopy(quality_error_payloads),
+                    }
+                    if repair_strategy is not None:
+                        history_entry["selectedRepairStrategy"] = copy.deepcopy(repair_strategy)
+                    compact_repair_context_history.append(history_entry)
+                trace_step(
+                    "repair.prompt.built",
+                    stage="repair.promptBuild",
+                    status="success",
+                    duration_ms=self._elapsed_ms(repair_prompt_started_at),
+                    json_artifacts={
+                        "repair_quality_errors": quality_error_payloads,
+                        "repair_prompt": repair_prompt,
+                        **(
+                            {
+                                "repair_context_history": copy.deepcopy(
+                                    compact_repair_context_history[:-1]
+                                )
+                            }
+                            if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                            else {}
+                        ),
+                        **(
+                            {"repair_strategy": repair_strategy}
+                            if repair_strategy is not None
+                            else {}
+                        ),
+                    },
+                    text_artifacts={"repair_invalid_source_dsl": invalid_source_dsl},
+                    artifact_roles={
+                        "repair_quality_errors": "diagnostic",
+                        "repair_prompt": "input",
+                        "repair_invalid_source_dsl": "input",
+                    },
+                )
+                logger.info(
+                    f"{_MODULE} a2ui_repair_started "
+                    f"repair_prompt_type={repair_prompt_type} "
+                    f"operation={policy.operation} model_backend={policy.backend} "
+                    f"source_format={policy.source_format} "
+                    f"quality_error_stages={json_for_log(quality_error_stages)} "
+                    f"repair_attempt={quality_repair_attempt_count} "
+                    f"repair_strategy={json_for_log(repair_strategy)} "
+                    "max_repair_attempts="
+                    f"{settings.validation_failure_max_repair_attempts} "
+                    f"quality_error_count={len(quality_errors)}"
+                )
+                model_call_phase = "repair"
+                repair_model_started_at = time.perf_counter()
+                with trace_details(modelPhase="repair"):
+                    result = await self._resolve_model_result(
+                        model_client.generate_repair(
+                            repair_prompt,
+                            model_protocol_profile,
+                        )
+                    )
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                    compact_agent_messages = repair_prompt
+                    compact_agent_messages.append({"role": "assistant", "content": result})
+                    effective_generation_prompt = compact_agent_messages
+                trace_record(
+                    "repair.model.completed",
+                    stage="repair.model",
+                    status="success",
+                    duration_ms=self._elapsed_ms(repair_model_started_at),
+                    text_artifacts={"repair_extracted_output": result},
+                )
+                return require_generated_dsl(result)
+
+        def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
+            nonlocal latest_processing_result
+            if task_spec.size == "2x2" and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+                from services.compact_composition_context import retain_original_small_display_roles
+
+                retain_original_small_display_roles(
+                    original_small_display_roles,
+                    source_dsl,
+                    processing_context.task_spec,
+                )
+            evaluation_attempt = quality_repair_attempt_count + 1
+            trace_increment_attempt("validationEvaluations")
+            validation_attempts = {"validation": evaluation_attempt}
+            if quality_repair_attempt_count > 0:
+                validation_attempts["qualityRepair"] = quality_repair_attempt_count
+            # JSX 路径：agent 内部已有编译、验证和重试；仅映射交付资源，跳过工程质量流程。
+            if source_generated_by_jsx:
+                logger.info(
+                    f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
+                    "reason=jsx_internal_validation"
+                )
+                latest_processing_result = DslProcessingResult(
+                    source_dsl=source_dsl,
+                    standard_dsl=asset_mapper.rewrite_standard(source_dsl),
+                )
+                return []
+            processing_context_for_source = replace(
+                processing_context,
+                skip_compact_dsl_validation=source_generated_by_template,
+                colorless_layout=colorless_source(),
+                compact_plan=accepted_compact_plan,
+                plan_information_coverage_as_warning=(
+                    quality_repair_attempt_count > 0
+                    and not settings.enable_drop_plan_fact_validation
+                ),
+                allowed_omitted_plan_fact_indexes=(
+                    compact_repair_tracker.validation_omitted_fact_indexes(
+                        accepted_compact_plan,
+                        validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                    )
+                    if compact_repair_tracker is not None
+                    else ()
+                ),
+            )
+            with trace_attempt(**validation_attempts):
+                processing_started_at = time.perf_counter()
+                processing_result = processor.process(
+                    source_dsl,
+                    processing_context_for_source,
+                )
+                trace_record(
+                    "dsl.processing.completed",
+                    stage="repair.revalidate" if quality_repair_attempt_count else "dsl.processing",
+                    status="failed" if processing_result.errors else "success",
+                    duration_ms=self._elapsed_ms(processing_started_at),
+                    details={
+                        "errorCount": len(processing_result.errors),
+                        "issueCount": len(processing_result.issues),
+                    },
+                )
+            if not processing_result.errors:
+                try:
+                    asset_mapping_started_at = time.perf_counter()
+                    processing_result = replace(
+                        processing_result,
+                        standard_dsl=asset_mapper.rewrite_standard(processing_result.standard_dsl),
+                    )
+                    with trace_attempt(**validation_attempts):
+                        trace_step(
+                            "dsl.asset_mapping.completed",
+                            stage="dsl.assetMapping",
+                            status="success",
+                            duration_ms=self._elapsed_ms(asset_mapping_started_at),
+                            text_artifacts={"final_genui": processing_result.standard_dsl},
+                        )
+                except ValueError as exc:
+                    with trace_attempt(**validation_attempts):
+                        trace_step(
+                            "dsl.asset_mapping.completed",
+                            stage="dsl.assetMapping",
+                            status="failed",
+                            duration_ms=self._elapsed_ms(asset_mapping_started_at),
+                            details={"message": str(exc)},
+                        )
+                    processing_result = replace(
+                        processing_result,
+                        standard_dsl="",
+                        issues=processing_result.issues
+                        + (
+                            QualityIssue(
+                                stage="conversion",
+                                code="ASSET_MAPPING_FAILED",
+                                message=str(exc),
+                            ),
+                        ),
+                    )
+            latest_processing_result = processing_result
+            warnings = [
+                item.repair_message()
+                for item in processing_result.issues
+                if item.severity == "warning"
+            ]
+            if warnings:
+                logger.warning(
+                    f"{_MODULE} dsl_processing_warnings operation={policy.operation} "
+                    f"warnings={json_for_log(warnings)}"
+                )
+            conversion_errors = [item.repair_message() for item in processing_result.errors]
+            if conversion_errors:
+                report_ops_metrics(body={"validationScenarioFailure": 1})
+                logger.error(
+                    f"{_MODULE} dsl_conversion_failed operation={policy.operation} "
+                    f"errors={json_for_log(conversion_errors)}"
+                )
+                self._append_repair_record(
+                    repair_records,
+                    model_call_phase,
+                    quality_repair_attempt_count,
+                    source_dsl,
+                    latest_processing_result,
+                )
+                return conversion_errors
+            if not settings.enable_artifact_validation:
+                logger.info(
+                    f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
+                    "reason=enable_artifact_validation_false"
+                )
+                self._append_repair_record(
+                    repair_records,
+                    model_call_phase,
+                    quality_repair_attempt_count,
+                    source_dsl,
+                    latest_processing_result,
+                )
+                with trace_attempt(**validation_attempts):
+                    trace_record(
+                        "artifact_validation.skipped",
+                        stage="artifactValidation",
+                        status="skipped",
+                        details={"reason": "enable_artifact_validation_false"},
+                    )
+                return []
+
+            standard_dsl = processing_result.standard_dsl
+            artifact_build_started_at = time.perf_counter()
+            artifact = self._build_artifact(
+                standard_dsl,
+                processing_context.card_spec,
+                processing_context.task_spec,
+                effective_data_capabilities,
+                effective_events,
+                asset_candidates,
+                removed,
+                protocol_profile["id"],
+                protocol_profile["version"],
+                registry.version,
+                data_bindings=effective_bindings,
+                artifact_id=artifact_id,
+                generation_mode=generation_mode,
+                source_artifact_digest=(
+                    source_load_result.artifact_digest if source_load_result else None
+                ),
+            )
+            with trace_attempt(**validation_attempts):
+                trace_step(
+                    "artifact.candidate.built",
+                    stage="artifactBuild",
+                    status="success",
+                    duration_ms=self._elapsed_ms(artifact_build_started_at),
+                    json_artifacts={
+                        "artifact_validation_input": artifact.model_dump(
+                            mode="json", exclude_none=True
+                        )
+                    },
+                    artifact_roles={"artifact_validation_input": "input"},
+                )
+            artifact_validator = ArtifactValidator(asset_mapper.mapping)
+            artifact_validation_started_at = time.perf_counter()
+            colorless = colorless_source()
+            if colorless:
+                validation_errors = artifact_validator.validate_layout(artifact, protocol_profile)
+            else:
+                validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            if validation_errors:
+                report_ops_metrics(body={"validationScenarioFailure": 1})
+            validation_prompt_contexts = getattr(
+                artifact_validator,
+                "error_prompt_contexts",
+                [],
+            )
+            with trace_attempt(**validation_attempts):
+                trace_step(
+                    "artifact_validation.completed",
+                    stage="artifactValidation",
+                    status="failed" if validation_errors else "success",
+                    duration_ms=self._elapsed_ms(artifact_validation_started_at),
+                    details={"errorCount": len(validation_errors)},
+                    json_artifacts={
+                        "artifact_validation_input": artifact.model_dump(
+                            mode="json",
+                            exclude_none=True,
+                        ),
+                        "artifact_validation_result": {
+                            "errors": validation_errors,
+                            "promptContexts": validation_prompt_contexts,
+                        },
+                    },
+                    artifact_roles={
+                        "artifact_validation_input": "input",
+                        "artifact_validation_result": "diagnostic",
+                    },
+                )
+            validation_issues_list: list[QualityIssue] = []
+            for index, message in enumerate(validation_errors):
+                prompt_context: dict = {}
+                if index < len(validation_prompt_contexts):
+                    prompt_context = validation_prompt_contexts[index]
+                validation_issues_list.append(
+                    QualityIssue(
+                        stage="validation",
+                        code="ARTIFACT_VALIDATION_FAILED",
+                        message=message,
+                        prompt_context=prompt_context,
+                    )
+                )
+            validation_issues = tuple(validation_issues_list)
+            latest_processing_result = DslProcessingResult(
+                source_dsl=processing_result.source_dsl,
+                standard_dsl=processing_result.standard_dsl,
+                issues=processing_result.issues + validation_issues,
+            )
+            self._append_repair_record(
+                repair_records,
+                model_call_phase,
+                quality_repair_attempt_count,
+                source_dsl,
+                latest_processing_result,
+            )
+            return [item.repair_message() for item in validation_issues]
+
+        async def evaluate_source_dsl(source_dsl: str) -> list[str]:
+            if source_generated_by_template and source_dsl == validated_template_source:
+                return []
+            if quality_repair_attempt_count == 0:
+                trace_phase("validation")
+            with (
+                trace_attempt(validation=quality_repair_attempt_count + 1),
+                trace_span(
+                    "validation.evaluate",
+                    stage="validation.evaluate",
+                    kind="group",
+                ) as evaluation_span,
+            ):
+                errors = await to_thread.run_sync(evaluate_source_dsl_sync, source_dsl)
+                evaluation_span.outcome("failed" if errors else "success", errorCount=len(errors))
+                trace_phase_outcome("failed" if errors else "success", errorCount=len(errors))
+                return errors
+
+        retry_on_validation_failure = (
+            settings.enable_validation_failure_retry and needs_model_prompt
+        )
+        try:
+            retry_result = await retry_controller.run(
+                generate_source_dsl,
+                evaluate_source_dsl,
+                retry_on_quality_failure=retry_on_validation_failure,
+                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                repair=repair_source_dsl,
+            )
+        except A2UIModelGenerationError as exc:
+            quality_repair_count = quality_repair_attempt_count
+            model_failure_retry_count = model_client.model_failure_retry_count
+            total_retry_count = model_failure_retry_count + quality_repair_count
+            latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
+            latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+            effective_capabilities = {
+                "data": [item.id for item in effective_data_capabilities],
+                "event": [
+                    item.model_dump(mode="json", exclude_none=True) for item in effective_events
+                ],
+                "asset": [item.id for item in asset_candidates],
+            }
+            logger.error(
+                f"{_MODULE} a2ui_generation_failed phase={model_call_phase} "
+                f"error_code={ErrorCode.A2UI_GENERATION_FAILED.value} "
+                f"model_failure_retry_count={model_failure_retry_count} "
+                f"quality_repair_count={quality_repair_count} "
+                f"exception_type={type(exc).__name__} validation_continued=false "
+                "artifact_saved=false"
+            )
+            response = GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=card_spec.suggestSize,
+                message="卡片创建过程遇到问题了，请稍后再试。",
+                removedCapabilities=removed,
+                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+                effectiveCapabilities=effective_capabilities,
+            )
+            self._log_generation_summary(
+                request,
+                protocol_profile_id=protocol_profile["id"],
+                capability_registry_version=registry.version,
+                effective_capabilities=effective_capabilities,
+                removed=removed,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage=latency_by_stage,
+                retry_count=total_retry_count,
+                generation_mode=generation_mode,
+                source_artifact_digest=(
+                    source_load_result.artifact_digest if source_load_result else ""
+                ),
+                source_artifact_url_hash=(
+                    source_load_result.url_hash if source_load_result else ""
+                ),
+            )
+            return response
+        source_dsl = retry_result.result
+        genui = latest_processing_result.standard_dsl
+        errors = retry_result.errors
+        model_failure_retry_count = model_client.model_failure_retry_count
+        total_retry_count = model_failure_retry_count + retry_result.retryCount
+        latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
+
+        logger.info(
+            f"{_MODULE} a2ui_generation_completed retry_count={total_retry_count} "
+            f"model_failure_retry_count={model_failure_retry_count} "
+            "model_failure_retry_enabled="
+            f"{json_for_log(settings.enable_model_failure_retry)} "
+            f"quality_repair_count={retry_result.retryCount} "
+            "validation_failure_retry_enabled="
+            f"{json_for_log(retry_on_validation_failure)} "
+            f"initial_quality_error_count={len(retry_result.initialErrors)} "
+            f"repair_attempted={json_for_log(retry_result.repairAttempted)} "
+            f"repair_prompt_type={repair_prompt_type} "
+            f"quality_error_count={len(errors)}"
+        )
+        conversion_failed = not genui.strip()
+        validation_failed_blocking = policy.validation_failure_blocking and bool(errors)
+        if conversion_failed or validation_failed_blocking:
+            failure_category = "conversion" if conversion_failed else "validation"
+            logger.error(
+                f"{_MODULE} strict_generation_validation_failed "
+                f"failure_category={failure_category} "
+                f"errors={json_for_log(errors)}"
+            )
+            report_ops_metrics(body={"taskFailValidation": 1})
+            response = GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=request.size,
+                message="卡片生成过程中校验失败，请稍后再试。",
+                removedCapabilities=removed,
+                errorCode=ErrorCode.VALIDATION_FAILED.value,
+            )
+            is_blocking_compact_failure = (
+                validation_failed_blocking
+                and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            )
+            if is_blocking_compact_failure:
+                quality_error_payloads = [
+                    issue.to_prompt_payload() for issue in latest_processing_result.errors
+                ]
+                issue_category = compact_repair_issue_category(quality_error_payloads)
+                if issue_category in {"layout_capacity", "layout_structure"}:
+                    response._compact_dsl_retry_context = CompactDslRetryContext(
+                        failure_category=issue_category,
+                        capacity_recovery=True,
+                    )
+            latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+            self._log_generation_summary(
+                request,
+                protocol_profile_id=protocol_profile["id"],
+                capability_registry_version=registry.version,
+                removed=removed,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage=latency_by_stage,
+                retry_count=total_retry_count,
+                generation_mode=generation_mode,
+            )
+            return response
+        if errors:
+            logger.error(
+                f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
+                f"protocol_profile_id={protocol_profile['id']} "
+                f"validation_error_code={ErrorCode.VALIDATION_FAILED.value} "
+                f"retry_count={total_retry_count} "
+                "validation_failure_retry_enabled="
+                f"{json_for_log(retry_on_validation_failure)} "
+                f"errors={json_for_log(errors)} "
+                "proceeding_to_artifact_save=true"
+            )
+        stage_started_at = time.perf_counter()
+
+        # 工具3沿用非阻断校验；工具4、5仅在转换和严格校验策略通过后组装 artifact。
+        trace_phase("artifact")
+        design_token = None
+        if policy.stores_design_token:
+            design_token = model_client.extract_genui_payload(source_dsl)
+            preserve_compact_source = (
+                policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                and not source_generated_by_jsx
+            )
+            if preserve_compact_source:
+                design_token = serialize_compact_dsl_source(
+                    latest_processing_result.source_dsl,
+                    skip_compact_dsl_validation=source_generated_by_template,
+                )
+        final_artifact_build_started_at = time.perf_counter()
+        artifact = self._build_artifact(
+            genui,
+            card_spec.model_dump(mode="json", exclude_none=True),
+            task_spec.model_dump(mode="json", exclude_none=True),
+            effective_data_capabilities,
+            effective_events,
+            asset_candidates,
+            removed,
+            protocol_profile["id"],
+            protocol_profile["version"],
+            registry.version,
+            data_bindings=effective_bindings,
+            artifact_id=artifact_id,
+            generation_mode=generation_mode,
+            source_artifact_digest=(
+                source_load_result.artifact_digest if source_load_result else None
+            ),
+        )
+        if colorless_source():
+            from services.post_layout_theme import theme_artifact
+
+            artifact = await theme_artifact(
+                artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
+                ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                allow_expansion=defer_size_notification,
+                final_layout=design_token,
+            )
+        final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
+        if defer_size_notification and before_model_call is not None:
+            await before_model_call(final_size)
+        trace_step(
+            "artifact.final.built",
+            stage="artifactBuild",
+            status="success",
+            duration_ms=self._elapsed_ms(final_artifact_build_started_at),
+            json_artifacts={"final_artifact": artifact.model_dump(mode="json", exclude_none=True)},
+            artifact_roles={"final_artifact": "output"},
+        )
+        # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
+        logger.info(
+            f"{_MODULE} artifact_built "
+            f"effective_capabilities={json_for_log(artifact.effectiveCapabilities)} "
+            f"removed_count={len(artifact.removedCapabilities)}"
+        )
+        artifact_save_result = ArtifactStore(
+            design_token=design_token,
+            request_body=request_body,
+            repair_records=repair_records,
+        ).save(artifact)
+        if inspect.isawaitable(artifact_save_result):
+            artifact_save_result = await artifact_save_result
+        latency_by_stage["artifactStore"] = self._elapsed_ms(stage_started_at)
+        trace_record(
+            "artifact.store.completed",
+            stage="artifactStore",
+            status="success",
+            duration_ms=latency_by_stage["artifactStore"],
+            details={
+                "artifactUrl": artifact_save_result.artifactUrl,
+                "artifactDigest": artifact_save_result.artifactDigest,
+            },
+            json_artifacts={
+                "artifact_save_result": {
+                    "artifactUrl": artifact_save_result.artifactUrl,
+                    "artifactDigest": artifact_save_result.artifactDigest,
+                }
+            },
+            artifact_roles={"artifact_save_result": "output"},
+        )
+        # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
+        trace_phase("response")
+        omitted_facts: tuple[dict[str, Any], ...] = ()
+        if accepted_compact_plan is not None and compact_repair_tracker is not None:
+            omitted_facts = compact_plan_omitted_facts(
+                latest_processing_result.source_dsl,
+                accepted_compact_plan,
+                task_spec.model_dump(mode="json", exclude_none=True),
+                compact_repair_tracker.validation_omitted_fact_indexes(
+                    accepted_compact_plan,
+                    validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                ),
+            )
+        omitted_requirements = [
+            str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")
+        ]
+        if omitted_requirements:
+            trace_step(
+                "response.plan_facts_omitted",
+                stage="responsePlanning",
+                status="success",
+                json_artifacts={"omitted_requirements": omitted_requirements},
+                artifact_roles={"omitted_requirements": "diagnostic"},
+            )
+        with trace_span("response_plan.completed", stage="responsePlanning"):
+            response_plan = ResponsePlanner().plan(
+                len(request.candidateDataBindings),
+                len(effective_bindings),
+                removed,
+                has_artifact=True,
+                generation_mode=generation_mode,
+                omitted_requirements=omitted_requirements,
+            )
+        logger.info(
+            f"{_MODULE} generate_widget_card_completed status={response_plan.status.value} "
+            f"artifact_url={artifact_save_result.artifactUrl} "
+            f"removed_count={len(removed)} error_code={response_plan.errorCode}"
+        )
+        report_ops_metrics(body={"taskSuccess": 1})
+        response = GenerateWidgetCardResponse(
+            status=response_plan.status,
+            artifactUrl=artifact_save_result.artifactUrl,
+            artifactDigest=artifact_save_result.artifactDigest,
+            suggestSize=final_size,
+            message=response_plan.message,
+            removedCapabilities=removed,
+            errorCode=response_plan.errorCode,
+            effectiveCapabilities=artifact.effectiveCapabilities,
+        )
+        latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+        self._log_generation_summary(
+            request,
+            protocol_profile_id=protocol_profile["id"],
+            capability_registry_version=registry.version,
+            effective_capabilities=artifact.effectiveCapabilities,
+            removed=removed,
+            status=response.status,
+            error_code=response.errorCode,
+            latency_by_stage=latency_by_stage,
+            retry_count=total_retry_count,
+            artifact_digest=artifact_save_result.artifactDigest,
+            generation_mode=generation_mode,
+            source_artifact_digest=(
+                source_load_result.artifact_digest if source_load_result else ""
+            ),
+            source_artifact_url_hash=(source_load_result.url_hash if source_load_result else ""),
+        )
+        return response
+
+    @staticmethod
+    def _elapsed_ms(started_at: float) -> float:
+        return round((time.perf_counter() - started_at) * 1000, 2)
+
+    @staticmethod
+    async def _resolve_model_result(value: str | Awaitable[str]) -> str:
+        """兼容生产协程与测试注入的立即模型结果。"""
+        if inspect.isawaitable(value):
+            return await value
+        return value
+
+    @staticmethod
+    def _resolve_model_request_context(
+        request: GenerateWidgetCardRequest,
+    ) -> ModelRequestContext:
+        """优先使用路由注入的模型上下文，并为 Service 直调生成稳定兜底。"""
+        if request._model_request_context is not None:
+            return request._model_request_context
+        settings = get_settings()
+        device_id = request.device.deviceId or f"aiwidget-{uuid.uuid4().hex}"
+        return ModelRequestContext(
+            session_id=uuid.uuid4().hex,
+            interaction_id=uuid.uuid4().hex,
+            device_id=device_id,
+            country_code=settings.deepseek_platform_default_country_code,
+            app_version=request.prdVer or settings.default_prd_version,
+            app_name=settings.deepseek_platform_default_app_name,
+        )
+
+    def _log_generation_summary(
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        status: GenerationStatus,
+        error_code: str,
+        protocol_profile_id: str = "",
+        capability_registry_version: str = "",
+        effective_capabilities: dict | None = None,
+        removed: list | None = None,
+        latency_by_stage: dict[str, float] | None = None,
+        retry_count: int = 0,
+        artifact_digest: str = "",
+        generation_mode: str = "create",
+        source_artifact_digest: str = "",
+        source_artifact_url_hash: str = "",
+    ) -> None:
+        """输出一次生成请求的统一观测字段，不记录 uid 和原始设备标识。"""
+        candidate_capabilities = {
+            "data": [item.capabilityId for item in request.candidateDataBindings or []],
+            "event": [item.capabilityId for item in request.candidateEventCandidates or []],
+            "asset": list(request.candidateAssetIds or []),
+        }
+        removed_capabilities = [
+            item.model_dump(mode="json") if hasattr(item, "model_dump") else item
+            for item in (removed or [])
+        ]
+        query_hash = hashlib.sha256(request.userQuery.encode("utf-8")).hexdigest()
+        device_identifier = request.device.deviceId or request.device.odid or ""
+        device_id_hash = (
+            hashlib.sha256(device_identifier.encode("utf-8")).hexdigest()[:16]
+            if device_identifier
+            else ""
+        )
+        logger.info(
+            f"{_MODULE} widget_generation_summary "
+            f"query_hash={query_hash} "
+            f"device_id_hash={device_id_hash} "
+            "skill_version=skill-widget-v1 "
+            f"protocol_profile_id={protocol_profile_id} "
+            f"capability_registry_version={capability_registry_version} "
+            f"candidate_capabilities={json_for_log(candidate_capabilities)} "
+            "effective_capabilities="
+            f"{json_for_log(effective_capabilities or {'data': [], 'event': [], 'asset': []})} "
+            f"removed_capabilities={json_for_log(removed_capabilities)} "
+            f"status={status.value} error_code={error_code} "
+            f"latency_by_stage={json_for_log(latency_by_stage or {})} "
+            f"retry_count={retry_count} artifact_digest={artifact_digest} "
+            f"generation_mode={generation_mode} "
+            f"source_artifact_url_hash={source_artifact_url_hash} "
+            f"source_artifact_digest={source_artifact_digest}"
+        )
+
+    async def generate_widget_card_a2ui_form(
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+    ) -> GenerateWidgetCardResponse:
+        """使用标准 A2UI Form profile 和配置选择的模型后端生成卡片。"""
+        settings = get_settings()
+        policy = GenerationRoutePolicy(
+            operation="generateWidgetCard",
+            protocol_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
+            backend=settings.a2ui_form_model_backend,
+            processor_kind=DslProcessorKind.STANDARD_A2UI,
+            source_format="a2ui-form",
+            model_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
+            model_format="a2ui-form",
+        )
+        # JSX 开关独立于模板开关
+        try_template = self._enable_card_template()
+        try_jsx = self._enable_jsx_generation()
+        need_fallback = not try_jsx
+        template_source_generator = TemplateSourceGenerator() if try_template else None
+        if before_model_call is None:
+            return await self._generate_widget_card_with_policy(
+                request,
+                policy,
+                try_jsx=try_jsx,
+                template_source_generator=template_source_generator,
+                need_fallback=need_fallback,
+            )
+        return await self._generate_widget_card_with_policy(
+            request,
+            policy,
+            before_model_call=before_model_call,
+            try_jsx=try_jsx,
+            template_source_generator=template_source_generator,
+            need_fallback=need_fallback,
+        )
+
+    async def generate_widget_card_compact_dsl(
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+    ) -> GenerateWidgetCardResponse:
+        """使用配置选择的后端生成 Design Compact DSL，并转换为标准 A2UI。"""
+        settings = get_settings()
+        self.trace_recorder.bind_request(
+            request.uid,
+            enabled=settings.enable_generation_trace_recording,
+            trace_root=settings.generation_trace_root,
+        )
+        trace_token = self.trace_recorder.activate()
+        try:
+            with trace_span(
+                "protocol.selection.completed",
+                stage="protocolSelection",
+            ):
+                selection = self._compact_protocol_selection(request)
+            trace_record(
+                "protocol.selection.result",
+                stage="protocolSelection",
+                status="success",
+                details={
+                    "protocolProfileId": selection.protocol_profile_id,
+                    "designProfileId": selection.design_profile_id,
+                    "normalizedAppVersion": selection.normalized_app_version,
+                    "normalizedRomVersion": selection.normalized_rom_version,
+                },
+                category="protocol",
+                json_artifacts={
+                    "protocol_selection": {
+                        "protocolProfileId": selection.protocol_profile_id,
+                        "designProfileId": selection.design_profile_id,
+                        "normalizedAppVersion": selection.normalized_app_version,
+                        "normalizedRomVersion": selection.normalized_rom_version,
+                    }
+                },
+                artifact_roles={"protocol_selection": "output"},
+            )
+        except ValueError as exc:
+            logger.error(
+                f"{_MODULE} compact_protocol_selection_failed "
+                f"error_code={ErrorCode.APP_VERSION_UNSUPPORTED.value} error={exc}"
+            )
+            response = GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
+                errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
+            )
+            if trace_token is not None:
+                self.trace_recorder.finalize(
+                    status=response.status.value,
+                    error_code=response.errorCode,
+                )
+                self.trace_recorder.deactivate(trace_token)
+            return response
+        policy = GenerationRoutePolicy(
+            operation="generateWidgetCardCompactDsl",
+            protocol_profile_id=selection.protocol_profile_id,
+            backend=settings.design_compact_model_backend,
+            processor_kind=DslProcessorKind.DESIGN_COMPACT,
+            source_format=selection.design_profile_id,
+            model_profile_id=selection.design_profile_id,
+            model_format="compact-dsl",
+            design_profile_id=selection.design_profile_id,
+            validation_failure_blocking=True,
+            stores_design_token=True,
+        )
+        try:
+            response = await self._generate_widget_card_with_policy(
+                request,
+                policy,
+                before_model_call=before_model_call,
+                try_jsx=self._enable_jsx_generation(),
+                template_source_generator=(
+                    TemplateSourceGenerator() if self._enable_card_template() else None
+                ),
+                need_fallback=not self._enable_jsx_generation(),
+            )
+        except BaseException as exc:
+            if trace_token is not None:
+                error_code = getattr(exc, "code", type(exc).__name__)
+                if isinstance(exc, ArtifactUploadError):
+                    error_code = ErrorCode.ARTIFACT_UPLOAD_FAILED.value
+                elif isinstance(exc, TimeoutError):
+                    error_code = ErrorCode.TIMEOUT.value
+                self.trace_recorder.finalize(
+                    status="failed",
+                    error_code=str(error_code),
+                    details={
+                        "exceptionType": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
+            raise
+        finally:
+            self.trace_recorder.deactivate(trace_token)
+        if trace_token is not None:
+            self.trace_recorder.finalize(
+                status=response.status.value,
+                error_code=response.errorCode,
+                artifact_url=response.artifactUrl,
+                artifact_digest=response.artifactDigest,
+            )
+        return response
+
+    async def generate_widget_card_terse_dsl_nested2(
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        trusted_template_candidate_ids: tuple[str, ...] = (),
+        trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_sample_overrides: dict[str, object] | None = None,
+    ) -> GenerateWidgetCardResponse:
+        """复用 Design Compact 原始生成链处理 Terse 模板入口。"""
+        try:
+            selection = self._compact_protocol_selection(request)
+        except ValueError as exc:
+            logger.error(
+                f"{_MODULE} terse_nested2_protocol_selection_failed "
+                f"error_code={ErrorCode.APP_VERSION_UNSUPPORTED.value} error={exc}"
+            )
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
+                errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
+            )
+        policy = GenerationRoutePolicy(
+            operation="generateWidgetCardTerseDslNested2",
+            protocol_profile_id=selection.protocol_profile_id,
+            backend=get_settings().design_compact_model_backend,
+            processor_kind=DslProcessorKind.DESIGN_COMPACT,
+            source_format=selection.design_profile_id,
+            model_profile_id=selection.design_profile_id,
+            model_format="compact-dsl",
+            design_profile_id=selection.design_profile_id,
+            supports_dynamic_capabilities=True,
+            validation_failure_blocking=True,
+            stores_design_token=True,
+        )
+        if "sourceArtifactUrl" in request.model_fields_set:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message="模板路线暂不支持二次更新。",
+                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+            )
+        template_source_generator = TemplateSourceGenerator(
+            trusted_template_candidate_ids=trusted_template_candidate_ids,
+            trusted_template_action_ids=trusted_template_action_ids,
+            trusted_template_sample_overrides=dict(trusted_template_sample_overrides or {}),
+        )
+        return await self._generate_widget_card_with_policy(
+            request,
+            policy,
+            before_model_call=before_model_call,
+            template_source_generator=template_source_generator,
+            need_fallback=False,
+        )
+
+    async def _generate_widget_card_with_policy(
+        self,
+        request: GenerateWidgetCardRequest,
+        policy: GenerationRoutePolicy,
+        *,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        try_jsx: bool = False,
+        template_source_generator: TemplateSourceGenerator | None = None,
+        need_fallback: bool = True,
+    ) -> GenerateWidgetCardResponse:
+        """复制请求并锁定路由对应的协议 profile。"""
+        unsupported_response = self._policy_unsupported_response(request, policy)
+        if unsupported_response is not None:
+            return unsupported_response
+        profiled_request = request.model_copy(
+            update={"protocolProfileId": policy.protocol_profile_id}
+        )
+        profiled_request._model_request_context = request._model_request_context
+        profiled_request._raw_request_body = request._raw_request_body
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
+        if template_source_generator is None or is_edit:
+            return await self.generate_widget_card(
+                profiled_request,
+                policy=policy,
+                before_model_call=before_model_call,
+                try_jsx=try_jsx,
+                need_fallback=need_fallback,
+            )
+        template_source_generator.processor_kind = policy.processor_kind
+        template_source_generator.protocol_profile = A2UIProtocolRegistry(
+            policy.protocol_profile_id
+        ).get_profile()
+        template_source_generator.model_runtime = self.model_runtime
+        template_source_generator.model_request_context = self._resolve_model_request_context(
+            profiled_request
+        )
+
+        return await self.generate_widget_card(
+            profiled_request,
+            policy=policy,
+            before_model_call=before_model_call,
+            try_jsx=try_jsx,
+            template_source_generator=template_source_generator,
+            need_fallback=need_fallback,
+        )
+
+    @staticmethod
+    def _request_body_for_artifact(
+        request: GenerateWidgetCardRequest,
+    ) -> str | dict[str, object]:
+        """优先保留 WebSocket 原始请求文本，本地直调时回退为请求模型。"""
+        if request._raw_request_body is not None:
+            return request._raw_request_body
+        return request.model_dump(mode="json", exclude_none=True)
+
+    @staticmethod
+    def _append_repair_record(
+        repair_records: list[RepairArtifactRecord],
+        model_call_phase: str,
+        repair_attempt: int,
+        model_source_dsl: str,
+        processing_result: DslProcessingResult,
+    ) -> None:
+        """每轮 repair 评估结束后只追加一次可回放记录。"""
+        if model_call_phase != "repair" or repair_attempt <= len(repair_records):
+            return
+        validation_errors = tuple(item.to_prompt_payload() for item in processing_result.errors)
+        repair_records.append(
+            RepairArtifactRecord(
+                model_generated_compact_dsl=model_source_dsl,
+                generated_dsl=processing_result.standard_dsl,
+                validation_errors=validation_errors,
+            )
+        )
+
+    @staticmethod
+    def _require_source_design_token(
+        source: SourceArtifactLoadResult,
+    ) -> str:
+        """源格式编辑必须取得上一轮模型原始输出，禁止使用标准 genui 兜底。"""
+        design_token = source.design_token
+        if not isinstance(design_token, str) or not design_token.strip():
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact is missing a non-empty designcompactdsl block",
+            )
+        return design_token
+
+    @staticmethod
+    async def _validate_source_design_token(
+        design_token: str,
+        source: SourceArtifactLoadResult | None,
+        policy: GenerationRoutePolicy,
+        conversion_protocol_profile: dict,
+    ) -> bool:
+        """用目标接口对应 Processor 验证上一轮 Token，防止跨源格式编辑。"""
+        from services.prompt_builder import PromptBuilder
+
+        if source is None:
+            return False
+        source_card_spec = source.artifact.cardSpec
+        source_size = source_card_spec.get("suggestSize")
+        if not isinstance(source_size, str) or not source_size:
+            return False
+        context = DslProcessingContext(
+            size=source_size,
+            card_spec=source_card_spec,
+            task_spec=source.artifact.taskSpec,
+            protocol_profile=conversion_protocol_profile,
+            design_profile_id=policy.design_profile_id,
+            layout_scope=(
+                PromptBuilder.layout_scope(TaskSpec.model_validate(source.artifact.taskSpec))
+                if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                else None
+            ),
+        )
+        processor = get_dsl_processor(policy.processor_kind)
+        result = await to_thread.run_sync(processor.process, design_token, context)
+        return not result.errors
+
+    @staticmethod
+    def _policy_unsupported_response(
+        request: GenerateWidgetCardRequest,
+        policy: GenerationRoutePolicy,
+    ) -> GenerateWidgetCardResponse | None:
+        """按集中路由策略拒绝当前源格式尚未支持的编辑或动态能力。"""
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
+        if is_edit and not policy.supports_edit:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message="当前生成协议只支持新建卡片，不支持继续编辑。",
+                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
+            )
+        has_dynamic_capabilities = bool(
+            request.candidateDataBindings or request.candidateEventCandidates
+        )
+        if has_dynamic_capabilities and not policy.supports_dynamic_capabilities:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message="当前生成协议只支持字面量静态卡片，不支持动态数据或点击事件。",
+                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
+            )
+        return None
+
+    def _compact_protocol_selection(
+        self,
+        request: GenerateWidgetCardRequest,
+    ) -> ProtocolProfileSelection:
+        """按 App/ROM 区间选择第四接口的输出协议和 Design 提示词。"""
+        settings = get_settings()
+        requested_app = request.prdVer or settings.default_prd_version
+        requested_rom = request.device._source_rom_version or request.device.romVersion
+        requested_rom = requested_rom or settings.default_device_rom_version
+        selection_type = "interval"
+        try:
+            selection = A2UIProtocolRegistry.from_app_rom_versions(
+                requested_app,
+                requested_rom,
+            )
+        except ValueError as exc:
+            if not settings.enable_default_protocol_profile_fallback:
+                raise
+            selection = A2UIProtocolRegistry.default_selection(
+                requested_app,
+                requested_rom,
+            )
+            A2UIProtocolRegistry(selection.protocol_profile_id).get_profile()
+            A2UIProtocolRegistry.read_design_prompt(selection.design_profile_id)
+            selection_type = "fallback"
+            logger.warning(
+                f"{_MODULE} protocol_profile_fallback "
+                f"requested_app_version={requested_app} requested_rom_version={requested_rom} "
+                f"fallback_profile_id={selection.protocol_profile_id} reason={exc}"
+            )
+        logger.info(
+            f"{_MODULE} protocol_profile_selected requested_app_version={requested_app} "
+            f"requested_rom_version={requested_rom} "
+            f"normalized_app_version={selection.normalized_app_version} "
+            f"normalized_rom_version={selection.normalized_rom_version} "
+            f"protocol_profile_id={selection.protocol_profile_id} "
+            f"design_profile_id={selection.design_profile_id} selection_type={selection_type}"
+        )
+        return selection
+
+    def _capability_registry(
+        self,
+        request,
+    ) -> CapabilityRegistry:
+        """按请求的 App/ROM 二维版本区间创建能力注册表。"""
+        settings = get_settings()
+        requested_app = request.prdVer or settings.default_prd_version
+        requested_rom = request.device._source_rom_version or request.device.romVersion
+        requested_rom = requested_rom or settings.default_device_rom_version
+        normalized_app = CapabilityRegistry.normalize_app_version(requested_app)
+        normalized_rom = CapabilityRegistry.normalize_rom_version(requested_rom)
+        selection_type = "interval"
+        try:
+            registry = CapabilityRegistry(
+                app_version=requested_app,
+                device_rom_version=requested_rom,
+            )
+        except ValueError as exc:
+            if not settings.enable_default_capability_registry_fallback:
+                raise
+            requested_version = self._capability_registry_version_hint(request)
+            fallback_version = settings.capability_registry_version
+            logger.warning(
+                f"{_MODULE} capability_registry_fallback "
+                f"requested_version={requested_version} "
+                f"fallback_version={fallback_version} reason={exc}"
+            )
+            registry = CapabilityRegistry(version=fallback_version)
+            selection_type = "fallback"
+        logger.info(
+            f"{_MODULE} capability_registry_selected requested_app_version={requested_app} "
+            f"requested_rom_version={requested_rom} normalized_app_version={normalized_app} "
+            f"normalized_rom_version={normalized_rom} registry_version={registry.version} "
+            f"selection_type={selection_type}"
+        )
+        return registry
+
+    def _capability_registry_version_hint(self, request) -> str:
+        """推导请求对应的能力清单版本名。
+
+        入参：
+        - request：包含 prdVer 和 device.romVersion 的请求对象。
+        出参：即使目录不存在也能用于响应和日志的版本文件夹名。
+        """
+        settings = get_settings()
+        return CapabilityRegistry.requested_version_label(
+            request.prdVer or settings.default_prd_version,
+            request.device.romVersion,
+        )
+
+    def _build_artifact(
+        self,
+        genui: str,
+        card_spec: dict,
+        task_spec: dict,
+        data_capabilities: list,
+        event_candidates: list,
+        asset_candidates: list,
+        removed: list,
+        protocol_profile_id: str,
+        protocol_profile_version: str,
+        capability_registry_version: str,
+        data_bindings: list | None = None,
+        artifact_id: str | None = None,
+        generation_mode: str = "create",
+        source_artifact_digest: str | None = None,
+    ) -> WidgetArtifact:
+        """组装完整 artifact。
+
+        入参：
+        - genui：三行 JSONL DSL。
+        - card_spec：最终 CardSpec。
+        - task_spec：传给 A2UI 模型的 TaskSpec。
+        - data_bindings：有效数据绑定列表，保留字段投影用于下一轮继承。
+        - data_capabilities：有效数据能力列表。
+        - event_candidates：有效事件候选列表。
+        - asset_candidates：有效素材候选列表。
+        - removed：被移除能力列表。
+        - protocol_profile_id：协议 profile ID。
+        - protocol_profile_version：协议 profile 版本。
+        - capability_registry_version：能力注册表版本。
+        - artifact_id：本轮不可变产物 UUID。
+        - generation_mode：create 或 edit。
+        - source_artifact_digest：编辑来源摘要；首次生成为空。
+        出参：完整 WidgetArtifact。
+        """
+        # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
+        logger.info(
+            f"{_MODULE} artifact_building protocol_profile_id={protocol_profile_id} "
+            f"protocol_profile_version={protocol_profile_version} "
+            f"capability_registry_version={capability_registry_version} "
+            f"data_capability_count={len(data_capabilities)} "
+            f"event_candidate_count={len(event_candidates)} "
+            f"asset_candidate_count={len(asset_candidates)} removed_count={len(removed)}"
+        )
+        artifact_id = artifact_id or str(uuid.uuid4())
+        return WidgetArtifact(
+            genui=genui,
+            cardSpec=card_spec,
+            taskSpec=task_spec,
+            effectiveCapabilities={
+                # data 只暴露能力 ID，端侧按 CardSpec.dataBindings 执行真实数据刷新。
+                "data": [item.id for item in data_capabilities],
+                # event 保留完整 call/args，方便端侧直接绑定点击行为。
+                "event": [
+                    item.model_dump(mode="json", exclude_none=True) for item in event_candidates
+                ],
+                # asset 只暴露素材 ID，端侧从资源包或素材注册表解析具体文件。
+                "asset": [item.id for item in asset_candidates],
+            },
+            removedCapabilities=removed,
+            generationPlan=GenerationPlan(
+                candidateDataBindings=data_bindings or [],
+                candidateEventCandidates=[
+                    {
+                        "capabilityId": item.id,
+                        "action": {
+                            "call": item.call,
+                            "args": item.args,
+                        },
+                    }
+                    for item in event_candidates
+                ],
+                candidateAssetIds=[item.id for item in asset_candidates],
+            ),
+            meta=ArtifactMeta(
+                dslProtocolVersion=protocol_profile_version,
+                protocolProfileId=protocol_profile_id,
+                capabilityRegistryVersion=capability_registry_version,
+                generationMode=generation_mode,
+                artifactId=artifact_id,
+                sourceArtifactDigest=source_artifact_digest,
+                createdAt=int(time.time() * 1000),
+            ),
+        )
+
+    def _enable_jsx_generation(self) -> bool:
+        """是否启用 JSX-to-A2UI 生成式路径。
+
+        该开关由 spec_records.yaml 中的 enable_jsx_generation 控制。
+        """
+        settings = get_settings()
+        return settings.CONFIG.get("enable_jsx_generation") == "true"
+
+    def _enable_card_template(self) -> bool:
+        """Whether use template for UI generation."""
+        settings = get_settings()
+        return settings.CONFIG.get("enable_card_template") == "true"

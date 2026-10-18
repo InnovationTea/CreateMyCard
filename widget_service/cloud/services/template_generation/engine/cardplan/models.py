@@ -1,0 +1,518 @@
+"""Strict immutable models for the trusted Python CardPlan implementation."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+TEMPLATE_CHILD_SLOT_COMPONENT = "__CardTplChildSlot"
+CARDTPL_SOURCE_FORMATS = frozenset({"cardtpl/1", "cardtpl/2"})
+_BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
+    "SingleFocusLayout",
+    "HeroActionLayout",
+    "FullIconActionLayout",
+    "CompactTwoActionLayout",
+    "HeroTitleContentActionLayout",
+    "TwoSupportLayout",
+    "WideSingleFocusLayout",
+    "WideFullOnlyLayout",
+    "WideTwoFullLayout",
+    "WideHeroCompactLayout",
+    "WideFullHeroActionLayout",
+    "WideHeroActionFullLayout",
+    "WideFullTwoCompactLayout",
+    "WideFourCompactLayout",
+    "WideFullHeroTwoActionLayout",
+    "WideTwoHeroActionLayout",
+    "WideFullFourActionLayout",
+    "WideTwoHalfLayout",
+    "WideHalfTwoCompactLayout",
+    "WideHalfCompactTwoLargeActionLayout",
+    "WideHalfFourLargeActionLayout",
+    "WideTwoFocusLayout",
+    "WideTwoFocusActionLayout",
+    "WideTwoFocusTwoActionLayout",
+)
+
+
+class StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class SourceSpan(StrictModel):
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+
+
+class HybridLimits(StrictModel):
+    max_raw_components: int = Field(gt=0)
+    max_expanded_components: int = Field(gt=0)
+    max_nesting_depth: int = Field(gt=0)
+    vertical_budget_vp: int = Field(gt=0)
+
+
+class ActionBinding(StrictModel):
+    action_id: str
+    event_id: str = Field(exclude=True)
+    display_label: str | None
+    description: str | None = None
+    display_subtitle: str = ""
+    call: str
+    args: dict[str, Any]
+    importance: Literal["primary", "secondary"] = "primary"
+    material_hint: Literal["frosted", "brand-solid", "semantic-solid", "icon-control"] = "frosted"
+
+
+class TemplatePlanBusinessSlot(StrictModel):
+    """One exact, ordered business-template placement chosen by the Planner."""
+
+    position: int = Field(ge=0)
+    business_id: str = Field(alias="businessId", min_length=1)
+    capability_id: str = Field(alias="capabilityId", min_length=1)
+    template_id: str = Field(alias="templateId", min_length=1)
+    layout_role: str = Field(alias="layoutRole", min_length=1)
+    covered_explicit_fields: tuple[str, ...] = Field(
+        default=(),
+        alias="coveredExplicitFields",
+    )
+    primary_matched_fields: tuple[str, ...] = Field(
+        default=(),
+        alias="primaryMatchedFields",
+    )
+    field_bindings: dict[str, str] = Field(default_factory=dict, alias="fieldBindings")
+
+
+class TemplatePlanActionAssignment(StrictModel):
+    """Lock one selected Action to either the layout or a business Template."""
+
+    action_id: str = Field(alias="actionId", min_length=1)
+    consumer: Literal["root-action", "business-template"]
+    business_position: int | None = Field(default=None, alias="businessPosition", ge=0)
+    action_template_id: str | None = Field(default=None, alias="actionTemplateId")
+
+    @model_validator(mode="after")
+    def valid_consumer(self) -> TemplatePlanActionAssignment:
+        if self.consumer == "root-action":
+            if self.action_template_id is None:
+                raise ValueError("root Action must declare actionTemplateId")
+        elif self.business_position is None or self.action_template_id is not None:
+            raise ValueError("business Action must declare only businessPosition")
+        return self
+
+
+class TemplatePlan(StrictModel):
+    """An atomic Planner result; the second-layer LLM may select but not remix it."""
+
+    plan_id: str = Field(alias="planId", min_length=1)
+    theme_id: str = Field(alias="themeId", min_length=1)
+    layout_template_id: str = Field(alias="layoutTemplateId", min_length=1)
+    business_slots: tuple[TemplatePlanBusinessSlot, ...] = Field(
+        alias="businessSlots",
+        min_length=1,
+        max_length=4,
+    )
+    action_assignments: tuple[TemplatePlanActionAssignment, ...] = Field(
+        default=(),
+        alias="actionAssignments",
+        max_length=4,
+    )
+
+    @model_validator(mode="after")
+    def valid_positions(self) -> TemplatePlan:
+        expected_positions = tuple(range(len(self.business_slots)))
+        actual_positions = tuple(slot.position for slot in self.business_slots)
+        if actual_positions != expected_positions:
+            raise ValueError("Template Plan business positions must be contiguous and ordered")
+        valid_positions = set(expected_positions)
+        business_positions = [
+            item.business_position
+            for item in self.action_assignments
+            if item.consumer == "business-template"
+        ]
+        if any(position not in valid_positions for position in business_positions):
+            raise ValueError("Template Plan Action references an unknown business position")
+        if len(business_positions) != len(set(business_positions)):
+            raise ValueError("Template Plan business slot accepts at most one Action")
+        for assignment in self.action_assignments:
+            position = assignment.business_position
+            if position is not None and position not in valid_positions:
+                raise ValueError("Template Plan Action references an unknown business position")
+        fields_by_capability: dict[str, set[str]] = {}
+        for slot in self.business_slots:
+            fields = fields_by_capability.setdefault(slot.capability_id, set())
+            if slot.field_bindings:
+                paths = tuple(slot.field_bindings.values())
+                if len(paths) != len(set(paths)) or fields.intersection(paths):
+                    raise ValueError("Template Plan generic fields must be distinct")
+                if set(paths) != set(slot.covered_explicit_fields):
+                    raise ValueError("Template Plan generic fields must match slot coverage")
+                if any(not path.startswith("/") for path in paths):
+                    raise ValueError("Template Plan generic fields must be relative JSON Pointers")
+            fields.update(slot.covered_explicit_fields)
+        generic_fields: dict[str, set[str]] = {}
+        for slot in self.business_slots:
+            if slot.field_bindings:
+                generic_fields.setdefault(slot.capability_id, set()).update(
+                    slot.field_bindings.values()
+                )
+        for slot in self.business_slots:
+            if slot.field_bindings:
+                continue
+            if generic_fields.get(slot.capability_id, set()).intersection(
+                slot.covered_explicit_fields
+            ):
+                raise ValueError("Template Plan generic fields overlap specialized coverage")
+        action_ids = tuple(item.action_id for item in self.action_assignments)
+        if len(action_ids) != len(set(action_ids)):
+            raise ValueError("Template Plan Action assignments must be unique")
+        return self
+
+
+class HybridBodyContract(StrictModel):
+    contract_version: Literal["hybrid-body-contract/0.5"] = "hybrid-body-contract/0.5"
+    theme_profile_id: str
+    allowed_components: tuple[str, ...]
+    allowed_design_tokens: tuple[str, ...]
+    allowed_layout_tokens: tuple[str, ...]
+    allowed_template_ids: tuple[str, ...]
+    required_template_groups: tuple[tuple[str, ...], ...] = ()
+    allowed_asset_sources: tuple[str, ...]
+    asset_semantic_tags_by_source: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    required_asset_sources: tuple[str, ...] = ()
+    trusted_literals: tuple[str, ...]
+    trusted_numbers: tuple[int | float, ...]
+    required_numbers: tuple[int | float, ...] = ()
+    required_literals: tuple[str, ...]
+    protected_literals: tuple[str, ...]
+    action_bindings: tuple[ActionBinding, ...] = ()
+    content_action_ids: tuple[str, ...] = ()
+    allowed_layout_component_ids: tuple[str, ...] = ()
+    allowed_business_component_ids: tuple[str, ...] = ()
+    required_business_component_ids: tuple[str, ...] = ()
+    allowed_template_plans: tuple[TemplatePlan, ...] = Field(default=(), max_length=3)
+    template_only_composition: bool = False
+    limits: HybridLimits
+
+
+class TemplateValue(StrictModel):
+    kind: Literal[
+        "literal",
+        "parameter",
+        "optional-parameter",
+        "binding",
+        "event-action",
+        "theme",
+        "interpolation",
+        "expression",
+        "compile-time-conditional",
+        "array",
+        "object",
+    ]
+    value: str | int | float | bool | None = None
+    name: str | None = None
+    items: tuple[TemplateValue, ...] = ()
+    properties: dict[str, TemplateValue] = Field(default_factory=dict)
+
+
+class TemplateNode(StrictModel):
+    component: str
+    values: tuple[TemplateValue, ...] = ()
+    children: tuple[TemplateNode, ...] = ()
+    spread_children: bool = Field(default=False, alias="spreadChildren")
+
+
+class TemplateParameterRelation(StrictModel):
+    """Cross-parameter invariant enforced by the trusted Template expander."""
+
+    kind: Literal["number-matches-text"]
+    number_parameter: str = Field(alias="numberParameter", min_length=1)
+    text_parameter: str = Field(alias="textParameter", min_length=1)
+    allowed_suffixes: tuple[str, ...] = Field(default=("",), alias="allowedSuffixes")
+
+
+class TemplateBinding(StrictModel):
+    path: str = Field(pattern=r"^/(?:[^/~]|~[01])+(?:/(?:[^/~]|~[01])+)*$")
+    data_type: Literal["string", "integer", "number", "boolean", "null"] = Field(alias="type")
+    root_index: int = Field(default=0, alias="rootIndex", ge=0)
+
+
+class TemplateVariant(StrictModel):
+    size: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9-]{0,31}$")
+    parameters_schema: dict[str, Any] = Field(alias="parametersSchema")
+    parameter_relations: tuple[TemplateParameterRelation, ...] = Field(
+        default=(),
+        alias="parameterRelations",
+    )
+    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] = Field(
+        default=(),
+        alias="supportedCardSizes",
+    )
+    supported_roles: tuple[Literal["hero", "support", "peer", "list"], ...] = Field(
+        default=(),
+        alias="supportedRoles",
+    )
+    required_bindings: tuple[str, ...] = Field(default=(), alias="requiredBindings")
+    optional_bindings: tuple[str, ...] = Field(default=(), alias="optionalBindings")
+    root: TemplateNode
+    expanded_node_budget: int = Field(alias="expandedNodeBudget", gt=0)
+    expanded_depth_budget: int = Field(alias="expandedDepthBudget", gt=0)
+
+
+class RecommendedVariantLayout(StrictModel):
+    inline_sizes: tuple[str, ...] = Field(alias="inlineSizes")
+    full_width_sizes: tuple[str, ...] = Field(alias="fullWidthSizes")
+    max_inline_items: int = Field(alias="maxInlineItems", gt=0)
+    inline_layout_token: str = Field(alias="inlineLayoutToken")
+
+
+class TemplateLayoutActionStyle(StrictModel):
+    """Provider-owned style override for an enclosing layout Action."""
+
+    background_opacity: float = Field(alias="backgroundOpacity", ge=0, le=1)
+
+
+class TemplateDefinition(StrictModel):
+    template_id: str = Field(alias="templateId")
+    version: int = Field(gt=0)
+    description: str
+    domain_tags: tuple[str, ...] = Field(alias="domainTags")
+    compatible_theme_profile_ids: tuple[str, ...] = Field(alias="compatibleThemeProfileIds")
+    recommended_container_layout_token: str | None = Field(
+        default=None,
+        alias="recommendedContainerLayoutToken",
+    )
+    recommended_variant_order: tuple[str, ...] | None = Field(
+        default=None,
+        alias="recommendedVariantOrder",
+    )
+    recommended_variant_layout: RecommendedVariantLayout | None = Field(
+        default=None,
+        alias="recommendedVariantLayout",
+    )
+    allowed_parent_components: tuple[str, ...] = Field(alias="allowedParentComponents")
+    action_policy: Literal["none", "optional", "required"] = Field(alias="actionPolicy")
+    requires_layout_action: bool = Field(default=False, alias="requiresLayoutAction")
+    layout_action_style: TemplateLayoutActionStyle | None = Field(
+        default=None,
+        alias="layoutActionStyle",
+    )
+    supported_sizes: tuple[str, ...] = Field(alias="supportedSizes")
+    allowed_design_tokens: tuple[str, ...] = Field(alias="allowedDesignTokens")
+    allowed_layout_tokens: tuple[str, ...] = Field(alias="allowedLayoutTokens")
+    asset_parameter_semantic_tags: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        alias="assetParameterSemanticTags",
+    )
+    supported_event_ids: tuple[str, ...] = Field(default=(), alias="supportedEventIds")
+    size_scoped_hidden_parameters: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        alias="sizeScopedHiddenParameters",
+    )
+    provider_id: str | None = Field(default=None, alias="providerId")
+    business_id: str | None = Field(default=None, alias="businessId")
+    capability_id: str | None = Field(default=None, alias="capabilityId")
+    data_domain: str | None = Field(default=None, alias="dataDomain")
+    binding_count: int = Field(default=1, alias="bindingCount", ge=1, le=2)
+    primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
+    primary_data_fields: tuple[TemplateBinding, ...] = Field(
+        default=(),
+        alias="primaryDataFields",
+    )
+    secondary_data: tuple[str, ...] = Field(default=(), alias="secondaryData")
+    secondary_data_fields: tuple[TemplateBinding, ...] = Field(
+        default=(),
+        alias="secondaryDataFields",
+    )
+    optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
+    required_any_of: tuple[tuple[str, ...], ...] = Field(default=(), alias="requiredAnyOf")
+    display_together: tuple[tuple[str, ...], ...] = Field(default=(), alias="displayTogether")
+    optional_data_fields: tuple[TemplateBinding, ...] = Field(
+        default=(),
+        alias="optionalDataFields",
+    )
+    accepts_children: bool = Field(default=False, alias="acceptsChildren")
+    bindings: dict[str, TemplateBinding] = Field(default_factory=dict)
+    source_format: Literal["registry-json", "cardtpl/1", "cardtpl/2"] = Field(
+        default="registry-json",
+        alias="sourceFormat",
+    )
+    variants: tuple[TemplateVariant, ...]
+
+    @property
+    def wire_id(self) -> str:
+        return f"{self.template_id}@{self.version}"
+
+    @property
+    def required_data(self) -> tuple[str, ...]:
+        """All hard-gated data, ordered as primary data before secondary data."""
+        return (*self.primary_data, *self.secondary_data)
+
+    @property
+    def required_data_fields(self) -> tuple[TemplateBinding, ...]:
+        return (*self.primary_data_fields, *self.secondary_data_fields)
+
+
+@dataclass(frozen=True)
+class BusinessTemplateGroup:
+    """从 Provider 模板条目派生的单业务分组，不是独立配置模型。"""
+
+    name: str
+    provider_id: str
+    description: str
+    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...]
+    data_capability_ids: tuple[str, ...]
+    local_template_ids: tuple[str, ...]
+
+    @property
+    def domain_id(self) -> str:
+        return self.provider_id
+
+    @property
+    def variants(self) -> tuple[str, ...]:
+        return ("template",)
+
+    @property
+    def roles(self) -> tuple[Literal["hero"], ...]:
+        return ("hero",)
+
+    @property
+    def max_items_by_size(self) -> dict[Literal["2x2", "2x4"], int]:
+        return {"2x2": 1, "2x4": 1}
+
+    @property
+    def supported_layouts(self) -> tuple[str, ...]:
+        return _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS
+
+    @property
+    def detection_terms(self) -> tuple[str, ...]:
+        return (self.name, self.description)
+
+    @property
+    def implementation(self) -> Literal["template"]:
+        return "template"
+
+    def enabled_variants(self, capability_ids: set[str]) -> tuple[str, ...]:
+        if capability_ids.intersection(self.data_capability_ids):
+            return self.variants
+        return ()
+
+
+class CardActionStyle(StrictModel):
+    background_color: str = Field(alias="backgroundColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    content_color: str = Field(alias="contentColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+
+
+class CardSupportContentStyle(StrictModel):
+    background_color: str = Field(alias="backgroundColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    border_radius: int | float = Field(alias="borderRadius", ge=0)
+
+
+class FusionBallStyle(StrictModel):
+    scene: Literal[
+        "weather",
+        "sleep",
+        "health-sport",
+        "schedule-warm",
+        "battery",
+        "schedule-cool",
+    ]
+    business_ids: tuple[str, ...] = Field(alias="businessIds", min_length=1)
+    large_color: str = Field(alias="largeColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    medium_color: str = Field(alias="mediumColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    small_color: str = Field(alias="smallColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+
+
+class MarkdownRuleReference(StrictModel):
+    path: str = Field(min_length=1)
+
+
+class ThemeDefinition(StrictModel):
+    theme_format: Literal["card-theme/2"] = Field(alias="themeFormat")
+    theme_profile_id: str = Field(alias="themeProfileId")
+    description: str
+    supported_capability_ids: tuple[str, ...] = Field(alias="supportedCapabilityIds")
+    supported_layout_ids: tuple[str, ...] = Field(default=(), alias="supportedLayoutIds")
+    palette_scene_ids: tuple[str, ...] = Field(default=(), alias="paletteSceneIds")
+    primary_color: str = Field(alias="primaryColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    support_content_color: str = Field(
+        alias="supportContentColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
+    progress_color: str | None = Field(
+        default=None,
+        alias="progressColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
+    progress_background_color: str | None = Field(
+        default=None,
+        alias="progressBackgroundColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
+    root_style: dict[str, Any] = Field(alias="rootStyle")
+    action_style: CardActionStyle = Field(alias="actionStyle")
+    allow_template_action_background_override: bool = Field(
+        default=True,
+        alias="allowTemplateActionBackgroundOverride",
+    )
+    support_content_style: CardSupportContentStyle | None = Field(
+        default=None,
+        alias="supportContentStyle",
+    )
+    fusion_ball_style: FusionBallStyle | None = Field(default=None, alias="fusionBallStyle")
+    first_layer_rule: MarkdownRuleReference = Field(alias="firstLayerRule")
+
+    @property
+    def reference_values(self) -> dict[str, Any]:
+        support_style = self.support_content_style
+        support_background = self.action_style.background_color
+        support_radius: int | float = 18
+        if support_style is not None:
+            support_background = support_style.background_color
+            support_radius = support_style.border_radius
+        else:
+            root_radius = self.root_style.get("borderRadius")
+            if isinstance(root_radius, (int, float)) and not isinstance(root_radius, bool):
+                support_radius = root_radius
+        return {
+            "primaryColor": self.primary_color,
+            "supportContentColor": self.support_content_color,
+            "progressColor": self.progress_color or self.primary_color,
+            "progressBackgroundColor": (
+                self.progress_background_color or self.action_style.background_color
+            ),
+            "actionStyle.backgroundColor": self.action_style.background_color,
+            "actionStyle.contentColor": self.action_style.content_color,
+            "supportContentStyle.backgroundColor": support_background,
+            "supportContentStyle.borderRadius": support_radius,
+        }
+
+
+class ExpansionStats(StrictModel):
+    matched_plan_id: str | None = None
+    template_call_count: int = 0
+    template_used_ids: tuple[str, ...] = ()
+    template_variant_normalization_count: int = 0
+    template_provider_param_normalization_count: int = 0
+    template_relation_number_normalization_count: int = 0
+    expanded_component_count: int = 0
+    raw_component_count: int = 0
+    max_depth: int = 0
+    estimated_height_vp: int = 0
+    vertical_budget_vp: int = 0
+    space_constrained: bool = False
+    action_used_ids: tuple[str, ...] = ()
+
+
+class Fact(StrictModel):
+    source: str
+    path: str
+    value: str | int | float | bool | None
+
+    @field_validator("path")
+    @classmethod
+    def pointer_path(cls, value: str) -> str:
+        if not value.startswith("/"):
+            raise ValueError("fact path must be a JSON Pointer")
+        return value

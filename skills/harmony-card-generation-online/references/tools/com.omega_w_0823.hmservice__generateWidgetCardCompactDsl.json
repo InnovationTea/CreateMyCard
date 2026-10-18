@@ -1,0 +1,141 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "generateWidgetCardCompactDsl",
+  "description": "生成极简协议版本的鸿蒙卡片",
+  "arguments": {
+    "properties": {
+      "candidateEventCandidates": {
+        "type": "Array",
+        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "事件 action"
+          }
+        }
+      },
+      "description": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
+      },
+      "candidateAssetIds": {
+        "type": "Array<String>",
+        "description": "候选素材 ID 列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "候选素材 ID"
+          }
+        }
+      },
+      "userQuery": {
+        "type": "String",
+        "description": "能力裁决后的本轮有效卡片需求；有外部事实时在后方追加固定标题‘本轮卡片静态内容（用作展示的外部事实）：’及完整事实；调整后生成时不得保留已移除或未经确认替代的内容"
+      },
+      "candidateDataBindings": {
+        "type": "Array",
+        "description": "已通过能力概述裁决的候选数据能力调用列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "候选数据能力",
+            "required": [],
+            "properties": {
+              "writeResultTo": {
+                "type": "String",
+                "description": "结果写入路径"
+              },
+              "arguments": {
+                "type": "Object",
+                "description": "参数"
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "能力ID"
+              },
+              "candidateOutputFields": {
+                "type": "Array<String>",
+                "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
+                "required": [],
+                "properties": {
+                  "ArrayItem": {
+                    "type": "String",
+                    "description": "可选候选展示字段 JSON Pointer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "title": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
+      },
+      "size": {
+        "type": "String",
+        "description": "主 Agent 建议尺寸"
+      },
+      "sourceArtifactUrl": {
+        "type": "String",
+        "description": "上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"
+      }
+    },
+    "required": [
+      "userQuery"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "status": {
+        "type": "String",
+        "description": "业务状态：success、degraded、unsupported 或 failed。"
+      },
+      "artifactUrl": {
+        "type": "String",
+        "description": "成功生成的新 artifact 地址；无有效产物时为空或缺失。"
+      },
+      "artifactDigest": {
+        "type": "String",
+        "description": "服务端排障使用的 artifact 摘要。"
+      },
+      "suggestSize": {
+        "type": "String",
+        "description": "微服务最终裁决的卡片尺寸。"
+      },
+      "removedCapabilities": {
+        "type": "Array",
+        "description": "本轮被移除的能力及原因。",
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "被移除能力的结构化说明。"
+          }
+        }
+      },
+      "errorCode": {
+        "type": "String",
+        "description": "服务端业务错误码；不得向用户展示。"
+      },
+      "effectiveCapabilities": {
+        "type": "Object",
+        "description": "本轮最终生效的数据、事件和素材能力。"
+      }
+    },
+    "required": [
+      "status",
+      "suggestSize",
+      "message"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}

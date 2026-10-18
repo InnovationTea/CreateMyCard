@@ -1,0 +1,73 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.current-time.cli",
+  "providerVersion": "1.0.0-poc",
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
+  "capabilities": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "dataDomain": "/data/currentTime",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json",
+        "version": "app-11.7.7.300_rom-7.0"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "CurrentTimeOverviewDateFull@1",
+      "businessId": "CurrentTimeOverview",
+      "capabilityId": "GetCurrentTime",
+      "description": "独立 2x2 日期 Full 摘要，大号居中展示当前公历日期，顶部可选展示星期，底部可选展示农历；无操作入口。 组件形态：full。",
+      "entry": "templates/current-time-overview.cardtpl",
+      "primaryData": [
+        "/currentDate"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    },
+    {
+      "templateId": "CurrentTimeOverviewUpdatedFull@1",
+      "businessId": "CurrentTimeOverview",
+      "capabilityId": "GetCurrentTime",
+      "description": "独立 2x2 更新时间 Full 摘要，大号展示端侧完成时间数据组装的更新时间戳，顶部可选展示公历日期，底部可选展示星期；updatedAt 是数据新鲜度时间戳，不代表事件发生时间；无操作入口。 组件形态：full。",
+      "entry": "templates/current-time-overview.cardtpl",
+      "primaryData": [
+        "/updatedAt"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/currentDate",
+        "/dayOfWeek"
+      ]
+    },
+    {
+      "templateId": "CurrentTimeOverviewSupport@1",
+      "businessId": "CurrentTimeOverview",
+      "capabilityId": "GetCurrentTime",
+      "description": "更新时间 Support，主行展示端侧更新时间戳，辅助行固定“更新时间”，可选补充公历日期与星期（数据同时存在时并列展示）；不接收素材与操作，可与另一业务的 Support 在 TwoSupportLayout@1 配对。 组件形态：support。",
+      "entry": "templates/current-time-overview.cardtpl",
+      "primaryData": [
+        "/updatedAt"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/currentDate",
+        "/dayOfWeek"
+      ]
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

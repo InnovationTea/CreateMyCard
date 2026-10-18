@@ -1,0 +1,11 @@
+{
+  "expectedErrors": [
+    "/data/weather/current/temperatureText: path is not declared by TaskSpec.dataModelSchema; remove it or use a declared field."
+  ],
+  "exceptionType": "CompactDslValidationError",
+  "sha256": {
+    "sample_compact.dsl": "ece8f4e43e7cdb2031c5a01624e85cfc4fe517bb9a75b328af952fb6286446c6",
+    "sample_task_spec.json": "59906128f5a700fbe6950c1d4328ec123bfb55167de64c8fef867ae86d70294a",
+    "sample_card_spec.json": "5e58d75376b3f287aa6a1e6ff33e041a0d6795f4704c9fadcf5cafd2dd6cab73"
+  }
+}

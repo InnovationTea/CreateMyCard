@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "template-controls/1",
+  "disabledProviderIds": [],
+  "disabledTemplateIds": [],
+  "firstLayerComponentSelector": "search"
+}

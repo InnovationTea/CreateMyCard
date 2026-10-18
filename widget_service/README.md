@@ -1,0 +1,268 @@
+# Widget Service
+
+CompactDSL 单步提示词维护入口：
+[模块边界、案例索引与加载说明](cloud/data/protocol_profiles/design-compact-dsl-fusion/README.md)。
+只修改 `prompt_source/`；服务按 manifest 直接读取、在内存中拼接并缓存，发布后重启服务生效。
+无需构建中间文件，不保留其它提示词回退。
+
+Python 3.12 FastAPI microservice for AI widget card generation.
+
+The service follows `docs/AGENTS.md`:
+
+- Main Agent selects candidate capabilities.
+- The first interface applies IDS installed-app matching only to dependency package names listed in `WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES`; the default list contains weather, health, and calendar package names. The generation interface consumes the available list, builds final `CardSpec`, constructs `TaskSpec`, calls the A2UI model client, validates artifact, and returns structured status.
+- Data capabilities, event capabilities, and assets are selected by App/ROM left-closed,
+  right-open ranges in `cloud/data/capabilities/registry_ranges.json`.
+- `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
+- `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
+- 在线能力区间仅保留 App `[11.7.7.330, 12.0.0.0)`、ROM `[6.0, 8.0)`，命中
+  `app-11.7.7.300_rom-7.0`；未命中且
+  `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，默认也回退到二期。
+  一期能力目录已移除。编辑历史一期结果时，仅素材路径恢复使用二期清单；
+  历史结果及其版本元数据保持不变，编辑后的业务能力按本轮二期清单重新校验。
+- `generateWidgetCard` selects `mep` or the composite `openai` route through
+  `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
+  `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
+  the configured Design profile under `data/protocol_profiles/`,
+  and converts Design Compact DSL with that profile's `protocol.json` before validation and
+  storage. Create requests first try the controlled Template route;
+  a Template mismatch can fall back to the ordinary Design Compact model route. The generation routes share one
+  policy-driven pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
+  select or override either backend.
+- `generateWidgetCardTerseDslNested2` is currently a strict Template-only create route. It uses the same Design
+  Compact public Processor after the Template module has compiled its internal TerseDSL-Nested-2/CardTpl result to
+  A2UI and adapted it to Design Compact source DSL. Template mismatch and edit requests fail without falling back to
+  the ordinary model route. See `cloud/services/template_generation/docs/README.md` for the current architecture and
+  module documentation.
+- `cloud/services/template_generation/config/template_controls.json` owns the Template Provider and individual
+  Template denylists. Filtering happens before the first-layer prompt, and the same filtered set constrains
+  second-layer Provider rules, layout candidates, and deterministic output validation.
+- Temporary route `generateWidgetCardCompactDslWithDirective` directly reuses the fourth route's generation service
+  and schema, but always emits widget directive command frames even when the global directive switch is disabled.
+  Its forced behavior is isolated in the router so the route can be removed without changing the generation pipeline.
+- `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
+- `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. It controls targeted repair for both source
+  DSL conversion errors and Validator errors. `WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS=1` limits
+  repair to 1-10 attempts, and processing stops early when all errors disappear. Warnings never trigger repair.
+  Conversion remains mandatory when Validator is disabled. Unconverted Design/Terse output is never saved;
+  remaining Validator errors are non-blocking only for the standard third interface.
+- `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY=false` by default. Model transport errors,
+  explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
+  when disabled, the selected route calls only its master once and does not use fallback. When enabled, every initial
+  or repair call retries its master with asynchronous exponential backoff and jitter, then switches to the configured
+  fallback after the master budget is exhausted. Set `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK=false` to keep master
+  retries but disable fallback calls. Configure the master and fallback additional retry counts with
+  `WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` and
+  `WIDGET_SERVICE_FALLBACK_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` (1-10), and tune their shared delay with the
+  `WIDGET_SERVICE_MODEL_FAILURE_RETRY_INITIAL_DELAY_SECONDS`, `WIDGET_SERVICE_MODEL_FAILURE_RETRY_MAX_DELAY_SECONDS`,
+  `WIDGET_SERVICE_MODEL_FAILURE_RETRY_BACKOFF_MULTIPLIER`, and
+  `WIDGET_SERVICE_MODEL_FAILURE_RETRY_JITTER_RATIO` settings. Backoff does not hold a worker thread or model permit.
+  Conversion and Validator errors still trigger immediate targeted repair through the separate validation retry switch.
+  Final model failures never enter validation or artifact persistence.
+- `WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK=false` controls malformed fourth-interface tool-call
+  recovery. When enabled, the service tracks stringified `content.arguments` per `requestId` in the current process.
+  `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT=1` means the first consecutive occurrence returns the
+  existing correction instruction and the second invokes `A2UIModelClient` with the JSON-only prompt from
+  `data/protocol_profiles/design-compact-dsl-fusion/prompt_source/argument_repair.md`.
+  `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS=2` controls the dedicated content-validation attempts.
+  The original string is always sent unchanged as `rawArguments`; no heuristic JSON repair runs before or after the
+  model. Each output must pass strict JSON parsing and request validation. A rejected first output is retried with its
+  validation errors. Registered event actions are rebuilt from the App/ROM capability registry, and only declared
+  dynamic values are retained. If all model outputs fail, a minimal static request keeps recoverable user text and
+  continues through the normal generation flow.
+- With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
+  `UnifiedModelClient.generate()` entry. The `openai` route selects its physical master and fallback through
+  `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`; supported values are
+  `deepseek_platform`, `llmclient`, and `deepseek_official_http`. The official HTTP transport uses the dedicated
+  `WIDGET_SERVICE_DEEPSEEK_OFFICIAL_HTTP_*` settings and the existing `httpx` runtime connection pool. Control
+  fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool callers cannot select a backend or physical client
+  directly.
+- DeepSeek Platform reads its SK only from the STS key configured by
+  `WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY`, whose default is
+  `genui.deepseek.platform.secret.key`. Its remaining static request fields use the
+  `WIDGET_SERVICE_DEEPSEEK_PLATFORM_*` settings; session, interaction, device, country, App version, and App name
+  prefer the current WebSocket request context.
+- The llmclient WebSocket request is configured by the `WIDGET_SERVICE_DEEPSEEK_*` settings in `.env.example`,
+  covering credentials, endpoint, model/user/request identifiers, sampling, maximum tokens, thinking/usage flags,
+  and receive timeout. These fields have defaults matching the client behavior before configuration extraction.
+- All real model calls share one application-lifetime runtime and one process-level concurrency limit. MEP uses a
+  shared async `httpx.AsyncClient`, DeepSeek Platform uses async WebSocket, and the unchanged synchronous llmclient
+  runs in a dedicated executor. Configure the
+  shared limit with `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY`, queue timeout with
+  `WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS`, and execution timeout with
+  `WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS`. Queue waits are coroutine waits and do not occupy worker threads.
+  A timed-out llmclient call retains its permit until the underlying synchronous call actually finishes.
+- If MEP ends a Design request with `6241/Early stop due to aborted` after emitting a non-empty candidate, the
+  candidate continues through the strict Design converter and validation flow. Empty output and non-Design requests
+  remain model failures.
+- Standard create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`,
+  `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. The Design and Terse
+  routes keep their selected profile's `PROMPT.md` as the system message. Their edit user message contains the
+  current query, TaskSpec, and the previous raw model output read from the artifact `designcompactdsl` block.
+  Repair appends the same repair constraints when enabled. Prompt logs never write the full messages;
+  `WIDGET_SERVICE_MODEL_PROMPT_LOG_PREVIEW_CHARS=30` limits the logged system-prompt prefix, and `0` disables prompt
+  text while retaining message and character counts.
+- `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
+- The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.
+- The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.
+- Starlette synchronous handlers use the AnyIO worker pool with 80 concurrent tokens by default.
+  Override it with `WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS` when deployment capacity requires a different limit.
+  The three generation WebSocket handlers directly await the async generation service; heartbeat send failure does
+  not cancel generation, repair, or artifact persistence.
+- Package filtering emits exactly one summary result per capability-overview request; per-capability dependency-check logs are not emitted.
+- OBS upload is intentionally left as a TODO hook in `ArtifactStore`; remote source artifact reads reuse `utils/download_file_from_url.py`.
+
+## Run
+
+## Debug Tools React 工作台
+
+本地调试平台位于仓库根目录的 `debug_tools/`，与 `widget_service/` 同级，统一提供端到端会话、三个工具
+WebSocket 接口和卡片结果渲染三个入口。平台默认使用 `8888`，正式工具服务仍需单独启动在 `8855`，
+平台不会自动拉起上游进程。
+
+```powershell
+cd ..\debug_tools
+npm install
+npm run build
+cd ..
+uv run debug_tools --mode full
+```
+
+浏览器打开 `http://127.0.0.1:8888/debug/`。只需要接口调试和卡片渲染时可改用
+`uv run debug_tools --mode frontend`，不会加载 Main Agent 后端。编译产物统一位于
+`debug_tools/dist/`。开发时可在 `debug_tools/` 执行 `npm run dev`，Vite 会把 `/debug/*` 代理到本地
+FastAPI。详细架构、接口边界和验收项见
+[`debug_tools/调试平台技术方案.md`](../debug_tools/调试平台技术方案.md)。
+
+保留的 [`docs/index.html`](docs/index.html) 仍可作为旧渲染器行为对照页面；React 渲染器只接受页面中显式粘贴、上传或打开的 artifact 内容，不代理任意 `artifactUrl`。
+
+```bash
+cd widget_service
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .[dev]
+# or:
+pip install -r requirements.txt
+py -3.12 cloud\start_websocket_server.py
+```
+
+本地验证最新校验 API 和“校验失败不阻断保存”时，建议显式开启校验并关闭重试：
+
+```powershell
+$env:WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION="true"
+$env:WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY="false"
+py -3.12 cloud\start_websocket_server.py
+```
+
+服务启动后，在另一个终端执行真实 WebSocket 联调脚本：
+
+```powershell
+cd widget_service
+py -3.12 tests\test_running_ws_server.py
+```
+
+该脚本会调用真实 `generateWidgetCard`，读取服务保存的 artifact，通过
+`cloud/services/card_validation/` Python API 再校验一次并打印诊断。当前 mock 输出包含
+确定的校验问题，因此脚本还会断言接口依然成功返回 artifact，用于证明校验失败不会阻塞主流程。
+
+需要像单元测试一样逐项调试本地服务时，使用单功能真实 WS 测试：
+
+```powershell
+cd widget_service
+# 运行全部单功能用例
+py -3.12 -m pytest tests\test_running_ws_features.py -s -q
+# 只测能力概述
+py -3.12 -m pytest tests\test_running_ws_features.py::test_live_widget_capability_overview -s -q
+# 只测一个数据能力 schema
+py -3.12 -m pytest "tests\test_running_ws_features.py::test_live_each_data_capability_schema[ViewWeather]" -s -q
+# 只测 A2UI Form 或 Compact DSL 生成
+py -3.12 -m pytest tests\test_running_ws_features.py::test_live_generate_widget_card -s -q
+py -3.12 -m pytest tests\test_running_ws_features.py::test_live_generate_widget_card_compact_dsl -s -q
+```
+
+该文件中的健康检查、四个 WS 接口、八个数据能力 schema、缺失能力和参数异常都是独立
+pytest 节点。默认等待模型响应 180 秒，可通过 `WIDGET_SERVICE_TEST_RESPONSE_TIMEOUT`
+调整；服务未启动时整组用例会明确跳过。
+
+本地多轮编辑联调需要先开启开关：
+
+```powershell
+$env:WIDGET_SERVICE_ENABLE_WIDGET_EDIT="true"
+py -3.12 cloud\start_websocket_server.py
+```
+
+服务启动后，在另一个终端执行真实 WebSocket 多轮测试：
+
+```powershell
+cd widget_service
+py -3.12 tests\test_running_ws_multi_round.py
+# 或显示每轮响应：
+py -3.12 -m pytest tests\test_running_ws_multi_round.py -s -q
+```
+
+测试会依次执行首次生成、纯视觉继承编辑和显式清空数据三轮，并断言每轮返回新的 artifact URL。
+
+Pytest 默认捕获 stdout/stderr，因此测试通过时通常看不到 `print` 和控制台日志。需要实时显示时使用：
+
+```powershell
+py -3.12 -m pytest tests\test_service_units.py -s -q
+```
+
+真实 WebSocket 联调时，业务日志由单独运行的 `cloud/start_websocket_server.py` 进程输出，应在服务终端查看；
+本地文件日志位于 `cloud/logs/agent_YYYYMMDD.log`。客户端测试终端只显示请求响应和脚本打印的校验报告。
+
+## GitHub PR 自动测试
+
+`.github/workflows/tests.yml` 在 PR 创建、重新打开和追加提交时自动执行，也支持手动触发。
+流程使用 Ubuntu 和 Python 3.12，安装 `requirements.txt`，在 `widget_service/` 下运行：
+
+```powershell
+python -m pytest tests -q -ra --junitxml=test-results/pytest.xml
+```
+
+执行范围为 `widget_service/tests/` 中 pytest 自动发现的用例；不包含其它目录下的测试和
+`pressure_test_ws.py` 压测脚本。CI 不启动真实 WebSocket 服务，依赖该服务的联调用例按现有逻辑
+跳过，跳过原因在日志和 JUnit 报告中保留。测试失败会使检查失败，报告作为 Actions artifact 上传。
+同一 PR 追加提交后，会取消之前尚未完成的运行。
+
+如需测试失败时禁止合并，在 GitHub 目标分支的保护规则或 Ruleset 中将
+`Widget service tests` 设置为必需状态检查。仅添加 workflow 不会自动启用禁止合并规则；
+`CODEOWNERS` 的必需审批同样取决于 GitHub 分支规则。
+
+## API
+
+```text
+GET  /health
+WS   /api/v1/ws/tools/getWidgetCapabilityOverview
+WS   /api/v1/ws/tools/getDataCapabilitySchemas
+WS   /api/v1/ws/tools/generateWidgetCard
+WS   /api/v1/ws/tools/generateWidgetCardCompactDsl
+WS   /api/v1/ws/tools/generateWidgetCardTerseDslNested2
+```
+
+Example request:
+
+```json
+{
+  "requestId": "overview-1",
+  "arguments": {
+    "uid": "test-user-001",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "romVersion": "CLS-AL30 6.0.0.328"
+    },
+    "locale": "zh-CN"
+  }
+}
+```
+
+Schema files:
+
+- `docs/schemas/getWidgetCapabilityOverview.schema.json`
+- `docs/schemas/getDataCapabilitySchemas.schema.json`
+- `docs/schemas/generateWidgetCard.schema.json`
+- `docs/schemas/generateWidgetCardCompactDsl.schema.json`
+- `docs/schemas/generateWidgetCardTerseDslNested2.schema.json`
+
+See `docs/method_usage.md` for detailed method and API usage.

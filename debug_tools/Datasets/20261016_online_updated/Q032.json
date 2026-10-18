@@ -1,0 +1,68 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "创建河南信阳的天气桌面卡片，显示信阳市的天气信息",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday",
+          "/location/cityCode"
+        ]
+      }
+    ],
+    "title": "河南信阳天气",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "显示信阳市的天气信息。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_uv_color",
+      "asset.ic_purification"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.330",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "032",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "创建河南信阳的天气桌面卡片，显示信阳市的天气信息",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "创建河南信阳的天气桌面卡片，显示信阳市的天气信息",
+  "candidateDataBindings": [],
+  "title": "河南信阳天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "显示信阳市的天气信息。",
+  "candidateAssetIds": []
+}

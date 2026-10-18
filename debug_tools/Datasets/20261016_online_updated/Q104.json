@@ -1,0 +1,111 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "创建一张蓝牙听歌卡片，展示蓝牙耳机连接状态和电量信息，同时显示网易云音乐正在播放的歌曲和歌词，点击可打开音乐歌单",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/chargingStatusDesc",
+          "/earphoneName",
+          "/isConnected",
+          "/leftBatteryLevel",
+          "/rightBatteryLevel"
+        ]
+      }
+    ],
+    "title": "蓝牙听歌",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.music.daily",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          }
+        }
+      }
+    ],
+    "description": "展示耳机连接与电量，显示网易云正在播放的歌曲和歌词。",
+    "candidateAssetIds": [
+      "asset.emoji_music",
+      "asset.icon_earphone",
+      "asset.ic_Bluetooth"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.320",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "104",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "创建一张蓝牙听歌卡片，展示蓝牙耳机连接状态和电量信息，同时显示网易云音乐正在播放的歌曲和歌词，点击可打开音乐歌单",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "创建一张蓝牙听歌卡片，展示蓝牙耳机连接状态和电量信息，同时显示网易云音乐正在播放的歌曲和歌词，点击可打开音乐歌单",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/earphoneName",
+        "/isConnected",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ]
+    }
+  ],
+  "title": "蓝牙听歌",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.music.daily",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        }
+      }
+    }
+  ],
+  "description": "展示耳机连接与电量，显示网易云正在播放的歌曲和歌词。",
+  "candidateAssetIds": [
+    "asset.emoji_music",
+    "asset.icon_earphone",
+    "asset.ic_Bluetooth"
+  ]
+}

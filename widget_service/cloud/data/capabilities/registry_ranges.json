@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "v1",
+  "ranges": [
+    {
+      "registryVersion": "app-11.7.7.300_rom-7.0",
+      "appVersion": {
+        "minInclusive": "11.7.7.330",
+        "maxExclusive": "12.0.0.0"
+      },
+      "romVersion": {
+        "minInclusive": "6.0",
+        "maxExclusive": "8.0"
+      }
+    }
+  ]
+}

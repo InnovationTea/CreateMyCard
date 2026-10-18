@@ -1,0 +1,19 @@
+{
+  "capabilityId": "GetSystemMemInfo",
+  "preferredWriteResultTo": "/data/systemMem",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "totalMemText": {"type": "string"},
+      "freeMemText": {"type": "string"},
+      "availableMemText": {"type": "string"},
+      "usagePercent": {"type": "number"}
+    }
+  }
+}

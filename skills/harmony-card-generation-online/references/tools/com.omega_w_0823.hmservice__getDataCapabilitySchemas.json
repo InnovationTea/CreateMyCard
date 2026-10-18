@@ -1,0 +1,52 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "getDataCapabilitySchemas",
+  "description": "按数据能力 ID 加载完整 inputSchema、outputSchema、依赖和 DataModel 骨架",
+  "arguments": {
+    "properties": {
+      "dataCapabilityIds": {
+        "type": "Array<String>",
+        "description": "需要加载完整 schema 的数据能力 ID 列表，至少 1 个。",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "完整 schema 的数据能力 ID "
+          }
+        }
+      }
+    },
+    "required": [
+      "dataCapabilityIds"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "dataCapabilities": {
+        "type": "Array",
+        "description": "已找到的数据能力完整定义",
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "包含 ID、inputSchema、outputSchema 和默认写入路径的数据能力"
+          }
+        }
+      },
+      "missingCapabilityIds": {
+        "type": "Array<String>",
+        "description": "本次未找到的数据能力 ID"
+      }
+    },
+    "required": [
+      "dataCapabilities",
+      "missingCapabilityIds"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}

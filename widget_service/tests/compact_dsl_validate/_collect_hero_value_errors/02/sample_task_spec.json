@@ -1,0 +1,15 @@
+{
+  "userQuery": "查看当前充电电流",
+  "size": "2x2",
+  "dataModelSchema": {
+    "data": {
+      "phoneBattery": {
+        "nowCurrentText": {
+          "type": "string",
+          "description": "当前设备电池实时电流文本，已包含 mA 单位",
+          "sampleValue": "-151 mA"
+        }
+      }
+    }
+  }
+}

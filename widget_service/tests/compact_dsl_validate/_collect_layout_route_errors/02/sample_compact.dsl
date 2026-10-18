@@ -1,0 +1,7 @@
+["root","Row",{"padding":12,"itemMargin":10},["focus"]]
+["focus","Column",{"width":136,"height":126,"justifyContent":"center","alignItems":"center"},["main"]]
+["main","Text",{"content":{"path":"/data/healthSport/a"},"fontSize":20,"fontWeight":400,"maxLines":1,"fontColor":"#FF563D99"}]
+["/data/healthSport/a",5000]
+["/data/healthSport/b","距离 3km"]
+["/data/healthSport/c","热量 120kcal"]
+["/data/healthSport/d","今日"]

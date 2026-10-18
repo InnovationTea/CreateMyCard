@@ -1,0 +1,44 @@
+{
+  "capabilityId": "GetCalendarEvents",
+  "preferredWriteResultTo": "/data/calendar",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "futureDays": {"type": "integer"}
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "eventCount": {"type": "integer"},
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entityName": {"type": "string"},
+            "entityId": {"type": "string"},
+            "senderName": {"type": "string"},
+            "title": {"type": "string"},
+            "eventLocation": {"type": "string"},
+            "description": {"type": "string"},
+            "dtStart": {"type": "string"},
+            "dtEnd": {"type": "string"},
+            "timeZone": {"type": "string"},
+            "importantEventType": {"type": "integer"},
+            "remindTime": {"type": "array", "items": {"type": "string"}},
+            "oneClickServiceType": {"type": "string"},
+            "oneClickServiceLink": {"type": "string"},
+            "isServiceValid": {"type": "integer"},
+            "startDate": {"type": "string"},
+            "countdownDays": {"type": "integer"},
+            "isAllDay": {"type": "boolean"}
+          }
+        }
+      },
+      "updatedAt": {"type": "string"}
+    }
+  }
+}

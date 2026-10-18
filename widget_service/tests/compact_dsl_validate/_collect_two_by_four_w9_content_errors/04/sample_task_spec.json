@@ -1,0 +1,44 @@
+{
+  "userQuery": "做一张横向状态卡片",
+  "size": "2x4",
+  "eventCandidates": [
+    {
+      "call": "open",
+      "args": {}
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "left": {
+        "name": {
+          "type": "string",
+          "description": "左侧对象名称",
+          "sampleValue": "项目"
+        },
+        "status": {
+          "type": "string",
+          "description": "左侧状态",
+          "sampleValue": "进行中"
+        }
+      },
+      "right": {
+        "name": {
+          "type": "string",
+          "description": "右侧对象名称",
+          "sampleValue": "同步"
+        },
+        "status": {
+          "type": "string",
+          "description": "右侧状态",
+          "sampleValue": "待处理"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "src": "new.png",
+      "description": "保留原色"
+    }
+  ]
+}

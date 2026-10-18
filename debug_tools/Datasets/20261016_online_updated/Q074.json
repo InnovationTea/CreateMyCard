@@ -1,0 +1,64 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我生成一个手机存储空间和主要占用展示的卡片\n\n本轮卡片静态内容（用作展示的外部事实）：\n点击卡片可跳转至系统存储空间设置页查看存储详情",
+    "candidateDataBindings": [],
+    "title": "存储空间",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.storage",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "storage_settings"
+          }
+        }
+      }
+    ],
+    "description": "展示手机存储空间和主要占用。",
+    "candidateAssetIds": [
+      "asset.externaldrive_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "074",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我生成一个手机存储空间和主要占用展示的卡片\n\n本轮卡片静态内容（用作展示的外部事实）：\n点击卡片可跳转至系统存储空间设置页查看存储详情",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我生成一个手机存储空间和主要占用展示的卡片\n\n本轮卡片静态内容（用作展示的外部事实）：\n点击卡片可跳转至系统存储空间设置页查看存储详情",
+  "candidateDataBindings": [],
+  "title": "存储空间",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "展示手机存储空间和主要占用。",
+  "candidateAssetIds": []
+}
