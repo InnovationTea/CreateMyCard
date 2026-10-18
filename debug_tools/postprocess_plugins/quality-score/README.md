@@ -38,7 +38,12 @@ Web 批次使用 `browser-gallery` 检测结果；外部批次直接检查上传
 
 ## 导入已有卡片
 
-- 单条：填写 ID、Query、尺寸，上传 DSL、PNG/JPEG 截图和可选 CardSpec。
+- 单条：填写 ID、Query，上传 DSL、PNG/JPEG 截图和可选 CardSpec；尺寸可留空由导入判定。
+  选择 CardSpec 后会即时识别其中的数据绑定、事件与资产指纹；导入时对应维度优先于 DSL，
+  缺失维度回退 DSL，显式填写的数据／动作仍然优先。
+- 尺寸只接受 `2x2` 与 `2x4`：留空时先按截图宽高比判定，再回退到 DSL 布局证据（`S-*`／`W-*`、
+  仅 `2x4` 可用的组件、根节点数值宽高）；证据冲突或无法判定时拒绝导入，声明 `4x4` 等非法值直接报错。
+  声明值与 DSL 推断不一致时按声明保存并在批次告警里提示，不自动改判。
 - DSL 支持 JSONL、消息数组及 `{"genui": "...", "cardSpec": {}}` 组合对象；
   单独上传 CardSpec 时以单独文件为准。文本使用 UTF-8。
 - 批量：选择目录，根部包含 `quality-import.json`，或旧交付包中的 `dataset-manifest.json`。
@@ -105,18 +110,36 @@ Web 证据绑定 DSL、渲染上下文和截图哈希。外部截图由用户配
 
 ## 接口
 
-- `POST /debug/batch/quality/import`：单条或批量导入。
+- `POST /debug/expect/import`：单条或批量导入期望批次（别名 `POST /debug/batch/quality/import`）。
 - `POST /debug/batch/runs/{run_id}/postprocess`：运行评分，configs 中传入样本选择。
 - `GET /debug/batch/quality/evaluation`：方案文档及参数。
 - `GET /debug/batch/quality/compare`：读取评分结果对比，必填 `leftRunId`、`rightRunId`；
   可选 `leftExecutionId`、`rightExecutionId`。单条模式同时传 `leftSampleId`、`rightSampleId`。
+- `GET /debug/expect/compare`：期望输出与实际批跑按「尺寸 + 数据 + 动作 + 图标」指纹配对，必填
+  `importRunId`（期望导入批次）与 `runId`（批跑运行）；动作只按 `onClick` 事件槽位置识别，尺寸不一致
+  降级为「尺寸不一致」。属于独立的「期望对比」模块的兼容入口，页面 `/debug/expect` 不再调用，规则见
+  [`调试平台运行规范.md`](../../调试平台运行规范.md#期望对比)。
+- `POST /debug/expect/compare-live`：实际侧为前端提交的本会话端到端／接口调试输出（`actuals` 最多 100 条，
+  每条含 `id`、`genui`，可选 `query`、`title`、`size`），可附 `dimensions`（数据／动作／图标，至少一个；
+  启用维度是严格筛选条件，需求项缺失即不匹配）；指纹与配对规则与上一条一致，
+  响应标记 `actualSource: "session"`。页面只用这个接口。
+- `POST /debug/expect/detect`：导入页按内容结构识别 genui DSL／CardSpec 并返回数据／动作／图标指纹与尺寸，不落盘。
+- `GET /debug/expect/samples`、`DELETE /debug/expect/runs/{run_id}` 与
+  `DELETE /debug/expect/runs/{run_id}/samples/{sample_id}`：期望数据画廊的列表与删除接口；
+  列表项带原始 `fingerprint`，画廊页据此按数据、动作、图标本地检索。画廊从期望对比页进入，不占主导航。
+- `GET /debug/batch/runs/{run_id}/samples/{sample_id}/input-image`：读取期望样本导入时上传的截图。
+
+导入接口由期望对比与质量评分共用，正式路径为 `POST /debug/expect/import`；
+`/debug/batch/quality/import`、`/debug/batch/quality/expect` 是同一处理函数的兼容别名，不是两份实现。
 
 ## 验证
 
 在 widget_service 下运行：
 
 ```shell
-python -m pytest tests/test_debug_quality_import.py tests/test_debug_quality_workflow.py tests/test_debug_quality_score.py tests/test_debug_batch_gallery.py tests/test_debug_batch_postprocess.py -q
+python -m pytest tests/test_debug_expect_compare.py tests/test_debug_quality_import.py \
+  tests/test_debug_quality_workflow.py tests/test_debug_quality_score.py \
+  tests/test_debug_batch_gallery.py tests/test_debug_batch_postprocess.py -q
 ```
 
 在 debug_tools 下运行：
@@ -146,7 +169,7 @@ npm run build
 | `platform/src/App.tsx` | 注册导入页 |
 | `platform/src/batchApi.ts` | 导入及单条对比类型和请求 |
 | `platform/src/routes/QualityRoute.tsx` | 双来源入口、导入来源说明 |
-| `platform/src/routes/QualityImportRoute.tsx` | 单条上传、目录清单导入 |
+| `platform/src/routes/ExpectImportRoute.tsx` | 单条上传、目录清单导入（期望对比模块，评分侧复用同一组件） |
 | `platform/src/routes/QualityCompareRoute.tsx` | 单条选择、左右图片与分差；原批次视图保留 |
 | `postprocess_plugins/quality-score/plugin.json` | 双输入名称与截图字段 |
 | `postprocess_plugins/quality-score/plugin.py` | 两入口共用归一化、评分和产物 |
@@ -160,7 +183,7 @@ npm run build
 | `platform/src/routes/QualityEvaluationRoute.tsx` | 精简当前方案与历史快照说明 |
 | `platform/src/routes/QualityEvaluationRoute.test.tsx` | 当前方案与历史快照说明回归 |
 | `widget_service/tests/test_debug_quality_score.py`（仓库根目录） | 摘要与质量状态一致性回归 |
-| `platform/src/routes/QualityImportRoute.test.tsx` | 导入页面和清单回归 |
+| `platform/src/routes/ExpectImportRoute.test.tsx` | 导入页面和清单回归 |
 | `platform/src/routes/QualityCompareRoute.test.tsx` | 单条与整批切换回归 |
 | `widget_service/tests/test_debug_quality_import.py`（仓库根目录） | 导入、安全边界、评分宿主、单条配对回归 |
 | `scripts/quality_inputs.test.mjs` | 真实浏览器上传、无自动评分、图片加载和左右布局回归；API 使用测试夹具 |

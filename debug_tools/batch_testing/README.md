@@ -113,5 +113,10 @@ debug_tools/batch_output/<runId>/
 | `postprocess.py` | 插件发现、依赖调度和执行历史 |
 | `gallery.py` | 浏览器渲染画廊 |
 | `device_capture.py` | 真机截图编排 |
+| `quality_import.py` | 导入批次落盘：`purpose` 分期望／实际，DSL 必填、Query 与截图可选（Query 空时取 CardSpec 的 `userQuery`），含尺寸判定与批次／样本分类 |
+| `card_size.py` | 卡片尺寸判定：只认 `2x2`／`2x4`，声明优先，证据冲突不猜 |
+| `expect_compare.py` | 期望对比：按位置提取数据／动作／图标指纹（`/asset/*` 素材槽位归图标并按资源名归一，图标只保留能力表声明过的素材），CardSpec 可用时优先；启用维度是严格筛选条件，尺寸作为硬门槛；支持多对一与会话来源 |
+| `expect_gallery.py` | 期望数据画廊：聚合导入样本并返回原始指纹，支持分类筛选与样本／批次删除；`sample_ids` 提供只含 ID 的轻量查重索引 |
+| `capability_labels.py` | 从能力声明构建数据／动作／图标的中文标签，仅用于展示 |
 
 工作台启动和页面操作见 [`../README.md`](../README.md)。

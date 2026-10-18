@@ -1,0 +1,7 @@
+["root", "Layout", {"layout": "S-dual-info", "linearGradient": {"direction": "RightBottom", "colors": [["#FF9ECBEA", 0], ["#FFF2E2C8", 1]]}}, ["shanghai", "chengdu"]]
+["shanghai", "InfoBlock", {"primaryText": "{{ '上海 ' + ${/data/weather1/current/temperatureC} + '℃' }}", "secondaryText": {"path": "/data/weather1/current/condition"}, "backgroundColor": "#CCFFFFFF", "visual": {"type": "icon", "icon": "resources/base/media/local_fill.svg"}}]
+["/data/weather1/current/temperatureC", 29]
+["/data/weather1/current/condition", "多云"]
+["chengdu", "InfoBlock", {"primaryText": "{{ '成都 ' + ${/data/weather2/current/temperatureC} + '℃' }}", "secondaryText": {"path": "/data/weather2/current/condition"}, "backgroundColor": "#CCFFFFFF", "visual": {"type": "icon", "icon": "resources/base/media/local_fill.svg"}}]
+["/data/weather2/current/temperatureC", 29]
+["/data/weather2/current/condition", "多云"]

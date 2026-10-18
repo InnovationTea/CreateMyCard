@@ -1,0 +1,4 @@
+["root", "Layout", {"layout": "S-title-content", "linearGradient": {"direction": "RightBottom", "colors": [["#FFF6C9A8", 0], ["#FFF9EBC0", 1]]}}, ["header", "content"]]
+["header", "SingleLineTitle", {"title": "长沙天气预警", "icon": "resources/base/media/ic_warning_monochrome.svg", "fontSize": 12}]
+["content", "EmphasisText", {"mainText": {"path": "/data/weather/current/alertLevel"}, "fontSize": 18}]
+["/data/weather/current/alertLevel", "大风蓝色预警"]

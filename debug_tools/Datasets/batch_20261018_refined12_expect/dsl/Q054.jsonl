@@ -1,0 +1,8 @@
+["root", "Layout", {"layout": "W-top-bottom", "variant": "bottom-details", "linearGradient": {"direction": "RightBottom", "colors": [["#FFB2E0CC", 0], ["#FFD8EFD0", 1]]}}, ["title", "ring", "details"]]
+["title", "SingleLineTitle", {"title": "手机电池诊断", "icon": "resources/base/media/battery_leaf_fill.svg", "fontSize": 12}]
+["ring", "ProgressCircleSingle", {"value": {"path": "/data/phoneBattery/batterySOC"}, "total": 100, "icon": "resources/base/media/bolt_fill.svg", "displayValue": "{{ ${/data/phoneBattery/batterySOC} + '%' }}", "label": "剩余电量", "color": "#FF1F4799", "backgroundColor": "#331F4799"}]
+["details", "TextBlock", {"items": [{"label": "充电电流", "value": {"path": "/data/phoneBattery/nowCurrentText"}}, {"label": "充电电压", "value": {"path": "/data/phoneBattery/voltageText"}}, {"label": "识别状态", "value": {"path": "/data/phoneBattery/isBatteryPresentText"}}]}]
+["/data/phoneBattery/batterySOC", 68]
+["/data/phoneBattery/nowCurrentText", "-151 mA"]
+["/data/phoneBattery/voltageText", "4 V"]
+["/data/phoneBattery/isBatteryPresentText", "在位"]

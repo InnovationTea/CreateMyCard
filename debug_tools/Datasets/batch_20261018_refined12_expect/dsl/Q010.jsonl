@@ -1,0 +1,8 @@
+["root", "Layout", {"layout": "S-title-dual-content", "variant": "stacked-info", "linearGradient": {"direction": "RightBottom", "colors": [["#FF9BCFAE", 0], ["#FFDFEFB6", 1]]}}, ["header", "tomorrow", "after"]]
+["header", "SingleLineTitle", {"title": "杭州露营天气", "fontSize": 12}]
+["tomorrow", "InfoBlock", {"variant": "stacked", "primaryText": "{{ '明天 ' + ${/data/weather/daily/1/condition} }}", "secondaryText": "{{ '空气质量 ' + ${/data/weather/daily/1/airQuality} }}", "backgroundColor": "#CCFFFFFF"}]
+["/data/weather/daily/1/condition", "多云"]
+["/data/weather/daily/1/airQuality", "良"]
+["after", "InfoBlock", {"variant": "stacked", "primaryText": "{{ '后天 ' + ${/data/weather/daily/2/condition} }}", "secondaryText": "{{ '空气质量 ' + ${/data/weather/daily/2/airQuality} }}", "backgroundColor": "#CCFFFFFF"}]
+["/data/weather/daily/2/condition", "多云"]
+["/data/weather/daily/2/airQuality", "良"]
