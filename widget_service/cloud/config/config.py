@@ -28,6 +28,20 @@ def _parse_json_config(value: str, fallback):
         return fallback
 
 
+_CLOUD_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolve_workspace_root(configured: object, cloud_root: Path) -> Path:
+    """把 workspace_root 解析成绝对路径。
+
+    相对路径相对 cloud 包目录解析，因此换机器、换工作目录都落在仓库内：
+    平台侧取批跑产物固定用 ``cloud/workspace[/mock_obs]``，两边因此保持一致。
+    绝对路径（IAC 注入或本地 .env）原样使用。
+    """
+    path = Path(str(configured))
+    return path if path.is_absolute() else cloud_root / path
+
+
 def _config_aliases(field_name: str) -> AliasChoices:
     return AliasChoices(
         f"WIDGET_SERVICE_{field_name.upper()}",
@@ -67,6 +81,12 @@ class Settings(BaseSettings):
     else:
         CONFIG: ConfigHelper = ConfigHelper("cloud")
     WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
+
+    @field_validator("WORKSPACE_ROOT", mode="after")
+    @classmethod
+    def _absolute_workspace_root(cls, value: Path) -> Path:
+        """相对路径统一按 cloud 包目录解析：谁设置的都一样，不受工作目录影响。"""
+        return _resolve_workspace_root(value, _CLOUD_ROOT)
     enable_photo_background_theme: bool = (
         CONFIG.get("enable_photo_background_theme", "false") == "true"
     )

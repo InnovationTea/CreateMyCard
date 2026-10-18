@@ -18,7 +18,8 @@ obs.use.edge: false
 obs.expire.time: 3600
 # 模型使用原始 src；转换成标准 A2UI 后按本映射替换，未命中保留原路径。
 asset.src.url.mapping: ""
-workspace_root: "D:/WorkSpace/CreateMyCard/widget_service/cloud"
+# 相对路径按 cloud 包目录解析；换机器不用改。需要放到别处时写绝对路径或由 .env 覆盖。
+workspace_root: "workspace"
 
 enable_artifact_validation: false
 enable_a2ui_model_mock: true
