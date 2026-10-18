@@ -105,7 +105,8 @@ def apply_system_component_colors(
             # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
             props.setdefault("fontColor", font_color)
         icon = props.get("icon")
-        if icon_role is not None and isinstance(icon, str) and icon.lower().endswith(".svg"):
+        tintable_icon = isinstance(icon, str) and icon.lower().endswith(".svg")
+        if icon_role is not None and tintable_icon and not native_asset(icon):
             # 标题 SVG 的语义角色由运行时确定，并纠正历史 DSL 中的自由透明度。
             props["fillColor"] = _system_palette_color(palette, icon_role)
         resolved.append(
@@ -3351,7 +3352,9 @@ def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> li
             variant=variant,
         )
         icon_styles.pop("_visualRecipe", None)
-        if "fillColor" in props:
+        if native_asset(props.get("icon")):
+            icon_styles.pop("fillColor", None)
+        elif "fillColor" in props:
             icon_styles["fillColor"] = props["fillColor"]
         output.append(
             {
