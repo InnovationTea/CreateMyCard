@@ -129,8 +129,6 @@ data = {
 Stack({
   "width": "matchParent",
   "height": "matchParent",
-  "borderRadius": $theme('supportContentStyle.borderRadius'),
-  "backgroundColor": $theme('supportContentStyle.backgroundColor'),
   "alignContent": "center",
   "onClick": EventAction(props.actionId),
   "_preserveOriginalColor": true
