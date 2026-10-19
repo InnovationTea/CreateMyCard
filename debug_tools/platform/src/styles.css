@@ -1038,8 +1038,10 @@ body.postprocess-dashboard-active #root { height: auto; min-height: 100vh; }
   background: #eef2f7; color: #34445c; font-size: 12px;
 }
 .expect-group-grid {
+  /* 右侧列宽上限同时决定左侧截图的显示宽度：两侧同一个口径，截图不会被 1fr 拉大。 */
+  --expect-side-width: 400px;
   display: grid; align-items: start; gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 400px);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, var(--expect-side-width));
 }
 .expect-group-expected { display: flex; flex-direction: column; gap: 14px; }
 .expect-group-actual { position: sticky; top: 16px; }
@@ -1102,6 +1104,11 @@ body.postprocess-dashboard-active #root { height: auto; min-height: 100vh; }
 @media (max-width: 1280px) {
   .expect-group-grid { grid-template-columns: 1fr; }
   .expect-group-actual { position: static; }
+}
+/* 并排两列时左列是 1fr 的宽列，截图铺满会比右侧卡片大一大截；按右侧列宽收敛。
+   单列（<=1280px）两侧本来就是同一个宽度，不另加限制。 */
+@media (min-width: 1281px) {
+  .expect-group-expected .expect-card img { max-width: var(--expect-side-width, 400px); }
 }
 @media (max-width: 900px) {
   .expect-filters, .expect-gallery-filters { grid-template-columns: 1fr; }

@@ -301,12 +301,18 @@ describe('ExpectCompareRoute', () => {
     expect(JSON.parse(String(init?.body))).not.toHaveProperty('importRunId');
   });
 
-  it('opens the uploaded screenshot instead of the rendered card', async () => {
+  it('shows the imported screenshot by default and can switch back to the DSL render', async () => {
     await openComparison(matchedCompare);
     expandAll();
-    fireEvent.click(screen.getByRole('checkbox', { name: '显示上传截图' }));
+    // 有导入截图时默认就显示截图：勾选框是选中状态。
+    const toggle = screen.getByRole('checkbox', { name: '显示上传截图（默认）' });
+    expect(toggle).toBeChecked();
     expect(screen.getByRole('img', { name: 'Q001 上传截图' }))
       .toHaveAttribute('src', '/debug/expect/runs/imp/samples/Q001/input-image');
+    // 取消勾选才切回 DSL 渲染。
+    fireEvent.click(toggle);
+    expect(screen.queryByRole('img', { name: 'Q001 上传截图' })).toBeNull();
+    expect(document.querySelector('.card-renderer')).not.toBeNull();
   });
 
   it('surfaces backend conflicts as alerts', async () => {

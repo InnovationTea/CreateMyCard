@@ -124,7 +124,8 @@ function SideCard({ side, expected = false, badge, missingData, missingActions, 
     missingData: Set<string>; missingActions: Set<string>; missingIcons: Set<string>;
     extraData: Set<string>; extraActions: Set<string>; extraIcons: Set<string>;
   }) {
-  const [showImage, setShowImage] = useState(false);
+  // 有导入截图就默认看截图（那是当时真实的样子）；要看 DSL 渲染时再取消勾选。
+  const [showImage, setShowImage] = useState(Boolean(side.imageUrl));
   const [zoom, setZoom] = useState(PAIR_ZOOM);
   const dataItems = expected ? requirementItems(side, 'data') : side.fingerprint.data;
   const actionItems = expected ? requirementItems(side, 'actions') : side.fingerprint.actions;
@@ -149,11 +150,11 @@ function SideCard({ side, expected = false, badge, missingData, missingActions, 
       <span className="expect-value">{side.size || '未确定'}
         {side.sizeSource ? `（${SIZE_SOURCE_LABEL[side.sizeSource] ?? side.sizeSource}）` : ''}
         {derived ? ` · ${derived}` : ''}</span></p>
-    {/* 两侧导入时带的截图都只作参考图：默认渲染 DSL，勾上才看当时那张图。 */}
+    {/* 有截图就默认显示截图，取消勾选才切回 DSL 渲染（截图不参与指纹与筛选）。 */}
     {side.imageUrl && <label className="expect-toggle">
       <input type="checkbox" checked={showImage}
         onChange={(event) => setShowImage(event.target.checked)} />
-      {expected ? '显示上传截图' : '显示导入截图'}
+      {expected ? '显示上传截图（默认）' : '显示导入截图（默认）'}
     </label>}
     {showImage && side.imageUrl
       ? <a href={side.imageUrl} target="_blank" rel="noreferrer">
