@@ -11,6 +11,7 @@ from services.compact_component_runtime import (
     component_visual_recipe,
     load_visual_recipe_contract,
     secondary_body_variant,
+    text_block_width_contract,
 )
 from services.compact_composition_planner import (
     _schema_value,
@@ -31,6 +32,35 @@ _GEOMETRY_KEYS = frozenset({
 _RULE_KEYS = (
     "path", "types", "childCount", "childCountMin", "childCountMax", "eventPolicy",
 )
+
+
+def compact_text_block_capacity_context(size: str) -> str:
+    """提供必需的组件容量边界，不依赖可选的全量运行时工作表。"""
+    if size != "2x4":
+        return ""
+    contract = text_block_width_contract(size)
+    layouts = _layout_geometry(size, None)
+    patterns = layouts.get("W-top-bottom", [])
+    widths: list[float] = []
+    for area in _content_budgets(size, {"W-top-bottom": patterns}, 0):
+        width = area.get("innerWidth")
+        if isinstance(width, (int, float)):
+            widths.append(float(width))
+    if not widths:
+        raise ValueError("W-top-bottom has no known TextBlock width budget.")
+    available = max(widths)
+    requirements: list[str] = []
+    for count in range(contract.minimum_items, contract.maximum_items + 1):
+        requirements.append(f"{count}项至少{contract.required_width(count):g}vp")
+    return (
+        "# TextBlock 槽位容量合同\n\n"
+        f"按当前 Recipe 核算：{'；'.join(requirements)}。"
+        f"W-top-bottom.details 的整宽预算上界为{available:g}vp，"
+        f"最多容纳{contract.capacity_for_width(available)}项，较窄槽位须重新核算。"
+        "组件项目数上限不代表当前槽位放得下；只在已登记的 details 槽使用。"
+        "放不下时按全部事实重新选择合法组件与布局，不能删项、隐藏绑定、缩字或缩间距。"
+        "若合并紧密相关信息，必须保留每项标签、完整值、单位和独立绑定，并复核文字宽度。"
+    )
 
 
 def compact_composition_context(

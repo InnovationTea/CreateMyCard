@@ -38,7 +38,7 @@ _NONNEGATIVE_FIELDS = {
 
 _BATCH_CONFIG: dict[str, tuple[str, type, Any]] = {
     "concurrency": ("concurrency", int, 4),
-    "maxRetries": ("max_retries", int, 1),
+    "maxRetries": ("max_retries", int, 0),
     "requestTimeoutSeconds": ("request_timeout_seconds", float, 300.0),
     "traceRoot": ("trace_root", str, "workspace/traces"),
 }

@@ -952,7 +952,7 @@
   {
     "id": "event.setPowerSavingMode",
     "type": "event",
-    "description": "点击一键开启/关闭省电模式。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "description": "点击一键开启/关闭省电模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -967,7 +967,7 @@
     "dynamicArguments": [
       {
         "path": "/params/switchFlag",
-        "description": "开启省电模式填写 0，关闭省电模式填写 1。",
+        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
         "type": "integer",
         "enum": [
           0,
@@ -1001,7 +1001,7 @@
             },
             "switchFlag": {
               "type": "integer",
-              "description": "开启省电模式填写 0，关闭省电模式填写 1。",
+              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
               "enum": [
                 0,
                 1
@@ -2144,7 +2144,7 @@
   {
     "id": "event.setNearLinkMode",
     "type": "event",
-    "description": "点击一键开启/关闭星闪模式。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "description": "点击一键开启/关闭星闪模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -2159,7 +2159,7 @@
     "dynamicArguments": [
       {
         "path": "/params/switchFlag",
-        "description": "开启星闪填写 0，关闭星闪填写 1。",
+        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
         "type": "integer",
         "enum": [
           0,
@@ -2193,7 +2193,7 @@
             },
             "switchFlag": {
               "type": "integer",
-              "description": "开启星闪填写 0，关闭星闪填写 1。",
+              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
               "enum": [
                 0,
                 1
@@ -2222,7 +2222,7 @@
   {
     "id": "event.setBluetoothMode",
     "type": "event",
-    "description": "点击一键开启/关闭蓝牙模式。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "description": "点击一键开启/关闭蓝牙模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -2237,7 +2237,7 @@
     "dynamicArguments": [
       {
         "path": "/params/switchFlag",
-        "description": "开启蓝牙填写 0，关闭蓝牙填写 1。",
+        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
         "type": "integer",
         "enum": [
           0,
@@ -2271,7 +2271,7 @@
             },
             "switchFlag": {
               "type": "integer",
-              "description": "开启蓝牙填写 0，关闭蓝牙填写 1。",
+              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
               "enum": [
                 0,
                 1
@@ -2300,7 +2300,7 @@
   {
     "id": "event.setWifiMode",
     "type": "event",
-    "description": "点击一键开启/关闭WIFI。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "description": "点击一键开启/关闭WIFI。switchFlag 可填写整数 0 或 1，两值效果相同。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -2315,7 +2315,7 @@
     "dynamicArguments": [
       {
         "path": "/params/switchFlag",
-        "description": "开启 Wi-Fi 填写 0，关闭 Wi-Fi 填写 1。",
+        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
         "type": "integer",
         "enum": [
           0,
@@ -2349,7 +2349,7 @@
             },
             "switchFlag": {
               "type": "integer",
-              "description": "开启 Wi-Fi 填写 0，关闭 Wi-Fi 填写 1。",
+              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
               "enum": [
                 0,
                 1

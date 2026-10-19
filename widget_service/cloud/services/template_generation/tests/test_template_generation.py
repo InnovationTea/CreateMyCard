@@ -186,7 +186,7 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/daily/0/temperatureRangeText",
 )
 _WEATHER_PALETTE = ("#FF1F1F99", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFF24131", "#FFFF8833", "#FFE68073")
+_SPORT_PALETTE = ("#FFCC4033", "#FFFF7919", "#FFFF8E80")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -422,8 +422,14 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     )
 
 
-def test_business_template_suffix_drives_size_and_provider_data_tiers():
+def test_business_template_suffix_or_declaration_drives_size_and_data_tiers():
     registry = get_cardplan_registry()
+    declared_size_overrides = {
+        "BluetoothDeviceOverviewConnectionBatterySupport@1": ("2x4",),
+        "BluetoothDeviceOverviewMusicSupport@1": ("2x4",),
+        "WeatherOverviewThreeDayForecastFull@1": ("2x4",),
+        "ScheduleOverviewDateTitleFull@1": ("2x4",),
+    }
     layout_kinds = {
         "HeroTitle",
         "HeroContent",
@@ -435,20 +441,18 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         "WideFull",
         "WideHalf",
     }
-    explicit_size_overrides = {
-        "WeatherOverviewThreeDayForecastFull@1",
-    }
-
     for template_id in registry.provider_template_ids:
         definition = registry.require_template(template_id)
         if definition.capability_id is None:
             continue
         layout_kind = provider_template_layout_kind(template_id)
-        expected_sizes = (
-            ("2x4",)
-            if layout_kind in {"WideHero", "WideFull", "WideHalf"}
-            or template_id in explicit_size_overrides
-            else ("2x2",)
+        expected_sizes = declared_size_overrides.get(
+            template_id,
+            (
+                ("2x4",)
+                if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+                else ("2x2",)
+            ),
         )
         serialized = definition.model_dump(mode="json", by_alias=True)
 
@@ -1316,7 +1320,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 51
+    assert len(calendar.local_template_ids) == 56
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -3358,7 +3362,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarphoneCompact@1", "earphoneIcon"),
         ("BluetoothDeviceOverviewStatusHero@1", "deviceIcon"),
         ("BluetoothDeviceOverviewCaseConnectionHero@1", "deviceIcon"),
-        ("BluetoothDeviceOverviewCaseConnectionCompact@1", "caseIcon"),
+        ("BluetoothDeviceOverviewConnectionBatterySupport@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudChargingWideFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudChargingWideFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsChargingWideFull@1", "leftEarIcon"),
@@ -3623,7 +3627,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 51
+    assert len(calendar.local_template_ids) == 56
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
@@ -6841,7 +6845,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
 
     assert output.template_ids == ("CountdownOverviewFull@1", "SingleFocusLayout@1")
     assert "countdownDays" in output.a2ui
-    assert "倒计时" in output.a2ui
+    assert "还剩" in output.a2ui
     assert "运动倒计时" not in output.a2ui
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     update = messages[1].get("updateComponents")
@@ -6869,9 +6873,9 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert isinstance(root_styles, dict)
         assert root_styles.get("backgroundColor") == "#FFFFF0E6"
     expected_ball_colors = {
-        "fusionBallLarge": "#FFF24131",
-        "fusionBallMedium": "#FFFF8833",
-        "fusionBallSmall": "#FFE68073",
+        "fusionBallLarge": "#FFCC4033",
+        "fusionBallMedium": "#FFFF7919",
+        "fusionBallSmall": "#FFFF8E80",
     }
     for ball_id, expected_color in expected_ball_colors.items():
         if not enable_fusion_ball:
@@ -8686,7 +8690,6 @@ async def test_template_exception_obeys_route_failure_policy(
     template_failure_is_terminal: bool,
     template_error: Exception,
 ):
-    generic_source = '["root","EmphasisText",{"mainText":"正常"}]'
     generated_sources: list[str] = []
     model_generate_calls = 0
     template_processors: list[DslProcessorKind] = []
@@ -8700,7 +8703,7 @@ async def test_template_exception_obeys_route_failure_policy(
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             nonlocal model_generate_calls
             model_generate_calls += 1
-            return generic_source
+            return "generic-source"
 
         async def generate_repair(self, *_args: Any, **_kwargs: Any) -> str:
             pytest.fail("template exception fallback must not enter repair")
@@ -8758,7 +8761,7 @@ async def test_template_exception_obeys_route_failure_policy(
     )
     monkeypatch.setattr(ArtifactStore, "save", save)
     settings = widget_generation_service_module.get_settings().model_copy(
-        update={"enable_card_template": True}
+        update={"CONFIG": {"enable_card_template": "true"}}
     )
     monkeypatch.setattr(
         widget_generation_service_module,
@@ -8783,7 +8786,7 @@ async def test_template_exception_obeys_route_failure_policy(
         assert response.status == GenerationStatus.SUCCESS
         assert response.artifactUrl == "https://artifact.test/template-fallback"
         assert model_generate_calls == 1
-        assert generated_sources == [generic_source]
+        assert generated_sources == ["generic-source"]
     assert template_processors == [DslProcessorKind.DESIGN_COMPACT]
     assert callback_sizes == ["2x2"]
     assert source_permissions == ([] if template_failure_is_terminal else [False])

@@ -7,6 +7,8 @@
     "generate": "tsx src/generate-jsonl.ts",
     "render": "tsx --tsconfig ../tsconfig.base.json src/render-html.tsx",
     "render:all": "tsx --tsconfig ../tsconfig.base.json src/render-html.tsx --all",
+    "measure:theme": "tsx --tsconfig ../tsconfig.base.json src/measure-theme.tsx",
+    "test:theme": "tsx --tsconfig ../tsconfig.base.json --test src/theme-text-bounds.test.ts src/theme-text-measurement.test.ts",
     "test": "tsx src/extract-schema.ts && tsx src/generate-jsonl.ts"
   },
   "dependencies": {

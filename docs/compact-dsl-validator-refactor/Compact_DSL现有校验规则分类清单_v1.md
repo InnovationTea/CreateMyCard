@@ -1,5 +1,15 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-17：纯双动作布局与开关事件比较补充：
+
+| 检查项 | 分类与实际落点 | 归属理由及边界 |
+|---|---|---|
+| actions-only 结构与几何 | 共享语义布局编译 `compact_semantic_layout.py`、布局合同 | 只增加同名布局的无内容变体，按钮尺寸与标准内容变体不变 |
+| actions-only 必要事实授权 | 语义／跨文件一致性，`semantic/plan_contracts.py` | 已接受 Plan 必须恰好两个不同动作且无展示事实，不豁免覆盖检查 |
+| 组件槽位角色与确定容量下界 | 生成侧共享 `compact_slot_compatibility.py`，组合候选复用 | 读取既有布局和 Recipe；未知不判可行，不新增发布错误码或复制几何校验 |
+| 设置开关整数标记等价 | 语义／有效能力，`semantic/effective.py`；共享比较 `event_matching.py` | 仅同一合法设置开关的 0/1 等价，Plan 覆盖、素材和最终产物共用，其他字段精确比较 |
+
+
 > 2026-10-12 Fusion 融合修订：本文原有数量、源码位置和验证结果描述融合前版本。当前分支同步 main `69c153f5`；本次按用户要求将 PR 净差异压成单个提交，SVG 填色按用户要求保留 PR497 前规则，迁移去向与实际验证见 [Fusion 融合记录](Compact_DSL_Fusion融合记录.md)。旧规则不得因目录合并重新启用。
 
 - 日期：2026-09-30
@@ -10,6 +20,32 @@
 
 
 ## Fusion 融合后的当前生效约定
+
+2026-10-17：2×2 单业务唯一只读详情支持服务端派生的整卡动作承载。
+compact_whole_card_click.py 只提供已登记动作、对象与用户按钮要求的共享适用性合同，
+compact_plan.py 在接受阶段保留动作事实并派生 wholeCardActionId，不由模型自行授权。
+根点击与完整 handler、唯一入口、按钮素材的一致性归语义／跨文件一致性，落点
+semantic/plan_contracts.py；布局动作槽计数仍归语义／布局，委托 compact_layout_runtime.py，
+api.py 仅透传复核后的 handler，不复制适用性或计数判定。组件、绑定、容量及端侧事件协议不变；
+无已接受整卡上下文、2×4、模板与无 Plan 路径继续原合同。
+
+2026-10-17：请求内跨结构、容量、覆盖与动作素材的联合重组归生成修复编排，
+由 compact_repair_strategy.py 消费历史类别及源稿拓扑摘要；compact_repair_context.py
+仅提取拓扑和已接受合同摘要，不产生校验错误。PromptBuilder 交接联合核对清单。
+结构、事实、动作、素材及几何的判定、严重级别、顺序和 Drop 授权均保留原归属与行为。
+
+2026-10-17：TextBlock 槽位容量属于生成合同与组合建议，宽度参数仍由
+compact_component_runtime.py 的 Recipe 提供，compact_composition_context.py 交接实际槽宽，
+compact_composition_planner.py 共用最小宽度合同；不改语义／布局的横向预算判定。
+组件树的重复引用、多父引用、空容器仍归语法／组件；不可达等编译检查保留原落点。
+compact_repair_strategy.py 仅消费已有诊断与兼容说明，统一路由至布局结构重组；
+不在修复路由复制判定、不新增校验项或错误码。
+
+2026-10-16：修复语义布局展开重新解析时遗漏模板来源上下文的问题（issue #570）。
+组件类型白名单仍属语法／组件，唯一判定位置为 compact_dsl_a2ui_converter.py 的
+_parse_component_header；generation_pipeline.py 只透传 skip_compact_dsl_validation，
+expand_compact_semantic_layout 将其交给共享解析器。不新增校验分支或错误码，普通模型输入、
+未知组件、保留属性及语义布局角色／尺寸约束保持不变；覆盖模板内部组件与普通输入边界回归。
 
 2026-10-15：TextBlock.items[].label 与 items[].value 一致允许静态值、完整 Expression 和
 PathBinding。该调整归属语法／组件的共享绑定合同，落点 compact_component_bindings.py；直接
@@ -108,6 +144,19 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 错误事实通过 `CompactDiagnostic` 返回，建议在 `repair_hints.json` 登记；流水线继续负责修复编排。
 本次新增 1 个活动结构化错误码（合计 33 个），规则登记夹具与 `test_compact_horizontal_budget.py` 同步。
 未知几何、未建模约束、任意二维相交及字形裁切不在本项覆盖范围内，不把未报错等同于像素验证通过。
+
+2026-10-17 根据 2x2 与 2x4 灵动布局实测增加严重程度分级：当前 Row 的有效间距能够完全吸收溢出
+且溢出不超过 16vp 时降为 warning；根 Row 的 2x2/2x4 阈值分别为 10vp/32vp；位于父 Row 分配的
+正数 `layoutWeight` 横向权重区域内时，2x2/2x4 阈值分别为 24vp/52vp。判断顺序为间距、根布局、
+横向权重区域，warning 保留 Occupancy 与降级原因。固定局部 Row、超过对应阈值和无法确定分配的场景
+仍为 error。文字宽度预算先于本项执行并保持严格；同一产物存在文字宽度错误时，不能被本项 warning
+放行。该调整不改变检查项分类、实际文件、错误码及调用顺序。
+
+2026-10-19：高度与宽度经验阈值统一由
+`data/validator_rules/compact/layout_overflow_tolerances.json` 提供，配置声明 vp 单位、2x2/2x4 和各适用
+场景，并在加载时校验。横向权重区域向上查找遇到数值宽度且 `flexShrink:0` 的固定宽度边界即停止，
+不得继续凭更高层祖先权重降级；间距完全吸收仍独立判断。阈值只表示经验容忍，不证明端侧必然消除
+溢出。本项仍归 `semantic/layout/horizontal.py`，配置解析归同目录 `overflow_tolerances.py`。
 
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
 高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
@@ -880,7 +929,12 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   当前归属：语义／布局与视觉约束，`semantic/layout/geometry.py`。2026-10-15 按确认仅在高度校验
   视图中忽略 2x4 语义展开生成 Column 的 8vp 纵向间距；参考槽位同步使用该视图，其它高度约束不变。
-  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。
+  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。2026-10-17 将
+  不超过 `35vp` 的纵向高度溢出按可压缩来源分级：根 Column、直接父节点为 Column 的正数
+  `layoutWeight` Column，或溢出可完全由当前 Column 的有效 `itemMargin` 间距总量吸收时降为 warning，
+  保留规则标识、Occupancy 和降级原因并继续转换，交由端侧灵动布局处理。父 Row 中的横向权重不作为
+  高度降级依据；同一张卡不同层级的诊断分别判断和记录。其它固定局部 Column、溢出量超过 `35vp`
+  和高度无法闭合仍阻断。严重程度调整不改变本项分类和实际文件。
 
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
 
@@ -1098,3 +1152,13 @@ BASE-02 至 BASE-04 同样不在本次文档更新中修正规则。新反馈涉
 当前 147 个结构化规则码均已有关联通过用例；保留的字符串位置不冒充已完成结构化迁移。
 未来出现 `false` 的位置仍需补充分支用例；静态迁移一致性通过不等同于行为或整条修复链路验收通过。
 最新测试结果与待完成事项见[实施与验证记录](Compact_DSL重构实施与验证记录.md)。
+# 后置主题阶段补充（2026-10-14）
+
+- `theme_phase_validator.py`：语法／阶段边界。布局颜色字段只接受内部语义角色，最终产物
+  不得残留角色；不改变既有组件、事实、绑定和几何判定。
+- `semantic/layout/assets.py`：语义／布局与视觉。内部无颜色布局不要求作者提供 SVG 色值，
+  由展开器标注角色并在末尾填色；原色素材保留，原素材候选校验仍执行。
+- `pipeline.py`：编排。内部布局推迟 quality 对比度检查；末尾主题使用完整发布校验。
+- `contrast_validator.py`：质量／视觉对比度。后置主题全幅图片兄弟层无法由祖先底色推导，
+  记录渲染复核警告，不伪报默认白底1:1；显式不透明背板恢复确定底色检查。
+  仅识别固定后置图片包装，不改变模板方案及普通纯色/渐变检查，不属于 Compact 布局规则。

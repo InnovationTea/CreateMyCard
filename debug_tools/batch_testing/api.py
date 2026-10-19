@@ -191,12 +191,12 @@ def register_batch_routes(
 
     @app.get("/debug/batch/tasks")
     async def batch_tasks() -> dict[str, Any]:
-        return {"items": task_manager.list_tasks()}
+        return {"items": await run_in_threadpool(task_manager.list_tasks)}
 
     @app.get("/debug/batch/tasks/{task_id}")
     async def batch_task(task_id: str) -> dict[str, Any]:
         try:
-            return task_manager.get_task(task_id)
+            return await run_in_threadpool(task_manager.get_task, task_id)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="批量测试任务不存在") from exc
 
@@ -238,7 +238,7 @@ def register_batch_routes(
 
     @app.get("/debug/batch/scheduler")
     async def batch_scheduler() -> dict[str, Any]:
-        return task_manager.scheduler_state()
+        return await run_in_threadpool(task_manager.scheduler_state)
 
     @app.post("/debug/batch/scheduler/resume")
     async def resume_batch_scheduler() -> dict[str, Any]:
@@ -304,7 +304,7 @@ def register_batch_routes(
     @app.get("/debug/batch/runs/{run_id}")
     async def batch_run(run_id: str) -> dict[str, Any]:
         try:
-            return task_manager.get_run(run_id)
+            return await run_in_threadpool(task_manager.get_run, run_id)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="批跑记录不存在") from exc
 

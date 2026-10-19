@@ -37,6 +37,7 @@ from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.capability import AssetCapabilityOverview
 from models.generation import (
     DEFAULT_WIDGET_SIZE,
+    CompactDslRetryContext,
     ModelRequestContext,
     TaskSpec,
     WidgetSize,
@@ -52,7 +53,10 @@ from services.compact_plan import (
     compact_plan_omitted_facts,
     parse_compact_plan_call,
 )
-from services.compact_repair_strategy import CompactRepairStrategyTracker
+from services.compact_repair_strategy import (
+    CompactRepairStrategyTracker,
+    compact_repair_issue_category,
+)
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -743,9 +747,14 @@ class WidgetGenerationService:
         quality_repair_attempt_count = 0
         quality_repair_failure_history: list[list[dict[str, Any]]] = []
         compact_repair_context_history: list[dict[str, Any]] = []
+        compact_retry_context = request._compact_dsl_retry_context
+        capacity_recovery = bool(
+            compact_retry_context is not None and compact_retry_context.capacity_recovery
+        )
         compact_repair_tracker = (
             CompactRepairStrategyTracker(
-                max_repair_attempts=settings.validation_failure_max_repair_attempts
+                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                capacity_recovery=capacity_recovery,
             )
             if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
             else None
@@ -787,6 +796,25 @@ class WidgetGenerationService:
         compact_agent_messages: list[dict[str, str]] | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
+        from services.layout_theme_contract import uses_post_layout_theme
+        from services.square_photo_expansion import expansion_enabled
+
+        def colorless_source() -> bool:
+            return uses_post_layout_theme(
+                policy.operation, template_source=source_generated_by_template,
+                jsx_source=source_generated_by_jsx,
+            )
+
+        direct_fusion_request = (
+            uses_post_layout_theme(policy.operation)
+            and template_source_generator is None
+            and not try_jsx
+        )
+        defer_size_notification = (
+            generation_mode == "create"
+            and direct_fusion_request
+            and expansion_enabled(task_spec.model_dump(mode="json", exclude_none=True))
+        )
 
         async def generate_compact_plan() -> dict:
             """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
@@ -806,6 +834,7 @@ class WidgetGenerationService:
                 task_spec,
                 plan_system_prompt,
                 prompt[1]["content"],
+                retry_context=compact_retry_context,
             )
             trace_step(
                 "plan.prompt.built",
@@ -814,6 +843,7 @@ class WidgetGenerationService:
                 duration_ms=self._elapsed_ms(plan_prompt_started_at),
                 details={
                     "messageCount": len(plan_prompt),
+                    "capacityRecovery": capacity_recovery,
                     "promptSha256": hashlib.sha256(
                         json.dumps(plan_prompt, ensure_ascii=False).encode("utf-8")
                     ).hexdigest(),
@@ -950,7 +980,7 @@ class WidgetGenerationService:
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
                 trace_phase("dsl")
-            if before_model_call is not None:
+            if before_model_call is not None and not defer_size_notification:
                 await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
                 try:
@@ -1287,6 +1317,7 @@ class WidgetGenerationService:
             processing_context_for_source = replace(
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
+                colorless_layout=colorless_source(),
                 compact_plan=accepted_compact_plan,
                 plan_information_coverage_as_warning=(
                     quality_repair_attempt_count > 0
@@ -1435,7 +1466,11 @@ class WidgetGenerationService:
                 )
             artifact_validator = ArtifactValidator(asset_mapper.mapping)
             artifact_validation_started_at = time.perf_counter()
-            validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            colorless = colorless_source()
+            if colorless:
+                validation_errors = artifact_validator.validate_layout(artifact, protocol_profile)
+            else:
+                validation_errors = artifact_validator.validate(artifact, protocol_profile)
             if validation_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
             validation_prompt_contexts = getattr(
@@ -1443,18 +1478,6 @@ class WidgetGenerationService:
                 "error_prompt_contexts",
                 [],
             )
-            if source_load_result:
-                report_ops_metrics(body={"validationScenarioFailure": 1})
-                source_write_roots = {
-                    item.writeResultTo
-                    for item in source_load_result.artifact.generationPlan.candidateDataBindings
-                }
-                current_write_roots = {item.writeResultTo for item in effective_bindings}
-                for removed_root in sorted(source_write_roots - current_write_roots):
-                    if removed_root in standard_dsl:
-                        validation_errors.append(
-                            f"removed data path remains in edited genui: {removed_root}"
-                        )
             with trace_attempt(**validation_attempts):
                 trace_step(
                     "artifact_validation.completed",
@@ -1619,6 +1642,20 @@ class WidgetGenerationService:
                 removedCapabilities=removed,
                 errorCode=ErrorCode.VALIDATION_FAILED.value,
             )
+            is_blocking_compact_failure = (
+                validation_failed_blocking
+                and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            )
+            if is_blocking_compact_failure:
+                quality_error_payloads = [
+                    issue.to_prompt_payload() for issue in latest_processing_result.errors
+                ]
+                issue_category = compact_repair_issue_category(quality_error_payloads)
+                if issue_category in {"layout_capacity", "layout_structure"}:
+                    response._compact_dsl_retry_context = CompactDslRetryContext(
+                        failure_category=issue_category,
+                        capacity_recovery=True,
+                    )
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
             self._log_generation_summary(
                 request,
@@ -1633,7 +1670,6 @@ class WidgetGenerationService:
             )
             return response
         if errors:
-            report_ops_metrics(body={"validationScenarioFailure": 1})
             logger.error(
                 f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
                 f"protocol_profile_id={protocol_profile['id']} "
@@ -1679,6 +1715,18 @@ class WidgetGenerationService:
                 source_load_result.artifact_digest if source_load_result else None
             ),
         )
+        if colorless_source():
+            from services.post_layout_theme import theme_artifact
+
+            artifact = await theme_artifact(
+                artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
+                ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                allow_expansion=defer_size_notification,
+                final_layout=design_token,
+            )
+        final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
+        if defer_size_notification and before_model_call is not None:
+            await before_model_call(final_size)
         trace_step(
             "artifact.final.built",
             stage="artifactBuild",
@@ -1761,7 +1809,7 @@ class WidgetGenerationService:
             status=response_plan.status,
             artifactUrl=artifact_save_result.artifactUrl,
             artifactDigest=artifact_save_result.artifactDigest,
-            suggestSize=card_spec.suggestSize,
+            suggestSize=final_size,
             message=response_plan.message,
             removedCapabilities=removed,
             errorCode=response_plan.errorCode,

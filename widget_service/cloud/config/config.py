@@ -67,13 +67,25 @@ class Settings(BaseSettings):
     else:
         CONFIG: ConfigHelper = ConfigHelper("cloud")
     WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
+    enable_photo_background_theme: bool = (
+        CONFIG.get("enable_photo_background_theme", "false") == "true"
+    )
+    enable_subjectless_wide_theme: bool = (
+        CONFIG.get("enable_subjectless_wide_theme", "false") == "true"
+    )
+    enable_square_music_photo_expansion: bool = (
+        CONFIG.get("enable_square_music_photo_expansion", "false") == "true"
+    )
+    enable_square_photo_expansion: bool = (
+        CONFIG.get("enable_square_photo_expansion", "false") == "true"
+    )
     hag_slb_url: str = CONFIG.get("hag_slb_url")
     osms_prepare_url: str = urljoin(hag_slb_url, CONFIG.get("osms_prepare_url"))
     osms_complete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_complete_url"))
     osms_query_url: str = urljoin(hag_slb_url, CONFIG.get("osms_query_url"))
     osms_delete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_delete_url"))
     hag_osms_ak: str = CONFIG.get("hag_osms_ak")
-    capability_registry_version: str = "app-11.7.5.205_rom-6.0"
+    capability_registry_version: str = "app-11.7.7.300_rom-7.0"
     # src → 云侧 URL 映射；模型使用原始 src，标准 A2UI 生成后精确替换，未命中保留原路径。
     asset_src_url_mapping: dict = _parse_json_config(CONFIG.get("asset.src.url.mapping"), {})
     design_compact_profile_id: str = "design-compact-dsl"

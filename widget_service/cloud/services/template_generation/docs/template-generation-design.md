@@ -16,6 +16,26 @@ Fusion Info Plan 重新开始生成，不经由 JSX，也不重新调用模板�
 [流程架构](architecture.md)，验收覆盖成功结果复用、各失败阶段、质量修复与 JSX 开关组合、
 融合修复额度独立、融合失败终止以及专用入口不回退。
 
+## 2026-10 2×4 右侧底板例外
+
+`WideFullHeroActionLayout@1` 默认保留右侧底板。编译器根据实际第二个业务子模板的完整 ID，
+对以下四种自带四行面板的电量 Hero 应用例外：
+
+| 模板 | 内容高度 | 与按钮间距 |
+| --- | --- | --- |
+| `BatteryOverviewStatusSummaryHero@1` | 82vp | 8vp |
+| `BatteryOverviewStatusLevelSummaryHero@1` | 82vp | 8vp |
+| `BatteryOverviewChargingLevelSummaryHero@1` | 82vp | 8vp |
+| `BatteryOverviewChargingDiagnosticsHero@1` | 84vp | 6vp |
+
+移除该布局右侧父容器的 `backgroundColor`、`borderRadius`、`padding`，按名单设置 `itemMargin`。
+内部业务面板与动作子树原样保留；126vp 内容区按 `82 + 8 + 36` 或 `84 + 6 + 36` 分配，
+不缩小字号、删除字段或修改业务模板自身内边距。进度环轨道背景不属于整块业务面板，不据此加入名单。
+名单统一维护于 `engine/cardplan/layout_surface_policy.py`，不新增可由模型填写的 Props。
+只在指定布局的右侧直接业务子模板命中时生效，镜像布局、其它组合以及 2×2 模板不受影响。
+测试覆盖四种例外的完整编译产物、普通模板保留底板、错误位置与布局隔离，以及模型伪造开关被拒绝。
+同时扫描电量 Hero 的容器底板，确保名单覆盖已登记的同类模板，并逐项验证四个数据绑定及高度预算。
+
 ## 2026-10 双业务 Support 补充
 
 - `BatteryOverviewPluggedTypeSupport@1` 必需电量文本、充电状态、充电器类型，不依赖数值电量，不声明图标槽位。
@@ -447,6 +467,12 @@ Expr 可引用已声明的字符串 props，编译器将其安全转义为字符
 耳机电量的 leftEarIcon、rightEarIcon、caseIcon 分别登记 earphone-left、earphone-right、
 earphone-case 素材语义。通用耳机图片不能代替这三个对象；可选参数未传时继续使用模板内的文字标识。
 模型传入语义不匹配的已批准素材时，唯一匹配候选可自动纠正，否则移除该可选参数，
-使三列电量显示“左 / 右 / 盒”及对应百分比。其它布局保持既有圆形 L/R 等文字样式，
+左右耳图标缺省时，Full、Hero、Compact、Support及宽卡统一显示主题辅助色圆底上的白色 L/R；
+已有圆形 L/R 保持原样，环内曾留空的可选左右耳图标位也使用同一标识。
+耳机盒图标缺省时显示“耳机盒”，三列图标行的文字区域为30vp，保留对应百分比。
+三列布局中的“耳机盒”文字、下方电量及可选充电状态居中对齐；传入耳机盒图标时保留原有对齐方式，左右耳列不变。
+Compact电量区使用36vp三列与8vp间距，每列上方放12vp标识、下方放12vp电量，中间间距2vp；
+盒文字占30vp，总行宽124vp、行高26vp，完整容纳“耳机盒”和100%电量。Support保留左右素材齐全才展示成对图标的规则，
+缺任意一侧时显示两个圆形标识及各自电量，文字可在10–12fp内自适应。
 不删除电量绑定，也不将 0% 视为缺失。该省略规则仅适用于耳机上述可选图标，
 不改变必填素材、未批准素材或其它业务的校验行为。

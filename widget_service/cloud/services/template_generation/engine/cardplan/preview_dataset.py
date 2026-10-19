@@ -125,7 +125,7 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
     ("WeatherOverviewHumidityFull@1", "location"): "青浦区",
     ("WeatherOverviewUvFull@1", "location"): "青浦区",
     ("ActivityOverviewTrainingSummaryFull@1", "title"): "训练总结",
-    ("BluetoothDeviceOverviewMusicCompact@1", "actionId"): "event.open.music.daily",
+    ("BluetoothDeviceOverviewMusicSupport@1", "actionId"): "event.open.music.daily",
     ("CountdownOverviewDepartureHero@1", "title"): "北京出差",
     ("CountdownOverviewTargetDetailFull@1", "targetDate"): "2026-11-15",
     ("CountdownOverviewTravelSupport@1", "title"): "国庆回家",
@@ -146,7 +146,7 @@ _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
         "resources/base/media/icon_earphone.svg",
     ("BluetoothDeviceOverviewConnectionSupport@1", "deviceIcon"):
         "resources/base/media/icon_earphone.svg",
-    ("BluetoothDeviceOverviewMusicCompact@1", "musicIcon"):
+    ("BluetoothDeviceOverviewMusicSupport@1", "musicIcon"):
         "resources/base/media/music_fill.svg",
     ("BatteryOverviewSupport@1", "batteryIcon"):
         "resources/base/media/icon_phone.svg",

@@ -80,7 +80,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 24
+    assert slot_count == 26
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)

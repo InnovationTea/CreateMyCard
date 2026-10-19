@@ -1,0 +1,1250 @@
+{
+  "sources": {
+    "2x2": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"info\",\"pill\",\"panel\"],\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\"},\"itemMargin\":0},{\"id\":\"info\",\"component\":\"Column\",\"children\":[\"info_text\"],\"itemMargin\":0,\"styles\":{\"padding\":{\"left\":8,\"right\":8},\"borderRadius\":16,\"alignItems\":\"start\",\"justifyContent\":\"center\",\"clip\":true,\"flexShrink\":0,\"width\":\"matchParent\",\"height\":63,\"backgroundColor\":\"@theme:panel/1\"}},{\"id\":\"info_text\",\"component\":\"Column\",\"children\":[\"info_primary\",\"info_secondary\"],\"itemMargin\":0,\"styles\":{\"alignItems\":\"start\",\"justifyContent\":\"center\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\"}},{\"id\":\"info_primary\",\"component\":\"Text\",\"content\":\"68%\",\"styles\":{\"height\":22,\"fontSize\":16,\"fontWeight\":700,\"maxLines\":1,\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\",\"fontColor\":\"@theme:primary/1\",\"textOverflow\":\"clip\"}},{\"id\":\"info_secondary\",\"component\":\"Text\",\"content\":\"电量\",\"styles\":{\"height\":16,\"fontSize\":10,\"fontWeight\":500,\"maxLines\":1,\"textOverflow\":\"ellipsis\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\",\"fontColor\":\"@theme:primary/0.6\"}},{\"id\":\"pill\",\"component\":\"Button\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"test://open\"}}],\"label\":\"打开\",\"styles\":{\"height\":36,\"borderRadius\":30,\"padding\":0,\"flexShrink\":0,\"width\":\"matchParent\",\"backgroundColor\":\"@theme:componentSecondary/1\",\"fontColor\":\"@theme:primary/1\",\"fontSize\":14,\"fontWeight\":500,\"textAlign\":\"center\"}},{\"id\":\"panel\",\"component\":\"Column\",\"children\":[\"value\"],\"styles\":{\"backgroundColor\":\"@theme:panel/1\"},\"itemMargin\":0},{\"id\":\"value\",\"component\":\"Column\",\"children\":[\"value_main\"],\"itemMargin\":2,\"styles\":{\"alignItems\":\"start\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\"}},{\"id\":\"value_main\",\"component\":\"Text\",\"content\":\"示例\",\"styles\":{\"height\":24,\"fontSize\":18,\"fontWeight\":700,\"lineHeight\":1.3333333333333333,\"maxLines\":1,\"flexShrink\":1,\"width\":\"matchParent\",\"fontColor\":\"@theme:primary/1\",\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{}}}}",
+    "2x4": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"info\",\"pill\",\"panel\",\"card\",\"details\",\"summary\"],\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\"},\"itemMargin\":0},{\"id\":\"info\",\"component\":\"Column\",\"children\":[\"info_text\"],\"itemMargin\":0,\"styles\":{\"padding\":{\"left\":8,\"right\":8},\"borderRadius\":16,\"alignItems\":\"start\",\"justifyContent\":\"center\",\"clip\":true,\"flexShrink\":0,\"width\":\"matchParent\",\"height\":57,\"backgroundColor\":\"@theme:panel/1\"}},{\"id\":\"info_text\",\"component\":\"Column\",\"children\":[\"info_primary\",\"info_secondary\"],\"itemMargin\":2,\"styles\":{\"alignItems\":\"start\",\"justifyContent\":\"start\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"height\":\"matchParent\",\"padding\":{\"top\":8},\"width\":\"matchParent\"}},{\"id\":\"info_primary\",\"component\":\"Text\",\"content\":\"68%\",\"styles\":{\"height\":19,\"fontSize\":14,\"fontWeight\":700,\"maxLines\":1,\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\",\"lineHeight\":1.3571428571428572,\"fontColor\":\"@theme:primary/1\",\"textOverflow\":\"clip\"}},{\"id\":\"info_secondary\",\"component\":\"Text\",\"content\":\"电量\",\"styles\":{\"height\":16,\"fontSize\":12,\"fontWeight\":500,\"maxLines\":1,\"textOverflow\":\"ellipsis\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\",\"lineHeight\":1.3333333333333333,\"fontColor\":\"@theme:primary/0.6\"}},{\"id\":\"pill\",\"component\":\"Button\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"test://open\"}}],\"label\":\"打开\",\"styles\":{\"height\":36,\"borderRadius\":30,\"padding\":0,\"flexShrink\":0,\"width\":\"matchParent\",\"backgroundColor\":\"@theme:componentSecondary/1\",\"fontColor\":\"@theme:primary/1\",\"fontSize\":14,\"fontWeight\":500,\"textAlign\":\"center\"}},{\"id\":\"panel\",\"component\":\"Column\",\"children\":[\"value\"],\"styles\":{\"backgroundColor\":\"@theme:panel/1\"},\"itemMargin\":0},{\"id\":\"value\",\"component\":\"Column\",\"children\":[\"value_main\"],\"itemMargin\":2,\"styles\":{\"alignItems\":\"start\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"width\":\"matchParent\"}},{\"id\":\"value_main\",\"component\":\"Text\",\"content\":\"示例\",\"styles\":{\"height\":24,\"fontSize\":18,\"fontWeight\":700,\"lineHeight\":1.3333333333333333,\"maxLines\":1,\"flexShrink\":1,\"width\":\"matchParent\",\"fontColor\":\"@theme:primary/1\",\"textOverflow\":\"clip\"}},{\"id\":\"card\",\"component\":\"Row\",\"children\":[\"card_label\",\"card_visual\"],\"itemMargin\":8,\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"test://open\"}}],\"styles\":{\"width\":\"matchParent\",\"height\":57,\"padding\":{\"left\":12,\"right\":12,\"top\":7,\"bottom\":7},\"borderRadius\":16,\"backgroundColor\":\"@theme:panel/1\",\"alignItems\":\"center\",\"justifyContent\":\"spaceBetween\",\"flexShrink\":0,\"constraintSize\":{\"minWidth\":0,\"minHeight\":48,\"maxHeight\":64}}},{\"id\":\"card_label\",\"component\":\"Text\",\"content\":\"打开闹钟\",\"styles\":{\"height\":20,\"fontSize\":14,\"fontWeight\":700,\"textAlign\":\"start\",\"maxLines\":1,\"textOverflow\":\"ellipsis\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"layoutWeight\":1,\"fontColor\":\"@theme:primary/1\"}},{\"id\":\"card_visual\",\"component\":\"Divider\",\"styles\":{\"width\":24,\"height\":24,\"borderRadius\":12,\"strokeWidth\":0,\"color\":\"@theme:transparent/1\",\"flexShrink\":0,\"backgroundColor\":\"@theme:primary/0.2\"}},{\"id\":\"details\",\"component\":\"Row\",\"children\":[\"details_item0\",\"details_item1\"],\"itemMargin\":8,\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"alignItems\":\"stretch\",\"justifyContent\":\"start\",\"layoutWeight\":1,\"flexShrink\":1,\"constraintSize\":{\"minHeight\":48}}},{\"id\":\"details_item0\",\"component\":\"Column\",\"children\":[\"details_item0_label_slot\",\"details_item0_value_slot\"],\"itemMargin\":2,\"styles\":{\"height\":\"matchParent\",\"backgroundColor\":\"@theme:panel/1\",\"padding\":{\"left\":8,\"right\":8},\"borderRadius\":16,\"alignItems\":\"start\",\"justifyContent\":\"center\",\"layoutWeight\":1,\"flexShrink\":1,\"constraintSize\":{\"minWidth\":64,\"minHeight\":0}}},{\"id\":\"details_item0_label_slot\",\"component\":\"Row\",\"children\":[\"details_item0_label\"],\"styles\":{\"width\":\"matchParent\",\"height\":18,\"alignItems\":\"center\",\"justifyContent\":\"start\",\"flexShrink\":0},\"itemMargin\":0},{\"id\":\"details_item0_label\",\"component\":\"Text\",\"content\":\"电量\",\"styles\":{\"width\":\"matchParent\",\"fontSize\":12,\"fontWeight\":700,\"textAlign\":\"start\",\"maxLines\":1,\"textOverflow\":\"ellipsis\",\"fontColor\":\"@theme:primary/1\"}},{\"id\":\"details_item0_value_slot\",\"component\":\"Row\",\"children\":[\"details_item0_value\"],\"styles\":{\"width\":\"matchParent\",\"height\":16,\"alignItems\":\"center\",\"justifyContent\":\"start\",\"flexShrink\":0},\"itemMargin\":0},{\"id\":\"details_item0_value\",\"component\":\"Text\",\"content\":\"68%\",\"styles\":{\"width\":\"matchParent\",\"fontSize\":10,\"fontWeight\":500,\"textAlign\":\"start\",\"maxLines\":1,\"textOverflow\":\"ellipsis\",\"fontColor\":\"@theme:primary/1\"}},{\"id\":\"details_item1\",\"component\":\"Column\",\"children\":[\"details_item1_label_slot\",\"details_item1_value_slot\"],\"itemMargin\":2,\"styles\":{\"height\":\"matchParent\",\"backgroundColor\":\"@theme:panel/1\",\"padding\":{\"left\":8,\"right\":8},\"borderRadius\":16,\"alignItems\":\"start\",\"justifyContent\":\"center\",\"layoutWeight\":1,\"flexShrink\":1,\"constraintSize\":{\"minWidth\":64,\"minHeight\":0}}},{\"id\":\"details_item1_label_slot\",\"component\":\"Row\",\"children\":[\"details_item1_label\"],\"styles\":{\"width\":\"matchParent\",\"height\":18,\"alignItems\":\"center\",\"justifyContent\":\"start\",\"flexShrink\":0},\"itemMargin\":0},{\"id\":\"details_item1_label\",\"component\":\"Text\",\"content\":\"状态\",\"styles\":{\"width\":\"matchParent\",\"fontSize\":12,\"fontWeight\":700,\"textAlign\":\"start\",\"maxLines\":1,\"textOverflow\":\"ellipsis\",\"fontColor\":\"@theme:primary/1\"}},{\"id\":\"details_item1_value_slot\",\"component\":\"Row\",\"children\":[\"details_item1_value\"],\"styles\":{\"width\":\"matchParent\",\"height\":16,\"alignItems\":\"center\",\"justifyContent\":\"start\",\"flexShrink\":0},\"itemMargin\":0},{\"id\":\"details_item1_value\",\"component\":\"Text\",\"content\":\"正常\",\"styles\":{\"width\":\"matchParent\",\"fontSize\":10,\"fontWeight\":500,\"textAlign\":\"start\",\"maxLines\":1,\"textOverflow\":\"ellipsis\",\"fontColor\":\"@theme:primary/1\"}},{\"id\":\"summary\",\"component\":\"Column\",\"children\":[\"summary_item0\",\"summary_item1\"],\"itemMargin\":8,\"styles\":{\"width\":\"matchParent\",\"height\":64,\"alignItems\":\"start\"}},{\"id\":\"summary_item0\",\"component\":\"Row\",\"children\":[\"summary_item0_text\"],\"styles\":{\"width\":\"matchParent\",\"height\":28,\"padding\":{\"left\":12,\"right\":12},\"borderRadius\":8,\"backgroundColor\":\"@theme:panel/1\",\"alignItems\":\"center\"},\"itemMargin\":0},{\"id\":\"summary_item0_text\",\"component\":\"Text\",\"content\":\"项目例会\",\"styles\":{\"width\":\"matchParent\",\"fontSize\":12,\"fontWeight\":400,\"fontColor\":\"@theme:primary/1\",\"maxLines\":1,\"textOverflow\":\"clip\"}},{\"id\":\"summary_item1\",\"component\":\"Row\",\"children\":[\"summary_item1_text\"],\"styles\":{\"width\":\"matchParent\",\"height\":28,\"padding\":{\"left\":12,\"right\":12},\"borderRadius\":8,\"backgroundColor\":\"@theme:panel/1\",\"alignItems\":\"center\"},\"itemMargin\":0},{\"id\":\"summary_item1_text\",\"component\":\"Text\",\"content\":\"需求讨论\",\"styles\":{\"width\":\"matchParent\",\"fontSize\":12,\"fontWeight\":400,\"fontColor\":\"@theme:primary/1\",\"maxLines\":1,\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{}}}}"
+  },
+  "cases": [
+    {
+      "id": "gradient-blue",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "007b251f65109123c53e6ea7c0b55b7555e78fa0f3f84187e50d5558ebaba5cc"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "c4ab77ccdf889197a70a5378c3eee2714d28bc61a8c8ee5c13a366f4e700a5f2"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "4d663213302f0c42f7c9bfc16c75ac0ad3924f8cd79e6bbca062ea3f661de320"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "fde018b943910b96400899ed77f45fa9abf57677e0148e479403320ad28e3e4f"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "7007df2d2e146e7a842a663cc260761f2fe099782ac049a03cc62a62449fdcf2"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "e8f38d86fb4d2dff39c37f453af25b52f911606b326356d8212e64431a1394a3"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x2",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "9260d3d120d7473c0a383f6607fbb88ebca41a14a5d9d021b8bb720887287fb1"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "c94a5341f562329e7ae630705dbaa841d5993bfc535c63ecee8c01af3042d119"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "c4ab77ccdf889197a70a5378c3eee2714d28bc61a8c8ee5c13a366f4e700a5f2"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "4d663213302f0c42f7c9bfc16c75ac0ad3924f8cd79e6bbca062ea3f661de320"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "fde018b943910b96400899ed77f45fa9abf57677e0148e479403320ad28e3e4f"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "7007df2d2e146e7a842a663cc260761f2fe099782ac049a03cc62a62449fdcf2"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "e8f38d86fb4d2dff39c37f453af25b52f911606b326356d8212e64431a1394a3"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x2",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "4e01c72e2dfceb01ada0d01edbb2f9cd54f644f741d3aec33292aedf2ff0fd78"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "603511043c03a9b07e735fca18a9c94280c3119ee3ead711b9016cc04a894eb9"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "c4ab77ccdf889197a70a5378c3eee2714d28bc61a8c8ee5c13a366f4e700a5f2"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "4d663213302f0c42f7c9bfc16c75ac0ad3924f8cd79e6bbca062ea3f661de320"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "fde018b943910b96400899ed77f45fa9abf57677e0148e479403320ad28e3e4f"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "7007df2d2e146e7a842a663cc260761f2fe099782ac049a03cc62a62449fdcf2"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "e8f38d86fb4d2dff39c37f453af25b52f911606b326356d8212e64431a1394a3"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x2",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "b0a3b85c4a46d50bbc7987b11b28ec0544e58d81c16b2d80097d224f10d364b5"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "ee146320c4636e18f2c55c56068d79684b70d3fc489c2d9f9196970c6cb02144"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "c4ab77ccdf889197a70a5378c3eee2714d28bc61a8c8ee5c13a366f4e700a5f2"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "4d663213302f0c42f7c9bfc16c75ac0ad3924f8cd79e6bbca062ea3f661de320"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "fde018b943910b96400899ed77f45fa9abf57677e0148e479403320ad28e3e4f"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "7007df2d2e146e7a842a663cc260761f2fe099782ac049a03cc62a62449fdcf2"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "e8f38d86fb4d2dff39c37f453af25b52f911606b326356d8212e64431a1394a3"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x2",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "da6b82b5db7f27791b54e6d9dde1017d3f518a50070299bf5d76824bd551bb97"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "31f193863002d8d0d0c2829f76cfec535fcdabe1f0a33ad5e3b277b59a73fc46"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "c4ab77ccdf889197a70a5378c3eee2714d28bc61a8c8ee5c13a366f4e700a5f2"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "4d663213302f0c42f7c9bfc16c75ac0ad3924f8cd79e6bbca062ea3f661de320"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "fde018b943910b96400899ed77f45fa9abf57677e0148e479403320ad28e3e4f"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "7007df2d2e146e7a842a663cc260761f2fe099782ac049a03cc62a62449fdcf2"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "e8f38d86fb4d2dff39c37f453af25b52f911606b326356d8212e64431a1394a3"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x2",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "c349b56e56efd4e169f783b517ceb9e73c33ed644e44894af116f905256585f0"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "53a4a8b76520dd4b0e51ecdb81fc0e1910ac7cdbb169cbd702f16aa3b6a672e8"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "c4ab77ccdf889197a70a5378c3eee2714d28bc61a8c8ee5c13a366f4e700a5f2"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "4d663213302f0c42f7c9bfc16c75ac0ad3924f8cd79e6bbca062ea3f661de320"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "fde018b943910b96400899ed77f45fa9abf57677e0148e479403320ad28e3e4f"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "7007df2d2e146e7a842a663cc260761f2fe099782ac049a03cc62a62449fdcf2"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x2",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "e8f38d86fb4d2dff39c37f453af25b52f911606b326356d8212e64431a1394a3"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x2",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "0f65932746fb656068399bb8330fd99f6d9de04a9cdd88bdfcf558bd5127a33f"
+    },
+    {
+      "id": "fusion-ball-battery-teal",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "973b3787b4381aa6b7ec93473f992cb0739bcf67bd2c6f8f7aa3fbcab12cd7bb"
+    },
+    {
+      "id": "fusion-ball-schedule-cool",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "6f66cc64b186a884bb4772d3738713fe5d15034fece2563acfc941e51b16d96a"
+    },
+    {
+      "id": "fusion-ball-schedule-warm",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "8fcfec383773186e0ead0fadc4dac0b1a47f2d8f4ec1b093b9f2d738a3782400"
+    },
+    {
+      "id": "fusion-ball-sleep-violet",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "b3593c7f76cee5c02ad0b834229899d355f0d2f9c849a8f5fb39c1a511d42fe8"
+    },
+    {
+      "id": "fusion-ball-sport-orange",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "19c138b92cdd7d4714de6596f4742dd0b185c7b38c3127036f40a0392196af0d"
+    },
+    {
+      "id": "photo-rain-ink-square",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "73d49b6ef4077a453a672e245faa8991028b2b10490b66c225cec4225218511a"
+    },
+    {
+      "id": "photo-sunflower-blue",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "c5dd76b7d882712fd7785580f55dd29eba7b03612f4db22b4a55d800eaa34a53"
+    },
+    {
+      "id": "photo-vinyl-dark-square",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "e66d0774607b6d8dc079c4dfb5454cd6c482a4937b4a1e104487acdc2b95d0e1"
+    },
+    {
+      "id": "photo-balloon-sky",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "eaff9652a93819e63825d7855973482924065975e81be0f2ffd632b9b30a11ac"
+    },
+    {
+      "id": "photo-music-square-to-wide",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "c881c25f19c05933e6acd820f6602b273e0074b38c44928cfd3fe86efb7f3a53"
+    },
+    {
+      "id": "photo-countdown-square-to-wide",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "380f1118fbaee68d3711923af74bb6cb1ba99cd00e6acd28fd86c022075c70fc"
+    },
+    {
+      "id": "photo-sleep-square-to-wide",
+      "size": "2x2",
+      "overrides": {},
+      "digest": "2b3976a89ad28e995a9799f519cba098f170c29d3bb2fabfd7bfb1c02f2781dd"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "e9c8a33a1079e0e9d70bde3bf39ed834247c7981b4b23dc71ac2dff9e0c1ca76"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "1a9821e7f3dff0f3b7288a33a66514bc0d07e8b8e898af973f150a21280022c1"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "aa4a6c163739c1dd0eb315350fe1cabc12d913a837e7b226d376dbd5e36dc2a3"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "b42f8ff5411f40132e195d218322641bb58d9392d5877c83ee2ee271f3754458"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "012e8e777507973692fd730361295b03247fc95d3109af4dc29f8b7b368e270e"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "d89ad648bc5b322506867b6a828a85bb3f7fa7e5b18af9734d67fca8c3adcbd8"
+    },
+    {
+      "id": "gradient-blue",
+      "size": "2x4",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "1e0e178ef5a1e3d3708a769e79c154ea279546fbbe0894649badaea5901ae2da"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "81f59790fbb0fd46e60eaf81e48270ced366039c900b07baacbf5b25b80489c5"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "1a9821e7f3dff0f3b7288a33a66514bc0d07e8b8e898af973f150a21280022c1"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "aa4a6c163739c1dd0eb315350fe1cabc12d913a837e7b226d376dbd5e36dc2a3"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "b42f8ff5411f40132e195d218322641bb58d9392d5877c83ee2ee271f3754458"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "012e8e777507973692fd730361295b03247fc95d3109af4dc29f8b7b368e270e"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "d89ad648bc5b322506867b6a828a85bb3f7fa7e5b18af9734d67fca8c3adcbd8"
+    },
+    {
+      "id": "gradient-purple",
+      "size": "2x4",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "2ef09e48014d12f1db3c3dcb39b583b22de13014c0c51d5ccd8f520a67f589fe"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "c3a12e0270c22d8d2e49a1e9c2f052a957997ecb0f43c841450ea089c434111f"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "1a9821e7f3dff0f3b7288a33a66514bc0d07e8b8e898af973f150a21280022c1"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "aa4a6c163739c1dd0eb315350fe1cabc12d913a837e7b226d376dbd5e36dc2a3"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "b42f8ff5411f40132e195d218322641bb58d9392d5877c83ee2ee271f3754458"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "012e8e777507973692fd730361295b03247fc95d3109af4dc29f8b7b368e270e"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "d89ad648bc5b322506867b6a828a85bb3f7fa7e5b18af9734d67fca8c3adcbd8"
+    },
+    {
+      "id": "gradient-warm",
+      "size": "2x4",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "f0577b8ba9f369acd82c73d55f7abb47a512d87aa1ca8972bd4e9daa7716926f"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "823733e8ab7999d38fea903c3dae03e371c7cf193ffd3247cc82846d6c1a5c92"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "1a9821e7f3dff0f3b7288a33a66514bc0d07e8b8e898af973f150a21280022c1"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "aa4a6c163739c1dd0eb315350fe1cabc12d913a837e7b226d376dbd5e36dc2a3"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "b42f8ff5411f40132e195d218322641bb58d9392d5877c83ee2ee271f3754458"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "012e8e777507973692fd730361295b03247fc95d3109af4dc29f8b7b368e270e"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "d89ad648bc5b322506867b6a828a85bb3f7fa7e5b18af9734d67fca8c3adcbd8"
+    },
+    {
+      "id": "solid-blue",
+      "size": "2x4",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "a7912295780d16173701cdc0bbd672bb4052c1a8e4b9b6beb019814304cd8eae"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "24ee19095eab7b1f0319d9e49556939b2aa22033ee7a29a5df5a1e78b2088b0b"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "1a9821e7f3dff0f3b7288a33a66514bc0d07e8b8e898af973f150a21280022c1"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "aa4a6c163739c1dd0eb315350fe1cabc12d913a837e7b226d376dbd5e36dc2a3"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "b42f8ff5411f40132e195d218322641bb58d9392d5877c83ee2ee271f3754458"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "012e8e777507973692fd730361295b03247fc95d3109af4dc29f8b7b368e270e"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "d89ad648bc5b322506867b6a828a85bb3f7fa7e5b18af9734d67fca8c3adcbd8"
+    },
+    {
+      "id": "solid-purple",
+      "size": "2x4",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "7366c045b35f801e2f0fd68b8aae4e331b670b39b4b7f9f1b7485043977d1b09"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "2989c6404e898713a5db08a72ab7d4ea4003b11fb4a7c3be79491baefc1d3cb6"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFF0000"
+        }
+      },
+      "digest": "1a9821e7f3dff0f3b7288a33a66514bc0d07e8b8e898af973f150a21280022c1"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFE5EDFE"
+        }
+      },
+      "digest": "aa4a6c163739c1dd0eb315350fe1cabc12d913a837e7b226d376dbd5e36dc2a3"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FFFFFFFF"
+        }
+      },
+      "digest": "b42f8ff5411f40132e195d218322641bb58d9392d5877c83ee2ee271f3754458"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#FF000000"
+        }
+      },
+      "digest": "012e8e777507973692fd730361295b03247fc95d3109af4dc29f8b7b368e270e"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x4",
+      "overrides": {
+        "background": {
+          "color": "#33123456"
+        }
+      },
+      "digest": "d89ad648bc5b322506867b6a828a85bb3f7fa7e5b18af9734d67fca8c3adcbd8"
+    },
+    {
+      "id": "solid-warm",
+      "size": "2x4",
+      "overrides": {
+        "text": {
+          "color": "#FF123456"
+        }
+      },
+      "digest": "80cf33dee0ca03dc62a5eacb2c9f398847230666ebe5886e968d0246cb6f0665"
+    },
+    {
+      "id": "photo-subjectless-w04",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "c043b1de60f08246ab9336c49d3b424827d453ab2041ccb985ac874dcf4bc2ac"
+    },
+    {
+      "id": "photo-subjectless-b05",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "03de9660c8d2f568b6edac6df92c43050a1a05cedf7ec573eadace1f22beba05"
+    },
+    {
+      "id": "photo-subjectless-h04",
+      "size": "2x4",
+      "overrides": {},
+      "digest": "d3ad24932c767bf7299fc3da4af24e9175b647571f4a15e02ca66974d6ee355d"
+    }
+  ],
+  "oldManifest": {
+    "version": 1,
+    "matching": {
+      "dynamicTextReservation": {
+        "mode": "contract-or-estimated"
+      }
+    },
+    "photos": [
+      {
+        "id": "photo-rain-ink-square",
+        "size": "2x2",
+        "business": "rain",
+        "subjectPosition": "右上",
+        "subjectBounds": [
+          0.46,
+          0.08,
+          0.54,
+          0.6
+        ],
+        "subjectRegions": [
+          [
+            0.9,
+            0.08,
+            0.1,
+            0.1
+          ],
+          [
+            0.8,
+            0.18,
+            0.2,
+            0.1
+          ],
+          [
+            0.7,
+            0.28,
+            0.3,
+            0.1
+          ],
+          [
+            0.6,
+            0.38,
+            0.4,
+            0.1
+          ],
+          [
+            0.51,
+            0.48,
+            0.49,
+            0.1
+          ],
+          [
+            0.46,
+            0.58,
+            0.54,
+            0.1
+          ]
+        ],
+        "description": "恢复原始右上大雨伞，伞面与伞骨以分段区域标注为禁放主体；左侧及底部深色雨幕可放内容，雨丝水滴是背景纹理，底部文字绘制在图片上方。固定构图禁止运行时移动。",
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_rain_ink_top_right_square.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      {
+        "id": "photo-sunflower-blue",
+        "size": "2x2",
+        "business": "weather",
+        "subjectPosition": "右上",
+        "subjectBounds": [
+          0.31,
+          0.1,
+          0.69,
+          0.69
+        ],
+        "subjectRegions": [
+          [
+            0.67,
+            0.1,
+            0.29,
+            0.1
+          ],
+          [
+            0.61,
+            0.2,
+            0.37,
+            0.07
+          ],
+          [
+            0.57,
+            0.27,
+            0.43,
+            0.08
+          ],
+          [
+            0.52,
+            0.35,
+            0.48,
+            0.07
+          ],
+          [
+            0.4,
+            0.42,
+            0.6,
+            0.105
+          ],
+          [
+            0.38,
+            0.525,
+            0.62,
+            0.025
+          ],
+          [
+            0.35,
+            0.55,
+            0.65,
+            0.03
+          ],
+          [
+            0.31,
+            0.58,
+            0.69,
+            0.06
+          ],
+          [
+            0.31,
+            0.64,
+            0.42,
+            0.045
+          ],
+          [
+            0.39,
+            0.685,
+            0.31,
+            0.025
+          ],
+          [
+            0.91,
+            0.64,
+            0.09,
+            0.08
+          ],
+          [
+            0.39,
+            0.71,
+            0.31,
+            0.04
+          ],
+          [
+            0.5,
+            0.75,
+            0.06,
+            0.04
+          ]
+        ],
+        "description": "用户确认的斜向缩小向日葵，花朵由右上伸向中下部；花瓣、花盘、茎叶按分段主体区域避让，外接矩形不是整块禁放。左侧及底部蓝天可放白字，右下保留图标按钮空位；胶囊整体豁免，图标按钮内容仍正常校验。纯背景不含文字和按钮，运行时不移动构图。",
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_sunflower_diagonal_clear_button_v5.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      {
+        "id": "photo-vinyl-dark-square",
+        "size": "2x2",
+        "business": "music",
+        "subjectPosition": "右",
+        "subjectBounds": [
+          0.59,
+          0.24,
+          0.41,
+          0.76
+        ],
+        "description": "右侧唱盘与唱臂整体为禁放主体，顶部和左侧为深色底，融球白色字系。胶囊按钮整体按既定规则豁免。",
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_vinyl_right_v3.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      {
+        "id": "photo-balloon-sky",
+        "size": "2x2",
+        "business": "countdown",
+        "subjectPosition": "右上",
+        "subjectBounds": [
+          0.52,
+          0.07,
+          0.42,
+          0.53
+        ],
+        "description": "右上热气球与吊篮，主体区域禁放正文；左侧和底部为蓝灰天空，融球白色字系。构图已烘焙，禁止运行时移动或裁剪。",
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_balloon_topright_v4.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      }
+    ],
+    "subjectlessWidePhotos": [
+      {
+        "id": "photo-subjectless-w04",
+        "size": "2x4",
+        "business": "weather",
+        "composition": "subjectless",
+        "description": "W04 蓝色薄云纹，中深色低对比无主体底图，适合融球白字层级；全画布内容可覆盖，不改变布局。",
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_subjectless_w04_white_text_v2.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      {
+        "id": "photo-subjectless-b05",
+        "size": "2x4",
+        "business": "battery",
+        "composition": "subjectless",
+        "description": "B05 原版青绿纹理，按用户截图恢复；手机电量业务无主体底图，沿用融球白字层级与白色20%底托，不改变布局。",
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_subjectless_b05.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      {
+        "id": "photo-subjectless-h04",
+        "size": "2x4",
+        "business": "sleep",
+        "composition": "subjectless",
+        "description": "H04 睡眠静紫，无主体纹理，全画布内容可覆盖，不改变布局。",
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_subjectless_h04.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      }
+    ],
+    "squareExpansions": [
+      {
+        "id": "photo-music-square-to-wide",
+        "kind": "photo",
+        "sourceSize": "2x2",
+        "size": "2x4",
+        "business": "music",
+        "composition": "square-left",
+        "description": "原2x2音乐内容完整放左半区，右半区为墨镜人物；不移动原内容，不新增数据。",
+        "subjectPosition": "右",
+        "subjectBounds": [
+          0.53,
+          0,
+          0.47,
+          1
+        ],
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_expansion_music_right_v1.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      {
+        "id": "photo-countdown-square-to-wide",
+        "kind": "photo",
+        "sourceSize": "2x2",
+        "size": "2x4",
+        "business": "countdown",
+        "composition": "square-left",
+        "description": "原2x2倒计时内容完整放左半区，右半区为小鸟与树枝；左右各半，背景允许少量拉伸，不裁切或移动主体。",
+        "subjectPosition": "右",
+        "subjectBounds": [
+          0.5,
+          0,
+          0.5,
+          1
+        ],
+        "contentTone": "light",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_expansion_countdown_right_v1.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      {
+        "id": "photo-sleep-square-to-wide",
+        "kind": "photo",
+        "sourceSize": "2x2",
+        "size": "2x4",
+        "business": "sleep",
+        "composition": "square-left",
+        "description": "原2x2睡眠内容完整放左半区，右半区为月亮；左右各半，背景允许少量拉伸，不裁切或移动主体。",
+        "subjectPosition": "右",
+        "subjectBounds": [
+          0.53,
+          0,
+          0.47,
+          1
+        ],
+        "contentTone": "dark",
+        "palette": "fusionDark",
+        "src": "resources/base/media/bg_expansion_sleep_right_v1.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      }
+    ]
+  }
+}

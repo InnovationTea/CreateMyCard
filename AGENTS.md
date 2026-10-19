@@ -46,6 +46,10 @@
 
 - 推导式只用于一层 `for` 和最多一个简单 `if`。出现多个 `for`、多个 `if`、跨行复杂条件、赋值表达式
   `:=`、复杂调用与判断组合，或同时承担排序、去重、状态更新时，必须展开为显式循环；测试代码同样适用。
+- 遵守 `G.EXP.04`，每个 `for ... in ...`、`if ...` 子句必须完整写在同一行；即使只有一个简单
+  `for`，把 `in` 后的元组换到下一行也会告警。固定少量 schema 字段优先写显式字典，动态字段用显式循环，
+  不以跨行推导式规避行宽。2026-10-17 的主题注册表 frame 字段和 ballColors 字段均按此整改；
+  `test_theme_codecheck_regressions.py` 检查注册表的推导式子句及 schema 等价性。
 - 展开 `dict.fromkeys(generator)` 等代码时必须保留原有顺序和去重语义；不能直接改成无序 `set`。
 - 除非当前作用域已显式证明键存在，否则不得直接使用 `mapping[key]`。可选键使用 `get()` 并检查结果；
   必选键使用 `get()` 后显式 `raise`，测试中使用 `get()` 后显式 `assert`。
@@ -58,6 +62,8 @@
 
 - 遵守 `G.VAR.01`。带类型标注的变量和数据类字段使用同类型初始值，例如 `float` 字段使用 `0.0`，
   避免生命周期内由 `int` 隐式变为 `float`。
+- 遵守 `G.VAR.03`。局部变量和参数不得遮蔽外部作用域的标识符，包括导入的 `field`、`role`；
+  改用 `schema_field`、`color_role` 等准确命名。
 - 遵守 `G.ERR.09`。同一个 `except` 元组不得同时捕获父异常和子异常；例如已捕获 `OSError` 时，不再
   重复列出其子类 `TimeoutError`。
 - 遵守 `G.ERR.07`。不得使用 `except` 后直接 `pass`；可选流程发生异常时也要记录异常类型和原因，
@@ -78,6 +84,10 @@
 推导式、未保护字典访问、多类型返回、异常处理、生成源，以及顺序、去重、返回类型和业务语义是否保持不变。
 
 ## 代码修改后的验证与汇报
+
+- 云侧不知道 `matchParent` 对应的真实卡片宽高。主题配置和运行匹配不得硬编码机型或参考卡片
+  像素宽高，也不得按2x2/2x4猜测；背景用 matchParent/百分比和归一化区域，尺寸由端侧提供。
+  开发态渲染只能使用调用者显式提供的测试尺寸，不得把该结果作为真机避让通过的证据。
 
 - 只要发生代码修改，就必须在交付或提交前主动完成验证，不得等用户再次要求测试。
 - Python 代码的最低验证集包括：对修改文件运行 Ruff、运行与改动行为直接相关的单元测试，以及执行
@@ -104,10 +114,12 @@
 - `docs/compact-dsl-validator-refactor/Compact_DSL校验器重构方案_v3.md`：Compact 校验器专项重构及迁移验收依据；配套规则分类清单维护检查项归属。
 - `skills/harmony-card-generation-online/`：按照目标链路设计的在线云侧编排 Skill，需随方案持续优化。
 - `skills/harmony-card-generation-offline/`：离线直出 Skill，用于不走云侧微服务时由主 Agent 端到端生成、修复、评审或解释本地 `genui` 与 `cardspec` 产物；只能作为兜底、调试和历史视觉参考，不作为在线链路协议依据。
-- `skills/harmony-card-template-generation/`：独立的模板驱动生成 Skill，由主 Agent 从固定布局和受控组件变体中选择一个模板并生成本地 `genui` 与 `cardspec`；不调用在线或离线生成 Skill。
-- `skills/harmony-card-generation-offline/reference/capability/event-capability/click-event.md`：事件能力清单。
-- `skills/harmony-card-generation-offline/reference/capability/data-capability/`：端侧数据能力清单，持续扩充中。
-- `skills/harmony-card-generation-offline/reference/design/asset-library.md`：端侧素材库清单。
+- `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/`：Fusion 提示词源文件与运行时布局合同，需与云侧方案和实现同步维护。
+- `widget_service/cloud/services/compact_*.py`：Compact 计划、组合、布局与修复实现；校验逻辑仍按专项方案归入校验模块。
+- `debug_tools/batch_testing/` 与 `debug_tools/platform/`：批跑后端与调试平台前端；架构和运行口径分别见调试平台技术方案与运行规范。
+- `debug_tools/Datasets/` 与 `widget_service/tests/`：批跑数据集与微服务回归测试，按改动影响选择验证范围。
+- `widget_service/cloud/data/capabilities/`：云侧版本化数据、事件与素材能力注册表及版本范围配置；在线链路以此作为能力配置来源。
+- `skills/harmony-card-generation-offline/reference/`：离线能力与设计参考资料，仅用于离线流程和历史参考。
 
 ## 优先级
 
@@ -116,8 +128,9 @@
 1. `docs/云侧方案设计.md`
 2. 本文件 `AGENTS.md`
 3. `skills/harmony-card-generation-online/` 下的在线云侧编排 Skill 实现与参考资料
-4. `skills/harmony-card-template-generation/` 下的独立模板生成方案、正式模板和校验配置
-5. `skills/harmony-card-generation-offline/` 下的离线 Skill、历史模板和样例 `.dat`
+4. `skills/harmony-card-generation-offline/` 下的离线 Skill、历史模板和样例 `.dat`
+
+当前维护的生成 Skill 为在线和离线两套；已移除的设计生成、独立模板生成 Skill 不再作为实现入口或协议依据。
 
 历史模板只能作为视觉参考，不能作为协议依据。模板中出现的旧尺寸、`theme`、emoji、网络图、未声明事件或不合规属性，不得复制到新实现。
 

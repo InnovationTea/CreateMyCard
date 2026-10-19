@@ -12,6 +12,7 @@ from services.compact_high_level_components import (
     CompactRow,
     ComponentRow,
 )
+from services.theme_style_roles import in_layout_phase
 
 SEMANTIC_LAYOUT_TYPES = frozenset({"Layout", "Region", "Group"})
 LAYOUT_IDS = frozenset({
@@ -313,8 +314,11 @@ class _Compiler:
         sub_id = self.generated(identifier, "sub")
         outer_props = {"width": "matchParent", "height": "matchParent", "layoutWeight": 1}
         if compact:
-            outer_props.update(padding=self.panel_padding, backgroundColor="#99FFFFFF",
-                               borderRadius=16, clip=True)
+            outer_props.update(padding=self.panel_padding, borderRadius=16, clip=True)
+            if in_layout_phase():
+                outer_props["surfaceRole"] = "panel"
+            else:
+                outer_props["backgroundColor"] = "#99FFFFFF"
         self.add(identifier, "Column", outer_props, (sub_id,), identifier)
         sub_props = {"width": "matchParent", "height": "matchParent", "alignItems": "start",
                      "justifyContent": "start", "itemMargin": gap}
@@ -637,8 +641,16 @@ class _SmallCompiler(_Compiler):
         if root.component_type != "Layout" or roles is None:
             _fail("root", "2x2 必须选择已登记的 S 系列 Layout")
         self.props(root, _BACKGROUND_PROPS | {"layout", "variant", "design", "onClick"})
+        default_variant = "standard"
+        if layout == "S-content-dual-action" and len(root.children) == 2:
+            default_variant = "actions-only"
+        variant = root.props.get("variant", default_variant)
+        actions_only = layout == "S-content-dual-action" and variant == "actions-only"
         count, description = roles
         counts = {count, count + 1} if layout == "S-title-dual-column-action" else {count}
+        if actions_only:
+            counts = {2}
+            description = "[PillButton, PillButton]"
         if len(root.children) not in counts:
             _fail(
                 "root",
@@ -650,7 +662,8 @@ class _SmallCompiler(_Compiler):
         patterns = registered.get("patterns", [])
         if not patterns:
             raise ValueError("已登记小卡布局的几何定义不完整")
-        rules = patterns[0].get("rules", [])
+        pattern_index = 1 if actions_only else 0
+        rules = patterns[pattern_index].get("rules", [])
         if not rules:
             raise ValueError("已登记小卡布局的规则定义不完整")
         root_design = rules[0].get("props", {})
@@ -659,8 +672,9 @@ class _SmallCompiler(_Compiler):
         for key in _BACKGROUND_PROPS | {"design", "onClick"}:
             if key in root.props:
                 props[key] = deepcopy(root.props[key])
-        variant = root.props.get("variant", "standard")
         allowed = {"standard"}
+        if layout == "S-content-dual-action":
+            allowed.add("actions-only")
         if layout in {"S-title-content-action", "S-title-primary-secondary-action"}:
             allowed.add("dense")
         if layout == "S-title-content-action":
@@ -679,7 +693,8 @@ class _SmallCompiler(_Compiler):
             self.action(children[-1], kind)
             expected_actions.add(children[-1])
         if layout == "S-content-dual-action":
-            for child in children[1:]:
+            action_children = children if actions_only else children[1:]
+            for child in action_children:
                 self.action(child)
                 expected_actions.add(child)
         if layout == "S-title-dual-column-action" and len(children) == 4:
@@ -779,9 +794,10 @@ class _SmallCompiler(_Compiler):
             body = self.body("root", (primary, bottom), 8, {})
             children = (children[0], body)
         elif layout == "S-content-dual-action":
-            content = self.wrap("root", "content", children[0],
-                                {"layoutWeight": 1, "flexShrink": 0})
-            children = (content, *children[1:])
+            if not actions_only:
+                content = self.wrap("root", "content", children[0],
+                                    {"layoutWeight": 1, "flexShrink": 0})
+                children = (content, *children[1:])
         elif layout == "S-dual-info":
             for child in children:
                 if self.node(child).component_type != "InfoBlock":

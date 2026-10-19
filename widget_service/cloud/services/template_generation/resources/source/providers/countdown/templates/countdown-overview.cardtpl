@@ -4,28 +4,28 @@ data = {
 }
 
 Column(
-  { "_advancedComponent": "CountdownOverview", "itemMargin": 4, "width": "matchParent", "height": "matchParent", "justifyContent": "center", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-  #if props.title
-    Text(
-      props.title,
-      { "width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-    )
-  #else
-    Text(
-      "倒计时",
-      { "width": "matchParent", "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-    )
-  #endif
-  Row(
-    { "width": "matchParent", "margin": { "top": 4 }, "itemMargin": 0, "justifyContent": "center", "alignItems": "bottom", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+  { "_advancedComponent": "CountdownOverview", "width": "matchParent", "height": "matchParent", "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+  Column(
+    { "width": "matchParent", "justifyContent": "start", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+    #if props.title
+      Text(
+        props.title,
+        { "width": "matchParent", "height": 24, "margin": { "top": 4 }, "fontSize": 12, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      )
+    #else
+      Text(
+        "还剩",
+        { "width": "matchParent", "height": 24, "margin": { "top": 4 }, "fontSize": 12, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      )
+    #endif
     Text(
       data.days,
-      { "fontSize": 40, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      { "height": 58, "margin": { "top": 8 }, "fontSize": 48, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   ),
   Text(
     "天",
-    { "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+    { "height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
   )
 )
 #End

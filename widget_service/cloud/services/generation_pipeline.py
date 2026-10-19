@@ -81,6 +81,7 @@ class DslProcessingContext:
     allowed_omitted_plan_fact_indexes: tuple[int, ...] = ()
     plan_information_coverage_as_warning: bool = False
     repair_context: RepairGuidanceContext | None = None
+    colorless_layout: bool = False
 
 
 @dataclass(frozen=True)
@@ -160,9 +161,23 @@ class DesignCompactProcessor:
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
+        from services.theme_style_roles import layout_phase
+
+        with layout_phase(context.colorless_layout, context.task_spec):
+            return self._process(source_dsl, context)
+
+    def _process(
+        self, source_dsl: str, context: DslProcessingContext,
+    ) -> DslProcessingResult:
         binding_repair_started_at = time.perf_counter()
+        from services.layout_theme_contract import strip_source_colors
+        from services.theme_style_roles import in_layout_phase
+
         original_source_dsl = source_dsl
         try:
+            if in_layout_phase():
+                source_dsl = strip_source_colors(source_dsl)
+                original_source_dsl = source_dsl
             source_dsl = repair_compact_dsl_safe_structure(
                 source_dsl,
                 size=context.size,
@@ -177,6 +192,7 @@ class DesignCompactProcessor:
             )
             expanded_source, layout_origins = expand_compact_semantic_layout(
                 source_dsl, size=context.size,
+                skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
             if layout_origins:
                 trace_step(
@@ -252,9 +268,20 @@ class DesignCompactProcessor:
             context.task_spec,
             context.allowed_omitted_plan_fact_indexes,
         )
-        plan_issues = self._validation_failure(
-            source_dsl, plan_errors, code="COMPACT_PLAN_COVERAGE_FAILED",
-        ).issues
+        duplicate_fact_context: dict[str, Any] = {}
+        if plan_coverage.duplicate_facts:
+            duplicate_fact_context["duplicateFacts"] = list(
+                plan_coverage.duplicate_facts
+            )
+        plan_issues = tuple(
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_PLAN_COVERAGE_FAILED",
+                message=message,
+                prompt_context=(duplicate_fact_context if index == 0 else {}),
+            )
+            for index, message in enumerate(plan_errors)
+        )
         plan_warning_issues = tuple(
             QualityIssue(
                 stage="validation",

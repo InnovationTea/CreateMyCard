@@ -14,6 +14,7 @@ from services.template_generation.engine.advanced.content_selectors import (
     extract_bluetooth_device_overview_facts,
 )
 
+from .action_labels import action_label_candidate, action_label_request, parameter_action_label
 from .business_actions import supports_business_action
 from .generated.prompts import BODY_SYSTEM_PROMPT_KERNEL, UX_MIXED_SYSTEM_PROMPT_KERNEL
 from .models import (
@@ -58,6 +59,7 @@ _ACTION_LABELS = {
     "event.clean.memory": "一键清理",
     "event.enter.meeting": "一键入会",
     "event.open.settings.dnd": "免打扰设置",
+    "event.open.settings.dndMode": "免打扰设置",
     "event.open.settings.bluetooth": "蓝牙设置",
     "event.open.settings.battery": "电池设置",
     "event.open.settings.batteryHealth": "电池健康",
@@ -72,11 +74,30 @@ _ACTION_LABELS = {
     "event.viewCalendarEvent": "查看日程",
     "event.startNavigate": "开始导航",
     "event.setPowerSavingMode": "省电模式",
+    "event.open.settings.sleepMode": "睡眠模式设置",
+    "event.open.settings.studyMode": "学习模式设置",
+    "event.open.settings.mobileNetwork": "移动网络设置",
+    "event.open.settings.wifi": "Wi-Fi设置",
+    "event.open.settings.mobileData": "移动数据设置",
+    "event.open.settings.simManagement": "SIM卡管理",
+    "event.open.settings.hotspot": "个人热点设置",
+    "event.open.settings.dataUsage": "流量管理",
+    "event.open.clock.worldClock": "世界时钟",
+    "event.open.clock.alarmTab": "闹钟设置",
+    "event.open.clock.stopwatch": "打开秒表",
+    "event.open.clock.timer": "打开计时器",
+    "event.open.health.sportsRecord": "运动记录",
+    "event.open.health.activityRecord": "活动记录",
+    "event.open.health.workoutDuration": "锻炼时长",
+    "event.open.settings.darkMode": "显示设置",
+    "event.openFlashlight": "打开手电筒",
+    "event.closeFlashlight": "关闭手电筒",
 }
 _ACTION_SUBTITLES = {
     "event.viewCalendarEvent": "日程详情",
     "event.open.clock.alarm": "闹钟应用",
     "event.open.settings.dnd": "勿扰模式",
+    "event.open.settings.dndMode": "勿扰模式",
     "event.enter.meeting": "加入会议",
     "event.startNavigate": "导航回家",
 }
@@ -141,7 +162,7 @@ def build_hybrid_prompt(
             *card_literals,
             *binding_argument_literals,
             *(str(fact.value) for fact in facts if isinstance(fact.value, str)),
-            *(_action_label(event) for event in task_spec.eventCandidates),
+            *_action_labels(task_spec),
             *(
                 subtitle
                 for subtitle in (_action_subtitle(event) for event in task_spec.eventCandidates)
@@ -263,6 +284,7 @@ def build_hybrid_prompt(
         ux_layout_root=bool(ux_layout_root_ids),
     )
     user_lines = [
+        *action_label_request(task_spec.userQuery, actions),
         f"card={json.dumps({'size': task_spec.size, 'theme': theme_id}, ensure_ascii=False)}",
         f"requestedTemplate={json.dumps(requested, ensure_ascii=False)}",
         f"cardComposition={json.dumps(card_composition, ensure_ascii=False)}",
@@ -316,8 +338,7 @@ def _card_composition_payload(
 ) -> dict[str, Any]:
     action_candidates = [
         {
-            "id": action.action_id,
-            "label": action.display_label,
+            **action_label_candidate(action, id_key="id"),
             "importance": action.importance,
             "materialHint": action.material_hint,
         }
@@ -445,7 +466,7 @@ def _system_prompt(
         action_rule = _ux_layout_action_rule(contract)
     elif content_actions:
         content_action_json = json.dumps(
-            [item.model_dump() for item in content_actions],
+            [action_label_candidate(item) for item in content_actions],
             ensure_ascii=False,
         )
         action_rule = (
@@ -458,7 +479,8 @@ def _system_prompt(
         )
     elif contract.action_bindings:
         action_rule = (
-            "card action 必须从 cardActionCandidates 的批准 label/id 对中选择；"
+            "card action 必须使用 cardActionCandidates 的批准 ID；有 label 时逐字使用，"
+            "labelPolicy=generate-from-request 时按动作文案规则生成 label；"
             "content 禁止 Button 和事件。"
         )
     else:
@@ -705,17 +727,15 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
     for item in contract.action_bindings:
         if item.action_id not in contract.content_action_ids:
             continue
-        candidate = {"actionId": item.action_id, "label": item.display_label}
-        if item.display_subtitle:
-            candidate["subtitle"] = item.display_subtitle
-        actions.append(candidate)
+        actions.append(action_label_candidate(item))
     if not actions:
         return "本次没有批准 Action；必须选择 actionPolicy=none/optional 的布局并省略 Action。"
     action_rule = (
         "layoutActionCandidates="
         + json.dumps(actions, ensure_ascii=False)
         + "；按所选布局的 Action 数量范围选择且不得重复 actionId；"
-        "PillAction@1 的 actionId/label 必须来自同一候选，只展示文本，禁止设置 icon；"
+        "PillAction@1 的 actionId/label 必须对应同一候选，只展示文本，禁止设置 icon；"
+        "候选有 label 时逐字使用；labelPolicy=generate-from-request 时按动作文案规则生成；"
         "IconAction@1 和 LargeIconAction@1 必须填写批准的 actionId/icon，"
         "图标从 actionIconCandidates 选择。"
         "CompactAction@1 省略 icon，不传图标素材，按钮只展示 label 文字。"
@@ -1098,14 +1118,14 @@ def _provider_variant_matches_trusted_state(
             return variant_name == f"{facts.state}Phone"
         return True
     if wire_id == "BluetoothDeviceOverview@1":
-        if variant_name == "musicCompact":
+        if variant_name == "musicSupport":
             # 纯歌单入口：无数据前提，也不要求耳机事实存在。
             return True
         facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         if facts is None:
             return False
-        if variant_name == "caseConnectionCompact":
-            # 仓连接 Compact：只依赖连接状态与耳机仓电量两个事实。
+        if variant_name == "connectionBatterySupport":
+            # 仓连接与电量 Support：只依赖连接状态与耳机仓电量两个事实。
             return facts.is_connected is not None and facts.case_battery_level is not None
         if variant_name in {
             "caseStatus",
@@ -1238,13 +1258,27 @@ def _unique(values: list[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(value for value in values if value))
 
 
-def _action_label(event: Any) -> str:
-    if getattr(event, "id", "") == "event.open.settings.parentControl":
-        return "管控时间"
-    display_label = getattr(event, "displayLabel", None)
-    if isinstance(display_label, str) and display_label.strip():
-        return display_label.strip()
-    return _ACTION_LABELS.get(getattr(event, "id", "") or "", "打开详情")
+def _action_label(event: Any) -> str | None:
+    event_id = getattr(event, "id", "") or ""
+    label: str | None = _ACTION_LABELS.get(event_id)
+    if label is None:
+        label = parameter_action_label(event_id, getattr(event, "args", None))
+    if event_id == "event.open.settings.parentControl":
+        label = "管控时间"
+    else:
+        display_label = getattr(event, "displayLabel", None)
+        if isinstance(display_label, str) and display_label.strip():
+            label = display_label.strip()
+    return label
+
+
+def _action_labels(task_spec: TaskSpec) -> list[str]:
+    labels: list[str] = []
+    for event in task_spec.eventCandidates:
+        label = _action_label(event)
+        if label is not None:
+            labels.append(label)
+    return labels
 
 
 def _action_subtitle(event: Any) -> str:
@@ -1294,6 +1328,7 @@ def _build_action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
                 action_id=action_id,
                 event_id=event_id,
                 display_label=_action_label(event),
+                description=event.description,
                 display_subtitle=_action_subtitle(event),
                 call=event.call,
                 args=event.args,

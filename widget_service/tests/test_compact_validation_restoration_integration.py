@@ -281,7 +281,7 @@ def test_source_artifact_restores_nested_icons_before_new_validation(kind: str) 
         genui="", cardSpec={"suggestSize": "2x4"}, taskSpec=_icon_task(),
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom6.0-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-6.0", createdAt=0,
+            capabilityRegistryVersion="app-11.7.7.300_rom-7.0", createdAt=0,
         ),
     )
     original = artifact.model_copy(deep=True)

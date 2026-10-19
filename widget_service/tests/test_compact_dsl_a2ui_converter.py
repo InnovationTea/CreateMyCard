@@ -1465,6 +1465,12 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         assert isinstance(styles, dict)
         self.assertEqual(styles.get("fontSize"), 12)
         self.assertEqual(styles.get("maxLines"), 2)
+        self.assertNotIn("height", styles)
+        for component_id in ("meta_item0", "meta_row0"):
+            container = next(node for node in nodes if node.get("id") == component_id)
+            container_styles = container.get("styles")
+            assert isinstance(container_styles, dict)
+            self.assertNotIn("height", container_styles)
         self.assertFalse(any(node.get("id") == "meta_item0_label" for node in nodes))
 
     def test_secondary_body_rejects_uncontrolled_text_shapes(self) -> None:
@@ -3342,7 +3348,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 card_spec={"suggestSize": "2x2", "dataBindings": []},
             )
 
-    def test_rejects_distributed_root_when_minimum_gaps_overflow(self) -> None:
+    def test_warns_for_two_by_four_height_over_126(self) -> None:
         compact_dsl = _serialize(
             [
                 [
@@ -3364,23 +3370,21 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ]
         )
 
-        with self.assertRaises(CompactDslValidationError) as raised:
-            validate_compact_dsl(
-                compact_dsl,
-                task_spec={
-                    "size": "2x4",
-                    "dataModelSchema": {},
-                    "assetCandidates": [],
-                    "eventCandidates": [],
-                },
-                card_spec={"suggestSize": "2x4", "dataBindings": []},
-            )
-
-        message = str(raised.exception)
-        self.assertIn(
-            "vertical layout requires at least 156vp within 126vp",
-            message,
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec={
+                "size": "2x4",
+                "dataModelSchema": {},
+                "assetCandidates": [],
+                "eventCandidates": [],
+            },
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
         )
+
+        self.assertEqual(len(result.warnings), 1)
+        self.assertIn("COMPACT_LAYOUT_HEIGHT_OVERFLOW", result.warnings[0])
+        self.assertIn("vertical layout requires at least 156vp within 126vp", result.warnings[0])
+        self.assertIn("Fallback: root_flexible_layout", result.warnings[0])
 
     def test_accepts_distributed_root_with_item_margin_when_it_fits(self) -> None:
         compact_dsl = _serialize(

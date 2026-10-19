@@ -20,8 +20,11 @@ from services.widget_generation_service import WidgetGenerationService
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
+@pytest.mark.parametrize("plan_format", ["plain", "dsml", "call", "invalid_then_json"])
 async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
     monkeypatch,
+    plan_format: str,
 ) -> None:
     settings = get_settings()
     calls: list[tuple[str, list[dict[str, str]]]] = []
@@ -36,7 +39,7 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
         model_format = str((profile or {}).get("format"))
         calls.append((model_format, copy.deepcopy(prompt)))
         if model_format == "raw-json":
-            return json.dumps(
+            output = json.dumps(
                 {
                     "name": "submit_card_plan",
                     "arguments": {
@@ -53,6 +56,21 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
                 },
                 ensure_ascii=False,
             )
+            if plan_format == "dsml":
+                payload = json.loads(output)
+                arguments = payload.get("arguments")
+                assert isinstance(arguments, dict)
+                return (
+                    '<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name="submit_card_plan">\n'
+                    '<｜｜DSML｜｜ parameter name="arguments" string="false">'
+                    + json.dumps(arguments, ensure_ascii=False)
+                    + '</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>'
+                )
+            if plan_format == "call":
+                return "call\n" + output
+            if plan_format == "invalid_then_json" and len(calls) == 1:
+                return '<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name="other_tool">{}'
+            return output
         return (
             '["root","Layout",{"layout":"S-title-content"},["title","content"]]\n'
             '["title","SingleLineTitle",{"title":"概览","fontSize":12}]\n'
@@ -104,20 +122,34 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
 
     assert response.status == GenerationStatus.SUCCESS
-    assert [item[0] for item in calls] == ["raw-json", "compact-dsl"]
+    expected_formats = ["raw-json", "compact-dsl"]
+    if plan_format == "invalid_then_json":
+        expected_formats.insert(0, "raw-json")
+    assert [item[0] for item in calls] == expected_formats
     plan_system = calls[0][1][0]["content"]
     assert "submit_card_plan" in plan_system
     assert "你是 HarmonyOS 桌面卡片生成 Agent" in plan_system
-    assert "`<agent_stage>plan</agent_stage>`：只按本轮工具 Schema 提交" in plan_system
-    assert "# 2. Compact DSL 组件合同" in plan_system
-    assert "### 6.1 `EventCard`" in plan_system
+    assert "`plan`：按本轮工具 Schema 提交一次" in plan_system
+    assert "# 2. 单组件细则" in plan_system
+    assert "先选定本轮真正展示的内容" in plan_system
+    assert "不能因小卡、条数多或容量紧张而省略" in plan_system
+    assert "不把它列为 actionId、不分配按钮素材、不计入必要动作数" in plan_system
+    assert "`EventCard`" in plan_system
     assert "| S-title-content-action |" in plan_system
     assert "FEWSHOT" not in plan_system
     assert '"composition"' not in plan_system.split("# 可用工具合同", 1)[1]
     plan_messages = calls[0][1]
-    dsl_messages = calls[1][1]
+    dsl_messages = calls[-1][1]
     plan_context = "\n".join(message["content"] for message in plan_messages)
     assert "<agent_stage>plan</agent_stage>" in plan_context
+    assert "这是文本 JSON 协议，不是原生工具调用" in plan_context
+    if plan_format == "invalid_then_json":
+        feedback_message = calls[1][1][-1].get("content")
+        assert isinstance(feedback_message, str)
+        feedback = json.loads(feedback_message)
+        output_format = feedback.get("outputFormat")
+        assert isinstance(output_format, dict)
+        assert output_format.get("detectedEnvelope") == "DSML"
     assert dsl_messages[: len(plan_messages)] == plan_messages
     assert sum(message["role"] == "system" for message in dsl_messages) == 1
     assert any(message["role"] == "assistant" for message in dsl_messages)
@@ -128,6 +160,7 @@ async def test_real_compact_route_runs_plan_before_dsl_without_plan_fewshots(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_runtime_plan_mode_repairs_missing_composition_before_dsl(
     monkeypatch,
 ) -> None:

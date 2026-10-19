@@ -1084,7 +1084,7 @@
             "width": "matchParent",
             "height": "matchParent",
             "itemMargin": 8,
-            "alignItems": "stretch",
+            "alignItems": "top",
             "justifyContent": "start",
             "layoutWeight": 1,
             "flexShrink": 1,

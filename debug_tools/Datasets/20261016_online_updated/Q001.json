@@ -1,0 +1,133 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "天气桌面卡片",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/alertLevel",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/temperatureText",
+          "/current/uvIndex",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/daily/0/condition",
+          "/daily/0/rainProbabilityPercent",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday",
+          "/location/cityCode",
+          "/location/districtName",
+          "/location/prefectureName"
+        ]
+      }
+    ],
+    "title": "天气桌面",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "天气桌面卡片，展示当前位置天气概况。",
+    "candidateAssetIds": [
+      "asset.emoji_temperature_orange",
+      "asset.icon_weather_wind",
+      "asset.ic_weather_color",
+      "asset.ic_uv_color",
+      "asset.ic_warning_color"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "001",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "天气桌面卡片",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "天气桌面卡片",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/alertLevel",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/temperatureText",
+        "/current/uvIndex",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/condition",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/weekday",
+        "/location/cityCode",
+        "/location/districtName",
+        "/location/prefectureName"
+      ]
+    }
+  ],
+  "title": "天气桌面",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "天气桌面卡片，展示当前位置天气概况。",
+  "candidateAssetIds": [
+    "asset.emoji_temperature_orange",
+    "asset.icon_weather_wind",
+    "asset.ic_weather_color",
+    "asset.ic_uv_color",
+    "asset.ic_warning_color"
+  ]
+}

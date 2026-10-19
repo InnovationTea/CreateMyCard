@@ -19,7 +19,7 @@
     `HeroActionLayout@1` 加一个 `PillAction@1`。左右耳充电状态可选，各自可用时以 12vp
     「左/右耳图标 + 状态文本」行展示。
   - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon`、`leftIcon`、`rightIcon`
-    均可选。左右图标齐全时显示对应图标和百分比，右耳图标左边距为 4vp；缺任意一侧时使用 L/R 文本，不互换左右素材。
+    均可选。左右图标齐全时显示对应图标和百分比，右耳图标左边距为 4vp；缺任意一侧时使用圆形底白字 L/R 标识和各自百分比，不互换左右素材。
     Planner 可将其用于 `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
   - `BluetoothDeviceOverviewNameAndConnectionSupport@1`：必需名称和连接状态，分别作为主行和辅行；
     `false` 合法，显示“未连接”，保留运行时刷新表达式，不要求电量。
@@ -74,7 +74,8 @@
     单侧耳塞或通用音乐图标。
 - 必填素材没有合适候选时不得选择该模板；可选素材没有合适候选时省略。
 - 左耳、右耳和盒电量位不能重复使用通用耳机图片；本轮缺少对应对象的素材时，省略
-  leftEarIcon、rightEarIcon 或 caseIcon，由模板显示“左 / 右 / 盒”等既有文字标识和实际电量。
+  leftEarIcon、rightEarIcon 或 caseIcon，由模板显示圆形底白字 L/R、“耳机盒”和实际电量。
+  Full、Hero、Compact、Support和宽卡使用相同的文字标识规则；有匹配图标时仍使用图标。
 - `BluetoothDeviceOverviewTripleBatteryWideHalf@1`：横向三块耳机仓、左耳、右耳电量，适用于 WideHalf 槽位；只覆盖三项电量，不覆盖连接状态，不含动作。deviceIcon 为耳机仓，左右耳图标按语义选择，输入无对应素材时省略，不能自行增加素材候选。
 - `BluetoothDeviceOverviewEarbudsChargingWideFull@1`：Q073、EAR123 完整 2x4，要求名称、连接状态、左右耳和耳机仓的电量及充电状态共八字段。左侧连接摘要和左右耳44vp电量环及充电状态，右上耳机仓电量和充电状态；deviceIcon 为充电盒，左右耳图标不可互换。仅在本轮已选择每日歌单动作且规划器将其分配给本模板时可选，actionId 必填；右下固定显示每日歌单面板，点击绑定面板根节点。不支持无动作隐藏面板的变体。两侧面板使用主题底色，外侧安全边距由骨架提供。
   顶部摘要按运行时连接状态显示：已连接才拼接耳机名称，未连接只显示“未连接”，不显示“未连接耳机”或上次设备名称。保留名称绑定，不按首帧样例值裁剪，以支持连接状态刷新。

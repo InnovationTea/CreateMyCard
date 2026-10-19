@@ -57,6 +57,7 @@ from services.fusion_ball_expander import (
     expand_fusion_ball_components,
     fusion_ball_palette_for_root,
 )
+from services.theme_style_roles import in_layout_phase, property_role
 
 ThemeMode = Literal["light", "dark"]
 
@@ -399,10 +400,14 @@ def parse_compact_dsl_rows(
     return tuple(rows)
 
 
-def expand_compact_semantic_layout(compact_dsl: str, *, size: str) -> tuple[str, dict[str, str]]:
+def expand_compact_semantic_layout(
+    compact_dsl: str, *, size: str, skip_compact_dsl_validation: bool = False,
+) -> tuple[str, dict[str, str]]:
     """显式编译与来源映射用于 Trace；绑定修复和编辑始终保留语义原文。"""
     from services.compact_semantic_layout import expand_semantic_layout_rows
-    rows = _parse_compact_rows(compact_dsl)
+    rows = _parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
     expansion = expand_semantic_layout_rows(rows, size=size)
     if not expansion.origins:
         return compact_dsl, {}
@@ -515,6 +520,8 @@ def _is_formal_split_panel_root(
             return False
         if props.get("borderRadius") != 16 or props.get("clip") is not True:
             return False
+        if in_layout_phase() and props.get("surfaceRole") == "panel":
+            continue
         if props.get("backgroundColor") != "#99FFFFFF":
             return False
     return True
@@ -1732,32 +1739,34 @@ def _inline_text_fonts(
 def _single_body_slot(
     component: ComponentRow, by_id: dict[str, ComponentRow],
 ) -> tuple[list[ComponentRow], ComponentRow] | None:
+    result: tuple[list[ComponentRow], ComponentRow] | None = None
     prefix = f"{VISUAL_RECIPE_VERSION}:SecondaryBody."
-    if component.props.get("_visualRecipe") != prefix + "root":
-        return None
-    wrappers: list[ComponentRow] = []
-    seen: set[str] = set()
-    current = component
-    while current.component_type in {"Row", "Column"}:
-        if current.component_id in seen or len(current.children) != 1:
-            return None
-        marker = current.props.get("_visualRecipe")
-        if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
-            return None
-        seen.add(current.component_id)
-        wrappers.append(current)
-        child = by_id.get(current.children[0])
-        if child is None:
-            return None
-        current = child
-    if current.component_type != "Text" or current.props.get("_visualRecipe") != prefix + "text":
-        return None
-    if _positive_static_number(current.props.get("height")) is None:
-        return None
-    constraints = current.props.get("constraintSize")
-    if isinstance(constraints, dict) and constraints.get("minHeight", 0) != 0:
-        return None
-    return wrappers, current
+    if component.props.get("_visualRecipe") == prefix + "root":
+        wrappers: list[ComponentRow] = []
+        seen: set[str] = set()
+        current = component
+        while current.component_type in {"Row", "Column"}:
+            if current.component_id in seen or len(current.children) != 1:
+                break
+            marker = current.props.get("_visualRecipe")
+            if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
+                break
+            seen.add(current.component_id)
+            wrappers.append(current)
+            child = by_id.get(current.children[0])
+            if child is None:
+                break
+            current = child
+        else:
+            is_body_text = (
+                current.component_type == "Text"
+                and current.props.get("_visualRecipe") == prefix + "text"
+            )
+            if is_body_text and _positive_static_number(current.props.get("height")) is not None:
+                constraints = current.props.get("constraintSize")
+                if not isinstance(constraints, dict) or constraints.get("minHeight", 0) == 0:
+                    result = wrappers, current
+    return result
 
 
 def _align_inline_body_slots(components: list[ComponentRow]) -> list[ComponentRow]:
@@ -1914,8 +1923,9 @@ def _normalize_component(
     props = _expand_component_design(component)
     if normalize_axis_aliases:
         _repair_axis_value_aliases(component.component_type, props)
-        if component.component_type == "Row" and props.get("alignItems") == "baseline":
-            props["alignItems"] = "bottom"
+    # Recipe的字底对齐须使用Form已有枚举，包含无独立unit的单Text行。
+    if component.component_type == "Row" and props.get("alignItems") == "baseline":
+        props["alignItems"] = "bottom"
     resolved_props: dict[str, Any] = {}
     for property_name, value in props.items():
         resolved_props[property_name] = _resolve_tokens(
@@ -1977,6 +1987,8 @@ def _resolve_tokens(
     if not isinstance(value, str):
         return value
     if property_name in _COLOR_PROPERTIES:
+        if in_layout_phase():
+            return property_role(property_name, value)
         return _COLOR_TOKENS.get(value, value)
     return value
 
@@ -2134,6 +2146,10 @@ def _normalize_text_component(styles: dict[str, Any]) -> None:
 def _normalize_root_component(styles: dict[str, Any]) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
+    if in_layout_phase():
+        styles.pop("backgroundColor", None)
+        styles.pop("linearGradient", None)
+        return
     if not any(name in styles for name in ("linearGradient", "backgroundColor", "backgroundImage")):
         styles["backgroundColor"] = _DEFAULT_ROOT_BACKGROUND
 

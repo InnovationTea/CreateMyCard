@@ -9,6 +9,7 @@ from services.card_validation.compact_validation.diagnostics import DiagnosticCo
 from services.card_validation.compact_validation.repair_guidance import resolve_fix_hint
 from services.card_validation.compact_validation.semantic.layout.geometry import (
     _collect_height_budget_errors,
+    _non_blocking_height_overflow_reason,
 )
 from services.compact_dsl_a2ui_converter import (
     ComponentRow,
@@ -56,9 +57,21 @@ def _sleep_rows(*, closed: bool = False) -> list[ComponentRow]:
     return normalize_mixed_font_text_rows(expanded, data_model={})
 
 
-def _height_errors(rows: list[ComponentRow], size: str = "2x4") -> DiagnosticCollector:
+def _height_errors(
+    rows: list[ComponentRow],
+    size: str = "2x4",
+    *,
+    warnings: list[str] | None = None,
+) -> DiagnosticCollector:
     errors = DiagnosticCollector()
-    _collect_height_budget_errors(rows, {"size": size}, {"suggestSize": size}, errors)
+    collected_warnings = warnings if warnings is not None else []
+    _collect_height_budget_errors(
+        rows,
+        {"size": size},
+        {"suggestSize": size},
+        errors,
+        warnings=collected_warnings,
+    )
     return errors
 
 
@@ -98,18 +111,107 @@ def test_public_validator_reports_height_closure_with_source_location() -> None:
     assert diagnostic.fix_hint is not None
 
 
-def test_closed_sleep_card_still_rejects_insufficient_height() -> None:
+def test_closed_sleep_card_warns_when_item_margin_absorbs_overflow() -> None:
     rows = []
     for row in _sleep_rows(closed=True):
         if row.component_id == "details":
             row = replace(row, props={**row.props, "height": 90})
         rows.append(row)
-    errors = _height_errors(rows)
-    codes = []
-    for diagnostic in errors.records:
-        assert not isinstance(diagnostic, str)
-        codes.append(diagnostic.code)
-    assert "COMPACT_LAYOUT_HEIGHT_OVERFLOW" in codes
+    warnings: list[str] = []
+    errors = _height_errors(rows, warnings=warnings)
+
+    assert not errors
+    assert len(warnings) == 1
+    assert warnings[0].startswith("COMPACT_LAYOUT_HEIGHT_OVERFLOW:")
+    assert "it overflows by 8vp" in warnings[0]
+    assert "Fallback: compressible_item_margin" in warnings[0]
+
+
+@pytest.mark.parametrize(
+    "size, overflow, expected",
+    [
+        ("2x2", 35.0, "root_flexible_layout"),
+        ("2x2", 35.0001, None),
+        ("2x4", 35.0, "root_flexible_layout"),
+        ("2x4", 35.0001, None),
+    ],
+)
+def test_root_height_warning_limit(
+    size: str,
+    overflow: float,
+    expected: str | None,
+) -> None:
+    root = ComponentRow("root", "Column", {}, ())
+
+    assert (
+        _non_blocking_height_overflow_reason(
+            component=root,
+            components_by_id={"root": root},
+            parents={},
+            size=size,
+            overflow=overflow,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "parent_type, expected",
+    [
+        ("Column", "weighted_flexible_layout"),
+        ("Row", None),
+    ],
+)
+def test_height_weight_only_applies_in_parent_column(
+    parent_type: str,
+    expected: str | None,
+) -> None:
+    parent = ComponentRow("parent", parent_type, {}, ("weighted",))
+    weighted = ComponentRow("weighted", "Column", {"layoutWeight": 1}, ())
+
+    assert (
+        _non_blocking_height_overflow_reason(
+            component=weighted,
+            components_by_id={"parent": parent, "weighted": weighted},
+            parents={"weighted": "parent"},
+            size="2x4",
+            overflow=35.0,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "overflow, expected",
+    [
+        (8.0, "compressible_item_margin"),
+        (8.0001, None),
+    ],
+)
+def test_height_gap_warning_requires_full_absorption(
+    overflow: float,
+    expected: str | None,
+) -> None:
+    fixed = ComponentRow("fixed", "Column", {"itemMargin": 8}, ("a", "b"))
+    first = ComponentRow("a", "Text", {}, ())
+    second = ComponentRow("b", "Text", {}, ())
+    parent = ComponentRow("parent", "Row", {}, ("fixed",))
+
+    assert (
+        _non_blocking_height_overflow_reason(
+            component=fixed,
+            components_by_id={
+                "parent": parent,
+                "fixed": fixed,
+                "a": first,
+                "b": second,
+            },
+            parents={"fixed": "parent", "a": "fixed", "b": "fixed"},
+            size="2x4",
+            overflow=overflow,
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

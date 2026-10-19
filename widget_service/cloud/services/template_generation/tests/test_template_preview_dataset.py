@@ -20,20 +20,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     cases = manifest.get("cases")
     assert isinstance(cases, list)
 
-    assert manifest.get("templateCount") == 230
+    assert manifest.get("templateCount") == 235
     assert manifest.get("countsByLayout") == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 28,
-        "Compact": 23,
+        "Support": 30,
+        "Compact": 21,
         "Hero": 52,
-        "Full": 89,
+        "Full": 92,
         "WideHero": 5,
-        "WideFull": 28,
+        "WideFull": 30,
         "WideHalf": 3,
     }
-    assert manifest.get("countsBySize") == {"2x2": 193, "2x4": 37}
-    assert len(cases) == 230
+    assert manifest.get("countsBySize") == {"2x2": 193, "2x4": 42}
+    assert len(cases) == 235
     template_ids: set[str] = set()
     for case in cases:
         template_id = case.get("templateId")
@@ -42,7 +42,7 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         assert isinstance(file_name, str)
         template_ids.add(template_id)
         assert (tmp_path / file_name).is_file()
-    assert len(template_ids) == 230
+    assert len(template_ids) == 235
     assert {
         "BluetoothDeviceOverviewEarbudTripleHero@1",
     }.issubset(template_ids)
@@ -193,7 +193,7 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/location/prefectureName", "/location/districtName",
                 "/location/cityCode",
             )
-        elif case.template_id == "BluetoothDeviceOverviewMusicCompact@1":
+        elif case.template_id == "BluetoothDeviceOverviewMusicSupport@1":
             # 纯歌单入口：不渲染任何耳机数据，三级数据均为空。
             assert case.primary_data == ()
             assert case.secondary_data == ()

@@ -54,7 +54,7 @@ batch_testing:
   # 批跑并发数，1 到 16
   concurrency: 4
   # 批跑失败重试次数，0 到 5
-  max_retries: 1
+  max_retries: 0
   # 请求超时秒数
   request_timeout_seconds: 300
   # 受管服务启动超时秒数，1 到 300
@@ -79,7 +79,7 @@ widget_backend:
     # 产物校验失败时是否触发修复
     enable_validation_failure_retry: true
     # 校验失败最大修复次数
-    validation_failure_max_repair_attempts: 1
+    validation_failure_max_repair_attempts: 5
     # 是否启用卡片模板
     enable_card_template: false
     # 是否启用 Compact DSL 接口重试
