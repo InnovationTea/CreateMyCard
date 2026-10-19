@@ -292,7 +292,7 @@ def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() ->
         assert naming_rule in create_prompt
 
     for example_rule in (
-        "以下骨架只展示角色引用",
+        "以下最小代码模板已定义全部引用节点",
         "先选父区，再按直属角色选variant",
         "第二、第三个是固定槽，不是另外两个Region",
         "children数量按直属组件ID计",
