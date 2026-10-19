@@ -5,6 +5,7 @@ import copy
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -50,11 +51,43 @@ def artifact():
     )
 
 
-def test_checked_in_photo_urls_are_all_empty():
+def test_only_star_trails_has_an_obs_delivery_address():
     photos = [item for item in registry.load_theme_registry().get("themes", [])
               if item.get("kind") == "photo"]
     assert len(photos) == 4
-    assert all(item.get("background", {}).get("remoteUrl") == "" for item in photos)
+    configured = {}
+    for item in photos:
+        address = item.get("background", {}).get("remoteUrl")
+        if address:
+            configured[item.get("id")] = address
+        else:
+            assert address == ""
+    assert set(configured) == {"photo-ux-star-trails-wide"}
+    address = configured.get("photo-ux-star-trails-wide")
+    assert isinstance(address, str)
+    parsed = urlsplit(address)
+    assert parsed.scheme == "https"
+    assert parsed.hostname == "lfcontentcenterdev.hwcloudtest.cn"
+    assert parsed.path.endswith(".jpg")
+
+
+def test_configured_star_url_passes_existing_final_asset_validation(monkeypatch):
+    photo = next(item for item in registry.registered_themes("photos")
+                 if item.get("id") == "photo-ux-star-trails-wide")
+    original = artifact()
+    original.taskSpec["size"] = "2x4"
+    original.cardSpec["suggestSize"] = "2x4"
+    result = themes.apply_theme(original.genui, photo, original.taskSpec, {})
+    audit = {"themeId": photo.get("id"), "theme": photo}
+    monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=(result, audit)))
+    delivered = asyncio.run(themes.theme_artifact(
+        original, original.taskSpec, None, ArtifactValidator({}),
+        A2UIProtocolRegistry(original.meta.protocolProfileId).get_profile(),
+    ))
+    assert not audit.get("finalValidationErrors"), audit
+    assert photo.get("remoteUrl")
+    assert node_by_id(delivered.genui, themes.PREFIX + "image").get("src") == photo.get("remoteUrl")
+    assert node_by_id(delivered.genui, "root").get("styles", {}).get("backgroundColor")
 
 
 @pytest.mark.parametrize("address", ["", ADDRESS])

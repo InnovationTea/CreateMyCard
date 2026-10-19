@@ -761,7 +761,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_star_trails_wide.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c0a4b5a6b7784b30a8c82e664e97179f/1d3518d2f7d643b1ad3210dbf3718464.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
