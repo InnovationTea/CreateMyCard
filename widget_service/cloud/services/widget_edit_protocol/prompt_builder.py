@@ -5,7 +5,7 @@ from typing import Any
 
 from models.generation import TaskSpec
 from services.fusion_ball_expander import fusion_ball_enabled
-from services.single_step_250.resources import (
+from services.widget_edit_protocol.resources import (
     DESIGN_COMPACT_PROFILE_ID,
     PROFILE_DIR,
     A2UIProtocolRegistry,

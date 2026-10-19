@@ -21,8 +21,6 @@ from services.generation_pipeline import (
     QualityIssue,
     get_dsl_processor,
 )
-from services.single_step_250.converter import convert_compact_dsl_to_a2ui
-from services.single_step_250.resources import MODEL_FORMAT
 from services.single_step_contract import compact_font_requirements
 from services.single_step_edit import EDIT_FORMAT, source_digest
 from services.single_step_output import SingleStepOutputError, extract_single_step_output
@@ -30,6 +28,8 @@ from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import SourceArtifactError, SourceArtifactLoadResult
 from services.theme_style_roles import in_layout_phase
 from services.validator import ArtifactValidator
+from services.widget_edit_protocol.converter import convert_compact_dsl_to_a2ui
+from services.widget_edit_protocol.resources import MODEL_FORMAT
 from services.widget_generation_service import WidgetGenerationService
 
 

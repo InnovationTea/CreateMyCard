@@ -89,10 +89,8 @@ from services.protocol_registry import (
 )
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
-from services.single_step_250.resources import MODEL_FORMAT as SINGLE_STEP_MODEL_FORMAT
-from services.single_step_250.resources import UPSTREAM_COMMIT as SINGLE_STEP_UPSTREAM_COMMIT
 from services.single_step_edit import EDIT_FORMAT, SingleStepEditProcessor, source_digest
-from services.single_step_processor import SingleStep250Processor
+from services.single_step_processor import SingleStepFallbackProcessor
 from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import (
     SourceArtifactError,
@@ -101,6 +99,8 @@ from services.source_artifact_repository import (
 )
 from services.template_generation import TemplateSourceGenerator
 from services.validator import ArtifactValidator
+from services.widget_edit_protocol.resources import MODEL_FORMAT as SINGLE_STEP_MODEL_FORMAT
+from services.widget_edit_protocol.resources import UPSTREAM_COMMIT as SINGLE_STEP_UPSTREAM_COMMIT
 from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[Generation Service]"
@@ -796,7 +796,7 @@ class WidgetGenerationService:
 
         single_step_theme = policy.single_step and generation_mode == "create"
         processor = (
-            SingleStep250Processor(post_layout_theme=single_step_theme)
+            SingleStepFallbackProcessor(post_layout_theme=single_step_theme)
             if policy.single_step else get_dsl_processor(policy.processor_kind)
         )
         if policy.single_step and source_load_result is not None:
@@ -2285,7 +2285,7 @@ class WidgetGenerationService:
     def _single_step_policy(
         policy: GenerationRoutePolicy, *, is_edit: bool,
     ) -> GenerationRoutePolicy:
-        """保留后端；新建用250极简协议，编辑用独立字段补丁。"""
+        """保留后端；新建用单步极简协议，编辑用独立字段补丁。"""
         return replace(
             policy,
             processor_kind=DslProcessorKind.STANDARD_A2UI,

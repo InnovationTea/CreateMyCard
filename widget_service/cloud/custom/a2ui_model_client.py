@@ -325,8 +325,8 @@ class A2UIModelClient:
             dsl_text = self.extract_genui_payload(raw_output)
         if protocol_profile.get("singleStepOutput") is True and protocol_profile.get(
             "format"
-        ) == "single-step-250":
-            # 原始极简协议交给隔离的250转换器，不走标准A2UI归一化。
+        ) == "widget-edit-compact":
+            # 原始极简协议交给隔离的单步转换器，不走标准A2UI归一化。
             return dsl_text
         if protocol_profile.get("format") == "raw-json":
             logger.info(
@@ -371,8 +371,8 @@ class A2UIModelClient:
         """
         mock_data_path = self.mock_data_path
         if mock_data_path is None:
-            if (protocol_profile or {}).get("format") == "single-step-250":
-                from services.single_step_250.resources import PROFILE_DIR
+            if (protocol_profile or {}).get("format") == "widget-edit-compact":
+                from services.widget_edit_protocol.resources import PROFILE_DIR
 
                 size = self._task_size_from_prompt(prompt or [])
                 mock_data_path = PROFILE_DIR / f"mock.design-compact-dsl-{size}.dat"

@@ -1,4 +1,4 @@
-"""250主题交接只发生于新建；原提示词、前景几何和编辑样式不受影响。"""
+"""单步主题交接只发生于新建；原提示词、前景几何和编辑样式不受影响。"""
 
 import asyncio
 import copy
@@ -12,12 +12,12 @@ from models.generation import TaskSpec
 from services import post_layout_theme as themes
 from services.card_validation.theme_phase_validator import theme_phase_errors
 from services.generation_pipeline import DslProcessingContext
-from services.single_step_250 import converter
-from services.single_step_250.resources import MODEL_FORMAT, PROFILE_DIR
-from services.single_step_processor import SingleStep250Processor
+from services.single_step_processor import SingleStepFallbackProcessor
 from services.single_step_prompt import SingleStepPromptBuilder
 from services.single_step_theme import prepare_single_step_theme
 from services.theme_style_roles import COLOR_FIELDS, in_layout_phase
+from services.widget_edit_protocol import converter
+from services.widget_edit_protocol.resources import MODEL_FORMAT, PROFILE_DIR
 
 
 def _source(design=None):
@@ -96,7 +96,7 @@ def test_generated_background_tampering_is_not_silently_removed():
 def test_processor_only_prepares_creation_and_keeps_edit_colors(theme_mode):
     source = _source()
     context = DslProcessingContext(size="2x2", card_spec={}, task_spec={}, protocol_profile={})
-    result = SingleStep250Processor(post_layout_theme=theme_mode).process(source, context)
+    result = SingleStepFallbackProcessor(post_layout_theme=theme_mode).process(source, context)
     assert not result.errors
     if theme_mode:
         assert "#FF9C27B0" not in result.standard_dsl
@@ -145,7 +145,7 @@ def test_legacy_capsule_style_role_is_not_all_clickable_content_panels():
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
-def test_original_250_examples_handoff_or_keep_original_conversion_error(size):
+def test_original_examples_handoff_or_keep_original_conversion_error(size):
     text = (PROFILE_DIR / f"FEWSHOT_{size}.md").read_text(encoding="utf-8")
     examples = re.findall(r"```genui\s*\n(.*?)\n```", text, re.DOTALL)
     assert examples
@@ -164,7 +164,7 @@ def test_original_250_examples_handoff_or_keep_original_conversion_error(size):
 
 
 @pytest.mark.parametrize("edit", [False, True])
-def test_model_boundary_preserves_original_250_colors_and_edit_source(monkeypatch, edit):
+def test_model_boundary_preserves_original_colors_and_edit_source(monkeypatch, edit):
     task = TaskSpec(userQuery="背景改浅蓝", size="2x4", dataModelSchema={})
     prompt = SingleStepPromptBuilder.build(
         task, {}, previous_genui=_convert(_source()) if edit else None,

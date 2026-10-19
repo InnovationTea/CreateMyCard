@@ -1,4 +1,4 @@
-"""250新建展开结果到公共主题的交接；不参与编辑或融合布局。"""
+"""单步新建展开结果到公共主题的交接；不参与编辑或融合布局。"""
 
 import copy
 import json
@@ -23,7 +23,7 @@ _WHITE_PANELS = {"#CCFFFFFF", "#99FFFFFF", "#33FFFFFF"}
 
 
 def _capsule_style_ids(nodes: list[dict]) -> set[str]:
-    """仅用于250旧样式的角色交接，不参与公共主题的完整按钮避让。"""
+    """仅用于单步旧样式的角色交接，不参与公共主题的完整按钮避让。"""
     result: set[str] = set()
     for node in nodes:
         if node.get("component") not in {"Button", "Row"} or not node.get("onClick"):
@@ -65,21 +65,21 @@ def _remove_generated_background(nodes: list[dict], source: str, task: dict) -> 
     generated = [node for node in nodes if node.get("id") in removable]
     expected_generated = [node for node in expected if node.get("id") in removable]
     if generated != expected_generated:
-        raise ValueError("250 generated background does not match its registered expansion")
+        raise ValueError("single-step generated background does not match its registered expansion")
     content_id = build_fusion_ball_content_id("root")
     foreground = [node for node in nodes if node.get("id") == content_id]
     if len(foreground) != 1:
-        raise ValueError("250 generated background requires exactly one foreground")
+        raise ValueError("single-step generated background requires exactly one foreground")
     retained = [node for node in nodes if node.get("id") not in removable]
     for node in retained:
         if any(child in removable for child in node.get("children", [])):
-            raise ValueError("250 foreground must not reference generated background nodes")
+            raise ValueError("single-step foreground must not reference generated background nodes")
     foreground[0]["id"] = "root"
     nodes[:] = retained
 
 
 def prepare_single_step_theme(standard: str, source: str, task: dict) -> str:
-    """保留250已展开的前景结构、字号、绑定和动作，只交接颜色及已知背景。"""
+    """保留单步已展开的前景结构、字号、绑定和动作，只交接颜色及已知背景。"""
     records = decode(standard)
     nodes = components(records)
     _remove_generated_background(nodes, source, task)
@@ -94,7 +94,7 @@ def prepare_single_step_theme(standard: str, source: str, task: dict) -> str:
             for key, value in original.items():
                 if key in _BACKGROUND_KEYS:
                     if not is_root and key == "backgroundImage":
-                        raise ValueError("250 non-root background image needs a theme role")
+                        raise ValueError("single-step non-root background image needs a theme role")
                     styles.pop(key, None)
                     if not is_root and key == "linearGradient":
                         styles["backgroundColor"] = role("componentSecondary")

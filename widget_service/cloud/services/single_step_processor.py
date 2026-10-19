@@ -1,19 +1,19 @@
-"""只在单步分支调用250转换器，不进入融合组件/布局处理。"""
+"""只在单步分支调用单步转换器，不进入融合组件/布局处理。"""
 
 import json
 
 from services.card_validation.display_unit_rules import repair_repeated_display_units
 from services.generation_pipeline import DslProcessingContext, DslProcessingResult, QualityIssue
-from services.single_step_250.converter import (
+from services.single_step_theme import prepare_single_step_theme
+from services.widget_edit_protocol.converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
     repair_compact_dsl_binding_paths,
 )
-from services.single_step_250.resources import PROFILE_DIR
-from services.single_step_theme import prepare_single_step_theme
+from services.widget_edit_protocol.resources import PROFILE_DIR
 
 
-class SingleStep250Processor:
+class SingleStepFallbackProcessor:
     def __init__(self, *, post_layout_theme: bool = False):
         self.post_layout_theme = post_layout_theme
 
@@ -31,7 +31,7 @@ class SingleStep250Processor:
                 standard, context.card_spec, context.data_capabilities,
             )
         except CompactDslConversionError as exc:
-            issue = QualityIssue(stage="conversion", code="SINGLE_STEP_250_CONVERSION_FAILED",
+            issue = QualityIssue(stage="conversion", code="SINGLE_STEP_COMPACT_CONVERSION_FAILED",
                                  message=str(exc))
             return DslProcessingResult(source_dsl=source_dsl, issues=(issue,))
         if self.post_layout_theme:
