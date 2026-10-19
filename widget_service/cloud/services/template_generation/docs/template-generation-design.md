@@ -5,6 +5,26 @@
 [云侧方案设计](../../../../../docs/云侧方案设计.md)；本文不扩展公共协议支持范围。
 详细作者语法和接入方式见 [Provider 模板接入约定](provider-template-contract.md)。
 
+## 2026-10 2×4 右侧底板例外
+
+`WideFullHeroActionLayout@1` 默认保留右侧底板。编译器根据实际第二个业务子模板的完整 ID，
+对以下四种自带四行面板的电量 Hero 应用例外：
+
+| 模板 | 内容高度 | 与按钮间距 |
+| --- | --- | --- |
+| `BatteryOverviewStatusSummaryHero@1` | 82vp | 8vp |
+| `BatteryOverviewStatusLevelSummaryHero@1` | 82vp | 8vp |
+| `BatteryOverviewChargingLevelSummaryHero@1` | 82vp | 8vp |
+| `BatteryOverviewChargingDiagnosticsHero@1` | 84vp | 6vp |
+
+移除该布局右侧父容器的 `backgroundColor`、`borderRadius`、`padding`，按名单设置 `itemMargin`。
+内部业务面板与动作子树原样保留；126vp 内容区按 `82 + 8 + 36` 或 `84 + 6 + 36` 分配，
+不缩小字号、删除字段或修改业务模板自身内边距。进度环轨道背景不属于整块业务面板，不据此加入名单。
+名单统一维护于 `engine/cardplan/layout_surface_policy.py`，不新增可由模型填写的 Props。
+只在指定布局的右侧直接业务子模板命中时生效，镜像布局、其它组合以及 2×2 模板不受影响。
+测试覆盖四种例外的完整编译产物、普通模板保留底板、错误位置与布局隔离，以及模型伪造开关被拒绝。
+同时扫描电量 Hero 的容器底板，确保名单覆盖已登记的同类模板，并逐项验证四个数据绑定及高度预算。
+
 ## 2026-10 双业务 Support 补充
 
 - `BatteryOverviewPluggedTypeSupport@1` 必需电量文本、充电状态、充电器类型，不依赖数值电量，不声明图标槽位。
