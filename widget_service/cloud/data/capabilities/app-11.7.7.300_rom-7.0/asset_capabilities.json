@@ -975,7 +975,7 @@
     "id": "asset.ic_achieve",
     "type": "asset",
     "src": "resources/base/media/ic_achieve.svg",
-    "description": "样式：黄色圆形底上的白色奖章与五角星图标，原始尺寸为 144×144，SVG 矢量图保留原始配色；适用：运动目标达成、训练成果或成就徽章相关卡片，可与运动健康数据摘要搭配使用。",
+    "description": "样式：黄色圆形底上的白色奖章与五角星图标，原始尺寸为 144×144，SVG 矢量图（保留原色，禁止染色）保留原始配色；适用：运动目标达成、训练成果或成就徽章相关卡片，可与运动健康数据摘要搭配使用。",
     "overviewDescription": "奖章图标；用于运动目标达成、训练成果或成就，可搭配运动健康摘要。",
     "sceneTags": [
       "health",
@@ -987,7 +987,7 @@
     "id": "asset.ic_charge",
     "type": "asset",
     "src": "resources/base/media/ic_charge.svg",
-    "description": "样式：黑色单色充电闪电图标，中心为闪电符号并由多层无线或电流弧线环绕，原始尺寸为 80×60，SVG 矢量图保留原始配色；适用：手机充电状态、充电器连接或电池充电信息相关卡片，可结合 GetPhoneBatteryInfo 数据。不表示无线充电、快充或充电完成，除非电池数据明确支持。",
+    "description": "样式：黑色单色充电闪电图标，中心为闪电符号并由多层无线或电流弧线环绕，原始尺寸为 80×60，SVG 矢量图（保留原色，禁止染色）保留原始配色；适用：手机充电状态、充电器连接或电池充电信息相关卡片，可结合 GetPhoneBatteryInfo 数据。不表示无线充电、快充或充电完成，除非电池数据明确支持。",
     "overviewDescription": "充电闪电图标；用于手机充电状态、充电器连接或充电信息；无线、快充或完成须有数据支持。",
     "sceneTags": [
       "battery",
@@ -999,7 +999,7 @@
     "id": "asset.ic_phone",
     "type": "asset",
     "src": "resources/base/media/ic_phone.svg",
-    "description": "样式：蓝色电话听筒叠加蓝色无线电波，主图标约为 40×40，SVG 矢量图保留原始配色；适用：拨号、联系人呼叫或电话操作相关卡片，并可配合 event.call.phone 跳转指定号码的拨号界面。",
+    "description": "样式：蓝色电话听筒叠加蓝色无线电波，主图标约为 40×40，SVG 矢量图（保留原色，禁止染色）保留原始配色；适用：拨号、联系人呼叫或电话操作相关卡片，并可配合 event.call.phone 跳转指定号码的拨号界面。",
     "overviewDescription": "电话图标；用于拨号、联系人呼叫或电话操作，可跳转指定号码。",
     "sceneTags": [
       "phone",
@@ -1023,7 +1023,7 @@
     "id": "asset.ic_weatherWarning",
     "type": "asset",
     "src": "resources/base/media/ic_weatherWarning.svg",
-    "description": "样式：浅灰渐变云朵内带深色感叹号的天气预警图标，原始尺寸为 24×24，SVG 矢量图保留渐变配色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 输出的 alertLevel 字段展示，也可作为天气预警详情入口的辅助图标。不表示所有天气变化或空气质量异常；无预警时不应显示该图标，也不替代具体预警等级文案。",
+    "description": "样式：浅灰渐变云朵内带深色感叹号的天气预警图标，原始尺寸为 24×24，SVG 矢量图（保留原色，禁止染色）保留渐变配色；适用：天气卡片中的气象预警提示，可结合 ViewWeather 输出的 alertLevel 字段展示，也可作为天气预警详情入口的辅助图标。不表示所有天气变化或空气质量异常；无预警时不应显示该图标，也不替代具体预警等级文案。",
     "overviewDescription": "渐变云朵预警图标；仅用于真实气象预警或预警详情，不用于一般天气或空气质量，无预警不显示。",
     "sceneTags": [
       "weather",
@@ -1035,7 +1035,7 @@
     "id": "asset.ic_uv_color",
     "type": "asset",
     "src": "resources/base/media/ic_uv_color.svg",
-    "description": "样式：浅黄色到浅橙色渐变的太阳图标，中心带 UV 字样和放射光线，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中展示 ViewWeather 的 current.uvIndex 或 daily.uvIndex 紫外线等级，可作为紫外线指标的辅助图标。图标颜色不代表具体紫外线等级，等级仍以数据字段和文字为准。",
+    "description": "样式：浅黄色到浅橙色渐变的太阳图标，中心带 UV 字样和放射光线，原始尺寸为 24×24，SVG 矢量图（保留原色，禁止染色）保留原始渐变配色；适用：天气卡片中展示 ViewWeather 的 current.uvIndex 或 daily.uvIndex 紫外线等级，可作为紫外线指标的辅助图标。图标颜色不代表具体紫外线等级，等级仍以数据字段和文字为准。",
     "overviewDescription": "彩色 UV 太阳图标；用于天气紫外线指标，不代表具体等级。",
     "sceneTags": [
       "weather",
@@ -1059,7 +1059,7 @@
     "id": "asset.ic_warning_color",
     "type": "asset",
     "src": "resources/base/media/ic_warning_color.svg",
-    "description": "样式：橙黄色到橙红色渐变的提示铃图标，顶部带放射光线，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：天气卡片中结合 ViewWeather 的 current.alertLevel 展示气象预警提示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示，不替代具体预警等级文案；渐变颜色不代表预警等级。",
+    "description": "样式：橙黄色到橙红色渐变的提示铃图标，顶部带放射光线，原始尺寸为 24×24，SVG 矢量图（保留原色，禁止染色）保留原始渐变配色；适用：天气卡片中结合 ViewWeather 的 current.alertLevel 展示气象预警提示，也可与 event.open.weather 组成天气详情入口。无预警时不应显示，不替代具体预警等级文案；渐变颜色不代表预警等级。",
     "overviewDescription": "彩色提示铃图标；仅用于真实气象预警或天气详情，无预警不显示，不代表等级。",
     "sceneTags": [
       "weather",
@@ -1083,7 +1083,7 @@
     "id": "asset.ic_weather_color",
     "type": "asset",
     "src": "resources/base/media/ic_weather_color.svg",
-    "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
     "overviewDescription": "蓝色渐变云朵图标；用于天气或天气详情主题，不代表晴阴雨状态。",
     "sceneTags": [
       "weather",
@@ -1143,7 +1143,7 @@
     "id": "asset.ic_hotspot",
     "type": "asset",
     "src": "resources/base/media/ic_hotspot.svg",
-    "description": "样式：深灰色圆形底上的白色热点火焰图标，带半透明内焰，原始尺寸为 40×40，SVG 矢量图需保留原始配色，禁止染色；适用：个人热点或移动网络设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
+    "description": "样式：深灰色圆形底上的白色热点火焰图标，带半透明内焰，原始尺寸为 40×40，SVG 矢量图（保留原色，禁止染色）需保留原始配色，禁止染色；适用：个人热点或移动网络设置入口，可结合 event.open.settings.hotspot 打开系统个人热点页面。当前清单未提供个人热点开关状态查询，图标不表示热点已开启或正在共享。",
     "overviewDescription": "彩色热点图标；用于个人热点或移动网络设置入口，不支持热点状态查询。",
     "sceneTags": [
       "network",
@@ -1179,7 +1179,7 @@
     "id": "asset.ic_ranking2",
     "type": "asset",
     "src": "resources/base/media/ic_ranking2.svg",
-    "description": "样式：绿色圆形底上的白色三柱排行图标，柱体高度依次变化并带半透明短柱，原始尺寸为 144×144，SVG 矢量图需保留原始配色，禁止染色；适用：以设备耗电排行或应用使用时长排行为主业务的卡片主题图，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标颜色不代表具体名次、耗电量或使用时长。",
+    "description": "样式：绿色圆形底上的白色三柱排行图标，柱体高度依次变化并带半透明短柱，原始尺寸为 144×144，SVG 矢量图（保留原色，禁止染色）需保留原始配色，禁止染色；适用：以设备耗电排行或应用使用时长排行为主业务的卡片主题图，可结合 GetAppPowerConsumptionRanking 的 rankingList 或 GetDailyMostUsage 的 mostUsedApps 展示排序结果。图标颜色不代表具体名次、耗电量或使用时长。",
     "overviewDescription": "绿色排行图标；用于耗电或应用使用时长排行主业务，不代表具体名次或用量。",
     "sceneTags": [
       "ranking",
@@ -1203,7 +1203,7 @@
     "id": "asset.ic_battery_leaf_color",
     "type": "asset",
     "src": "resources/base/media/ic_battery_leaf_color.svg",
-    "description": "样式：绿色渐变的电池叶片图标，电池轮廓内部以叶片形状表现节能语义，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：以手机剩余电量、充电状态、或省电模式为主业务的卡片，可结合 GetPhoneBatteryInfo 展示电池信息，也可配合 event.open.settings.battery 或 event.setPowerSavingMode 作为电池设置、省电模式入口或操作图标。渐变颜色不表示具体电量、正在充电或省电模式当前状态。",
+    "description": "样式：绿色渐变的电池叶片图标，电池轮廓内部以叶片形状表现节能语义，原始尺寸为 24×24，SVG 矢量图（保留原色，禁止染色）保留原始渐变配色；适用：以手机剩余电量、充电状态、或省电模式为主业务的卡片，可结合 GetPhoneBatteryInfo 展示电池信息，也可配合 event.open.settings.battery 或 event.setPowerSavingMode 作为电池设置、省电模式入口或操作图标。渐变颜色不表示具体电量、正在充电或省电模式当前状态。",
     "overviewDescription": "彩色电池叶片图标；用于电量、充电或省电主业务，不代表当前状态。",
     "sceneTags": [
       "battery",
@@ -1215,7 +1215,7 @@
     "id": "asset.ic_blue_teeth_color",
     "type": "asset",
     "src": "resources/base/media/ic_blue_teeth_color.svg",
-    "description": "样式：蓝色渐变圆角方形底上的白色蓝牙标志图标，原始尺寸为 24×24，SVG 矢量图保留原始渐变配色；适用：蓝牙耳机或其它蓝牙设备连接卡片，可结合 GetEarphoneInfo 展示耳机连接状态，也可作为 event.open.settings.bluetooth 或 event.setBluetoothMode 的蓝牙设置与开关入口。渐变颜色和蓝牙标志本身不表示当前已连接、已开启或已关闭状态。",
+    "description": "样式：蓝色渐变圆角方形底上的白色蓝牙标志图标，原始尺寸为 24×24，SVG 矢量图（保留原色，禁止染色）保留原始渐变配色；适用：蓝牙耳机或其它蓝牙设备连接卡片，可结合 GetEarphoneInfo 展示耳机连接状态，也可作为 event.open.settings.bluetooth 或 event.setBluetoothMode 的蓝牙设置与开关入口。渐变颜色和蓝牙标志本身不表示当前已连接、已开启或已关闭状态。",
     "overviewDescription": "彩色蓝牙图标；用于蓝牙设备连接、设置或开关，不代表当前状态。",
     "sceneTags": [
       "bluetooth",
@@ -1264,7 +1264,7 @@
     "id": "asset.ic_call_bule",
     "type": "asset",
     "src": "resources/base/media/ic_call_bule.svg",
-    "description": "样式：蓝色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "description": "样式：蓝色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
     "overviewDescription": "蓝色渐变电话图标；用于拨号或联系人呼叫，不代表正在通话、来电或联系人身份。",
     "sceneTags": [
       "phone",
@@ -1277,7 +1277,7 @@
     "id": "asset.ic_call_purple",
     "type": "asset",
     "src": "resources/base/media/ic_call_purple.svg",
-    "description": "样式：紫色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "description": "样式：紫色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
     "overviewDescription": "紫色渐变电话图标；用于拨号或联系人呼叫，不代表正在通话、来电或联系人身份。",
     "sceneTags": [
       "phone",
@@ -1290,7 +1290,7 @@
     "id": "asset.ic_call_yellow",
     "type": "asset",
     "src": "resources/base/media/ic_call_yellow.svg",
-    "description": "样式：黄色到橙色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色电话听筒图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：拨号、联系人呼叫或电话快捷操作卡片，可配合 event.call.phone 跳转到指定号码的拨号界面。图标不表示正在通话、来电或联系人身份。",
     "overviewDescription": "黄橙色渐变电话图标；用于拨号或联系人呼叫，不代表正在通话、来电或联系人身份。",
     "sceneTags": [
       "phone",
@@ -1303,7 +1303,7 @@
     "id": "asset.ic_ring_bule",
     "type": "asset",
     "src": "resources/base/media/ic_ring_bule.svg",
-    "description": "样式：蓝色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "description": "样式：蓝色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
     "overviewDescription": "蓝色渐变铃铛图标；用于闹钟、通知或日程提醒，不代表已开启、正在响铃或未读通知。",
     "sceneTags": [
       "alarm",
@@ -1316,7 +1316,7 @@
     "id": "asset.ic_ring_purple",
     "type": "asset",
     "src": "resources/base/media/ic_ring_purple.svg",
-    "description": "样式：紫色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "description": "样式：紫色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
     "overviewDescription": "紫色渐变铃铛图标；用于闹钟、通知或日程提醒，不代表已开启、正在响铃或未读通知。",
     "sceneTags": [
       "alarm",
@@ -1329,7 +1329,7 @@
     "id": "asset.ic_ring_yellow",
     "type": "asset",
     "src": "resources/base/media/ic_ring_yellow.svg",
-    "description": "样式：黄色到橙色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
+    "description": "样式：黄色到橙色纵向渐变的实心铃铛图标，铃体带高光并有独立铃舌，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：闹钟、通知或日程提醒卡片，可结合 GetCalendarEvents 展示日程提醒，也可作为 event.open.clock.alarm 或 event.open.clock.alarmTab 的辅助入口图标。图标不表示提醒已开启、正在响铃或存在未读通知。",
     "overviewDescription": "黄橙色渐变铃铛图标；用于闹钟、通知或日程提醒，不代表已开启、正在响铃或未读通知。",
     "sceneTags": [
       "alarm",
@@ -1342,7 +1342,7 @@
     "id": "asset.ic_sportsHealth_bule",
     "type": "asset",
     "src": "resources/base/media/ic_sportsHealth_bule.svg",
-    "description": "样式：蓝色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "description": "样式：蓝色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
     "overviewDescription": "蓝色渐变运动火焰图标；用于步数、热量、距离或锻炼摘要，不代表目标达成或正在运动。",
     "sceneTags": [
       "health",
@@ -1355,7 +1355,7 @@
     "id": "asset.ic_sportsHealth_purple",
     "type": "asset",
     "src": "resources/base/media/ic_sportsHealth_purple.svg",
-    "description": "样式：紫色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "description": "样式：紫色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
     "overviewDescription": "紫色渐变运动火焰图标；用于步数、热量、距离或锻炼摘要，不代表目标达成或正在运动。",
     "sceneTags": [
       "health",
@@ -1368,7 +1368,7 @@
     "id": "asset.ic_sportsHealth_yellow",
     "type": "asset",
     "src": "resources/base/media/ic_sportsHealth_yellow.svg",
-    "description": "样式：黄色到橙色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
+    "description": "样式：黄色到橙色纵向渐变圆形底上的白色运动火焰图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：运动健康、日常活动或锻炼摘要卡片，可结合 GetHealthAndSportSummary 展示步数、热量、距离和运动记录，也可作为 event.open.health.sport、event.open.health.sportsRecord、event.open.health.activityRecord 或 event.open.health.workoutDuration 的辅助入口图标。图标不表示运动目标已达成或用户当前正在运动。",
     "overviewDescription": "黄橙色渐变运动火焰图标；用于步数、热量、距离或锻炼摘要，不代表目标达成或正在运动。",
     "sceneTags": [
       "health",
@@ -1381,7 +1381,7 @@
     "id": "asset.ic_storage_bule",
     "type": "asset",
     "src": "resources/base/media/ic_storage_bule.svg",
-    "description": "样式：蓝色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "description": "样式：蓝色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
     "overviewDescription": "蓝色渐变存储图标；用于存储空间设置入口，不支持容量查询，不代表空间用量或健康状态。",
     "sceneTags": [
       "storage",
@@ -1394,7 +1394,7 @@
     "id": "asset.ic_storage_purple",
     "type": "asset",
     "src": "resources/base/media/ic_storage_purple.svg",
-    "description": "样式：紫色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "description": "样式：紫色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
     "overviewDescription": "紫色渐变存储图标；用于存储空间设置入口，不支持容量查询，不代表空间用量或健康状态。",
     "sceneTags": [
       "storage",
@@ -1407,7 +1407,7 @@
     "id": "asset.ic_storage_yellow",
     "type": "asset",
     "src": "resources/base/media/ic_storage_yellow.svg",
-    "description": "样式：黄色到橙色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
+    "description": "样式：黄色到橙色渐变的硬盘或存储设备图标，底部带白色高光面板和状态圆点，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：系统存储空间、文件空间或存储设置入口卡片，可配合 event.open.settings.storage 打开系统存储空间页。当前数据清单不提供存储容量查询，图标不表示已用空间、剩余空间或存储健康状态。",
     "overviewDescription": "黄橙色渐变存储图标；用于存储空间设置入口，不支持容量查询，不代表空间用量或健康状态。",
     "sceneTags": [
       "storage",
@@ -1420,7 +1420,7 @@
     "id": "asset.ic_sun",
     "type": "asset",
     "src": "resources/base/media/ic_sun.svg",
-    "description": "样式：黄色到橙色纵向渐变的太阳图标，由圆形日面和八向光线组成，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：天气或紫外线信息卡片，可结合 ViewWeather 的 current.condition、current.uvIndex 或 daily.uvIndex 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示晴朗、日照或紫外线主题，不表示具体天气现象、温度或紫外线等级。",
+    "description": "样式：黄色到橙色纵向渐变的太阳图标，由圆形日面和八向光线组成，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：天气或紫外线信息卡片，可结合 ViewWeather 的 current.condition、current.uvIndex 或 daily.uvIndex 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示晴朗、日照或紫外线主题，不表示具体天气现象、温度或紫外线等级。",
     "overviewDescription": "黄色渐变太阳图标；用于晴朗、日照或紫外线主题，不代表具体天气、温度或紫外线等级。",
     "sceneTags": [
       "weather",
@@ -1652,7 +1652,7 @@
     "id": "asset.ic_calender",
     "type": "asset",
     "src": "resources/base/media/ic_calender.svg",
-    "description": "样式：黄色到橙色渐变的日历图标，带顶部装订环、分隔栏与日期圆点，原始尺寸为 20×20，SVG 矢量图需保留原始渐变配色，禁止染色；适用：日程概览、近期日历事项或日期倒计时卡片，可结合 GetCalendarEvents 展示日程，也可结合 GetCountdownDays 展示目标日期倒计时，并可作为 event.viewCalendarEvent 的辅助入口图标。图标不表示存在日程、日程已完成或倒计时具体天数。",
+    "description": "样式：黄色到橙色渐变的日历图标，带顶部装订环、分隔栏与日期圆点，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：日程概览、近期日历事项或日期倒计时卡片，可结合 GetCalendarEvents 展示日程，也可结合 GetCountdownDays 展示目标日期倒计时，并可作为 event.viewCalendarEvent 的辅助入口图标。图标不表示存在日程、日程已完成或倒计时具体天数。",
     "overviewDescription": "黄橙渐变日历图标；用于日程、日历事项或日期倒计时，不代表存在日程、完成状态或具体天数。",
     "sceneTags": [
       "calendar",
@@ -1665,7 +1665,7 @@
     "id": "asset.ic_sun_monochrome",
     "type": "asset",
     "src": "resources/base/media/ic_sun_monochrome.svg",
-    "description": "样式：白色半透明单色太阳图标，由圆形日面和八向短光线组成，原始尺寸为 20×20，SVG 矢量图需保留原始白色与透明度，禁止染色；适用：天气、晴朗、日照或紫外线主题卡片，可结合 ViewWeather 的 current.condition、current.uvIndex 或 daily.uvIndex 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示天气或日照主题，不代表实际晴天、具体天气现象、温度或紫外线等级。",
+    "description": "样式：白色半透明单色太阳图标，由圆形日面和八向短光线组成，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始白色与透明度，禁止染色；适用：天气、晴朗、日照或紫外线主题卡片，可结合 ViewWeather 的 current.condition、current.uvIndex 或 daily.uvIndex 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示天气或日照主题，不代表实际晴天、具体天气现象、温度或紫外线等级。",
     "overviewDescription": "白色半透明太阳图标；用于天气、日照或紫外线主题，不代表实际晴天、天气现象、温度或紫外线等级。",
     "sceneTags": [
       "weather",

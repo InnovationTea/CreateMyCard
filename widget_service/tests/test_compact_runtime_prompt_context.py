@@ -7,7 +7,7 @@ import pytest
 
 import services.prompt_builder as prompt_builder_module
 from config.config import get_settings
-from models.generation import TaskSpec
+from models.generation import CompactDslRetryContext, TaskSpec
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID
 
@@ -134,3 +134,30 @@ def test_enabled_runtime_prompt_context_includes_plan_dsl_and_recovery(
     tool_parameters = _plan_tool_from_prompt(plan_prompt)["function"]["parameters"]
     assert "composition" in tool_parameters["properties"]
     assert tool_parameters["required"] == ["info_required", "composition"]
+
+
+def test_capacity_recovery_plan_prompt_replans_components_and_priorities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "enable_design_compact_runtime_prompt_context",
+        False,
+    )
+    retry_context = CompactDslRetryContext(
+        failure_category="layout_capacity",
+        capacity_recovery=True,
+    )
+
+    prompt = PromptBuilder().build_compact_plan(
+        _task_spec(),
+        "design rules",
+        "{}",
+        retry_context=retry_context,
+    )
+
+    system_prompt = prompt[0]["content"]
+    assert "上一轮完整生成已经耗尽布局容量/结构修复预算" in system_prompt
+    assert "优先选择占位更小且语义兼容的文本类组件" in system_prompt
+    assert "全部 Action 必须保持 must" in system_prompt
+    assert "禁止仅为通过容量校验而降级" in system_prompt

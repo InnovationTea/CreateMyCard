@@ -2,6 +2,7 @@
 
 import copy
 import json
+import math
 
 from services.fusion_ball_expander import (
     build_fusion_ball_content_id,
@@ -9,7 +10,6 @@ from services.fusion_ball_expander import (
     fusion_ball_palette_for_root,
 )
 from services.post_layout_theme import FUSION_IDS, components, decode, encode
-from services.theme_content_regions import capsule_ids
 from services.theme_style_roles import (
     COLOR_FIELDS,
     layout_phase,
@@ -20,6 +20,29 @@ from services.theme_style_roles import (
 
 _BACKGROUND_KEYS = {"linearGradient", "backgroundImage", "backgroundImageSizeWithStyle"}
 _WHITE_PANELS = {"#CCFFFFFF", "#99FFFFFF", "#33FFFFFF"}
+
+
+def _capsule_style_ids(nodes: list[dict]) -> set[str]:
+    """仅用于250旧样式的角色交接，不参与公共主题的完整按钮避让。"""
+    result: set[str] = set()
+    for node in nodes:
+        if node.get("component") not in {"Button", "Row"} or not node.get("onClick"):
+            continue
+        styles = node.get("styles", {})
+        height, radius = styles.get("height"), styles.get("borderRadius")
+        if not isinstance(height, (int, float)) or not isinstance(radius, (int, float)):
+            continue
+        if not math.isfinite(height) or height <= 0 or not math.isfinite(radius):
+            continue
+        if radius < height / 2:
+            continue
+        width = styles.get("width")
+        if isinstance(width, (int, float)) and width <= height:
+            continue
+        identity = node.get("id")
+        if isinstance(identity, str):
+            result.add(identity)
+    return result
 
 
 def _remove_generated_background(nodes: list[dict], source: str, task: dict) -> None:
@@ -60,7 +83,7 @@ def prepare_single_step_theme(standard: str, source: str, task: dict) -> str:
     records = decode(standard)
     nodes = components(records)
     _remove_generated_background(nodes, source, task)
-    capsules = set(capsule_ids(nodes))
+    capsules = _capsule_style_ids(nodes)
     with layout_phase(task=task):
         for node in nodes:
             styles = node.get("styles")

@@ -1,14 +1,519 @@
 {
-  "version": 1,
+  "version": 2,
   "matching": {
-    "dynamicTextReservation": {
-      "mode": "contract-or-estimated"
-    }
+    "mode": "layout-only",
+    "unknownGeometryPolicy": "reject-subject-photos"
   },
-  "photos": [
+  "selection": {
+    "rules": "1. 用户明确的颜色、纯色、深色、渐变或背景素材要求优先；自定义时必须检查文字、图标和按钮相对直接背景的可读性。\n2. 未指定时，简单 2x2 单业务且实际展示独立事实不超过 3 项、仅一个内容组、显式动作不超过 1 个，可使用对应融球；运行时允许且业务匹配时优先融球。单会议时间线使用暖色微渐变。列表、双分区、多组指标及 2x4 使用浅色微渐变，不为使用融球删掉用户必需内容。\n3. 事实按语义计数，同一组件中承载的不同事实仍分别计数；纯主题标题和 CTA 不计入事实数。运行时禁止融球时，直接使用对应微渐变，不能模拟球体。\n4. 色板由核心业务确定，不按 few-shot 的主题机械复制。天气、耳机、电量、设备、未知业务默认蓝色；睡眠、专注、一般运动和健康概览默认紫色；日程、会议、倒计时和纪念日默认暖色。心率主读数使用紫色 root，只在合法图表、图标或已由动态数据证明的局部状态中使用粉红；不随预览值擅自切换告警色。多业务以用户明确的主业务为准，无主次或未覆盖时用蓝色。",
+    "defaultFamily": "blue",
+    "familyByDataRoot": {
+      "healthSport": "purple",
+      "calendar": "warm",
+      "countdown": "warm"
+    },
+    "fallbacks": {
+      "blue": "gradient-blue",
+      "purple": "gradient-purple",
+      "warm": "gradient-warm"
+    },
+    "fusionRouting": [
+      {
+        "routes": [
+          "calendar-event"
+        ],
+        "themeId": "fusion-ball-schedule-blue"
+      },
+      {
+        "routes": [
+          "earphone-status",
+          "battery-readout"
+        ],
+        "themeId": "fusion-ball-battery-teal"
+      },
+      {
+        "routes": [
+          "countdown"
+        ],
+        "themeId": "fusion-ball-sport-orange"
+      },
+      {
+        "routes": [
+          "health-readout"
+        ],
+        "queryAll": [
+          "睡眠|专注|睡了|深睡|小睡"
+        ],
+        "themeId": "fusion-ball-sleep-violet"
+      },
+      {
+        "routes": [
+          "health-readout"
+        ],
+        "queryAll": [
+          "运动|步数|训练|跑步"
+        ],
+        "themeId": "fusion-ball-sport-orange"
+      }
+    ]
+  },
+  "userColorOverrides": {
+    "namedColors": {
+      "白色": "#FFFFFFFF",
+      "黑色": "#FF000000",
+      "红色": "#FFFF0000",
+      "蓝色": "#FF0000FF",
+      "绿色": "#FF008000",
+      "紫色": "#FF800080",
+      "黄色": "#FFFFFF00",
+      "橙色": "#FFFFA500"
+    },
+    "neutralLight": {
+      "primary": "#FF1A1A1A",
+      "secondary": "#991A1A1A",
+      "tertiary": "#661A1A1A",
+      "graphicPrimary": "#FF1A1A1A",
+      "graphicSecondary": "#991A1A1A",
+      "graphicTertiary": "#661A1A1A",
+      "componentSecondary": "#331A1A1A",
+      "componentTertiary": "#1A1A1A1A"
+    },
+    "neutralDark": {
+      "primary": "#FFFFFFFF",
+      "secondary": "#CCFFFFFF",
+      "tertiary": "#99FFFFFF",
+      "graphicPrimary": "#FFFFFFFF",
+      "graphicSecondary": "#CCFFFFFF",
+      "graphicTertiary": "#99FFFFFF",
+      "componentSecondary": "#33FFFFFF",
+      "componentTertiary": "#1AFFFFFF"
+    },
+    "legacyPanelColors": [
+      "#CCFFFFFF",
+      "#99FFFFFF"
+    ]
+  },
+  "themes": [
+    {
+      "id": "gradient-blue",
+      "enabled": true,
+      "kind": "gradient",
+      "pool": "standard",
+      "name": "蓝色浅色微渐变",
+      "description": "蓝色浅色微渐变，沿用原业务配色。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "blue",
+      "backgroundAliases": [
+        "#FFE5EDFE",
+        "#FFCBDDFE",
+        "#FFF1F6FE"
+      ],
+      "background": {
+        "colors": [
+          "#FFCBDDFE",
+          "#FFF1F6FE"
+        ],
+        "direction": "RightBottom"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF1F4799",
+          "secondary": "#991F4799",
+          "tertiary": "#661F4799",
+          "graphicPrimary": "#FF1F4799",
+          "graphicSecondary": "#991F4799",
+          "graphicTertiary": "#661F4799",
+          "componentSecondary": "#331F4799",
+          "componentTertiary": "#1A1F4799"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "gradient-purple",
+      "enabled": true,
+      "kind": "gradient",
+      "pool": "standard",
+      "name": "紫色浅色微渐变",
+      "description": "紫色浅色微渐变，沿用原业务配色。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "purple",
+      "backgroundAliases": [
+        "#FFDBCCFF",
+        "#FFF6F2FF"
+      ],
+      "background": {
+        "colors": [
+          "#FFDBCCFF",
+          "#FFF6F2FF"
+        ],
+        "direction": "RightBottom"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF563D99",
+          "secondary": "#99563D99",
+          "tertiary": "#66563D99",
+          "graphicPrimary": "#FF563D99",
+          "graphicSecondary": "#99563D99",
+          "graphicTertiary": "#66563D99",
+          "componentSecondary": "#33563D99",
+          "componentTertiary": "#1A563D99"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "gradient-warm",
+      "enabled": true,
+      "kind": "gradient",
+      "pool": "standard",
+      "name": "暖色浅色微渐变",
+      "description": "暖色浅色微渐变，沿用原业务配色。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "warm",
+      "backgroundAliases": [
+        "#FFFFE0CC",
+        "#FFFFF7F2"
+      ],
+      "background": {
+        "colors": [
+          "#FFFFE0CC",
+          "#FFFFF7F2"
+        ],
+        "direction": "RightBottom"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF8C4B1C",
+          "secondary": "#998C4B1C",
+          "tertiary": "#668C4B1C",
+          "graphicPrimary": "#FF8C4B1C",
+          "graphicSecondary": "#998C4B1C",
+          "graphicTertiary": "#668C4B1C",
+          "componentSecondary": "#338C4B1C",
+          "componentTertiary": "#1A8C4B1C"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "solid-blue",
+      "enabled": true,
+      "kind": "solid",
+      "pool": "standard",
+      "name": "蓝色纯色",
+      "description": "蓝色无渐变固定底色，仅用户明确要求纯色时选择。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "blue",
+      "backgroundAliases": [
+        "#FFE5EDFE",
+        "#FFCBDDFE",
+        "#FFF1F6FE"
+      ],
+      "background": {
+        "color": "#FFF1F6FE"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF1F4799",
+          "secondary": "#991F4799",
+          "tertiary": "#661F4799",
+          "graphicPrimary": "#FF1F4799",
+          "graphicSecondary": "#991F4799",
+          "graphicTertiary": "#661F4799",
+          "componentSecondary": "#331F4799",
+          "componentTertiary": "#1A1F4799"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "solid-purple",
+      "enabled": true,
+      "kind": "solid",
+      "pool": "standard",
+      "name": "紫色纯色",
+      "description": "紫色无渐变固定底色，仅用户明确要求纯色时选择。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "purple",
+      "backgroundAliases": [
+        "#FFDBCCFF",
+        "#FFF6F2FF"
+      ],
+      "background": {
+        "color": "#FFF6F2FF"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF563D99",
+          "secondary": "#99563D99",
+          "tertiary": "#66563D99",
+          "graphicPrimary": "#FF563D99",
+          "graphicSecondary": "#99563D99",
+          "graphicTertiary": "#66563D99",
+          "componentSecondary": "#33563D99",
+          "componentTertiary": "#1A563D99"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "solid-warm",
+      "enabled": true,
+      "kind": "solid",
+      "pool": "standard",
+      "name": "暖色纯色",
+      "description": "暖色无渐变固定底色，仅用户明确要求纯色时选择。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "warm",
+      "backgroundAliases": [
+        "#FFFFE0CC",
+        "#FFFFF7F2"
+      ],
+      "background": {
+        "color": "#FFFFF7F2"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF8C4B1C",
+          "secondary": "#998C4B1C",
+          "tertiary": "#668C4B1C",
+          "graphicPrimary": "#FF8C4B1C",
+          "graphicSecondary": "#998C4B1C",
+          "graphicTertiary": "#668C4B1C",
+          "componentSecondary": "#338C4B1C",
+          "componentTertiary": "#1A8C4B1C"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-battery-teal",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "电量青绿融球",
+      "description": "耳机、手机电量；简洁单业务融球，白色内容。",
+      "businessDescription": "耳机、手机电量",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FF1F9985",
+          "medium": "#FF24B3B3",
+          "small": "#FF5AB38E"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-schedule-blue",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "会议蓝色融球",
+      "description": "单个会议、日程、提醒；沿用原融球触发条件，使用模板蓝色背景和白色内容。",
+      "businessDescription": "单个会议、日程、提醒（沿用原融球触发条件）",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FF1F1F99",
+          "medium": "#FF2B65D9",
+          "small": "#FF57AED9"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-sleep-violet",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "睡眠紫色融球",
+      "description": "睡眠、专注；简洁单业务融球，白色内容。",
+      "businessDescription": "睡眠、专注",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FF493D99",
+          "medium": "#FF5536B3",
+          "small": "#FF7D6B99"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-sport-orange",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "运动橙色融球",
+      "description": "倒计时、纪念日、运动；简洁单业务融球，白色内容。",
+      "businessDescription": "倒计时、纪念日、运动",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FFF24131",
+          "medium": "#FFFF8833",
+          "small": "#FFE68073"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
     {
       "id": "photo-rain-ink-square",
-      "size": "2x2",
       "business": "rain",
       "subjectPosition": "右上",
       "subjectBounds": [
@@ -57,19 +562,46 @@
       ],
       "description": "恢复原始右上大雨伞，伞面与伞骨以分段区域标注为禁放主体；左侧及底部深色雨幕可放内容，雨丝水滴是背景纹理，底部文字绘制在图片上方。固定构图禁止运行时移动。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_rain_ink_top_right_square.jpg",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "photo-rain-ink-square",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_rain_ink_top_right_square.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "cover"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
       "id": "photo-sunflower-blue",
-      "size": "2x2",
       "business": "weather",
       "subjectPosition": "右上",
       "subjectBounds": [
@@ -160,20 +692,46 @@
       ],
       "description": "用户确认的斜向缩小向日葵，花朵由右上伸向中下部；花瓣、花盘、茎叶按分段主体区域避让，外接矩形不是整块禁放。左侧及底部蓝天可放白字，右下保留图标按钮空位；胶囊整体豁免，图标按钮内容仍正常校验。纯背景不含文字和按钮，运行时不移动构图。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_sunflower_diagonal_clear_button_v5.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "photo-sunflower-blue",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_sunflower_diagonal_clear_button_v5.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "fill"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
       "id": "photo-vinyl-dark-square",
-      "size": "2x2",
       "business": "music",
       "subjectPosition": "右",
       "subjectBounds": [
@@ -184,19 +742,46 @@
       ],
       "description": "右侧唱盘与唱臂整体为禁放主体，顶部和左侧为深色底，融球白色字系。胶囊按钮整体按既定规则豁免。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_vinyl_right_v3.jpg",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "photo-vinyl-dark-square",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_vinyl_right_v3.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "cover"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
       "id": "photo-balloon-sky",
-      "size": "2x2",
       "business": "countdown",
       "subjectPosition": "右上",
       "subjectBounds": [
@@ -207,79 +792,180 @@
       ],
       "description": "右上热气球与吊篮，主体区域禁放正文；左侧和底部为蓝灰天空，融球白色字系。构图已烘焙，禁止运行时移动或裁剪。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_balloon_topright_v4.jpg",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "photo-balloon-sky",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_balloon_topright_v4.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "cover"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
-    }
-  ],
-  "subjectlessWidePhotos": [
+    },
     {
       "id": "photo-subjectless-w04",
-      "size": "2x4",
       "business": "weather",
       "composition": "subjectless",
       "description": "W04 蓝色薄云纹，中深色低对比无主体底图，适合融球白字层级；全画布内容可覆盖，不改变布局。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_subjectless_w04_white_text_v2.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "kind": "photo",
+      "pool": "subjectlessWidePhotos",
+      "name": "photo-subjectless-w04",
+      "sizes": [
+        "2x4"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_subjectless_w04_white_text_v2.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "fill"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
       "id": "photo-subjectless-b05",
-      "size": "2x4",
       "business": "battery",
       "composition": "subjectless",
       "description": "B05 原版青绿纹理，按用户截图恢复；手机电量业务无主体底图，沿用融球白字层级与白色20%底托，不改变布局。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_subjectless_b05.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "kind": "photo",
+      "pool": "subjectlessWidePhotos",
+      "name": "photo-subjectless-b05",
+      "sizes": [
+        "2x4"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_subjectless_b05.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "fill"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
       "id": "photo-subjectless-h04",
-      "size": "2x4",
       "business": "sleep",
       "composition": "subjectless",
       "description": "H04 睡眠静紫，无主体纹理，全画布内容可覆盖，不改变布局。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_subjectless_h04.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "kind": "photo",
+      "pool": "subjectlessWidePhotos",
+      "name": "photo-subjectless-h04",
+      "sizes": [
+        "2x4"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_subjectless_h04.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "fill"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
-    }
-  ],
-  "squareExpansions": [
+    },
     {
       "id": "photo-music-square-to-wide",
       "kind": "photo",
       "sourceSize": "2x2",
-      "size": "2x4",
       "business": "music",
       "composition": "square-left",
       "description": "原2x2音乐内容完整放左半区，右半区为墨镜人物；不移动原内容，不新增数据。",
@@ -291,22 +977,48 @@
         1
       ],
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_expansion_music_right_v1.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "pool": "squareExpansions",
+      "name": "photo-music-square-to-wide",
+      "sizes": [
+        "2x4"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_expansion_music_right_v1.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "fill"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF",
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
       "id": "photo-countdown-square-to-wide",
       "kind": "photo",
       "sourceSize": "2x2",
-      "size": "2x4",
       "business": "countdown",
       "composition": "square-left",
       "description": "原2x2倒计时内容完整放左半区，右半区为小鸟与树枝；左右各半，背景允许少量拉伸，不裁切或移动主体。",
@@ -318,22 +1030,48 @@
         1
       ],
       "contentTone": "light",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_expansion_countdown_right_v1.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "pool": "squareExpansions",
+      "name": "photo-countdown-square-to-wide",
+      "sizes": [
+        "2x4"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_expansion_countdown_right_v1.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "fill"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF",
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
       "id": "photo-sleep-square-to-wide",
       "kind": "photo",
       "sourceSize": "2x2",
-      "size": "2x4",
       "business": "sleep",
       "composition": "square-left",
       "description": "原2x2睡眠内容完整放左半区，右半区为月亮；左右各半，背景允许少量拉伸，不裁切或移动主体。",
@@ -345,15 +1083,1146 @@
         1
       ],
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_expansion_sleep_right_v1.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "enabled": false,
+      "pool": "squareExpansions",
+      "name": "photo-sleep-square-to-wide",
+      "sizes": [
+        "2x4"
+      ],
+      "background": {
+        "src": "resources/base/media/bg_expansion_sleep_right_v1.jpg",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        },
+        "objectFit": "fill"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF",
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sleep-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "睡眠 · 暗色卧室",
+      "description": "2x2睡眠相关业务的暗色卧室无主体背景，不限定具体布局；允许文字、按钮和图标覆盖床枕与床头物件。固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "subjectless": true,
+      "sizes": [
+        "2x2"
+      ],
+      "business": "sleep",
+      "composition": "native",
+      "subjectBounds": [
+        0.43,
+        0.28,
+        0.57,
+        0.48
+      ],
+      "subjectRegions": [
+        [
+          0.43,
+          0.32,
+          0.36,
+          0.14
+        ],
+        [
+          0.46,
+          0.46,
+          0.54,
+          0.3
+        ],
+        [
+          0.79,
+          0.28,
+          0.21,
+          0.18
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.42,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0.28
+        ],
+        [
+          0,
+          0.78,
+          1,
+          0.22
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "床枕与床头物件按无主体处理；原主体坐标仅留作素材记录。",
+      "layoutHint": "2x2睡眠业务，不额外限定布局",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X2配图/2X2睡眠.jpg",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "sourceSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00",
+        "assetSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sleep_square.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-weather-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "天气 · 蓝天白云",
+      "description": "云朵主体在右下，白云为亮区；仅左上蓝色天空可放白色内容，底部按钮也必须避让。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0.4,
+        1,
+        0.6
+      ],
+      "subjectRegions": [
+        [
+          0.7,
+          0.4,
+          0.3,
+          0.6
+        ],
+        [
+          0.48,
+          0.6,
+          0.22,
+          0.4
+        ],
+        [
+          0,
+          0.72,
+          0.48,
+          0.28
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.68,
+          0.58
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "云朵主体在右下，白云为亮区；仅左上蓝色天空可放白色内容，底部按钮也必须避让。",
+      "layoutHint": "左上少量内容",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X2配图/2X2天气.jpg",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "sourceSha256": "55861617bfbea33279768c55125265485a87d8c1c54d08b819ed02c2f7d9a5d0",
+        "assetSha256": "55861617bfbea33279768c55125265485a87d8c1c54d08b819ed02c2f7d9a5d0"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_weather_square.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sport1-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "运动1 · 红色跑道",
+      "description": "跑者和跑道主体位于中上；下方暗红空白可放内容，需底部两行布局，当前不为图片新增布局。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "sport",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        0.76
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          0.76
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0.78,
+          1,
+          0.22
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "跑者和跑道主体位于中上；下方暗红空白可放内容，需底部两行布局，当前不为图片新增布局。",
+      "layoutHint": "底部两行（待增加）",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X2配图/运动1.jpg",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "sourceSha256": "c7cd9fe4f97dfe170ddb35201e93c956f49d3151bf746628a11b316ae19450b6",
+        "assetSha256": "c7cd9fe4f97dfe170ddb35201e93c956f49d3151bf746628a11b316ae19450b6"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sport1_square.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sport2-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "运动2 · 日出跑步",
+      "description": "日出与跑者主体位于中上；只允许底部暗色道路放少量内容，当前布局通常无法匹配。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "sport",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        0.8
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          0.8
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0.82,
+          1,
+          0.18
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "日出与跑者主体位于中上；只允许底部暗色道路放少量内容，当前布局通常无法匹配。",
+      "layoutHint": "底部两行（待增加）",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X2配图/运动2.jpg",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "sourceSha256": "fdb6777de824e936cd2dee8829c86dae06be2fe5ecae3e1f67641a9607a38e22",
+        "assetSha256": "fdb6777de824e936cd2dee8829c86dae06be2fe5ecae3e1f67641a9607a38e22"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sport2_square.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sport3-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "运动3 · 竞速跑道",
+      "description": "跑者腿部与竞速画面占中上；仅最下方暗橙区域可放内容，当前布局通常无法匹配。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "sport",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        0.84
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          0.84
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0.86,
+          1,
+          0.14
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "跑者腿部与竞速画面占中上；仅最下方暗橙区域可放内容，当前布局通常无法匹配。",
+      "layoutHint": "底部两行（待增加）",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X2配图/运动3.jpg",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "sourceSha256": "b27995982b4037fd7b273d2b09d2ba6de066a03886a5c097b76ff56f182f9ba3",
+        "assetSha256": "b27995982b4037fd7b273d2b09d2ba6de066a03886a5c097b76ff56f182f9ba3"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sport3_square.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-travel-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "出行 · 飞机与停机坪",
+      "description": "飞机及影子位于左上至中部，遵循UX上部不布局；仅底部灰色区域可放出行内容，当前暂无对应布局。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "travel",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        0.72
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          0.72
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0.75,
+          1,
+          0.25
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "飞机及影子位于左上至中部，遵循UX上部不布局；仅底部灰色区域可放出行内容，当前暂无对应布局。",
+      "layoutHint": "底部内容（待增加）",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/上不布局-出行类.jpg",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "bef1e69ffc6f93deac2c6fe43c5d5a6279943c932cbedcae29a3c10b14b20c84",
+        "assetSha256": "bef1e69ffc6f93deac2c6fe43c5d5a6279943c932cbedcae29a3c10b14b20c84"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_travel_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-information-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "信息咨询 · 紫蓝纹理",
+      "description": "亮色波纹位于中部，上部留给背景；仅下方深紫区可放信息咨询内容，当前暂无对应布局。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "information",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        0.72
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          0.72
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0.76,
+          1,
+          0.24
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "亮色波纹位于中部，上部留给背景；仅下方深紫区可放信息咨询内容，当前暂无对应布局。",
+      "layoutHint": "底部内容（待增加）",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/上不布局-信息咨询类.jpg",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "7695393dc0f1edf241800a994b10eccf77a19b16aa62fe911f34ca5a7b4697ec",
+        "assetSha256": "7695393dc0f1edf241800a994b10eccf77a19b16aa62fe911f34ca5a7b4697ec"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_information_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sport-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "运动健康 · 双人跑步",
+      "description": "双人跑者位于中上及右侧，保留完整主体；只允许最下方深色区域放内容，当前暂无对应布局。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "sport",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        0.88
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          0.88
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0.9,
+          1,
+          0.1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "双人跑者位于中上及右侧，保留完整主体；只允许最下方深色区域放内容，当前暂无对应布局。",
+      "layoutHint": "底部内容（待增加）",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/上不布局-运动健康类.jpg",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "621dbb73b7350b32423e6f2a8e4df2fcb7e41b32ed3b098253c58e0e41006825",
+        "assetSha256": "621dbb73b7350b32423e6f2a8e4df2fcb7e41b32ed3b098253c58e0e41006825"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sport_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sport-center-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "运动健康 · 中央小跑者",
+      "description": "运动相关业务（不限马拉松）的无主体背景，仅适配左侧主内容、右侧上下两块的布局；允许文字、按钮和图标覆盖中央小跑者。固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "subjectless": true,
+      "sizes": [
+        "2x4"
+      ],
+      "business": "sport",
+      "composition": "native",
+      "subjectBounds": [
+        0.435,
+        0.23,
+        0.17,
+        0.55
+      ],
+      "subjectRegions": [
+        [
+          0.435,
+          0.23,
+          0.17,
+          0.18
+        ],
+        [
+          0.48,
+          0.41,
+          0.11,
+          0.15
+        ],
+        [
+          0.46,
+          0.56,
+          0.08,
+          0.22
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.425,
+          1
+        ],
+        [
+          0.615,
+          0,
+          0.385,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0.21
+        ],
+        [
+          0,
+          0.8,
+          1,
+          0.2
+        ],
+        [
+          0.56,
+          0.57,
+          0.44,
+          0.43
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "中央小跑者按无主体处理；原主体坐标仅留作素材记录。",
+      "subjectlessLayout": {
+        "layout": "W-content-side-slots",
+        "orientation": "content-left"
+      },
+      "layoutHint": "左主焦点 + 右侧上下小卡",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/上不布局-运动健康类1.jpg",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d",
+        "assetSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sport_center_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-home-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "智慧家 · 卧室与灯光",
+      "description": "卧室灯具及床铺位于中上，遵循UX上部不布局；仅下方暗区可放智慧家控制内容。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "smart-home",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        0.74
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          0.74
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0.78,
+          1,
+          0.22
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "卧室灯具及床铺位于中上，遵循UX上部不布局；仅下方暗区可放智慧家控制内容。",
+      "layoutHint": "底部内容（待增加）",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/上不布局-智慧家.jpg",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "91f3ac19584fb1520c99b8221837d4c9575a45a9f24938b13aba987804860e08",
+        "assetSha256": "91f3ac19584fb1520c99b8221837d4c9575a45a9f24938b13aba987804860e08"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_home_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sleep-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "睡眠 · 床头灯与闹钟",
+      "description": "床头灯、闹钟与柜子位于左侧中部；左右暗区及下方可放内容，现有布局通常无法匹配。已在开发态去掉白边阴影。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "sleep",
+      "composition": "native",
+      "subjectBounds": [
+        0.18,
+        0,
+        0.42,
+        0.68
+      ],
+      "subjectRegions": [
+        [
+          0.18,
+          0,
+          0.42,
+          0.68
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.17,
+          1
+        ],
+        [
+          0.62,
+          0,
+          0.38,
+          1
+        ],
+        [
+          0,
+          0.78,
+          1,
+          0.22
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "床头灯、闹钟与柜子位于左侧中部；左右暗区及下方可放内容，现有布局通常无法匹配。已在开发态去掉白边阴影。",
+      "layoutHint": "左右内容避开左中主体",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/左右布局-睡眠类.jpg",
+        "crop": [
+          153,
+          0,
+          1353,
+          600
+        ],
+        "originalSize": [
+          1506,
+          774
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "52a06c7ac1c68cfcf76c770b2f4c7db6c9a2d8cfe3888da5a692be85dc5b5914",
+        "assetSha256": "d7f4cf236a68bd56e76737b15dcbcd6459321866e79fff9337e103810aea3410"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sleep_wide.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-concert-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "音乐 · 演唱会",
+      "description": "歌手与吉他位于左侧中间；右侧与底部暗色舞台可放音乐内容，按钮同样避让主体。 固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "music",
+      "composition": "native",
+      "subjectBounds": [
+        0.28,
+        0.1,
+        0.2,
+        0.66
+      ],
+      "subjectRegions": [
+        [
+          0.28,
+          0.1,
+          0.2,
+          0.66
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.26,
+          1
+        ],
+        [
+          0.51,
+          0,
+          0.49,
+          1
+        ],
+        [
+          0,
+          0.8,
+          1,
+          0.2
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "歌手与吉他位于左侧中间；右侧与底部暗色舞台可放音乐内容，按钮同样避让主体。",
+      "layoutHint": "左右内容避开歌手",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/左右布局-演唱会.jpg",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "7c72b015c3ca08000be74c99825c3fdb3e8073d59bb60c3961e9925d0a8f2be1",
+        "assetSha256": "7c72b015c3ca08000be74c99825c3fdb3e8073d59bb60c3961e9925d0a8f2be1"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_concert_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     }
   ]

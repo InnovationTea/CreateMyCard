@@ -127,6 +127,23 @@ def test_native_image_and_content_panel_roles():
     assert not in_layout_phase()
 
 
+def test_legacy_capsule_style_role_is_not_all_clickable_content_panels():
+    source = _source()
+    records = themes.decode(_convert(source))
+    nodes = themes.components(records)
+    for identity, radius in (("capsule", 18), ("clickable_panel", 8)):
+        nodes.append({
+            "id": identity, "component": "Row", "children": [],
+            "onClick": {"action": "existing-action"},
+            "styles": {"width": 100, "height": 36, "borderRadius": radius,
+                       "backgroundColor": "#CCFFFFFF"},
+        })
+    prepared = prepare_single_step_theme(themes.encode(records), source, {"size": "2x2"})
+    found = themes.components(themes.decode(prepared))
+    assert found[-2].get("styles", {}).get("backgroundColor") == "@theme:componentSecondary/1"
+    assert found[-1].get("styles", {}).get("backgroundColor") == "@theme:panel/1"
+
+
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 def test_original_250_examples_handoff_or_keep_original_conversion_error(size):
     text = (PROFILE_DIR / f"FEWSHOT_{size}.md").read_text(encoding="utf-8")

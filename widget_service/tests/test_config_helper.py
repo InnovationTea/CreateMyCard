@@ -7,10 +7,23 @@ import pytest
 from cloud.config.config import Settings
 from cloud.config.config_helper import ConfigHelper
 
+from services.compact_prompt_loader import read_prompt
+
 
 def _force_default_config(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     missing_spec = tmp_path / "missing-spec.yaml"
     monkeypatch.setattr(ConfigHelper, "_get_spec_config_file", lambda _self: missing_spec)
+
+
+def test_default_model_failure_retry_is_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _force_default_config(monkeypatch, tmp_path)
+    helper = ConfigHelper("local")
+    assert helper.get("enable_model_failure_retry") == "true"
+    assert helper.get("model_failure_max_retry_attempts") == 1
+    assert helper.get("fallback_model_failure_max_retry_attempts") == 1
 
 
 def test_missing_spec_uses_default_config(
@@ -24,14 +37,11 @@ def test_missing_spec_uses_default_config(
     assert helper.config_file.name == "default_config.yaml"
     assert helper.get("obs.expire.time") == 3600
     assert helper.get("enable_a2ui_model_mock") == "true"
-    assert "# 一、任务目标与优先级" in helper.get("system.prompt")
-    assert "编辑模式附加规则" in helper.get("edit.system.prompt")
-    assert "DSL 转换或校验错误修复" in helper.get("repair.system.prompt")
     assert helper.get("fusion_ball_min_prd_version") == "11.7.5.206"
     assert helper.get("enable_compact_dsl_argument_repair_fallback") == "false"
     assert helper.get("compact_dsl_argument_repair_reminder_count") == 1
     assert helper.get("compact_dsl_argument_repair_max_attempts") == 2
-    assert helper.get("enable_compact_dsl_interface_retry") == "false"
+    assert helper.get("enable_compact_dsl_interface_retry") == "true"
     assert helper.get("compact_dsl_interface_retry_count") == 1
     assert helper.get("enable_single_step_generation_fallback") == "false"
     assert helper.get("enable_single_step_widget_edit") == "true"
@@ -41,6 +51,31 @@ def test_missing_spec_uses_default_config(
     assert helper.get("enable_photo_background_theme") == "false"
     assert helper.get("enable_subjectless_wide_theme") == "false"
     assert helper.get("enable_square_photo_expansion") == "false"
+
+
+@pytest.mark.parametrize(
+    ("config_key", "prompt_name"),
+    [
+        ("system.prompt", "create"),
+        ("edit.system.prompt", "edit"),
+        ("repair.system.prompt", "repair"),
+    ],
+)
+def test_default_prompt_references_load_complete_source(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    config_key: str,
+    prompt_name: str,
+) -> None:
+    _force_default_config(monkeypatch, tmp_path)
+    helper = ConfigHelper("local")
+    source_root = (
+        Path(__file__).resolve().parents[1]
+        / "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
+    )
+    expected = read_prompt(source_root, prompt_name)
+    assert expected.strip()
+    assert helper.get(config_key) == expected
 
 
 def test_existing_spec_is_used_without_default_merge(
@@ -58,6 +93,17 @@ def test_existing_spec_is_used_without_default_merge(
     assert "obs.expire.time" not in helper
     assert helper.get("enable_compact_dsl_interface_retry", "false") == "false"
     assert helper.get("compact_dsl_interface_retry_count", 1) == 1
+
+
+def test_default_interface_retry_policy(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _force_default_config(monkeypatch, tmp_path)
+    helper = ConfigHelper("local")
+
+    assert helper.get("enable_compact_dsl_interface_retry") == "true"
+    assert helper.get("compact_dsl_interface_retry_count") == 1
 
 
 def test_cloud_properties_file_keeps_json_compatibility(

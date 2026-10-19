@@ -1,0 +1,115 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "实时天气卡片，显示位置、实时温度、天气变化、空气质量，一键拨打12345",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/alertLevel",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/temperatureText",
+          "/current/uvIndex",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/location/districtName",
+          "/location/prefectureName"
+        ]
+      }
+    ],
+    "title": "实时天气",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "12345"
+            }
+          }
+        }
+      }
+    ],
+    "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打12345。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.340",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "014",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "实时天气卡片，显示位置、实时温度、天气变化、空气质量，一键拨打12345",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "实时天气卡片，显示位置、实时温度、天气变化、空气质量，一键拨打12345",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/alertLevel",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/temperatureText",
+        "/current/uvIndex",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/location/districtName",
+        "/location/prefectureName"
+      ]
+    }
+  ],
+  "title": "实时天气",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "12345"
+          }
+        }
+      }
+    }
+  ],
+  "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打12345。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color"
+  ]
+}

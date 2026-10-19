@@ -532,6 +532,7 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
     assert.equal(graph.getNode("root")?.children.length, count);
     assert.equal(rootStyles.itemMargin, 8);
     assert.equal(rootStyles.height, "matchParent");
+    assert.equal(rootStyles.alignItems, "top");
     assert.equal(rootStyles.justifyContent, "start");
     assert.equal(rootStyles.layoutWeight, 1);
     assert.deepEqual(rootStyles.constraintSize, {
@@ -539,6 +540,7 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
     });
     assert.ok(graph.getNode(`root_item${count - 1}`));
     assert.equal(itemStyles.layoutWeight, 1);
+    assert.equal(itemStyles.height, "matchParent");
     assert.equal(itemStyles.backgroundColor, "#99FFFFFF");
     assert.deepEqual(graph.getNode("root_item0")?.children, [
       "root_item0_label_slot",

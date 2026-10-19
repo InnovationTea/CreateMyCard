@@ -49,6 +49,7 @@ from services.compact_dsl_argument_repair import (
     recover_compact_dsl_content,
 )
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
+from services.generation_retry_policy import retry_policy_details
 from services.generation_trace_recorder import (
     trace_increment_retry,
     trace_observe_attempt,
@@ -1075,6 +1076,12 @@ async def _serve_operation_websocket(
 
                     if operation == COMPACT_DSL_OPERATION:
                         settings = get_settings()
+                        trace_record(
+                            "retry.policy.configured",
+                            stage="configuration",
+                            status="success",
+                            details=retry_policy_details(settings),
+                        )
                         result = await run_compact_dsl_with_retry(
                             lambda attempt_request: handler(
                                 service, attempt_request, send_model_start_command

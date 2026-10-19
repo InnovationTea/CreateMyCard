@@ -215,28 +215,22 @@ def _object_owner(task: dict[str, Any], path: str) -> str | None:
 def _single_attribute(
     row: ComponentRow, task: dict[str, Any],
 ) -> tuple[dict[str, Any], str, str] | None:
+    result: tuple[dict[str, Any], str, str] | None = None
     items = _reflow_items(row)
-    if items is None or len(items) != 1:
-        return None
-    item = items[0]
-    value = item.get("value")
+    item = items[0] if items is not None and len(items) == 1 else None
+    value = item.get("value") if item is not None else None
     paths: list[str] = []
     if isinstance(value, dict) and isinstance(value.get("path"), str):
         paths.append(value.get("path"))
     elif isinstance(value, str):
         paths = re.findall(r"\$\{(/[^{}]+)\}", value)
-    if not paths:
-        return None
     owners = {_object_owner(task, path) for path in paths}
-    if None in owners or len(owners) != 1:
-        return None
-    text = small_card_display_text(value, task)
-    if text is None or "\n" in text:
-        return None
-    owner = next(iter(owners))
-    if not isinstance(owner, str):
-        return None
-    return item, owner, text
+    owner = next(iter(owners)) if len(owners) == 1 else None
+    if item is not None and isinstance(owner, str):
+        text = small_card_display_text(value, task)
+        if text is not None and "\n" not in text:
+            result = item, owner, text
+    return result
 
 
 def _paragraph(

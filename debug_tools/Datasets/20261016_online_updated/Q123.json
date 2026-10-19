@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "做一个通勤助手卡片，监控天气加导航到公司",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/temperatureText"
+        ]
+      }
+    ],
+    "title": "通勤助手",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.startNavigate",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "location": "company",
+                "latitude": "",
+                "longitude": ""
+              }
+            }
+          }
+        }
+      }
+    ],
+    "description": "监控天气并一键导航到公司。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.icon_car",
+      "asset.local_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.339",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "123",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "做一个通勤助手卡片，监控天气加导航到公司",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "做一个通勤助手卡片，监控天气加导航到公司",
+  "candidateDataBindings": [],
+  "title": "通勤助手",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "监控天气并一键导航到公司。",
+  "candidateAssetIds": []
+}

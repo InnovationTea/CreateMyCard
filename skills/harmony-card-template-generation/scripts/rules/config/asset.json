@@ -1,4 +1,0 @@
-{
-  "forbiddenPatterns": ["^https?://", "^data:image/", "base64"],
-  "allowlist": []
-}

@@ -186,7 +186,7 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/daily/0/temperatureRangeText",
 )
 _WEATHER_PALETTE = ("#FF1F1F99", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFF24131", "#FFFF8833", "#FFE68073")
+_SPORT_PALETTE = ("#FFCC4033", "#FFFF7919", "#FFFF8E80")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -428,6 +428,7 @@ def test_business_template_suffix_or_declaration_drives_size_and_data_tiers():
         "BluetoothDeviceOverviewConnectionBatterySupport@1": ("2x4",),
         "BluetoothDeviceOverviewMusicSupport@1": ("2x4",),
         "WeatherOverviewThreeDayForecastFull@1": ("2x4",),
+        "ScheduleOverviewDateTitleFull@1": ("2x4",),
     }
     layout_kinds = {
         "HeroTitle",
@@ -1319,7 +1320,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 51
+    assert len(calendar.local_template_ids) == 56
     assert "ScheduleOverviewTimezoneTimeFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateLocationFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewReminderDetailsFull@1" in calendar.local_template_ids
@@ -3626,7 +3627,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 51
+    assert len(calendar.local_template_ids) == 56
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
@@ -6844,7 +6845,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
 
     assert output.template_ids == ("CountdownOverviewFull@1", "SingleFocusLayout@1")
     assert "countdownDays" in output.a2ui
-    assert "倒计时" in output.a2ui
+    assert "还剩" in output.a2ui
     assert "运动倒计时" not in output.a2ui
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     update = messages[1].get("updateComponents")
@@ -6872,9 +6873,9 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         assert isinstance(root_styles, dict)
         assert root_styles.get("backgroundColor") == "#FFFFF0E6"
     expected_ball_colors = {
-        "fusionBallLarge": "#FFF24131",
-        "fusionBallMedium": "#FFFF8833",
-        "fusionBallSmall": "#FFE68073",
+        "fusionBallLarge": "#FFCC4033",
+        "fusionBallMedium": "#FFFF7919",
+        "fusionBallSmall": "#FFFF8E80",
     }
     for ball_id, expected_color in expected_ball_colors.items():
         if not enable_fusion_ball:

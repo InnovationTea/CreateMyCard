@@ -17,6 +17,7 @@ from services.compact_component_runtime import (
 )
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_region_layout import reference_region_boxes
+from services.compact_whole_card_click import WHOLE_CARD_LAYOUTS
 
 LAYOUT_CONTRACT_VERSION = "layout-contracts-v1"
 _CONTRACT_PATH = (
@@ -107,6 +108,7 @@ def match_compact_layout(
     *,
     size: str,
     layout_scope: str,
+    root_action_handler: dict[str, Any] | None = None,
 ) -> CompactLayoutMatch:
     """Match raw Compact rows to one formal layout without changing their geometry."""
     components_by_id = _reference_components(components, size=size)
@@ -123,6 +125,8 @@ def match_compact_layout(
     closest_rank: tuple[int, int, int] | None = None
     alternatives: list[str] = []
     for layout_id in allowed_layout_ids(size, layout_scope):
+        if root_action_handler is not None and layout_id not in WHOLE_CARD_LAYOUTS:
+            continue
         layout = layouts.get(layout_id)
         if not isinstance(layout, dict):
             continue
@@ -130,7 +134,10 @@ def match_compact_layout(
         if not isinstance(patterns, list):
             continue
         best_variant: tuple[tuple[int, int, int], int, list[str]] | None = None
-        action_errors = _action_count_mismatches(layout, components)
+        action_errors = _action_count_mismatches(
+            layout, components,
+            root_action_handler=(root_action_handler if layout_id in WHOLE_CARD_LAYOUTS else None),
+        )
         placement_errors = _component_placement_mismatches(
             contract,
             components,
@@ -450,13 +457,25 @@ def _component_at_path(
 def _action_count_mismatches(
     layout: dict[str, Any],
     components: list[ComponentRow],
+    *,
+    root_action_handler: dict[str, Any] | None = None,
 ) -> list[str]:
     action_range = layout.get("actionCount")
     if not isinstance(action_range, dict):
         return []
     minimum = action_range.get("min")
     maximum = action_range.get("max")
-    count = sum(1 for component in components if _has_event(component))
+    count = 0
+    for component in components:
+        if not _has_event(component):
+            continue
+        is_accepted_root = (
+            component.component_id == "root"
+            and root_action_handler is not None
+            and component.props.get("onClick") == [root_action_handler]
+        )
+        if not is_accepted_root:
+            count += 1
     mismatches: list[str] = []
     if isinstance(minimum, int) and count < minimum:
         mismatches.append(f"layout requires at least {minimum} actions, got {count}")

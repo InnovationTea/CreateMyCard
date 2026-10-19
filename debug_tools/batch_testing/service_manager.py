@@ -61,7 +61,7 @@ _SERVICE_CONFIG: dict[str, ServiceConfigField] = {
         "batch_testing",
         "enable_a2ui_model_mock",
         bool,
-        True,
+        False,
     ),
     "designCompactModelBackend": ServiceConfigField(
         "DESIGN_COMPACT_MODEL_BACKEND",
@@ -118,7 +118,7 @@ _SERVICE_CONFIG: dict[str, ServiceConfigField] = {
         False,
     ),
     "enableModelFailureRetry": ServiceConfigField(
-        "ENABLE_MODEL_FAILURE_RETRY", "model", "enable_model_failure_retry", bool, False
+        "ENABLE_MODEL_FAILURE_RETRY", "model", "enable_model_failure_retry", bool, True
     ),
     "modelFailureMaxRetryAttempts": ServiceConfigField(
         "MODEL_FAILURE_MAX_RETRY_ATTEMPTS", "model", "model_failure_max_retry_attempts", int, 1
@@ -138,21 +138,21 @@ _SERVICE_CONFIG: dict[str, ServiceConfigField] = {
         "batch_testing",
         "enable_validation_failure_retry",
         bool,
-        False,
+        True,
     ),
     "validationFailureMaxRepairAttempts": ServiceConfigField(
         "VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS",
         "batch_testing",
         "validation_failure_max_repair_attempts",
         int,
-        1,
+        5,
     ),
     "enableCompactDslInterfaceRetry": ServiceConfigField(
         "ENABLE_COMPACT_DSL_INTERFACE_RETRY",
         "batch_testing",
         "enable_compact_dsl_interface_retry",
         bool,
-        False,
+        True,
     ),
     "compactDslInterfaceRetryCount": ServiceConfigField(
         "COMPACT_DSL_INTERFACE_RETRY_COUNT",
@@ -181,7 +181,7 @@ _SERVICE_CONFIG: dict[str, ServiceConfigField] = {
 
 _BATCH_CONFIG: dict[str, tuple[str, type, Any]] = {
     "concurrency": ("concurrency", int, 4),
-    "maxRetries": ("max_retries", int, 1),
+    "maxRetries": ("max_retries", int, 0),
     "requestTimeoutSeconds": ("request_timeout_seconds", float, 300.0),
     "traceRoot": ("trace_root", str, "workspace/traces"),
 }

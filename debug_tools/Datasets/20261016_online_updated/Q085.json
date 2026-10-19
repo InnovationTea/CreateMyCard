@@ -1,0 +1,143 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个运动实况卡片，显示天气、步数和空气质量，并判断今天适合跑步吗",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/alertLevel",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/temperatureText",
+          "/current/uvIndex",
+          "/current/windDirection",
+          "/current/windLevel"
+        ]
+      },
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {},
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/dailyDistanceText",
+          "/dailySteps",
+          "/dailyTotalCaloriesText",
+          "/nightSleepDurationText",
+          "/sleepScore",
+          "/sleepStatus"
+        ]
+      }
+    ],
+    "title": "运动实况",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.health.sport",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          }
+        }
+      }
+    ],
+    "description": "显示天气、步数和空气质量，判断今天是否适合跑步。",
+    "candidateAssetIds": [
+      "asset.figure_run",
+      "asset.icon_weather_thermometer_medium",
+      "asset.ic_purification",
+      "asset.ic_sportsHealth_bule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.347",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "085",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个运动实况卡片，显示天气、步数和空气质量，并判断今天适合跑步吗",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个运动实况卡片，显示天气、步数和空气质量，并判断今天适合跑步吗",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/alertLevel",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/temperatureText",
+        "/current/uvIndex",
+        "/current/windDirection",
+        "/current/windLevel"
+      ]
+    },
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {},
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/dailyDistanceText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/nightSleepDurationText",
+        "/sleepScore",
+        "/sleepStatus"
+      ]
+    }
+  ],
+  "title": "运动实况",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.health.sport",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+        }
+      }
+    }
+  ],
+  "description": "显示天气、步数和空气质量，判断今天是否适合跑步。",
+  "candidateAssetIds": [
+    "asset.figure_run",
+    "asset.icon_weather_thermometer_medium",
+    "asset.ic_purification",
+    "asset.ic_sportsHealth_bule"
+  ]
+}

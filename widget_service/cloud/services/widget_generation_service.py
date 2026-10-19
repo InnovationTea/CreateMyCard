@@ -37,6 +37,7 @@ from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.capability import AssetCapabilityOverview
 from models.generation import (
     DEFAULT_WIDGET_SIZE,
+    CompactDslRetryContext,
     ModelRequestContext,
     TaskSpec,
     WidgetSize,
@@ -52,7 +53,10 @@ from services.compact_plan import (
     compact_plan_omitted_facts,
     parse_compact_plan_call,
 )
-from services.compact_repair_strategy import CompactRepairStrategyTracker
+from services.compact_repair_strategy import (
+    CompactRepairStrategyTracker,
+    compact_repair_issue_category,
+)
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -769,9 +773,14 @@ class WidgetGenerationService:
         quality_repair_attempt_count = 0
         quality_repair_failure_history: list[list[dict[str, Any]]] = []
         compact_repair_context_history: list[dict[str, Any]] = []
+        compact_retry_context = request._compact_dsl_retry_context
+        capacity_recovery = bool(
+            compact_retry_context is not None and compact_retry_context.capacity_recovery
+        )
         compact_repair_tracker = (
             CompactRepairStrategyTracker(
-                max_repair_attempts=settings.validation_failure_max_repair_attempts
+                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                capacity_recovery=capacity_recovery,
             )
             if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
             else None
@@ -859,6 +868,7 @@ class WidgetGenerationService:
                 task_spec,
                 plan_system_prompt,
                 prompt[1]["content"],
+                retry_context=compact_retry_context,
             )
             trace_step(
                 "plan.prompt.built",
@@ -867,6 +877,7 @@ class WidgetGenerationService:
                 duration_ms=self._elapsed_ms(plan_prompt_started_at),
                 details={
                     "messageCount": len(plan_prompt),
+                    "capacityRecovery": capacity_recovery,
                     "promptSha256": hashlib.sha256(
                         json.dumps(plan_prompt, ensure_ascii=False).encode("utf-8")
                     ).hexdigest(),
@@ -1510,18 +1521,6 @@ class WidgetGenerationService:
                 "error_prompt_contexts",
                 [],
             )
-            if source_load_result:
-                report_ops_metrics(body={"validationScenarioFailure": 1})
-                source_write_roots = {
-                    item.writeResultTo
-                    for item in source_load_result.artifact.generationPlan.candidateDataBindings
-                }
-                current_write_roots = {item.writeResultTo for item in effective_bindings}
-                for removed_root in sorted(source_write_roots - current_write_roots):
-                    if removed_root in standard_dsl:
-                        validation_errors.append(
-                            f"removed data path remains in edited genui: {removed_root}"
-                        )
             if isinstance(processor, SingleStepEditProcessor):
                 preservation_errors = processor.preservation_errors(artifact.genui)
                 validation_errors.extend(preservation_errors)
@@ -1739,6 +1738,20 @@ class WidgetGenerationService:
                 removedCapabilities=removed,
                 errorCode=ErrorCode.VALIDATION_FAILED.value,
             )
+            is_blocking_compact_failure = (
+                validation_failed_blocking
+                and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            )
+            if is_blocking_compact_failure:
+                quality_error_payloads = [
+                    issue.to_prompt_payload() for issue in latest_processing_result.errors
+                ]
+                issue_category = compact_repair_issue_category(quality_error_payloads)
+                if issue_category in {"layout_capacity", "layout_structure"}:
+                    response._compact_dsl_retry_context = CompactDslRetryContext(
+                        failure_category=issue_category,
+                        capacity_recovery=True,
+                    )
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
             self._log_generation_summary(
                 request,
@@ -1753,7 +1766,6 @@ class WidgetGenerationService:
             )
             return response
         if errors:
-            report_ops_metrics(body={"validationScenarioFailure": 1})
             logger.error(
                 f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
                 f"protocol_profile_id={protocol_profile['id']} "

@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import copy
-import hashlib
-import math
 import re
 import unicodedata
 
 from config.config import get_settings
+from services.post_layout_theme_registry import registered_themes
 
 SLEEP_FIELDS = {
     "sleepScore", "sleepStatus", "sleepTypeDesc", "nightSleepDurationText",
@@ -38,10 +37,7 @@ def expansion_business(task: dict) -> str | None:
 def expansion_gate(task: dict) -> dict:
     settings = get_settings()
     business = expansion_business(task)
-    rate = settings.square_photo_expansion_sample_rate
     query = " ".join(unicodedata.normalize("NFKC", str(task.get("userQuery", ""))).lower().split())
-    digest = hashlib.sha256(f"square-photo-v1|{task.get('size')}|{query}".encode()).digest()
-    bucket = int.from_bytes(digest[:8], "big") % 10000
     reason = None
     if not settings.enable_photo_background_theme:
         reason = "图片开关未开启"
@@ -59,12 +55,10 @@ def expansion_gate(task: dict) -> dict:
         reason = "用户要求保留原尺寸"
     elif re.search(r"纯色|渐变|融球|不要(?:背景)?图|不用(?:背景)?图|无(?:背景)?图", query):
         reason = "用户明确其它主题或不要图片"
-    elif not isinstance(rate, (int, float)) or not math.isfinite(rate) or not 0 <= rate <= 1:
-        reason = "扩展抽样比例无效"
-    elif bucket >= rate * 10000:
-        reason = "未命中低频扩展抽样"
-    return {"eligible": reason is None, "reason": reason, "business": business,
-            "sampleRate": rate, "bucket": bucket, "samplingVersion": "square-photo-v1"}
+    elif not any(theme.get("business") == business
+                 for theme in registered_themes("squareExpansions")):
+        reason = "没有启用的对应业务扩展图片"
+    return {"eligible": reason is None, "reason": reason, "business": business}
 
 
 def expansion_enabled(task: dict) -> bool:
@@ -72,8 +66,6 @@ def expansion_enabled(task: dict) -> bool:
 
 
 def expansion_reason(theme: dict, task: dict, evidence: dict) -> str | None:
-    from services.post_layout_theme import valid_rect
-
     gate = expansion_gate(task)
     if not gate["eligible"]:
         return gate["reason"]
@@ -86,6 +78,13 @@ def expansion_reason(theme: dict, task: dict, evidence: dict) -> str | None:
     if theme.get("frame") != {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1,
                               "imageHeight": 1, "align": "topStart"}:
         return "扩展背景必须使用完整预置构图"
+    return "真实卡片宽高未知，缺少扩展主体避让的尺寸无关依据"
+
+
+def _expansion_geometry_reason(theme: dict, evidence: dict) -> str | None:
+    """开发诊断中的归一化边界检查，不作为云侧准入依据。"""
+    from services.post_layout_theme import valid_rect
+
     if not evidence.get("complete") or evidence.get("unsafe"):
         return "原2x2前景测量不完整或已有溢出"
     occupied = evidence.get("occupied", [])
@@ -133,22 +132,8 @@ def expand_square(source: str, theme: dict, task: dict) -> str:
         "children": [PREFIX + "foreground"],
         "styles": {"width": "50%", "height": "matchParent", "alignContent": "topStart"},
     })
-    # 标准协议通常不声明画布尺寸；已有声明时仅更新既有字段。
-    for row in records:
-        surface = row.get("createSurface", {})
-        if "width" in surface:
-            old_width = surface["width"]
-            if (not isinstance(old_width, (int, float))
-                    or not math.isfinite(old_width) or old_width <= 0):
-                raise ValueError("Invalid source surface width")
-            surface["width"] = old_width * 2
     result = encode(records)
-    comparison = copy.deepcopy(records)
-    originals = decode(source)
-    for original, changed in zip(originals, comparison, strict=True):
-        if "createSurface" in original:
-            changed["createSurface"] = original.get("createSurface")
-    if foreground_signature(source) != foreground_signature(encode(comparison)):
+    if foreground_signature(source) != foreground_signature(result):
         raise ValueError("Expansion changed original foreground, bindings or actions")
     return result
 
@@ -158,7 +143,15 @@ def same_square_geometry(before: dict, after: dict) -> bool:
 
     if before.get("unsafe") or after.get("unsafe"):
         return False
+    before_views, after_views = before.get("responsive", []), after.get("responsive", [])
+    if len(before_views) != len(after_views):
+        return False
+    for first, second in zip(before_views, after_views, strict=True):
+        if not same_square_geometry(first, second):
+            return False
+    original = {key: value for key, value in before.items() if key != "responsive"}
     normalized = copy.deepcopy(after)
+    normalized.pop("responsive", None)
     for key in ("visible", "occupied"):
         items = normalized.get(key, [])
         if not items:
@@ -184,4 +177,4 @@ def same_square_geometry(before: dict, after: dict) -> bool:
                     for a, b in zip(old_rect, second.get("rect"), strict=True)
                 ):
                     return False
-    return same_visible_geometry(before, normalized)
+    return same_visible_geometry(original, normalized)

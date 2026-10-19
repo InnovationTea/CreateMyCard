@@ -43,6 +43,9 @@ from services.template_generation.engine.cardplan.calendar_action_policy import 
 from services.template_generation.engine.cardplan.calendar_list_no_action_policy import (
     plan_calendar_list_no_action_fallback,
 )
+from services.template_generation.engine.cardplan.calendar_mixed_no_action_policy import (
+    plan_calendar_weather_no_action_fallback,
+)
 from services.template_generation.engine.cardplan.calendar_no_action_policy import (
     plan_calendar_no_action_fallback,
 )
@@ -272,6 +275,17 @@ async def generate_template_a2ui(
                 )
                 if fallback is None:
                     fallback = plan_calendar_list_no_action_fallback(
+                        original_intent,
+                        selected_task_spec,
+                        registry,
+                        coverage_bindings,
+                        card_spec,
+                        enable_fusion_ball=enable_fusion_ball,
+                        trusted_template_candidate_ids=trusted_template_candidate_ids,
+                        trusted_template_action_ids=trusted_template_action_ids,
+                    )
+                if fallback is None:
+                    fallback = plan_calendar_weather_no_action_fallback(
                         original_intent,
                         selected_task_spec,
                         registry,

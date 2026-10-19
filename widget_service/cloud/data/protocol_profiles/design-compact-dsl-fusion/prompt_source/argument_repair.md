@@ -1,3 +1,8 @@
+---
+name: card-argument_repair
+description: 只修复工具参数封装，不执行组件或布局重组。
+---
+
 # 参数结构修复（维护源）
 
 > 维护说明不发给模型；仅 `prompt` 标记内正文参与构建。

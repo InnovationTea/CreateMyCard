@@ -6,11 +6,12 @@ import re
 from typing import Any
 
 from config.config import get_settings
-from models.generation import TaskSpec
+from models.generation import CompactDslRetryContext, TaskSpec
 from services.card_validation.compact_validation.model_feedback import compact_issues_for_model
 from services.compact_composition_context import (
     compact_composition_context,
     compact_plan_capacity_context,
+    compact_text_block_capacity_context,
     composition_implementation_conflicts,
     composition_recovery_context,
     repair_action_labels,
@@ -24,6 +25,11 @@ from services.compact_composition_planner import (
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import build_compact_plan_tool, compact_plan_context
+from services.compact_plan_output import (
+    PLAN_JSON_OUTPUT_INSTRUCTION,
+    plan_output_format_feedback,
+)
+from services.compact_repair_context import joint_repair_contract
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
 _MODULE = "[Prompt Builder]"
@@ -44,6 +50,17 @@ _REPAIR_TARGET_INSTRUCTIONS = {
 }
 
 _REPAIR_CONTRACT_OPEN = "<repair_contract>"
+
+_CAPACITY_RECOVERY_PLAN_INSTRUCTION = (
+    "<interface_retry_context>上一轮完整生成已经耗尽布局容量/结构修复预算。"
+    "本轮重新制定 Plan：先按同一对象和语义关系合并信息，优先选择占位更小且语义兼容的"
+    "文本类组件；普通状态和辅助短信息可合入 SecondaryBody 或 TextBlock，格式化文本主结论"
+    "可用 EmphasisText。核心数值、EventCard、进度/比较信息和 Action 仍使用对应语义组件，"
+    "SecondaryBody 不得成为整卡唯一核心。重新评估 priority：只有省略后不改变卡片主要用途的"
+    "补充事实可以标为 should；用户明确要求、核心事实和全部 Action 必须保持 must，禁止仅为"
+    "通过容量校验而降级。Plan 仍须覆盖全部事实，DSL 阶段再按受控策略处理 should。"
+    "</interface_retry_context>"
+)
 
 
 def _repair_target_instruction(repair_strategy: dict[str, Any] | None) -> str:
@@ -84,6 +101,25 @@ def _approved_omissions(
                 omission[key] = value
         omissions.append(omission)
     return omissions
+
+
+def _duplicate_facts(quality_errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """合并覆盖错误携带的重复事实定位，按 dataId 保留首次诊断顺序。"""
+    result: list[dict[str, Any]] = []
+    seen_data_ids: set[str] = set()
+    for issue in quality_errors:
+        facts = issue.get("duplicateFacts")
+        if not isinstance(facts, list):
+            continue
+        for fact in facts:
+            if not isinstance(fact, dict):
+                continue
+            data_id = fact.get("dataId")
+            if not isinstance(data_id, str) or data_id in seen_data_ids:
+                continue
+            seen_data_ids.add(data_id)
+            result.append(copy.deepcopy(fact))
+    return result
 
 
 SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
@@ -1662,6 +1698,8 @@ class PromptBuilder:
         task_spec: TaskSpec,
         system_prompt: str,
         generation_user_content: str,
+        *,
+        retry_context: CompactDslRetryContext | None = None,
     ) -> list[dict[str, str]]:
         """在创建合同后追加 Plan 阶段，不重复包装 TaskSpec。"""
         task_spec_value = task_spec.model_dump(
@@ -1678,13 +1716,21 @@ class PromptBuilder:
         capacity_context = ""
         if runtime_prompt_context_enabled:
             capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
+        recovery_context = ""
+        if retry_context is not None and retry_context.capacity_recovery:
+            recovery_context = f"\n\n{_CAPACITY_RECOVERY_PLAN_INSTRUCTION}"
         effective_system_prompt = (
-            f"{system_prompt}{capacity_context}\n\n"
+            f"{system_prompt}{capacity_context}{recovery_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
             "这是同一条生成对话的第一阶段。Plan 未被工具结果接受前，只能提交"
             ' {"name":"submit_card_plan","arguments":{...}}；'
             "收到 submit_card_plan 成功结果后，按后续消息继续生成 Compact DSL。"
+            f"\n{PLAN_JSON_OUTPUT_INSTRUCTION}"
         )
+        if "# TextBlock 槽位容量合同" not in effective_system_prompt:
+            capacity_contract = compact_text_block_capacity_context(task_spec.size)
+            if capacity_contract:
+                effective_system_prompt += f"\n\n{capacity_contract}"
         return [
             {"role": "system", "content": effective_system_prompt},
             {"role": "user", "content": generation_user_content},
@@ -1692,7 +1738,7 @@ class PromptBuilder:
                 "role": "user",
                 "content": (
                     "<agent_stage>plan</agent_stage>\n"
-                    "先提交一个 submit_card_plan JSON 工具调用包。"
+                    f"{PLAN_JSON_OUTPUT_INSTRUCTION}"
                     "本阶段不要输出 Compact DSL、Markdown 或解释。"
                 ),
             },
@@ -1725,7 +1771,10 @@ class PromptBuilder:
                             "ok": False,
                             "errors": list(errors),
                         },
+                        "outputFormat": plan_output_format_feedback(invalid_output),
                         "instruction": (
+                            PLAN_JSON_OUTPUT_INSTRUCTION
+                            + " "
                             "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
                             "但应移除模型自行新增且用户未要求的装饰标题事实。"
                             "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
@@ -1875,6 +1924,9 @@ class PromptBuilder:
             compact_plan,
             include_examples=include_examples,
         )
+        capacity_contract = compact_text_block_capacity_context(task_spec.size)
+        if capacity_contract:
+            system_prompt = f"{system_prompt}\n\n{capacity_contract}"
         if compact_plan is not None:
             runtime_prompt_context_enabled = (
                 get_settings().enable_design_compact_runtime_prompt_context
@@ -2004,6 +2056,9 @@ class PromptBuilder:
                 "只输出修复后的完整源格式 DSL，禁止解释或补丁。"
             ),
         }
+        duplicate_facts = _duplicate_facts(quality_errors)
+        if duplicate_facts:
+            payload["duplicateFacts"] = duplicate_facts
         if not is_design_compact:
             payload["originalUserContent"] = initial_prompt[1]["content"]
         if previous_failures is not None and not is_design_compact:
@@ -2025,6 +2080,15 @@ class PromptBuilder:
                 payload["instruction"] += f" 本轮修复路由：{strategy_instruction.strip()}"
         if is_design_compact:
             omissions = _approved_omissions(compact_plan, repair_strategy)
+            if compact_plan is not None and task_spec is not None:
+                payload["repairObligations"] = joint_repair_contract(
+                    compact_plan, task_spec.model_dump(mode="json"), omissions
+                )
+                payload["instruction"] += (
+                    " repairObligations 按已接受合同列出本轮联动核对项；"
+                    "按scope修复后同时核对结构、保留事实、完整动作、素材归属和各区容量，"
+                    "不以某一条错误消失代替整体通过。"
+                )
             if omissions:
                 payload["approvedOmissions"] = omissions
                 payload["instruction"] += (
@@ -2047,6 +2111,7 @@ class PromptBuilder:
             capacity_errors = []
             missing_action = False
             missing_fact = False
+            duplicate_fact = bool(duplicate_facts)
             for error in quality_errors:
                 message = error.get("message", "")
                 if message.startswith("Plan action is missing from visible DSL:"):
@@ -2094,6 +2159,20 @@ class PromptBuilder:
                     "有限搜索未给出完整解时仍按完整合同合组，不能沿用已失效的旧参考。"
                     "保留事实动作和字号，落实整个变体与横纵合组，"
                     "不要继续维持上一轮 Compact DSL 的超预算子树。"
+                )
+            elif duplicate_fact:
+                payload["instruction"] += (
+                    "duplicateFacts 是本轮必须消除的重复可见绑定清单。逐项读取 dataId、"
+                    "actualVisibleCount 和 occurrences；每个报错 dataId 修复后只能保留一个"
+                    "可见位置。优先保留具有明确对象、标签、完整值和单位的语义表达，不因"
+                    "字号更大就保留含义不清的裸值或生硬拼接。重复位于 SecondaryBody 单个"
+                    "item 时只删除该 item；表达式含多个 dataId 时只移除报错的重复引用，"
+                    "不得连带删除未报错事实。组件仍有有效内容时保留；变空时删除组件行并"
+                    "同步删除直接父级 children 引用。不得修改 accepted Plan、删除唯一剩余"
+                    "展示、删除数据行、静态化动态值，或改变未报错事实与 Action。去重后复查"
+                    "每个报错 dataId 的可见次数恰好为1，且没有空组件、孤立组件或失效引用。"
+                    "SecondaryBody 仍只能作为辅助信息；若去重导致核心组件或信息组语义不成立，"
+                    "按 repairStrategy.scope 在允许范围内重组选型，但不得重新引入重复绑定。"
                 )
             elif task_spec is not None and missing_action:
                 payload["instruction"] += (

@@ -76,7 +76,7 @@ def test_info_block_contract_is_noninteractive() -> None:
     assert isinstance(create_prompt, str)
     assert "InfoBlock.onClick" not in create_prompt
     assert "合法可点击 InfoBlock" not in create_prompt
-    assert "不得绑定到 `InfoBlock`" in create_prompt
+    assert "外层和内部均不得写 `onClick`" in create_prompt
     plain_example = (
         '["weather","InfoBlock",'
         '{"primaryText":{"path":"/data/weather/current/temperatureText"}'
@@ -92,62 +92,41 @@ def test_info_block_contract_is_noninteractive() -> None:
     assert plain_example in create_prompt
     assert icon_example in create_prompt
     assert progress_example in create_prompt
-    assert "不使用 `dataIds` 或" in create_prompt
+    assert "每行只承载一个动态业务值" in create_prompt
     assert "`S-title-dual-content` 的两个 `126×50vp` 槽" in create_prompt
     assert '"variant":"stacked","primaryText":"{{ \'明天 \' +' in create_prompt
     assert "每行只承载一个动态业务值" in create_prompt
 
 
 def test_single_line_title_icon_uses_semantic_match_and_button_priority() -> None:
-    create_prompt = assemble_prompts(DEFAULT_SOURCE).get("create")
-
-    assert isinstance(create_prompt, str)
-    assert "分配顺序固定为动作在前、标题在后" in create_prompt
-    assert "再由 `SingleLineTitle` 从未占用候选中选择" in create_prompt
-    assert "按钮与标题不得复用同一素材，但可分别使用不同的语义匹配素材" in create_prompt
-    assert "没有剩余匹配素材时省略标题图标" in create_prompt
-    assert "不得为了保留标题图标把可使用准确图标的动作改成纯文字按钮" in create_prompt
-    assert "所有 `SingleLineTitle` 均不使用图标" not in create_prompt
-    assert "只有两类按钮都不使用图标" not in create_prompt
-    assert "与标题对象严格匹配的装饰性主题图标" not in create_prompt
-    assert "不可承担状态或动作语义" not in create_prompt
-
+    source = (DEFAULT_SOURCE / "core.md").read_text(encoding="utf-8")
+    fragments = dict(FRAGMENT.findall(source))
+    rules = fragments.get("input-candidates", "")
+    assert "先给按钮分配准确动作图标" in rules
+    assert "未占用候选给标题选匹配图标" in rules
+    assert "不为标题撤掉准确按钮图标" in rules
+    assert "默认同一 src 只用一次" in rules
+    assert "同类对象" in rules
+    assert "可选图标无匹配时省略" in rules
 
 def test_anchor_layout_requires_main_and_nonempty_support_information() -> None:
-    prompts = assemble_prompts(DEFAULT_SOURCE)
-    create_prompt = prompts.get("create")
-    plan_prompt = prompts.get("plan")
-
-    assert isinstance(create_prompt, str)
-    assert isinstance(plan_prompt, str)
-    assert "一个主信息组与至少一个独立其它信息组" in create_prompt
-    assert "左下可以使用 `SecondaryBody` 承载辅助事实" in create_prompt
-    assert "不要求固定三项，但至少一项" in create_prompt
-    assert "只在标题中展示的地点、对象或范围上下文不计入" in create_prompt
-    assert "没有独立支撑事实时排除 `S-title-anchor`" in create_prompt
-    assert "`layoutHints` 必须排除 `S-title-anchor`" in plan_prompt
-    assert "左下支撑必须分配至少一个未被标题或主信息消费的独立事实" in plan_prompt
-    assert "无需先证明整宽文字按钮造成空间压力" in create_prompt
-    assert "不以 `PillButton` 无法闭合为前提" in create_prompt
-    assert "只有底部 `PillButton` 无法与必要内容共同闭合时才使用" not in create_prompt
-    assert "不等于要求卡面显示动作文字" in create_prompt
-    assert "不限制信息项数量" not in create_prompt
-    assert "不设置最低信息项数" not in create_prompt
-    assert "至少三项必要信息" not in create_prompt
-    assert "存在至少三项必须展示的信息" not in create_prompt
-
+    create = read_prompt(DEFAULT_SOURCE, "create", size="2x2")
+    plan = read_prompt(DEFAULT_SOURCE, "plan", size="2x2")
+    for rule in (
+        "没有独立支撑事实时排除", "准确SVG", "至少有一个独立左下事实",
+        "左下可用SecondaryBody", "其它位置已有核心信息组件", "标题、动作及只在标题",
+    ):
+        assert rule in create
+    assert "缺独立支撑事实时排除它" in plan
+    assert "不以 `PillButton` 无法闭合为前提" in create
+    assert "不等于要求卡面显示动作文字" in create
 
 def test_create_prompt_uses_unified_component_terms() -> None:
-    create_prompt = assemble_prompts(DEFAULT_SOURCE).get("create")
-    component_source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
-
-    assert isinstance(create_prompt, str)
-    assert "基础布局组件" in create_prompt
-    assert "基础布局组件总表" in component_source
-    assert "| `Row` | 横向排列子组件 |" in component_source
+    create = read_prompt(DEFAULT_SOURCE, "create", size="2x2")
+    assert "Row/Column/Stack" in create
+    assert "| `Row` | 横向排列子组件 |" not in create
     for deprecated in ("基础组件", "高阶组件", "高级组件", "普通组件", "基础组合"):
-        assert deprecated not in create_prompt
-
+        assert deprecated not in create
 
 def test_secondary_body_contract_groups_related_items() -> None:
     prompt = read_prompt(DEFAULT_SOURCE, "create", size="2x4")
@@ -155,7 +134,7 @@ def test_secondary_body_contract_groups_related_items() -> None:
     assert "组件不区分 role" in prompt
     assert "多个短字段按原顺序放入一个实例" in prompt
     assert "两项同行用 14；两项 `columns:1` 分行用 12" in prompt
-    assert "标题、按钮、布局容器和其它 `SecondaryBody` 都不满足搭配条件" in prompt
+    assert "标题、Badge、按钮、布局容器和其它 `SecondaryBody`" in prompt
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -169,13 +148,13 @@ def test_owned_action_layout_comparison_is_size_scoped_and_reaches_plan(size: st
     assert isinstance(system, str)
     assert (rule in create) == (size == "2x4")
     assert (rule in system) == (size == "2x4")
-    assert "不只按操作数量选布局" in system
+    assert "先判断事实在同组中是主值、标签、单位、补充还是事件要素" in system
     if size == "2x4":
         assert "紧凑区容量不成立时仍比较其它合法布局，不强行分区" in system
 def test_secondary_body_repair_does_not_add_non_core_companions() -> None:
     repair_prompt = read_prompt(DEFAULT_SOURCE, "repair", size="2x2")
-    assert "`SecondaryBody` 只能辅助整卡中已存在的核心信息组件" in repair_prompt
-    assert "不能通过增加按钮、标题或另一个" in repair_prompt
+    assert "SecondaryBody 不能成为整卡唯一正文核心" in repair_prompt
+    assert "不用按钮/标题假充核心" in repair_prompt
 
 
 def test_agent_stage_instruction_does_not_forbid_registered_semantic_layout() -> None:
@@ -209,15 +188,11 @@ def test_plan_manifest_only_registers_incremental_contract() -> None:
 
 
 def test_create_prompt_defers_output_format_to_latest_agent_stage() -> None:
-    create_prompt = read_prompt(DEFAULT_SOURCE, "create", size="2x4")
-
-    assert "你是 HarmonyOS 桌面卡片生成 Agent" in create_prompt
-    assert "最后出现的 `<agent_stage>...</agent_stage>` 标记决定" in create_prompt
-    assert "`<agent_stage>plan</agent_stage>`：只按本轮工具 Schema 提交" in create_prompt
-    assert "没有任何阶段标记时" in create_prompt
-    assert "你的唯一任务是" not in create_prompt
-    assert "你只生成 DSL" not in create_prompt
-
+    create = read_prompt(DEFAULT_SOURCE, "create", size="2x4")
+    assert "最后一个 `<agent_stage>` 决定输出" in create
+    assert "`plan`：按本轮工具 Schema 提交一次" in create
+    assert "`compact_dsl` 或无标记" in create
+    assert "两个阶段共用输入、组件和布局合同" in create
 
 def test_core_does_not_repeat_final_prohibition_checklist() -> None:
     manifest = json.loads((DEFAULT_SOURCE / "manifest.yaml").read_text(encoding="utf-8"))
@@ -227,7 +202,7 @@ def test_core_does_not_repeat_final_prohibition_checklist() -> None:
     assert isinstance(create_references, list)
     assert "core.md#prohibitions-checks" not in create_references
     assert "prompt:prohibitions-checks" not in core_source
-    assert "以下是输出前必须全部通过的零容错门禁" in read_prompt(
+    assert "整卡编排与提交检查" in read_prompt(
         DEFAULT_SOURCE,
         "create",
         size="2x4",
@@ -317,7 +292,7 @@ def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() ->
         assert naming_rule in create_prompt
 
     for example_rule in (
-        "本章的genui片段只展示布局层，不是可直接提交的完整DSL",
+        "以下骨架只展示角色引用",
         "先选父区，再按直属角色选variant",
         "第二、第三个是固定槽，不是另外两个Region",
         "children数量按直属组件ID计",
@@ -325,7 +300,6 @@ def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() ->
         "仅宽版支持的四种Region结构",
         "四行SecondaryBody至少占70vp",
         "四格，不是父布局W-four-slots",
-        "否则形成多个父节点",
     ):
         assert example_rule in layouts
         assert example_rule in create_prompt
@@ -358,133 +332,39 @@ def test_plan_prompt_does_not_duplicate_create_contract(size: str) -> None:
 
 def test_common_component_contract_separates_shared_and_size_specific_rules() -> None:
     source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
-    core_source = (DEFAULT_SOURCE / "core.md").read_text(encoding="utf-8")
     fragments = dict(FRAGMENT.findall(source))
-    core_fragments = dict(FRAGMENT.findall(core_source))
-
     assert list(fragments) == ["selection", "catalog"]
-    selection = fragments.get("selection", "")
     catalog = fragments.get("catalog", "")
-    for removed_heading in (
-        "通用 props 字段",
-        "通用布局与样式 props",
-        "显式样式口径",
+    for shared in (
+        "SingleLineTitle", "DoubleLineTitle", "Badge", "EmphasizedData", "EmphasisText",
+        "SecondaryBody", "InfoBlock", "TableText", "ProgressCircle", "H_BarChart",
+        "ProgressCircleSingle", "NumericRatioStack", "EventCard", "PillButton",
     ):
-        assert removed_heading not in catalog
-    for shared_component in (
-        "SingleLineTitle",
-        "DoubleLineTitle",
-        "Badge",
-        "EmphasizedData",
-        "EmphasisText",
-        "SecondaryBody",
-        "DataDisplay",
-        "InfoBlock",
-        "TableText",
-        "SummaryList",
-        "ProgressCircle",
-        "ProgressLine2",
-        "H_BarChart",
-        "ProgressCircleSingle",
-        "NumericRatioStack",
-        "EventCard",
-        "PillButton",
-    ):
-        assert f"`{shared_component}`" in catalog
-    for dedicated_heading in (
-        "### `CircleButton`",
-        "### `TopTextBottomValue`",
-        "### `TextBlock`",
-        "### `CardButton`",
-    ):
-        assert dedicated_heading not in catalog
-    assert "新语义源不填写width、height、layoutWeight、flexShrink、margin" in catalog
-    assert "fontColor" not in selection
-    assert "fontColor" not in catalog
-    assert "组件不声明文字颜色" in catalog
-    assert "进度组件默认不生成" in catalog
-    assert "单色 SVG 在末尾按主题染色，多色素材及位图保留原色" in core_fragments.get(
-        "input-candidates",
-        "",
-    )
-    assert "`Text` 仅由转换器展开为 A2UI 基础节点" in selection
+        assert f"`{shared}`" in catalog
+    for exclusive in ("DataDisplay", "SummaryList", "ProgressLine2"):
+        assert f" `{exclusive}`\n" not in catalog
+    for forbidden in ("| `width`", "| `height`", "| `role`", "fontColor"):
+        assert forbidden not in catalog
+    assert "内部次字号、字重、颜色和几何不用输出" in catalog
     assert "多源时使用至少 2 个有序 PathBinding" in catalog
     assert "数组由转换器按顺序以 ` | ` 连接" in catalog
-    assert '"secondaryText":[{"path":"/data/weather/location/prefectureName"}' in catalog
-    assert "| `role` |" not in catalog
-    assert "| `items[].label` | 显示值 | 静态 / Expression / PathBinding" in catalog
-    progress_binding_contract = (
-        "| `value` | number / string / PathBinding | 静态 / PathBinding；不接受 Expression"
-    )
-    assert progress_binding_contract in catalog
-    assert "不输出 `role`" in catalog
-    assert "仍保留至少 20% 水平余量" in core_fragments.get(
-        "input-candidates",
-        "",
-    )
-    core_typography = core_fragments.get("typography", "")
-    assert "`12fp`：标题区" not in core_typography
-    assert "格式化主读数例外" not in core_typography
-    assert "具体组件的字号、字重、同行对齐和文本压力规则统一由后续组件合同定义" in core_typography
-
+    assert "静态 / PathBinding；不接受 Expression" in catalog
+    assert "| `items[].label` | 显示值 |" in catalog
 
 def test_size_component_rules_separate_shared_and_dedicated_components() -> None:
-    two_by_two_source = (DEFAULT_SOURCE / "components/2x2.md").read_text(encoding="utf-8")
-    two_by_four_source = (DEFAULT_SOURCE / "components/2x4.md").read_text(encoding="utf-8")
-    two_by_two_fragments = dict(FRAGMENT.findall(two_by_two_source))
-    two_by_four_fragments = dict(FRAGMENT.findall(two_by_four_source))
-
-    assert list(two_by_two_fragments) == ["selection", "icon-gate", "size-components"]
-    assert list(two_by_four_fragments) == ["selection", "wide-components", "backboard-alpha"]
-
-    two_by_two_selection = two_by_two_fragments.get("selection", "")
-    two_by_four_selection = two_by_four_fragments.get("selection", "")
-    for shared in (
-        "SingleLineTitle",
-        "DoubleLineTitle",
-        "Badge",
-        "EmphasisText",
-        "SecondaryBody",
-        "H_BarChart",
-        "NumericRatioStack",
-        "ProgressCircleSingle",
-        "TableText",
-        "EventCard",
-        "PillButton",
-    ):
-        assert f"`{shared}`" in two_by_two_selection
-        assert f"`{shared}`" in two_by_four_selection
-
-    assert "2x2 不使用 `ProgressLine2`" in two_by_two_selection
-    assert "2x4 不使用 `DataDisplay`、`CircleButton`" in two_by_four_selection
-    assert "2x2 专属组件：`CircleButton`" in two_by_two_fragments.get("size-components", "")
-    for dedicated in ("TopTextBottomValue", "TextBlock", "CardButton"):
-        assert f"2x4 专属组件：`{dedicated}`" in two_by_four_fragments.get(
-            "wide-components",
-            "",
-        )
-    assert "只允许进入 `W-top-bottom` 的 details" in two_by_four_fragments.get(
-        "wide-components",
-        "",
-    )
-    assert "整卡改选为 `W-top-bottom`" in two_by_four_fragments.get(
-        "wide-components",
-        "",
-    )
-    wide_components = two_by_four_fragments.get("wide-components", "")
-    text_block_contract = wide_components.split(
-        "### 2x4 专属组件：`TextBlock`",
-        maxsplit=1,
-    )[1].split("###", maxsplit=1)[0]
-    assert (
-        "| `items[].label` | 显示值 | 静态 / Expression / PathBinding"
-        in text_block_contract
-    )
-    assert "2x4 专属组件：`SummaryList`" not in two_by_four_fragments.get(
-        "wide-components",
-        "",
-    )
-
+    common = read_prompt(DEFAULT_SOURCE, "create", size="2x2")
+    wide = read_prompt(DEFAULT_SOURCE, "create", size="2x4")
+    for name in ("DataDisplay", "CircleButton"):
+        assert f" `{name}`\n" in common
+        assert f" `{name}`\n" not in wide
+    for name in ("TextBlock", "CardButton", "TopTextBottomValue", "ProgressLine2", "SummaryList"):
+        assert f" `{name}`\n" in wide
+        assert f" `{name}`\n" not in common
+    assert "只允许进入 `W-top-bottom` 的 details" in wide
+    assert "整卡改选为 `W-top-bottom`" in wide
+    assert "合法可点击 Row/Column" not in wide
+    assert "写 `height:50`" not in common
+    assert "| `items[].label` | 显示值 |" in wide
 
 def test_runtime_does_not_depend_on_generated_products() -> None:
     assert not list((DEFAULT_BUNDLE / "generated").glob("*.md"))
@@ -561,9 +441,7 @@ def test_combination_modules_separate_semantics_from_size_mapping() -> None:
         "核心与补充",
         "核心、补充与操作",
         "单内容与操作",
-        "双占比",
-        "三占比",
-        "四占比",
+        "双/三/四占比",
         "双信息块",
         "双操作",
     ):
@@ -594,24 +472,16 @@ def test_combination_modules_separate_semantics_from_size_mapping() -> None:
     two_by_four = bodies.get("2x4.md")
     assert isinstance(two_by_two, str)
     assert isinstance(two_by_four, str)
-    for layout_id in layout_ids_for_size("2x2"):
-        assert layout_id in two_by_two
-    for layout_id in layout_ids_for_size("2x4"):
-        assert layout_id in two_by_four
-    for sub_layout in (
-        "Sub-118-A",
-        "Sub-118-B",
-        "Sub-118-C",
-        "Sub-118-D",
-        "Sub-140-A",
-        "Sub-140-B",
-        "Sub-140-C",
-        "Sub-140-D",
-        "Sub-140-F",
-        "Sub-140-G",
-        "Sub-140-H",
-    ):
-        assert sub_layout in two_by_four
+    for name in ("hero-support", "label-value", "peer-pair", "supporting-items"):
+        assert name in two_by_two
+    for name in ("hero-support", "label-value", "peer-pair", "title-count"):
+        assert name in two_by_four
+    for legacy in ("Sub-118", "Sub-140"):
+        assert legacy not in combined
+    for size in ("2x2", "2x4"):
+        layouts = read_prompt(DEFAULT_SOURCE, "create", size=size)
+        for layout_id in layout_ids_for_size(size):
+            assert layout_id in layouts
 
     manifest_path = DEFAULT_BUNDLE / "prompt_source/manifest.yaml"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

@@ -1,0 +1,63 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我添加一张倒计时卡片，倒计时到儿子的生日那天，儿子的生日是每年2月19日",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-02-19"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "生日倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "倒计时到儿子生日（每年2月19日）。",
+    "candidateAssetIds": [
+      "asset.cake_fill",
+      "asset.emoji_activity"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "119",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我添加一张倒计时卡片，倒计时到儿子的生日那天，儿子的生日是每年2月19日",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我添加一张倒计时卡片，倒计时到儿子的生日那天，儿子的生日是每年2月19日",
+  "candidateDataBindings": [],
+  "title": "生日倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "倒计时到儿子生日（每年2月19日）。",
+  "candidateAssetIds": []
+}

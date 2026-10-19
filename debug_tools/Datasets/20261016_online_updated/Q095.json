@@ -1,0 +1,112 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个桌面天气卡片，包括上海和平顶山的天气，展示上海和河南平顶山两个城市的当前天气和未来天气预报，包含温度、天气现象、湿度、风力、空气质量等详细信息。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日上海市青浦区：雾转阴，气温17℃~27℃，西北风3级，空气质量良，当前温度22℃，相对湿度97%，大雾黄色预警。\n今日河南省平顶山市：晴，气温16℃~26℃，西北风2级，空气质量良，当前温度16℃，相对湿度91%。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/temperatureText",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/daily/0/temperatureRangeText"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather2",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/temperatureText",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/daily/0/temperatureRangeText"
+        ]
+      }
+    ],
+    "title": "双城天气·详情",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "展示上海与平顶山的温度、天气、湿度、风力、空气质量等详细信息。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_uv_color",
+      "asset.ic_purification",
+      "asset.icon_weather_wind"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "095",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个桌面天气卡片，包括上海和平顶山的天气，展示上海和河南平顶山两个城市的当前天气和未来天气预报，包含温度、天气现象、湿度、风力、空气质量等详细信息。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日上海市青浦区：雾转阴，气温17℃~27℃，西北风3级，空气质量良，当前温度22℃，相对湿度97%，大雾黄色预警。\n今日河南省平顶山市：晴，气温16℃~26℃，西北风2级，空气质量良，当前温度16℃，相对湿度91%。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个桌面天气卡片，包括上海和平顶山的天气，展示上海和河南平顶山两个城市的当前天气和未来天气预报，包含温度、天气现象、湿度、风力、空气质量等详细信息。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日上海市青浦区：雾转阴，气温17℃~27℃，西北风3级，空气质量良，当前温度22℃，相对湿度97%，大雾黄色预警。\n今日河南省平顶山市：晴，气温16℃~26℃，西北风2级，空气质量良，当前温度16℃，相对湿度91%。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/temperatureText",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/temperatureRangeText"
+      ]
+    },
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather2",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/temperatureText",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/temperatureRangeText"
+      ]
+    }
+  ],
+  "title": "双城天气·详情",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "展示上海与平顶山的温度、天气、湿度、风力、空气质量等详细信息。",
+  "candidateAssetIds": []
+}

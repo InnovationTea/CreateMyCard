@@ -422,7 +422,9 @@ def test_saved_source_repairs_json_without_expanding_semantic_layout() -> None:
 
 
 @pytest.mark.asyncio
-async def test_online_artifact_saves_valid_semantic_source_after_json_repair(monkeypatch) -> None:
+async def test_online_artifact_saves_valid_semantic_source_after_json_repair(
+    monkeypatch, isolated_theme_stage,
+) -> None:
     from api.schemas import GenerateWidgetCardRequest
     from config.config import get_settings
     from core.errors import GenerationStatus
@@ -458,7 +460,9 @@ async def test_online_artifact_saves_valid_semantic_source_after_json_repair(mon
         title="设备读数", description="验证语义源保存")
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
     assert response.status == GenerationStatus.SUCCESS
-    assert saved == [serialize_compact_dsl_source(valid)]
+    from services.layout_theme_contract import strip_source_colors
+
+    assert saved == [serialize_compact_dsl_source(strip_source_colors(valid))]
     assert "__layout__" not in saved[0]
 
 

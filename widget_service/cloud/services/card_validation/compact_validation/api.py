@@ -51,6 +51,7 @@ from services.card_validation.compact_validation.semantic.numeric_display import
     _collect_numeric_component_errors,
 )
 from services.card_validation.compact_validation.semantic.plan_contracts import (
+    collect_actions_only_plan_errors,
     collect_plan_contract_errors,
     collect_secondary_body_context_errors,
 )
@@ -65,6 +66,7 @@ from services.compact_dsl_a2ui_converter import (
     parse_compact_dsl_rows,
 )
 from services.compact_layout_runtime import CompactLayoutRuntimeError, match_compact_layout
+from services.compact_whole_card_click import accepted_whole_card_click
 
 from .context import ComponentRows, ValidationContext
 from .diagnostics import DiagnosticCollector
@@ -128,11 +130,22 @@ def validate_compact_dsl(
             layout_errors.append("Compact layout validation requires a valid widget size.")
         else:
             try:
-                match_compact_layout(components, size=size, layout_scope=layout_scope)
+                whole_card_click = accepted_whole_card_click(task_spec, compact_plan)
+                match_compact_layout(
+                    components, size=size, layout_scope=layout_scope,
+                    root_action_handler=(
+                        whole_card_click.handler if whole_card_click is not None else None
+                    ),
+                )
             except CompactLayoutRuntimeError as exc:
                 layout_errors.append(str(exc))
     binding_contract_errors = _compact_component_binding_errors(
         components, task_spec.get("dataModelSchema")
+    )
+    collect_actions_only_plan_errors(
+        [row for row in original_rows if isinstance(row, ComponentRow)],
+        compact_plan,
+        binding_contract_errors,
     )
     collect_plan_contract_errors(
         components,

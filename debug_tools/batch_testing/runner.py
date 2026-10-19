@@ -26,6 +26,7 @@ from debug_tools.end_to_end_debug.backend.debug_agent.upstream_ws_client import 
 )
 
 from .artifacts import download_artifact, parse_artifact_blocks, write_artifact_blocks
+from .metrics import enrich_run_metrics
 from .trace_parser import TraceImporter
 
 _OPERATION = "generateWidgetCardCompactDsl"
@@ -546,11 +547,17 @@ class BatchRunManager:
             reverse=True,
         )
 
-    def get_run(self, run_id: str) -> dict[str, Any]:
+    def get_run(self, run_id: str, *, include_metrics: bool = True) -> dict[str, Any]:
         state = self.runs.get(run_id)
         if state is not None:
-            return state.public_dict()
-        return self._read_run_file(run_id, "summary.json")
+            summary = state.public_dict()
+            run_dir = state.output_dir
+        else:
+            summary = self._read_run_file(run_id, "summary.json")
+            run_dir = self._safe_run_dir(run_id)
+        if include_metrics:
+            summary = enrich_run_metrics(summary, run_dir)
+        return summary
 
     def get_sample(self, run_id: str, sample_id: str) -> dict[str, Any]:
         if not _SAMPLE_ID_PATTERN.fullmatch(sample_id):
@@ -925,6 +932,8 @@ class BatchRunManager:
 
     def _persist_state(self, state: BatchRunState) -> None:
         summary = state.public_dict()
+        if state.status in {"completed", "cancelled", "failed", "interrupted"}:
+            summary = enrich_run_metrics(summary, state.output_dir)
         atomic_write_json(state.output_dir / "manifest.json", summary)
         atomic_write_json(state.output_dir / "summary.json", summary)
         (state.output_dir / "summary.md").write_text(
@@ -943,10 +952,41 @@ class BatchRunManager:
             f"- 成功/降级/失败: {summary.get('success', 0)}/"
             f"{summary.get('degraded', 0)}/{summary.get('failed', 0)}",
             f"- Trace 告警: {summary.get('traceWarnings', 0)}",
+        ]
+        metrics = summary.get("generationMetrics")
+        if isinstance(metrics, dict):
+            for key, label in (
+                ("firstDslPassRate", "首稿校验通过率"),
+                ("firstRequestDeliveryRate", "首次请求交付率（含内部修复，不含批跑重试）"),
+                ("finalDeliveryRate", "最终交付率（含降级）"),
+                ("repairRescueRate", "内部修复挽救率"),
+                ("batchRetryRate", "批跑重试率"),
+                ("batchRetryRescueRate", "批跑重试挽救率"),
+            ):
+                rate = metrics.get(key)
+                if isinstance(rate, dict):
+                    percent = rate.get("percent")
+                    display = f"{percent}%" if percent is not None else "未知"
+                    lines.append(
+                        f"- {label}: {display}（{rate.get('numerator')}/{rate.get('denominator')}）"
+                    )
+            lines.append(f"- 生成前失败 / 首稿证据缺失: {metrics.get('preDslFailed')} / "
+                         f"{metrics.get('firstDslUnknown')}")
+            for key, label in (
+                ("qualityRepairAttempts", "内部修复尝试"),
+                ("modelPhysicalCalls", "模型物理调用"),
+                ("p95ElapsedMs", "P95 总耗时(ms)"),
+            ):
+                value = metrics.get(key)
+                lines.append(f"- {label}: {value if value is not None else '未知'}")
+            observed = metrics.get("coverageObserved", 0)
+            missing = metrics.get("coverageMissing") if observed else "未知"
+            lines.append(f"- 交付信息缺失告警: {missing} 个样本，覆盖检查证据 {observed} 个样本")
+        lines.extend([
             "",
             "| 样本 | 状态 | 尝试 | 耗时(ms) | Trace | 错误码 |",
             "|---|---|---:|---:|---|---|",
-        ]
+        ])
         samples = summary.get("samples")
         if isinstance(samples, list):
             for sample in samples:

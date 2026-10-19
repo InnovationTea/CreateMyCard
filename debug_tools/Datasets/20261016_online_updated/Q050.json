@@ -1,0 +1,139 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "在国庆风格的天气卡片上增加更多的天气信息，包括体感温度、湿度、空气质量、紫外线、风向风力、降雨概率等",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/coldLevel",
+          "/current/condition",
+          "/current/feelsLikeC",
+          "/current/humidityPercent",
+          "/current/temperatureText",
+          "/current/uvIndex",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/daily/0/airQuality",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/rainProbabilityPercent",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/uvIndex",
+          "/daily/0/weekday",
+          "/location/cityCode"
+        ]
+      }
+    ],
+    "title": "国庆天气·全量",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "国庆风格天气卡片，含体感、湿度、空气质量、紫外线、风况、降水等。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_uv_color",
+      "asset.ic_purification",
+      "asset.icon_weather_wind",
+      "asset.icon_weather_thermometer_medium",
+      "asset.drop_1"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.320",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "050",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "在国庆风格的天气卡片上增加更多的天气信息，包括体感温度、湿度、空气质量、紫外线、风向风力、降雨概率等",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "在国庆风格的天气卡片上增加更多的天气信息，包括体感温度、湿度、空气质量、紫外线、风向风力、降雨概率等",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/coldLevel",
+        "/current/condition",
+        "/current/feelsLikeC",
+        "/current/humidityPercent",
+        "/current/temperatureText",
+        "/current/uvIndex",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/airQuality",
+        "/daily/0/condition",
+        "/daily/0/date",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/uvIndex",
+        "/daily/0/weekday",
+        "/location/cityCode"
+      ]
+    }
+  ],
+  "title": "国庆天气·全量",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "国庆风格天气卡片，含体感、湿度、空气质量、紫外线、风况、降水等。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.ic_uv_color",
+    "asset.ic_purification",
+    "asset.icon_weather_wind",
+    "asset.icon_weather_thermometer_medium",
+    "asset.drop_1"
+  ]
+}

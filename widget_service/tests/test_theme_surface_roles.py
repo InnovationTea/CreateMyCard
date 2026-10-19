@@ -6,7 +6,7 @@ import re
 import pytest
 
 from services import post_layout_theme as themes
-from services.compact_component_runtime import component_visual_recipe
+from services.compact_component_runtime import component_visual_recipe, load_visual_recipe_contract
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.theme_style_roles import component_roles, layout_phase, resolve_role, role
 
@@ -62,9 +62,8 @@ def test_implicit_content_surfaces_use_panel(kind):
 def test_actual_expanded_surfaces_use_each_theme_standard(size, theme_kind, family):
     task = {"size": size}
     if theme_kind == "photo":
-        manifest = json.loads(themes.MANIFEST.read_text(encoding="utf-8"))
-        key = "photos" if size == "2x2" else "subjectlessWidePhotos"
-        theme = manifest.get(key)[0]
+        theme = next(item for item in themes.registered_themes("photos")
+                     if item.get("size") == size)
         theme = {**theme, "kind": "photo", "palette": family, "panel": "#FF000000"}
         palette_name, expected = "fusionDark", "#33FFFFFF"
     else:
@@ -81,17 +80,18 @@ def test_actual_expanded_surfaces_use_each_theme_standard(size, theme_kind, fami
         ids.extend(["card", "details_item0", "details_item1", "summary_item0", "summary_item1"])
     for identity in ids:
         assert nodes.get(identity, {}).get("styles", {}).get("backgroundColor") == expected
-    palette = themes.load_visual_recipe_contract().get("palettes", {}).get(palette_name, {})
+    palette = load_visual_recipe_contract().get("palettes", {}).get(palette_name, {})
     expected_button = palette.get("roles", {}).get("componentSecondary")
     assert expected_button
     assert nodes.get("pill", {}).get("styles", {}).get("backgroundColor") == expected_button
 
 
-@pytest.mark.parametrize("token", sorted(themes.FUSION_BALL_DESIGN_TOKENS))
+@pytest.mark.parametrize("token", [theme.get("id") for theme in themes.registered_themes("standard")
+                                  if theme.get("kind") == "fusion"])
 def test_fusion_surfaces_keep_existing_white_twenty_percent(token):
     source = surface_source("2x2")
     task = {"size": "2x2", "appVersion": "11.9.9.342"}
-    theme = {"id": token, "kind": "fusion", "palette": "fusionDark"}
+    theme = next(t for t in themes.registered_themes("standard") if t.get("id") == token)
     final = themes.apply_theme(source, theme, task, {})
     for node in themes.components(themes.decode(final)):
         if node.get("id") in {"info", "pill", "panel"}:

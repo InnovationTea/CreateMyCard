@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from config.config import get_settings
-from services.card_validation import validate_compact_dsl
+from services.card_validation import ValidationOptions, validate_card, validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
 from services.compact_component_runtime import load_visual_recipe_contract
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
@@ -223,6 +223,56 @@ def test_few_shot_validates_and_converts(
 
     components = messages[1]["updateComponents"]["components"]
     assert all(component["component"] in BASE_COMPONENTS for component in components)
+    report = validate_card(
+        dsl_text=converted,
+        effective_capabilities={"asset": task.get("assetCandidates", [])},
+        options=ValidationOptions(stage="hard"),
+    )
+    errors = []
+    for diagnostic in report.diagnostics:
+        if diagnostic.severity == "error":
+            errors.append((diagnostic.code, diagnostic.message))
+    assert not errors, (identifier, errors)
+
+
+@pytest.mark.parametrize(
+    "identifier, component_id", [("2x4-V10", "phone"), ("2x4-V38", "top_left")]
+)
+def test_double_quoted_expression_strings_remain_rejected(
+    identifier: str, component_id: str,
+) -> None:
+    task, source = _example(identifier)
+    rows = _rows(source)
+    changed = False
+    for row in rows:
+        if row[0] != component_id:
+            continue
+        props = row[2]
+        assert isinstance(props, dict)
+        expression = props.get("primaryText")
+        assert isinstance(expression, str)
+        assert "'" in expression
+        props["primaryText"] = expression.replace("'", '"')
+        changed = True
+    assert changed
+    invalid_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    converted = convert_compact_dsl_to_a2ui(
+        invalid_source,
+        size=task.get("size"),
+        protocol_profile={"version": "v0.9", "appVersion": "99.0"},
+    )
+    report = validate_card(
+        dsl_text=converted,
+        effective_capabilities={"asset": task.get("assetCandidates", [])},
+        options=ValidationOptions(stage="hard"),
+    )
+    errors = []
+    for diagnostic in report.diagnostics:
+        if diagnostic.code == "EXPR_PARSE_FAILED":
+            errors.append(diagnostic)
+    assert errors
+    assert all(item.severity == "error" for item in errors)
+    assert any("字符串必须使用单引号" in item.message for item in errors)
 
 
 def test_example_ids_match_selected_library_and_are_unique() -> None:
@@ -533,7 +583,7 @@ def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
 
     assert "本轮实现参考" not in assembled
     assert "# 本轮组件与布局选择" in assembled
-    assert "基础布局组件和组件" in assembled
+    assert "只使用本尺寸登记的布局与真实 Props" in assembled
     for deprecated in ("基础组件", "高阶组件", "高级组件", "普通组件", "基础组合"):
         assert deprecated not in assembled
 
@@ -591,8 +641,7 @@ def test_example_gradients_use_registered_direction_and_stops(
 
 def test_component_catalog_excludes_removed_legacy_components() -> None:
     catalog = PROMPTS["create"]
-    allowed_section = catalog.split("# 2. Compact DSL 组件合同", maxsplit=1)[1]
-    allowed_section = allowed_section.split("## 2.1", maxsplit=1)[0]
+    allowed_section = catalog
     for component_type in HIGH_LEVEL_COMPONENTS:
         assert f"`{component_type}`" in allowed_section
     for removed_type in ("ActionUnit", "Checkbox", "TimelineUnit"):
