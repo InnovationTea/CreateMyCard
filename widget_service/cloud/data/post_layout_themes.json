@@ -580,6 +580,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_rain_ink_top_right_square.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -710,6 +711,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_sunflower_diagonal_clear_button_v5.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -760,6 +762,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_vinyl_right_v3.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -810,6 +813,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_balloon_topright_v4.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -854,6 +858,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_subjectless_w04_white_text_v2.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -898,6 +903,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_subjectless_b05.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -942,6 +948,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_subjectless_h04.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -994,6 +1001,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_expansion_music_right_v1.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -1047,6 +1055,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_expansion_countdown_right_v1.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -1100,6 +1109,7 @@
       ],
       "background": {
         "src": "resources/base/media/bg_expansion_sleep_right_v1.jpg",
+        "remoteUrl": "",
         "frame": {
           "slotWidth": 1,
           "slotHeight": 1,
@@ -1220,6 +1230,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_sleep_square.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1285,6 +1296,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_water_lily_square.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1368,6 +1380,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_star_trails_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1471,6 +1484,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_yellow_arch_square.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1559,6 +1573,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_seaside_sunset_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1658,6 +1673,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_weather_square.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1741,6 +1757,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_sport1_square.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1824,6 +1841,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_sport2_square.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1907,6 +1925,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_sport3_square.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1990,6 +2009,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_travel_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -2073,6 +2093,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_information_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -2156,6 +2177,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_sport_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -2284,6 +2306,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_sport_center_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -2367,6 +2390,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_home_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -2468,6 +2492,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_sleep_wide.png",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -2563,6 +2588,7 @@
       },
       "background": {
         "src": "resources/base/media/bg_ux_concert_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,

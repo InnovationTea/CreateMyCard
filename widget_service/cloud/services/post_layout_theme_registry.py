@@ -7,6 +7,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from jsonschema import Draft202012Validator
 
@@ -129,6 +130,7 @@ _BACKGROUNDS = {
                }},
     "photo": {"required": ["src", "objectFit", "frame"], "properties": {
         "src": {"type": "string", "pattern": r"^resources/base/media/[\w.-]+\.(jpg|png|jpeg)$"},
+        "remoteUrl": {"type": "string"},
         "objectFit": {"enum": ["fill", "cover"]}, "frame": _FRAME,
     }},
 }
@@ -224,6 +226,7 @@ def _validate_content_eligibility(theme: dict) -> None:
 
 
 def _validate_photo(theme: dict) -> None:
+    _validate_photo_url(theme.get("background", {}).get("remoteUrl", ""))
     if "measurementPolicy" in theme:
         raise ValueError("Runtime photo matching must not depend on device measurements")
     pool = theme.get("pool")
@@ -250,6 +253,19 @@ def _validate_photo(theme: dict) -> None:
     if pool == "squareExpansions":
         if theme.get("sourceSize") != "2x2" or theme.get("composition") != "square-left":
             raise ValueError("Expansion must preserve the 2x2 foreground in the left half")
+
+
+def _validate_photo_url(address: str) -> None:
+    if not address:
+        return
+    for character in address:
+        if character.isspace() or ord(character) < 32:
+            raise ValueError("Photo remoteUrl must not contain whitespace or control characters")
+    parsed = urlsplit(address)
+    if parsed.scheme != "https" or not parsed.hostname or not parsed.path.strip("/"):
+        raise ValueError("Photo remoteUrl must be a complete HTTPS asset URL")
+    if parsed.username is not None or parsed.password is not None or parsed.fragment:
+        raise ValueError("Photo remoteUrl must not contain credentials or fragments")
 
 
 def _validate_native_photo(theme: dict) -> None:

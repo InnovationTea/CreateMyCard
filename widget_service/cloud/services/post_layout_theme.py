@@ -10,6 +10,7 @@ import re
 from typing import Any
 
 from config.config import get_settings
+from services.asset_url_mapper import AssetUrlMapper
 from services.fusion_ball_expander import (
     build_fusion_ball_content_id,
     build_fusion_ball_palette,
@@ -647,7 +648,12 @@ async def theme_artifact(
         themed.cardSpec["suggestSize"] = "2x4"
         themed.taskSpec["size"] = "2x4"
     if theme.get("kind") == "photo":
-        asset = {"id": theme.get("id"), "src": theme.get("src"), "description": "预置主题背景"}
+        src = theme.get("src")
+        address = theme.get("remoteUrl") or src
+        if address != src:
+            mapper = AssetUrlMapper({src: address}, {src})
+            themed.genui = mapper.rewrite_standard(themed.genui)
+        asset = {"id": theme.get("id"), "src": address, "description": "主题背景"}
         themed.taskSpec.setdefault("assetCandidates", []).append(asset)
         themed.effectiveCapabilities.setdefault("asset", []).append(asset.get("id"))
     errors = validator.validate(themed, profile)
