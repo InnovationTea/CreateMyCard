@@ -79,6 +79,14 @@ def text_flow_evidence(nodes: list[dict]) -> dict:
             if type(limit) is int and limit > 0:
                 flow = {"maxLines": limit,
                         "leftAligned": styles.get("textAlign", "start") in {"start", "left"}}
+        elif kind == "Button":
+            label = node.get("label")
+            limit = styles.get("maxLines", 1)
+            static_label = isinstance(label, str) and bool(label.strip())
+            if static_label and len(label.splitlines()) == 1 and "{{" not in label:
+                if type(limit) is int and limit > 0:
+                    flow = {"maxLines": limit,
+                            "leftAligned": styles.get("textAlign", "center") in {"start", "left"}}
         elif kind in {"Image", "Icon", "Divider"}:
             flow = {"maxLines": 0, "leftAligned": True}
         elif kind in {"Row", "Column", "Stack"}:
@@ -112,7 +120,7 @@ def _container_text_flow(kind: str, styles: dict, children: list[dict]) -> dict:
             left = not text_children
         if alignment == "spaceBetween" and len(text_children) > 1:
             left = False
-    if kind == "Stack" and styles.get("alignContent") not in {"topStart", "bottomStart"}:
+    if kind == "Stack" and styles.get("alignContent") not in {"start", "topStart", "bottomStart"}:
         left = not text_children
     return {"maxLines": total, "leftAligned": left}
 

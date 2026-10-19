@@ -527,17 +527,19 @@
       "kind": "photo",
       "pool": "photos",
       "name": "睡眠 · 暗色卧室",
-      "description": "仅用于2x2睡眠单业务，内容居左或贴底、内容区最多3行文字且没有胶囊按钮；顶部标题不计入行数，允许图标按钮。暗色卧室按无主体背景处理，固定白色文字及融球前景配色，背景随宿主自适应。",
+      "description": "仅用于2x2睡眠单业务，内容居左或贴底、内容区最多3行文字；顶部标题不计入行数，允许胶囊及图标按钮，按钮文案计入行数但可居中。暗色卧室按无主体背景处理，固定白色文字及融球前景配色，背景随宿主自适应。",
       "subjectless": true,
       "contentEligibility": {
         "kind": "sleep-square",
         "maxTextLines": 3,
         "includeTitle": false,
-        "excludeComponents": ["PillButton"],
+        "excludeComponents": [],
         "layouts": {
           "S-title-content": "bottom",
           "S-title-dual-content": "left",
-          "S-title-anchor": "left"
+          "S-title-anchor": "left",
+          "S-title-content-action": "left",
+          "S-title-primary-secondary-action": "left"
         }
       },
       "sizes": [
@@ -593,7 +595,7 @@
       ],
       "contentTone": "dark",
       "subjectPosition": "床枕与床头物件按无主体处理；原主体坐标仅留作素材记录。",
-      "layoutHint": "睡眠单业务；内容居左或贴底，内容区最多3行（不含顶部标题），无胶囊按钮",
+      "layoutHint": "睡眠单业务；内容居左或贴底，内容区最多3行（不含顶部标题，含按钮文案），允许胶囊及图标按钮",
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",

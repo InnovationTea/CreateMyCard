@@ -318,4 +318,5 @@ def test_invalid_model_choice_keeps_original_gradient_fallback(response):
 ])
 def test_business_mapping_preserves_original_routes(monkeypatch, route, query, expected):
     monkeypatch.setattr(policy.PromptBuilder, "_visual_route", lambda task: (route, {}))
-    assert policy._business_token(SimpleNamespace(userQuery=query)) == expected
+    task = SimpleNamespace(userQuery=query, dataModelSchema={})
+    assert policy._business_token(task) == expected

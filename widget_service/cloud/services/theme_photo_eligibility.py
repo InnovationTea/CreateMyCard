@@ -85,9 +85,22 @@ def _sleep_reason(policy: dict, task: dict, evidence: dict,
         lines -= title_lines
     if lines > policy.get("maxTextLines", 0):
         return "睡眠卡片文字超过图片允许的行数"
-    if placement == "left" and not root_flow.get("leftAligned"):
+    if placement == "left" and not _sleep_content_left_aligned(root, by_id, flow):
         return "睡眠图片内容未居左"
     return None
+
+
+def _sleep_content_left_aligned(root: ComponentRow, by_id: dict, flow: dict) -> bool:
+    for identity in root.children:
+        child = by_id.get(identity)
+        if child is None:
+            return False
+        # Button labels may be centered, but remain included in the root line budget.
+        if child.component_type in {"PillButton", "CircleButton"}:
+            continue
+        if not flow.get(identity, {}).get("leftAligned"):
+            return False
+    return True
 
 
 def _weather_reason(policy: dict, task: dict, evidence: dict,

@@ -393,8 +393,8 @@ def sleep_anchor_layout(button="CircleButton"):
     ])
 
 
-@pytest.mark.parametrize("button,allowed", [("CircleButton", True), ("PillButton", False)])
-def test_sleep_allows_icon_button_but_not_capsule(button, allowed):
+@pytest.mark.parametrize("button", ["CircleButton", "PillButton"])
+def test_sleep_allows_icon_and_capsule_buttons(button):
     nodes = sleep_nodes()
     nodes[0].get("children", []).extend(["support", "action"])
     nodes.extend([
@@ -404,7 +404,7 @@ def test_sleep_allows_icon_button_but_not_capsule(button, allowed):
     ])
     reason = themes.photo_reason(ux("sleep-square"), sleep_task(), photo_layout_evidence(nodes),
                                  final_layout=sleep_anchor_layout(button))
-    assert (reason is None) is allowed
+    assert reason is None
 
 
 @pytest.mark.parametrize("alignment", ["center", "end"])
@@ -523,7 +523,7 @@ def test_text_flow_missing_or_recursive_nodes_are_unknown(child):
 @pytest.mark.parametrize("change", [
     {"maxTextLines": 0}, {"maxTextLines": "3"}, {"includeTitle": "true"},
     {"layouts": {"S-center": "left"}}, {"viewport": {"width": 123}},
-    {"kind": "unknown"}, {"excludeComponents": []},
+    {"kind": "unknown"}, {"excludeComponents": ["CircleButton"]},
 ])
 def test_invalid_content_eligibility_rejected_at_registry_load(change):
     config = registry.load_theme_registry()
