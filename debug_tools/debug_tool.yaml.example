@@ -127,8 +127,9 @@ widget_backend:
     deepseek_official_http_enable_thinking: false
     # 是否使用本地产物下载模拟
     enable_artifact_download_mock: true
-    # 如果使用deepseek官方接口，填入api_key
-    # deepseek_official_http_api_key: "sk-123"
+    # 使用deepseek_official_http时设置该配置项
+    # deepseek_official_http_api_key: 'sk-xxxx'
+
 
 platform:
   environment:
