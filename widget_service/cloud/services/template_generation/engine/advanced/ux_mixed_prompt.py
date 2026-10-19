@@ -57,6 +57,7 @@ _WEATHER_BUILTIN_ASSETS = (
     "resources/base/media/sun_max.svg",
     "resources/base/media/cold.svg",
 )
+_COUNTDOWN_TITLE_SUFFIXES = ("倒计时", "倒数日", "倒数")
 _MAX_UX_MIXED_PROMPT_CHARS = 24_000
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _COMPACT_ACTION_TEMPLATE_ID = "CompactAction@1"
@@ -75,6 +76,17 @@ class _SecondLayerLayoutSelection:
     action_template_ids: tuple[str, ...] = ()
     embeds_support_actions: bool = False
     business_layout_kinds_by_position: tuple[str, ...] = ()
+
+
+def _countdown_title_aliases(card_spec: dict[str, Any]) -> tuple[str, ...]:
+    """把“X倒计时/倒数日/倒数”形式的卡片标题补一个“X还剩”可信别名。"""
+    title = card_spec.get("title")
+    if not isinstance(title, str):
+        return ()
+    for suffix in _COUNTDOWN_TITLE_SUFFIXES:
+        if title.endswith(suffix) and len(title) > len(suffix):
+            return (f"{title[: -len(suffix)]}还剩",)
+    return ()
 
 
 def _weather_builtin_assets_for_components(components: tuple[Any, ...]) -> tuple[str, ...]:
@@ -435,7 +447,11 @@ def build_ux_mixed_prompt(
     contract = base.contract.model_copy(
         update={
             "trusted_literals": tuple(dict.fromkeys(
-                (*base.contract.trusted_literals, *GENERIC_HEALTH_LABELS.values())
+                (
+                    *base.contract.trusted_literals,
+                    *GENERIC_HEALTH_LABELS.values(),
+                    *_countdown_title_aliases(card_spec),
+                )
             )),
             # 原子计划已校验操作归属，内置按钮不占布局根的 Action 槽位。
             "content_action_ids": (
