@@ -1,9 +1,8 @@
 #Template PlaylistCompactAction@1(props: { actionId: string, label: string, icon: asset })
 data = {}
-Stack({"width": "matchParent", "height": "matchParent", "borderRadius": 16,
-  "backgroundColor": $theme('supportContentStyle.backgroundColor'),
+Stack({"width": "matchParent", "height": "matchParent",
   "onClick": EventAction(props.actionId)},
-  Row({"width": "matchParent", "height": "matchParent", "padding": 8,
+  Row({"width": "matchParent", "height": "matchParent",
     "itemMargin": 8, "alignItems": "center"},
     Column({"layoutWeight": 1, "itemMargin": 2},
       Text("30 首", {"width": "matchParent", "height": 22, "fontSize": 16,
