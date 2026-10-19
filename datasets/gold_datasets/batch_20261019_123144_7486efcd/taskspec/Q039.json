@@ -1,0 +1,46 @@
+{
+  "userQuery": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+  "size": "2x2",
+  "appVersion": "11.9.9.342",
+  "eventCandidates": [
+    {
+      "id": "event.open.health.sport",
+      "description": "打开运动健康应用的锻炼Tab页",
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Health",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "exerciseTypeName": {
+          "type": "string",
+          "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+          "sampleValue": "户外跑步"
+        },
+        "exerciseDurationText": {
+          "type": "string",
+          "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+          "sampleValue": "40分"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "id": "asset.figure_run",
+      "src": "resources/base/media/figure_run.svg",
+      "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+    },
+    {
+      "id": "asset.stopwatch_fill",
+      "src": "resources/base/media/stopwatch_fill.svg",
+      "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "userQuery": "帮我做个运动卡片，刚完成一次训练，看看今天走了多少步，还有最近一次训练练了什么、消耗多少热量、练了多久和平均心率。",
+  "size": "2x4",
+  "appVersion": "11.9.9.342",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "dailySteps": {
+          "type": "integer",
+          "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+          "sampleValue": 6200
+        },
+        "exerciseCalorieText": {
+          "type": "string",
+          "description": "可直接显示的单次专业运动净热量消耗文本，已换算并包含“千卡”单位；展示时不得再次追加热量单位。例如“98 千卡”。",
+          "sampleValue": "260 千卡"
+        },
+        "exerciseTypeName": {
+          "type": "string",
+          "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+          "sampleValue": "户外跑步"
+        },
+        "exerciseDurationText": {
+          "type": "string",
+          "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+          "sampleValue": "40分"
+        },
+        "exerciseHeartRateAvg": {
+          "type": "integer",
+          "description": "专业运动期间平均心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+          "sampleValue": 135
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "id": "asset.figure_run",
+      "src": "resources/base/media/figure_run.svg",
+      "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+    },
+    {
+      "id": "asset.flame_fill",
+      "src": "resources/base/media/flame_fill.svg",
+      "description": "样式：默认黑色的单色实心火焰图标；适用：运动热量消耗、燃烧、火焰或加热状态。"
+    },
+    {
+      "id": "asset.heart_fill",
+      "src": "resources/base/media/heart_fill.svg",
+      "description": "样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"
+    },
+    {
+      "id": "asset.stopwatch_fill",
+      "src": "resources/base/media/stopwatch_fill.svg",
+      "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+    }
+  ]
+}

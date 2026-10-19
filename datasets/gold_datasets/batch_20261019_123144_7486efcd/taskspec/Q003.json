@@ -1,0 +1,67 @@
+{
+  "userQuery": "下一场日程是18天后上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+  "size": "2x2",
+  "appVersion": "11.9.9.342",
+  "eventCandidates": [
+    {
+      "id": "event.viewCalendarEvent",
+      "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "ViewCalendarEvent",
+        "params": {
+          "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+        }
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "countdown": {
+        "countdownDays": {
+          "type": "integer",
+          "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+          "sampleValue": 30
+        }
+      },
+      "calendar": {
+        "events": [
+          {
+            "title": {
+              "type": "string",
+              "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+              "sampleValue": "项目例会"
+            },
+            "dtStart": {
+              "type": "string",
+              "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+              "sampleValue": "14:00"
+            },
+            "entityId": {
+              "type": "string",
+              "description": "系统日程的全局唯一实体ID。",
+              "sampleValue": "example-event-001"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "id": "asset.stopwatch_fill",
+      "src": "resources/base/media/stopwatch_fill.svg",
+      "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+    },
+    {
+      "id": "asset.calendar_fill",
+      "src": "resources/base/media/calendar_fill.svg",
+      "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"
+    },
+    {
+      "id": "asset.icon_schedule",
+      "src": "resources/base/media/icon_schedule.svg",
+      "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。"
+    }
+  ]
+}

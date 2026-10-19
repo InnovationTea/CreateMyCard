@@ -1,0 +1,61 @@
+{
+  "userQuery": "显示电池电量和状态",
+  "size": "2x2",
+  "appVersion": "11.7.7.351",
+  "eventCandidates": [
+    {
+      "id": "event.open.settings.battery",
+      "description": "打开系统设置中的电池页",
+      "call": "clickToDeeplink",
+      "args": {
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "bundleName": "com.huawei.hmos.settings",
+        "intentName": "Settings",
+        "uri": "battery"
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "phoneBattery": {
+        "batteryCapacityLevelDesc": {
+          "type": "string",
+          "description": "设备电池电量等级的语义化文本描述。",
+          "sampleValue": "正常电量"
+        },
+        "batterySOCText": {
+          "type": "string",
+          "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
+          "sampleValue": "68%"
+        },
+        "batteryTemperatureText": {
+          "type": "string",
+          "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+          "sampleValue": "29.0 ℃"
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "当前设备电池的充电状态文本描述。",
+          "sampleValue": "未充电"
+        },
+        "healthStatusDesc": {
+          "type": "string",
+          "description": "当前设备电池的物理健康状态文本描述。",
+          "sampleValue": "正常"
+        },
+        "pluggedTypeDesc": {
+          "type": "string",
+          "description": "当前设备连接的充电器类型文本描述。",
+          "sampleValue": "未连接充电器"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "id": "asset.battery_leaf_fill",
+      "src": "resources/base/media/battery_leaf_fill.svg",
+      "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+    }
+  ]
+}

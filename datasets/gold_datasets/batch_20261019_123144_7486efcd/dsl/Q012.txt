@@ -1,0 +1,13 @@
+["root","Layout",{"layout":"S-title-dual-content"},["header","sleep_total","sleep_detail"]]
+
+["header","SingleLineTitle",{"title":"睡眠分析","icon":"resources/base/media/moon_z_fill_1.svg","fontSize":12}]
+
+["sleep_total","EmphasisText",{"mainText":{"path":"/data/healthSport/nightSleepDurationText"},"secondaryText":"昨晚总睡眠","fontSize":18}]
+
+["sleep_detail","SecondaryBody",{"items":[{"label":"记录类型","value":{"path":"/data/healthSport/sleepTypeDesc"}},{"label":"深睡","value":{"path":"/data/healthSport/deepSleepDurationText"}}],"columns":1,"fontSize":12}]
+
+["/data/healthSport/nightSleepDurationText","7小时1分"]
+
+["/data/healthSport/sleepTypeDesc","科学睡眠"]
+
+["/data/healthSport/deepSleepDurationText","2小时15分"]
