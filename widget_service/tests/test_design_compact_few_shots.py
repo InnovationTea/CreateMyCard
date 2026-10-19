@@ -236,7 +236,7 @@ def test_few_shot_validates_and_converts(
 
 
 @pytest.mark.parametrize(
-    "identifier, component_id", [("2x4-V10", "phone"), ("2x4-V38", "top_left")]
+    "identifier, component_id", [("2x4-V10", "upper"), ("2x4-V38", "top_left")]
 )
 def test_double_quoted_expression_strings_remain_rejected(
     identifier: str, component_id: str,
@@ -403,8 +403,11 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
     _, source = _example("2x2-V14")
     rows = {row[0]: row for row in _rows(source)}
 
-    assert rows["title_area"][2].get("icon") == "resources/base/media/calendar_fill.svg"
-    assert rows["meeting_action"][2].get("icon") == "resources/base/media/icon_meeting.svg"
+    title_row = rows.get("title")
+    action_row = rows.get("action")
+    assert title_row is not None and action_row is not None
+    assert title_row[2].get("icon") == "resources/base/media/calendar_fill.svg"
+    assert action_row[2].get("icon") == "resources/base/media/icon_meeting.svg"
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,7 @@
 # 最小闭合语义模板 Implementation Plan
 
+> 本文记录已备份的历史实验（8533e94）。该实验的逐模板业务叶子补齐已回退；当前最小命名方案见 [结构 ID 最小优化](2026-10-19-minimal-structural-ids.md)。两轮实验结果不得混用。
+
 **Goal:** 将 33 个布局/组合片段改为引用闭合、业务 Props 使用省略号的结构模板，测量 Token 变化。
 
 **Architecture:** 仅修改 layouts/2x2.md、layouts/2x4.md、combinations/2x2.md 中的片段与对应说明。Core、Plan、完整 Few-shot、模型路由、Runtime、校验与修复预算保持不变；Group/Region 仍作为局部片段，其后代均在同块内定义。保留语义结构参数，其余 Props 用 `...` 占位，不提供具体业务填槽内容。

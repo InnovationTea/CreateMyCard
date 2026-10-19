@@ -69,11 +69,11 @@ description: 输入输出、绑定、事件授权、素材来源及主题阶段�
 
 Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行连续排列，每行一个严格 JSON 数组：
 ```genui
-["root","Layout",{"layout":"S-title-content"},["header","main"]]
-["header","SingleLineTitle",{"title":"卡片标题","fontSize":12}]
-["main","Group",{"variant":"hero-support"},["primary","support"]]
-["primary","EmphasisText",{"mainText":"主要内容","fontSize":18}]
-["support","SecondaryBody",{"items":[{"value":"补充说明"}],"fontSize":14}]
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"卡片标题","fontSize":12}]
+["content","Group",{"variant":"hero-support"},["content_primary","content_support"]]
+["content_primary","EmphasisText",{"mainText":"主要内容","fontSize":18}]
+["content_support","SecondaryBody",{"items":[{"value":"补充说明"}],"fontSize":14}]
 ["/state/ready",true]
 ```
 <!-- /prompt:output -->
@@ -88,7 +88,9 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 | 数据 | `["/json/pointer", value]` | 类型与 schema 一致；至少一行，纯静态卡也写 /state/ready |
 
 第一个组件是 root Layout；children 中每个 ID 必须与本次输出某一组件行的第一项逐字一致，不能用角色名代替未定义的组件。
-组件改名时同步修改引用；根以外每个组件恰好有一个父节点，全部从 root 可达，无悬空引用、循环、重复或孤立节点。
+整卡组件ID按布局/组合的结构角色命名，不按设备、城市、指标或动作等业务名称改名；直属角色使用模板ID，嵌套角色用“父ID_角色”，多个同级项按位置或序号区分。
+例如侧双槽直属ID为 `content`、`upper`、`lower`，左右双区为 `left`、`right`；更换结构时同步更新定义与全部引用。
+根以外每个组件恰好有一个父节点，全部从 root 可达，无悬空引用、循环、重复或孤立节点。
 组件 ID 引用不同于显示值的数据路径绑定；定义数据行不能代替定义组件行。业务组件没有 children，不用数组模板、repeat 或循环变量。
 只使用本尺寸登记的布局与真实 Props；不输出 Row/Column/Stack、宽高、权重、边距、间距或对齐参数，不输出 A2UI 消息、CardSpec 或协议外字段。
 <!-- /prompt:jsonl -->
