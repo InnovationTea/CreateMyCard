@@ -606,6 +606,17 @@ class BatchRunManager:
             if genui_path.is_file():
                 attempt["genui"] = genui_path.read_text(encoding="utf-8")
             attempts.append(attempt)
+        input_dir = sample_dir / "input"
+        input_genui = input_dir / "genui.jsonl"
+        if input_genui.is_file():
+            imported_attempt: dict[str, Any] = {
+                "name": "input",
+                "genui": input_genui.read_text(encoding="utf-8"),
+            }
+            input_meta_path = input_dir / "input.json"
+            if input_meta_path.is_file():
+                imported_attempt["input"] = self._read_json(input_meta_path)
+            attempts.append(imported_attempt)
         if result_metadata_updated:
             atomic_write_json(sample_dir / "result.json", result)
             self._update_run_result_metadata(run_id, sample_id, result, run_dir)
