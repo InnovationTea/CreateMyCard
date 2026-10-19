@@ -423,6 +423,7 @@ export type ServiceConfigField = {
   sensitive: boolean;
   editable: boolean;
   readOnlyReason: string;
+  description?: string;
 };
 
 export function saveServiceConfigDefaults(version: string, changes: Record<string, unknown>): Promise<ServiceConfigDefaults> {

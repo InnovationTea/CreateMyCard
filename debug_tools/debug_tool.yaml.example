@@ -88,6 +88,18 @@ widget_backend:
     compact_dsl_interface_retry_count: 1
     # 是否启用产物校验
     enable_artifact_validation: true
+    # 单步新建兜底默认关闭；编辑默认使用限定字段补丁
+    enable_single_step_generation_fallback: false
+    enable_single_step_widget_edit: true
+    # 修复后是否仍严格校验全部计划信息
+    enable_drop_plan_fact_validation: false
+    # 图片主题及尺寸扩展实验；仍须满足云侧准入条件
+    enable_photo_background_theme: false
+    enable_subjectless_wide_theme: false
+    enable_square_music_photo_expansion: false
+    enable_square_photo_expansion: false
+    # 使用官方 SDK 调用，关闭后使用 HTTP 对照通道
+    deepseek_official_http_use_sdk: true
   defaults:
     # 是否记录生成追踪
     enable_generation_trace_recording: true
@@ -113,8 +125,6 @@ widget_backend:
     model_request_timeout_seconds: 120
     # DeepSeek 官方 HTTP 接口地址
     deepseek_official_http_url: https://api.deepseek.com/chat/completions
-    # 是否使用官方 SDK 调用
-    deepseek_official_http_use_sdk: true
     # 官方接口模型名称，按账号支持的模型填写
     deepseek_official_http_model: deepseek-flash
     # 采样温度，取值 0 到 2

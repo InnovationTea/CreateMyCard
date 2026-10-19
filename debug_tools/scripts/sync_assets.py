@@ -11,6 +11,7 @@ from pathlib import Path, PurePosixPath
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CAPABILITIES_ROOT = Path("widget_service/cloud/data/capabilities")
+THEMES_PATH = Path("widget_service/cloud/data/post_layout_themes.json")
 TARGETS = {
     "shared": Path("debug_tools/a2ui_render/entry/src/main"),
 }
@@ -35,16 +36,43 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def registered_assets(root: Path) -> list[Asset]:
+def asset_records(root: Path) -> list[tuple[Path, list[object]]]:
     manifests = sorted((root / CAPABILITIES_ROOT).glob("*/asset_capabilities.json"))
     if not manifests:
         raise ValueError("云侧素材清单不存在")
-    assets: list[Asset] = []
-    seen: set[str] = set()
+    sources: list[tuple[Path, list[object]]] = []
     for manifest in manifests:
         records = json.loads(manifest.read_text(encoding="utf-8-sig"))
         if not isinstance(records, list):
             raise ValueError(f"素材清单必须是数组：{manifest}")
+        sources.append((manifest, records))
+    theme_path = root / THEMES_PATH
+    document = json.loads(theme_path.read_text(encoding="utf-8-sig"))
+    if not isinstance(document, dict):
+        raise ValueError(f"主题配置必须是对象：{theme_path}")
+    themes = document.get("themes")
+    if not isinstance(themes, list):
+        raise ValueError(f"主题清单必须是数组：{theme_path}")
+    backgrounds: list[object] = []
+    for theme in themes:
+        if not isinstance(theme, dict):
+            raise ValueError(f"主题记录必须是对象：{theme_path}")
+        background = theme.get("background")
+        if background is None:
+            continue
+        if not isinstance(background, dict):
+            raise ValueError(f"主题背景必须是对象：{theme_path}")
+        if "src" not in background:
+            continue
+        backgrounds.append(background)
+    sources.append((theme_path, backgrounds))
+    return sources
+
+
+def registered_assets(root: Path) -> list[Asset]:
+    assets: list[Asset] = []
+    seen: set[str] = set()
+    for manifest, records in asset_records(root):
         for record in records:
             if not isinstance(record, dict):
                 raise ValueError(f"素材记录必须是对象：{manifest}")
@@ -107,8 +135,10 @@ def main() -> int:
     results = synchronize(REPOSITORY_ROOT, assets, write=arguments.sync)
     changed = False
     for result in results:
-        print(f"{result.target}: 检查 {result.checked}，缺失 {len(result.missing)}，"
-              f"内容不同 {len(result.different)}")
+        print(
+            f"{result.target}: 检查 {result.checked}，缺失 {len(result.missing)}，"
+            f"内容不同 {len(result.different)}"
+        )
         for src in result.missing + result.different:
             print(f"  {src}")
         changed = changed or bool(result.missing or result.different)

@@ -16,7 +16,7 @@ from services.fusion_ball_expander import (
     expand_fusion_ball_components,
     fusion_ball_enabled,
 )
-from services.generation_trace_recorder import trace_step
+from services.generation_trace_recorder import trace_operation, trace_record, trace_span
 from services.post_layout_theme_registry import (
     fallback_theme,
     load_theme_registry,
@@ -598,16 +598,33 @@ def same_visible_geometry(before: dict, after: dict) -> bool:
     return True
 
 
+def _validate_theme(artifact: Any, validator: Any, profile: dict, *, fallback: bool) -> list[str]:
+    with trace_span("theme.validation", stage="theme.validation") as span:
+        span.details["fallback"] = fallback
+        span.json_artifacts["theme_validation_input"] = artifact.model_dump(mode="json")
+        span.artifact_roles["theme_validation_input"] = "input"
+        errors = validator.validate(artifact, profile)
+        span.json_artifacts["theme_validation_errors"] = errors
+        span.artifact_roles["theme_validation_errors"] = "diagnostic"
+        span.outcome("failed" if errors else "success", errorCount=len(errors))
+        return errors
+
+
+@trace_operation("theme", kind="group")
 async def theme_artifact(
     artifact: Any, task: dict, client: Any, validator: Any, profile: dict,
     *, allow_expansion: bool = True, final_layout: str | None = None,
 ) -> Any:
     source = artifact.genui
-    result, audit = await select_theme(
-        source, task, client,
-        allow_expansion=allow_expansion and artifact.meta.generationMode == "create",
-        final_layout=final_layout,
-    )
+    with trace_span("theme.selection", stage="theme.selection") as span:
+        result, audit = await select_theme(
+            source, task, client,
+            allow_expansion=allow_expansion and artifact.meta.generationMode == "create",
+            final_layout=final_layout,
+        )
+        span.json_artifacts["theme_selection_audit"] = audit
+        span.artifact_roles["theme_selection_audit"] = "diagnostic"
+        span.outcome("recovered" if audit.get("selectorError") else "success")
     themed = artifact.model_copy(deep=True)
     themed.genui = result
     theme = audit.get("theme", {})
@@ -619,16 +636,21 @@ async def theme_artifact(
         asset = {"id": theme.get("id"), "src": theme.get("src"), "description": "预置主题背景"}
         themed.taskSpec.setdefault("assetCandidates", []).append(asset)
         themed.effectiveCapabilities.setdefault("asset", []).append(asset.get("id"))
-    errors = validator.validate(themed, profile)
+    errors = _validate_theme(themed, validator, profile, fallback=False)
     if audit.get("userColors"):
         audit["userColorContrastWarnings"] = [e for e in errors if e.startswith("VISUAL.CONTRAST")]
         errors = [e for e in errors if not e.startswith("VISUAL.CONTRAST")]
     audit["finalValidationErrors"] = errors
     if errors:
+        trace_record(
+            "theme.fallback", stage="theme", status="scheduled",
+            json_artifacts={"theme_rejected_audit": audit},
+            artifact_roles={"theme_rejected_audit": "diagnostic"},
+        )
         themed = artifact.model_copy(deep=True)
         fallback = fallback_theme(default_palette_family(task))
         themed.genui = apply_theme(source, fallback, task, audit.get("userColors", {}))
-        fallback_errors = validator.validate(themed, profile)
+        fallback_errors = _validate_theme(themed, validator, profile, fallback=True)
         if fallback_errors:
             raise ValueError("Final gradient validation failed: " + str(fallback_errors))
         audit["themeId"] = fallback.get("id")
@@ -636,7 +658,7 @@ async def theme_artifact(
         audit["theme"] = fallback
         audit["outputSize"] = task.get("size")
         audit["fallbackReason"] = "所选主题最终校验失败，使用纯色渐变；不重新排版"
-    trace_step(
+    trace_record(
         "theme.completed",
         stage="theme",
         status="success",

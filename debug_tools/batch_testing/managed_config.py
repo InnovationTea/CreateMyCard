@@ -36,6 +36,16 @@ ALIASES = {
 }
 PLATFORM_FIELDS = {"server_host", "server_port", "local_flag", "project_root", "config"}
 SECRET_FIELDS = {"hag_osms_ak", "ids_sign_secret", "ids_access_key", "deepseek_user"}
+GENERATION_OPTIONS = {
+    "enable_single_step_generation_fallback": "五次定向修复后允许单步新建兜底",
+    "enable_single_step_widget_edit": "使用限定字段补丁编辑原卡",
+    "enable_drop_plan_fact_validation": "修复后仍严格校验计划信息覆盖",
+    "enable_photo_background_theme": "允许匹配登记的图片主题",
+    "enable_subjectless_wide_theme": "允许宽卡无主体图片主题",
+    "enable_square_music_photo_expansion": "允许音乐小卡图片扩展实验",
+    "enable_square_photo_expansion": "允许小卡图片扩展实验",
+    "deepseek_official_http_use_sdk": "使用官方 SDK 调用 DeepSeek HTTP 接口",
+}
 _SAVE_LOCK = threading.Lock()
 
 
@@ -217,6 +227,7 @@ class Configuration:
                     "sensitive": secret,
                     "editable": self.editable(name),
                     "readOnlyReason": reason,
+                    "description": GENERATION_OPTIONS.get(name, ""),
                 }
             )
         return {
@@ -277,6 +288,9 @@ def read_configuration(root: Path, *, debug_path: Path | None = None) -> Configu
         if name == "asset_src_url_mapping" and value == "":
             value = {}
         config.values[name] = typed_value(name, value, kind)
+    for name in GENERATION_OPTIONS:
+        if name in config.types and name in config.values and name not in declared:
+            config.exposed.append(name)
     return config
 
 

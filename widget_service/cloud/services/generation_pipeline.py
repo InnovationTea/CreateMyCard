@@ -192,6 +192,7 @@ class DesignCompactProcessor:
                 card_spec=context.card_spec,
                 skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
+            expansion_started_at = time.perf_counter()
             expanded_source, layout_origins = expand_compact_semantic_layout(
                 source_dsl, size=context.size,
                 skip_compact_dsl_validation=context.skip_compact_dsl_validation,
@@ -199,6 +200,7 @@ class DesignCompactProcessor:
             if layout_origins:
                 trace_step(
                     "dsl.semantic_layout.expanded", stage="dsl.layoutExpansion", status="success",
+                    duration_ms=_elapsed_ms(expansion_started_at),
                     text_artifacts={"semantic_layout_source": source_dsl,
                                     "semantic_layout_expanded": expanded_source},
                     json_artifacts={"semantic_layout_origins": layout_origins},
