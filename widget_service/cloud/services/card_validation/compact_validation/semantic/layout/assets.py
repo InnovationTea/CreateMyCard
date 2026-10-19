@@ -24,7 +24,7 @@ def _collect_asset_color_errors(
         return
     for reference in model_asset_references(components):
         component = reference.component
-        if component.component_type not in {"ProgressCircle", "CardButton"}:
+        if component.component_type != "ProgressCircle":
             continue
         if not reference.source.lower().endswith(".svg"):
             continue

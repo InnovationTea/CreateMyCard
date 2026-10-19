@@ -108,7 +108,6 @@ def test_blank_short_description_is_rejected(description):
 def test_short_description_preserves_selection_boundaries():
     registry = CapabilityRegistry(version=CURRENT_REGISTRY)
     restrictions = {
-        "asset.emoji_clean": ("家居清扫", "不用于内存清理"),
         "asset.emoji_heartRate": ("最近运动心率", "实时心率", "不表示当前健康状态"),
         "asset.ic_public_connection_filled": ("合法图标位", "不代表", "Wi-Fi", "蓝牙"),
         "asset.ic_purification": ("空气质量", "不代表等级"),

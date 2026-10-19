@@ -7,6 +7,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from jsonschema import Draft202012Validator
 
@@ -32,6 +33,46 @@ _FRAME = {
         "align": {"enum": ["topStart", "topEnd", "center", "bottomStart", "bottomEnd"]},
     },
 }
+_CONTENT_ELIGIBILITY = {"oneOf": [
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "mainBusiness"],
+     "properties": {"kind": {"const": "left-main-wide"},
+                    "mainBusiness": {"enum": ["sleep", "weather"]}}},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "layouts", "maxTextLines", "includeTitle"],
+     "properties": {
+         "kind": {"const": "calendar-square"},
+         "maxTextLines": {"const": 2}, "includeTitle": {"const": False},
+         "layouts": {"type": "object", "minProperties": 1, "additionalProperties": False,
+                     "properties": {"S-title-content": {"const": "left"},
+                                    "S-title-dual-content": {"const": "left"}}},
+     }},
+    {"type": "object", "additionalProperties": False, "required": ["kind", "layouts"],
+     "properties": {
+         "kind": {"const": "weather-square"},
+         "layouts": {"type": "object", "minProperties": 1, "additionalProperties": False,
+                     "properties": {"S-title-content": {"const": "left"},
+                                    "S-title-dual-content": {"const": "left"}}},
+     }},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "maxTextLines", "includeTitle", "excludeComponents", "layouts"],
+     "properties": {
+         "kind": {"const": "sleep-square"},
+         "maxTextLines": {"type": "integer", "minimum": 1},
+         "includeTitle": {"type": "boolean"},
+         "excludeComponents": {"const": ["PillButton"]},
+         "layouts": {"type": "object", "minProperties": 1, "additionalProperties": False,
+                     "properties": {"S-title-content": {"const": "bottom"},
+                                    "S-title-dual-content": {"const": "left"},
+                                    "S-title-anchor": {"const": "left"}}},
+     }},
+    {"type": "object", "additionalProperties": False, "required": ["kind", "mainBusinesses"],
+     "properties": {
+         "kind": {"const": "running-main"},
+         "mainBusinesses": {"type": "array", "minItems": 1, "uniqueItems": True,
+                            "items": {"enum": ["marathon-countdown", "running"]}},
+     }},
+]}
 _THEME = {
     "type": "object",
     "required": ["id", "enabled", "kind", "pool", "name", "description", "sizes",
@@ -45,6 +86,7 @@ _THEME = {
         "sourceSize": {"enum": ["2x2"]},
         "businessDescription": _TEXT,
         "matchingPolicy": {"const": "layout-only"},
+        "contentEligibility": _CONTENT_ELIGIBILITY,
         "subjectless": {"type": "boolean"},
         "subjectlessLayout": {
             "type": "object", "required": ["layout", "orientation"],
@@ -88,8 +130,27 @@ _BACKGROUNDS = {
                }},
     "photo": {"required": ["src", "objectFit", "frame"], "properties": {
         "src": {"type": "string", "pattern": r"^resources/base/media/[\w.-]+\.(jpg|png|jpeg)$"},
+        "remoteUrl": {"type": "string"},
         "objectFit": {"enum": ["fill", "cover"]}, "frame": _FRAME,
     }},
+}
+_PHOTO_FALLBACKS = {
+    "type": "object", "additionalProperties": False, "required": ["darkText", "lightText"],
+    "properties": {
+        "darkText": {
+            "type": "object", "additionalProperties": False,
+            "required": ["colors", "direction"],
+            "properties": {
+                "colors": {"type": "array", "minItems": 2, "maxItems": 2,
+                           "items": {"type": "string", "pattern": r"^#FF[0-9A-Fa-f]{6}$"}},
+                "direction": {"enum": ["LeftBottom", "RightBottom", "LeftTop", "RightTop"]},
+            },
+        },
+        "lightText": {
+            "type": "object", "additionalProperties": False, "required": ["themeId"],
+            "properties": {"themeId": _TEXT},
+        },
+    },
 }
 
 
@@ -123,6 +184,8 @@ def _validate_theme(theme: dict) -> None:
     if theme.get("subjectless") is True:
         if kind != "photo" or pool != "photos" or theme.get("composition") != "native":
             raise ValueError("Subjectless policy requires a native photo")
+    if "contentEligibility" in theme:
+        _validate_content_eligibility(theme)
     if "subjectlessLayout" in theme:
         if theme.get("subjectless") is not True:
             raise ValueError("Subjectless layout requires an explicit subjectless policy")
@@ -137,7 +200,33 @@ def _validate_theme(theme: dict) -> None:
         _validate_photo(theme)
 
 
+def _validate_content_eligibility(theme: dict) -> None:
+    native = theme.get("kind") == "photo" and theme.get("pool") == "photos"
+    if not native or theme.get("composition") != "native":
+        raise ValueError("Content eligibility requires a native photo")
+    policy = theme.get("contentEligibility", {})
+    sizes = theme.get("sizes", [])
+    square_business = {"weather-square": "weather", "calendar-square": "calendar"}
+    if policy.get("kind") in square_business:
+        if sizes != ["2x2"] or theme.get("business") != square_business.get(policy.get("kind")):
+            raise ValueError("Square eligibility requires a matching 2x2 business photo")
+        if theme.get("subjectless") is not False:
+            raise ValueError("Square layout policy must retain its subject")
+    else:
+        if theme.get("subjectless") is not True:
+            raise ValueError("Content eligibility requires a native subjectless photo")
+        if policy.get("kind") == "sleep-square":
+            if sizes != ["2x2"] or theme.get("business") != "sleep":
+                raise ValueError("Sleep content eligibility requires a 2x2 sleep photo")
+        elif sizes != ["2x4"] or "subjectlessLayout" not in theme:
+            raise ValueError("Main business eligibility requires a 2x4 side-slot photo")
+        if policy.get("kind") == "left-main-wide":
+            if theme.get("business") != policy.get("mainBusiness"):
+                raise ValueError("Left main business must match the photo business")
+
+
 def _validate_photo(theme: dict) -> None:
+    _validate_photo_url(theme.get("background", {}).get("remoteUrl", ""))
     if "measurementPolicy" in theme:
         raise ValueError("Runtime photo matching must not depend on device measurements")
     pool = theme.get("pool")
@@ -164,6 +253,19 @@ def _validate_photo(theme: dict) -> None:
     if pool == "squareExpansions":
         if theme.get("sourceSize") != "2x2" or theme.get("composition") != "square-left":
             raise ValueError("Expansion must preserve the 2x2 foreground in the left half")
+
+
+def _validate_photo_url(address: str) -> None:
+    if not address:
+        return
+    for character in address:
+        if character.isspace() or ord(character) < 32:
+            raise ValueError("Photo remoteUrl must not contain whitespace or control characters")
+    parsed = urlsplit(address)
+    if parsed.scheme != "https" or not parsed.hostname or not parsed.path.strip("/"):
+        raise ValueError("Photo remoteUrl must be a complete HTTPS asset URL")
+    if parsed.username is not None or parsed.password is not None or parsed.fragment:
+        raise ValueError("Photo remoteUrl must not contain credentials or fragments")
 
 
 def _validate_native_photo(theme: dict) -> None:
@@ -208,6 +310,15 @@ def validate_registry(payload: dict) -> None:
             raise ValueError(f"Duplicate theme ID: {identity}")
         by_id[identity] = theme
     _validate_selection(payload.get("selection"), by_id)
+    photo_fallbacks = payload.get("photoFallbacks")
+    _check(photo_fallbacks, _PHOTO_FALLBACKS, "photoFallbacks")
+    identity = photo_fallbacks.get("lightText", {}).get("themeId")
+    target = by_id.get(identity, {})
+    if target.get("kind") != "fusion" or not target.get("enabled"):
+        raise ValueError("Photo fallback must reference an enabled fusion theme")
+    large_color = target.get("background", {}).get("ballColors", {}).get("large", "")
+    if not large_color.upper().startswith("#FF"):
+        raise ValueError("Photo fallback requires an opaque fusion base color")
     _check(payload.get("matching"), {
         "type": "object", "additionalProperties": False,
         "required": ["mode", "unknownGeometryPolicy"],
@@ -302,6 +413,25 @@ def fallback_theme(family: str | None) -> dict:
         if theme.get("id") == identity:
             return theme
     raise ValueError("No configured fallback theme")
+
+
+def photo_fallback(primary: str) -> dict:
+    """按最终字色选择兜底，只取背景，不改变图片前景或正常主题候选。"""
+    config = load_theme_registry()
+    fallbacks = config.get("photoFallbacks", {})
+    black, white = (0, 0, 0), (255, 255, 255)
+    on_light = _composited_rgb(primary, backdrop=white)
+    on_dark = _composited_rgb(primary, backdrop=black)
+    result = {"kind": "gradient", "background": fallbacks.get("darkText", {})}
+    if _contrast_ratio(on_dark, black) > _contrast_ratio(on_light, white):
+        identity = fallbacks.get("lightText", {}).get("themeId")
+        target = next(
+            (item for item in config.get("themes", []) if item.get("id") == identity), None,
+        )
+        if target is None:
+            raise ValueError("Missing photo fallback theme")
+        result = {"kind": "fusion", "background": target.get("background", {})}
+    return result
 
 
 def selection_rules() -> str:

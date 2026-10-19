@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from core.json_pointer import parse_json_pointer
 from services.compact_component_semantics import (
     CORE_INFORMATION_COMPONENT_TYPES,
     MODEL_COMPONENT_TYPES_BY_SIZE,
@@ -45,6 +46,7 @@ _FACT_KEYS = frozenset(
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
 _FACT_PRIORITIES = frozenset({"must", "should"})
+_MAX_MUST_FACTS_BY_SIZE = {"2x2": 8, "2x4": 12}
 _FRESHNESS_METADATA_NAMES = frozenset(
     {
         "lastrefreshedat",
@@ -113,6 +115,11 @@ _LAYOUT_HINTS = {
 }
 
 
+def _max_must_facts(size: Any) -> int:
+    """返回当前尺寸 Plan 可接受的 must 事实与动作总数。"""
+    return _MAX_MUST_FACTS_BY_SIZE.get(size, _MAX_MUST_FACTS_BY_SIZE["2x4"])
+
+
 class CompactPlanValidationError(ValueError):
     """模型提交的 Compact Info Plan 不满足合同。"""
 
@@ -148,6 +155,7 @@ def build_compact_plan_tool(
 ) -> dict[str, Any]:
     """根据本次 TaskSpec 构造 submit_card_plan 的动态工具合同。"""
     size = task_spec.get("size")
+    max_must_facts = _max_must_facts(size)
     data_paths = list(compact_plan_data_paths(task_spec))
     action_ids = list(compact_plan_action_ids(task_spec))
     asset_ids = list(compact_plan_asset_ids(task_spec))
@@ -170,6 +178,7 @@ def build_compact_plan_tool(
                 "must 包括用户明确要求展示的每项内容、操作及用途成立必需的上下文；"
                 "should 仅用于未明确要求、且省略后不改变主要用途的入选补充。"
                 "不得为容量将明确要求降为 should。所有入选 actionId 必须为 must。"
+                f"当前 {size} 最多可提交 {max_must_facts} 条 must 信息，Action 计入该数量。"
             ),
         },
         "text": {
@@ -1250,7 +1259,7 @@ class _CompactVisiblePathOccurrence:
 
 @dataclass(frozen=True)
 class CompactPlanCoverageResult:
-    """区分阻断生成的 Plan 覆盖错误与仅供观察的静态文案告警。"""
+    """区分阻断生成的 Plan 覆盖错误与按阶段降级的覆盖告警。"""
 
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -1352,8 +1361,8 @@ def _compact_fact_coverage_result(
         expected_text = _normalize_text(text)
         if not expected_text or not any(expected_text in actual for actual in state.literals):
             return CompactPlanCoverageResult(
-                errors=(),
-                warnings=(f"Plan static text is not fully visible in DSL: {label}.",),
+                errors=(f"Plan static text is not fully visible in DSL: {label}.",),
+                warnings=(),
             )
     return CompactPlanCoverageResult(errors=(), warnings=())
 
@@ -1410,6 +1419,22 @@ def evaluate_compact_plan_coverage(
                 "Accepted Compact Plan selected S-title-anchor as its executable "
                 "composition; keep the CircleButton anchor layout instead of replacing it "
                 "with a text-action layout that compresses the required content."
+            )
+    required_route = compact_plan_required_route(plan, task_spec)
+    if required_route is not None:
+        locked_layout = required_route.get("layout")
+        if not isinstance(locked_layout, str):
+            locked_layout = ""
+        try:
+            match_compact_layout(
+                components,
+                size="2x2",
+                layout_scope=locked_layout,
+            )
+        except CompactLayoutRuntimeError:
+            errors.append(
+                "已接受 Plan 选择了 2x2 单焦点 S-center + DataDisplay；修复时必须保留"
+                "该布局与组件，不得降级为 SingleLineTitle + EmphasisText 或 EmphasizedData。"
             )
     return CompactPlanCoverageResult(
         errors=tuple(errors),
@@ -1485,8 +1510,10 @@ def compact_plan_optional_drop_candidate(
     task_spec: dict[str, Any],
     *,
     allow_must_fallback: bool = True,
+    max_fact_count: int | None = None,
+    allowed_fact_indexes: set[int] | None = None,
 ) -> CompactOptionalDropCandidate | None:
-    """优先选 should-only 组件，并按策略决定是否允许 must 兜底。"""
+    """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
         return None
     facts = plan.get("info_required")
@@ -1525,6 +1552,14 @@ def compact_plan_optional_drop_candidate(
             priorities.append(str(fact.get("priority") or "must"))
         if has_action_fact or not matched:
             continue
+        if max_fact_count is not None and len(matched) > max_fact_count:
+            continue
+        if allowed_fact_indexes is not None:
+            carries_unrelated_fact = any(
+                fact_index not in allowed_fact_indexes for fact_index in matched
+            )
+            if carries_unrelated_fact:
+                continue
         requirements = tuple(str(facts[index].get("requirement") or "") for index in matched)
         candidate = CompactOptionalDropCandidate(
             component_id=row.component_id,
@@ -1564,6 +1599,76 @@ def _required_anchor_layout(
         if isinstance(hints, list) and hints and hints[0] == "CircleButton":
             return "S-title-anchor"
     return None
+
+
+def compact_plan_required_route(
+    plan: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> dict[str, str] | None:
+    """返回已接受 Plan 中可安全锁定的精确单焦点执行路线。"""
+    if task_spec.get("size") != "2x2" or composition_implementation_conflicts(plan):
+        return None
+    facts = plan.get("info_required")
+    if not isinstance(facts, list) or len(facts) != 1:
+        return None
+    fact = facts[0]
+    if not isinstance(fact, dict) or "actionId" in fact:
+        return None
+    component_hints = fact.get("componentHints")
+    layout_hints = plan.get("layoutHints")
+    preferred_component = (
+        component_hints[0] if isinstance(component_hints, list) and component_hints else None
+    )
+    preferred_layout = layout_hints[0] if isinstance(layout_hints, list) and layout_hints else None
+    if preferred_component != "DataDisplay" or preferred_layout != "S-center":
+        return None
+    if not _data_display_route_fits_fact(fact, task_spec):
+        return None
+    return {"layout": "S-center", "component": "DataDisplay"}
+
+
+def _data_display_route_fits_fact(
+    fact: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> bool:
+    """仅在现有事实没有明确违反 DataDisplay 值容量时锁定路线。"""
+    value: Any = fact.get("text")
+    data_id = fact.get("dataId")
+    if isinstance(data_id, str):
+        value = _task_schema_sample(task_spec, data_id)
+    if value is None:
+        return isinstance(data_id, str)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return True
+    if not isinstance(value, str) or not value.strip():
+        return False
+    normalized = value.strip()
+    numeric_text = re.fullmatch(
+        r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[%％])?",
+        normalized,
+    )
+    if numeric_text is not None:
+        return True
+    character_count = len(re.sub(r"\s+", "", normalized))
+    return 1 <= character_count <= 8
+
+
+def _task_schema_sample(task_spec: dict[str, Any], data_id: str) -> Any:
+    """读取 TaskSpec 展开 schema 的样例值；未知路径不伪造结论。"""
+    parts = parse_json_pointer(data_id)
+    current: Any = task_spec.get("dataModelSchema")
+    if parts is None:
+        return None
+    for part in parts:
+        if isinstance(current, dict):
+            current = current.get(part)
+            continue
+        if isinstance(current, list) and part.isdigit():
+            index = int(part)
+            current = current[index] if 0 <= index < len(current) else None
+            continue
+        return None
+    return current.get("sampleValue") if isinstance(current, dict) else None
 
 
 def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:

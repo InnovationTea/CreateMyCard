@@ -14,9 +14,11 @@ function usage(exitCode = 0) {
   output.write(
     "用法：\n" +
     "  node build_gallery.mjs <批次目录> [--cards <CardSpec目录>] [--output <HTML路径>] [--python <解释器>]\n\n" +
+    "批次目录没有 summary.json 时会自动导出已生成的部分结果，此时必须显式指定 --cards。\n\n" +
     "示例：\n" +
     "  node build_gallery.mjs output/cardspec24_repair10\n" +
-    "  node build_gallery.mjs output/cardspec24_repair10 --cards cardSpec24 --output output/cardspec24_repair10/gallery.html\n",
+    "  node build_gallery.mjs output/cardspec24_repair10 --cards cardSpec24 --output output/cardspec24_repair10/gallery.html\n" +
+    "  node build_gallery.mjs ../runner-output/partial-run --cards 20261016_online_updated\n",
   );
   process.exit(exitCode);
 }
@@ -62,14 +64,17 @@ function inferCardsDirectory(runDirectory) {
 function main() {
   const options = parseArguments(process.argv.slice(2));
   const runDirectory = resolveFromRunner(options.runDirectory);
+  const summaryPath = path.join(runDirectory, "summary.json");
+  const hasSummary = existsSync(summaryPath);
+  if (!hasSummary && !options.cards) {
+    throw new Error("批次目录缺少 summary.json；导出部分结果时必须通过 --cards 指定原始任务目录");
+  }
   const cardsDirectory = options.cards
     ? resolveFromRunner(options.cards)
     : inferCardsDirectory(runDirectory);
   const outputPath = options.output
     ? resolveFromRunner(options.output)
     : path.join(runDirectory, "gallery.html");
-  const summaryPath = path.join(runDirectory, "summary.json");
-  if (!existsSync(summaryPath)) throw new Error(`批次目录缺少 summary.json：${summaryPath}`);
   if (!existsSync(cardsDirectory)) throw new Error(`CardSpec 目录不存在：${cardsDirectory}`);
 
   const tsxCli = path.join(repositoryRoot, "render/genui-sdk/node_modules/tsx/dist/cli.mjs");
@@ -91,6 +96,7 @@ function main() {
     "--output",
     outputPath,
   ];
+  if (!hasSummary) exporterArguments.push("--partial");
   if (options.python) exporterArguments.push("--python", options.python);
   const completed = spawnSync(
     process.execPath,

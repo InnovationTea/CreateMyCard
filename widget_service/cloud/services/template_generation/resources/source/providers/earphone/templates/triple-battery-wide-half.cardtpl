@@ -4,9 +4,37 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
   Row({"layoutWeight": 1, "height": "matchParent", "padding": 8, "itemMargin": 12,
     "alignItems": "center", "borderRadius": 16,
     "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+    #if props.leftEarIcon
+    #if props.rightEarIcon
     #if props.deviceIcon
       Image(props.deviceIcon, {"width": 24, "height": 24, "flexShrink": 0,
         "objectFit": "contain", "fillColor": $theme('supportContentColor')}),
+    #else
+    Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+      "alignContent": "center", "flexShrink": 0,
+      "backgroundColor": $theme('supportContentColor')},
+      Text("E", {"width": 17.5, "height": 17.5, "fontSize": 12,
+        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+        "maxLines": 1})
+    ),
+    #endif
+    #else
+    Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+      "alignContent": "center", "flexShrink": 0,
+      "backgroundColor": $theme('supportContentColor')},
+      Text("E", {"width": 17.5, "height": 17.5, "fontSize": 12,
+        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+        "maxLines": 1})
+    ),
+    #endif
+    #else
+    Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+      "alignContent": "center", "flexShrink": 0,
+      "backgroundColor": $theme('supportContentColor')},
+      Text("E", {"width": 17.5, "height": 17.5, "fontSize": 12,
+        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+        "maxLines": 1})
+    ),
     #endif
     Column({"layoutWeight": 1, "itemMargin": 2},
       Text(Expr(data.battery + '%'), {"height": 16, "fontSize": 12, "fontWeight": 700,
@@ -19,8 +47,28 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
     "alignItems": "center", "borderRadius": 16,
     "backgroundColor": $theme('supportContentStyle.backgroundColor')},
     #if props.leftEarIcon
+    #if props.rightEarIcon
+    #if props.deviceIcon
       Image(props.leftEarIcon, {"width": 24, "height": 24, "flexShrink": 0,
         "objectFit": "contain", "fillColor": $theme('supportContentColor')}),
+    #else
+      Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 17.5, "height": 17.5, "textAlign": "center",
+            "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1})
+        )
+      ),
+    #endif
+    #else
+      Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 17.5, "height": 17.5, "textAlign": "center",
+            "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1})
+        )
+      ),
+    #endif
     #else
       Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
         Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
@@ -40,9 +88,29 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
   Row({"layoutWeight": 1, "height": "matchParent", "padding": 8, "itemMargin": 12,
     "alignItems": "center", "borderRadius": 16,
     "backgroundColor": $theme('supportContentStyle.backgroundColor')},
+    #if props.leftEarIcon
     #if props.rightEarIcon
+    #if props.deviceIcon
       Image(props.rightEarIcon, {"width": 24, "height": 24, "flexShrink": 0,
         "objectFit": "contain", "fillColor": $theme('supportContentColor')}),
+    #else
+      Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 17.5, "height": 17.5, "textAlign": "center",
+            "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1})
+        )
+      ),
+    #endif
+    #else
+      Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 17.5, "height": 17.5, "textAlign": "center",
+            "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1})
+        )
+      ),
+    #endif
     #else
       Stack({"width": 24, "height": 24, "flexShrink": 0, "alignContent": "center"},
         Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,

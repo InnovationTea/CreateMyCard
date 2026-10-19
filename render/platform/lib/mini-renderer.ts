@@ -17,6 +17,167 @@ const TYPES = new Set([
   ..."Card Row Column Text Image SingleLineTitle TimelineUnit Input TextInput Radio CheckboxGroup Select Toggle Divider Grid GridRow Stack Tabs TabContent Web Navigation".split(" "),
   ...HIGH_LEVEL_COMPONENT_TYPES,
 ]);
+const SEMANTIC_LAYOUT_TYPES = new Set(["Layout", "Region", "Group"]);
+
+function generatedPreviewId(nodes: Map<string, MiniNode>, base: string): string {
+  let candidate = base;
+  while (nodes.has(candidate)) candidate += "_";
+  return candidate;
+}
+
+function stripSemanticProps(props: RecordValue): RecordValue {
+  const result = { ...props };
+  delete result.layout;
+  delete result.variant;
+  delete result.orientation;
+  return result;
+}
+
+/**
+ * Error previews must remain renderable even when the formal semantic-layout
+ * contract rejects the source. This is deliberately approximate: the Python
+ * converter remains the only authority for publishable geometry.
+ */
+function expandSemanticLayoutsForPreview(
+  input: Map<string, MiniNode>,
+  size: CardSize,
+  warn: (message: string) => void,
+): Map<string, MiniNode> {
+  if (![...input.values()].some(node => SEMANTIC_LAYOUT_TYPES.has(node.type))) return input;
+  const output = new Map<string, MiniNode>();
+  for (const [id, node] of input) {
+    output.set(id, {
+      type: node.type,
+      props: { ...node.props },
+      children: [...node.children],
+    });
+  }
+
+  for (const [id, original] of input) {
+    if (original.type === "Region") {
+      output.set(id, {
+        type: "Column",
+        props: {
+          width: "matchParent",
+          height: "matchParent",
+          layoutWeight: 1,
+          padding: size === "2x4" ? 8 : 0,
+          itemMargin: 4,
+          alignItems: "start",
+          justifyContent: "start",
+          ...stripSemanticProps(original.props),
+        },
+        children: [...original.children],
+      });
+      continue;
+    }
+    if (original.type === "Group") {
+      const variant = original.props.variant;
+      const horizontal = variant === "peer-pair" || variant === "title-count";
+      output.set(id, {
+        type: horizontal ? "Row" : "Column",
+        props: {
+          width: "matchParent",
+          itemMargin: horizontal ? 8 : 2,
+          alignItems: "start",
+          justifyContent: "start",
+          ...stripSemanticProps(original.props),
+        },
+        children: [...original.children],
+      });
+      continue;
+    }
+    if (original.type !== "Layout") continue;
+
+    const layout = original.props.layout;
+    const visualProps = stripSemanticProps(original.props);
+    const rootProps: RecordValue = {
+      width: "matchParent",
+      height: "matchParent",
+      padding: 12,
+      borderRadius: 20,
+      clip: true,
+      itemMargin: size === "2x4" ? 12 : 6,
+      alignItems: "start",
+      justifyContent: "start",
+      ...visualProps,
+    };
+    let type = "Column";
+    let children = [...original.children];
+
+    if (layout === "W-split-panels") {
+      type = "Row";
+      rootProps.alignItems = "center";
+    } else if (layout === "W-content-side-slots") {
+      type = "Row";
+      rootProps.alignItems = "center";
+      if (children.length >= 3) {
+        const [content, upper, lower, ...remaining] = children;
+        const slotsId = generatedPreviewId(output, `${id}__preview_slots`);
+        output.set(slotsId, {
+          type: "Column",
+          props: {
+            width: "matchParent",
+            height: "matchParent",
+            layoutWeight: 1,
+            itemMargin: 12,
+            alignItems: "start",
+            justifyContent: "start",
+          },
+          children: [upper, lower],
+        });
+        children = original.props.orientation === "content-right"
+          ? [slotsId, content, ...remaining]
+          : [content, slotsId, ...remaining];
+      }
+    } else if (layout === "W-four-slots" || layout === "S-quad-content") {
+      const rows: string[] = [];
+      for (let index = 0; index < children.length; index += 2) {
+        const rowId = generatedPreviewId(output, `${id}__preview_row${index / 2}`);
+        output.set(rowId, {
+          type: "Row",
+          props: {
+            width: "matchParent",
+            layoutWeight: 1,
+            itemMargin: size === "2x4" ? 12 : 8,
+            alignItems: "start",
+            justifyContent: "start",
+          },
+          children: children.slice(index, index + 2),
+        });
+        rows.push(rowId);
+      }
+      children = rows;
+    } else if (layout === "W-top-bottom" && children.length >= 2) {
+      const title = children.length >= 3 ? children[0] : undefined;
+      const bodyChildren = children.slice(-2);
+      const bodyId = generatedPreviewId(output, `${id}__preview_body`);
+      output.set(bodyId, {
+        type: "Column",
+        props: {
+          width: "matchParent",
+          layoutWeight: 1,
+          itemMargin: 8,
+          alignItems: "start",
+          justifyContent: "start",
+        },
+        children: bodyChildren,
+      });
+      children = title ? [title, bodyId] : [bodyId];
+      rootProps.itemMargin = 6;
+    } else if (typeof layout !== "string" || !layout.startsWith("S-")) {
+      warn(`宽松预览无法识别语义布局 ${String(layout)}，已按纵向容器展示。`);
+    }
+
+    output.set(id, { type, props: rootProps, children });
+  }
+
+  warn(
+    "宽松预览已将 Layout / Region / Group 近似展开为基础布局；"
+      + "该画面只用于定位错误，不代表正式 A2UI 或可发布结果。",
+  );
+  return output;
+}
 
 export function compileA2uiJsonl(source: string, options: { size?: CardSize } = {}) {
   const graph = new UIGraph();
@@ -157,11 +318,19 @@ export function compileMiniDsl(
       continue;
     }
     if (row.length < 2 || row.length > 4) fail("组件格式应为 [ID, 类型, 属性, 子节点列表]。");
-    if (typeof type !== "string" || !TYPES.has(type.replace(/^Extended\./, ""))) fail(`不支持的组件类型：${String(type)}`);
+    const normalizedType = typeof type === "string" ? type.replace(/^Extended\./, "") : "";
+    const previewSemanticType = options.previewMode && SEMANTIC_LAYOUT_TYPES.has(normalizedType);
+    if (!normalizedType || (!TYPES.has(normalizedType) && !previewSemanticType)) {
+      fail(`不支持的组件类型：${String(type)}`);
+    }
     if (!record(props)) fail("组件属性必须是对象。");
     if (!Array.isArray(children) || !children.every(c => typeof c === "string")) fail("子节点必须是 ID 数组。");
     if (nodes.has(key)) fail(`组件 ID 重复：${key}`);
-    nodes.set(key, { type: (type as string).replace(/^Extended\./, ""), props: props as RecordValue, children: children as string[] });
+    nodes.set(key, {
+      type: normalizedType,
+      props: props as RecordValue,
+      children: children as string[],
+    });
   }
   if (!nodes.size) throw new Error("DSL 中没有组件。");
   const sourceCount = nodes.size;
@@ -169,6 +338,9 @@ export function compileMiniDsl(
   const initialData: RecordValue = {};
   const warnings = new Set<string>();
   for (const [path, value] of data) setPointer(initialData, String(path), value);
+  if (options.previewMode) {
+    nodes = expandSemanticLayoutsForPreview(nodes, size, message => warnings.add(message));
+  }
   const derivedData: unknown[][] = [];
   nodes = expandCompactComponents(nodes, size, {
     get: path => readPointer(initialData, path),

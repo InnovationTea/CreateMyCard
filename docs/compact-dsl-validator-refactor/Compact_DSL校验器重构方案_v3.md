@@ -47,7 +47,7 @@
 | 检查项 | 当前落点及分类 | 执行范围 |
 |---|---|---|
 | 模型素材候选范围 | `semantic/effective.py`，语义／有效能力，`COMPACT_ASSET_NOT_ALLOWED` | 展开前登记 icon、visual.icon、items[].icon；保留展开后背景检查。兼容引用提取不重新开放 Image 等内部组件 |
-| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle、带 icon 的 CardButton 和 SingleLineTitle；自动着色、原色、PNG 保留原合同 |
+| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -180,7 +180,7 @@ Row 在 2x2/2x4 中分别不超过 24vp/52vp。判断顺序为间距、根布局
 |---|---|---|
 | `"icon": 123` | 语法／组件 | 共享 `validate_single_line_title_layout` 检查非空静态字符串要求，错误按兼容原文传递 |
 | `icon` 是非空字符串，但不在本轮素材候选中 | 语义／有效能力 | `COMPACT_ASSET_NOT_ALLOWED`；[effective.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/effective.py) 的 `_collect_model_asset_source_errors` 检查原始组件候选集合 |
-| 使用可染色 SVG 的 ProgressCircle、CardButton 或 SingleLineTitle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求 |
+| 使用可染色 SVG 的 ProgressCircle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求；CardButton 由转换器自动补色 |
 
 上述类型检查不能证明素材文件存在，也不代表已实现所有路径格式检查；单项通过不等于完整卡片校验通过。
 当前素材属性检查已有对应组件规则和转换器委托，不新增 `syntax/assets.py` 或重复报错。

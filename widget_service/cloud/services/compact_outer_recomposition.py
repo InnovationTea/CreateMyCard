@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.compact_component_runtime import secondary_body_variant, visual_recipe_part
 from services.compact_composition_context import small_card_display_text
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
@@ -95,14 +96,24 @@ def _inner_width(root: ComponentRow, profile: dict[str, Any] | None) -> float | 
     return reference_dimension("2x2", "width", profile) - horizontal
 
 
+def _secondary_body_font(items: list[dict[str, Any]], columns: int) -> int:
+    variant = secondary_body_variant(items, columns)
+    _, styles = visual_recipe_part("SecondaryBody", "text", size="2x2", variant=variant)
+    font = styles.get("fontSize")
+    if isinstance(font, bool) or not isinstance(font, int):
+        raise ValueError("SecondaryBody Recipe must declare an integer fontSize")
+    return font
+
+
 def _reflow_items(row: ComponentRow) -> list[dict[str, Any]] | None:
-    """仅同规格supporting14到body14，不把普通信息换成metadata12。"""
-    if row.component_type != "SecondaryBody" or row.props.get("role") != "supporting":
+    """按当前行布局识别短属性；旧 role 不参与规格判断。"""
+    if row.component_type != "SecondaryBody":
         return None
-    if row.props.get("columns", 1) != 1 or row.props.get("fontSize", 14) != 14:
+    columns = row.props.get("columns", 2)
+    if isinstance(columns, bool) or columns not in (1, 2):
         return None
     allowed = {"width", "fontSize", "role", "columns", "items"}
-    if set(row.props) - allowed or row.props.get("width") != "matchParent":
+    if set(row.props) - allowed or row.props.get("width") not in (None, "matchParent"):
         return None
     items = row.props.get("items")
     if not isinstance(items, list) or len(items) not in (1, 2):
@@ -114,6 +125,10 @@ def _reflow_items(row: ComponentRow) -> list[dict[str, Any]] | None:
             return None
         if item.get("maxLines", 1) != 1:
             return None
+    font = _secondary_body_font(items, columns)
+    declared_font = row.props.get("fontSize", font)
+    if isinstance(declared_font, bool) or declared_font != font:
+        return None
     return items
 
 
@@ -123,6 +138,8 @@ def _certain_label_pressure(
     items = _reflow_items(row)
     if items is None:
         return False
+    font = _secondary_body_font(items, row.props.get("columns", 2))
+    wrapped_font = _secondary_body_font([{"maxLines": 2}], 1)
     pressure = False
     for item in items:
         label, value = item.get("label"), item.get("value")
@@ -130,16 +147,16 @@ def _certain_label_pressure(
         if not isinstance(label, str) or text is None:
             return False  # 整个原信息组的每项都需可读，不猜未知值的换行。
         full_text = label + text
-        conservative_width = sum(14 * (0.6 if ch.isascii() else 1) for ch in full_text)
+        conservative_width = sum(wrapped_font * (0.6 if ch.isascii() else 1) for ch in full_text)
         if "\n" in full_text or conservative_width > width * 2:
             return False  # 两行仍无已知可行空间时不自动合组；原错误/源不变。
         # 仅完整中文方块字与空格的下限触发候选，不把ASCII字符估算当硬门禁。
         lower_bound = 0.0
         for character in full_text:
             if "\u4e00" <= character <= "\u9fff":
-                lower_bound += 14
+                lower_bound += font
             elif character.isspace():
-                lower_bound += 14 / 4
+                lower_bound += font / 4
         if lower_bound > width:
             pressure = True
     return pressure
@@ -236,7 +253,8 @@ def _single_attribute(
 def _paragraph(
     leaves: list[ComponentRow], task: dict[str, Any], width: float,
 ) -> list[ComponentRow] | None:
-    """至多合一个同对象连续组；用既有body14两行，不缩字或跨对象。"""
+    """至多合一个同对象连续组；按当前多行 Recipe 重算，不跨对象。"""
+    font = _secondary_body_font([{"maxLines": 2}], 1)
     for start in range(1, len(leaves) - 1):
         expressions: list[str] = []
         display: list[str] = []
@@ -261,7 +279,7 @@ def _paragraph(
             display.append(label + text)
             full_text = ";".join(display)
             # 沿用容量估算的ASCII半字宽，仅筛候选；原宽度门禁与真机验收不放宽。
-            estimated = sum(14 * (0.5 if ch.isascii() else 1) for ch in full_text)
+            estimated = sum(font * (0.5 if ch.isascii() else 1) for ch in full_text)
             if estimated > width * 2:
                 break
             if len(expressions) < 2:
@@ -269,7 +287,7 @@ def _paragraph(
             value = "{{ " + " + ';' + ".join(expressions) + " }}"
             body = ComponentRow(
                 leaves[start].component_id, "SecondaryBody",
-                {"role": "body", "fontSize": 14, "width": "matchParent",
+                {"fontSize": font, "width": "matchParent",
                  "items": [{"value": value, "maxLines": 2}]},
             )
             after_group = end + 1
@@ -282,7 +300,8 @@ def _paragraph(
 def _compact_existing_attribute_group(
     leaves: list[ComponentRow], task: dict[str, Any], width: float,
 ) -> list[ComponentRow] | None:
-    """两项原属性同字号合组；仍仅一个同对象组，不修改组件内部Recipe。"""
+    """两项原属性按当前多行规格合组；仅一个同对象组，不改 Recipe。"""
+    font = _secondary_body_font([{"maxLines": 2}], 1)
     for index, row in enumerate(leaves):
         items = _reflow_items(row)
         if items is None or len(items) != 2:
@@ -310,13 +329,13 @@ def _compact_existing_attribute_group(
             expressions.append("(" + expression + ")")
         if len(expressions) != len(items) or len(owners) != 1:
             continue
-        text_width = sum(14 * (0.6 if char.isascii() else 1) for char in ";".join(display))
+        text_width = sum(font * (0.6 if char.isascii() else 1) for char in ";".join(display))
         if text_width > width * 2:
             continue
         value = "{{ " + " + ';' + ".join(expressions) + " }}"
         body = ComponentRow(
             row.component_id, "SecondaryBody",
-            {"role": "body", "fontSize": 14, "width": "matchParent",
+            {"fontSize": font, "width": "matchParent",
              "items": [{"value": value, "maxLines": 2}]},
         )
         after_group = index + 1
@@ -325,24 +344,34 @@ def _compact_existing_attribute_group(
 
 
 def _wrap_complete_value_rows(
-    leaves: list[ComponentRow], task: dict[str, Any], width: float, role: str,
+    leaves: list[ComponentRow], task: dict[str, Any], width: float,
 ) -> tuple[list[ComponentRow], bool]:
     output: list[ComponentRow] = []
     changed = False
     for row in leaves:
-        eligible = row.component_type == "SecondaryBody" and row.props.get("role") == role
+        eligible = row.component_type == "SecondaryBody"
         allowed = {"role", "fontSize", "width", "columns", "items"}
-        if not eligible or set(row.props) - allowed or row.props.get("width") != "matchParent":
+        if not eligible or set(row.props) - allowed:
+            output.append(row)
+            continue
+        if row.props.get("width") not in (None, "matchParent"):
             output.append(row)
             continue
         items = row.props.get("items")
-        font = 12 if role == "metadata" else 14
-        same_spec = row.props.get("fontSize", font) == font and row.props.get("columns", 1) == 1
-        if not same_spec or not isinstance(items, list) or len(items) != 1:
+        if not isinstance(items, list) or len(items) != 1:
             output.append(row)
             continue
         item = items[0]
         if not isinstance(item, dict) or set(item) - _ITEM_PROPS or item.get("maxLines", 1) != 1:
+            output.append(row)
+            continue
+        columns = row.props.get("columns", 2)
+        if isinstance(columns, bool) or columns not in (1, 2):
+            output.append(row)
+            continue
+        font = _secondary_body_font(items, columns)
+        declared_font = row.props.get("fontSize", font)
+        if isinstance(declared_font, bool) or declared_font != font:
             output.append(row)
             continue
         value = small_card_display_text(item.get("value"), task)
@@ -350,16 +379,20 @@ def _wrap_complete_value_rows(
         if value is None or not isinstance(label, str):
             output.append(row)
             continue
-        if role == "body" and label:
+        if label:
             output.append(row)  # 独立label和值分占文字区，不用整区宽度替代原标签布局。
             continue
         text = label + value
         estimated = sum(font * (0.6 if ch.isascii() else 1) for ch in text)
-        if "\n" in text or not width < estimated <= width * 2:
+        wrapped_font = _secondary_body_font([{"maxLines": 2}], 1)
+        wrapped_width = sum(wrapped_font * (0.6 if ch.isascii() else 1) for ch in text)
+        if "\n" in text or estimated <= width or wrapped_width > width * 2:
             output.append(row)
             continue
         props = copy.deepcopy(row.props)
         props["items"] = [{**item, "maxLines": 2}]
+        props["fontSize"] = wrapped_font
+        props.pop("role", None)
         output.append(ComponentRow(row.component_id, row.component_type, props))
         changed = True
     return output, changed
@@ -379,6 +412,7 @@ def _reflow(
     leaves: list[ComponentRow], pressure_ids: set[str], used: set[str],
 ) -> list[ComponentRow] | None:
     result: list[ComponentRow] = []
+    font = _secondary_body_font([{"maxLines": 2}], 1)
     for row in leaves:
         if row.component_id not in pressure_ids:
             result.append(row)
@@ -396,7 +430,7 @@ def _reflow(
                 return None
             bodies.append(ComponentRow(
                 _unique_id(row.component_id + "_full", used), "SecondaryBody",
-                {"role": "body", "fontSize": 14, "width": "matchParent",
+                {"fontSize": font, "width": "matchParent",
                  "items": [{"value": value, "maxLines": 2}]},
             ))
         result.append(ComponentRow(
@@ -498,27 +532,21 @@ def recompose_small_card(
     data = [row for row in rows if isinstance(row, DataRow)]
     pressure_task = _source_pressure_task(task_spec, data)
     pressure_ids: set[str] = set()
-    metadata_wrapped = False
-    body_wrapped = False
+    values_wrapped = False
     if width is not None:
         for row in leaves:
             if _certain_label_pressure(row, pressure_task, width):
                 pressure_ids.add(row.component_id)
-        leaves, metadata_wrapped = _wrap_complete_value_rows(
-            leaves, pressure_task, width, "metadata",
+        leaves, values_wrapped = _wrap_complete_value_rows(
+            leaves, pressure_task, width,
         )
-        if width_error:
-            leaves, body_wrapped = _wrap_complete_value_rows(leaves, pressure_task, width, "body")
-    wrapped = metadata_wrapped or body_wrapped
-    if not original_errors and not pressure_ids and not wrapped:
+    if not original_errors and not pressure_ids and not values_wrapped:
         return unchanged
     reasons = ("height_capacity",) if height_error else ()
-    if width_error or body_wrapped:
+    if width_error or values_wrapped:
         reasons += ("complete_text_width",)
     if pressure_ids:
         reasons += ("complete_label_width",)
-    if metadata_wrapped:
-        reasons += ("complete_metadata_width",)
     variants = [leaves]
     if width is not None:
         grouped = _paragraph(leaves, pressure_task, width)

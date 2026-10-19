@@ -36,7 +36,10 @@ def surface_source(size):
         return convert_compact_dsl_to_a2ui(source, size=size)
 
 
-@pytest.mark.parametrize("kind,part", [("CardButton", "root"), ("TextBlock", "item")])
+@pytest.mark.parametrize(
+    "kind,part",
+    [("CardButton", "root"), ("SummaryList", "item"), ("TextBlock", "item")],
+)
 def test_recipe_panels_are_semantic_and_legacy_cache_unchanged(kind, part):
     before = component_visual_recipe(kind, size="2x4")
     with layout_phase():
@@ -51,9 +54,8 @@ def test_recipe_panels_are_semantic_and_legacy_cache_unchanged(kind, part):
     )
 
 
-@pytest.mark.parametrize("kind", ["InfoBlock", "SummaryList"])
-def test_implicit_content_surfaces_use_panel(kind):
-    assert component_roles(kind, {}).get("backgroundColor") == role("panel")
+def test_implicit_info_block_surface_uses_panel():
+    assert component_roles("InfoBlock", {}).get("backgroundColor") == role("panel")
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

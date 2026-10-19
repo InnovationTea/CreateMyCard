@@ -83,8 +83,27 @@ test("SingleLineTitle 展开固定几何且阻止生成 ID 冲突", () => {
   );
   assert.throws(() => compileMiniDsl(source + '\n["header_title","Text",{"content":"冲突"}]'), /冲突/);
   assert.throws(() => compileMiniDsl(source.replace('{"title"', '{"unknown":12,"title"')), /SingleLineTitle/);
-  assert.throws(() => compileMiniDsl(source.replace('{"title"', '{"icon":"sun.svg","title"')), /SingleLineTitle/);
   assert.throws(() => compileMiniDsl(source.replace('{"title"', '{"height":20,"title"')), /SingleLineTitle/);
+
+  const withIcon = compileMiniDsl(
+    source.replace('{"title"', '{"icon":"resources/base/media/weather.svg","title"'),
+    { size: "2x4" },
+  ).graph;
+  assert.equal(withIcon.getNode("header")?.type, "Extended.Stack");
+  assert.equal((withIcon.getNode("header")!.props.styles as Record<string, unknown>).height, 12);
+  assert.equal(
+    (withIcon.getNode("header")!.props.styles as Record<string, unknown>).alignContent,
+    "end",
+  );
+  assert.deepEqual(
+    (withIcon.getNode("header_title")!.props.styles as Record<string, unknown>).padding,
+    { top: 0, right: 24, bottom: 0, left: 0 },
+  );
+  assert.equal(withIcon.getNode("header_icon")?.props.src, "resources/base/media/weather.svg");
+  assert.throws(
+    () => compileMiniDsl(source.replace('{"title"', '{"fillColor":"#FF000000","title"')),
+    /SingleLineTitle/,
+  );
 });
 
 test("SingleLineTitle 可作为任意分区的单行标题", () => {
@@ -93,7 +112,7 @@ test("SingleLineTitle 可作为任意分区的单行标题", () => {
     + '["sectionTitle","SingleLineTitle",{"title":"设备状态"}]\n'
     + '["body","Text",{"content":"在线"}]';
   const { graph } = compileMiniDsl(source, { size: "2x4" });
-  assert.equal(graph.getNode("sectionTitle")?.type, "Extended.Row");
+  assert.equal(graph.getNode("sectionTitle")?.type, "Extended.Stack");
   assert.equal(
     (graph.getNode("sectionTitle")?.props.styles as Record<string, unknown>).width,
     "matchParent",

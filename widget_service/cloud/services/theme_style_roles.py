@@ -20,7 +20,11 @@ ROLES = frozenset({
     "primary", "secondary", "tertiary", "graphicPrimary", "graphicSecondary",
     "graphicTertiary", "componentSecondary", "componentTertiary", "panel", "transparent",
 })
-_PANEL_RECIPE_PARTS = {"CardButton": ("root",), "TextBlock": ("item",)}
+_PANEL_RECIPE_PARTS = {
+    "CardButton": ("root",),
+    "SummaryList": ("item",),
+    "TextBlock": ("item",),
+}
 
 
 def in_layout_phase() -> bool:
@@ -108,7 +112,7 @@ def recipe_roles(kind: str, recipe: dict) -> dict:
 def component_roles(kind: str, props: dict) -> dict:
     result = role_styles(props)
     surface = result.pop("surfaceRole", None)
-    if surface and kind in {"Row", "Column", "Stack", "InfoBlock", "SummaryList"}:
+    if surface and kind in {"Row", "Column", "Stack", "InfoBlock"}:
         result["backgroundColor"] = role("panel")
     required = {
         "Badge": ("backgroundColor",),
@@ -118,14 +122,13 @@ def component_roles(kind: str, props: dict) -> dict:
         "NumericRatioStack": ("fillColor",),
         "H_BarChart": ("barColor", "trackColor"),
         "InfoBlock": ("backgroundColor",),
-        "SummaryList": ("backgroundColor",),
         "Divider": ("color",),
         "TopTextBottomValue": ("dividerColor",),
         "Text": ("fontColor",),
         "Button": ("fontColor",),
     }
     for key in required.get(kind, ()):
-        default_role = role("panel") if kind in {"InfoBlock", "SummaryList"} else property_role(key)
+        default_role = role("panel") if kind == "InfoBlock" else property_role(key)
         result.setdefault(key, default_role)
     icon = result.get("icon") or result.get("src")
     if isinstance(icon, str) and icon.endswith(".svg"):

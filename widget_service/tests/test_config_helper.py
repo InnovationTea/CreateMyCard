@@ -44,6 +44,9 @@ def test_missing_spec_uses_default_config(
     assert helper.get("compact_dsl_argument_repair_max_attempts") == 2
     assert helper.get("enable_compact_dsl_interface_retry") == "true"
     assert helper.get("compact_dsl_interface_retry_count") == 1
+    assert helper.get("enable_single_step_generation_fallback") == "false"
+    assert helper.get("enable_single_step_widget_edit") == "true"
+    assert helper.get("enable_widget_edit") == "true"
     assert "enable_post_layout_theme" not in helper
     assert "enable_post_layout_theme" not in Settings.model_fields
     assert helper.get("enable_photo_background_theme") == "false"

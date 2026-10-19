@@ -243,6 +243,13 @@ def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None
             "repairStrategy": "parent_layout_recompose",
             "retryTarget": "dsl_recompose",
             "instruction": "重新选择父布局变体。",
+            "capacityFits": [
+                {
+                    "componentId": "details",
+                    "directlyFits": [{"itemIndex": 0}],
+                    "doesNotFit": [{"itemIndex": 1}],
+                }
+            ],
         },
     )
 
@@ -269,6 +276,56 @@ def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None
     assert payload["repairStrategy"]["scope"] == "parent_layout"
     assert payload["repairStrategy"]["retryTarget"] == "dsl_recompose"
     assert "本轮修复路由：重新选择父布局变体。" in instruction
+    assert "capacityFits 给出当前固定容量组件的精确切分" in instruction
+    assert "它本身不授权删事实" in instruction
+
+
+def test_build_repair_locks_single_focus_data_display_route() -> None:
+    task = TaskSpec(
+        userQuery="显示今日状态",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "status": {
+                    "type": "string",
+                    "description": "今日状态",
+                    "sampleValue": "正常",
+                }
+            }
+        },
+    )
+    plan = {
+        "info_required": [
+            {
+                "requirement": "今日状态",
+                "priority": "must",
+                "dataId": "/data/status",
+                "componentHints": ["DataDisplay", "EmphasisText"],
+            }
+        ],
+        "layoutHints": ["S-center"],
+    }
+
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "contract"}, {"role": "user", "content": "{}"}],
+        "invalid source",
+        [{"code": "COMPACT_DSL_VALIDATION_FAILED", "message": "invalid font"}],
+        dsl_format=DESIGN_COMPACT_PROFILE_ID,
+        task_spec=task,
+        compact_plan=plan,
+        repair_strategy={
+            "scope": "parent_layout",
+            "instruction": "不要再次提交相同组件结构。",
+        },
+    )
+
+    payload = _repair_feedback(messages)
+    assert payload["repairRouteLock"] == {
+        "layout": "S-center",
+        "component": "DataDisplay",
+    }
+    assert "所有修复 scope 都必须保留 S-center + DataDisplay" in payload["instruction"]
+    assert "不授权更换该路线" in payload["instruction"]
 
 
 def test_build_repair_exposes_compact_component_fallback_budget() -> None:

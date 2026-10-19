@@ -2538,9 +2538,6 @@ Row(
         "_advancedComponent": "ScheduleOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 12, "top": 0, "right": 16, "bottom": 0},
-        "backgroundColor": $theme('supportContentStyle.backgroundColor'),
-        "borderRadius": $theme('supportContentStyle.borderRadius'),
         "alignItems": "center",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}

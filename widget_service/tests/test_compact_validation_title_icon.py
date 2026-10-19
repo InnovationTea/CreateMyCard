@@ -79,7 +79,14 @@ def test_title_icon_validates_and_renders_with_runtime_color_policy(
     title_styles = title.get("styles")
     image_styles = image.get("styles")
     assert isinstance(title_styles, dict) and isinstance(image_styles, dict)
-    assert title_styles.get("height") == 20
+    assert title.get("component") == "Stack"
+    assert title_styles.get("height") == 12
+    assert title_styles.get("alignContent") == "end"
+    title_text = nodes.get("header_title")
+    assert isinstance(title_text, dict)
+    title_text_styles = title_text.get("styles")
+    assert isinstance(title_text_styles, dict)
+    assert title_text_styles.get("padding", {}).get("right") == 24
     assert image_styles.get("width") == image_styles.get("height") == 20
     assert image.get("src") == icon
     assert "onClick" not in image
@@ -127,7 +134,7 @@ def test_title_icon_failure_has_original_location_and_model_repair_text(
 @pytest.mark.parametrize("with_icon", [False, True])
 def test_title_height_budget_matches_rendered_recipe(size: str, with_icon: bool) -> None:
     props = {"icon": SVG} if with_icon else {}
-    height = 20 if with_icon else 12
+    height = 12
     task = _task(size, description="保留原色")
     _validate(_source(props, panel_height=height), task)
     tolerance = 2 if size == "2x2" else 0
@@ -140,11 +147,7 @@ def test_title_height_budget_matches_rendered_recipe(size: str, with_icon: bool)
     assert diagnostic.component_id == "panel"
     assert diagnostic.actual.get("minimumRequiredHeight") == height
     assert diagnostic.actual.get("overflow") == tolerance + 1
-    candidate = diagnostic.actual.get("removableTitleIcon")
-    if with_icon:
-        assert candidate == {"componentId": "header", "heightSaving": 8}
-    else:
-        assert candidate is None
+    assert diagnostic.actual.get("removableTitleIcon") is None
 
 
 @pytest.mark.parametrize("fill", [None, 42, False, {}, [], "red"])

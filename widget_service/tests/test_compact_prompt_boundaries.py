@@ -74,6 +74,7 @@ EXPECTED_PROPS = {
     ],
     "DataDisplay": [
         "fontSize",
+        "icon",
         "label",
         "supportingText",
         "value"
@@ -94,7 +95,6 @@ EXPECTED_PROPS = {
         "items[].value"
     ],
     "SummaryList": [
-        "backgroundColor",
         "items"
     ],
     "ProgressCircle": [
