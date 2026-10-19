@@ -179,14 +179,21 @@ Parser 只接受单根组件调用、字面量、白名单组件和安全对象�
 
 所有帧的插件顶层 `errorCode` 固定为 `"0"`，`errorMessage` 固定为空字符串，`items`
 固定为空数组。业务错误码、异常详情和业务响应只放在 final 帧的 `streamContent` 中。
-异常内容以中文类型说明开头，后面保留完整 `str(legacy_message)`，调用方应继续读取其中
+成功消息使用完整业务对象的紧凑标准 JSON 字符串，保留中文、原始字段及 null 值，
+不再使用 Python 对象的 `str/repr` 表现。异常内容仍以中文类型说明开头，后接完整 JSON；
+异常帧整体并非纯 JSON，调用方须先去掉说明前缀。调用方应继续读取其中
 的 `status`、`errorCode`、`error` 和 `data`，不能用插件顶层字段判断业务成功与否。
 中文说明面向主 Agent，包含异常原因和建议动作。例如：
 
 ```text
 工具参数传入有误，请检查必填字段、字段类型和字段取值后重新调用。报错信息如下：
-type='error' ... errorCode='INVALID_ARGUMENTS' error={...}
+{"type":"error","tool":"getWidgetCapabilityOverview","operation":"getWidgetCapabilityOverview","requestId":null,"data":{},"status":"failed","errorCode":"INVALID_ARGUMENTS","error":{"message":"参数无效"}}
 ```
+
+该封装由各工具入口共用；外层字段、plainText 类型、start/partial/command 帧均不变。
+调用方不得再依赖 `type='result'`、`data={...}` 等 Python 表现解析。
+多层 JSON 封装应逐层解析，不能直接向模型传递中间 JSON 字面量，也不能整体反转义业务内容；
+中文、引号、反斜杠和事件表达式按 JSON 规则保留。此调整不保证中间链路不再转义或截断。
 
 连接成功后客户端直接发送业务消息，服务不再返回 ready 帧。统一消息最小结构：
 
