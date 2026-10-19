@@ -88,14 +88,15 @@ def test_summary_list_uses_panel_rows_and_bottom_alignment() -> None:
     assert recipe["parts"]["text"]["styles"]["fontSize"] == 12
 
 
-def test_single_line_title_with_icon_recipe_overlays_icon_without_extra_height() -> None:
+def test_single_line_title_with_icon_recipe_uses_endpoint_compatible_row() -> None:
     recipe = component_visual_recipe("SingleLineTitle", variant="withIcon")
 
-    assert recipe["parts"]["root"]["component"] == "Stack"
-    assert recipe["parts"]["root"]["styles"]["height"] == 12
-    assert recipe["parts"]["root"]["styles"]["alignContent"] == "end"
-    assert recipe["parts"]["title"]["styles"]["width"] == "matchParent"
-    assert recipe["parts"]["title"]["styles"]["padding"]["right"] == 24
+    assert recipe["parts"]["root"]["component"] == "Row"
+    assert recipe["parts"]["root"]["styles"]["height"] == 20
+    assert recipe["parts"]["root"]["styles"]["justifyContent"] == "spaceBetween"
+    assert recipe["parts"]["root"]["styles"]["alignItems"] == "center"
+    assert recipe["parts"]["title"]["styles"]["width"] == "wrapContent"
+    assert recipe["parts"]["title"]["styles"]["layoutWeight"] == 1
     assert recipe["parts"]["icon"]["styles"]["width"] == 20
     assert recipe["parts"]["icon"]["styles"]["height"] == 20
 

@@ -70,7 +70,7 @@ dataId/text 不推荐按钮，actionId 仅推荐合法动作组件。标题按�
 S-content-dual-action 的 actions-only 变体，直接放两个 PillButton，不补内容槽或占位正文。
 若有任何 dataId/text 展示事实，使用带内容的标准变体并按完整内容核算容量。
 
-actions 按 info_required 动作顺序逐项选择匹配 assetId；无匹配填 null 及具体 reason。之后 title 从未用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。一个素材只分配一次，不牺牲准确按钮图标为标题腾素材。容量计入所选标题是否带图标的实际高度。
+actions 按 info_required 动作顺序逐项选择匹配 assetId；无匹配填 null 及具体 reason。之后 title 从未用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。一个素材只分配一次，不牺牲准确按钮图标为标题腾素材。SingleLineTitle 无图标按12vp、带图标按20vp计入容量。
 整卡详情例外不需要按钮图标：保留动作的分配项并填 null，reason 说明整卡承载；该素材未被按钮消费，仍可按语义分配给标题。最终以服务端接受结果为准，不因此给其它动作省略图标。
 
 ## 4. 实例安排（仅 Schema 含 composition 时）
