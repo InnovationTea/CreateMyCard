@@ -14,6 +14,7 @@ from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services import square_photo_expansion as expansion
 from services.theme_content_regions import photo_layout_evidence
+from theme_photo_samples import expansion_photo, protected_photo
 
 
 def source_nodes():
@@ -72,25 +73,32 @@ def test_theme_runtime_has_no_default_card_pixel_sizes(module):
 
 def test_protected_photo_is_rejected_even_if_model_selects_it(monkeypatch):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", True)
+    original_registry = themes.registered_themes
+
+    def with_test_photo(pool, **kwargs):
+        if pool == "photos":
+            return [protected_photo()]
+        return original_registry(pool, **kwargs)
+
+    monkeypatch.setattr(themes, "registered_themes", with_test_photo)
     source = themes.encode([{"updateComponents": {"components": source_nodes()}}])
     client = SimpleNamespace(generate=AsyncMock(
-        return_value='{"themeId":"photo-ux-weather-square"}'))
+        return_value='{"themeId":"test-protected-weather"}'))
     result, audit = asyncio.run(themes.select_theme(
         source, {"size": "2x2", "userQuery": "天气"}, client))
     assert audit.get("themeId") == "gradient-blue"
-    assert "真实卡片宽高未知" in audit.get("rejected", {}).get("photo-ux-weather-square", "")
+    assert "真实卡片宽高未知" in audit.get("rejected", {}).get("test-protected-weather", "")
     assert themes.foreground_signature(result) == themes.foreground_signature(source)
     payload = json.loads(client.generate.call_args.args[0][1].get("content"))
     assert payload.get("eligiblePhotos") == []
 
 
 def test_retained_expansion_does_not_infer_or_double_surface_pixels():
-    entries = registry.registered_themes("squareExpansions", include_disabled=True)
     source = themes.encode([
         {"createSurface": {"surfaceId": "test"}},
         {"updateComponents": {"components": source_nodes()}},
     ])
-    result = expansion.expand_square(source, entries[0], {"size": "2x2"})
+    result = expansion.expand_square(source, expansion_photo(), {"size": "2x2"})
     assert themes.decode(result)[0] == themes.decode(source)[0]
     assert themes.foreground_signature(result) == themes.foreground_signature(source)
     shell = next(node for node in themes.components(themes.decode(result))
@@ -106,8 +114,7 @@ def test_retained_expansion_cannot_use_fabricated_measurement_evidence(monkeypat
     monkeypatch.setattr(expansion, "expansion_gate", lambda task: {
         "eligible": True, "business": "countdown",
     })
-    entries = registry.registered_themes("squareExpansions", include_disabled=True)
-    theme = next(item for item in entries if item.get("business") == "countdown")
+    theme = expansion_photo()
     evidence = {"basis": basis, "complete": True, "occupied": [
         {"id": "title", "rect": [.1, .1, .2, .2]},
     ]}

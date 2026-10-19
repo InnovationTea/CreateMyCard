@@ -17,9 +17,9 @@ from services.source_artifact_repository import SourceArtifactLoadResult, Source
 from services.theme_layout_summary import theme_description
 from services.validator import ArtifactValidator
 from test_photo_background_fallback import node_by_id, source
-from test_selected_photo_eligibility import fixture
+from test_weather_photo_eligibility import fixture, task
 
-PHOTO_ID = "photo-ux-yellow-arch-square"
+PHOTO_ID = "photo-ux-water-lily-square"
 ADDRESS = "https://hagres-drcn.dbankcdn.com/assets/theme-test.jpg?version=1"
 ICON = "resources/base/media/drop_1.svg"
 
@@ -42,8 +42,8 @@ def configure(monkeypatch, address):
 def artifact():
     return WidgetArtifact(
         genui=source(),
-        cardSpec={"title": "日程", "description": "图片交付", "suggestSize": "2x2"},
-        taskSpec={"size": "2x2", "userQuery": "日程", "appVersion": "11.7.7.331"},
+        cardSpec={"title": "天气", "description": "图片交付", "suggestSize": "2x2"},
+        taskSpec={"size": "2x2", "userQuery": "天气", "appVersion": "11.7.7.331"},
         effectiveCapabilities={"asset": [], "data": [], "event": []},
         meta=ArtifactMeta(protocolProfileId="a2ui-form-rom6.0-v1",
                           capabilityRegistryVersion="app-11.7.7.300_rom-7.0", createdAt=0),
@@ -53,7 +53,7 @@ def artifact():
 def test_checked_in_photo_urls_are_all_empty():
     photos = [item for item in registry.load_theme_registry().get("themes", [])
               if item.get("kind") == "photo"]
-    assert len(photos) == 26
+    assert len(photos) == 4
     assert all(item.get("background", {}).get("remoteUrl") == "" for item in photos)
 
 
@@ -128,11 +128,11 @@ def test_unapproved_remote_host_uses_existing_theme_failure_fallback(monkeypatch
 def test_theme_prompt_never_receives_remote_url(monkeypatch, enabled):
     photo = configure(monkeypatch, ADDRESS)
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", enabled)
-    sample = fixture("calendar")
+    sample = fixture()
     client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({"themeId": PHOTO_ID})))
     layout = themes.encode([{"updateComponents": {"components": sample.nodes}}])
     result, audit = asyncio.run(themes.select_theme(
-        layout, sample.task, client, final_layout=sample.source,
+        layout, task(), client, final_layout=sample.layout,
     ))
     assert (audit.get("themeId") == PHOTO_ID) is enabled
     assert ADDRESS not in json.dumps(theme_description(photo))

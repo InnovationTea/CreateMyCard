@@ -1,4 +1,4 @@
-"""三张新增UX图只匹配已确认的业务、居左内容与纯文字行数。"""
+"""星轨睡眠图只匹配左侧真实睡眠业务与居左内容。"""
 
 import asyncio
 import copy
@@ -19,13 +19,9 @@ from services.theme_style_roles import layout_phase
 
 IDS = {
     "sleep": "photo-ux-star-trails-wide",
-    "weather": "photo-ux-seaside-sunset-wide",
-    "calendar": "photo-ux-yellow-arch-square",
 }
 PATHS = {
     "sleep": "/data/healthSport/nightSleepDurationText",
-    "weather": "/data/weather/current/condition",
-    "calendar": "/data/calendar/events/0/title",
 }
 
 
@@ -35,28 +31,24 @@ def photo(business):
 
 
 def fixture(business):
-    wide = business != "calendar"
     path = PATHS.get(business)
     assert path is not None
     root_key = path.split("/")[2]
-    task = {"size": "2x4" if wide else "2x2", "userQuery": "睡眠 天气 日程",
+    task = {"size": "2x4", "userQuery": "睡眠 天气 日程",
             "appVersion": "11.9.9.342", "dataModelSchema": {"data": {root_key: {}}}}
     content = [
         ["header", "SingleLineTitle", {"title": "业务标题"}],
         ["value", "EmphasisText", {"mainText": {"path": path}, "secondaryText": "业务说明"}],
         [path, "业务数据"],
     ]
-    if wide:
-        rows = [
-            ["root", "Layout", {"layout": "W-content-side-slots"}, ["main", "upper", "lower"]],
-            ["main", "Region", {"variant": "title-content"}, ["header", "value"]],
-            ["upper", "InfoBlock", {"variant": "slot", "primaryText": "82",
-                                   "secondaryText": "睡眠 天气"}],
-            ["lower", "InfoBlock", {"variant": "slot", "primaryText": "68%",
-                                   "secondaryText": "电量"}],
-        ]
-    else:
-        rows = [["root", "Layout", {"layout": "S-title-content"}, ["header", "value"]]]
+    rows = [
+        ["root", "Layout", {"layout": "W-content-side-slots"}, ["main", "upper", "lower"]],
+        ["main", "Region", {"variant": "title-content"}, ["header", "value"]],
+        ["upper", "InfoBlock", {"variant": "slot", "primaryText": "82",
+                               "secondaryText": "睡眠 天气"}],
+        ["lower", "InfoBlock", {"variant": "slot", "primaryText": "68%",
+                               "secondaryText": "电量"}],
+    ]
     source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows + content)
     with layout_phase(True, task):
         converted = convert_compact_dsl_to_a2ui(source, size=task.get("size"))
@@ -83,7 +75,7 @@ def test_selected_photo_rejects_non_left_content(business, alignment):
     assert reason(sample, business) is not None
 
 
-@pytest.mark.parametrize("business", ["sleep", "weather"])
+@pytest.mark.parametrize("business", IDS)
 @pytest.mark.parametrize("change", ["reverse", "split", "missing-slot", "foreign-main",
                                     "foreign-support", "static-main", "unknown-flow"])
 def test_wide_photo_requires_left_business_not_right_slot_or_query(business, change):
@@ -110,49 +102,6 @@ def test_wide_photo_requires_left_business_not_right_slot_or_query(business, cha
     assert reason(sample, business) is not None
 
 
-@pytest.mark.parametrize("lines", [1, 2, 3, None])
-def test_calendar_counts_content_only_and_dynamic_max_lines(lines):
-    sample = fixture("calendar")
-    for node in sample.nodes:
-        if node.get("id") == "value_main":
-            node.get("styles", {})["maxLines"] = lines
-        elif node.get("id") == "value_secondary":
-            node["content"] = ""
-    # 固定辅助说明仍占一行；空字符串不等同于删除已声明的行盒。
-    assert (reason(sample, "calendar") is None) is (lines == 1)
-
-
-@pytest.mark.parametrize("component", ["Image", "Icon", "Progress", "Divider", "Button"])
-def test_calendar_pure_text_rejects_any_rendered_non_text(component):
-    sample = fixture("calendar")
-    sample.nodes.append({"id": "extra", "component": component})
-    assert reason(sample, "calendar") is not None
-
-
-@pytest.mark.parametrize("component", ["CircleButton", "PillButton", "CardButton", "Button"])
-def test_calendar_rejects_semantic_buttons_even_without_handler(component):
-    sample = fixture("calendar")
-    sample.source = sample.source.replace('["header", "value"]', '["header", "value", "action"]')
-    sample.source += "\n" + json.dumps(["action", component, {"label": "打开"}])
-    assert reason(sample, "calendar") is not None
-
-
-@pytest.mark.parametrize("location, allowed", [("header", True), ("value", False)])
-def test_calendar_allows_only_title_decoration(location, allowed):
-    sample = fixture("calendar")
-    node = next(item for item in sample.nodes if item.get("id") == location)
-    children = node.get("children")
-    if children is None:
-        node.update(component="Row", children=["header_text"])
-        sample.nodes.append({"id": "header_text", "component": "Text", "content": "日程",
-                             "styles": {"maxLines": 1}})
-        children = node.get("children")
-    assert isinstance(children, list)
-    children.append("decoration")
-    sample.nodes.append({"id": "decoration", "component": "Image"})
-    assert (reason(sample, "calendar") is None) is allowed
-
-
 @pytest.mark.parametrize("business", IDS)
 def test_two_ended_label_value_is_not_left_aligned(business):
     sample = fixture(business)
@@ -177,16 +126,10 @@ def test_selection_preserves_foreground_and_default_switch(monkeypatch, business
     result, audit = asyncio.run(themes.select_theme(
         source, sample.task, client, final_layout=sample.source,
     ))
-    expected = enabled and business != "weather"
+    expected = enabled
     assert (audit.get("themeId") == IDS.get(business)) is expected
     assert themes.foreground_signature(result) == themes.foreground_signature(source)
     assert audit.get("deviceGeometryKnown") is False
-
-
-def test_seaside_is_retained_but_never_an_active_candidate():
-    active = registry.registered_themes("photos")
-    assert IDS.get("weather") not in {item.get("id") for item in active}
-    assert photo("weather").get("id") == IDS.get("weather")
 
 
 @pytest.mark.parametrize("business", IDS)
@@ -195,7 +138,7 @@ def test_registry_rejects_inconsistent_selected_photo(business, change):
     config = registry.load_theme_registry()
     entry = next(item for item in config.get("themes", []) if item.get("id") == IDS.get(business))
     if change == "size":
-        entry["sizes"] = ["2x4" if business == "calendar" else "2x2"]
+        entry["sizes"] = ["2x2"]
     elif change == "business":
         entry["business"] = "music"
     elif change == "policy":
@@ -216,7 +159,7 @@ def test_assets_keep_original_bytes_and_existing_palette_alpha(business):
     assert digest == entry.get("source", {}).get("assetSha256")
     assert entry.get("source", {}).get("assetSha256") == entry.get("source", {}).get("sourceSha256")
     roles = entry.get("content", {}).get("roles", {})
-    rgb = "FFFFFF" if business == "sleep" else "000000"
+    rgb = "FFFFFF"
     assert roles.get("primary") == "#FF" + rgb
     assert roles.get("secondary") == "#CC" + rgb
     assert roles.get("tertiary") == "#99" + rgb

@@ -15,6 +15,7 @@ from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services import square_photo_expansion, subjectless_wide_theme
 from services.theme_content_regions import button_ids, photo_layout_evidence
+from theme_photo_samples import expansion_photo, protected_photo
 
 SPORT_LAYOUT = '\n'.join([
     '["root","Layout",{"layout":"W-content-side-slots"},["main","upper","lower"]]',
@@ -59,59 +60,31 @@ def evidence(size, rects):
             "occupied": [{"id": str(index), "rect": rect} for index, rect in enumerate(rects)]}
 
 
-@pytest.mark.parametrize("identity,query,rect", [
-    ("weather-square", "天气", [.05, .05, .3, .2]),
-    ("sleep-square", "睡眠", [.05, .05, .2, .8]),
-    ("sleep-square", "睡眠", [.05, .05, .6, .15]),
-    ("sleep-square", "睡眠", [.05, .86, .7, .1]),
-    ("sport1-square", "运动", [.05, .8, .7, .15]),
-    ("sport2-square", "运动", [.05, .84, .7, .1]),
-    ("sport3-square", "运动", [.05, .88, .7, .08]),
-    ("sport-center-wide", "运动", [.05, .1, .3, .6]),
-    ("sport-center-wide", "运动", [.65, .1, .3, .6]),
-    ("travel-wide", "出行航班", [.05, .8, .7, .15]),
-    ("information-wide", "新闻资讯", [.05, .8, .7, .15]),
-    ("home-wide", "智慧家", [.05, .8, .7, .15]),
-    ("sleep-wide", "睡眠", [.65, .2, .3, .6]),
-    ("concert-wide", "音乐", [.55, .2, .3, .6]),
+@pytest.mark.parametrize("identity,query", [
+    ("sleep-square", "睡眠"), ("sport-center-wide", "运动"),
 ])
-def test_only_subjectless_photos_match_without_device_geometry(identity, query, rect):
+def test_subjectless_photos_match_without_device_geometry(identity, query):
     theme = ux(identity)
     size = theme.get("size")
     task = sleep_task(query) if identity == "sleep-square" else {"size": size, "userQuery": query}
     layout = SLEEP_LAYOUT if identity == "sleep-square" else SPORT_LAYOUT
-    reason = themes.photo_reason(theme, task, evidence(size, [rect]), final_layout=layout)
-    if theme.get("subjectless"):
-        assert reason is None
-    else:
-        assert "真实卡片宽高未知" in reason
+    assert themes.photo_reason(theme, task, evidence(size, [[0, 0, 1, 1]]),
+                               final_layout=layout) is None
 
 
-@pytest.mark.parametrize("identity,query,rect", [
-    ("weather-square", "天气", [.05, .7, .8, .2]),
-    ("sport1-square", "运动", [.05, .05, .8, .2]),
-    ("sport2-square", "运动", [.05, .05, .8, .2]),
-    ("sport3-square", "运动", [.05, .05, .8, .2]),
-    ("sport-center-wide", "运动", [.4, .4, .4, .2]),
-    ("sport-wide", "运动", [.05, .05, .8, .2]),
-    ("travel-wide", "航班", [.05, .05, .8, .2]),
-    ("information-wide", "新闻", [.05, .05, .8, .2]),
-    ("home-wide", "智慧家", [.05, .05, .8, .2]),
-    ("sleep-wide", "睡眠", [.2, .2, .3, .2]),
-    ("concert-wide", "音乐", [.3, .2, .3, .2]),
-])
-def test_subject_or_reserved_area_rejects_content(identity, query, rect):
-    theme = ux(identity)
-    size = theme.get("size")
-    assert themes.photo_reason(theme, {"size": size, "userQuery": query},
-                               evidence(size, [rect])) is not None
+@pytest.mark.parametrize("rect", [[.05, .05, .3, .2], [.05, .7, .8, .2]])
+def test_protected_photo_cannot_use_test_rectangles_without_device_geometry(rect):
+    photo = protected_photo()
+    reason = themes.photo_reason(photo, {"size": "2x2", "userQuery": "天气"},
+                                 evidence("2x2", [rect]))
+    assert reason is not None and "真实卡片宽高未知" in reason
 
 
 def test_button_interior_is_not_empty_even_when_its_label_avoids_subject():
     task = {"size": "2x2", "userQuery": "天气"}
     measured = evidence("2x2", [[.1, .1, .2, .1], [.1, .4, .8, .2]])
     measured["subjectAvoidance"] = measured.get("occupied", [])[:1]
-    assert themes.photo_reason(ux("weather-square"), task, measured) is not None
+    assert themes.photo_reason(ux("water-lily-square"), task, measured) is not None
 
 
 @pytest.mark.parametrize("basis", [None, "production-web-renderer", "explicit-test-viewport"])
@@ -169,7 +142,7 @@ def test_subjectless_layout_requires_dimension_free_content_evidence(field, valu
 
 def test_subjectless_policy_does_not_apply_to_other_photos():
     measured = evidence("2x4", [[.4, .25, .4, .3]])
-    assert themes.photo_reason(ux("sport-wide"), {"size": "2x4", "userQuery": "运动"},
+    assert themes.photo_reason(protected_photo(), {"size": "2x2", "userQuery": "天气"},
                                measured, final_layout=SPORT_LAYOUT) is not None
 
 
@@ -321,7 +294,10 @@ def test_retained_feature_gates_no_longer_sample(monkeypatch, module, pool, size
     for flag in ("enable_photo_background_theme", "enable_square_photo_expansion",
                  "enable_subjectless_wide_theme"):
         monkeypatch.setattr(settings, flag, True)
-    entries = registry.registered_themes(pool, include_disabled=True)
+    photo = expansion_photo()
+    if size == "2x4":
+        photo.update(pool=pool, composition="subjectless", business="battery")
+    entries = [photo]
     monkeypatch.setattr(module, "registered_themes", lambda _pool: entries)
     gate = module.expansion_gate if size == "2x2" else module.wide_gate
     for number in range(100):
@@ -345,7 +321,7 @@ def test_eligible_photo_always_wins_without_user_override(monkeypatch, model_id)
 
 @pytest.mark.parametrize("query", ["纯色天气", "不要背景图", "天气用渐变", "使用融球天气"])
 def test_explicit_theme_preferences_override_photos(query):
-    assert themes.photo_reason(ux("weather-square"), {"size": "2x2", "userQuery": query},
+    assert themes.photo_reason(ux("water-lily-square"), {"size": "2x2", "userQuery": query},
                                evidence("2x2", [[.1, .1, .2, .2]])) is not None
 
 
@@ -359,7 +335,7 @@ def test_explicit_theme_preferences_override_photos(query):
 def test_invalid_ux_regions_rejected_at_config_load(field, value):
     config = registry.load_theme_registry()
     theme = next(item for item in config.get("themes", [])
-                 if item.get("id") == "photo-ux-weather-square")
+                 if item.get("id") == "photo-ux-water-lily-square")
     theme[field] = copy.deepcopy(value)
     with pytest.raises(ValueError):
         registry.validate_registry(config)

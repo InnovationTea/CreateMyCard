@@ -9,6 +9,7 @@ from services import post_layout_theme_registry as registry
 from services.card_validator import validate_card
 from services.square_photo_expansion import expand_square
 from services.theme_style_roles import role
+from theme_photo_samples import expansion_photo
 
 
 def photo_theme(size):
@@ -120,7 +121,7 @@ def test_photo_with_fallback_passes_protocol_validation(monkeypatch, rgb, size):
 
 def test_expansion_keeps_background_and_correct_foreground_reference(monkeypatch):
     monkeypatch.setattr(themes, "fusion_ball_enabled", lambda version: True)
-    theme = registry.registered_themes("squareExpansions", include_disabled=True)[0]
+    theme = expansion_photo()
     result = expand_square(source(), theme, {"size": "2x2"})
     half = node_by_id(result, themes.PREFIX + "contentHalf")
     assert half.get("children") == [themes.FUSION_FOREGROUND_ID]
