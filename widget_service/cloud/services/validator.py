@@ -16,36 +16,39 @@ _MODULE = "[Validator]"
 
 
 class ArtifactValidator:
-    def validate_layout(self, artifact: WidgetArtifact, protocol_profile: dict) -> list[str]:
+    """保存最近一次校验的辅助结果；仅支持顺序调用，不支持同一实例并发校验。"""
+
+    def validate_layout(
+        self,
+        artifact: WidgetArtifact,
+        protocol_profile: dict,
+        *,
+        execution_context: ValidationExecutionContext | None = None,
+    ) -> list[str]:
         """内部定稿门禁：保留结构、能力和语义检查，不提前解析色值。"""
         from services.theme_style_roles import layout_phase
 
         with layout_phase():
-            return self.validate(artifact, protocol_profile)
+            return self.validate(artifact, protocol_profile, execution_context=execution_context)
 
     def __init__(
         self,
         asset_src_url_mapping: dict[str, str] | None = None,
-        execution_context: ValidationExecutionContext | None = None,
     ) -> None:
         self.error_categories: list[str] = []
         self.error_prompt_contexts: list[dict[str, Any]] = []
-        self.execution_context = execution_context or ValidationExecutionContext()
         mapping = (
             get_settings().asset_src_url_mapping
             if asset_src_url_mapping is None else asset_src_url_mapping
         )
         self.asset_src_url_mapping = dict(mapping)
 
-    def set_execution_context(self, execution_context: ValidationExecutionContext) -> None:
-        """在同一校验器实例用于主题候选与回退时更新执行身份。"""
-
-        self.execution_context = execution_context
-
     def validate(
         self,
         artifact: WidgetArtifact,
         protocol_profile: dict,
+        *,
+        execution_context: ValidationExecutionContext | None = None,
     ) -> list[str]:
         """校验完整 artifact。
 
@@ -56,7 +59,8 @@ class ArtifactValidator:
         """
         # 校验入口接收完整 artifact；标准 A2UI 通过服务内 Python API 调用最新校验流水线。
         validator_name = "services.card_validation.validate_card"
-        log_fields = self.execution_context.log_fields()
+        identity = execution_context or ValidationExecutionContext()
+        log_fields = identity.log_fields()
         logger.info(
             f"{_MODULE} artifact_validation_started protocol_profile_id={protocol_profile['id']} "
             f"validator_module={validator_name} {log_fields}"

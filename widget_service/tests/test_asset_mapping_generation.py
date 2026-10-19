@@ -239,9 +239,13 @@ async def test_generation_maps_before_validation_and_saves_separate_sources(
             elapsed_seconds=0.0,
         )
 
-    def validate(validator, artifact, _profile):
+    def validate(validator, artifact, _profile, *, execution_context=None):
         validated.append(artifact.genui)
         assert validator.asset_src_url_mapping == {SRC: URL}
+        assert execution_context is not None
+        assert execution_context.purpose == "artifact_candidate"
+        assert execution_context.phase == "initial"
+        assert execution_context.attempt == 1
         return []
 
     monkeypatch.setattr(A2UIModelClient, "generate", generate)
@@ -385,7 +389,7 @@ async def test_repair_uses_original_paths_and_remaps_final_output(storage, monke
             return plan_output()
         return design_source()
 
-    def validate(validator, artifact, _profile):
+    def validate(validator, artifact, _profile, *, execution_context=None):
         validated.append(artifact.genui)
         if len(validated) == 1:
             validator.error_prompt_contexts = [{"actual": URL, "expected": [URL]}]

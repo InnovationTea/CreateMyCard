@@ -109,7 +109,7 @@ async def test_standalone_fixed_rounds_preserve_result_and_exception(
     monkeypatch.setattr(A2UIModelClient, "aclose", close)
     monkeypatch.setattr(AssetUrlMapper, "restore_diagnostic_values", forbidden_restore)
     # 完整产物规则保持既有职责，本用例隔离其结果，实际执行 Compact 解析、校验、转换。
-    monkeypatch.setattr(ArtifactValidator, "validate", lambda *_args: [])
+    monkeypatch.setattr(ArtifactValidator, "validate", lambda *_args, **_kwargs: [])
     if succeeds:
         result = await _repair_compact_dsl_source(_source(), max_repair_attempts=2)
         assert result.compact_dsl == VALID

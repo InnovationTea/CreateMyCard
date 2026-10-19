@@ -97,7 +97,6 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
         )),
     )
     validator = SimpleNamespace(
-        set_execution_context=Mock(),
         validate=Mock(side_effect=[[error], []]),
     )
     result = asyncio.run(themes.theme_artifact(
@@ -107,9 +106,11 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
     assert audit.get("themeId") == "gradient-blue"
     assert audit.get("rejectedTheme") == photo
     assert validator.validate.call_count == 2
-    validation_contexts = [
-        call.args[0] for call in validator.set_execution_context.call_args_list
-    ]
+    validation_contexts = []
+    for call in validator.validate.call_args_list:
+        context = call.kwargs.get("execution_context")
+        assert context is not None
+        validation_contexts.append(context)
     assert [context.purpose for context in validation_contexts] == [
         "theme_candidate",
         "theme_fallback",

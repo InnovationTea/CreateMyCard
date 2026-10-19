@@ -3738,7 +3738,7 @@ async def test_repair_model_failure_does_not_validate_or_save_second_result(monk
             return "invalid-but-nonempty-dsl"
         return ""
 
-    def validate_once(_validator, artifact, _profile):
+    def validate_once(_validator, artifact, _profile, *, execution_context=None):
         validation_calls.append(artifact.genui)
         return ["DSL_REQUIRED_FIELD [genui:1 /createSurface]"]
 
@@ -3774,7 +3774,7 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
         model_calls += 1
         return next(generated_values)
 
-    def validate_until_third(_validator, artifact, _profile):
+    def validate_until_third(_validator, artifact, _profile, *, execution_context=None):
         validation_calls.append(artifact.genui)
         if artifact.genui == "dsl-third":
             return []
@@ -3817,7 +3817,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
         model_prompts.append(copy.deepcopy(prompt))
         return design_dsl
 
-    def validate_standard(_validator, artifact, _profile):
+    def validate_standard(_validator, artifact, _profile, *, execution_context=None):
         validated_genui.append(artifact.genui)
         return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
 
@@ -3919,7 +3919,7 @@ async def test_design_compact_skips_layout_validator_when_validation_is_disabled
     settings = get_settings()
     validation_calls: list[str] = []
 
-    def validate_design(_validator, artifact, _profile):
+    def validate_design(_validator, artifact, _profile, *, execution_context=None):
         validation_calls.append(artifact.genui)
         return []
 
@@ -3947,7 +3947,7 @@ async def test_design_compact_skips_layout_validator_when_validation_is_disabled
 async def test_design_compact_validation_error_without_repair_fails(monkeypatch):
     settings = get_settings()
 
-    def validation_error(_validator, _artifact, _profile):
+    def validation_error(_validator, _artifact, _profile, *, execution_context=None):
         return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
 
     def unexpected_save(*_args, **_kwargs):
@@ -4041,7 +4041,7 @@ async def test_source_format_validation_error_repairs_original_source_dsl(
         model_prompts.append(copy.deepcopy(prompt))
         return valid_source
 
-    def validate_then_succeed(_validator, _artifact, _profile):
+    def validate_then_succeed(_validator, _artifact, _profile, *, execution_context=None):
         nonlocal validation_calls
         validation_calls += 1
         if validation_calls == 1:
@@ -4103,7 +4103,7 @@ async def test_quality_repair_distinguishes_source_and_artifact_validation(
         model_prompts.append(copy.deepcopy(prompt))
         return next(outputs)
 
-    def validate_then_succeed(_validator, _artifact, _profile):
+    def validate_then_succeed(_validator, _artifact, _profile, *, execution_context=None):
         nonlocal validation_calls
         validation_calls += 1
         if validation_calls == 1:
@@ -4182,7 +4182,7 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
         model_prompts.append(copy.deepcopy(prompt))
         return valid_source
 
-    def always_reject(_validator, _artifact, _profile):
+    def always_reject(_validator, _artifact, _profile, *, execution_context=None):
         nonlocal validation_calls
         validation_calls += 1
         return ["persistent validator error"]
@@ -4251,7 +4251,7 @@ async def test_unknown_validator_exception_does_not_trigger_model_repair(monkeyp
         model_calls += 1
         return valid_source
 
-    def raise_internal_error(_validator, _artifact, _profile):
+    def raise_internal_error(_validator, _artifact, _profile, *, execution_context=None):
         raise RuntimeError("validator implementation failed")
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)

@@ -139,7 +139,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
             raise ValueError("unknown template asset")
         return source
 
-    def validate(_validator, artifact, _profile):
+    def validate(_validator, artifact, _profile, *, execution_context=None):
         if artifact.genui == "template-source":
             if failure == "validator_exception":
                 raise ValueError("template validation failed")

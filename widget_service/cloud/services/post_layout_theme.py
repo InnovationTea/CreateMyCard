@@ -625,10 +625,9 @@ async def theme_artifact(
         phase="theme",
         purpose="theme_candidate",
     )
-    set_execution_context = getattr(validator, "set_execution_context", None)
-    if callable(set_execution_context):
-        set_execution_context(execution_context.with_purpose("theme_candidate"))
-    errors = validator.validate(themed, profile)
+    errors = validator.validate(
+        themed, profile, execution_context=execution_context.with_purpose("theme_candidate"),
+    )
     if audit.get("userColors"):
         audit["userColorContrastWarnings"] = [e for e in errors if e.startswith("VISUAL.CONTRAST")]
         errors = [e for e in errors if not e.startswith("VISUAL.CONTRAST")]
@@ -637,9 +636,9 @@ async def theme_artifact(
         themed = artifact.model_copy(deep=True)
         fallback = fallback_theme(default_palette_family(task))
         themed.genui = apply_theme(source, fallback, task, audit.get("userColors", {}))
-        if callable(set_execution_context):
-            set_execution_context(execution_context.with_purpose("theme_fallback"))
-        fallback_errors = validator.validate(themed, profile)
+        fallback_errors = validator.validate(
+            themed, profile, execution_context=execution_context.with_purpose("theme_fallback"),
+        )
         if fallback_errors:
             raise ValueError("Final gradient validation failed: " + str(fallback_errors))
         audit["themeId"] = fallback.get("id")

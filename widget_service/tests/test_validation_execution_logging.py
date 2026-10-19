@@ -83,6 +83,42 @@ def test_compact_validation_logs_execution_identity(monkeypatch) -> None:
     assert "warning_count=1" in captured.info_messages[1]
 
 
+@pytest.mark.parametrize("layout", [False, True])
+def test_artifact_context_is_per_call_and_layout_scope_is_preserved(monkeypatch, layout):
+    captured = _CapturedLogger()
+    observed_layouts = []
+
+    def check_phase(_source, *, layout):
+        observed_layouts.append(layout)
+        return []
+
+    monkeypatch.setattr(validator_module, "logger", captured)
+    monkeypatch.setattr(validator_module, "theme_phase_errors", check_phase)
+    monkeypatch.setattr(
+        validator_module, "validate_card", lambda **_kwargs: SimpleNamespace(diagnostics=[]),
+    )
+    artifact = SimpleNamespace(
+        genui="",
+        meta=SimpleNamespace(capabilityRegistryVersion="test-registry"),
+        model_dump=lambda **_kwargs: {},
+    )
+    validator = ArtifactValidator(asset_src_url_mapping={})
+    validate = validator.validate_layout if layout else validator.validate
+    first = _execution_context()
+    second = first.with_purpose("theme_fallback")
+    for context in (first, second):
+        assert validate(artifact, {"id": "test-profile"}, execution_context=context) == []
+    assert validate(artifact, {"id": "test-profile"}) == []
+
+    expected = (first, second, ValidationExecutionContext())
+    assert len(captured.info_messages) == 6
+    for index, context in enumerate(expected):
+        assert context.log_fields() in captured.info_messages[index * 2]
+        assert context.log_fields() in captured.info_messages[index * 2 + 1]
+    assert observed_layouts == [layout, layout, layout]
+    assert validator_module.in_layout_phase() is False
+
+
 def test_compact_probe_failure_is_identified_without_warning_log(monkeypatch) -> None:
     captured = _CapturedLogger()
     monkeypatch.setattr(compact_validation_api, "logger", captured)
@@ -130,10 +166,11 @@ def test_artifact_validation_logs_execution_identity(monkeypatch) -> None:
     monkeypatch.setattr(validator_module, "theme_phase_errors", lambda *_args, **_kwargs: [])
     monkeypatch.setattr(validator_module, "validate_card", lambda **_kwargs: reporter)
 
-    validator = ArtifactValidator(execution_context=_execution_context())
+    validator = ArtifactValidator()
     errors = validator.validate(
         artifact,
         {"id": "test-profile"},
+        execution_context=_execution_context(),
     )
 
     assert errors == []

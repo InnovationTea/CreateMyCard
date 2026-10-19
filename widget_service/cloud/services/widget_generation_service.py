@@ -1485,14 +1485,17 @@ class WidgetGenerationService:
             )
             artifact_validator = ArtifactValidator(
                 asset_mapper.mapping,
-                execution_context=artifact_validation_context,
             )
             artifact_validation_started_at = time.perf_counter()
             colorless = colorless_source()
             if colorless:
-                validation_errors = artifact_validator.validate_layout(artifact, protocol_profile)
+                validation_errors = artifact_validator.validate_layout(
+                    artifact, protocol_profile, execution_context=artifact_validation_context,
+                )
             else:
-                validation_errors = artifact_validator.validate(artifact, protocol_profile)
+                validation_errors = artifact_validator.validate(
+                    artifact, protocol_profile, execution_context=artifact_validation_context,
+                )
             if validation_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
             validation_prompt_contexts = getattr(
@@ -1751,7 +1754,6 @@ class WidgetGenerationService:
                 artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
                 ArtifactValidator(
                     asset_mapper.mapping,
-                    execution_context=theme_validation_context,
                 ),
                 protocol_profile,
                 allow_expansion=defer_size_notification,
