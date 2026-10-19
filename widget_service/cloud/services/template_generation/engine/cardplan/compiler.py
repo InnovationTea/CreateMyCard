@@ -62,6 +62,7 @@ from services.template_generation.engine.tersel_converter import (
 
 from .action_labels import LABEL_ACTION_TEMPLATES, validate_action_label
 from .business_actions import supports_business_action
+from .calendar_weather_presentation import center_calendar_weather_full
 from .fusion_ball_background import (
     FusionBallPalette,
     apply_content_safe_inset,
@@ -445,6 +446,7 @@ def compile_ux_layout_card(
         task_spec=task_spec,
         provider_binding_roots=_provider_binding_roots(card_spec),
     )
+    expanded = center_calendar_weather_full(expanded, composition, size=task_spec.size)
     _validate_required_template_groups(state, contract)
     layout_id = _parsed_layout_template_id(composition, registry)
     embedded_action_count = sum(
