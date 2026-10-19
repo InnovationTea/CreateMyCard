@@ -125,11 +125,12 @@ def expand_square(source: str, theme: dict, task: dict) -> str:
     records = decode(apply_theme(source, theme, task, {}))
     nodes = components(records)
     shell = next(node for node in nodes if node.get("id") == "root")
+    foreground_id = shell.get("children", [])[-1]
     shell["children"] = [PREFIX + "background", PREFIX + "contentHalf"]
     nodes.append({
         "id": PREFIX + "contentHalf",
         "component": "Stack",
-        "children": [PREFIX + "foreground"],
+        "children": [foreground_id],
         "styles": {"width": "50%", "height": "matchParent", "alignContent": "topStart"},
     })
     result = encode(records)

@@ -186,7 +186,7 @@ def test_old_native_wide_images_are_retained_but_inactive():
     battery = next(item for item in wide if item.get("business") == "battery")
     assert battery.get("src") == "resources/base/media/bg_subjectless_b05.jpg"
     assert all(item.get("objectFit") == "fill" for item in wide)
-    assert len(themes.registered_themes("photos")) == 12
+    assert len(themes.registered_themes("photos")) == 15
     assert themes.registered_themes("subjectlessWidePhotos") == []
     assert themes.registered_themes("squareExpansions") == []
 

@@ -4,6 +4,15 @@
     "mode": "layout-only",
     "unknownGeometryPolicy": "reject-subject-photos"
   },
+  "photoFallbacks": {
+    "darkText": {
+      "colors": ["#FFFFFFFF", "#FFE6E6E6"],
+      "direction": "LeftBottom"
+    },
+    "lightText": {
+      "themeId": "fusion-ball-schedule-blue"
+    }
+  },
   "selection": {
     "rules": "1. 用户明确的颜色、纯色、深色、渐变或背景素材要求优先；自定义时必须检查文字、图标和按钮相对直接背景的可读性。\n2. 未指定时，简单 2x2 单业务且实际展示独立事实不超过 3 项、仅一个内容组、显式动作不超过 1 个，可使用对应融球；运行时允许且业务匹配时优先融球。单会议时间线使用暖色微渐变。列表、双分区、多组指标及 2x4 使用浅色微渐变，不为使用融球删掉用户必需内容。\n3. 事实按语义计数，同一组件中承载的不同事实仍分别计数；纯主题标题和 CTA 不计入事实数。运行时禁止融球时，直接使用对应微渐变，不能模拟球体。\n4. 色板由核心业务确定，不按 few-shot 的主题机械复制。天气、耳机、电量、设备、未知业务默认蓝色；睡眠、专注、一般运动和健康概览默认紫色；日程、会议、倒计时和纪念日默认暖色。心率主读数使用紫色 root，只在合法图表、图标或已由动态数据证明的局部状态中使用粉红；不随预览值擅自切换告警色。多业务以用户明确的主业务为准，无主次或未覆盖时用蓝色。",
     "defaultFamily": "blue",
@@ -1127,8 +1136,19 @@
       "kind": "photo",
       "pool": "photos",
       "name": "睡眠 · 暗色卧室",
-      "description": "2x2睡眠相关业务的暗色卧室无主体背景，不限定具体布局；允许文字、按钮和图标覆盖床枕与床头物件。固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "description": "仅用于2x2睡眠单业务，内容居左或贴底、内容区最多3行文字且没有胶囊按钮；顶部标题不计入行数，允许图标按钮。暗色卧室按无主体背景处理，固定白色文字及融球前景配色，背景随宿主自适应。",
       "subjectless": true,
+      "contentEligibility": {
+        "kind": "sleep-square",
+        "maxTextLines": 3,
+        "includeTitle": false,
+        "excludeComponents": ["PillButton"],
+        "layouts": {
+          "S-title-content": "bottom",
+          "S-title-dual-content": "left",
+          "S-title-anchor": "left"
+        }
+      },
       "sizes": [
         "2x2"
       ],
@@ -1182,7 +1202,7 @@
       ],
       "contentTone": "dark",
       "subjectPosition": "床枕与床头物件按无主体处理；原主体坐标仅留作素材记录。",
-      "layoutHint": "2x2睡眠业务，不额外限定布局",
+      "layoutHint": "睡眠单业务；内容居左或贴底，内容区最多3行（不含顶部标题），无胶囊按钮",
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
@@ -1227,6 +1247,349 @@
           "secondary": 204,
           "tertiary": 153
         }
+      }
+    },
+    {
+      "id": "photo-ux-water-lily-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "天气 · 水面小花",
+      "description": "蓝绿色水面油画，小花位于右侧中部；仅用于2x2普通天气单业务，内容区整体居左，上下位置不限，贴底内容也必须居左。无任何按钮或独立可点击控件，标题内及嵌套按钮也排除。不限制为三行；不用于标签在左数值在右的两端对齐、预警、降雨专题、混合业务或双列布局。沿用固定白字及融球前景体系，背景自适应填满宿主。",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "weather-square",
+        "layouts": {
+          "S-title-content": "left",
+          "S-title-dual-content": "left"
+        }
+      },
+      "sizes": ["2x2"],
+      "business": "weather",
+      "composition": "native",
+      "subjectBounds": [0.71, 0.43, 0.23, 0.24],
+      "subjectRegions": [[0.71, 0.43, 0.23, 0.24]],
+      "contentRegions": [[0, 0, 0.69, 1], [0, 0, 1, 0.4], [0, 0.7, 1, 0.3]],
+      "contentTone": "light",
+      "subjectPosition": "唯一花朵及其紧邻叶片位于右侧中部，水面笔触不作为主体；坐标用于开发态复核，不代表已知真机占位。",
+      "layoutHint": "普通天气单业务；内容区整体居左，上下位置不限；无任何按钮或独立可点击控件",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2/test1/46_2585506173_huge_cu2.jpg",
+        "originalSize": [974, 974],
+        "assetSize": [974, 974],
+        "processing": "使用已提供的正方形裁切，原文件逐字节保留，不重绘、不调色、不二次压缩",
+        "sourceSha256": "ca34b18297b0d7ea0100cb47f4108175bbfec42acd8da12638259de3313d9fc7",
+        "assetSha256": "ca34b18297b0d7ea0100cb47f4108175bbfec42acd8da12638259de3313d9fc7"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_water_lily_square.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-star-trails-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "睡眠 · 星轨",
+      "description": "蓝色星轨与夜间山湖背景，仅用于2x4左侧睡眠主业务、右侧上下两个小背板的定稿布局。左侧主内容必须是睡眠指标，整个左侧主业务的文字均居左，不混入其它业务。仅右侧出现睡眠或居中、两端对齐不适用。白字及既有透明白底托，随宿主自适应填充。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "left-main-wide",
+        "mainBusiness": "sleep"
+      },
+      "sizes": [
+        "2x4"
+      ],
+      "business": "sleep",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "按已确认的左主业务右双槽布局准入；主体坐标仅用于素材记录，不作为真机几何证明。",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/选中/641616211_huge_2x4.jpg",
+        "originalSize": [
+          3869,
+          1934
+        ],
+        "assetSize": [
+          3869,
+          1934
+        ],
+        "processing": "原文件逐字节保留，不重绘、不调色、不裁切、不二次压缩",
+        "sourceSha256": "2d91a22cf19191d3cdf380dc8585686531aa8622cdc316b1a3eec423c91ffe60",
+        "assetSha256": "2d91a22cf19191d3cdf380dc8585686531aa8622cdc316b1a3eec423c91ffe60"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_star_trails_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      },
+      "subjectlessLayout": {
+        "layout": "W-content-side-slots",
+        "orientation": "content-left"
+      }
+    },
+    {
+      "id": "photo-ux-yellow-arch-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "日程会议 · 黄色拱门",
+      "description": "浅灰绿色与沙地、右侧黄色拱门，仅用于2x2日程会议单业务。内容区必须居左且最多两行，不含顶部标题；内容区纯文字，允许标题装饰图标，无任何按钮或独立点击控件。不用于混合业务、居中、两端对齐或密集日程列表。黑字，透明度与白字体系对齐，背景自适应填充，不为命中改动布局。",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "calendar-square",
+        "maxTextLines": 2,
+        "includeTitle": false,
+        "layouts": {
+          "S-title-content": "left",
+          "S-title-dual-content": "left"
+        }
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectBounds": [
+        0.56,
+        0.32,
+        0.42,
+        0.36
+      ],
+      "subjectRegions": [
+        [
+          0.56,
+          0.32,
+          0.42,
+          0.36
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.54,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0.3
+        ]
+      ],
+      "contentTone": "light",
+      "subjectPosition": "拱门位于右侧中部；只通过已确认的居左两行纯文字布局准入。",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/选中/40_1850229736_huge_2x2_2.jpg",
+        "originalSize": [
+          2354,
+          2354
+        ],
+        "assetSize": [
+          2354,
+          2354
+        ],
+        "processing": "原文件逐字节保留，不重绘、不调色、不裁切、不二次压缩",
+        "sourceSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
+        "assetSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_yellow_arch_square.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-seaside-sunset-wide",
+      "enabled": false,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "天气 · 海边低位太阳",
+      "description": "海边低位太阳与浅色海面，仅用于2x4左侧天气主业务、右侧上下两个小背板的定稿布局。左侧主内容必须是天气指标，整个左侧主业务文字均居左，不混入其它业务。仅右侧出现天气、居中、两端对齐不适用；预警及降雨专题仍排除。黑字及既有透明白底托，随宿主自适应填充。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "left-main-wide",
+        "mainBusiness": "weather"
+      },
+      "sizes": [
+        "2x4"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectBounds": [
+        0.51,
+        0.39,
+        0.06,
+        0.1
+      ],
+      "subjectRegions": [
+        [
+          0.51,
+          0.39,
+          0.06,
+          0.1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "light",
+      "subjectPosition": "按已确认的左主业务右双槽布局准入；主体坐标仅用于素材记录，不作为真机几何证明。",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/选中/202103071037234_2x4.JPG",
+        "originalSize": [
+          7756,
+          3878
+        ],
+        "assetSize": [
+          7756,
+          3878
+        ],
+        "processing": "原文件逐字节保留，不重绘、不调色、不裁切、不二次压缩",
+        "sourceSha256": "0fd23d9d2bfae8ff8c154a0b784e6616105e903b5b51201df909d29848f9bfca",
+        "assetSha256": "0fd23d9d2bfae8ff8c154a0b784e6616105e903b5b51201df909d29848f9bfca"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_seaside_sunset_wide.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      },
+      "subjectlessLayout": {
+        "layout": "W-content-side-slots",
+        "orientation": "content-left"
       }
     },
     {
@@ -1828,8 +2191,12 @@
       "kind": "photo",
       "pool": "photos",
       "name": "运动健康 · 中央小跑者",
-      "description": "运动相关业务（不限马拉松）的无主体背景，仅适配左侧主内容、右侧上下两块的布局；允许文字、按钮和图标覆盖中央小跑者。固定白色文字及融球前景配色，仅背景随实际画布拉伸。",
+      "description": "仅用于2x4左侧一个主业务、右侧上下两个小背板的布局，且左侧主业务为马拉松倒计时或跑步；仅右侧有运动数据或按钮不适用，普通步数、一般运动和其它倒计时不适用。固定白色文字及融球前景配色，背景随宿主自适应。",
       "subjectless": true,
+      "contentEligibility": {
+        "kind": "running-main",
+        "mainBusinesses": ["marathon-countdown", "running"]
+      },
       "sizes": [
         "2x4"
       ],
@@ -1899,7 +2266,7 @@
         "layout": "W-content-side-slots",
         "orientation": "content-left"
       },
-      "layoutHint": "左主焦点 + 右侧上下小卡",
+      "layoutHint": "左侧马拉松倒计时或跑步主焦点 + 右侧上下小背板",
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",

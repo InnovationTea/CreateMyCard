@@ -50,6 +50,29 @@ def use_config(monkeypatch, config):
     monkeypatch.setattr(registry, "_load_registry", lambda _path: copy.deepcopy(config))
 
 
+def without_photo_fallback(records):
+    """旧快照继续检查原图片与全部前景，仅移除本次新增的下载兜底。"""
+    nodes = themes.components(records)
+    background = next((node for node in nodes
+                       if node.get("id") == themes.PREFIX + "background"), None)
+    if background is None:
+        return records
+    nodes[:] = [node for node in nodes if node.get("id") not in themes.FUSION_IDS]
+    shell = next(node for node in nodes if node.get("id") == "root")
+    shell.get("styles", {}).pop("backgroundColor", None)
+    shell.get("styles", {}).pop("linearGradient", None)
+    background["children"] = [themes.PREFIX + "base", themes.PREFIX + "slot"]
+    for node in nodes:
+        if node.get("id") == themes.FUSION_FOREGROUND_ID:
+            node["id"] = themes.PREFIX + "foreground"
+        if "children" in node:
+            node["children"] = [
+                themes.PREFIX + "foreground" if child == themes.FUSION_FOREGROUND_ID else child
+                for child in node.get("children", [])
+            ]
+    return records
+
+
 @pytest.mark.parametrize("case", [case for case in BASELINE.get("cases", [])
                                  if case.get("id") not in RETIRED_BALL_COLORS])
 def test_output_matches_frozen_pre_migration_theme(case):
@@ -62,7 +85,10 @@ def test_output_matches_frozen_pre_migration_theme(case):
         result = expand_square(source, theme, task)
     else:
         result = themes.apply_theme(source, theme, task, case.get("overrides", {}))
-    canonical = json.dumps(themes.decode(result), ensure_ascii=False, sort_keys=True)
+    records = themes.decode(result)
+    if theme.get("kind") == "photo":
+        records = without_photo_fallback(records)
+    canonical = json.dumps(records, ensure_ascii=False, sort_keys=True)
     assert hashlib.sha256(canonical.encode()).hexdigest() == case.get("digest")
 
 
@@ -88,8 +114,8 @@ def test_blue_replaces_only_the_retired_ball_colors(case):
 def test_all_themes_are_self_contained_and_legacy_photos_are_retained():
     config = registry.load_theme_registry()
     entries = config.get("themes", [])
-    assert len(entries) == 32
-    assert len({theme.get("id") for theme in entries}) == 32
+    assert len(entries) == 36
+    assert len({theme.get("id") for theme in entries}) == 36
     for theme in entries:
         assert "palette" not in theme
         assert theme.get("background")
@@ -97,10 +123,12 @@ def test_all_themes_are_self_contained_and_legacy_photos_are_retained():
         assert set(content.get("roles", {})) == set(registry._ROLE_NAMES)
         assert set(theme.get("sizes", [])).issubset(content.get("panelBySize", {}))
     for pool, expected in (("photos", 4), ("subjectlessWidePhotos", 3), ("squareExpansions", 3)):
+        previous = BASELINE.get("oldManifest", {}).get(pool, [])
+        previous_ids = {theme.get("id") for theme in previous}
         previous_entries = registry.registered_themes(pool, include_disabled=True)
         previous_entries = [theme for theme in previous_entries if not theme.get("enabled")]
+        previous_entries = [theme for theme in previous_entries if theme.get("id") in previous_ids]
         assert len(previous_entries) == expected
-        previous = BASELINE.get("oldManifest", {}).get(pool, [])
         for old, current in zip(previous, previous_entries, strict=True):
             for key in ("id", "src", "frame", "subjectBounds", "subjectRegions", "business"):
                 assert current.get(key) == old.get(key)
@@ -150,7 +178,7 @@ def test_duplicate_theme_id_rejected():
 def test_registry_returns_independent_copies():
     first = registry.load_theme_registry()
     first.get("themes", []).clear()
-    assert len(registry.load_theme_registry().get("themes", [])) == 32
+    assert len(registry.load_theme_registry().get("themes", [])) == 36
 
 
 def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch):
@@ -167,7 +195,7 @@ def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch
     assert "gradient-blue-added" not in {theme.get("id") for theme in registry.registered_themes()}
     entries.remove(extra)
     use_config(monkeypatch, config)
-    assert len(registry.registered_themes()) == 22
+    assert len(registry.registered_themes()) == 25
 
 
 @pytest.mark.parametrize("identity", [

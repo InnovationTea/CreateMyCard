@@ -30,9 +30,11 @@ def source_nodes():
 
 def test_layout_evidence_reports_unknown_geometry_and_complete_buttons():
     evidence = photo_layout_evidence(source_nodes())
+    assert evidence.pop("textFlow").get("root", {}).get("maxLines") is None
     assert evidence == {
         "basis": "layout-only", "complete": True, "reason": None,
         "contentIds": ["title", "icon"], "buttonIds": ["action"], "deviceGeometryKnown": False,
+        "nonTextIds": ["icon"], "nonTextAncestors": {"icon": ["action", "root"]},
     }
     for key in ("viewport", "responsive", "occupied", "width", "height"):
         assert key not in evidence

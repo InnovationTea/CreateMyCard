@@ -20,6 +20,7 @@ from services.generation_trace_recorder import trace_step
 from services.post_layout_theme_registry import (
     fallback_theme,
     load_theme_registry,
+    photo_fallback,
     registered_themes,
     selection_rules,
     user_background_roles,
@@ -30,6 +31,7 @@ from services.theme_layout_summary import (
     matches_subjectless_layout,
     theme_description,
 )
+from services.theme_photo_eligibility import photo_content_reason
 from services.theme_selection_policy import default_palette_family, fusion_candidate_gate
 from services.theme_style_roles import COLOR_FIELDS, is_role, resolve_role
 
@@ -128,6 +130,7 @@ def photo_reason(
         "travel": "出行|航班|飞机|机场|flight|travel",
         "information": "资讯|新闻|信息咨询|news",
         "smart-home": "智慧家|智能家居|全屋|灯光|smartHome",
+        "calendar": "日程|会议|安排|calendar",
     }
     if not re.search(patterns.get(business, r"(?!)"), query + "\n" + schema, re.I):
         return "业务不适用"
@@ -139,9 +142,12 @@ def photo_reason(
     reason = layout_evidence_reason(evidence)
     if reason:
         return reason
-    if photo.get("subjectless") is not True:
+    layout_authorized = photo.get("contentEligibility", {}).get("kind") in {
+        "weather-square", "calendar-square",
+    }
+    if photo.get("subjectless") is not True and not layout_authorized:
         return "真实卡片宽高未知，无法确认主体与文字、完整按钮及图标避让"
-    return None
+    return photo_content_reason(photo, task, evidence, final_layout)
 
 
 def _photo_geometry_reason(photo: dict, evidence: dict) -> str | None:
@@ -319,6 +325,29 @@ def fusion_background(theme: dict, task: dict) -> list[dict]:
     return result
 
 
+def apply_photo_fallback(
+    shell: dict, foreground: dict, layers: list[dict], task: dict, primary: str,
+) -> None:
+    fallback = photo_fallback(primary)
+    background = fallback.get("background", {})
+    styles = shell.setdefault("styles", {})
+    if fallback.get("kind") == "gradient":
+        colors = background.get("colors", [])
+        styles["backgroundColor"] = colors[-1]
+        styles["linearGradient"] = {
+            "direction": background.get("direction"),
+            "colors": [[colors[0], 0], [colors[1], 1]],
+        }
+    else:
+        styles["backgroundColor"] = background.get("ballColors", {}).get("large")
+        if fusion_ball_enabled(task.get("appVersion")):
+            # 融球在图片后面；前景仍需端侧防溢出标记，避免球体参与内容尺寸适配。
+            foreground["id"] = FUSION_FOREGROUND_ID
+            shell["children"] = [PREFIX + "background", FUSION_FOREGROUND_ID]
+            layers[0].get("children", []).insert(0, "fusionBallBackground")
+            layers.extend(fusion_background(fallback, task))
+
+
 def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
     records = decode(source)
     nodes = components(records)
@@ -407,6 +436,8 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
         }
         if kind == "fusion":
             shell["styles"]["backgroundColor"] = background_config.get("shellColor")
+        elif kind == "photo":
+            apply_photo_fallback(shell, root, layers, task, primary)
         nodes[:0] = [shell, *layers]
     result = encode(records)
     if foreground_signature(source) != foreground_signature(result):

@@ -145,6 +145,8 @@ def matches_subjectless_layout(final_layout: str | None, requirement: dict) -> b
         child = by_id.get(identity)
         if child is None or child.component_type not in allowed:
             return False
+        if child.component_type == "InfoBlock" and child.props.get("variant") != "slot":
+            return False
     return True
 
 
