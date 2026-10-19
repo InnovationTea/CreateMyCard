@@ -3360,7 +3360,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 card_spec={"suggestSize": "2x2", "dataBindings": []},
             )
 
-    def test_warns_for_two_by_four_height_over_126(self) -> None:
+    def test_rejects_two_by_four_height_over_126(self) -> None:
         compact_dsl = _serialize(
             [
                 [
@@ -3382,21 +3382,20 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ]
         )
 
-        result = validate_compact_dsl(
-            compact_dsl,
-            task_spec={
-                "size": "2x4",
-                "dataModelSchema": {},
-                "assetCandidates": [],
-                "eventCandidates": [],
-            },
-            card_spec={"suggestSize": "2x4", "dataBindings": []},
-        )
-
-        self.assertEqual(len(result.warnings), 1)
-        self.assertIn("COMPACT_LAYOUT_HEIGHT_OVERFLOW", result.warnings[0])
-        self.assertIn("vertical layout requires at least 156vp within 126vp", result.warnings[0])
-        self.assertIn("Fallback: root_flexible_layout", result.warnings[0])
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "vertical layout requires at least 156vp within 126vp",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "size": "2x4",
+                    "dataModelSchema": {},
+                    "assetCandidates": [],
+                    "eventCandidates": [],
+                },
+                card_spec={"suggestSize": "2x4", "dataBindings": []},
+            )
 
     def test_accepts_distributed_root_with_item_margin_when_it_fits(self) -> None:
         compact_dsl = _serialize(

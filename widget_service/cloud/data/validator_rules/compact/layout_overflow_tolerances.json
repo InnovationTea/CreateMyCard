@@ -1,15 +1,6 @@
 {
   "unit": "vp",
   "supportedSizes": ["2x2", "2x4"],
-  "height": {
-    "maximumOverflow": 35,
-    "appliesTo": [
-      "root_column",
-      "column_weighted_by_parent_column",
-      "column_overflow_absorbable_by_item_margin"
-    ],
-    "description": "经验容忍上限；仅适用于已登记来源，不保证端侧一定消除溢出。"
-  },
   "width": {
     "compressibleItemMargin": {
       "maximumOverflowBySize": {

@@ -941,11 +941,10 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
   当前归属：语义／布局与视觉约束，`semantic/layout/geometry.py`。2026-10-15 按确认仅在高度校验
   视图中忽略 2x4 语义展开生成 Column 的 8vp 纵向间距；参考槽位同步使用该视图，其它高度约束不变。
   使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。2026-10-17 将
-  不超过 `35vp` 的纵向高度溢出按可压缩来源分级：根 Column、直接父节点为 Column 的正数
-  `layoutWeight` Column，或溢出可完全由当前 Column 的有效 `itemMargin` 间距总量吸收时降为 warning，
-  保留规则标识、Occupancy 和降级原因并继续转换，交由端侧灵动布局处理。父 Row 中的横向权重不作为
-  高度降级依据；同一张卡不同层级的诊断分别判断和记录。其它固定局部 Column、溢出量超过 `35vp`
-  和高度无法闭合仍阻断。严重程度调整不改变本项分类和实际文件。
+  2026-10-20 取消上述纵向 warning 降级：2×2 仅保留整树 `2vp` 数值容差，2×4 不设高度容差；
+  超过容差后，只要最小占用及可用高度可确定，根 Column、正数 `layoutWeight` Column 和可压缩
+  `itemMargin` 都继续输出 `COMPACT_LAYOUT_HEIGHT_OVERFLOW` error，进入布局容量修复。不改变本项的
+  语义／布局与视觉约束分类及实际文件。
 
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
 

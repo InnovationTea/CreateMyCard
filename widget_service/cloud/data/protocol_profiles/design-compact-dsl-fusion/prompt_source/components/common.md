@@ -165,8 +165,11 @@ Expression 仍按原合同使用，不根据字段类型为 string 就改写或�
 
 #### 选择条件
 
-用于一个分区最重要的文本结论、类别或状态。次文本只补充同一个核心语义；数值核心使用
-`EmphasizedData`，事件、进度或比较保持专用组件。
+用于一个分区最重要的文本结论、类别或状态。次文本只补充同一个核心语义；纯单一数值核心使用
+`EmphasizedData`，事件、进度或比较保持专用组件。已经格式化的主读数与同一对象的一至两个短状态共同
+构成一个完整摘要时，可以使用 `EmphasisText`：主读数进入 `mainText`，紧密关联的状态进入
+`secondaryText`。这种组合以完整表达同一语义组为目的，不把互不相关的字段或仍需30fp强调的独立量化
+主值降为次要文本。
 但在2x2无动作卡片中，若1–8字短文本结论是整卡唯一核心且只有更新时间等紧密支撑，优先使用
 `S-center` + `DataDisplay`；只有存在动作、独立补充事实或其它内容分区时，才保留 `EmphasisText`，
 并按需与 `SecondaryBody` 组合。
@@ -188,14 +191,16 @@ Expression 仍按原合同使用，不根据字段类型为 string 就改写或�
 ```genui
 ["connection","EmphasisText",{"mainText":{"path":"/data/earphone/connectionStatus"},"secondaryText":{"path":"/data/earphone/name"},"fontSize":18}]
 ```
-多个紧密关联的短字段共同组成次文本时，直接按显示顺序绑定；每个字段仍会独立响应数据更新：
+例如当前温度、天气现象与空气质量共同组成同一时点的天气摘要时，温度文本作为主文本，天气现象和
+空气质量共同组成次文本；所有动态字段仍会独立响应数据更新：
 
 ```genui
-["weather","EmphasisText",{"mainText":{"path":"/data/weather/current/condition"},"secondaryText":[{"path":"/data/weather/location/prefectureName"},{"path":"/data/weather/location/districtName"}],"fontSize":18}]
+["weather","EmphasisText",{"mainText":{"path":"/data/weather/current/temperatureText"},"secondaryText":"{{ ${/data/weather/current/condition} + ' | 空气质量 ' + ${/data/weather/current/airQuality} }}","fontSize":18}]
 ```
 
-上述 `secondaryText` 展开为 `城市值 | 区域值`。需要为各值增加静态标签时，改用包含全部绑定的完整
-Expression；`mainText` 不接受数组，互不相关或需要逐项标签的多个字段改用 `SecondaryBody` 或 `TableText`。
+不需要静态标签的多个紧密关联短字段，也可以使用至少两个有序 PathBinding 组成的数组，由转换器以
+` | ` 连接。需要增加“空气质量”等静态标签时，如上例使用包含全部绑定的完整 Expression；
+`mainText` 不接受数组，互不相关或需要逐项独立查看的多个字段改用 `SecondaryBody` 或 `TableText`。
 
 
 ### 6. `SecondaryBody`
@@ -276,6 +281,7 @@ Expression；保留原始绑定、标签和单位。不因能拼接 Expression �
 #### 槽位与容量
 
 每个合法小槽只放一个 `InfoBlock`，两行文字保持单行。尺寸、variant 和文字区宽度由尺寸文件规定。
+`secondaryText` 统一使用 12fp/500、16vp 行盒；该调整不改变 `unit` 的独立字号 Recipe。
 `primaryText` 应完整可读；`secondaryText` 超出文字区时由 Recipe 在尾部显示省略号，并产生 warning，
 不因此拒绝整张卡。省略只影响辅助文字的可见尾部，原始绑定与完整数据保持不变。
 
