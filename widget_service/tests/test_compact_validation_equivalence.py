@@ -47,6 +47,7 @@ SECONDARY_BODY_OLD_HEIGHT_CASES = {
 
 SECONDARY_BODY_WIDTH_CASES = {77, 109}
 RETIRED_WIND_LABEL_CASE = 24
+NON_BLOCKING_TWO_BY_FOUR_HEIGHT_CASES = {47}
 
 
 def _secondary_body_width_error() -> dict:
@@ -62,6 +63,7 @@ def _secondary_body_width_error() -> dict:
         "message": f"Compact DSL validation failed:\n- {message}",
         "errors": [message],
     }
+
 
 def _secondary_body_height_error(component_id: str) -> dict:
     message = (
@@ -79,6 +81,14 @@ def _secondary_body_height_error(component_id: str) -> dict:
 
 
 def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
+    if case_index in NON_BLOCKING_TWO_BY_FOUR_HEIGHT_CASES:
+        errors = expected.get("errors")
+        assert isinstance(errors, list) and len(errors) == 1
+        return {
+            "warnings": [
+                f"COMPACT_LAYOUT_HEIGHT_OVERFLOW: {errors[0]} Fallback: root_flexible_layout."
+            ]
+        }
     if case_index == RETIRED_WIND_LABEL_CASE:
         remaining_error = expected.get("errors", [])[0]
         return {

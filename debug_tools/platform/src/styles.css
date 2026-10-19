@@ -200,10 +200,26 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .settings-saved { color: var(--success); font-size: 10px; }
 .settings-validation-error { color: var(--danger); font-size: 10px; }
 .settings-scroll { min-height: 0; flex: 1 1 auto; overflow-y: auto; padding: 2px 2px 20px; }
+.settings-toolchain-status { margin: 0 0 12px; }
 .settings-card { margin-bottom: 12px; padding: 15px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 18px #203b6d08; }
 .settings-card-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .settings-card-heading h2 { margin: 0; color: #46536a; font-size: 14px; }
 .settings-card-heading span { color: #9aa5b5; font-size: 10px; }
+.managed-config-grid { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 0; }
+.managed-config-field { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, .55fr) minmax(0, 1.2fr); align-items: center; gap: 16px; border-top: 1px solid var(--line); padding: 10px 0; }
+.managed-config-label { display: contents; font-size: 11px; }
+.managed-config-label strong, .managed-config-label small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.managed-config-label small { color: #63718a; }
+.service-config-value { min-width: 0; }
+.service-config-value input, .service-config-value textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: inherit; }
+.service-config-value textarea { resize: vertical; font-family: monospace; }
+.managed-config-field .service-config-value input { text-overflow: ellipsis; }
+.managed-config-field .service-config-value textarea { display: block; height: 34px; min-height: 34px; resize: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.managed-config-field .service-config-value textarea:focus { height: 120px; resize: vertical; overflow: auto; white-space: pre-wrap; }
+.service-config-readonly { display: flex; align-items: center; gap: 8px; min-width: 0; color: #63718a; font-size: 11px; }
+.service-config-readonly pre { min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.service-config-readonly small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+@media (max-width: 760px) { .managed-config-field { grid-template-columns: minmax(0, 1fr) minmax(0, .65fr) minmax(0, 1fr); gap: 8px; } }
 .settings-subheading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 18px 0 10px; color: #506078; font-size: 11px; }
 .settings-subheading span { color: #9aa5b5; font-size: 10px; }
 .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
@@ -622,10 +638,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .sample-picker-list strong, .sample-picker-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sample-picker-list strong { margin-bottom: 4px; color: #315274; font-size: 12px; }
 .sample-picker-list small { color: #7b8798; font-size: 10px; }
-.override-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.override-grid label { display: grid; grid-template-columns: 18px 125px minmax(0, 1fr); align-items: center; min-height: 42px; padding: 5px 8px; border: 1px solid #e2e7ee; border-radius: 7px; color: #66768a; font-size: 11px; }
-.override-grid label.enabled { border-color: #a9c8ee; background: #f5f9ff; color: #315a88; }
-.override-grid input[type='text'], .override-grid input[type='number'] { min-width: 0; height: 30px; padding: 0 8px; border: 1px solid #d8e0ea; border-radius: 6px; background: #fff; font-size: 11px; }
 .backend-mode-switch { display: inline-flex; padding: 3px; margin-bottom: 14px; border: 1px solid #dae2ec; border-radius: 8px; background: #f3f6fa; }
 .backend-mode-switch button { min-height: 30px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: #65758a; font-size: 11px; font-weight: 700; }
 .backend-mode-switch button.active { background: #fff; color: #1769d4; box-shadow: 0 1px 5px rgba(39, 62, 91, .12); }
@@ -675,7 +687,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 }
 
 @media (max-width: 760px) {
-  .batch-center-page, .batch-create-page { padding: 14px; }.batch-center-header, .batch-create-header { flex-direction: column; }.scheduler-strip { grid-template-columns: repeat(2, 1fr); }.scheduler-summary, .scheduler-queue-preview { grid-column: 1 / -1; }.scheduler-metric { border-top: 1px solid #e6ebf2; }.batch-task-toolbar { align-items: stretch; flex-direction: column; }.batch-task-filters { flex-wrap: wrap; }.batch-task-filters input { width: 100%; }.batch-form-grid.three, .sample-picker-list, .override-grid, .batch-custom-param-groups { grid-template-columns: 1fr; }.batch-current-state, .device-capture-state { grid-template-columns: repeat(2, minmax(0, 1fr)); }.batch-heading-side { align-items: stretch; }.batch-run-switcher { align-items: flex-start; flex-direction: column; }.batch-run-switcher select { min-width: 0; max-width: 100%; }
+  .batch-center-page, .batch-create-page { padding: 14px; }.batch-center-header, .batch-create-header { flex-direction: column; }.scheduler-strip { grid-template-columns: repeat(2, 1fr); }.scheduler-summary, .scheduler-queue-preview { grid-column: 1 / -1; }.scheduler-metric { border-top: 1px solid #e6ebf2; }.batch-task-toolbar { align-items: stretch; flex-direction: column; }.batch-task-filters { flex-wrap: wrap; }.batch-task-filters input { width: 100%; }.batch-form-grid.three, .sample-picker-list, .batch-custom-param-groups { grid-template-columns: 1fr; }.batch-current-state, .device-capture-state { grid-template-columns: repeat(2, minmax(0, 1fr)); }.batch-heading-side { align-items: stretch; }.batch-run-switcher { align-items: flex-start; flex-direction: column; }.batch-run-switcher select { min-width: 0; max-width: 100%; }
 }
 .postprocess-launch { border-color: #b8c5dc; color: #284d8f; background: #f6f8fc; }
 .postprocess-backdrop { position: fixed; z-index: 80; inset: 0; display: grid; place-items: start center; padding: 9vh 28px 28px; background: rgb(15 23 42 / 34%); backdrop-filter: blur(2px); }

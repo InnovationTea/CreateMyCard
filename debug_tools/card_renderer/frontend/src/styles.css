@@ -145,7 +145,7 @@
 .card-renderer__preview-toolbar input:disabled { cursor: not-allowed; opacity: .55; }
 .card-renderer__stage { display: grid; place-items: center; min-height: 0; overflow: auto; border: 1px solid var(--renderer-line); border-radius: 14px; background: linear-gradient(45deg, rgb(0 0 0 / 3.5%) 25%, transparent 25%), linear-gradient(-45deg, rgb(0 0 0 / 3.5%) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgb(0 0 0 / 3.5%) 75%), linear-gradient(-45deg, transparent 75%, rgb(0 0 0 / 3.5%) 75%); background-position: 0 0, 0 12px, 12px -12px, -12px 0; background-size: 24px 24px; }
 .card-renderer__matte { overflow: hidden; border-radius: 20px; background: #fff; transform-origin: center; box-shadow: 0 12px 36px rgb(34 48 71 / 7%); isolation: isolate; }
-.card-renderer__empty { display: grid; place-items: center; width: 160px; height: 160px; color: #98a2b3; background: #fff; }
+.card-renderer__empty { display: grid; place-items: center; width: 150px; height: 150px; color: #98a2b3; background: #fff; }
 .card-renderer__surface { position: relative; overflow: hidden; color: #1f2937; background: #fff; }
 .card-renderer__runtime-error { display: grid; place-items: center; width: 100%; height: 100%; padding: 12px; color: var(--renderer-danger); background: #fff5f4; font-size: 12px; text-align: center; }
 .card-renderer__interaction { max-height: 150px; overflow: auto; padding: 10px; border: 1px solid var(--renderer-line); border-radius: 10px; background: #fff; font-size: 12px; }

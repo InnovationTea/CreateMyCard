@@ -71,7 +71,7 @@ async def test_subset_executes_only_selected_and_keeps_history(tmp_path: Path) -
         return {"status": "success", "sampleResults": [],
                 "datasetResult": {"status": "skipped", "artifacts": []}}
 
-    manager = PostprocessManager(tmp_path, PLUGINS, builtin_runners={"browser-gallery": gallery})
+    manager = PostprocessManager(tmp_path, PLUGINS, builtin_runners={"browser-capture": gallery})
     await manager.start()
     try:
         first = manager.enqueue("run", ["quality-score"], {"quality-score": {"count": 1}})

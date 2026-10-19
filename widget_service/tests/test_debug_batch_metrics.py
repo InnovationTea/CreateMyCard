@@ -378,6 +378,21 @@ def test_retry_snapshot_only_accepts_whitelisted_typed_configuration():
     assert snapshot == {"qualityRepairEnabled": True, "qualityRepairMaxAttempts": 5}
 
 
+def test_retry_snapshot_prefers_current_names_and_does_not_leak_secrets() -> None:
+    snapshot = retry_config_snapshot(
+        {
+            "enable_validation_failure_retry": False,
+            "enableValidationFailureRetry": True,
+            "validation_failure_max_repair_attempts": 3,
+            "validationFailureMaxRepairAttempts": 5,
+            "model_failure_max_retry_attempts": False,
+            "compact_dsl_interface_retry_count": -1,
+            "deepseek_official_http_api_key": "must-not-leak",
+        }
+    )
+    assert snapshot == {"qualityRepairEnabled": False, "qualityRepairMaxAttempts": 3}
+
+
 def test_service_retry_policy_snapshot_reports_settings_without_changing_them():
     from types import SimpleNamespace
 

@@ -10,6 +10,36 @@ function response(value: unknown): Response {
 describe('PostprocessDashboardRoute', () => {
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+  it('shows a stored browser screenshot after selecting its sample', async () => {
+    const artifact = {
+      key: 'browser-capture', title: 'Web 渲染截图', dataType: 'image', renderer: 'gallery',
+      url: '/debug/batch/runs/run_1/postprocess/post_1/assets/browser-capture/0001.png',
+      alt: 'Q001 浏览器截图',
+    };
+    const sample = {
+      sampleId: 'Q001', title: '天气', status: 'success', summary: '浏览器截图已生成',
+      facts: { captureStatus: 'success' }, artifacts: [artifact],
+    };
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      if (input === '/debug/batch/runs/run_1') return response({ postprocessExecutions: [] });
+      if (input.endsWith('/dashboard')) return response({
+        plugin: { id: 'browser-capture', name: '浏览器截图' },
+        presentation: { defaultView: 'gallery', sampleFields: [] },
+        datasetResult: { artifacts: [] }, samples: [sample], totalSamples: 1,
+      });
+      if (input.includes('/samples?')) return response({ items: [sample], total: 1 });
+      if (input.endsWith('/samples/Q001')) return response(sample);
+      throw new Error(`unexpected request: ${input}`);
+    }));
+    render(<MemoryRouter initialEntries={['/batch/runs/run_1/postprocess/post_1/plugins/browser-capture']}>
+      <Routes><Route path="/batch/runs/:runId/postprocess/:executionId/plugins/:pluginId"
+        element={<PostprocessDashboardRoute />} /></Routes>
+    </MemoryRouter>);
+    fireEvent.click(await screen.findByText('Q001'));
+    expect(await screen.findByRole('img', { name: 'Q001 浏览器截图' })).toHaveAttribute('src', artifact.url);
+    expect(screen.queryByText('暂无图片')).not.toBeInTheDocument();
+  });
+
   it('loads overview, filters samples and opens the sample inspector', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: string) => {
       const url = String(input);

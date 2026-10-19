@@ -56,10 +56,10 @@ export function QualityRoute() {
     selectionError = '请至少选择一个样本';
   }
   const gallery = run?.postprocessExecutions?.find((item) => (
-    item.plugins?.some((plugin) => plugin.id === 'browser-gallery' && plugin.status !== 'queued')
+    item.plugins?.some((plugin) => plugin.id === 'browser-capture' && plugin.status !== 'queued')
   ));
   const galleryPath = gallery
-    ? `/batch/runs/${encodeURIComponent(runId)}/postprocess/${encodeURIComponent(gallery.executionId)}/plugins/browser-gallery`
+    ? `/batch/runs/${encodeURIComponent(runId)}/postprocess/${encodeURIComponent(gallery.executionId)}/plugins/browser-capture`
     : run?.taskId ? `/batch/tasks/${encodeURIComponent(run.taskId)}` : `/batch/legacy/${encodeURIComponent(runId)}`;
 
   return <div className="quality-page">
@@ -107,8 +107,8 @@ export function QualityRoute() {
       <p>{confirmed ? `已确认 ${confirmed.length} 个样本；修改批次或范围后需重新确认。` : '先确认导入样本，再点击运行评分。'}</p>
       <p className="quality-warning">{run?.sourceType === 'external-quality'
         ? '使用离线结构、内容线索与 OCR 检查，不启动 Web 或模拟器渲染。截图关联为用户配对，缺少 OCR 时待评。'
-        : '将复用已有画廊依赖。检测结果过期时，请先再次运行画廊，再运行评分。'}</p>
-      {run && run.sourceType !== 'external-quality' && <p><Link to={galleryPath}>前往画廊／后处理</Link></p>}
+        : '将复用已有浏览器截图。检测结果过期时，请先再次运行浏览器截图，再运行评分。'}</p>
+      {run && run.sourceType !== 'external-quality' && <p><Link to={galleryPath}>前往截图／后处理</Link></p>}
       <button type="button" className="batch-create-submit" disabled={!confirmed || Boolean(selectionError) || scoring.busy} onClick={() => { if (confirmed) void scoring.start(confirmed); }}>
         {scoring.busy ? scoring.status : '运行评分'}
       </button>

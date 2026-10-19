@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { WorkbenchProvider } from '../context';
+import { configurationFixture } from '../serviceConfig.testFixture';
 import { BatchTaskCreateRoute } from './BatchTaskCreateRoute';
 
 function response(body: unknown, status = 200): Response {
@@ -12,11 +13,11 @@ function response(body: unknown, status = 200): Response {
 describe('BatchTaskCreateRoute', () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-  it('creates a task with its first queued execution and opens the detail page', async () => {
+  it.each([false, true])('creates a task with only temporary overrides (managed=%s)', async (managed) => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input);
       if (url === '/debug/batch/datasets') return response({ items: [{ id: 'request_dataset', name: 'request_dataset', sampleCount: 2, validSampleCount: 1, invalidSampleCount: 1 }] });
-      if (url === '/debug/batch/service-config/defaults') return response({ values: { enableA2uiModelMock: true, openaiMasterClient: 'llmclient' }, sources: { enableA2uiModelMock: 'debug_agent.yaml', openaiMasterClient: 'debug_agent.yaml' } });
+      if (url === '/debug/batch/service-config/defaults') return response(configurationFixture());
       if (url.endsWith('/datasets/request_dataset/samples')) return response({ items: [
         { id: 'Q001', fileName: 'Q001.json', title: '天气', query: '天气卡片', size: '2x2', valid: true, error: '' },
         { id: 'Q002', fileName: 'Q002.json', title: '损坏', query: '', size: '', valid: false, error: 'invalid' },
@@ -36,6 +37,14 @@ describe('BatchTaskCreateRoute', () => {
     expect(await screen.findByText('Q001 · 天气')).toBeInTheDocument();
     expect(screen.getByText('Q002 · 损坏')).toBeInTheDocument();
     expect(screen.getByText(/创建后立即加入后台队列/)).toBeInTheDocument();
+    if (managed) {
+      await userEvent.click(screen.getByRole('button', { name: '本地受管后端' }));
+      expect(screen.queryByLabelText('MODEL_MAX_CONCURRENCY')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('ENABLE_MODEL_FAILURE_RETRY'));
+      await userEvent.click(screen.getByRole('button', { name: '取消临时覆盖' }));
+      expect(screen.getByLabelText('ENABLE_MODEL_FAILURE_RETRY')).not.toBeChecked();
+      await userEvent.click(screen.getByLabelText('ENABLE_MODEL_FAILURE_RETRY'));
+    }
     await userEvent.click(screen.getByRole('button', { name: '创建并执行' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
@@ -46,6 +55,9 @@ describe('BatchTaskCreateRoute', () => {
     expect(body.datasetId).toBe('request_dataset');
     expect(body.sampleIds).toEqual(['Q001']);
     expect(body.requestOverrides).toEqual({});
+    expect(body.serviceConfig).toEqual(managed ? { enable_model_failure_retry: true } : {});
+    expect(screen.queryByText('公共请求字段覆盖')).not.toBeInTheDocument();
+    expect(screen.queryByText('字段覆盖')).not.toBeInTheDocument();
     expect(body).not.toHaveProperty('concurrency');
     expect(body).not.toHaveProperty('maxRetries');
     expect(body).not.toHaveProperty('timeoutSeconds');

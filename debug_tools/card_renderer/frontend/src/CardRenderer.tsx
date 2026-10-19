@@ -49,6 +49,7 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
   const conversionRequest = useRef<AbortController | null>(null);
   const renderTimer = useRef<number | undefined>(undefined);
   const zoom = controlledZoom ?? internalZoom;
+  const stageRef = useRef<HTMLDivElement | null>(null);
 
   const cancelConversion = () => {
     conversionRequest.current?.abort();
@@ -70,6 +71,21 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
     if (controlledZoom === undefined) setInternalZoom(nextZoom);
     onZoomChange?.(nextZoom);
   };
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const handleWheel = (event: WheelEvent) => {
+      if (event.deltaY === 0) return;
+      event.preventDefault();
+      const nextZoom = Math.max(50, Math.min(360, zoom + (event.deltaY < 0 ? 10 : -10)));
+      if (nextZoom === zoom) return;
+      if (controlledZoom === undefined) setInternalZoom(nextZoom);
+      onZoomChange?.(nextZoom);
+    };
+    stage.addEventListener('wheel', handleWheel, { passive: false });
+    return () => stage.removeEventListener('wheel', handleWheel);
+  }, [zoom, controlledZoom, onZoomChange]);
 
   useEffect(() => {
     if (initialValue === undefined) return;
@@ -180,7 +196,7 @@ export function CardRenderer({ initialValue, assetBaseUrl = '/resources/', conve
           <label>缩放<input type="range" min="50" max="360" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} /><span>{zoom}%</span></label>
         </div>
       </div>
-      <div className="card-renderer__stage"><div className="card-renderer__matte" style={{ transform: `scale(${zoom / 100})` }}>{previewDocument ? <CardPreview document={previewDocument} assetBaseUrl={assetBaseUrl} onAction={(action, component) => {
+      <div className="card-renderer__stage" ref={stageRef} aria-label="卡片缩放画布"><div className="card-renderer__matte" style={{ transform: `scale(${zoom / 100})` }}>{previewDocument ? <CardPreview document={previewDocument} assetBaseUrl={assetBaseUrl} onAction={(action, component) => {
         setInteraction(JSON.stringify({ action, componentId: component.id }, null, 2));
         onAction?.(action, component);
       }} /> : <div className="card-renderer__empty">暂无卡片</div>}</div></div>

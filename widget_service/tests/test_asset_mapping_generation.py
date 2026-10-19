@@ -82,6 +82,8 @@ def storage(tmp_path, monkeypatch, isolated_theme_stage):
     settings = get_settings()
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "enable_widget_edit", True)
+    # 本文件验证旧路由的素材还原/重新映射；字段补丁编辑保留已交付地址。
+    monkeypatch.setattr(settings, "enable_single_step_widget_edit", False)
     monkeypatch.setattr(settings, "enable_artifact_download_mock", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)

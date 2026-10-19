@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import math
+import re
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -45,7 +46,8 @@ def _retry_value(name: str, value: Any) -> bool:
 def retry_config_snapshot(config: dict[str, Any]) -> dict[str, Any]:
     snapshot: dict[str, Any] = {}
     for source, target in RETRY_CONFIG_FIELDS.items():
-        value = config.get(source)
+        canonical = re.sub(r"(?<!^)(?=[A-Z])", "_", source).lower()
+        value = config.get(canonical, config.get(source))
         if _retry_value(target, value):
             snapshot[target] = value
     return snapshot

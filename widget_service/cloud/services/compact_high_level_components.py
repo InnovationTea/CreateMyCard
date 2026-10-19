@@ -1948,7 +1948,11 @@ def _expand_info_block(
         )
     if visual_type == "icon":
         image_props: dict[str, Any] = {"src": visual_icon}
-        if visual.get("color") != "native":
+        preserve_color = visual.get("color") == "native"
+        if in_layout_phase():
+            # 融合链路只信任素材声明，模型的 native 不能豁免单色 SVG 染色。
+            preserve_color = native_asset(visual_icon) or not visual_icon.lower().endswith(".svg")
+        if not preserve_color:
             image_props["fillColor"] = component.props.get(
                 "fillColor",
                 component.props["fontColor"],

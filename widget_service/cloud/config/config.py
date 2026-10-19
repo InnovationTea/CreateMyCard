@@ -225,10 +225,16 @@ class Settings(BaseSettings):
         CONFIG.get("enable_default_capability_registry_fallback") == "true"
     )
     enable_validation_failure_retry: bool = CONFIG.get("enable_validation_failure_retry") == "true"
+    enable_widget_edit: bool = CONFIG.get("enable_widget_edit", "true") == "true"
+    enable_single_step_generation_fallback: bool = (
+        CONFIG.get("enable_single_step_generation_fallback", "false") == "true"
+    )
+    enable_single_step_widget_edit: bool = (
+        CONFIG.get("enable_single_step_widget_edit", "true") == "true"
+    )
     enable_drop_plan_fact_validation: bool = (
         CONFIG.get("enable_drop_plan_fact_validation", "false") == "true"
     )
-    enable_widget_edit: bool = CONFIG.get("enable_widget_edit") == "true"
     enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
     enable_widget_directive_commands: bool = (
         CONFIG.get("enable_widget_directive_commands") == "true"
@@ -266,6 +272,7 @@ class Settings(BaseSettings):
     )
     enable_openai_fallback: bool = CONFIG.get("enable_openai_fallback") == "true"
     enable_sensitive_log_fields: bool = CONFIG.get("enable_sensitive_log_fields") == "true"
+    enable_card_template: bool = CONFIG.get("enable_card_template", "false") == "true"
     enable_generation_trace_recording: bool = (
         CONFIG.get("enable_generation_trace_recording", "false") == "true"
     )

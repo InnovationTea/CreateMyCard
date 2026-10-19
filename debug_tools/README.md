@@ -1,5 +1,73 @@
 # AI Widget 调试工作台
 
+## 本机配置
+
+缺少 `debug_tool.yaml` 时仍可启动工作台，连接配置页会显示配置缺失提醒；设备渲染和截图暂不可用，
+模型调用仍需有效配置。在仓库根目录执行以下命令创建本机配置；已有配置时不要覆盖：
+
+```powershell
+Copy-Item debug_tools/debug_tool.yaml.example debug_tools/debug_tool.yaml
+```
+
+macOS / Linux 可执行 `cp -n debug_tools/debug_tool.yaml.example debug_tools/debug_tool.yaml`。
+随后按模板中的字段说明填写本机路径、模型通道及运行参数，再启动调试平台。
+模板使用保留类型的示例值，路径和设备信息需要替换；空凭据不代表接口可直接调用。
+模型密钥请在本机配置或 `widget_service/.env` 中填写，不要放入示例模板。
+受管服务的 `widget_backend` 优先级高于 `.env`，不要在其中用空密钥覆盖有效凭据。
+端到端 Main Agent 与本地受管微服务共用 `widget_backend` 配置，不再维护或读取 `main_agent.model`。
+旧配置请将需要保留的模型参数放入 `widget_backend.defaults` 或已有的 `widget_backend.exposed`，
+同一参数只维护一处；模型密钥须与所选通道对应。修改后重启调试服务和本地受管微服务。
+`platform.server.bundle_name` 必须与所选 Skill 的工具声明及工具快照一致；项目内置在线 Skill 使用
+`com.omega_w_0823.hmservice`。出现“frontmatter 工具 bundle 与 Debug 配置不一致”时，检查该项并重启服务。
+
+仓库只维护 [`debug_tool.yaml.example`](debug_tool.yaml.example)。实际 `debug_tool.yaml` 已加入
+`.gitignore`，连接配置页保存的修改只留在本机。更新已有工作区前请备份自己的配置。
+
+## 本机 Node 与 DevEco 环境
+
+调试平台的本机工具链统一配置在 `debug_tool.yaml` 的 `platform.environment`：
+
+```yaml
+platform:
+  environment:
+    deveco_studio_home: D:/Env/DevEco Studio
+    node_executable: ${environment.deveco_studio_home}/tools/node/node.exe
+    sdk_home: ${environment.deveco_studio_home}/sdk
+    hdc: ${environment.sdk_home}/default/openharmony/toolchains/hdc.exe
+```
+
+`node_executable` 应通过 YAML 配置完整路径；未配置时才尝试系统 `PATH`。
+Node、DevEco 等外部工具未配置或路径不可用时，启动只记录提醒，不阻止工作台启动。
+显式路径无效时不回退到其它版本；截图或设备操作在实际调用时报告缺失原因。修改配置后需要重启调试服务。
+
+`platform.environment` 中的任一路径变量都可以在后续路径开头以
+`${environment.<name>}` 引用；未定义、循环引用或把变量放在路径中间都会明确报错。连接配置页会每 10 秒检查并显示
+Node、HDC、Hvigor、JBR 与 SDK 的实际可用状态，鼠标悬停可查看最终解析路径。
+
+
+不需要另外安装全局 Node。手工执行前端命令时可直接使用 DevEco 自带 npm，例如：
+
+```powershell
+& 'D:\Env\DevEco Studio\tools\node\npm.cmd' run build
+& 'D:\Env\DevEco Studio\tools\node\npm.cmd' test
+```
+
+## 设备渲染
+
+启动工作台后打开 `/debug/device-render`，刷新并选择在线设备；也可点击本地虚拟机的“启动”按钮，
+平台会轮询启动任务，待其连接 HDC 后自动选中对应模拟器。批跑后处理面板也提供相同的模拟器启动与自动选择能力。
+在“输入与部署”中切换 Compact DSL、A2UI 页签并输入代码；Compact 的转换结果在 A2UI 页签查看和编辑。
+选择尺寸后点击“编译并运行”。“渲染预览”中的两个复选框分别控制浏览器预览与设备卡片截图，
+页面不再展示全屏截图。任务信息保留裁切信息和警告；页面关闭不取消任务，刷新可恢复最近任务。
+模拟器首次启动 App 时若返回 `10106102` 锁屏错误，平台会等待其异步解锁并有界重试，无需重新提交任务。
+
+ArkTS 工程内置于 `debug_tools/a2ui_render`，固定 HAR 的校验值见其 `DEPENDENCIES.md`。
+`debug_tool.yaml` 的 `platform.device_capture` 仅保留工具链、模拟器和超时等本机参数。缺少 `oh_modules`
+时自动按锁文件安装依赖；工程内容和构建输入未变化时复用 HAP。同一 Session 只安装一次，样本通过 HDC
+动态推送。真机或类型未知目标必须生成 signed HAP，模拟器允许 unsigned HAP；若 HDC 不允许访问
+unsigned 应用沙箱，平台自动改用 Ability 分块传输，由 App 重组并写入自己的样本目录。
+首次安装 Python 依赖需包含 `json5` 和 `Pillow`；`frontend`、`full` 模式均支持本模块。
+
 `debug_tools` 是 AI 卡片云侧链路的本地浏览器工作台。日常使用从这里完成端到端会话、微服务接口调用、
 卡片预览和数据集批跑；协议、存储格式和插件开发等实现细节分别维护在各子包 README 中。
 
@@ -58,9 +126,18 @@ uv run cloud/start_websocket_server.py
 ### 0. 配置本地环境
 
 调试平台和微服务采用的配置优先级为：
-`widget_service/.env` > `debug_tools/end_to_end_debug/backend/debug_agent.yaml` > `default_config.yaml`。
+受管启动时为：批跑临时覆盖 > `debug_tools/debug_tool.yaml/widget_backend` >
+`widget_service/.env` > `default_config.yaml` > 父进程环境补缺 > 微服务代码默认值。
 
-在启动微服务时，会按照优先级从低到高导入配置文件，并覆盖已有字段。如果微服务的执行过程不符合预期，请按照配置优先级进行检查。
+连接配置切换为本地受管模式后，展示三份文件去重后的参数、来源和可编辑状态。
+`widget_backend.exposed` 单独展示，并允许批跑临时覆盖；剩余字段使用每次执行时的当前默认值。
+敏感字段只显示来源；未识别字段和平台分配的监听地址、端口只读。
+保存只把修改项写入 `debug_tool.yaml`：已有字段原位更新，新增覆盖进入 `widget_backend.defaults`。
+需要在批跑中临时修改的字段，应手工从 defaults 移到 exposed，不能同时出现在两处。
+页面不会修改 `.env` 或 `default_config.yaml`，也不会把受管参数保存进浏览器。
+“重新加载已保存配置”丢弃草稿；遇到其他编辑者修改文件时，保存会报告冲突，需重新加载后再修改。
+配置保存不打断运行中的微服务，下次启动或任务执行时按有效配置复用或重启。
+直接运行 `cloud/start_websocket_server.py` 不读取 `debug_tool.yaml`，仍采用微服务自身的配置机制。
 
 在蓝区进行测试时，需要配置如下字段使用 DeepSeek 模型：
 
@@ -161,3 +238,10 @@ npm run build
 
 架构与代码组织见 [`调试平台技术方案.md`](调试平台技术方案.md)；页面会话、批跑、后处理、渲染、
 评分与 Trace 的运行及验收规则见 [`调试平台运行规范.md`](调试平台运行规范.md)。
+
+## 素材维护
+
+浏览器和真机共用 `a2ui_render/entry/src/main/resources/base/media/` 下的图片。
+浏览器专用背景与字体位于 `card_renderer/assets/`，运行时不依赖弃用的 `render/platform/public/`。
+在仓库根运行 `.\.venv\Scripts\python.exe debug_tools/scripts/sync_assets.py --sync`，
+再使用 `--check` 校验登记图片；无需将图片复制到 `dist`。
