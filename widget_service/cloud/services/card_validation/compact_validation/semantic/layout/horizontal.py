@@ -11,25 +11,14 @@ from services.card_validation.compact_validation.diagnostics import (
     CompactDiagnostic,
     emit_error,
 )
+from services.card_validation.compact_validation.semantic.layout.overflow_tolerances import (
+    layout_overflow_tolerances,
+)
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_region_layout import reference_region_boxes
 
 _CONTAINERS = frozenset({"Row", "Column", "Stack"})
 _UNMODELED = frozenset({"aspectRatio", "borderWidth"})
-_ROOT_WIDTH_WARNING_LIMITS = {
-    "2x2": 10.0,
-    "2x4": 32.0,
-}
-
-_WEIGHTED_WIDTH_WARNING_LIMITS = {
-    "2x2": 24.0,
-    "2x4": 52.0,
-}
-
-_GAP_WIDTH_WARNING_LIMITS = {
-    "2x2": 16.0,
-    "2x4": 16.0,
-}
 _EPSILON = 1e-7
 
 
@@ -255,13 +244,17 @@ def _has_horizontal_weight_ancestor(
     by_id: dict[str, ComponentRow],
     parents: dict[str, str],
 ) -> bool:
-    """判断当前 Row 是否位于父 Row 分配的横向权重区域内。"""
+    """判断当前 Row 能否继承祖先横向权重，固定宽度边界会终止继承。"""
     current: ComponentRow | None = node
     visited: set[str] = set()
     while current is not None:
         if current.component_id in visited:
             return False
         visited.add(current.component_id)
+        width = _number(current.props.get("width"))
+        flex_shrink = _number(current.props.get("flexShrink"))
+        if width is not None and flex_shrink == 0.0:
+            return False
 
         parent_id = parents.get(current.component_id)
         parent = by_id.get(parent_id) if parent_id is not None else None
@@ -285,22 +278,29 @@ def _non_blocking_width_overflow_reason(
     compressible_gap: float,
 ) -> str | None:
     """按可压缩间距、根布局和横向权重层级决定宽度溢出是否可降级。"""
-    if not isinstance(size, str) or size not in {"2x2", "2x4"}:
+    tolerances = layout_overflow_tolerances()
+    if not isinstance(size, str) or size not in tolerances.supported_sizes:
         return None
 
-    gap_limit = _GAP_WIDTH_WARNING_LIMITS[size]
+    gap_limit = tolerances.width_compressible_item_margin.for_size(size)
+    if gap_limit is None:
+        return None
     gap_can_absorb = overflow <= compressible_gap + _EPSILON
     if gap_can_absorb and overflow <= gap_limit + _EPSILON:
         return "compressible_item_margin"
 
     if node.component_id == "root":
-        root_limit = _ROOT_WIDTH_WARNING_LIMITS[size]
+        root_limit = tolerances.width_root_flexible_layout.for_size(size)
+        if root_limit is None:
+            return None
         if overflow <= root_limit + _EPSILON:
             return "root_flexible_layout"
         return None
 
     if _has_horizontal_weight_ancestor(node, by_id, parents):
-        weighted_limit = _WEIGHTED_WIDTH_WARNING_LIMITS[size]
+        weighted_limit = tolerances.width_weighted_flexible_layout.for_size(size)
+        if weighted_limit is None:
+            return None
         if overflow <= weighted_limit + _EPSILON:
             return "weighted_flexible_layout"
 

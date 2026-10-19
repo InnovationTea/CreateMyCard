@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from services.card_validation import validate_compact_dsl
+from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.card_validation.compact_validation.diagnostics import DiagnosticCollector
 from services.card_validation.compact_validation.semantic.layout.horizontal import (
     _collect_horizontal_budget_errors,
@@ -34,8 +34,22 @@ _TASK = {
 }
 
 
-def _source(*, count: int = 3, weight: int = 1, clip: bool = True) -> str:
+def _source(
+    *,
+    count: int = 3,
+    weight: int = 1,
+    clip: bool = True,
+    fixed_buds_boundary: bool = False,
+) -> str:
     ids = [f"ring_{index}" for index in range(count)]
+    buds_props: dict[str, object] = {
+        "width": "matchParent",
+        "itemMargin": 6,
+        "layoutWeight": 1,
+    }
+    if fixed_buds_boundary:
+        buds_props["width"] = 116
+        buds_props["flexShrink"] = 0
     rows = [
         [
             "root",
@@ -75,7 +89,7 @@ def _source(*, count: int = 3, weight: int = 1, clip: bool = True) -> str:
             ["title", "buds"],
         ],
         ["title", "SingleLineTitle", {"title": "耳机已连接"}],
-        ["buds", "Row", {"width": "matchParent", "itemMargin": 6, "layoutWeight": 1}, ids],
+        ["buds", "Row", buds_props, ids],
     ]
     for identifier in ids:
         rows.append(
@@ -143,6 +157,21 @@ def test_public_validation_downgrades_weighted_width_overflow(clip: bool) -> Non
     assert "it overflows by 52vp" in warning
     assert "Occupancy:" in warning
     assert "Fallback: weighted_flexible_layout" in warning
+
+
+def test_public_validation_rejects_fixed_width_inside_weighted_ancestor() -> None:
+    source = _source(fixed_buds_boundary=True)
+
+    with pytest.raises(CompactDslValidationError) as captured:
+        validate_compact_dsl(source, task_spec=_TASK, card_spec={})
+
+    diagnostics = captured.value.diagnostics
+    assert len(diagnostics) == 1
+    diagnostic = diagnostics[0]
+    assert diagnostic.code == "COMPACT_LAYOUT_WIDTH_OVERFLOW"
+    assert diagnostic.component_id == "buds"
+    assert diagnostic.actual.get("minimumRequiredWidth") == 168
+    assert diagnostic.actual.get("overflow") == 52
 
 
 @pytest.mark.parametrize("count, weight", [(2, 1), (3, 3)])
@@ -240,7 +269,12 @@ def test_gap_width_warning_requires_full_absorption_within_limit(
     expected: str | None,
 ) -> None:
     root = ComponentRow("root", "Column", {}, ("fixed",))
-    fixed = ComponentRow("fixed", "Row", {}, ())
+    fixed = ComponentRow(
+        "fixed",
+        "Row",
+        {"width": 100, "flexShrink": 0},
+        (),
+    )
 
     assert (
         _non_blocking_width_overflow_reason(

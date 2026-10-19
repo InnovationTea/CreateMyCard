@@ -122,6 +122,12 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 仍为 error。文字宽度预算先于本项执行并保持严格；同一产物存在文字宽度错误时，不能被本项 warning
 放行。该调整不改变检查项分类、实际文件、错误码及调用顺序。
 
+2026-10-19：高度与宽度经验阈值统一由
+`data/validator_rules/compact/layout_overflow_tolerances.json` 提供，配置声明 vp 单位、2x2/2x4 和各适用
+场景，并在加载时校验。横向权重区域向上查找遇到数值宽度且 `flexShrink:0` 的固定宽度边界即停止，
+不得继续凭更高层祖先权重降级；间距完全吸收仍独立判断。阈值只表示经验容忍，不证明端侧必然消除
+溢出。本项仍归 `semantic/layout/horizontal.py`，配置解析归同目录 `overflow_tolerances.py`。
+
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
 高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
 受约束影响的后代槽位继续按未知处理，避免把分配前宽度当作实际宽度。

@@ -11,13 +11,15 @@ from services.card_validation.compact_validation.diagnostics import (
     CompactDslValidationError,
     emit_error,
 )
+from services.card_validation.compact_validation.semantic.layout.overflow_tolerances import (
+    layout_overflow_tolerances,
+)
 from services.card_validation.compact_validation.text import _format_vp, _non_negative_number
 from services.compact_component_runtime import visual_recipe_part
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_reference_canvas import reference_dimension
 from services.compact_region_layout import reference_region_boxes
 
-_HEIGHT_OVERFLOW_WARNING_LIMIT = 35.0
 _EPSILON = 1e-7
 
 
@@ -170,9 +172,10 @@ def _non_blocking_height_overflow_reason(
     overflow: float,
 ) -> str | None:
     """按间距容量和纵向弹性层级判断高度溢出是否可降级。"""
-    if not isinstance(size, str) or size not in {"2x2", "2x4"}:
+    tolerances = layout_overflow_tolerances()
+    if not isinstance(size, str) or size not in tolerances.supported_sizes:
         return None
-    if overflow > _HEIGHT_OVERFLOW_WARNING_LIMIT + _EPSILON:
+    if overflow > tolerances.height_maximum + _EPSILON:
         return None
 
     child_count = 0
