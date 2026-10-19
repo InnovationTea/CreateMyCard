@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any, Literal, Protocol
 
@@ -26,6 +26,7 @@ from services.compact_plan import (
     compact_plan_omitted_facts,
     evaluate_compact_plan_coverage,
 )
+from services.compact_repair_context import bounded_component_capacity_contexts
 from services.compact_wide_recomposition import recompose_wide_card
 from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
@@ -406,6 +407,19 @@ class DesignCompactProcessor:
                 compact_issues = self._validation_failure(
                     source_dsl, exc.errors, groups=exc.groups,
                 ).issues
+                capacity_contexts = bounded_component_capacity_contexts(
+                    source_dsl,
+                    exc.errors,
+                    context.compact_plan,
+                )
+                if capacity_contexts and compact_issues:
+                    first_issue = compact_issues[0]
+                    prompt_context = dict(first_issue.prompt_context)
+                    prompt_context["capacityFits"] = capacity_contexts
+                    compact_issues = (
+                        replace(first_issue, prompt_context=prompt_context),
+                        *compact_issues[1:],
+                    )
                 return DslProcessingResult(
                     source_dsl=source_dsl,
                     issues=(

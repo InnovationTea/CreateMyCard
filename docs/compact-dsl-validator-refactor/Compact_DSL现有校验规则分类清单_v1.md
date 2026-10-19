@@ -58,6 +58,11 @@ Action 事实、事件 handler、动作素材、动作槽及其它 Compact 校�
 enable_drop_plan_fact_validation 默认关闭；开启时在 Repair 阶段恢复严格事实覆盖，仅保留程序明确
 授权的 Drop 豁免范围。
 
+2026-10-19：修正首次 Plan 静态事实覆盖的严重程度。`compact_plan.py` 不再将 `text`
+未完整可见无条件写为 warning；首次 DSL 评估与数据事实一样生成覆盖 error，进入
+模型 Repair 后才按上述请求级政策决定是否降为 warning。归属仍为生成编排层的 Plan
+覆盖检查，不在 Compact 语法／语义校验器内重复实现。
+
 2026-10-15：SecondaryBody.items数量上限由4改为6，归属语法／组件合同，仍委托
 compact_high_level_components.py的共享组件校验，不在分类入口重复实现。实际数量超过6时进入
 既有组件修复，由compact_repair_strategy.py说明可选补充项清理与Plan保护；容量归属与Drop授权不变。

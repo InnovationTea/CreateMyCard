@@ -468,6 +468,73 @@ def test_chinese_semantic_layout_error_uses_structure_route() -> None:
     assert directive.retry_target == "dsl_local_repair"
 
 
+def test_missing_semantic_references_receive_executable_repair_guidance() -> None:
+    tracker = CompactRepairStrategyTracker()
+    source = "\n".join(
+        [
+            '["root","Layout",{"layout":"W-content-side-slots"},'
+            '["content","upper","lower"]]',
+            '["content","Region",{"variant":"center"},["status"]]',
+            '["status","EmphasisText",{"mainText":"已连接"}]',
+            '["daily","CardButton",{"label":"每日推荐","onClick":[{}]}]',
+            '["favorite","CardButton",{"label":"收藏歌单","onClick":[{}]}]',
+        ]
+    )
+    errors = [
+        _issue(
+            "语义布局不符合合同：节点 upper：引用了不存在的组件。"
+            "请选择已登记的 Layout、Region 或 Group 变体。"
+        )
+    ]
+
+    directive = tracker.next_directive(source, errors)
+
+    assert directive.repair_strategy == "parent_layout_recompose"
+    assert "root.children[1]=upper" in directive.instruction
+    assert "root.children[2]=lower" in directive.instruction
+    assert "daily(CardButton)" in directive.instruction
+    assert "favorite(CardButton)" in directive.instruction
+    assert "不要只修复首个报错引用" in directive.instruction
+
+
+def test_region_action_conflict_reports_actual_roles_and_parent_recompose() -> None:
+    tracker = CompactRepairStrategyTracker()
+    source = "\n".join(
+        [
+            '["root","Layout",{"layout":"W-split-panels"},'
+            '["earphone_panel","music_panel"]]',
+            '["earphone_panel","Region",{"variant":"center"},["status"]]',
+            '["status","EmphasisText",{"mainText":"已连接"}]',
+            '["music_panel","Region",{"variant":"title-content-action"},'
+            '["music_title","music_favorite","music_daily"]]',
+            '["music_title","SingleLineTitle",{"title":"我的音乐"}]',
+            '["music_favorite","PillButton",{"label":"收藏歌单","onClick":[{}]}]',
+            '["music_daily","PillButton",{"label":"每日推荐","onClick":[{}]}]',
+        ]
+    )
+    errors = [
+        _issue(
+            "语义布局不符合合同：节点 music_panel：Action 必须放在所选 Region "
+            "的底部动作角色中。请选择已登记的 Layout、Region 或 Group 变体。"
+        )
+    ]
+    plan = {
+        "info_required": [
+            {"actionId": "event.open.music.favorite", "priority": "must"},
+            {"actionId": "event.open.music.daily", "priority": "must"},
+        ]
+    }
+
+    directive = tracker.next_directive(source, errors, compact_plan=plan)
+
+    assert directive.repair_strategy == "semantic_layout_contract_repair"
+    assert "1:music_favorite(PillButton Action)" in directive.instruction
+    assert "当前检测到 2 个" in directive.instruction
+    assert "event.open.music.favorite" in directive.instruction
+    assert "当前 Region 无法同时容纳这些 Action" in directive.instruction
+    assert "提升到共同父布局" in directive.instruction
+
+
 def test_semantic_layout_contract_repair_escalates_in_bounded_steps() -> None:
     tracker = CompactRepairStrategyTracker()
     errors = [
@@ -910,6 +977,167 @@ def test_plan_coverage_has_a_dedicated_first_repair_route() -> None:
     assert directive.repair_strategy == "coverage_restore"
     assert directive.scope == "information_group"
     assert directive.retry_target == "dsl_local_repair"
+
+
+def test_bounded_component_overflow_reports_exact_fit_and_overflow_items() -> None:
+    tracker = CompactRepairStrategyTracker()
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["details","SummaryList",{"items":["事项一","事项二",'
+            '"事项三","事项四","事项五"]}]',
+        ]
+    )
+    plan = {
+        "info_required": [
+            {"requirement": f"事项{label}", "priority": "must"}
+            for label in ("一", "二", "三", "四", "五")
+        ]
+    }
+    errors = [_issue("details: SummaryList.items requires 2 to 3 entries.")]
+
+    directive = tracker.next_directive(source, errors, compact_plan=plan)
+    payload = directive.to_prompt_payload()
+    capacity_fit = payload["capacityFits"][0]
+
+    assert directive.category == "layout_capacity"
+    assert directive.repair_strategy == "rebudget"
+    assert capacity_fit["actualItemCount"] == 5
+    assert capacity_fit["allowedItemCount"] == {"min": 2, "max": 3}
+    assert [item["value"] for item in capacity_fit["directlyFits"]] == [
+        "事项一",
+        "事项二",
+        "事项三",
+    ]
+    assert [item["value"] for item in capacity_fit["doesNotFit"]] == [
+        "事项四",
+        "事项五",
+    ]
+    assert capacity_fit["doesNotFit"][0]["planFacts"][0]["factIndex"] == 3
+
+
+def test_capacity_overflow_allows_bounded_drop_after_one_lossless_repair() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=5)
+    plan = {
+        "info_required": [
+            {
+                "requirement": f"事项{index}",
+                "priority": "must",
+                "dataId": f"/data/items/{index}",
+            }
+            for index in range(5)
+        ]
+    }
+    task_spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "items": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    overflow_source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["details","SummaryList",{"items":['
+            '{"path":"/data/items/0"},{"path":"/data/items/1"},'
+            '{"path":"/data/items/2"},{"path":"/data/items/3"},'
+            '{"path":"/data/items/4"}]}]',
+        ]
+    )
+    overflow_errors = [_issue("details: SummaryList.items requires 2 to 3 entries.")]
+    regrouped_source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["details","SecondaryBody",{"items":['
+            '{"value":{"path":"/data/items/3"}},'
+            '{"value":{"path":"/data/items/4"}}]}]',
+        ]
+    )
+    regroup_errors = [
+        _issue(
+            "details: SecondaryBody is auxiliary and cannot be the only "
+            "information component."
+        )
+    ]
+
+    first = tracker.next_directive(
+        overflow_source,
+        overflow_errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+    drop = tracker.next_directive(
+        regrouped_source,
+        regroup_errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert first.repair_strategy == "rebudget"
+    assert drop.repair_strategy == "drop_optional_component"
+    assert drop.optional_drop is not None
+    assert drop.optional_drop.component_id == "details"
+    assert drop.optional_drop.fact_indexes == (3, 4)
+    assert "不再等待固定第四轮" in drop.instruction
+
+
+def test_plan_coverage_then_layout_failure_enters_drop_on_second_repair() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=5)
+    plan = {
+        "info_required": [
+            {
+                "requirement": "补充时间",
+                "priority": "should",
+                "dataId": "/data/calendar/start",
+            }
+        ]
+    }
+    task_spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {"calendar": {"start": {"type": "string"}}}
+        },
+        "eventCandidates": [],
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["time"]]',
+            '["time","SecondaryBody",{"items":['
+            '{"value":{"path":"/data/calendar/start"}}]}]',
+        ]
+    )
+    coverage_errors = [
+        _issue(
+            "Plan fact is missing from visible DSL: 补充时间",
+            code="COMPACT_PLAN_COVERAGE_FAILED",
+        )
+    ]
+    layout_errors = [
+        _issue("component root: vertical layout requires at least 160vp within 126vp")
+    ]
+
+    first = tracker.next_directive(
+        "dsl-with-missing-fact",
+        coverage_errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+    drop = tracker.next_directive(
+        source,
+        layout_errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert first.repair_strategy == "coverage_restore"
+    assert drop.repair_strategy == "drop_optional_component"
+    assert drop.optional_drop is not None
+    assert drop.optional_drop.component_id == "time"
 
 
 def test_layout_structure_starts_at_parent_layout_scope() -> None:

@@ -1743,11 +1743,12 @@ def test_drop_fact_validation_switch_keeps_normal_coverage_and_action_checks(
     assert all("actionId" not in fact for fact in omitted)
 
 
-def test_processor_reports_missing_static_plan_text_as_warning() -> None:
+def test_processor_reports_missing_static_plan_text_as_initial_error() -> None:
     plan = {
         "info_required": [
             {
                 "requirement": "卡片标题",
+                "priority": "must",
                 "text": "静态卡片",
                 "componentHints": ["EmphasisText"],
             }
@@ -1768,12 +1769,12 @@ def test_processor_reports_missing_static_plan_text_as_warning() -> None:
         context,
     )
 
-    assert result.standard_dsl
-    assert result.errors == ()
+    assert result.standard_dsl == ""
+    assert len(result.errors) == 1
+    assert result.errors[0].code == "COMPACT_PLAN_COVERAGE_FAILED"
+    assert "卡片标题" in result.errors[0].message
     warnings = tuple(issue for issue in result.issues if issue.severity == "warning")
-    assert len(warnings) == 1
-    assert warnings[0].code == "COMPACT_PLAN_COVERAGE_WARNING"
-    assert "卡片标题" in warnings[0].message
+    assert warnings == ()
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -1803,6 +1804,11 @@ def test_repair_coverage_downgrades_information_but_not_action(size: str) -> Non
                 "priority": "must",
             },
             {
+                "requirement": "展示静态说明",
+                "text": "必须保留的静态说明",
+                "priority": "must",
+            },
+            {
                 "requirement": "打开设备设置",
                 "actionId": "event.open.settings",
                 "priority": "must",
@@ -1817,7 +1823,7 @@ def test_repair_coverage_downgrades_information_but_not_action(size: str) -> Non
     )
 
     strict = evaluate_compact_plan_coverage(source, plan, spec)
-    assert len(strict.errors) == 2
+    assert len(strict.errors) == 3
     assert strict.warnings == ()
 
     repaired = evaluate_compact_plan_coverage(
@@ -1828,8 +1834,9 @@ def test_repair_coverage_downgrades_information_but_not_action(size: str) -> Non
     )
     assert len(repaired.errors) == 1
     assert "Plan action is missing" in repaired.errors[0]
-    assert len(repaired.warnings) == 1
-    assert "Plan fact is missing" in repaired.warnings[0]
+    assert len(repaired.warnings) == 2
+    assert any("Plan fact is missing" in warning for warning in repaired.warnings)
+    assert any("Plan static text" in warning for warning in repaired.warnings)
 
 
 def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
@@ -1837,6 +1844,7 @@ def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
         "info_required": [
             {
                 "requirement": "卡片标题",
+                "priority": "must",
                 "text": "center",
             }
         ]
@@ -1851,15 +1859,16 @@ def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
     errors = compact_plan_coverage_errors(source, plan, task_spec())
     warnings = compact_plan_coverage_warnings(source, plan, task_spec())
 
-    assert errors == ()
-    assert warnings == ("Plan static text is not fully visible in DSL: 卡片标题.",)
+    assert errors == ("Plan static text is not fully visible in DSL: 卡片标题.",)
+    assert warnings == ()
 
 
-def test_shortened_static_plan_text_is_warning_only() -> None:
+def test_shortened_static_plan_text_is_initial_error() -> None:
     plan = {
         "info_required": [
             {
                 "requirement": "展示提醒文字“每天带孩子出去运动两次”",
+                "priority": "must",
                 "text": "每天带孩子出去运动两次",
                 "componentHints": ["SecondaryBody"],
             }
@@ -1873,8 +1882,8 @@ def test_shortened_static_plan_text_is_warning_only() -> None:
         ]
     )
 
-    assert compact_plan_coverage_errors(source, plan, task_spec()) == ()
-    assert compact_plan_coverage_warnings(source, plan, task_spec()) == (
+    assert compact_plan_coverage_errors(source, plan, task_spec()) == (
         "Plan static text is not fully visible in DSL: "
         "展示提醒文字“每天带孩子出去运动两次”.",
     )
+    assert compact_plan_coverage_warnings(source, plan, task_spec()) == ()

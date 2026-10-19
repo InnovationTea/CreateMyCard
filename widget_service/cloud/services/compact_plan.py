@@ -1258,7 +1258,7 @@ class _CompactVisiblePathOccurrence:
 
 @dataclass(frozen=True)
 class CompactPlanCoverageResult:
-    """区分阻断生成的 Plan 覆盖错误与仅供观察的静态文案告警。"""
+    """区分阻断生成的 Plan 覆盖错误与按阶段降级的覆盖告警。"""
 
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -1360,8 +1360,8 @@ def _compact_fact_coverage_result(
         expected_text = _normalize_text(text)
         if not expected_text or not any(expected_text in actual for actual in state.literals):
             return CompactPlanCoverageResult(
-                errors=(),
-                warnings=(f"Plan static text is not fully visible in DSL: {label}.",),
+                errors=(f"Plan static text is not fully visible in DSL: {label}.",),
+                warnings=(),
             )
     return CompactPlanCoverageResult(errors=(), warnings=())
 
@@ -1493,8 +1493,10 @@ def compact_plan_optional_drop_candidate(
     task_spec: dict[str, Any],
     *,
     allow_must_fallback: bool = True,
+    max_fact_count: int | None = None,
+    allowed_fact_indexes: set[int] | None = None,
 ) -> CompactOptionalDropCandidate | None:
-    """优先选 should-only 组件，并按策略决定是否允许 must 兜底。"""
+    """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
         return None
     facts = plan.get("info_required")
@@ -1533,6 +1535,14 @@ def compact_plan_optional_drop_candidate(
             priorities.append(str(fact.get("priority") or "must"))
         if has_action_fact or not matched:
             continue
+        if max_fact_count is not None and len(matched) > max_fact_count:
+            continue
+        if allowed_fact_indexes is not None:
+            carries_unrelated_fact = any(
+                fact_index not in allowed_fact_indexes for fact_index in matched
+            )
+            if carries_unrelated_fact:
+                continue
         requirements = tuple(str(facts[index].get("requirement") or "") for index in matched)
         candidate = CompactOptionalDropCandidate(
             component_id=row.component_id,

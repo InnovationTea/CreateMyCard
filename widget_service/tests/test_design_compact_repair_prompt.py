@@ -243,6 +243,13 @@ def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None
             "repairStrategy": "parent_layout_recompose",
             "retryTarget": "dsl_recompose",
             "instruction": "重新选择父布局变体。",
+            "capacityFits": [
+                {
+                    "componentId": "details",
+                    "directlyFits": [{"itemIndex": 0}],
+                    "doesNotFit": [{"itemIndex": 1}],
+                }
+            ],
         },
     )
 
@@ -269,6 +276,8 @@ def test_build_repair_reinforces_semantic_and_related_structure_checks() -> None
     assert payload["repairStrategy"]["scope"] == "parent_layout"
     assert payload["repairStrategy"]["retryTarget"] == "dsl_recompose"
     assert "本轮修复路由：重新选择父布局变体。" in instruction
+    assert "capacityFits 给出当前固定容量组件的精确切分" in instruction
+    assert "它本身不授权删事实" in instruction
 
 
 def test_build_repair_exposes_compact_component_fallback_budget() -> None:
