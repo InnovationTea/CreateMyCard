@@ -7,8 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
-
 SOURCE = (
     Path(__file__).resolve().parents[1]
     / "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
@@ -26,16 +24,23 @@ def _templates():
     return templates
 
 
-@pytest.mark.parametrize("filename,source", _templates())
-def test_template_references_are_closed(filename, source):
-    components = {}
+def _template_rows(source):
+    """只在测试中移除属性占位，检查结构；不改变 Runtime 的严格 JSON 解析。"""
+    rows = []
     for line in source.splitlines():
         if not line.strip():
             continue
-        row = json.loads(line)
+        normalized = line.replace("{...}", "{}").replace(",...}", "}")
+        rows.append(json.loads(normalized))
+    return rows
+
+
+@pytest.mark.parametrize("filename,source", _templates())
+def test_template_references_are_closed(filename, source):
+    components = {}
+    for row in _template_rows(source):
         assert isinstance(row, list)
-        if len(row) == 2:
-            continue
+        assert len(row) in (3, 4), filename
         identifier = row[0]
         assert identifier not in components, f"Duplicate component: {identifier}"
         assert isinstance(row[2], dict)
@@ -64,32 +69,21 @@ def test_template_references_are_closed(filename, source):
 
 
 @pytest.mark.parametrize("filename,source", _templates())
-def test_template_business_props_convert(filename, source):
-    size = "2x4" if "2x4" in filename else "2x2"
-    first_line = next(line for line in source.splitlines() if line.strip())
-    first = json.loads(first_line)
-    if first[0] != "root":
-        if size == "2x4":
-            prefix = [
-                ["root", "Layout", {"layout": "W-content-side-slots"},
-                 [first[0], "fixture_upper", "fixture_lower"]],
-                ["fixture_upper", "InfoBlock", {
-                    "variant": "slot", "primaryText": "信息甲", "secondaryText": "对象甲",
-                    "backgroundColor": "#99FFFFFF",
-                }],
-                ["fixture_lower", "InfoBlock", {
-                    "variant": "slot", "primaryText": "信息乙", "secondaryText": "对象乙",
-                    "backgroundColor": "#99FFFFFF",
-                }],
-            ]
+def test_template_business_props_are_placeholders(filename, source):
+    for line, row in zip(source.strip().splitlines(), _template_rows(source), strict=True):
+        if row[1] in ("Layout", "Region", "Group"):
+            assert "..." not in line, filename
+            assert set(row[2]) <= {"layout", "variant", "orientation"}, filename
         else:
-            prefix = [
-                ["root", "Layout", {"layout": "S-title-content"}, ["fixture_title", first[0]]],
-                ["fixture_title", "SingleLineTitle", {"title": "状态", "fontSize": 12}],
-            ]
-        source = "\n".join(json.dumps(row, ensure_ascii=False) for row in prefix) + "\n" + source
-    result = convert_compact_dsl_to_a2ui(
-        source, size=size, protocol_profile={"version": "v0.9", "appVersion": "99.0"},
-    )
-    messages = [json.loads(line) for line in result.splitlines()]
-    assert len(messages) == 3
+            assert "..." in line, filename
+            assert set(row[2]) <= {"variant", "direction"}, filename
+
+
+def test_template_explanations_and_core_reference_contract():
+    assert len(_templates()) == 33
+    for filename in FILES:
+        text = (SOURCE / filename).read_text(encoding="utf-8")
+        assert "不能输出省略号" in text
+    core = (SOURCE / "core.md").read_text(encoding="utf-8")
+    assert "children 中每个 ID 必须与本次输出某一组件行的第一项逐字一致" in core
+    assert "组件 ID 引用不同于显示值的数据路径绑定" in core

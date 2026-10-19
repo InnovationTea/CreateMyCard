@@ -87,7 +87,9 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 | 布局容器 | `[id, component, props, children]` | 仅 Layout/Region/Group 有第四项；children 为非空、有序的真实 ID 数组 |
 | 数据 | `["/json/pointer", value]` | 类型与 schema 一致；至少一行，纯静态卡也写 /state/ready |
 
-第一个组件是 root Layout；根以外每个组件恰好有一个父节点，全部从 root 可达，无悬空引用、循环、重复或孤立节点。业务组件没有 children，不用数组模板、repeat 或循环变量。
+第一个组件是 root Layout；children 中每个 ID 必须与本次输出某一组件行的第一项逐字一致，不能用角色名代替未定义的组件。
+组件改名时同步修改引用；根以外每个组件恰好有一个父节点，全部从 root 可达，无悬空引用、循环、重复或孤立节点。
+组件 ID 引用不同于显示值的数据路径绑定；定义数据行不能代替定义组件行。业务组件没有 children，不用数组模板、repeat 或循环变量。
 只使用本尺寸登记的布局与真实 Props；不输出 Row/Column/Stack、宽高、权重、边距、间距或对齐参数，不输出 A2UI 消息、CardSpec 或协议外字段。
 <!-- /prompt:jsonl -->
 
