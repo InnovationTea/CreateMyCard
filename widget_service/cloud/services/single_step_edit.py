@@ -153,7 +153,9 @@ def _validate_value(field: str, value: Any, quote: str, node: dict) -> None:
         if not value or value not in quote:
             raise ValueError("static text replacement must be explicitly present in requestQuote")
         old = node.get("content")
-        if not isinstance(old, str) or "{{" in old or "{{" in value or "${" in value:
+        if not isinstance(old, str):
+            raise ValueError("cannot replace dynamic bindings with static text")
+        if "{{" in old or "{{" in value or "${" in value:
             raise ValueError("cannot replace dynamic bindings with static text")
     else:
         if not isinstance(value, str):

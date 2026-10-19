@@ -1,12 +1,15 @@
 """字段补丁可移植回归：不依赖本地批跑目录，不调用模型或设备。"""
 
+import ast
 import copy
+import inspect
 import json
 
 import pytest
 
+from services import single_step_edit
 from services.generation_pipeline import DslProcessingContext
-from services.single_step_edit import SingleStepEditProcessor, source_digest
+from services.single_step_edit import SingleStepEditProcessor, _validate_value, source_digest
 
 
 @pytest.fixture
@@ -151,6 +154,47 @@ def test_dynamic_text_cannot_be_replaced_with_literal(source):
     payload = _patch(source, "value", "content", "电量", query)
     _, result = _process(source, payload, query)
     assert result.errors
+
+
+def test_control_conditions_keep_at_most_three_boolean_terms():
+    """G.CTL.03：检查整个编辑模块，括号内的组合条件也计数。"""
+    tree = ast.parse(inspect.getsource(single_step_edit))
+    violations = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.If, ast.While)):
+            continue
+        term_count = 1
+        for expression in ast.walk(node.test):
+            if isinstance(expression, ast.BoolOp):
+                term_count += len(expression.values) - 1
+        if term_count > 3:
+            violations.append((node.lineno, term_count))
+    assert not violations, violations
+
+
+def test_static_text_edit_preserves_all_other_fields(source):
+    query = "仅把title文字改为今日天气"
+    payload = _patch(source, "title", "content", "今日天气", query)
+    processor, result = _process(source, payload, query)
+    assert not result.errors
+    expected = _rows(source)
+    _node(expected, "title")["content"] = "今日天气"
+    assert _rows(result.standard_dsl) == expected
+    assert not processor.preservation_errors(result.standard_dsl)
+
+
+@pytest.mark.parametrize("old", [None, 42, False, [], {}, {"path": "/data/value"}, "{{ value }}"])
+def test_static_text_guard_rejects_invalid_original_without_changing_error(old):
+    node = {"component": "Text", "content": old}
+    with pytest.raises(ValueError, match="^cannot replace dynamic bindings with static text$"):
+        _validate_value("content", "天气", "把文字改为天气", node)
+
+
+@pytest.mark.parametrize("value", ["{{ value }}", "${/data/value}"])
+def test_static_text_guard_rejects_binding_in_new_value(value):
+    node = {"component": "Text", "content": "天气"}
+    with pytest.raises(ValueError, match="^cannot replace dynamic bindings with static text$"):
+        _validate_value("content", value, f"把文字改为{value}", node)
 
 
 def test_repair_reuses_immutable_source_and_detects_downstream_layout_change(source):
