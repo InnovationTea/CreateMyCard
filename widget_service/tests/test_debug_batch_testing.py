@@ -555,7 +555,7 @@ def test_debug_apps_expose_batch_routes(isolated_debug_app):
     assert "/debug/batch/runs/{run_id}/trace-artifacts/{digest}" in paths
 
 
-def test_debug_apps_serve_harmonyos_fonts_from_render_assets(isolated_debug_app):
+def test_debug_apps_serve_harmonyos_fonts_from_debug_assets(isolated_debug_app):
     client = TestClient(isolated_debug_app)
 
     response = client.get("/fonts/harmonyos/HarmonyOS_Sans_SC_Regular.ttf")

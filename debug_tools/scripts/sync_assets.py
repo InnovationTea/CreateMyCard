@@ -1,4 +1,4 @@
-"""按云侧素材清单同步浏览器预览与真机工程的图片，保留未登记的工程资源。"""
+"""按云侧素材清单同步浏览器与真机共用的图片，保留未登记的工程资源。"""
 
 from __future__ import annotations
 
@@ -12,8 +12,7 @@ from pathlib import Path, PurePosixPath
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CAPABILITIES_ROOT = Path("widget_service/cloud/data/capabilities")
 TARGETS = {
-    "browser": Path("render/platform/public"),
-    "device": Path("debug_tools/a2ui_render/entry/src/main"),
+    "shared": Path("debug_tools/a2ui_render/entry/src/main"),
 }
 
 

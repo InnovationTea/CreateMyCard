@@ -10,12 +10,12 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from debug_tools.batch_testing import register_batch_routes
 from debug_tools.card_renderer.api import register_renderer_conversion_routes
 from debug_tools.device_debug.api import register_device_routes
-from debug_tools.paths import DEBUG_TOOLS_ROOT, REPOSITORY_ROOT
+from debug_tools.paths import DEBUG_TOOLS_ROOT, RENDER_ASSET_ROOT, RENDER_RESOURCE_ROOT
 
 FRONTEND_DIST = DEBUG_TOOLS_ROOT / "dist"
-RESOURCE_ROOT = REPOSITORY_ROOT / "render" / "platform" / "public" / "resources"
-RENDER_BACKGROUND_ROOT = REPOSITORY_ROOT / "render" / "platform" / "public" / "background_assets"
-RENDER_FONT_ROOT = REPOSITORY_ROOT / "render" / "platform" / "public" / "fonts" / "harmonyos"
+RESOURCE_ROOT = RENDER_RESOURCE_ROOT
+RENDER_BACKGROUND_ROOT = RENDER_ASSET_ROOT / "background_assets"
+RENDER_FONT_ROOT = RENDER_ASSET_ROOT / "fonts/harmonyos"
 
 
 def register_renderer_asset_routes(app: FastAPI) -> None:

@@ -238,3 +238,10 @@ npm run build
 
 架构与代码组织见 [`调试平台技术方案.md`](调试平台技术方案.md)；页面会话、批跑、后处理、渲染、
 评分与 Trace 的运行及验收规则见 [`调试平台运行规范.md`](调试平台运行规范.md)。
+
+## 素材维护
+
+浏览器和真机共用 `a2ui_render/entry/src/main/resources/base/media/` 下的图片。
+浏览器专用背景与字体位于 `card_renderer/assets/`，运行时不依赖弃用的 `render/platform/public/`。
+在仓库根运行 `.\.venv\Scripts\python.exe debug_tools/scripts/sync_assets.py --sync`，
+再使用 `--check` 校验登记图片；无需将图片复制到 `dist`。
