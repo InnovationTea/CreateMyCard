@@ -57,6 +57,13 @@ _TREE_STRUCTURE_CODES = frozenset(
         "COMPACT_COMPONENT_EMPTY_CONTAINER",
     }
 )
+_LAYOUT_CAPACITY_CODES = frozenset(
+    {
+        "COMPACT_LAYOUT_HEIGHT_OVERFLOW",
+        "COMPACT_LAYOUT_HEIGHT_UNRESOLVED",
+        "COMPACT_LAYOUT_WIDTH_OVERFLOW",
+    }
+)
 
 _TREE_RECOMPOSE_INSTRUCTION = (
     " 先检查以 root 为根的完整组件树：所有引用存在、每个节点只有一个父引用、"
@@ -83,6 +90,7 @@ _DUPLICATE_PLAN_FACT_PREFIX = (
 )
 COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
 DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT = 4
+PLAN_COVERAGE_EARLY_DROP_MIN_REPAIR_ATTEMPTS = 2
 
 _CAPACITY_TEXT_COMPACTION_INSTRUCTION = (
     " 容量修复的受控选型例外：仅当2x4强调读数组合已确认放不下、整卡其它位置已有"
@@ -92,6 +100,24 @@ _CAPACITY_TEXT_COMPACTION_INSTRUCTION = (
     "这是更换显示组件，不是缩小EmphasizedData的固定字号；新组件整组单行14fp/19vp，"
     "多行或任一项maxLines:2时12fp/16vp，行间距2vp。更新父级引用并移除被替换的旧子树；"
     "不得补造核心组件、拆成多个单项SecondaryBody或删除事实来满足条件。"
+)
+
+_PILL_ACTION_ANCHOR_MIGRATION_INSTRUCTION = (
+    " 当前是2×2文字动作布局，且全宽PillButton参与了容量压力。"
+    "可把S-title-anchor作为同级合法布局候选，但不能只把PillButton改名为CircleButton。"
+    "仅当已接受Plan只有一个显式动作、存在与动作语义准确匹配的SVG、用户没有要求卡面显示"
+    "按钮文案，并且正文能够拆成上方主信息和左下独立支撑信息时，才整体迁移："
+    "将root.layout改为S-title-anchor，按[title, primary, support, action]重排直属children，"
+    "将原动作改为CircleButton，完整保留原onClick和icon，并把原按钮文案写入"
+    "accessibility.label；保留全部事实、绑定和动作。若任一条件不满足，则保留PillButton，"
+    "改选其它能够闭合容量的合法组件组合或父布局。"
+)
+
+_ANCHOR_MIGRATION_SOURCE_LAYOUTS = frozenset(
+    {
+        "S-title-content-action",
+        "S-title-primary-secondary-action",
+    }
 )
 
 
@@ -336,6 +362,34 @@ def _capacity_text_compaction_relevant(invalid_source_dsl: str) -> bool:
     return '"EmphasizedData"' in invalid_source_dsl and '"TextBlock"' in invalid_source_dsl
 
 
+def _pill_action_anchor_migration_relevant(
+    invalid_source_dsl: str,
+    task_spec: dict[str, Any] | None,
+) -> bool:
+    """识别2×2文字动作布局发生容量错误时可考虑的锚点布局迁移。"""
+    if task_spec is None or task_spec.get("size") != "2x2":
+        return False
+    try:
+        rows = parse_compact_dsl_rows(
+            invalid_source_dsl,
+            expand_layouts=False,
+            skip_compact_dsl_validation=True,
+        )
+    except (CompactDslConversionError, TypeError, ValueError):
+        return False
+    components: dict[str, ComponentRow] = {}
+    for row in rows:
+        if isinstance(row, ComponentRow):
+            components[row.component_id] = row
+    root = components.get("root")
+    if root is None or root.component_type != "Layout" or not root.children:
+        return False
+    if root.props.get("layout") not in _ANCHOR_MIGRATION_SOURCE_LAYOUTS:
+        return False
+    action = components.get(root.children[-1])
+    return action is not None and action.component_type == "PillButton"
+
+
 def _height_overflow_regions(quality_errors: list[dict[str, Any]]) -> set[str]:
     regions: set[str] = set()
     for issue in quality_errors:
@@ -433,6 +487,8 @@ def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
         return "layout_structure"
     if re.search(r"component [^\n]*\.children references [^\n]* more than once", messages):
         return "layout_structure"
+    if codes & _LAYOUT_CAPACITY_CODES:
+        return "layout_capacity"
     if _contains_marker(messages, _CAPACITY_MARKERS):
         return "layout_capacity"
     if _contains_marker(messages, _STRUCTURE_MARKERS):
@@ -564,6 +620,7 @@ def _layout_directive(
     prefer_split_panels: bool = False,
     force_parent_layout: bool = False,
     allow_text_compaction: bool = False,
+    offer_anchor_action_migration: bool = False,
 ) -> CompactRepairDirective:
     split_panels_instruction = ""
     if prefer_split_panels:
@@ -624,6 +681,8 @@ def _layout_directive(
         instruction += _TREE_RECOMPOSE_INSTRUCTION
     if category == "layout_capacity" and allow_text_compaction:
         instruction += _CAPACITY_TEXT_COMPACTION_INSTRUCTION
+    if category == "layout_capacity" and offer_anchor_action_migration:
+        instruction += _PILL_ACTION_ANCHOR_MIGRATION_INSTRUCTION
     return CompactRepairDirective(
         category=category,
         scope=scope,
@@ -920,7 +979,7 @@ class CompactRepairStrategyTracker:
         self._joint_categories: list[str] = []
         self._failed_topologies: set[str] = set()
         self._layout_failure_seen = False
-        self._plan_coverage_failure_seen = False
+        self._plan_coverage_repair_submission_count = 0
         self._joint_full_recompose_seen = False
         self._capacity_pressure_repair_submitted = False
         self._latest_capacity_fits: list[dict[str, Any]] = []
@@ -1018,8 +1077,9 @@ class CompactRepairStrategyTracker:
             )
         previous_category = self._joint_categories[-1] if self._joint_categories else None
         previous_layout_failure = self._layout_failure_seen
-        previous_plan_coverage_failure = self._plan_coverage_failure_seen
         has_plan_coverage_error = _has_missing_plan_fact_error(quality_errors)
+        if not has_plan_coverage_error:
+            self._plan_coverage_repair_submission_count = 0
         relevant = _joint_repair_relevant(category, quality_errors)
         topology = repair_topology_fingerprint(invalid_source_dsl) if relevant else None
         revisited_topology = topology is not None and topology in self._failed_topologies
@@ -1029,8 +1089,6 @@ class CompactRepairStrategyTracker:
                 self._failed_topologies.add(topology)
         if category in {"layout_capacity", "layout_structure"}:
             self._layout_failure_seen = True
-        if has_plan_coverage_error:
-            self._plan_coverage_failure_seen = True
         fingerprint = _issue_fingerprint(quality_errors)
         if fingerprint == self._previous_fingerprint:
             self._consecutive_failures += 1
@@ -1096,10 +1154,10 @@ class CompactRepairStrategyTracker:
             quality_errors,
             compact_plan,
         )
-        coverage_capacity_followup = (
-            is_layout_failure
-            and previous_plan_coverage_failure
-            and self._repair_submission_count > 0
+        persistent_plan_coverage_followup = (
+            has_plan_coverage_error
+            and self._plan_coverage_repair_submission_count
+            >= PLAN_COVERAGE_EARLY_DROP_MIN_REPAIR_ATTEMPTS
         )
         bounded_capacity_followup = (
             self._capacity_pressure_repair_submitted
@@ -1109,7 +1167,7 @@ class CompactRepairStrategyTracker:
                 or _capacity_regroup_contract_failure(quality_errors)
             )
         )
-        early_drop_due = coverage_capacity_followup or bounded_capacity_followup
+        early_drop_due = persistent_plan_coverage_followup or bounded_capacity_followup
         allow_text_compaction = _capacity_text_compaction_relevant(
             invalid_source_dsl,
         )
@@ -1118,7 +1176,11 @@ class CompactRepairStrategyTracker:
             self._repair_submission_count >= DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT - 1
             and self._active_fallback != "drop_optional_component"
         )
-        drop_relevant_failure = is_layout_failure or bounded_capacity_followup
+        drop_relevant_failure = (
+            is_layout_failure
+            or persistent_plan_coverage_followup
+            or bounded_capacity_followup
+        )
         if drop_entry_due and drop_relevant_failure and task_spec is not None:
             max_fact_count = self._capacity_overflow_limit if early_drop_due else None
             allowed_fact_indexes = None
@@ -1332,6 +1394,10 @@ class CompactRepairStrategyTracker:
                 quality_errors,
             )
             force_parent_layout = _requires_parent_layout_recompose(quality_errors)
+            offer_anchor_action_migration = _pill_action_anchor_migration_relevant(
+                invalid_source_dsl,
+                task_spec,
+            )
             directive = _layout_directive(
                 category=category,
                 fingerprint=fingerprint,
@@ -1341,6 +1407,7 @@ class CompactRepairStrategyTracker:
                 prefer_split_panels=prefer_split_panels,
                 force_parent_layout=force_parent_layout,
                 allow_text_compaction=allow_text_compaction,
+                offer_anchor_action_migration=offer_anchor_action_migration,
             )
         else:
             directive = _non_layout_directive(
@@ -1352,11 +1419,20 @@ class CompactRepairStrategyTracker:
                 no_progress=no_progress,
             )
         if early_drop_due and directive.repair_strategy == "drop_optional_component":
+            if persistent_plan_coverage_followup:
+                early_drop_instruction = (
+                    "Plan 事实缺失经过两次无损修复后仍未恢复；"
+                )
+            else:
+                early_drop_instruction = (
+                    "固定容量组件的超限内容在一次无损重组后"
+                    "仍未获得合法落点；"
+                )
             directive = replace(
                 directive,
                 instruction=(
-                    "一次无损修复后，Plan 覆盖与容量仍冲突，或固定容量组件的超限内容仍未"
-                    "获得合法落点；不再等待固定第四轮，提前进入程序授权的最小 Drop。"
+                    f"{early_drop_instruction}"
+                    "不再等待固定第四轮，提前进入程序授权的最小 Drop。"
                     f"{directive.instruction}"
                 ),
             )
@@ -1377,6 +1453,11 @@ class CompactRepairStrategyTracker:
             )
         if directive.retryable:
             self._repair_submission_count += 1
+            if (
+                has_plan_coverage_error
+                and directive.repair_strategy != "drop_optional_component"
+            ):
+                self._plan_coverage_repair_submission_count += 1
             if capacity_fits and directive.repair_strategy != "drop_optional_component":
                 self._capacity_pressure_repair_submitted = True
             if joint_inputs_available and directive.repair_strategy == "plan_guided_recompose":

@@ -29,7 +29,6 @@ def test_default_overflow_tolerances_keep_current_vp_boundaries() -> None:
 
     assert tolerances.unit == "vp"
     assert tolerances.supported_sizes == {"2x2", "2x4"}
-    assert tolerances.height_maximum == 35
     assert tolerances.width_compressible_item_margin.for_size("2x2") == 16
     assert tolerances.width_compressible_item_margin.for_size("2x4") == 16
     assert tolerances.width_root_flexible_layout.for_size("2x2") == 10
@@ -39,17 +38,14 @@ def test_default_overflow_tolerances_keep_current_vp_boundaries() -> None:
     assert tolerances.width_root_flexible_layout.for_size("4x2") is None
 
 
-@pytest.mark.parametrize("invalid_value", [True, -1, float("inf")])
-def test_rejects_invalid_height_threshold(tmp_path: Path, invalid_value: object) -> None:
+def test_rejects_retired_height_tolerance_section(tmp_path: Path) -> None:
     payload = deepcopy(_default_payload())
-    height = payload.get("height")
-    assert isinstance(height, dict)
-    height["maximumOverflow"] = invalid_value
-    path = _write_payload(tmp_path / "invalid-height.json", payload)
+    payload["height"] = {"maximumOverflow": 35}
+    path = _write_payload(tmp_path / "retired-height.json", payload)
 
     with pytest.raises(
         OverflowToleranceConfigError,
-        match="height.maximumOverflow must be a non-negative number",
+        match="layout overflow tolerances contain unsupported fields",
     ):
         load_layout_overflow_tolerances(path)
 

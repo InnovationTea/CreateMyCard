@@ -19,13 +19,6 @@ DEFAULT_OVERFLOW_TOLERANCES_PATH = (
 )
 
 _SUPPORTED_SIZES = frozenset({"2x2", "2x4"})
-_HEIGHT_SCENARIOS = frozenset(
-    {
-        "root_column",
-        "column_weighted_by_parent_column",
-        "column_overflow_absorbable_by_item_margin",
-    }
-)
 _WIDTH_SCENARIOS = {
     "compressibleItemMargin": "row_overflow_fully_absorbable_by_item_margin",
     "rootFlexibleLayout": "root_row",
@@ -56,7 +49,6 @@ class SizeOverflowLimits:
 class LayoutOverflowTolerances:
     unit: str
     supported_sizes: frozenset[str]
-    height_maximum: float
     width_compressible_item_margin: SizeOverflowLimits
     width_root_flexible_layout: SizeOverflowLimits
     width_weighted_flexible_layout: SizeOverflowLimits
@@ -101,19 +93,6 @@ def _validate_supported_sizes(value: Any) -> frozenset[str]:
     return sizes
 
 
-def _validate_height(value: Any) -> float:
-    section = _required_object(value, "height")
-    if set(section) != {"maximumOverflow", "appliesTo", "description"}:
-        raise OverflowToleranceConfigError("height contains unsupported fields")
-    scenarios = section.get("appliesTo")
-    if not isinstance(scenarios, list) or any(not isinstance(item, str) for item in scenarios):
-        raise OverflowToleranceConfigError("height.appliesTo must be an array of strings")
-    if len(scenarios) != len(set(scenarios)) or frozenset(scenarios) != _HEIGHT_SCENARIOS:
-        raise OverflowToleranceConfigError("height.appliesTo contains unsupported scenarios")
-    _required_string(section.get("description"), "height.description")
-    return _non_negative_number(section.get("maximumOverflow"), "height.maximumOverflow")
-
-
 def _size_limits(value: Any, location: str, expected_scenario: str) -> SizeOverflowLimits:
     section = _required_object(value, location)
     if set(section) != {"maximumOverflowBySize", "appliesTo", "description"}:
@@ -147,20 +126,18 @@ def load_layout_overflow_tolerances(path: Path) -> LayoutOverflowTolerances:
             f"Unable to load layout overflow tolerances: {path}"
         ) from exc
     root = _required_object(payload, "layout overflow tolerances")
-    if set(root) != {"unit", "supportedSizes", "height", "width"}:
+    if set(root) != {"unit", "supportedSizes", "width"}:
         raise OverflowToleranceConfigError("layout overflow tolerances contain unsupported fields")
     unit = _required_string(root.get("unit"), "unit")
     if unit != "vp":
         raise OverflowToleranceConfigError("unit must be vp")
     supported_sizes = _validate_supported_sizes(root.get("supportedSizes"))
-    height_maximum = _validate_height(root.get("height"))
     width = _required_object(root.get("width"), "width")
     if set(width) != set(_WIDTH_SCENARIOS):
         raise OverflowToleranceConfigError("width contains unsupported scenarios")
     return LayoutOverflowTolerances(
         unit=unit,
         supported_sizes=supported_sizes,
-        height_maximum=height_maximum,
         width_compressible_item_margin=_size_limits(
             width.get("compressibleItemMargin"),
             "width.compressibleItemMargin",

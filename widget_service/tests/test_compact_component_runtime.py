@@ -156,9 +156,10 @@ def test_two_by_four_fixed_slot_recipes_share_height_and_shrink_policy() -> None
     assert info_recipe["parts"]["primary"]["styles"]["fontSize"] == 14
     assert info_recipe["parts"]["secondary"]["styles"]["textOverflow"] == "ellipsis"
     assert action_recipe["parts"]["label"]["styles"]["fontSize"] == 14
-    assert component_visual_recipe("InfoBlock", size="2x2")["parts"]["primary"][
-        "styles"
-    ]["fontSize"] == 16
+    compact_info_recipe = component_visual_recipe("InfoBlock", size="2x2")
+    assert compact_info_recipe["parts"]["primary"]["styles"]["fontSize"] == 16
+    assert compact_info_recipe["parts"]["secondary"]["styles"]["fontSize"] == 12
+    assert compact_info_recipe["parts"]["secondary"]["styles"]["height"] == 16
 
 
 def test_single_line_title_visual_recipe_keeps_default_title_only() -> None:
