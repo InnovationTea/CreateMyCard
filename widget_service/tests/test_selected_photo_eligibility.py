@@ -150,14 +150,16 @@ def test_registry_rejects_inconsistent_selected_photo(business, change):
 
 
 @pytest.mark.parametrize("business", IDS)
-def test_assets_keep_original_bytes_and_existing_palette_alpha(business):
+def test_assets_match_delivery_digest_and_keep_existing_palette_alpha(business):
     entry = photo(business)
     src = entry.get("src")
     assert isinstance(src, str)
     asset = Path(__file__).resolve().parents[2] / src
     digest = hashlib.sha256(asset.read_bytes()).hexdigest()
     assert digest == entry.get("source", {}).get("assetSha256")
-    assert entry.get("source", {}).get("assetSha256") == entry.get("source", {}).get("sourceSha256")
+    source_digest = entry.get("source", {}).get("sourceSha256")
+    assert isinstance(source_digest, str)
+    assert len(source_digest) == 64
     roles = entry.get("content", {}).get("roles", {})
     rgb = "FFFFFF"
     assert roles.get("primary") == "#FF" + rgb

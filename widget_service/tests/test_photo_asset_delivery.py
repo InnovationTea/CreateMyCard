@@ -51,32 +51,42 @@ def artifact():
     )
 
 
-def test_only_star_trails_has_an_obs_delivery_address():
+def test_all_four_photos_have_distinct_obs_delivery_addresses():
     photos = [item for item in registry.load_theme_registry().get("themes", [])
               if item.get("kind") == "photo"]
     assert len(photos) == 4
     configured = {}
     for item in photos:
-        address = item.get("background", {}).get("remoteUrl")
-        if address:
-            configured[item.get("id")] = address
-        else:
-            assert address == ""
-    assert set(configured) == {"photo-ux-star-trails-wide"}
-    address = configured.get("photo-ux-star-trails-wide")
-    assert isinstance(address, str)
-    parsed = urlsplit(address)
-    assert parsed.scheme == "https"
-    assert parsed.hostname == "lfcontentcenterdev.hwcloudtest.cn"
-    assert parsed.path.endswith(".jpg")
+        background = item.get("background", {})
+        address = background.get("remoteUrl")
+        assert isinstance(address, str)
+        parsed = urlsplit(address)
+        assert parsed.scheme == "https"
+        assert parsed.hostname == "lfcontentcenterdev.hwcloudtest.cn"
+        assert parsed.path.endswith(".jpg")
+        src = background.get("src")
+        assert isinstance(src, str)
+        assert src.endswith(".jpg")
+        configured[item.get("id")] = address
+    assert set(configured) == {
+        "photo-ux-star-trails-wide", "photo-ux-sleep-square",
+        "photo-ux-sport-center-wide", "photo-ux-water-lily-square",
+    }
+    assert len(set(configured.values())) == 4
 
 
-def test_configured_star_url_passes_existing_final_asset_validation(monkeypatch):
+@pytest.mark.parametrize(("photo_id", "size"), [
+    ("photo-ux-star-trails-wide", "2x4"),
+    ("photo-ux-sport-center-wide", "2x4"),
+    ("photo-ux-sleep-square", "2x2"),
+    ("photo-ux-water-lily-square", "2x2"),
+])
+def test_configured_obs_urls_pass_existing_final_asset_validation(monkeypatch, photo_id, size):
     photo = next(item for item in registry.registered_themes("photos")
-                 if item.get("id") == "photo-ux-star-trails-wide")
+                 if item.get("id") == photo_id)
     original = artifact()
-    original.taskSpec["size"] = "2x4"
-    original.cardSpec["suggestSize"] = "2x4"
+    original.taskSpec["size"] = size
+    original.cardSpec["suggestSize"] = size
     result = themes.apply_theme(original.genui, photo, original.taskSpec, {})
     audit = {"themeId": photo.get("id"), "theme": photo}
     monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=(result, audit)))
@@ -87,6 +97,7 @@ def test_configured_star_url_passes_existing_final_asset_validation(monkeypatch)
     assert not audit.get("finalValidationErrors"), audit
     assert photo.get("remoteUrl")
     assert node_by_id(delivered.genui, themes.PREFIX + "image").get("src") == photo.get("remoteUrl")
+    assert node_by_id(delivered.genui, themes.PREFIX + "base").get("src") == photo.get("remoteUrl")
     assert node_by_id(delivered.genui, "root").get("styles", {}).get("backgroundColor")
 
 

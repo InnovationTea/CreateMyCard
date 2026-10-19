@@ -607,11 +607,12 @@
           600
         ],
         "sourceSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
         "assetSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00"
       },
       "background": {
         "src": "resources/base/media/bg_ux_sleep_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/e31754799fa04fa6b6b4e6df51983bde/b7096a154b63450bb5008c7ddf03de86.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -671,13 +672,13 @@
         "file": "test2/test1/46_2585506173_huge_cu2.jpg",
         "originalSize": [974, 974],
         "assetSize": [974, 974],
-        "processing": "使用已提供的正方形裁切，原文件逐字节保留，不重绘、不调色、不二次压缩",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
         "sourceSha256": "ca34b18297b0d7ea0100cb47f4108175bbfec42acd8da12638259de3313d9fc7",
         "assetSha256": "ca34b18297b0d7ea0100cb47f4108175bbfec42acd8da12638259de3313d9fc7"
       },
       "background": {
         "src": "resources/base/media/bg_ux_water_lily_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/509eefa8a023475b840ddd807e9ec308/f9f21a9906f24fceb8ede73ca129bc4b.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -752,12 +753,12 @@
           1934
         ],
         "assetSize": [
-          3869,
-          1934
+          2196,
+          1098
         ],
-        "processing": "原文件逐字节保留，不重绘、不调色、不裁切、不二次压缩",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
         "sourceSha256": "2d91a22cf19191d3cdf380dc8585686531aa8622cdc316b1a3eec423c91ffe60",
-        "assetSha256": "2d91a22cf19191d3cdf380dc8585686531aa8622cdc316b1a3eec423c91ffe60"
+        "assetSha256": "fe3b8795738d24db8c65f123dedc2e1e10c903e9a3f011e1bb88ff378b4020a1"
       },
       "background": {
         "src": "resources/base/media/bg_ux_star_trails_wide.jpg",
@@ -890,11 +891,12 @@
           600
         ],
         "sourceSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
         "assetSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d"
       },
       "background": {
         "src": "resources/base/media/bg_ux_sport_center_wide.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/d93044a536754ee1b0b3df876a4b4a4a/7ed31d488be64c56be8095ee3a1f80c7.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
