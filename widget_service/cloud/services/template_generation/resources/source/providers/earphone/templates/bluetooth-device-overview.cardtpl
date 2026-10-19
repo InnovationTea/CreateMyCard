@@ -3520,9 +3520,6 @@ Row(
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-        "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-        "borderRadius": $theme("supportContentStyle.borderRadius"),
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0},
         "onClick": EventAction(props?.actionId)
