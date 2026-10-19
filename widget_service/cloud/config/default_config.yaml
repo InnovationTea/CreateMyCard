@@ -27,9 +27,13 @@ ai_widget_data_huashan_enable: false
 enable_default_capability_registry_fallback: true
 enable_default_protocol_profile_fallback: true
 enable_validation_failure_retry: true
+# 融合实际修满5次仍失败后才可单步兜底；独立默认关闭，不改变原修复策略。
+enable_single_step_generation_fallback: false
+# 二次编辑默认走单步；关闭此项恢复原编辑路由，关闭总开关拒绝所有编辑。
+enable_single_step_widget_edit: true
+enable_widget_edit: true
 # Repair 后是否继续严格校验 Plan 展示事实；动作覆盖始终校验。
 enable_drop_plan_fact_validation: false
-enable_widget_edit: false
 enable_artifact_download_mock: true
 enable_widget_directive_commands: false
 enable_compact_dsl_argument_repair_fallback: false

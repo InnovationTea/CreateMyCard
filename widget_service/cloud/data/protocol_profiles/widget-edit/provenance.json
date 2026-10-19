@@ -1,0 +1,65 @@
+{
+  "upstreamCommit": "08cff1cd7d5c6993415bfafffe3eb77db5e6d88e",
+  "files": [
+    {
+      "source": "widget_service/cloud/custom/mock.design-compact-dsl-2x2.dat",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/mock.design-compact-dsl-2x2.dat",
+      "upstreamGitBlob": "63dd5cee461f17d5ce64538a0043b75328899a7c",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/custom/mock.design-compact-dsl-2x4.dat",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/mock.design-compact-dsl-2x4.dat",
+      "upstreamGitBlob": "4be6824de4f3a425f257740e37e7dd0e8215d992",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/PROMPT.md",
+      "upstreamGitBlob": "7e3a7a5c65f6e629e2ab753111754267d5baead0",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/data/protocol_profiles/design-compact-dsl/FEWSHOT_2x2.md",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/FEWSHOT_2x2.md",
+      "upstreamGitBlob": "df8674d1ff1b70badf4aa44d5fdbed9dbd77eb77",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/data/protocol_profiles/design-compact-dsl/FEWSHOT_2x4.md",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/FEWSHOT_2x4.md",
+      "upstreamGitBlob": "59a766f41f940b801497753df3b96d05bc85644f",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/data/protocol_profiles/design-compact-dsl/EDIT_SYSTEM_PROMPT.md",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/EDIT_SYSTEM_PROMPT.md",
+      "upstreamGitBlob": "45e6774fe47fe7f511995897f66a762797709213",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/data/protocol_profiles/design-compact-dsl/REPAIR_SYSTEM_PROMPT.md",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/REPAIR_SYSTEM_PROMPT.md",
+      "upstreamGitBlob": "521dda9c9792a4ffe77a010a9896e9cf8b36fd5d",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/data/protocol_profiles/design-compact-dsl/protocol.json",
+      "destination": "widget_service/cloud/data/protocol_profiles/widget-edit/protocol.json",
+      "upstreamGitBlob": "29e89fb2f7b56e1ca2de45d5c3be7c82e840a1e1",
+      "adaptation": "None; upstream snapshot."
+    },
+    {
+      "source": "widget_service/cloud/services/prompt_builder.py",
+      "destination": "widget_service/cloud/services/widget_edit_protocol/prompt_builder.py",
+      "upstreamGitBlob": "414cf9aeac6cf2fbe5cc166c9be942ca811a56be",
+      "adaptation": "Only isolated resource imports/path; routing and prompt assembly retained."
+    },
+    {
+      "source": "widget_service/cloud/services/compact_dsl_a2ui_converter.py",
+      "destination": "widget_service/cloud/services/widget_edit_protocol/converter.py",
+      "upstreamGitBlob": "347a063bd452f82f274892a16268b9ee5ae42b2f",
+      "adaptation": "None; upstream snapshot."
+    }
+  ]
+}

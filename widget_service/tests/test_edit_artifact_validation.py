@@ -13,6 +13,7 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
 from services.card_validation import validate_card
 from services.generation_pipeline import DslProcessingResult
+from services.single_step_edit import source_digest
 from services.source_artifact_repository import SourceArtifactRepository
 from services.widget_generation_service import WidgetGenerationService
 from utils.upload_file_obs import UploadFileOSMS
@@ -158,6 +159,8 @@ def generation_probe(tmp_path, monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "enable_widget_edit", True)
+    # 原有整卡编辑与 Compact 修复的契约仍单独验证，不把整卡 mock 当字段补丁。
+    monkeypatch.setattr(settings, "enable_single_step_widget_edit", False)
     monkeypatch.setattr(settings, "enable_artifact_download_mock", True)
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
@@ -295,6 +298,59 @@ async def test_edit_uses_real_artifact_validator(
             "/updateComponents/componentsById/value/content"
         )
         assert failures == [{"validationScenarioFailure": 1}]
+    unchanged = await asyncio.to_thread(SourceArtifactRepository().load, created.artifactUrl)
+    assert unchanged.artifact.model_dump_json() == original
+
+
+@pytest.mark.parametrize("remove_binding", [False, True])
+@pytest.mark.parametrize("validation_enabled", [False, True])
+@pytest.mark.asyncio
+async def test_patch_edit_preserves_source_and_runs_real_reference_validation(
+    generation_probe, monkeypatch, remove_binding, validation_enabled,
+):
+    probe = generation_probe
+    probe.outputs.append(_standard_dsl(OLD_REFERENCE))
+    service = WidgetGenerationService()
+    created = await service.generate_widget_card_a2ui_form(_request())
+    assert created.status == GenerationStatus.SUCCESS
+    source = await asyncio.to_thread(SourceArtifactRepository().load, created.artifactUrl)
+    original = source.artifact.model_dump_json()
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_single_step_widget_edit", True)
+    monkeypatch.setattr(settings, "enable_artifact_validation", validation_enabled)
+    instruction = "仅把value字号改为16fp"
+    probe.outputs.append(json.dumps({
+        "sourceDigest": source_digest(source.artifact.genui),
+        "changes": [{"componentId": "value", "property": "styles.fontSize",
+                     "before": {"exists": True, "value": 18}, "value": 16,
+                     "requestQuote": instruction}],
+    }, ensure_ascii=False))
+    updates = {"candidateDataBindings": []} if remove_binding else {}
+    edited = await service.generate_widget_card_a2ui_form(GenerateWidgetCardRequest(
+        uid="edit-validation-test", device={"romVersion": "6.0"}, prdVer="11.7.5.205",
+        sourceArtifactUrl=created.artifactUrl, userQuery=instruction, **updates,
+    ))
+    assert len(probe.prompts) == 2
+    assert len(probe.evaluations) == 2
+    errors = _evaluation_result(probe.evaluations[-1]).get("errors")
+    assert isinstance(errors, list)
+    if remove_binding:
+        assert edited.status == GenerationStatus.FAILED
+        assert edited.errorCode == ErrorCode.VALIDATION_FAILED.value
+        assert any(PATH_CODE in error for error in errors)
+        assert not edited.artifactUrl
+    else:
+        assert edited.status == GenerationStatus.SUCCESS
+        assert not errors
+        changed = await asyncio.to_thread(SourceArtifactRepository().load, edited.artifactUrl)
+        expected = [json.loads(line) for line in source.artifact.genui.splitlines()]
+        for row in expected:
+            for node in row.get("updateComponents", {}).get("components", []):
+                if node.get("id") == "value":
+                    styles = node.get("styles")
+                    assert isinstance(styles, dict)
+                    styles["fontSize"] = 16
+        assert [json.loads(line) for line in changed.artifact.genui.splitlines()] == expected
     unchanged = await asyncio.to_thread(SourceArtifactRepository().load, created.artifactUrl)
     assert unchanged.artifact.model_dump_json() == original
 

@@ -39,6 +39,7 @@ NEUTRAL_INSTRUCTION = """
 surfaceRole:"panel"，不能为主题新增背板。按钮底托由组件自动提供。
 保留全部事实、动作及原有布局规范；用户颜色要求由末尾主题阶段处理。
 不为图片预留空间，不改变常规组件选择。无需输出文字或图标颜色占位。
+图标是否保留原色由素材声明决定，不输出 visual.color 或 native 染色豁免。
 """
 
 
@@ -51,9 +52,6 @@ def without_colors(value: Any) -> Any:
     if "backgroundColor" in value or "linearGradient" in value:
         result["surfaceRole"] = "panel"
     for key, item in value.items():
-        if key == "color" and item == "native":
-            result[key] = item
-            continue
         if key in COLOR_KEYS:
             continue
         if key == "design" and str(item).startswith("fusion-ball-"):

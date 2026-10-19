@@ -122,6 +122,8 @@ class GenerationRoutePolicy:
     supports_dynamic_capabilities: bool = True
     validation_failure_blocking: bool = False
     stores_design_token: bool = False
+    single_step: bool = False
+    quality_repair_limit: int | None = None
 
 
 class DslProcessor(Protocol):
