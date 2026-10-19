@@ -15,12 +15,9 @@ REGISTRY = (
     / "cloud/data/capabilities/app-11.7.7.300_rom-7.0/asset_capabilities.json"
 )
 NATIVE_NAMES = (
-    "icon_id", "ic_achieve", "ic_charge", "ic_phone", "ic_weatherWarning",
-    "ic_uv_color", "ic_warning_color", "ic_weather_color", "ic_hotspot", "ic_ranking2",
-    "ic_battery_leaf_color", "ic_blue_teeth_color", "ic_call_bule", "ic_call_purple",
-    "ic_call_yellow", "ic_ring_bule", "ic_ring_purple", "ic_ring_yellow",
-    "ic_sportsHealth_bule", "ic_sportsHealth_purple", "ic_sportsHealth_yellow",
-    "ic_storage_bule", "ic_storage_purple", "ic_storage_yellow", "ic_sun",
+    "icon_id", "ic_charge", "ic_weatherWarning", "ic_uv_color", "ic_warning_color",
+    "ic_weather_color", "ic_hotspot", "ic_call_bule", "ic_call_yellow", "ic_ring_bule",
+    "ic_ring_yellow", "ic_sportsHealth_bule", "ic_sportsHealth_yellow", "ic_sun",
     "ic_calender", "ic_sun_monochrome",
 )
 
@@ -118,7 +115,7 @@ def test_tintable_title_retains_runtime_color(size: str) -> None:
     assert styles.get("fillColor") == "@theme:graphicPrimary/1"
 
 
-@pytest.mark.parametrize("name", ["ic_ranking2", "ic_battery_leaf_color"])
+@pytest.mark.parametrize("name", ["ic_uv_color", "ic_warning_color"])
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 def test_nested_icons_keep_native_color_without_disabling_monochrome_tint(
     name: str, size: str,
