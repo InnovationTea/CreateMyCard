@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+:root{--ink:#233831;--muted:#63736b;--paper:#f5f3eb;--line:#d7ddd3;--accent:#176c56}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.65 "Microsoft YaHei",sans-serif}
+header,main{max-width:1560px;margin:auto;padding:24px 32px}header{padding-bottom:0}h1{font:600 30px/1.3 Georgia,"SimSun",serif;margin:8px 0}h2{font-size:17px;margin:0}.muted,small{color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:18px 0}.metric{padding:12px;background:#fffdf7;border:1px solid var(--line);border-top:3px solid var(--accent)}.metric strong{display:block;font:25px/1.4 Georgia,serif}.metric small{display:block;font-size:11px}
+.filters{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;background:#eeeee5;border:1px solid var(--line)}input,select,button{font:inherit;color:inherit;border:1px solid #bfcac0;border-radius:4px;background:#fffdf7;padding:7px 9px}input[type=search]{flex:1;min-width:180px}button{cursor:pointer}button:hover{border-color:var(--accent)}
+.note{padding:12px 16px;background:#e9eee5;border-left:3px solid var(--accent);margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;margin-top:20px;align-items:start}.grid[data-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}.grid[data-columns="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}.grid[data-columns="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+.case{background:#fffdf7;border:1px solid var(--line);min-width:0}.case-head{padding:12px 16px;border-bottom:1px solid var(--line)}.case-id{font:13px Consolas,monospace;color:var(--accent)}.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.chip{font-size:11px;padding:1px 6px;background:#e9eee5;border:1px solid #d1dccd;border-radius:3px}.bad{color:#ae4636;background:#fff0e9}.warn{color:#956415;background:#fff5d8}
+.preview{min-height:210px;padding:18px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(0deg,#eff0e8 0,#eff0e8 1px,transparent 1px,transparent 16px),repeating-linear-gradient(90deg,#eff0e8 0,#eff0e8 1px,transparent 1px,transparent 16px);border-bottom:1px solid var(--line)}.preview img{object-fit:contain;max-width:100%;height:auto;cursor:zoom-in}.render-error{color:#ae4636;white-space:pre-wrap;overflow-wrap:anywhere}.case-body{padding:12px 16px}.query{margin:0 0 12px;overflow-wrap:anywhere}.mini{display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid var(--line);padding-top:8px;font-size:12px}
+details{border-bottom:1px solid var(--line);padding:7px 0}summary{cursor:pointer;color:var(--accent)}pre{font:12px/1.6 Consolas,"Microsoft YaHei",monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#f0f1e9;padding:12px;max-height:420px;overflow:auto}.empty{padding:50px;text-align:center}.count{font-size:12px;color:var(--muted)}dialog{border:1px solid var(--line);max-width:95vw;background:var(--paper)}dialog::backdrop{background:#17251ecc}dialog img{display:block;max-width:85vw;max-height:80vh;margin:16px auto}dialog button{float:right}table{border-collapse:collapse;width:100%;font-size:12px}td,th{text-align:left;border-bottom:1px solid var(--line);padding:5px;overflow-wrap:anywhere}.table-scroll{overflow:auto;max-height:360px}
+.grid.compact{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}.grid.compact[data-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.compact[data-columns="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.compact[data-columns="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}.compact .full-only,.compact .case-body{display:none}.compact .case-head{padding:6px 10px}.compact .preview{min-height:175px;padding:12px}
+@media(max-width:750px){header,main{padding:16px}.grid,.grid[data-columns],.grid.compact[data-columns]{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<header><small>COMPACT DSL / LOCAL REVIEW</small><h1>{{TITLE}}</h1><p id="run" class="muted"></p><div id="metrics" class="metrics"></div>
+<details><summary>模型指标与实际使用比例</summary><div id="analysis-details"></div></details></header>
+<main>
+<div class="filters">
+<input id="search" type="search" placeholder="搜索编号、标题、用户需求" aria-label="搜索">
+<select id="size" aria-label="尺寸"><option value="all">全部尺寸</option><option value="2x2">2 × 2</option><option value="2x4">2 × 4</option></select>
+<select id="state" aria-label="生成状态"><option value="all">全部生成状态</option><option value="success">成功</option><option value="degraded">降级</option><option value="failed">失败</option><option value="unsupported">不支持</option><option value="cancelled">取消</option></select>
+<select id="capture" aria-label="截图状态"><option value="all">全部截图状态</option><option value="success">截图成功</option><option value="missing">截图失败／缺失</option></select>
+<select id="retry" aria-label="接口重试"><option value="all">全部重试情况</option><option value="yes">有接口重试</option><option value="no">无接口重试</option><option value="unknown">重试未知</option></select>
+<select id="warning" aria-label="警告"><option value="all">全部警告情况</option><option value="yes">有警告</option><option value="no">无警告</option></select>
+<select id="sort" aria-label="排序"><option value="id">原始顺序</option><option value="latency">耗时从高到低</option><option value="retries">重试从多到少</option></select>
+<select id="columns" aria-label="每行卡片数"><option value="auto">自动列数</option><option value="2">每行 2 张</option><option value="3">每行 3 张</option><option value="4">每行 4 张</option></select>
+<button id="reset">重置筛选</button><button id="layout" aria-pressed="false">精简布局</button><span id="count" class="count" role="status"></span>
+</div>
+<details class="note"><summary>统计口径与数据覆盖</summary><p>指标跟随筛选。pass@1 / pass@2 按每次实际请求内部前 1 / 2 次接口生成尝试判断，仅 success 计成功，降级单列。首次成功的请求补一份相同 Trace，仅参与耗时、模型和次数均值；不执行新请求，不增加重试。全部实际请求均参与统计。</p><p>阶段耗时按请求汇总，generate 对应 DSL 生成阶段；端到端不含截图和后处理。模型指标按物理调用求均值。组件、素材、事件及数据能力使用率按最终产物的样本出现率统计，同一样本重复使用只计一次。高阶组件出现率不等于基于真值的召回率。</p><p>未知值不按零处理；各指标展示有效记录数。截图成功不代表无视觉问题。</p><p id="coverage"></p></details>
+<div id="cases" class="grid"></div>
+</main>
+<dialog id="zoom"><button id="close">关闭</button><p id="zoom-title"></p><img id="zoom-image" alt="放大卡片预览"></dialog>
+<script id="gallery-data" type="application/json">{{DATA}}</script>
+<script>
+'use strict';
+const data=JSON.parse(document.getElementById('gallery-data').textContent);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct=(a,b)=>b?`${(a/b*100).toFixed(1)}%`:'未知';
+const seconds=n=>n==null?'未知':`${(n/1000).toFixed(2)}s`;
+const decimal=n=>n==null?'未知':Number(n).toFixed(2);
+const avg=x=>x?.count?x.sum/x.count:null;
+const scalarKeys=['sampleCount','requestCount','paddedCount','effectiveCount'];
+const meanKeys=['elapsedMs','planMs','generateMs','repairMs','interfaceRetries','repairs','modelRetries','planRetries','providerFallbacks'];
+const merge=(items,key)=>items.reduce((a,s)=>({sum:a.sum+(s[key]?.sum||0),count:a.count+(s[key]?.count||0)}),{sum:0,count:0});
+function aggregate(items){
+ const stats=items.map(x=>x.statistics),result={};
+ for(const key of scalarKeys)result[key]=stats.reduce((n,s)=>n+(s[key]||0),0);
+ for(const key of meanKeys)result[key]=merge(stats,key);
+ for(const key of ['pass1','pass2'])result[key]=stats.reduce((a,s)=>({hits:a.hits+(s[key]?.hits||0),count:a.count+(s[key]?.count||0)}),{hits:0,count:0});
+ result.models={};
+ for(const phase of ['all','plan','generate','repair','unknown']){
+  result.models[phase]={};
+  for(const key of ['ttftMs','tps'])result.models[phase][key]=merge(stats.map(s=>s.models?.[phase]||{}),key);
+ }
+ result.usage={};
+ for(const category of ['components','assets','events','data']){
+  const names=new Map();let count=0,used=0;
+  for(const s of stats){const u=s.usage?.[category];count+=u?.count||0;used+=u?.used||0;for(const row of u?.items||[])names.set(row.id,(names.get(row.id)||0)+row.count);}
+  result.usage[category]={count,used,items:[...names].sort((a,b)=>b[1]-a[1])};
+ }
+ return result;
+}
+const metric=(label,value,note)=>`<div class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(note)}</small></div>`;
+function showStats(items){
+ const s=aggregate(items);let output=metric('当前样本',items.length,`全部 ${data.cases.length} 个 · 降级 ${items.filter(x=>x.status==='degraded').length}`);
+ for(const key of ['pass1','pass2'])output+=metric(key==='pass1'?'pass@1':'pass@2',pct(s[key].hits,s[key].count),`成功 ${s[key].hits} / 已知 ${s[key].count} · 实际请求 ${s.requestCount}`);
+ for(const [key,label] of [['planMs','计划平均耗时'],['generateMs','生成平均耗时'],['repairMs','修复平均耗时'],['elapsedMs','接口端到端平均耗时']])output+=metric(label,seconds(avg(s[key])),`有效记录 ${s[key].count}`);
+ for(const [key,label] of [['interfaceRetries','平均接口重试'],['repairs','平均质量修复'],['modelRetries','平均模型失败重试'],['planRetries','平均计划重试'],['providerFallbacks','平均提供方切换']])output+=metric(label,decimal(avg(s[key])),`有效记录 ${s[key].count}`);
+ $('metrics').innerHTML=output;
+ let details='<h2>模型物理调用</h2><div class="metrics">';
+ for(const [phase,label] of [['all','全部'],['plan','计划'],['generate','生成'],['repair','修复'],['unknown','阶段未知']]){
+  const m=s.models[phase];if(phase==='unknown'&&!m.ttftMs.count&&!m.tps.count)continue;
+  details+=metric(`${label} TTFT`,seconds(avg(m.ttftMs)),`有效调用 ${m.ttftMs.count}`)+metric(`${label} TPS`,decimal(avg(m.tps)),`token/s · 有效调用 ${m.tps.count}`);
+ }
+ details+='</div>';
+ for(const [key,label] of [['components','高阶组件出现率'],['assets','素材使用率'],['events','事件使用率'],['data','数据能力使用率']]){
+  const u=s.usage[key];details+=`<h2>${label} · ${pct(u.used,u.count)}</h2><small>使用 ${u.used} / 可分析 ${u.count} 个样本</small><div class="table-scroll"><table><thead><tr><th>名称</th><th>使用样本数</th><th>出现率</th></tr></thead><tbody>${u.items.map(([id,n])=>`<tr><td>${esc(id)}</td><td>${n}</td><td>${pct(n,u.count)}</td></tr>`).join('')||'<tr><td colspan="3">无使用记录</td></tr>'}</tbody></table></div>`;
+ }
+ $('analysis-details').innerHTML=details;
+ $('coverage').textContent=`实际请求 ${s.requestCount} · 补齐 ${s.paddedCount} · 有效统计记录 ${s.effectiveCount}。缺失原因保留在数据分析插件逐样本明细。`;
+}
+const statusLabel=s=>({success:'成功',degraded:'降级',failed:'失败',unsupported:'不支持',cancelled:'取消',skipped:'跳过',partial:'部分完成'}[s]||s||'未知');
+const panel=(name,text)=>`<details><summary>${name}</summary><pre>${esc(text||'无产物')}</pre></details>`;
+function card(x,index){
+ const s=x.statistics,elapsed=avg(s.elapsedMs),retry=avg(s.interfaceRetries);
+ return `<article class="case"><div class="case-head"><span class="case-id">${esc(x.id)}</span><div class="full-only"><h2>${esc(x.title)}</h2><div class="chips"><span class="chip ${x.status==='success'?'':'warn'}">生成 ${esc(statusLabel(x.status))}</span><span class="chip ${x.image?'':'bad'}">截图 ${esc(statusLabel(x.captureStatus))}</span><span class="chip">${esc(x.size)}</span>${x.warnings.length?`<span class="chip warn">${x.warnings.length} 个警告</span>`:''}</div></div></div><div class="preview">${x.image?`<img src="${esc(x.image)}" width="${x.size==='2x4'?300:150}" alt="${esc(x.id)} 卡片预览" data-zoom="${index}">`:`<div class="render-error">${esc(x.error)}</div>`}</div><div class="case-body"><p class="query">${esc(x.query)}</p><div class="mini"><span>平均端到端 ${seconds(elapsed)}</span><span>平均接口重试 ${decimal(retry)}</span></div>${panel('Compact DSL',x.compact)}${panel('A2UI',x.a2ui)}</div></article>`;
+}
+let visible=[];
+function refresh(){
+ const term=$('search').value.trim().toLowerCase();
+ visible=data.cases.filter(x=>{
+  const retry=avg(x.statistics.interfaceRetries),warning=x.warnings.length>0;
+  return (!term||[x.id,x.title,x.query].join(' ').toLowerCase().includes(term))&&($('size').value==='all'||x.size===$('size').value)&&($('state').value==='all'||x.status===$('state').value)&&($('capture').value==='all'||($('capture').value==='success'?!!x.image:!x.image))&&($('retry').value==='all'||($('retry').value==='unknown'?retry==null:$('retry').value==='yes'?retry>0:retry===0))&&($('warning').value==='all'||($('warning').value==='yes'?warning:!warning));
+ });
+ const sort=$('sort').value;
+ if(sort!=='id')visible.sort((a,b)=>(avg(b.statistics[sort==='latency'?'elapsedMs':'interfaceRetries'])??-1)-(avg(a.statistics[sort==='latency'?'elapsedMs':'interfaceRetries'])??-1));
+ showStats(visible);$('count').textContent=`显示 ${visible.length} / ${data.cases.length}`;
+ $('cases').innerHTML=visible.map(card).join('')||'<p class="empty">没有符合筛选条件的样本。</p>';
+}
+for(const id of ['size','state','capture','retry','warning','sort'])$(id).addEventListener('change',refresh);
+$('search').addEventListener('input',refresh);
+$('columns').onchange=()=>{$('cases').dataset.columns=$('columns').value;};
+$('reset').onclick=()=>{$('search').value='';for(const id of ['size','state','capture','retry','warning'])$(id).value='all';$('sort').value='id';refresh();};
+$('layout').onclick=()=>{const compact=$('cases').classList.toggle('compact');$('layout').textContent=compact?'完整布局':'精简布局';$('layout').setAttribute('aria-pressed',String(compact));};
+$('cases').addEventListener('click',event=>{const index=event.target.dataset.zoom;if(index===undefined)return;const x=visible[Number(index)];$('zoom-title').textContent=x.id;$('zoom-image').src=x.image;$('zoom').showModal();});
+$('close').onclick=()=>$('zoom').close();
+$('run').textContent=`${data.runId} · 生成于 {{CREATED}} · 单文件离线审阅`;
+refresh();
+</script>
+</body></html>

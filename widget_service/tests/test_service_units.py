@@ -164,7 +164,7 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
         ),
     ],
 )
-def test_plugin_final_response_uses_legacy_string_and_empty_items(
+def test_plugin_final_response_uses_json_string_and_empty_items(
     legacy_message,
     expected_explanation,
 ):
@@ -173,7 +173,11 @@ def test_plugin_final_response_uses_legacy_string_and_empty_items(
 
     assert response.errorCode == "0"
     assert response.errorMessage == ""
-    assert response.reply.streamInfo.streamContent == expected_prefix + str(legacy_message)
+    content = response.reply.streamInfo.streamContent
+    assert content.startswith(expected_prefix)
+    assert json_module.loads(content.removeprefix(expected_prefix)) == legacy_message.model_dump(
+        mode="json"
+    )
     assert response.reply.items == []
 
 

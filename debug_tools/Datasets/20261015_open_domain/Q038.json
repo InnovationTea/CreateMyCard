@@ -1,0 +1,51 @@
+{
+    "content": {
+        "functionName": "generateWidgetCardCompactDsl",
+        "romVersion": "SGT-AL10 7.0.0.105",
+        "bundleName": "com.omega_w_0823.hmservice",
+        "candidateEventCandidates": [],
+        "size": "2x4",
+        "candidateDataBindings": [],
+        "candidateAssetIds": [],
+        "description": "三个月内拼假日期",
+        "userQuery": "生成一张卡片，展示未来三个月适合拼假的日期组合：国庆10月1日至7日请假9月28日至30日可连休13天；中秋9月25日至27日已过；元旦1月1日至3日请假12月29日至31日可连休9天；其余周末无调休可拼。",
+        "title": "拼假组合"
+    },
+    "deviceInfo": {
+        "countryCode": "CN",
+        "deviceFormation": "HDSpeaker",
+        "deviceType": 0,
+        "locale": "zh-CN",
+        "phoneType": "SGT-AL10",
+        "prdVer": "11.8.8.512",
+        "sysVer": "EmotionUI_9.0.0",
+        "time": "20260929090000000"
+    },
+    "pagination": {
+        "limit": 5,
+        "start": ""
+    },
+    "session": {
+        "interactionId": "38",
+        "isNew": false,
+        "sessionId": "a0f20405-9ff2-4272-8ef2-00df9df1ff4c"
+    },
+    "userAuth": {
+        "user": {}
+    },
+    "utterance": {
+        "original": "",
+        "type": "text"
+    },
+    "version": "1.0",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.105",
+    "bundleName": "com.omega_w_0823.hmservice",
+    "candidateEventCandidates": [],
+    "size": "2x4",
+    "candidateDataBindings": [],
+    "candidateAssetIds": [],
+    "description": "三个月内拼假日期",
+    "userQuery": "生成一张卡片，展示未来三个月适合拼假的日期组合：国庆10月1日至7日请假9月28日至30日可连休13天；中秋9月25日至27日已过；元旦1月1日至3日请假12月29日至31日可连休9天；其余周末无调休可拼。",
+    "title": "拼假组合"
+}

@@ -7,25 +7,7 @@ export const CONFIG_STORAGE_KEY = DEBUG_CONFIG_STORAGE_KEY;
 export const DEFAULT_TOOL_WS_BASE_URL = 'ws://127.0.0.1:8855/api/v1/ws/tools';
 export const DEFAULT_AGENT_WS_URL = '/debug/e2e/ws';
 export const DEFAULT_ASSET_BASE_URL = '/resources/';
-export const DEFAULT_MANAGED_SERVICE_CONFIG: Record<string, string | number | boolean> = {
-  enableA2uiModelMock: true,
-  designCompactModelBackend: 'openai',
-  openaiMasterClient: 'deepseek_official_http',
-  openaiFallbackClient: 'llmclient',
-  deepseekOfficialHttpModel: 'deepseek-flash',
-  deepseekOfficialHttpTemperature: 0.7,
-  deepseekOfficialHttpTopP: 0.9,
-  deepseekOfficialHttpMaxTokens: 8192,
-  deepseekOfficialHttpEnableThinking: false,
-  enableModelFailureRetry: false,
-  modelFailureMaxRetryAttempts: 1,
-  fallbackModelFailureMaxRetryAttempts: 1,
-  enableOpenaiFallback: true,
-  enableValidationFailureRetry: false,
-  validationFailureMaxRepairAttempts: 1,
-  enableCompactDslInterfaceRetry: false,
-  compactDslInterfaceRetryCount: 1,
-};
+export const DEFAULT_MANAGED_SERVICE_CONFIG: Record<string, string | number | boolean> = {};
 
 type EndpointConfig = {
   agentWsUrl: string;
@@ -126,16 +108,7 @@ export function normalizeDebugConfig(value: unknown): DebugConfig {
   const agentWsUrl = pickEndpoint('agentWsUrl', 'agentWsUrl', 'e2eSocketPath');
   const deviceType = Math.max(0, Math.floor(numberValue(source.deviceType, numberValue(legacy.deviceType, defaultDebugConfig.deviceType))));
   const paginationLimit = Math.max(1, Math.floor(numberValue(source.paginationLimit, defaultDebugConfig.paginationLimit)));
-  const storedServiceConfig = isRecord(source.managedServiceConfig)
-    ? source.managedServiceConfig
-    : {};
-  const managedServiceConfig = { ...DEFAULT_MANAGED_SERVICE_CONFIG };
-  Object.entries(storedServiceConfig).forEach(([key, value]) => {
-    if (key in managedServiceConfig
-      && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')) {
-      managedServiceConfig[key] = value;
-    }
-  });
+  const managedServiceConfig = {};
   return {
     agentWsUrl,
     toolWsBaseUrl,

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import ast
+import json
 import re
 
 _HEADER_PATTERN = re.compile(
@@ -12,11 +13,25 @@ _HEADER_PATTERN = re.compile(
 
 
 def parse_legacy_stream_content(stream_content: str) -> dict:
-    """解析路由写入 streamContent 的 Pydantic 旧消息字符串。
+    """解析标准 JSON 业务消息，兼容历史 Pydantic 字符串测试样例。
 
     业务异常时，服务会在旧消息字符串前增加中文异常类型说明。本函数同时返回
     `explanation`，并继续解析说明后面的完整旧消息。
     """
+    json_content = stream_content
+    json_explanation = ""
+    if not json_content.startswith("{"):
+        prefix, separator, remainder = stream_content.partition("：")
+        if separator and remainder.startswith("{"):
+            json_explanation = prefix
+            json_content = remainder
+    if json_content.startswith("{"):
+        payload = json.loads(json_content)
+        if not isinstance(payload, dict):
+            raise ValueError("streamContent JSON message must be an object")
+        payload["explanation"] = json_explanation
+        return payload
+
     header_start = stream_content.find("type=")
     if header_start < 0:
         raise ValueError("Missing legacy streamContent message")

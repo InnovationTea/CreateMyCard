@@ -332,7 +332,9 @@ function parseRows(text: string): unknown[] {
 export async function parseInput(text: string, options: ParseOptions = {}): Promise<RendererDocument> {
   const rows = parseRows(text);
   const compactRows = rows.filter((row): row is unknown[] => Array.isArray(row));
-  if (compactRows.length > 0 || unwrapRenderableSource(text).trim().startsWith('[')) {
+  const a2uiRows = rows.filter(isA2uiRow);
+  if (compactRows.length > 0
+    || (a2uiRows.length === 0 && unwrapRenderableSource(text).trim().startsWith('['))) {
     return compileCompactDocument(
       unwrapRenderableSource(text),
       compactRows,
@@ -340,7 +342,6 @@ export async function parseInput(text: string, options: ParseOptions = {}): Prom
       { ...options, appVersion: resolveAppVersion(text) ?? options.appVersion },
     );
   }
-  const a2uiRows = rows.filter(isA2uiRow);
   const source = a2uiRows.length > 0
     ? a2uiRows.map((row) => JSON.stringify(row)).join('\n')
     : unwrapRenderableSource(text);
@@ -570,8 +571,8 @@ function parseA2ui(rows: UnknownRecord[], allRows: unknown[], options: ParseOpti
   const selected = sizeForCard(options.cardSize);
   const suggested = sizeForCard(findSuggestSize(allRows));
   const resolvedSurface: SurfaceSize = {
-    width: selected?.width ?? numberOr(surface.width, suggested?.width ?? inferred.width ?? 160),
-    height: selected?.height ?? numberOr(surface.height, suggested?.height ?? inferred.height ?? 160),
+    width: selected?.width ?? numberOr(surface.width, suggested?.width ?? inferred.width ?? 150),
+    height: selected?.height ?? numberOr(surface.height, suggested?.height ?? inferred.height ?? 150),
   };
   return {
     mode: 'A2UI',
@@ -588,11 +589,11 @@ function parseA2ui(rows: UnknownRecord[], allRows: unknown[], options: ParseOpti
 }
 
 function inferSurface(root: ComponentNode | undefined): SurfaceSize {
-  if (!root) return { width: 160, height: 160 };
+  if (!root) return { width: 150, height: 150 };
   const props = root.props;
   const constraint = isRecord(props.constraintSize) ? props.constraintSize : {};
-  const width = numberOr(constraint.maxWidth ?? constraint.minWidth ?? props.width, props.height === 140 ? 140 : 160);
-  const height = numberOr(constraint.maxHeight ?? constraint.minHeight ?? props.height, 160);
+  const width = numberOr(constraint.maxWidth ?? constraint.minWidth ?? props.width, props.height === 140 ? 140 : 150);
+  const height = numberOr(constraint.maxHeight ?? constraint.minHeight ?? props.height, 150);
   return { width, height };
 }
 

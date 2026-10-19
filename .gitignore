@@ -18,6 +18,7 @@ tmp/
 temp/
 
 # Environment / secrets
+/debug_tools/debug_tool.yaml
 .env
 .env.*
 !.env.example
@@ -61,6 +62,7 @@ coverage/
 
 output/
 debug_tools/batch_output/
+debug_tools/device_output/
 widget_service/workspace
 debug_tools/package-lock.json
 

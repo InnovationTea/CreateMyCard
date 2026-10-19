@@ -283,6 +283,7 @@ class Settings(BaseSettings):
     )
     enable_openai_fallback: bool = CONFIG.get("enable_openai_fallback") == "true"
     enable_sensitive_log_fields: bool = CONFIG.get("enable_sensitive_log_fields") == "true"
+    enable_card_template: bool = CONFIG.get("enable_card_template", "false") == "true"
     enable_generation_trace_recording: bool = (
         CONFIG.get("enable_generation_trace_recording", "false") == "true"
     )

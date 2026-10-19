@@ -15,13 +15,15 @@ from typing import Any
 from ..postprocess_plugins.device_capture import DeviceCaptureManager
 from ..postprocess_plugins.device_capture import run_builtin as run_device_capture_plugin
 from ..postprocess_plugins.gallery import BatchGalleryManager
-from ..postprocess_plugins.gallery import run_builtin as run_gallery_plugin
+from ..postprocess_plugins.gallery.capture import run_capture as run_browser_capture_plugin
+from ..postprocess_plugins.gallery.report import run_gallery as run_gallery_report
 from ..postprocess_plugins.validation_failure_gallery import (
     ValidationFailureGalleryManager,
 )
 from ..postprocess_plugins.validation_failure_gallery import (
     run_builtin as run_validation_failure_gallery_plugin,
 )
+from .managed_config import canonical_name, read_configuration, sensitive
 from .metrics import retry_config_snapshot
 from .postprocess import PostprocessManager
 from .runner import BatchRunManager, atomic_write_json, discover_datasets, utc_now
@@ -87,12 +89,16 @@ class BatchTaskManager:
             self.output_root,
             plugins_root,
             builtin_runners={
-                "browser-gallery": partial(run_gallery_plugin, self.gallery_manager),
+                "browser-capture": partial(run_browser_capture_plugin, self.gallery_manager),
+                "browser-gallery": partial(run_gallery_report, self.gallery_manager, "browser"),
                 "validation-failure-gallery": partial(
                     run_validation_failure_gallery_plugin,
                     self.validation_failure_gallery_manager,
                 ),
                 "device-gallery": partial(
+                    run_gallery_report, self.device_capture_manager, "device"
+                ),
+                "device-capture": partial(
                     run_device_capture_plugin,
                     self.device_capture_manager,
                 ),
@@ -198,6 +204,7 @@ class BatchTaskManager:
             "backendMode": backend_mode,
             "toolWsBaseUrl": deployed_url,
             "serviceConfig": service_config,
+            "serviceConfigVersion": 2,
             "createdAt": now,
             "updatedAt": now,
         }
@@ -220,6 +227,15 @@ class BatchTaskManager:
         copied.pop("createdAt", None)
         copied.pop("updatedAt", None)
         copied.pop("enableDeviceCapture", None)
+        raw_config = copied.get("serviceConfig")
+        if copied.get("backendMode") == "managed" and isinstance(raw_config, dict):
+            current = read_configuration(self.project_root)
+            allowed: dict[str, Any] = {}
+            for raw_name, value in raw_config.items():
+                name = canonical_name(raw_name)
+                if name in current.exposed and current.editable(name):
+                    allowed[name] = value
+            copied["serviceConfig"] = allowed
         copied["name"] = f"{source.get('name', task_id)}（副本）"
         return self.create_task(copied)
 
@@ -276,8 +292,14 @@ class BatchTaskManager:
             "backendMode": task.get("backendMode"),
             "maxRetries": task.get("maxRetries"),
             "retryConfigSnapshot": (
-                retry_config_snapshot(task.get("serviceConfig") or {})
-                if task.get("backendMode") == "managed" else {}
+                retry_config_snapshot(
+                    {
+                        **read_configuration(self.project_root).values,
+                        **(task.get("serviceConfig") or {}),
+                    }
+                )
+                if task.get("backendMode") == "managed"
+                else {}
             ),
             "serviceStatus": "pending",
             "total": int(task.get("sampleCount", len(task.get("sampleIds") or []))),
@@ -390,6 +412,9 @@ class BatchTaskManager:
                     "backendMode": execution.get("backendMode", run.get("backendMode")),
                     "serviceStatus": execution.get("serviceStatus", run.get("serviceStatus")),
                     "interrupted": execution.get("status") == "interrupted",
+                    "effectiveServiceConfig": execution.get("effectiveServiceConfig"),
+                    "configWarnings": execution.get("configWarnings", []),
+                    "serviceOverrides": execution.get("serviceOverrides", {}),
                 }
             )
             snapshot = execution.get("retryConfigSnapshot")
@@ -401,18 +426,64 @@ class BatchTaskManager:
         return run
 
     def gallery_path(self, run_id: str) -> Path:
-        return self.gallery_manager.gallery_path(run_id)
+        path = self._latest_plugin_file(run_id, "browser-gallery", "gallery.html")
+        return path if path is not None else self.gallery_manager.gallery_path(run_id)
+
+    def _latest_plugin_file(self, run_id: str, plugin_id: str, relative: str) -> Path | None:
+        result: Path | None = None
+        for execution in self.postprocess_manager.executions(run_id):
+            execution_id = str(execution.get("executionId") or "")
+            try:
+                result = self.postprocess_manager.asset_path(
+                    run_id, execution_id, plugin_id, relative
+                )
+            except KeyError:
+                continue
+            break
+        return result
 
     def validation_failure_items(self, run_id: str) -> list[dict[str, Any]]:
         return self.validation_failure_gallery_manager.items(run_id)
 
     def device_capture_path(self, run_id: str, sample_id: str, kind: str) -> Path:
+        valid_id = re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", sample_id)
+        if valid_id is None or kind not in {"card", "full"}:
+            raise KeyError(sample_id)
+        for plugin_id in ("device-capture", "device-gallery"):
+            for suffix in ("png", "jpeg"):
+                relative = f"{kind}/{sample_id}.{suffix}"
+                path = self._latest_plugin_file(run_id, plugin_id, relative)
+                if path is not None:
+                    return path
         return self.device_capture_manager.image_path(run_id, sample_id, kind)
 
     def device_gallery_path(self, run_id: str) -> Path:
-        return self.device_capture_manager.gallery_path(run_id)
+        path = self._latest_plugin_file(run_id, "device-gallery", "gallery.html")
+        return path if path is not None else self.device_capture_manager.gallery_path(run_id)
 
     def sample_device_capture(self, run_id: str, sample_id: str) -> dict[str, Any]:
+        for plugin_id in ("device-capture", "device-gallery"):
+            for execution in self.postprocess_manager.executions(run_id):
+                execution_id = str(execution.get("executionId") or "")
+                try:
+                    result = self.postprocess_manager.sample_result(
+                        run_id, execution_id, plugin_id, sample_id
+                    )
+                except KeyError:
+                    continue
+                facts = result.get("facts") or {}
+                captured = {
+                    "id": sample_id,
+                    "status": result.get("status"),
+                    "size": facts.get("size"),
+                    "error": result.get("summary") if result.get("status") != "success" else "",
+                }
+                for artifact in result.get("artifacts") or []:
+                    if artifact.get("key") == "device-capture":
+                        captured["cardUrl"] = artifact.get("url")
+                    elif artifact.get("key") == "device-full-capture":
+                        captured["fullUrl"] = artifact.get("url")
+                return captured
         return self.device_capture_manager.sample(run_id, sample_id)
 
     async def _scheduler_loop(self) -> None:
@@ -448,9 +519,27 @@ class BatchTaskManager:
             backend_mode = str(task.get("backendMode") or "deployed")
             if backend_mode == "managed":
                 raw_config = task.get("serviceConfig")
-                service_config = raw_config if isinstance(raw_config, dict) else {}
-                execution["retryConfigSnapshot"] = retry_config_snapshot(service_config)
+                saved_config = raw_config if isinstance(raw_config, dict) else {}
+                current = read_configuration(self.project_root)
+                service_config: dict[str, Any] = {}
+                warnings: list[str] = []
+                if task.get("serviceConfigVersion") != 2:
+                    warnings.append("旧任务仅保留当前可编辑的 exposed 参数，其余使用最新默认值")
+                for raw_name, value in saved_config.items():
+                    name = canonical_name(raw_name)
+                    if name in current.exposed and current.editable(name):
+                        service_config[name] = value
+                    else:
+                        warnings.append(f"忽略不再允许临时覆盖的参数: {name.upper()}")
                 endpoint = await self.service_controller.ensure(service_config)
+                current.values.update(service_config)
+                execution["retryConfigSnapshot"] = retry_config_snapshot(current.values)
+                execution["effectiveServiceConfig"] = getattr(
+                    self.service_controller, "last_public_config", None
+                ) or current.public().get("values", {})
+                execution["configWarnings"] = warnings
+                execution["serviceOverrides"] = service_config
+                self._write_execution(execution)
                 service_status = "managed_running"
             else:
                 await self.service_controller.stop()
@@ -563,6 +652,14 @@ class BatchTaskManager:
 
     def _task_public(self, task: dict[str, Any]) -> dict[str, Any]:
         result = dict(task)
+        raw_config = result.get("serviceConfig")
+        if isinstance(raw_config, dict):
+            public_config: dict[str, Any] = {}
+            for key, value in raw_config.items():
+                if sensitive(canonical_name(key)):
+                    continue
+                public_config[key] = value
+            result["serviceConfig"] = public_config
         result.pop("enableDeviceCapture", None)
         records = sorted(
             self._task_execution_records(str(task.get("taskId") or "")),

@@ -1,0 +1,53 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "version": "3.0.0",
+  "entrypoint": "builtin",
+  "dependence": [
+    "device-capture",
+    "data-analysis"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "id": "device-gallery",
+  "name": "真机截图画廊",
+  "description": "复用截图与数据分析结果生成可筛选的离线 HTML 画廊。",
+  "outputs": [
+    {
+      "key": "device-capture",
+      "scope": "sample",
+      "title": "渲染截图",
+      "dataType": "image",
+      "required": false,
+      "renderer": "gallery"
+    },
+    {
+      "key": "device-gallery",
+      "scope": "dataset",
+      "title": "真机截图画廊",
+      "dataType": "link",
+      "required": true,
+      "renderer": "link"
+    }
+  ],
+  "presentation": {
+    "defaultView": "gallery",
+    "sampleFields": [
+      {
+        "key": "captureStatus",
+        "label": "截图状态",
+        "type": "string",
+        "filterable": true,
+        "sortable": true
+      },
+      {
+        "key": "size",
+        "label": "尺寸",
+        "type": "string",
+        "filterable": true,
+        "sortable": true
+      }
+    ]
+  }
+}

@@ -7,6 +7,7 @@ import pytest
 from cloud.config.config import Settings
 from cloud.config.config_helper import ConfigHelper
 
+from services import widget_generation_service as service_module
 from services.compact_prompt_loader import read_prompt
 
 
@@ -150,6 +151,21 @@ def test_settings_prefixed_environment_wins_over_bare_environment(
     settings = Settings(_env_file=tmp_path / "missing.env")
 
     assert settings.openai_master_client == "deepseek_official_http"
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_settings_reads_card_template_switch_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    enabled: bool,
+) -> None:
+    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_CARD_TEMPLATE", str(enabled).lower())
+
+    settings = Settings(_env_file=tmp_path / "missing.env")
+    monkeypatch.setattr(service_module, "get_settings", lambda: settings)
+
+    assert settings.enable_card_template is enabled
+    assert service_module.WidgetGenerationService()._enable_card_template() is enabled
 
 
 def test_removed_theme_switch_cannot_restore_front_loaded_theme(
