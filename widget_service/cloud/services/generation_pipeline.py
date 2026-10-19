@@ -27,6 +27,7 @@ from services.compact_plan import (
 )
 from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
+from services.validation_execution import ValidationExecutionContext
 from utils.ops_metrics import report_ops_metrics
 
 IssueStage = Literal["conversion", "validation"]
@@ -82,6 +83,7 @@ class DslProcessingContext:
     plan_information_coverage_as_warning: bool = False
     repair_context: RepairGuidanceContext | None = None
     colorless_layout: bool = False
+    validation_execution_context: ValidationExecutionContext | None = None
 
 
 @dataclass(frozen=True)
@@ -237,6 +239,7 @@ class DesignCompactProcessor:
                 source_dsl, task_spec=context.task_spec, card_spec=context.card_spec,
                 protocol_profile=design_protocol, layout_scope=context.layout_scope,
                 compact_plan=context.compact_plan,
+                validation_execution_context=context.validation_execution_context,
             )
             source_dsl = outer_result.source_dsl
             outer_applied = outer_result.applied
@@ -341,6 +344,7 @@ class DesignCompactProcessor:
                     enforce_model_component_types=True,
                     original_source=original_source_dsl,
                     repair_context=context.repair_context,
+                    execution_context=context.validation_execution_context,
                 )
             except CompactDslValidationError as exc:
                 trace_step(

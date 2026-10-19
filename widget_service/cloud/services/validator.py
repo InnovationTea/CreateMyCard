@@ -10,6 +10,7 @@ from services.card_validation import ValidationOptions, validate_card
 from services.card_validation.diagnostics import Diagnostic
 from services.card_validation.theme_phase_validator import theme_phase_errors
 from services.theme_style_roles import in_layout_phase
+from services.validation_execution import ValidationExecutionContext
 
 _MODULE = "[Validator]"
 
@@ -22,14 +23,24 @@ class ArtifactValidator:
         with layout_phase():
             return self.validate(artifact, protocol_profile)
 
-    def __init__(self, asset_src_url_mapping: dict[str, str] | None = None) -> None:
+    def __init__(
+        self,
+        asset_src_url_mapping: dict[str, str] | None = None,
+        execution_context: ValidationExecutionContext | None = None,
+    ) -> None:
         self.error_categories: list[str] = []
         self.error_prompt_contexts: list[dict[str, Any]] = []
+        self.execution_context = execution_context or ValidationExecutionContext()
         mapping = (
             get_settings().asset_src_url_mapping
             if asset_src_url_mapping is None else asset_src_url_mapping
         )
         self.asset_src_url_mapping = dict(mapping)
+
+    def set_execution_context(self, execution_context: ValidationExecutionContext) -> None:
+        """在同一校验器实例用于主题候选与回退时更新执行身份。"""
+
+        self.execution_context = execution_context
 
     def validate(
         self,
@@ -45,15 +56,20 @@ class ArtifactValidator:
         """
         # 校验入口接收完整 artifact；标准 A2UI 通过服务内 Python API 调用最新校验流水线。
         validator_name = "services.card_validation.validate_card"
+        log_fields = self.execution_context.log_fields()
         logger.info(
             f"{_MODULE} artifact_validation_started protocol_profile_id={protocol_profile['id']} "
-            f"validator_module={validator_name}"
+            f"validator_module={validator_name} {log_fields}"
         )
         self.error_categories = []
         self.error_prompt_contexts = []
         phase_errors = theme_phase_errors(artifact.genui, layout=in_layout_phase())
         if phase_errors:
             self.error_categories = ["THEME_PHASE"]
+            logger.warning(
+                f"{_MODULE} artifact_validation_failed {log_fields} "
+                f"error_count={len(phase_errors)} category=THEME_PHASE"
+            )
             return phase_errors
         try:
             settings = get_settings()
@@ -81,7 +97,8 @@ class ArtifactValidator:
             errors = [f"validator execution failed: {exc}"]
             self.error_categories = ["VALIDATOR"]
             logger.error(
-                f"{_MODULE} artifact_validation_failed errors={json_for_log(errors)} "
+                f"{_MODULE} artifact_validation_failed {log_fields} "
+                f"errors={json_for_log(errors)} "
                 f"validator_module={validator_name} "
                 f"exception_type={type(exc).__name__} exception={exc!r} "
                 f"traceback={traceback.format_exc()}"
@@ -90,12 +107,14 @@ class ArtifactValidator:
 
         if errors:
             logger.error(
-                f"{_MODULE} artifact_validation_failed errors={json_for_log(errors)} "
+                f"{_MODULE} artifact_validation_failed {log_fields} "
+                f"errors={json_for_log(errors)} "
                 f"warnings={json_for_log(warnings)}"
             )
         else:
             logger.info(
-                f"{_MODULE} artifact_validation_completed warning_count={len(warnings)} "
+                f"{_MODULE} artifact_validation_completed {log_fields} "
+                f"warning_count={len(warnings)} "
                 f"warnings={json_for_log(warnings)}"
             )
         return errors

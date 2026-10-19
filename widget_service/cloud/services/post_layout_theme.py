@@ -32,6 +32,7 @@ from services.theme_layout_summary import (
 )
 from services.theme_selection_policy import default_palette_family, fusion_candidate_gate
 from services.theme_style_roles import COLOR_FIELDS, is_role, resolve_role
+from services.validation_execution import ValidationExecutionContext
 
 PREFIX = "__post_theme_"
 FUSION_FOREGROUND_ID = build_fusion_ball_content_id("root")
@@ -601,6 +602,7 @@ def same_visible_geometry(before: dict, after: dict) -> bool:
 async def theme_artifact(
     artifact: Any, task: dict, client: Any, validator: Any, profile: dict,
     *, allow_expansion: bool = True, final_layout: str | None = None,
+    validation_execution_context: ValidationExecutionContext | None = None,
 ) -> Any:
     source = artifact.genui
     result, audit = await select_theme(
@@ -619,6 +621,13 @@ async def theme_artifact(
         asset = {"id": theme.get("id"), "src": theme.get("src"), "description": "预置主题背景"}
         themed.taskSpec.setdefault("assetCandidates", []).append(asset)
         themed.effectiveCapabilities.setdefault("asset", []).append(asset.get("id"))
+    execution_context = validation_execution_context or ValidationExecutionContext(
+        phase="theme",
+        purpose="theme_candidate",
+    )
+    set_execution_context = getattr(validator, "set_execution_context", None)
+    if callable(set_execution_context):
+        set_execution_context(execution_context.with_purpose("theme_candidate"))
     errors = validator.validate(themed, profile)
     if audit.get("userColors"):
         audit["userColorContrastWarnings"] = [e for e in errors if e.startswith("VISUAL.CONTRAST")]
@@ -628,6 +637,8 @@ async def theme_artifact(
         themed = artifact.model_copy(deep=True)
         fallback = fallback_theme(default_palette_family(task))
         themed.genui = apply_theme(source, fallback, task, audit.get("userColors", {}))
+        if callable(set_execution_context):
+            set_execution_context(execution_context.with_purpose("theme_fallback"))
         fallback_errors = validator.validate(themed, profile)
         if fallback_errors:
             raise ValueError("Final gradient validation failed: " + str(fallback_errors))

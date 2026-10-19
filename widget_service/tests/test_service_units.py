@@ -4281,6 +4281,7 @@ async def test_source_format_warning_does_not_trigger_repair(
 ):
     settings = get_settings()
     model_calls = 0
+    validation_contexts = []
     processor = get_dsl_processor(processor_kind)
     # 产物现在保存已解析的Compact源；本测试仍只隔离非阻断warning，不使用伪DSL。
     valid_source = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
@@ -4293,6 +4294,7 @@ async def test_source_format_warning_does_not_trigger_repair(
         return valid_source
 
     def process_with_warning(source_dsl, _context):
+        validation_contexts.append(_context.validation_execution_context)
         issue = QualityIssue(
             stage="conversion",
             code="SOURCE_FORMAT_WARNING",
@@ -4323,6 +4325,14 @@ async def test_source_format_warning_does_not_trigger_repair(
 
     assert response.status == GenerationStatus.SUCCESS
     assert model_calls == 1
+    assert len(validation_contexts) == 1
+    validation_context = validation_contexts[0]
+    assert validation_context is not None
+    assert validation_context.operation == "generateWidgetCardCompactDsl"
+    assert validation_context.generation_mode == "create"
+    assert validation_context.phase == "initial"
+    assert validation_context.attempt == 1
+    assert validation_context.purpose == "delivery_candidate"
 
 
 @pytest.mark.parametrize(

@@ -95,6 +95,7 @@ from services.source_artifact_repository import (
     SourceArtifactRepository,
 )
 from services.template_generation import TemplateSourceGenerator
+from services.validation_execution import ValidationExecutionContext
 from services.validator import ArtifactValidator
 from utils.ops_metrics import report_ops_metrics
 
@@ -1299,6 +1300,17 @@ class WidgetGenerationService:
                     processing_context.task_spec,
                 )
             evaluation_attempt = quality_repair_attempt_count + 1
+            validation_execution_context = ValidationExecutionContext(
+                operation=policy.operation,
+                generation_mode=generation_mode,
+                phase=model_call_phase,
+                attempt=evaluation_attempt,
+                purpose=(
+                    "template_candidate"
+                    if source_generated_by_template
+                    else "delivery_candidate"
+                ),
+            )
             trace_increment_attempt("validationEvaluations")
             validation_attempts = {"validation": evaluation_attempt}
             if quality_repair_attempt_count > 0:
@@ -1306,7 +1318,8 @@ class WidgetGenerationService:
             # JSX 路径：agent 内部已有编译、验证和重试；仅映射交付资源，跳过工程质量流程。
             if source_generated_by_jsx:
                 logger.info(
-                    f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
+                    f"{_MODULE} artifact_validation_skipped "
+                    f"{validation_execution_context.log_fields()} "
                     "reason=jsx_internal_validation"
                 )
                 latest_processing_result = DslProcessingResult(
@@ -1331,6 +1344,7 @@ class WidgetGenerationService:
                     if compact_repair_tracker is not None
                     else ()
                 ),
+                validation_execution_context=validation_execution_context,
             )
             with trace_attempt(**validation_attempts):
                 processing_started_at = time.perf_counter()
@@ -1392,14 +1406,16 @@ class WidgetGenerationService:
             ]
             if warnings:
                 logger.warning(
-                    f"{_MODULE} dsl_processing_warnings operation={policy.operation} "
+                    f"{_MODULE} dsl_processing_warnings "
+                    f"{validation_execution_context.log_fields()} "
                     f"warnings={json_for_log(warnings)}"
                 )
             conversion_errors = [item.repair_message() for item in processing_result.errors]
             if conversion_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
                 logger.error(
-                    f"{_MODULE} dsl_conversion_failed operation={policy.operation} "
+                    f"{_MODULE} dsl_conversion_failed "
+                    f"{validation_execution_context.log_fields()} "
                     f"errors={json_for_log(conversion_errors)}"
                 )
                 self._append_repair_record(
@@ -1464,7 +1480,13 @@ class WidgetGenerationService:
                     },
                     artifact_roles={"artifact_validation_input": "input"},
                 )
-            artifact_validator = ArtifactValidator(asset_mapper.mapping)
+            artifact_validation_context = validation_execution_context.with_purpose(
+                "artifact_candidate"
+            )
+            artifact_validator = ArtifactValidator(
+                asset_mapper.mapping,
+                execution_context=artifact_validation_context,
+            )
             artifact_validation_started_at = time.perf_counter()
             colorless = colorless_source()
             if colorless:
@@ -1718,11 +1740,23 @@ class WidgetGenerationService:
         if colorless_source():
             from services.post_layout_theme import theme_artifact
 
+            theme_validation_context = ValidationExecutionContext(
+                operation=policy.operation,
+                generation_mode=generation_mode,
+                phase="theme",
+                attempt=1,
+                purpose="theme_candidate",
+            )
             artifact = await theme_artifact(
                 artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
-                ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                ArtifactValidator(
+                    asset_mapper.mapping,
+                    execution_context=theme_validation_context,
+                ),
+                protocol_profile,
                 allow_expansion=defer_size_notification,
                 final_layout=design_token,
+                validation_execution_context=theme_validation_context,
             )
         final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
         if defer_size_notification and before_model_call is not None:

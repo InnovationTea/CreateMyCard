@@ -20,6 +20,7 @@ from services.compact_dsl_a2ui_converter import (
 )
 from services.compact_plan import compact_plan_coverage_errors
 from services.compact_reference_canvas import reference_dimension
+from services.validation_execution import ValidationExecutionContext
 
 _PLAIN_COLUMN_PROPS = frozenset({
     "width", "height", "layoutWeight", "flexShrink", "itemMargin", "justifyContent", "alignItems",
@@ -466,6 +467,7 @@ def recompose_small_card(
     source_dsl: str, *, task_spec: dict[str, Any], card_spec: dict[str, Any],
     protocol_profile: dict[str, Any] | None, layout_scope: str | None,
     compact_plan: dict[str, Any] | None,
+    validation_execution_context: ValidationExecutionContext | None = None,
 ) -> OuterRecompositionResult:
     """最多32个无模型候选，原校验与硬事实均闭合才替换；否则原样回退。"""
     unchanged = OuterRecompositionResult(source_dsl)
@@ -482,9 +484,18 @@ def recompose_small_card(
     root = rows[0]
     if not isinstance(root, ComponentRow):
         return unchanged
-    context = {"task_spec": task_spec, "card_spec": card_spec,
-               "protocol_profile": protocol_profile, "layout_scope": layout_scope}
-    original_errors = _validation_errors(source_dsl, context)
+    context = {
+        "task_spec": task_spec,
+        "card_spec": card_spec,
+        "protocol_profile": protocol_profile,
+        "layout_scope": layout_scope,
+    }
+    execution_context = validation_execution_context or ValidationExecutionContext()
+    source_context = execution_context.with_purpose("recomposition_source")
+    original_errors = _validation_errors(
+        source_dsl,
+        {**context, "execution_context": source_context},
+    )
     height_error = False
     width_error = False
     for message in original_errors:
@@ -542,7 +553,15 @@ def recompose_small_card(
                 if candidate is None:
                     continue
                 attempted += 1
-                if _validation_errors(candidate, context):
+                candidate_context = execution_context.with_purpose(
+                    "recomposition_candidate",
+                    candidate_index=attempted,
+                )
+                validation_context = {
+                    **context,
+                    "execution_context": candidate_context,
+                }
+                if _validation_errors(candidate, validation_context):
                     continue
                 if compact_plan_coverage_errors(candidate, compact_plan, task_spec):
                     continue

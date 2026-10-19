@@ -96,7 +96,10 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
             genui=source, taskSpec={}, cardSpec={"suggestSize": "2x2"}, effectiveCapabilities={},
         )),
     )
-    validator = SimpleNamespace(validate=Mock(side_effect=[[error], []]))
+    validator = SimpleNamespace(
+        set_execution_context=Mock(),
+        validate=Mock(side_effect=[[error], []]),
+    )
     result = asyncio.run(themes.theme_artifact(
         artifact, {"size": "2x2", "userQuery": "天气"}, Mock(), validator, {},
     ))
@@ -104,6 +107,13 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
     assert audit.get("themeId") == "gradient-blue"
     assert audit.get("rejectedTheme") == photo
     assert validator.validate.call_count == 2
+    validation_contexts = [
+        call.args[0] for call in validator.set_execution_context.call_args_list
+    ]
+    assert [context.purpose for context in validation_contexts] == [
+        "theme_candidate",
+        "theme_fallback",
+    ]
     assert "linearGradient" in result.genui
     assert result.taskSpec == {}
     assert themes.foreground_signature(result.genui) == themes.foreground_signature(source)
