@@ -2884,22 +2884,13 @@ def _data_display_variant(
     data_model: dict[str, Any] | None,
 ) -> str | None:
     value_kind, text_sample = _data_display_value_kind(component, data_model)
-    font_size = component.props.get("fontSize")
-    if value_kind == "numeric" and font_size == 24:
-        raise CompactDslConversionError(
-            f"{component.component_id}: numeric DataDisplay.value requires fontSize 48."
-        )
-    if value_kind == "text" and font_size is not None and font_size != 24:
-        raise CompactDslConversionError(
-            f"{component.component_id}: text DataDisplay.value requires fontSize 24."
-        )
     if text_sample is not None:
         character_count = len(re.sub(r"\s+", "", text_sample))
-        if not 4 <= character_count <= 8:
+        if not 1 <= character_count <= 8:
             raise CompactDslConversionError(
-                f"{component.component_id}: text DataDisplay.value requires 4 to 8 characters."
+                f"{component.component_id}: text DataDisplay.value requires 1 to 8 characters."
             )
-    if font_size == 24 or (font_size is None and value_kind == "text"):
+    if value_kind == "text":
         return "textConclusion"
     return None
 
@@ -2927,13 +2918,6 @@ def _expand_data_display(
         allowed=allowed,
     )
     variant = _data_display_variant(component, data_model)
-    _validate_recipe_font_size(
-        component,
-        component_name="DataDisplay",
-        part_name="value",
-        size=size,
-        variant=variant,
-    )
     label = component.props.get("label")
     has_label = isinstance(label, str) and bool(label.strip())
     has_icon = isinstance(component.props.get("icon"), str) and bool(

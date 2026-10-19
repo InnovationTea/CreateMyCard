@@ -24,7 +24,11 @@ from services.compact_composition_planner import (
 )
 from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
-from services.compact_plan import build_compact_plan_tool, compact_plan_context
+from services.compact_plan import (
+    build_compact_plan_tool,
+    compact_plan_context,
+    compact_plan_required_route,
+)
 from services.compact_plan_output import (
     PLAN_JSON_OUTPUT_INSTRUCTION,
     plan_output_format_feedback,
@@ -2097,14 +2101,24 @@ class PromptBuilder:
         if is_design_compact:
             omissions = _approved_omissions(compact_plan, repair_strategy)
             if compact_plan is not None and task_spec is not None:
+                task_value = task_spec.model_dump(mode="json")
                 payload["repairObligations"] = joint_repair_contract(
-                    compact_plan, task_spec.model_dump(mode="json"), omissions
+                    compact_plan, task_value, omissions
                 )
                 payload["instruction"] += (
                     " repairObligations 按已接受合同列出本轮联动核对项；"
                     "按scope修复后同时核对结构、保留事实、完整动作、素材归属和各区容量，"
                     "不以某一条错误消失代替整体通过。"
                 )
+                route_lock = compact_plan_required_route(compact_plan, task_value)
+                if route_lock is not None:
+                    payload["repairRouteLock"] = route_lock
+                    payload["instruction"] += (
+                        " repairRouteLock 是当前单焦点 Plan 的执行约束；所有修复 scope 都必须"
+                        "保留 S-center + DataDisplay，只修复其 Props、绑定、素材或必要数据行。"
+                        "不得改成 SingleLineTitle + EmphasisText/EmphasizedData。修复路由中的"
+                        "“不要再次提交相同组件结构”只禁止重复同一错误实现，不授权更换该路线。"
+                    )
             if omissions:
                 payload["approvedOmissions"] = omissions
                 payload["instruction"] += (

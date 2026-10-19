@@ -1587,7 +1587,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         ["content", component_type, invalid_props],
                     ]
                 )
-                if component_type == "SecondaryBody":
+                if component_type in {"SecondaryBody", "DataDisplay"}:
                     invalid_result = convert_compact_dsl_to_a2ui(
                         invalid_dsl,
                         size="2x2",
@@ -2211,6 +2211,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "label": "运动会倒计时",
                         "value": 32,
                         "supportingText": "天",
+                        "fontSize": 24,
                         "fontColor": "#FFFFFFFF",
                     },
                 ],

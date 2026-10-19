@@ -93,8 +93,9 @@ def test_info_block_contract_is_noninteractive() -> None:
     assert icon_example in create_prompt
     assert progress_example in create_prompt
     assert "每行只承载一个动态业务值" in create_prompt
-    assert "`S-title-dual-content` 的两个 `126×50vp` 槽" in create_prompt
-    assert '"variant":"stacked","primaryText":"{{ \'明天 \' +' in create_prompt
+    assert "两个同级 InfoBlock 必须放入无标题的 S-dual-info" in create_prompt
+    assert '"layout":"S-dual-info"' in create_prompt
+    assert '"variant":"stacked","primaryText":"{{ \'明天 \' +' not in create_prompt
     assert "每行只承载一个动态业务值" in create_prompt
 
 
@@ -350,6 +351,24 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     assert "数组由转换器按顺序以 ` | ` 连接" in catalog
     assert "静态 / PathBinding；不接受 Expression" in catalog
     assert "| `items[].label` | 显示值 |" in catalog
+
+
+def test_two_peer_facts_use_equal_info_blocks_instead_of_fake_primary_support() -> None:
+    common_components = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+    small_components = (DEFAULT_SOURCE / "components/2x2.md").read_text(encoding="utf-8")
+    combinations = (DEFAULT_SOURCE / "combinations/common.md").read_text(encoding="utf-8")
+    plan = (DEFAULT_SOURCE / "plan.md").read_text(encoding="utf-8")
+    create_prompt = read_prompt(DEFAULT_SOURCE, "create", size="2x2")
+
+    assert "恰好两个等权、各自能够独立" in common_components
+    assert "理解的短信息不是“核心 + 补充”" in common_components
+    assert "各用一个 `InfoBlock` 并选择 `S-dual-info`" in small_components
+    assert "不把其中一项降为" in common_components
+    assert "`SecondaryBody`" in common_components
+    assert "不先拆成一个强调值与另一个辅助值" in combinations
+    assert "双信息块组合的事实首选 InfoBlock" in plan
+    assert "两个等权短事实" in create_prompt
+    assert "第二项独立事实或" not in small_components
 
 def test_size_component_rules_separate_shared_and_dedicated_components() -> None:
     common = read_prompt(DEFAULT_SOURCE, "create", size="2x2")

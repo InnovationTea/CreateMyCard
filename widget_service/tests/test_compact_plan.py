@@ -1362,6 +1362,61 @@ def test_anchor_composition_cannot_be_replaced_by_text_action_layout() -> None:
     )
 
 
+def test_single_focus_data_display_route_cannot_be_downgraded_during_repair() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "must",
+                "dataId": "/data/calendar/events/0/title",
+                "componentHints": ["DataDisplay", "EmphasisText"],
+            }
+        ],
+        "layoutHints": ["S-center"],
+    }
+    downgraded = "\n".join(
+        [
+            '["root","Layout",{"layout":"S-title-content"},["header","display"]]',
+            '["header","SingleLineTitle",{"title":"会议"}]',
+            '["display","EmphasisText",{"mainText":'
+            '{"path":"/data/calendar/events/0/title"}}]',
+        ]
+    )
+    preserved = "\n".join(
+        [
+            '["root","Layout",{"layout":"S-center"},["display"]]',
+            '["display","DataDisplay",{"label":"会议","value":'
+            '{"path":"/data/calendar/events/0/title"},"supportingText":"今日"}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(downgraded, plan, spec)
+
+    assert errors == (
+        "已接受 Plan 选择了 2x2 单焦点 S-center + DataDisplay；修复时必须保留"
+        "该布局与组件，不得降级为 SingleLineTitle + EmphasisText 或 EmphasizedData。",
+    )
+    assert compact_plan_coverage_errors(preserved, plan, spec) == ()
+
+    long_value_spec = task_spec()
+    schema = long_value_spec.get("dataModelSchema")
+    assert isinstance(schema, dict)
+    data = schema.get("data")
+    assert isinstance(data, dict)
+    calendar = data.get("calendar")
+    assert isinstance(calendar, dict)
+    events = calendar.get("events")
+    assert isinstance(events, list)
+    assert events
+    first_event = events[0]
+    assert isinstance(first_event, dict)
+    title = first_event.get("title")
+    assert isinstance(title, dict)
+    title["sampleValue"] = "这是明确超过八个字的文本结论"
+    assert compact_plan_coverage_errors(downgraded, plan, long_value_spec) == ()
+
+
 def test_optional_drop_candidate_prefers_should_only_component() -> None:
     spec = task_spec()
     plan = {

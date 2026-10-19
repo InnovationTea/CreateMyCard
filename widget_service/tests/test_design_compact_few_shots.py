@@ -472,7 +472,7 @@ def test_examples_use_only_supported_component_types(
     EXAMPLES,
     ids=[item[0] for item in EXAMPLES],
 )
-def test_text_component_examples_declare_fixed_recipe_font_size(
+def test_text_component_examples_follow_runtime_font_ownership(
     identifier: str,
     task: dict,
     source: str,
@@ -483,17 +483,17 @@ def test_text_component_examples_declare_fixed_recipe_font_size(
         "DoubleLineTitle": 12,
         "EmphasizedData": 30,
         "EmphasisText": 18,
-        "DataDisplay": 48,
     }
     for row in _rows(source):
         if len(row) < 3:
             continue
         component_type = row[1]
         props = row[2]
+        if component_type == "DataDisplay":
+            assert "fontSize" not in props, identifier
+            continue
         expected = fixed_sizes.get(component_type)
-        if component_type == "DataDisplay" and "icon" in props:
-            expected = 24
-        elif component_type == "SecondaryBody":
+        if component_type == "SecondaryBody":
             role = props.get("role")
             items = props.get("items", [])
             expected = 12 if role == "metadata" or len(items) > 2 else 14

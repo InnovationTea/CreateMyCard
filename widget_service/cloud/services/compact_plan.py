@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from core.json_pointer import parse_json_pointer
 from services.compact_component_semantics import (
     CORE_INFORMATION_COMPONENT_TYPES,
     MODEL_COMPONENT_TYPES_BY_SIZE,
@@ -1419,6 +1420,22 @@ def evaluate_compact_plan_coverage(
                 "composition; keep the CircleButton anchor layout instead of replacing it "
                 "with a text-action layout that compresses the required content."
             )
+    required_route = compact_plan_required_route(plan, task_spec)
+    if required_route is not None:
+        locked_layout = required_route.get("layout")
+        if not isinstance(locked_layout, str):
+            locked_layout = ""
+        try:
+            match_compact_layout(
+                components,
+                size="2x2",
+                layout_scope=locked_layout,
+            )
+        except CompactLayoutRuntimeError:
+            errors.append(
+                "已接受 Plan 选择了 2x2 单焦点 S-center + DataDisplay；修复时必须保留"
+                "该布局与组件，不得降级为 SingleLineTitle + EmphasisText 或 EmphasizedData。"
+            )
     return CompactPlanCoverageResult(
         errors=tuple(errors),
         warnings=tuple(warnings),
@@ -1582,6 +1599,76 @@ def _required_anchor_layout(
         if isinstance(hints, list) and hints and hints[0] == "CircleButton":
             return "S-title-anchor"
     return None
+
+
+def compact_plan_required_route(
+    plan: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> dict[str, str] | None:
+    """返回已接受 Plan 中可安全锁定的精确单焦点执行路线。"""
+    if task_spec.get("size") != "2x2" or composition_implementation_conflicts(plan):
+        return None
+    facts = plan.get("info_required")
+    if not isinstance(facts, list) or len(facts) != 1:
+        return None
+    fact = facts[0]
+    if not isinstance(fact, dict) or "actionId" in fact:
+        return None
+    component_hints = fact.get("componentHints")
+    layout_hints = plan.get("layoutHints")
+    preferred_component = (
+        component_hints[0] if isinstance(component_hints, list) and component_hints else None
+    )
+    preferred_layout = layout_hints[0] if isinstance(layout_hints, list) and layout_hints else None
+    if preferred_component != "DataDisplay" or preferred_layout != "S-center":
+        return None
+    if not _data_display_route_fits_fact(fact, task_spec):
+        return None
+    return {"layout": "S-center", "component": "DataDisplay"}
+
+
+def _data_display_route_fits_fact(
+    fact: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> bool:
+    """仅在现有事实没有明确违反 DataDisplay 值容量时锁定路线。"""
+    value: Any = fact.get("text")
+    data_id = fact.get("dataId")
+    if isinstance(data_id, str):
+        value = _task_schema_sample(task_spec, data_id)
+    if value is None:
+        return isinstance(data_id, str)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return True
+    if not isinstance(value, str) or not value.strip():
+        return False
+    normalized = value.strip()
+    numeric_text = re.fullmatch(
+        r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[%％])?",
+        normalized,
+    )
+    if numeric_text is not None:
+        return True
+    character_count = len(re.sub(r"\s+", "", normalized))
+    return 1 <= character_count <= 8
+
+
+def _task_schema_sample(task_spec: dict[str, Any], data_id: str) -> Any:
+    """读取 TaskSpec 展开 schema 的样例值；未知路径不伪造结论。"""
+    parts = parse_json_pointer(data_id)
+    current: Any = task_spec.get("dataModelSchema")
+    if parts is None:
+        return None
+    for part in parts:
+        if isinstance(current, dict):
+            current = current.get(part)
+            continue
+        if isinstance(current, list) and part.isdigit():
+            index = int(part)
+            current = current[index] if 0 <= index < len(current) else None
+            continue
+        return None
+    return current.get("sampleValue") if isinstance(current, dict) else None
 
 
 def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:

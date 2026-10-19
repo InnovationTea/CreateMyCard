@@ -12,7 +12,7 @@ SOURCE = (
     / "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
 )
 FEWSHOT_HASHES = {
-    "2x2.md": "6e6a55f6a5f647c3869b4a2cbd8ff8ee179448419990f2035fc6e3f4a820fd20",
+    "2x2.md": "c1d476b3454820450f8d3ca341d5301446e831a6fab2ce578455b3130e2cc7d5",
     "2x4.md": "8599f95498cc516249882701c749b1ef0ab335adb3ef1a92f43e3b7843e4b812",
 }
 
@@ -36,11 +36,12 @@ def test_one_block_exclusion_does_not_exclude_two_instances() -> None:
     assert "每块分别表达一个指标" in text
 
 
-def test_small_layout_distinguishes_peer_variant_from_primary_support() -> None:
+def test_small_layout_keeps_peer_info_titleless() -> None:
     text = source_text("layouts/2x2.md")
-    assert "standard为主辅；stacked-info为同级双信息块" in text
-    assert "两个同级短指标，不要求属于不同对象" in text
-    assert "primary/support仅是槽位ID，不表示两块有业务主次" in text
+    assert "S-title-dual-content | [title, primary, support] | 仅普通主辅" in text
+    assert "双 InfoBlock 不使用本布局" in text
+    assert "不得增加公共\nSingleLineTitle" in text
+    assert '"layout":"S-title-dual-content","variant":"stacked-info"' not in text
 
 
 def test_titleless_pair_does_not_require_different_business_objects() -> None:
@@ -49,12 +50,15 @@ def test_titleless_pair_does_not_require_different_business_objects() -> None:
     assert "不能将单一主值及其紧密辅助拆成两块" in text
     small_components = source_text("components/2x2.md")
     assert "是否成立双信息块遵守组合合同" in small_components
+    assert "两个同级 InfoBlock 必须放入无标题的 S-dual-info" in small_components
+    assert "“不要标题”不等于删除这些必要标签" in small_components
     assert "同一对象的多个属性不是双对象" not in small_components
 
 
 def test_plan_maps_selected_combination_without_repeating_trigger_table() -> None:
     text = source_text("plan.md")
     assert "双信息块组合的事实首选 InfoBlock" in text
+    assert "layoutHints 首选无独立标题的 S-dual-info" in text
     assert "不把数值字段逐项默认推荐为 EmphasizedData" in text
     assert "恰好两组同级短信息" not in text
 
@@ -63,6 +67,14 @@ def test_repair_preserves_pair_relationship_without_freezing_component_type() ->
     text = source_text("repair.md")
     assert "同级组合换型时成组保持同规格" in text
     assert "组件类型不是硬约束" in text
+    assert "改为无标题 S-dual-info" in text
+
+
+def test_complete_fewshots_do_not_pair_info_blocks_with_title() -> None:
+    text = source_text("fewshots/2x2.md")
+    assert '"layout":"S-title-dual-content","variant":"stacked-info"' not in text
+    assert '"layout":"S-dual-info"' in text
+    assert "本例不使用图标、标题或动作" in text
 
 
 def test_static_explanation_placement_precedes_component_replacement() -> None:

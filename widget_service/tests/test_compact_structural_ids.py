@@ -19,11 +19,11 @@ EXAMPLE = re.compile(r"<!-- prompt:(example-[\w-]+) -->(.*?)<!-- /prompt:\1 -->"
 QUAD = ("top_left", "top_right", "bottom_left", "bottom_right")
 EXPECTED_EXAMPLES = {
     "fewshots/2x2.md:example-v01":
-        "f74576127fe7e35eff27bd723c0dbf7dd694c1f589cef719e65c33396a71b4ea",
+        "b902a7f144871919ab53ddc065152520eebb99ca1881ec9796c9f143457e305b",
     "fewshots/2x2.md:example-v09":
-        "8625c0449ea15c0b7eaa62c8c6782e6af2eca2728f0531c399e6db926b8cf287",
+        "7bf41d3bc4834e9a53264c286bb3fdeec263ecb81920e378d33b486f55af0f1a",
     "fewshots/2x2.md:example-v15":
-        "05e5dcf6f954e1beb31313b2c43a7592c6795d9fa9a8bc8e7154942d3c1d4842",
+        "72e531febc6dfb4925cddb9d2e3c78c4562f50c295a282a64e022faf847e8d6c",
     "fewshots/2x2.md:example-v10":
         "b6b9215d827050852ab5e40aeafadefdac203ba778d62b63b3c71918c903382f",
     "fewshots/2x2.md:example-v12":
@@ -79,30 +79,28 @@ EXPECTED_TEMPLATES = {
     "layouts/2x2.md:3":
         "32f5f94a9204a94fdeb6b0d36bc9a8c1413c296a5e414089d9711417a8422f5b",
     "layouts/2x2.md:4":
-        "44e123f2f588dc00598eb027505adcb0f56efe1250e07da2c4cb14fa8c0bd5f5",
-    "layouts/2x2.md:5":
         "5d7254c34f68d6d5e21606c7e404dd6a0f80ffba2571ec44abc162db49b6fe81",
-    "layouts/2x2.md:6":
+    "layouts/2x2.md:5":
         "cc7c79120a32fd83aebbd1b00d379539316c99c00550355fc7f419dfc918d712",
-    "layouts/2x2.md:7":
+    "layouts/2x2.md:6":
         "6f18a090027ef1103bb69d7b205dc9eab7c44b395c6760f9c0d58c60d1686291",
-    "layouts/2x2.md:8":
+    "layouts/2x2.md:7":
         "ebcf247f4a18b5a123d274c47e8e0060f17269b9dcfebbf3b6dbed22f75176fc",
-    "layouts/2x2.md:9":
+    "layouts/2x2.md:8":
         "f7fb199a89643121d47a19a27f0374c4bbb88b3155bcaa670badd4f98c467042",
-    "layouts/2x2.md:10":
+    "layouts/2x2.md:9":
         "39cecb07f0ba976c6093d4fb4e032f75cb1fe861a380de79e4bffc2e045a6dbb",
-    "layouts/2x2.md:11":
+    "layouts/2x2.md:10":
         "b1481322d92c862fe087f3a6879ed735fd043ef79999e9aca4c34e4976c22242",
+    "layouts/2x2.md:11":
+        "7f5da60b6d01132ae926ce43d7506ad6cd534e682c8c9990ad5377aeb21ca95f",
     "layouts/2x2.md:12":
         "7f5da60b6d01132ae926ce43d7506ad6cd534e682c8c9990ad5377aeb21ca95f",
     "layouts/2x2.md:13":
-        "7f5da60b6d01132ae926ce43d7506ad6cd534e682c8c9990ad5377aeb21ca95f",
-    "layouts/2x2.md:14":
         "9294d95d0c97f8227105debb1c5e5a64a743571a8de64de65ea6801131b12138",
-    "layouts/2x2.md:15":
+    "layouts/2x2.md:14":
         "c9ef8e5461560a8605eb121452e94b21f23818c53c5b8ebaaef2d1bc7d1b27da",
-    "layouts/2x2.md:16":
+    "layouts/2x2.md:15":
         "45b40231b9f11af8f878af7e18472e97eb99713a6460887193d947986d602ec5",
     "layouts/2x4.md:1":
         "0a15f996539bd82bf3e2b4df81b9d44ac0a4c0f0ecd9cbd78d7c0c5887ad3189",
@@ -304,7 +302,7 @@ def test_template_structure_unchanged_except_component_names(filename, index, so
 
 
 def test_core_owns_reference_rules_and_only_complete_demonstration():
-    assert len(_examples()) == 26 and len(_templates()) == 34
+    assert len(_examples()) == 26 and len(_templates()) == 33
     core = (SOURCE / "core.md").read_text(encoding="utf-8")
     assert "children 中每个 ID 必须与本次输出某一组件行的第一项逐字一致" in core
     assert "组件 ID 引用不同于显示值的数据路径绑定" in core
