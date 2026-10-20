@@ -961,7 +961,7 @@
         "originalSize": [4358, 4358], "assetSize": [4358, 4358],
         "sourceSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
         "assetSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_desk_lamp_calendar_square.jpg",
@@ -1008,7 +1008,7 @@
         "originalSize": [1249, 1249], "assetSize": [1249, 1249],
         "sourceSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
         "assetSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
-        "processing": "UX原图逐字节复制，仅统一资源文件名为小写jpg；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_flowers_weather_square.jpg",
@@ -1053,8 +1053,8 @@
         "originalSize": [2969, 2969],
         "assetSize": [2969, 2969],
         "sourceSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
-        "assetSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "assetSha256": "52b5b55c6dd2ca40f07442e216b07aefb883ede01055f4eefd1f73cb1f4c5ce2",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_galaxy_sleep_square.jpg",
@@ -1099,8 +1099,8 @@
         "originalSize": [4320, 4320],
         "assetSize": [4320, 4320],
         "sourceSha256": "6c6296eed88052a38883925916e627d6af2e337b283aca132b356c24c4a12132",
-        "assetSha256": "6c6296eed88052a38883925916e627d6af2e337b283aca132b356c24c4a12132",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "assetSha256": "fd4905bd6b2660dcc361f1a85cb91d9827acfcab49852524bc1c4a2f3d2db3ed",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_metronome_square.jpg",
@@ -1177,8 +1177,8 @@
           3995
         ],
         "sourceSha256": "4dc175ea80bf5e87be15d880aab26a945970d6c7e61aee16b4fba39c58bfc38d",
-        "assetSha256": "4dc175ea80bf5e87be15d880aab26a945970d6c7e61aee16b4fba39c58bfc38d",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "assetSha256": "8ec6c9b97dc72fed25935da0181ff770344092333c238b4c516ec2c6586edefb",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_bulb_battery_square.jpg",
@@ -1269,8 +1269,8 @@
           2948
         ],
         "sourceSha256": "4b19435402ca1618a5cd442724a12c7e5c8dd0943c513047ab2f128db2e95cca",
-        "assetSha256": "4b19435402ca1618a5cd442724a12c7e5c8dd0943c513047ab2f128db2e95cca",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "assetSha256": "9cf5c9710b08a8702bfeb638c090b6950126d1ebd6e0bcee5ec8be9244251b37",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_green_bulb_battery_square.jpg",
@@ -1355,12 +1355,12 @@
           3441
         ],
         "assetSize": [
-          6882,
-          3441
+          1640,
+          820
         ],
         "sourceSha256": "9fd4d66557bb5c53c2e8bd55234531ee13ae50d1a04fa9051cb9a55b6ff466b4",
-        "assetSha256": "9fd4d66557bb5c53c2e8bd55234531ee13ae50d1a04fa9051cb9a55b6ff466b4",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "assetSha256": "11d17a9296d1201d5157cedc8f70153cdc3b146378795e0bc33db90fbfe3dfc6",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_green_bulb_battery_wide.jpg",
@@ -1452,7 +1452,7 @@
         ],
         "sourceSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
         "assetSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_violin_music_square.jpg",
@@ -1514,8 +1514,8 @@
         "originalSize": [3078, 3078],
         "assetSize": [3078, 3078],
         "sourceSha256": "6ffccb5748af48783c1fc94ecd7a6984c84e2378e428d40b7c298fbd60ee5a98",
-        "assetSha256": "6ffccb5748af48783c1fc94ecd7a6984c84e2378e428d40b7c298fbd60ee5a98",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "assetSha256": "9600a94f0b35c60b4514e6a357bae987f80d57dc14f1913727f5c5f76c6d405d",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_autumn_square.jpg",
@@ -1575,8 +1575,8 @@
         "originalSize": [2354, 2354],
         "assetSize": [2354, 2354],
         "sourceSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
-        "assetSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
+        "assetSha256": "1f3547940092766f078adc49fd0336b80c47babbc7c28dfc84d467d031dc4b9c",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
       },
       "background": {
         "src": "resources/base/media/bg_ux_yellow_arch_square.jpg",
