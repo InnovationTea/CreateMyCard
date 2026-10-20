@@ -104,6 +104,52 @@ def test_compact_validation_logs_execution_identity(monkeypatch, compact_pipelin
     assert "warning_count=1" in captured.info_messages[1]
 
 
+def test_deterministic_repair_candidate_uses_distinct_validation_purpose(
+    monkeypatch,
+    compact_pipeline,
+) -> None:
+    captured, context = compact_pipeline
+
+    def validate(source, **_kwargs):
+        if source == "original":
+            raise CompactDslValidationError(["original rejected"])
+        assert source == "candidate"
+        return CompactDslValidationResult(())
+
+    candidate = SimpleNamespace(
+        applied=True,
+        candidate_count=1,
+        reasons=("height_capacity",),
+        source_dsl="candidate",
+    )
+    monkeypatch.setattr(
+        pipeline.get_settings(),
+        "enable_design_compact_deterministic_repair",
+        True,
+    )
+    monkeypatch.setattr(pipeline, "validate_compact_dsl", validate)
+    monkeypatch.setattr(pipeline, "recompose_wide_card", lambda *_args, **_kwargs: candidate)
+
+    result = pipeline.DesignCompactProcessor().process("original", context)
+
+    assert result.errors == ()
+    started = [message for message in captured.info_messages if "validation_started" in message]
+    completed = [
+        message for message in captured.info_messages if "validation_completed" in message
+    ]
+    assert len(started) == 2
+    assert _execution_context().log_fields() in started[0]
+    candidate_identity = _execution_context().with_purpose(
+        "deterministic_repair_candidate"
+    )
+    assert candidate_identity.log_fields() in started[1]
+    assert len(captured.error_messages) == 1
+    assert _execution_context().log_fields() in captured.error_messages[0]
+    assert "original rejected" in captured.error_messages[0]
+    assert len(completed) == 1
+    assert candidate_identity.log_fields() in completed[0]
+
+
 @pytest.mark.parametrize("layout", [False, True])
 def test_artifact_context_is_per_call_and_layout_scope_is_preserved(monkeypatch, layout):
     captured = _CapturedLogger()

@@ -201,7 +201,16 @@ class DesignCompactProcessor:
             applied = False
             original = result
             if candidate.applied:
-                validated = self._process(candidate.source_dsl, context)
+                execution_context = (
+                    context.validation_execution_context or ValidationExecutionContext()
+                )
+                candidate_context = replace(
+                    context,
+                    validation_execution_context=execution_context.with_purpose(
+                        "deterministic_repair_candidate"
+                    ),
+                )
+                validated = self._process(candidate.source_dsl, candidate_context)
                 if not validated.errors:
                     result = validated
                     applied = True
