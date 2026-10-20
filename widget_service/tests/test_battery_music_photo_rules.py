@@ -171,7 +171,9 @@ def test_new_photos_respect_switch_and_preserve_foreground(monkeypatch, identity
     ))
     assert (audit.get("themeId") == identity) is enabled
     assert themes.foreground_signature(sample.source) == themes.foreground_signature(result)
-    assert photo(identity).get("remoteUrl") == ""
+    address = photo(identity).get("remoteUrl")
+    assert isinstance(address, str)
+    assert address.startswith("https://")
     assert photo(identity).get("content", {}).get("roles", {}).get("primary") == "#FFFFFFFF"
 
 

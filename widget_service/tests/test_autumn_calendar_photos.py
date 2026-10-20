@@ -265,9 +265,11 @@ def test_new_photos_obey_switch_and_preserve_foreground(monkeypatch, identity, e
 
 
 @pytest.mark.parametrize("identity", [AUTUMN_ID, CALENDAR_ID])
-def test_new_photo_assets_empty_obs_and_complete_palette(identity):
+def test_new_photo_assets_configured_obs_and_complete_palette(identity):
     item = photo(identity)
-    assert item.get("remoteUrl") == ""
+    address = item.get("remoteUrl")
+    assert isinstance(address, str)
+    assert address.startswith("https://")
     src = item.get("src")
     assert isinstance(src, str)
     asset = Path(__file__).resolve().parents[2] / src

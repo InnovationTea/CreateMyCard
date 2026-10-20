@@ -128,14 +128,16 @@ def test_switch_and_foreground_preservation(monkeypatch, enabled):
         assert daily.get("styles", {}).get("backdropBlur") == {"radius": 20}
 
 
-def test_original_asset_and_empty_obs():
+def test_original_asset_and_configured_obs():
     item = photo(IDENTITY)
     src = item.get("src")
     assert isinstance(src, str)
     original = Path(__file__).resolve().parents[2] / src
     digest = hashlib.sha256(original.read_bytes()).hexdigest()
     assert digest == item.get("source", {}).get("assetSha256")
-    assert item.get("remoteUrl") == ""
+    address = item.get("remoteUrl")
+    assert isinstance(address, str)
+    assert address.startswith("https://")
     assert item.get("background", {}).get("objectFit") == "fill"
     assert item.get("content", {}).get("roles", {}).get("primary") == "#FFFFFFFF"
 

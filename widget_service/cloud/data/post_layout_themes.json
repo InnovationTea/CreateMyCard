@@ -961,10 +961,11 @@
         "originalSize": [4358, 4358], "assetSize": [4358, 4358],
         "sourceSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
         "assetSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
-        "src": "resources/base/media/bg_ux_desk_lamp_calendar_square.jpg", "remoteUrl": "",
+        "src": "resources/base/media/bg_ux_desk_lamp_calendar_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/b8829802fe064307ad52625e89734c21/610f40cf0c344ba4bec7a6c73f5fde4f.jpg",
         "objectFit": "fill",
         "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
                   "align": "topStart"}
@@ -1007,10 +1008,11 @@
         "originalSize": [1249, 1249], "assetSize": [1249, 1249],
         "sourceSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
         "assetSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
-        "processing": "UX原图逐字节复制，仅统一资源文件名为小写jpg；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名为小写jpg；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
-        "src": "resources/base/media/bg_ux_flowers_weather_square.jpg", "remoteUrl": "",
+        "src": "resources/base/media/bg_ux_flowers_weather_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7b643ea798b94e6baafb4dfb9d3f2ecc/f6ad98662caa4aa4a43c427fe462d8c6.jpg",
         "objectFit": "fill",
         "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
                   "align": "topStart"}
@@ -1052,11 +1054,11 @@
         "assetSize": [2969, 2969],
         "sourceSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
         "assetSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_galaxy_sleep_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/1e392b7251e94a3fa291e536c6d0b235/e213e509d578420c92e5a0dde86f42be.jpg",
         "objectFit": "fill",
         "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
                   "align": "topStart"}
@@ -1098,11 +1100,11 @@
         "assetSize": [4320, 4320],
         "sourceSha256": "6c6296eed88052a38883925916e627d6af2e337b283aca132b356c24c4a12132",
         "assetSha256": "6c6296eed88052a38883925916e627d6af2e337b283aca132b356c24c4a12132",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_metronome_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/78c16b4eb1864c8b97281dace4657680/566bc89e22084b58a64b08e245f4aea4.jpg",
         "objectFit": "fill",
         "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
                   "align": "topStart"}
@@ -1176,11 +1178,11 @@
         ],
         "sourceSha256": "4dc175ea80bf5e87be15d880aab26a945970d6c7e61aee16b4fba39c58bfc38d",
         "assetSha256": "4dc175ea80bf5e87be15d880aab26a945970d6c7e61aee16b4fba39c58bfc38d",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_bulb_battery_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c16030ee7839415cb87cc63bd7a4e681/341f8b53609d4dcba491cfa444eb5a6d.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1268,11 +1270,11 @@
         ],
         "sourceSha256": "4b19435402ca1618a5cd442724a12c7e5c8dd0943c513047ab2f128db2e95cca",
         "assetSha256": "4b19435402ca1618a5cd442724a12c7e5c8dd0943c513047ab2f128db2e95cca",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_green_bulb_battery_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/971a1024e0db4b9ba4c30a2696cd82af/ee412fd3b63f44bc8313ae64e86f0097.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1358,11 +1360,11 @@
         ],
         "sourceSha256": "9fd4d66557bb5c53c2e8bd55234531ee13ae50d1a04fa9051cb9a55b6ff466b4",
         "assetSha256": "9fd4d66557bb5c53c2e8bd55234531ee13ae50d1a04fa9051cb9a55b6ff466b4",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_green_bulb_battery_wide.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/4e7d3f23a7de4f05b6806b6122006dd6/e0431b19039f48628832bb25f2f1c484.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1450,11 +1452,11 @@
         ],
         "sourceSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
         "assetSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_violin_music_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/cf14fc054a8a48c795d6d1cbe1a1de6e/65bed62e8017438d889958df55eac9ab.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -1513,11 +1515,11 @@
         "assetSize": [3078, 3078],
         "sourceSha256": "6ffccb5748af48783c1fc94ecd7a6984c84e2378e428d40b7c298fbd60ee5a98",
         "assetSha256": "6ffccb5748af48783c1fc94ecd7a6984c84e2378e428d40b7c298fbd60ee5a98",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_autumn_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/2124ce8c50ae4fc9896654f09c9fb0ce/735744dff73f464fb1a61c053ff6b7d1.jpg",
         "objectFit": "fill",
         "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
                   "align": "topStart"}
@@ -1574,11 +1576,11 @@
         "assetSize": [2354, 2354],
         "sourceSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
         "assetSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
-        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩；OBS交付地址已配置"
       },
       "background": {
         "src": "resources/base/media/bg_ux_yellow_arch_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/608c92483de14288b8100047dda41a69/63a153d8f8304caaa387666c012d4ce0.jpg",
         "objectFit": "fill",
         "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
                   "align": "topStart"}
