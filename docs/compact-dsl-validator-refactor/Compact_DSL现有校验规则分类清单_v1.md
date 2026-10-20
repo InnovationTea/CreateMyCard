@@ -1,5 +1,11 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-20：2×2外层重组结构整理归生成修复编排，落点仍为
+`services/compact_outer_recomposition.py`。候选生成与有限搜索分离，32个实际候选使用显式预算；
+候选顺序、首个合格即采用及原稿回退语义保持不变。Compact规则判定仍委托公共校验入口，
+Plan事实动作覆盖仍委托`compact_plan_coverage_errors`；不新增或迁移语法／语义检查项。
+重组仅返回结果，现有Trace仍由`generation_pipeline.py`记录，本次不调整日志打点。
+
 2026-10-17：纯双动作布局与开关事件比较补充：
 
 | 检查项 | 分类与实际落点 | 归属理由及边界 |

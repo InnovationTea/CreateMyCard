@@ -7,7 +7,9 @@ from __future__ import annotations
 import copy
 import json
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
+from itertools import islice
 from typing import Any
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
@@ -27,6 +29,7 @@ _PLAIN_COLUMN_PROPS = frozenset({
 })
 _CONTENT_TYPES = frozenset({"EmphasizedData", "EmphasisText", "SecondaryBody", "TableText"})
 _ITEM_PROPS = frozenset({"label", "value", "maxLines"})
+_MAX_RECOMPOSITION_CANDIDATES = 32
 
 
 @dataclass(frozen=True)
@@ -496,6 +499,51 @@ def _candidate(
                        title, *body_rows, *data])
 
 
+def _iter_recomposition_candidates(
+    root: ComponentRow,
+    variants: list[list[ComponentRow]],
+    data: list[DataRow],
+    *,
+    gaps: tuple[int, ...],
+    pressure_ids: set[str],
+    used: set[str],
+) -> Iterator[str]:
+    """按原变体、外层间距、正文间距顺序惰性生成，不执行校验或打点。"""
+    for variant in variants:
+        remaining_pressure: set[str] = set()
+        for row in variant:
+            if row.component_id in pressure_ids and _reflow_items(row) is not None:
+                remaining_pressure.add(row.component_id)
+        for gap in gaps:
+            for content_gap in (6, 4, 2, 0):
+                candidate = _candidate(
+                    root, variant, data, gap, content_gap, remaining_pressure, used,
+                )
+                if candidate is not None:
+                    yield candidate
+
+
+def _search_recomposition_candidates(
+    source_dsl: str,
+    candidates: Iterator[str],
+    *,
+    reasons: tuple[str, ...],
+    validation_context: dict[str, Any],
+    compact_plan: dict[str, Any] | None,
+    task_spec: dict[str, Any],
+) -> OuterRecompositionResult:
+    """最多校验32个实际候选；首个合格即停止，耗尽则保留原稿和真实尝试数。"""
+    attempted = 0
+    bounded_candidates = islice(candidates, _MAX_RECOMPOSITION_CANDIDATES)
+    for attempted, candidate in enumerate(bounded_candidates, start=1):
+        if _validation_errors(candidate, validation_context):
+            continue
+        if compact_plan_coverage_errors(candidate, compact_plan, task_spec):
+            continue
+        return OuterRecompositionResult(candidate, reasons, attempted, True)
+    return OuterRecompositionResult(source_dsl, reasons, attempted)
+
+
 def recompose_small_card(
     source_dsl: str, *, task_spec: dict[str, Any], card_spec: dict[str, Any],
     protocol_profile: dict[str, Any] | None, layout_scope: str | None,
@@ -554,25 +602,16 @@ def recompose_small_card(
             grouped = _compact_existing_attribute_group(leaves, pressure_task, width)
         if grouped is not None:
             variants.append(grouped)
-    used = set(row.component_id for row in rows if isinstance(row, ComponentRow))
+    used = {row.component_id for row in rows if isinstance(row, ComponentRow)}
     gaps = (6, 4, 2, 0) if leaves[-1].component_type == "PillButton" else (6,)
-    attempted = 0
-    for variant in variants:
-        remaining_pressure = set()
-        for row in variant:
-            if row.component_id in pressure_ids and _reflow_items(row) is not None:
-                remaining_pressure.add(row.component_id)
-        for gap in gaps:
-            for content_gap in (6, 4, 2, 0):
-                candidate = _candidate(
-                    root, variant, data, gap, content_gap, remaining_pressure, used,
-                )
-                if candidate is None:
-                    continue
-                attempted += 1
-                if _validation_errors(candidate, context):
-                    continue
-                if compact_plan_coverage_errors(candidate, compact_plan, task_spec):
-                    continue
-                return OuterRecompositionResult(candidate, reasons, attempted, True)
-    return OuterRecompositionResult(source_dsl, reasons, attempted)
+    candidates = _iter_recomposition_candidates(
+        root, variants, data, gaps=gaps, pressure_ids=pressure_ids, used=used,
+    )
+    return _search_recomposition_candidates(
+        source_dsl,
+        candidates,
+        reasons=reasons,
+        validation_context=context,
+        compact_plan=compact_plan,
+        task_spec=task_spec,
+    )
