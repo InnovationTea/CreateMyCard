@@ -38,9 +38,10 @@ UID = "batch-1234abcd-00001-000"
 @pytest.mark.parametrize("status", ["success", "failed"])
 def test_standard_json_response_preserves_business_fields(prefix, status):
     payload = {
+        "type": "error" if status == "failed" else "result", "tool": "widgetCardService",
         "requestId": "session&interaction", "operation": "generateWidgetCardCompactDsl",
         "status": status, "data": {"text": "包含 type= 和中文：的内容", "flag": False},
-        "error": None,
+        "errorCode": "VALIDATION_FAILED" if status == "failed" else "", "error": {},
     }
     assert parse_legacy_stream_content(prefix + json.dumps(payload)) == payload
 
@@ -211,6 +212,7 @@ async def test_batch_json_final_preserves_correlation_and_failed_frames(monkeypa
     from debug_tools.batch_testing import runner
 
     frame = {"reply": {"streamInfo": {"streamType": "final", "streamContent": json.dumps({
+        "type": "result", "tool": "widgetCardService", "errorCode": "", "error": {},
         "requestId": "s&i" if valid else "another-request",
         "operation": "generateWidgetCardCompactDsl", "status": "success",
         "data": {"artifactUrl": "mock://card.md"},
