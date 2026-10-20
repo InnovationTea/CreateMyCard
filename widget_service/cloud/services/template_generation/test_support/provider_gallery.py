@@ -30,6 +30,7 @@ from services.artifact_store import ArtifactStore
 from services.template_generation import facade
 from services.template_generation.controls import TemplateControls, load_template_controls
 from services.template_generation.test_support.gallery_case_contracts import (
+    CURRENT_TIME_SAMPLE_VALUES,
     REQUIRED_ASSET_IDS,
     THREE_DAY_COUNTDOWN_TEMPLATE,
     THREE_DAY_LAYOUT,
@@ -678,6 +679,12 @@ def _gallery_sample_overrides(
         if template is not None
     )
     sample_overrides: dict[str, Any] = {}
+    if target_template is not None:
+        if target_template.template_id.startswith("CurrentTimeOverview"):
+            for field in target_template.fields:
+                value = CURRENT_TIME_SAMPLE_VALUES.get(field)
+                if value is not None:
+                    sample_overrides["/data/currentTime" + field] = value
     earphone_template = next(
         (
             template

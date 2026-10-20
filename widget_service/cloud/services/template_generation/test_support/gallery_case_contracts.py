@@ -10,6 +10,12 @@ THREE_DAY_WEATHER_TEMPLATE = "WeatherOverviewThreeDayForecastFull@1"
 THREE_DAY_COUNTDOWN_TEMPLATE = "CountdownOverviewEventHero@1"
 THREE_DAY_LAYOUT = "WideHeroActionFullLayout"
 
+CURRENT_TIME_SAMPLE_VALUES = {
+    "/currentDate": "2026-10-20",
+    "/dayOfWeek": "星期二",
+    "/updatedAt": "2026-10-20 10:00:00",
+}
+
 REQUIRED_ASSET_IDS = {
     "BatteryOverviewSupportHero@1": ("asset.battery_leaf_fill",),
     "BatteryOverviewChargeStatusHero@1": ("asset.battery_leaf_fill",),

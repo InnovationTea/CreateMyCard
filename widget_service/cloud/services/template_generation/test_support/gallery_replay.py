@@ -9,6 +9,7 @@ from typing import Any
 
 from . import provider_gallery as gallery
 from .gallery_case_contracts import (
+    CURRENT_TIME_SAMPLE_VALUES,
     REQUIRED_ASSET_IDS,
     THREE_DAY_COUNTDOWN_TEMPLATE,
     THREE_DAY_LAYOUT,
@@ -107,6 +108,23 @@ def _normalize_actions(
         content["userQuery"] = query.replace("打开锻炼", "打开活动记录")
 
 
+
+def _normalize_time_samples(payload: dict[str, Any], content: dict[str, Any]) -> None:
+    samples = gallery._gallery_sample_overrides_from_envelope(payload)
+    for binding in content.get("candidateDataBindings", []):
+        if binding.get("capabilityId") != "GetCurrentTime":
+            continue
+        root = binding.get("writeResultTo")
+        if not isinstance(root, str):
+            raise ValueError("current-time binding requires writeResultTo")
+        for field in binding.get("candidateOutputFields", []):
+            value = CURRENT_TIME_SAMPLE_VALUES.get(field)
+            if value is not None:
+                samples.setdefault(root + field, value)
+    if samples:
+        payload["galleryTest"] = {"sampleOverrides": samples}
+
+
 def normalize_gallery_case(
     original: gallery.GalleryInputCase,
     source: dict[str, Any],
@@ -135,6 +153,7 @@ def normalize_gallery_case(
             assets.append("asset.icon_weather_thermometer_medium")
         content["candidateAssetIds"] = assets
     _normalize_actions(template_ids, content, events)
+    _normalize_time_samples(payload, content)
     if case.targetTemplateId == _DATE_TITLE:
         _calendar_weather(case, content)
     elif case.targetTemplateId == THREE_DAY_WEATHER_TEMPLATE:

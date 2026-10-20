@@ -199,3 +199,18 @@ def test_activity_replay_uses_registered_action_without_mutating_source(tmp_path
     event = _required(actual, "candidateEventCandidates")[0]
     assert event.get("capabilityId") == "event.open.health.activityRecord"
     assert actual.get("userQuery") == "显示活动摘要，打开活动记录"
+
+
+def test_time_sample_is_format_valid_and_preserves_explicit_override() -> None:
+    from services.template_generation.test_support.gallery_replay import _normalize_time_samples
+
+    content = {"candidateDataBindings": [{
+        "capabilityId": "GetCurrentTime", "writeResultTo": "/data/currentTime",
+        "candidateOutputFields": ["/currentDate", "/dayOfWeek"],
+    }]}
+    payload = {"galleryTest": {"sampleOverrides": {"/data/currentTime/dayOfWeek": "星期三"}}}
+    _normalize_time_samples(payload, content)
+    samples = gallery._gallery_sample_overrides_from_envelope(payload)
+    assert samples.get("/data/currentTime/currentDate") == "2026-10-20"
+    assert samples.get("/data/currentTime/dayOfWeek") == "星期三"
+    assert "/data/currentTime/updatedAt" not in samples
