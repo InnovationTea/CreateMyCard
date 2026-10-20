@@ -234,6 +234,15 @@ export function parsePythonRepr(value: unknown): unknown | null {
  */
 export function parseLegacyToolResponse(value: unknown): Record<string, unknown> | null {
   if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  const separator = trimmed.indexOf('：');
+  const sourceJson = trimmed.startsWith('{') ? trimmed
+    : separator >= 0 ? trimmed.slice(separator + 1).trimStart() : '';
+  if (sourceJson.startsWith('{')) {
+    const parsed = parseJson(sourceJson);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown> : null;
+  }
   const marker = value.indexOf('type=');
   if (marker < 0) return null;
   const source = value.slice(marker);

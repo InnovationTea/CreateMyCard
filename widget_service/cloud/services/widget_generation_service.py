@@ -1021,16 +1021,23 @@ class WidgetGenerationService:
                     logger.info(
                         f"{_MODULE} template_source_generation_started operation={policy.operation}"
                     )
-                    result = await template_source_generator(
-                        task_spec.model_copy(deep=True),
-                        copy.deepcopy(processing_context.card_spec),
-                        copy.deepcopy(tuple(effective_bindings)),
-                    )
+                    with (
+                        trace_details(generationBranch="template"),
+                        trace_span("template.generate", stage="template", kind="group") as span,
+                    ):
+                        result = await template_source_generator(
+                            task_spec.model_copy(deep=True),
+                            copy.deepcopy(processing_context.card_spec),
+                            copy.deepcopy(tuple(effective_bindings)),
+                        )
+                        span.text_artifacts["template_source"] = result
+                        span.artifact_roles["template_source"] = "output"
                     report_ops_metrics(body={"templateProposal": 1})
                     generated_dsl = require_generated_dsl(result)
                     source_generated_by_template = True
                     if template_fallback_to_fusion:
-                        template_errors = await evaluate_source_dsl(generated_dsl)
+                        with trace_details(generationBranch="template"):
+                            template_errors = await evaluate_source_dsl(generated_dsl)
                         if template_errors:
                             raise A2UIModelGenerationError("; ".join(template_errors))
                         validated_template_source = generated_dsl
@@ -1192,11 +1199,14 @@ class WidgetGenerationService:
                     task_spec=task_spec.model_dump(mode="json", exclude_none=True),
                 )
                 repair_strategy = directive.to_prompt_payload()
-                trace_step(
+                trace_record(
                     "repair.strategy.selected",
                     stage="repair.strategy",
                     status="success" if directive.retryable else "stopped",
-                    details=repair_strategy,
+                    details={
+                        **repair_strategy,
+                        "nextQualityRepair": quality_repair_attempt_count + 1,
+                    },
                     json_artifacts={"repair_strategy": repair_strategy},
                     artifact_roles={"repair_strategy": "diagnostic"},
                 )
@@ -1376,10 +1386,25 @@ class WidgetGenerationService:
             )
             with trace_attempt(**validation_attempts):
                 processing_started_at = time.perf_counter()
-                processing_result = processor.process(
-                    source_dsl,
-                    processing_context_for_source,
-                )
+                processing_operation = "dsl.source_processing"
+                if policy.single_step:
+                    processing_operation = (
+                        "single_step.edit.apply" if source_load_result else "single_step.processing"
+                    )
+                with trace_span(processing_operation, stage="dsl.sourceProcessing") as span:
+                    span.text_artifacts["dsl_processing_input"] = source_dsl
+                    span.artifact_roles["dsl_processing_input"] = "input"
+                    processing_result = processor.process(
+                        source_dsl,
+                        processing_context_for_source,
+                    )
+                    span.text_artifacts["dsl_processing_output"] = processing_result.standard_dsl
+                    span.artifact_roles["dsl_processing_output"] = "output"
+                    span.json_artifacts["dsl_processing_issues"] = [
+                        issue.to_prompt_payload() for issue in processing_result.issues
+                    ]
+                    span.artifact_roles["dsl_processing_issues"] = "diagnostic"
+                    span.outcome("failed" if processing_result.errors else "success")
                 trace_record(
                     "dsl.processing.completed",
                     stage="repair.revalidate" if quality_repair_attempt_count else "dsl.processing",
@@ -1610,6 +1635,15 @@ class WidgetGenerationService:
                 policy.quality_repair_limit > 0
             )
             repair_limit = max(1, policy.quality_repair_limit)
+        trace_record(
+            "generation.policy.effective", stage="configuration", status="success",
+            details={
+                "singleStep": policy.single_step,
+                "qualityRepairEnabled": retry_on_validation_failure,
+                "qualityRepairLimit": repair_limit if retry_on_validation_failure else 0,
+                "planFactValidationEnabled": settings.enable_drop_plan_fact_validation,
+            },
+        )
         try:
             retry_result = await retry_controller.run(
                 generate_source_dsl,
@@ -1695,11 +1729,12 @@ class WidgetGenerationService:
                 and retry_result.retryCount >= 5
             )
             if use_single_step_fallback:
+                trace_phase("fallback")
                 fallback_context = {
                     "upstreamCommit": SINGLE_STEP_UPSTREAM_COMMIT,
                     "promptStrategy": SINGLE_STEP_MODEL_FORMAT,
                 }
-                trace_step(
+                trace_record(
                     "single_step.fallback.started",
                     stage="singleStepFallback",
                     status="started",
@@ -1711,12 +1746,16 @@ class WidgetGenerationService:
                     json_artifacts={"single_step_fallback_context": fallback_context},
                     text_artifacts={"single_step_failed_compact_source": source_dsl},
                 )
-                fallback_response = await self._generate_widget_card_with_policy(
-                    request,
-                    self._single_step_policy(policy, is_edit=False),
-                    before_model_call=before_model_call,
-                    single_step_context=fallback_context,
-                )
+                with trace_span(
+                    "single_step.fallback", stage="singleStepFallback", kind="group",
+                ) as span:
+                    fallback_response = await self._generate_widget_card_with_policy(
+                        request,
+                        self._single_step_policy(policy, is_edit=False),
+                        before_model_call=before_model_call,
+                        single_step_context=fallback_context,
+                    )
+                    span.outcome(fallback_response.status.value)
                 trace_record(
                     "single_step.fallback.completed",
                     stage="singleStepFallback",
@@ -1799,45 +1838,41 @@ class WidgetGenerationService:
                     latest_processing_result.source_dsl,
                     skip_compact_dsl_validation=source_generated_by_template,
                 )
-        final_artifact_build_started_at = time.perf_counter()
-        artifact = self._build_artifact(
-            genui,
-            card_spec.model_dump(mode="json", exclude_none=True),
-            task_spec.model_dump(mode="json", exclude_none=True),
-            effective_data_capabilities,
-            effective_events,
-            asset_candidates,
-            removed,
-            protocol_profile["id"],
-            protocol_profile["version"],
-            registry.version,
-            data_bindings=effective_bindings,
-            artifact_id=artifact_id,
-            generation_mode=generation_mode,
-            source_artifact_digest=(
-                source_load_result.artifact_digest if source_load_result else None
-            ),
-        )
-        if colorless_source() or single_step_theme:
-            from services.post_layout_theme import theme_artifact
-
-            artifact = await theme_artifact(
-                artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
-                ArtifactValidator(asset_mapper.mapping), protocol_profile,
-                allow_expansion=defer_size_notification,
-                final_layout=design_token,
+        with trace_span("artifact.final.built", stage="artifactBuild") as final_span:
+            artifact = self._build_artifact(
+                genui,
+                card_spec.model_dump(mode="json", exclude_none=True),
+                task_spec.model_dump(mode="json", exclude_none=True),
+                effective_data_capabilities,
+                effective_events,
+                asset_candidates,
+                removed,
+                protocol_profile["id"],
+                protocol_profile["version"],
+                registry.version,
+                data_bindings=effective_bindings,
+                artifact_id=artifact_id,
+                generation_mode=generation_mode,
+                source_artifact_digest=(
+                    source_load_result.artifact_digest if source_load_result else None
+                ),
             )
-        final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
-        if defer_size_notification and before_model_call is not None:
-            await before_model_call(final_size)
-        trace_step(
-            "artifact.final.built",
-            stage="artifactBuild",
-            status="success",
-            duration_ms=self._elapsed_ms(final_artifact_build_started_at),
-            json_artifacts={"final_artifact": artifact.model_dump(mode="json", exclude_none=True)},
-            artifact_roles={"final_artifact": "output"},
-        )
+            if colorless_source() or single_step_theme:
+                from services.post_layout_theme import theme_artifact
+
+                artifact = await theme_artifact(
+                    artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
+                    ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                    allow_expansion=defer_size_notification,
+                    final_layout=design_token,
+                )
+            final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
+            if defer_size_notification and before_model_call is not None:
+                await before_model_call(final_size)
+            final_span.json_artifacts["final_artifact"] = artifact.model_dump(
+                mode="json", exclude_none=True,
+            )
+            final_span.artifact_roles["final_artifact"] = "output"
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
         logger.info(
             f"{_MODULE} artifact_built "
@@ -1886,7 +1921,7 @@ class WidgetGenerationService:
             str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")
         ]
         if omitted_requirements:
-            trace_step(
+            trace_record(
                 "response.plan_facts_omitted",
                 stage="responsePlanning",
                 status="success",

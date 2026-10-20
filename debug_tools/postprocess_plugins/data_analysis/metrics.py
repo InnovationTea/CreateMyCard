@@ -12,7 +12,7 @@ COUNT_KEYS = {
     "planRetries": "planContractRetries",
     "providerFallbacks": "providerFallbacks",
 }
-PHASES = {"plan": "plan", "dsl": "generate", "repair": "repair"}
+PHASES = {"plan": "plan", "dsl": "generate", "repair": "repair", "theme": "theme"}
 
 
 def number(value: object) -> float | None:
@@ -222,21 +222,21 @@ def aggregate(analyses: list[dict[str, Any]]) -> dict[str, Any]:
             "count": len(known),
             "rate": hits / len(known) if known else None,
         }
-    fields = ["elapsedMs", "planMs", "generateMs", "repairMs", *COUNT_KEYS]
+    fields = ["elapsedMs", "planMs", "generateMs", "repairMs", "themeMs", *COUNT_KEYS]
     for key in fields:
         values = []
         for request in requests:
             value = request.get(key)
             if key in COUNT_KEYS:
                 value = _object(request.get("counts")).get(key)
-            elif key in {"planMs", "generateMs", "repairMs"}:
+            elif key in {"planMs", "generateMs", "repairMs", "themeMs"}:
                 value = _object(request.get("phasesMs")).get(key.removesuffix("Ms"))
             parsed = number(value)
             if parsed is not None:
                 values.append((parsed, int(request.get("weight", 1))))
         result[key] = mean(values)
     models: dict[str, Any] = {}
-    for phase in ("all", "plan", "generate", "repair", "unknown"):
+    for phase in ("all", "plan", "generate", "repair", "theme", "unknown"):
         metrics: dict[str, Any] = {}
         for key in ("ttftMs", "tps"):
             values = []

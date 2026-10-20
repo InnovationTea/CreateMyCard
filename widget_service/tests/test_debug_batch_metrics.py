@@ -399,6 +399,14 @@ def test_service_retry_policy_snapshot_reports_settings_without_changing_them():
     from services.generation_retry_policy import retry_policy_details
 
     settings = SimpleNamespace(
+        enable_single_step_generation_fallback=False,
+        enable_single_step_widget_edit=True,
+        enable_drop_plan_fact_validation=False,
+        enable_photo_background_theme=False,
+        enable_subjectless_wide_theme=False,
+        enable_square_music_photo_expansion=False,
+        enable_square_photo_expansion=False,
+        deepseek_official_http_use_sdk=True,
         enable_compact_dsl_interface_retry=True,
         compact_dsl_interface_retry_count=2,
         enable_validation_failure_retry=True,

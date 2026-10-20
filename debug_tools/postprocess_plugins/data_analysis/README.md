@@ -14,7 +14,7 @@
 - `sampleId`、`warnings`：样本标识及读取诊断。
 - `requests[]`：每个实际请求一条，保留 `source`、`uid`、`traceStatus`、业务 `status`、
   `pass1/pass2`、`weight`、`unknownReason/unknownMetrics` 和原 Trace 的 `warnings`。
-- 请求的 `phasesMs`：plan/generate/repair；`elapsedMs/elapsedSource`：端到端及证据来源。
+- 请求的 `phasesMs`：plan/generate/repair/theme；`elapsedMs/elapsedSource`：端到端及证据来源。
 - 请求的 `counts`：interfaceRetries、repairs、modelRetries、planRetries、providerFallbacks。
 - 请求的 `models[]`：每个模型物理调用一条，保留 spanId、phase、sourcePhase、status、ttftMs、tps
   和各缺失指标的 unknownMetrics。initial 映射为 generate，其它未识别阶段归入 unknown。
@@ -26,7 +26,7 @@
 - `sampleCount/requestCount/paddedCount/effectiveCount`：样本、实际请求、补齐和赋权记录数。
 - pass1/pass2 为 `{hits, count, rate}`，rate 在 0–1 之间。
 - 各耗时与次数为 `{sum, count, mean}`，支持画廊筛选后合并分子分母；无有效值时 mean=null。
-- `models` 按 all/plan/generate/repair/unknown 分组，TTFT/TPS 使用相同的 sum/count/mean 结构。
+- `models` 按 all/plan/generate/repair/theme/unknown 分组，TTFT/TPS 使用相同的 sum/count/mean 结构。
 - `usage` 每类含 count（可分析样本分母）、used（至少使用一项的样本数）、rate 和
   items（id、count、rate）。类别分母独立；同一样本同一标识只计一次。
 
@@ -43,7 +43,7 @@ pass 分母只包含可判定的实际请求，全部实际请求数另行展示
 同 Trace 的补齐只作为聚合权重，不复制文件或执行请求，不增加 pass 分母，不虚构新的重试。
 耗时和次数按请求赋权，模型性能按每个物理调用及其所属请求权重聚合。使用率不受补齐或请求数影响。
 
-阶段区间按 plan/dsl/repair 的 operation 识别，同请求同阶段区间取并集，避免重复累计。
+阶段区间按 plan/dsl/repair/theme 的 operation 识别，同请求同阶段区间取并集，避免重复累计。
 generate 是 DSL 生成阶段；每个请求内先汇总，再计算数据集均值。端到端优先 request 根区间，
 缺失时退回同次 result.elapsedMs，来源分别为 trace.request、result.elapsedMs 或 unknown。
 不累计截图、后处理、批次等待或其它请求。
@@ -69,3 +69,5 @@ span 时长。零 TTFT 是有效值；零推理时长不能用于除法，缺失
 
 分析缺失允许产生 partial 结果并继续画廊；异常样本由宿主隔离。画廊只消费依赖结果，不能重读 Trace
 自行推算缺失数据。重跑分析创建新历史；已有画廊不自动更新，须再次运行画廊生成新的快照。
+
+主题选择与最终校验使用独立 theme 区间；主题模型不再归入 unknown。themeMs 单独汇总，旧产物不自动重算。

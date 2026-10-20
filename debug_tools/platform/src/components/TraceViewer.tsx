@@ -2,7 +2,7 @@ import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { BatchAttempt, TraceArtifact, TraceNode, TraceView } from '../batchApi';
 import { TraceContent } from './TraceContent';
 
-const PHASES = new Set(['prepare', 'plan', 'dsl', 'validation', 'repair', 'artifact', 'response']);
+const PHASES = new Set(['prepare', 'plan', 'dsl', 'validation', 'repair', 'fallback', 'theme', 'artifact', 'response']);
 const FAILURE = new Set(['failed', 'error', 'timeout', 'invalid', 'cancelled']);
 const STATUS: Record<string, string> = {
   success: '成功', failed: '失败', error: '错误', timeout: '超时', cancelled: '已取消',
