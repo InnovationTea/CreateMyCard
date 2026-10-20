@@ -26,7 +26,7 @@ Column(
      "alignItems": "top", "flexShrink": 0, "constraintSize": {"minWidth": 0}},
     Column(
       {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+       "alignItems": "center", "constraintSize": {"minWidth": 0}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
         #if props.leftEarIcon
         #if props.rightEarIcon
@@ -63,12 +63,12 @@ Column(
       ),
       Text(Expr('' + data.left + '%'),
         {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
-         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     ),
     Column(
       {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+       "alignItems": "center", "constraintSize": {"minWidth": 0}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
         #if props.leftEarIcon
         #if props.rightEarIcon
@@ -105,12 +105,12 @@ Column(
       ),
       Text(Expr('' + data.right + '%'),
         {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
-         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     ),
     Column(
       {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+       "alignItems": "center", "constraintSize": {"minWidth": 0}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
         #if props.leftEarIcon
         #if props.rightEarIcon
@@ -147,7 +147,7 @@ Column(
       ),
       Text(Expr('' + data.case + '%'),
         {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
-         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     )
   )
