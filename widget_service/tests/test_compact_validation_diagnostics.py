@@ -22,7 +22,10 @@ from services.card_validation.compact_validation.diagnostics import (
     DiagnosticCollector,
     emit_error,
 )
-from services.card_validation.compact_validation.model_feedback import compact_issue_for_model
+from services.card_validation.compact_validation.model_feedback import (
+    compact_issue_for_model,
+    compact_issues_for_model,
+)
 from services.card_validation.compact_validation.repair_guidance import (
     RepairGuidanceContext,
     load_default_hints,
@@ -133,6 +136,89 @@ def test_model_formatter_keeps_all_related_diagnostics() -> None:
     assert '"maximumHeight":30' in message
 
 
+def test_model_feedback_groups_expanded_height_errors_by_semantic_region() -> None:
+    coverage = {
+        "stage": "validation",
+        "code": "COMPACT_PLAN_COVERAGE_FAILED",
+        "message": "Plan fact is missing from visible DSL: 天气预警。",
+    }
+    errors = [coverage]
+    for component_id, source_line, required, maximum, occupancy in (
+        ("meeting_panel", 5, 114, 110, "__layout__meeting_panel__sub=114vp, gaps=0vp"),
+        ("meeting_panel", 5, 88, 84, "primary=50vp, details=32vp, gaps=6vp"),
+        ("weather_panel", 10, 124, 110, "__layout__weather_panel__sub=124vp, gaps=0vp"),
+        ("weather_panel", 10, 106, 92, "primary=30vp, details=70vp, gaps=6vp"),
+    ):
+        diagnostic = _diagnostic(
+            component_id=component_id,
+            source_line=source_line,
+            actual={
+                "minimumRequiredHeight": required,
+                "overflow": required - maximum,
+                "occupancy": occupancy,
+            },
+            expected={"maximumHeight": maximum},
+        )
+        errors.append(_payload([diagnostic.to_payload()]))
+    for item_index in range(2):
+        diagnostic = _diagnostic(
+            component_id=None,
+            source_line=None,
+            actual={
+                "minimumRequiredHeight": 36,
+                "overflow": 15,
+                "occupancy": (
+                    f"details_item{item_index}_label_slot=18vp, "
+                    f"details_item{item_index}_value_slot=16vp, gaps=2vp"
+                ),
+            },
+            expected={"maximumHeight": 21},
+        )
+        errors.append(_payload([diagnostic.to_payload()]))
+
+    result = compact_issues_for_model(errors)
+
+    assert len(result) == 4
+    assert result[0] == coverage
+    meeting_message = result[1].get("message")
+    weather_message = result[2].get("message")
+    assert isinstance(meeting_message, str)
+    assert isinstance(weather_message, str)
+    assert "组件 meeting_panel" in meeting_message
+    assert "至少需要 114vp，可用 110vp，超出 4vp" in meeting_message
+    assert "primary=50vp, details=32vp, gaps=6vp" in meeting_message
+    assert "__layout__meeting_panel__sub" not in meeting_message
+    assert "组件 weather_panel" in weather_message
+    assert "至少需要 124vp，可用 110vp，超出 14vp" in weather_message
+    item_message = result[3].get("message")
+    assert isinstance(item_message, str)
+    assert "组件 details_items" in item_message
+    assert "details_item0_label_slot" in item_message
+    assert "details_item1_label_slot" in item_message
+    assert item_message.count("错误码：") == 1
+
+
+def test_height_feedback_prefers_removing_optional_wide_title_icon() -> None:
+    diagnostic = _diagnostic(
+        component_id="main",
+        source_line=4,
+        actual={
+            "minimumRequiredHeight": 132,
+            "overflow": 6,
+            "occupancy": "main_title=20vp, event=104vp, gaps=8vp",
+            "removableTitleIcon": {"componentId": "main_title", "heightSaving": 8},
+        },
+        expected={"maximumHeight": 126},
+    )
+
+    result = compact_issues_for_model([_payload([diagnostic.to_payload()])])
+
+    message = result[0].get("message")
+    assert isinstance(message, str)
+    assert "删除 SingleLineTitle 组件 main_title 的 icon 属性可释放 8vp" in message
+    assert "保留 title、全部事实、Action 和当前布局" in message
+
+
 @pytest.mark.parametrize("diagnostics", [[], [None], [{}], [{"severity": "warning"}]])
 def test_bad_diagnostics_fall_back_to_old_message(diagnostics: list[Any]) -> None:
     payload = _payload(diagnostics)
@@ -159,6 +245,50 @@ def test_other_quality_issues_and_old_records_remain_unchanged() -> None:
     assert compact_issue_for_model(old.to_prompt_payload()) == old.to_prompt_payload()
     other = {"stage": "validation", "code": "ARTIFACT_VALIDATION_FAILED", "expected": {}}
     assert compact_issue_for_model(other) == other
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        (
+            "layout does not match semantic contract: today: Region.variant is not "
+            "supported in this parent area (got 'unsupported-variant'); wide Region "
+            "variants: title-hero-support, title-content. Choose a registered "
+            "Layout/Region/Group variant; do not edit expanded geometry.",
+            "节点 today：当前父区域不支持 Region.variant（实际为 "
+            "'unsupported-variant'）；宽版 Region 允许的变体",
+        ),
+        (
+            "layout does not match semantic contract: action: component has multiple "
+            "parents. Choose a registered Layout/Region/Group variant; do not edit "
+            "expanded geometry.",
+            "节点 action：组件被多个父节点同时引用",
+        ),
+        (
+            "component body: invalid semantic props: business geometry is template-owned: "
+            "width, height. Fix only the reported properties; preserve the current layout, "
+            "facts and Actions.",
+            "组件 body 的语义属性无效：以下业务几何由模板负责，模型不能声明：width, height",
+        ),
+    ],
+)
+def test_model_formatter_localizes_legacy_semantic_feedback(
+    message: str,
+    expected: str,
+) -> None:
+    payload = {
+        "stage": "validation",
+        "code": "COMPACT_DSL_VALIDATION_FAILED",
+        "message": message,
+    }
+    before = deepcopy(payload)
+    result = compact_issue_for_model(payload)
+    localized = result.get("message")
+    assert isinstance(localized, str)
+    assert expected in localized
+    assert "layout does not match semantic contract" not in localized
+    assert "invalid semantic props" not in localized
+    assert payload == before
 
 
 @pytest.mark.parametrize("builder_result", [None, "special hint", "", 12])

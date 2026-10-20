@@ -10,7 +10,12 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from services.compact_component_semantics import CORE_INFORMATION_COMPONENT_TYPES
+from core.json_pointer import parse_json_pointer
+from services.compact_component_semantics import (
+    CORE_INFORMATION_COMPONENT_TYPES,
+    MODEL_COMPONENT_TYPES_BY_SIZE,
+    SHARED_FACT_COMPONENTS,
+)
 from services.compact_composition_context import (
     composition_group_minimum_height,
     composition_implementation_conflicts,
@@ -27,6 +32,9 @@ from services.compact_layout_runtime import (
     load_layout_contract,
     match_compact_layout,
 )
+from services.compact_plan_output import normalize_plan_output
+from services.compact_whole_card_click import WHOLE_CARD_LAYOUTS, select_whole_card_click
+from services.event_matching import event_handlers_match
 
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
@@ -38,21 +46,24 @@ _FACT_KEYS = frozenset(
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
 _FACT_PRIORITIES = frozenset({"must", "should"})
-_SHARED_FACT_COMPONENTS = (
-    "SingleLineTitle",
-    "DoubleLineTitle",
-    "Badge",
-    "EmphasizedData",
-    "EmphasisText",
-    "SecondaryBody",
-    "InfoBlock",
-    "H_BarChart",
-    "NumericRatioStack",
-    "ProgressCircleSingle",
-    "ProgressCircle",
-    "TableText",
-    "EventCard",
-    "PillButton",
+_MAX_MUST_FACTS_BY_SIZE = {"2x2": 8, "2x4": 12}
+_FRESHNESS_METADATA_NAMES = frozenset(
+    {
+        "lastrefreshedat",
+        "lastrefreshtime",
+        "lastsyncedat",
+        "lastsynctime",
+        "lastupdatedat",
+        "lastupdatetime",
+        "refreshedat",
+        "refreshtime",
+        "updatedat",
+        "updatetime",
+    }
+)
+_FRESHNESS_REQUEST = re.compile(
+    r"更新时间|更新于|最后更新|上次更新|刷新时间|最后刷新|同步时间|最后同步|"
+    r"数据.{0,4}(?:新鲜|时效|过期)"
 )
 _PROGRESS_FACT_COMPONENTS = frozenset(
     {"ProgressCircle", "ProgressLine2", "ProgressCircleSingle"}
@@ -79,21 +90,9 @@ _VISIBLE_PROP_NAMES = frozenset(
         "externalText",
     }
 )
-_COMPONENT_HINTS = {
-    "2x2": (
-        *_SHARED_FACT_COMPONENTS,
-        "DataDisplay",
-        "CircleButton",
-    ),
-    "2x4": (
-        *_SHARED_FACT_COMPONENTS,
-        "ProgressLine2",
-        "TextBlock",
-        "CardButton",
-        "TopTextBottomValue",
-        "SummaryList",
-    ),
-}
+_PROGRESS_VALUE_DRIVER_COMPONENTS = frozenset(
+    {"ProgressCircleSingle", "ProgressLine2"}
+)
 _LAYOUT_HINTS = {
     "2x2": (
         "S-center",
@@ -114,6 +113,11 @@ _LAYOUT_HINTS = {
         "W-four-slots",
     ),
 }
+
+
+def _max_must_facts(size: Any) -> int:
+    """返回当前尺寸 Plan 可接受的 must 事实与动作总数。"""
+    return _MAX_MUST_FACTS_BY_SIZE.get(size, _MAX_MUST_FACTS_BY_SIZE["2x4"])
 
 
 class CompactPlanValidationError(ValueError):
@@ -147,9 +151,11 @@ def build_compact_plan_tool(
     task_spec: dict[str, Any],
     *,
     include_composition: bool = False,
+    layout_scope: str | None = None,
 ) -> dict[str, Any]:
     """根据本次 TaskSpec 构造 submit_card_plan 的动态工具合同。"""
     size = task_spec.get("size")
+    max_must_facts = _max_must_facts(size)
     data_paths = list(compact_plan_data_paths(task_spec))
     action_ids = list(compact_plan_action_ids(task_spec))
     asset_ids = list(compact_plan_asset_ids(task_spec))
@@ -169,8 +175,10 @@ def build_compact_plan_tool(
             "type": "string",
             "enum": ["must", "should"],
             "description": (
-                "must 是不可省略的核心信息；should 是省略后仍不改变"
-                "卡片主要用途的补充信息。所有 actionId 必须为 must。"
+                "must 包括用户明确要求展示的每项内容、操作及用途成立必需的上下文；"
+                "should 仅用于未明确要求、且省略后不改变主要用途的入选补充。"
+                "不得为容量将明确要求降为 should。所有入选 actionId 必须为 must。"
+                f"当前 {size} 最多可提交 {max_must_facts} 条 must 信息，Action 计入该数量。"
             ),
         },
         "text": {
@@ -203,17 +211,45 @@ def build_compact_plan_tool(
         properties["dataId"] = {
             "type": "string",
             "enum": data_paths,
-            "description": "必须在卡面展示的动态信息的真实 JSON Pointer；仅用于事件传参时不选。",
+            "description": (
+                "本轮实际选入展示的动态信息的真实 JSON Pointer，不因字段可用而全选；"
+                "用户明确要求的每项内容必须保留，可选补充仅在相关且容量成立时选入。"
+                "仅用于事件传参时不选。"
+                "updatedAt、refreshTime 等刷新元数据默认不选；仅在用户明确要求、时效本身"
+                "影响用途，或无动作且只有一个短文本核心信息导致卡面明显稀疏时选择。"
+            ),
         }
     if action_ids:
         properties["actionId"] = {
             "type": "string",
             "enum": action_ids,
-            "description": "用户明确要求的真实事件候选 ID；该候选原有参数继续完整携带。",
+            "description": (
+                "默认仅选择用户明确要求的操作，包括明确的点按查看详情；保留全部匹配操作。"
+                "其它隐式只读详情仍是候选，不加入 info_required、不分配按钮素材。"
+                "仅2x2单业务唯一天气城市或单条日程详情可按Plan例外选入，即使原query未提点击；"
+                "须无用户禁止点击、明确按钮要求或其它必要动作，且同对象绑定符合登记合同。"
+                "例外入选仍为must，由服务端复核整卡承载，不额外补按钮。"
+                "副作用操作必须有明确授权。候选原有参数完整携带。"
+            ),
         }
+    layout_hints = list(_layout_hints(size))
+    max_layout_hints = 2
+    layout_description = (
+        "至多两个父布局软候选，不冻结最终骨架；仅填写枚举中的完整父布局 ID，"
+        "不填写 Region/Group 变体，不使用简称。"
+    )
+    if size == "2x2" and layout_scope == "S-content-dual-action":
+        layout_hints = ["S-content-dual-action"]
+        max_layout_hints = 1
+        layout_description = "两个必要动作只能使用 S-content-dual-action。"
     plan_properties: dict[str, Any] = {
         "info_required": {
             "type": "array",
+            "description": (
+                "提交前已完成取舍的实际展示与操作清单，不是全部候选。"
+                "完整保留用户明确要求及必需上下文，主焦点遵从用户；"
+                "未要求的额外补充不先全选再交 DSL 删除。"
+            ),
             "minItems": 1,
             "maxItems": 24,
             "items": {
@@ -228,15 +264,32 @@ def build_compact_plan_tool(
             "type": "array",
             "items": {
                 "type": "string",
-                "enum": list(_layout_hints(size)),
+                "enum": layout_hints,
             },
-            "maxItems": 2,
+            "maxItems": max_layout_hints,
             "uniqueItems": True,
-            "description": "至多两个父布局软候选，不冻结最终骨架。",
+            "description": layout_description,
         },
     }
     required = ["info_required"]
     description = "提交卡片信息与操作的优先级；组件和布局只提供软候选。"
+    description += (
+        "Layout、Region、Group 的名称及 variant 只能逐字使用当前尺寸文档登记的完整值，"
+        "不得自行缩写、拼接或增删后缀。选择布局候选前确认全部必要事实与动作都有合法落点。"
+    )
+    if size == "2x2" and not include_composition:
+        description += (
+            "单业务唯一天气城市详情或单条日程详情，未明确要求按钮时，由服务端判断整卡点击。"
+            "仍提交该 actionId 且为 must，保留完整参数；不自行提交 wholeCardActionId。"
+            "该详情无需按钮图标，可为动作分配 null 并说明整卡承载；拨号、导航、入会仍用按钮。"
+        )
+    if size == "2x4":
+        description += (
+            "标题＋主内容＋辅助内容使用 Region 的 title-hero-support，"
+            "children 为 [title, hero, support]；Group 的 hero-support 只有 [hero, support]。"
+            "Region 的 title-hero-support-action 必须包含第四项 PillButton；"
+            "没有内部按钮时选择已登记的 title-hero-support。"
+        )
     if asset_ids:
         assignment_properties = {
             "assetId": {
@@ -250,6 +303,22 @@ def build_compact_plan_tool(
                 "description": "assetId 为 null 时说明没有选择图标的具体原因。",
             },
         }
+        title_assignment_properties = assignment_properties
+        title_assignment_description = (
+            "先完成动作图标分配，再从未使用素材中决定主 SingleLineTitle 图标。"
+        )
+        if size == "2x2" and layout_scope == "S-content-dual-action":
+            title_assignment_properties = {
+                "assetId": {
+                    "type": "null",
+                    "enum": [None],
+                    "description": "固定双动作布局没有标题槽，必须为 null。",
+                },
+                "reason": assignment_properties["reason"],
+            }
+            title_assignment_description = (
+                "S-content-dual-action 没有标题槽；剩余素材不分配给标题。"
+            )
         plan_properties["assetAssignments"] = {
             "type": "object",
             "properties": {
@@ -272,21 +341,25 @@ def build_compact_plan_tool(
                 },
                 "title": {
                     "type": "object",
-                    "properties": assignment_properties,
+                    "properties": title_assignment_properties,
                     "required": ["assetId"],
                     "additionalProperties": False,
-                    "description": (
-                        "先完成动作图标分配，再从未使用素材中决定主 SingleLineTitle 图标。"
-                    ),
+                    "description": title_assignment_description,
                 },
             },
             "required": ["actions", "title"],
             "additionalProperties": False,
         }
         required.append("assetAssignments")
-        description += "存在素材候选时，同时提交按钮优先、标题随后且不复用的素材分配。"
+        if size == "2x2" and layout_scope == "S-content-dual-action":
+            description += "存在素材候选时，优先分配给两个按钮；剩余素材不分配给标题。"
+        else:
+            description += "存在素材候选时，同时提交按钮优先、标题随后且不复用的素材分配。"
     if include_composition:
-        plan_properties["composition"] = _composition_tool_schema(size)
+        plan_properties["composition"] = _composition_tool_schema(
+            size,
+            layout_scope=layout_scope,
+        )
         required.append("composition")
         description += "同时提交可完整承载这些事实的分区、组件合组和容量计划。"
     return {
@@ -304,7 +377,11 @@ def build_compact_plan_tool(
     }
 
 
-def _composition_tool_schema(size: Any) -> dict[str, Any]:
+def _composition_tool_schema(
+    size: Any,
+    *,
+    layout_scope: str | None = None,
+) -> dict[str, Any]:
     """实例级实现计划；事实仍由 info_required 独立确定。"""
     integer = {"type": "integer", "minimum": 0, "maximum": 23}
     extent = {"type": "number", "minimum": 0}
@@ -345,10 +422,13 @@ def _composition_tool_schema(size: Any) -> dict[str, Any]:
         "required": ["id", "path", "referenceWidth", "referenceHeight", "gap", "groups"],
         "additionalProperties": False,
     }
+    composition_layouts = list(_layout_hints(size))
+    if size == "2x2" and layout_scope == "S-content-dual-action":
+        composition_layouts = ["S-content-dual-action"]
     return {
         "type": "object",
         "properties": {
-            "layout": {"type": "string", "enum": list(_layout_hints(size))},
+            "layout": {"type": "string", "enum": composition_layouts},
             "variant": {"type": "integer", "minimum": 1},
             "regions": {"type": "array", "items": region, "minItems": 1, "maxItems": 8},
         },
@@ -431,10 +511,33 @@ def _normalize_composition(
                          "the complete layout contract before generating.")
         groups: list[dict[str, Any]] = []
         for group in region.get("groups"):
-            normalized_group = _composition_group(group, group_schema, index_map, facts, size)
+            normalized_group = _composition_group(
+                group,
+                group_schema,
+                index_map,
+                facts,
+                size,
+            )
             if normalized_group is None:
                 return None, [warning]
-            covered.update(normalized_group.get("factIndexes"))
+            group_indexes = normalized_group.get("factIndexes")
+            if not isinstance(group_indexes, list):
+                return None, [warning]
+            duplicate_data_indexes: set[int] = set()
+            indexes_in_group: set[int] = set()
+            for fact_index in group_indexes:
+                is_duplicate = fact_index in indexes_in_group or fact_index in covered
+                indexes_in_group.add(fact_index)
+                if not is_duplicate or not 0 <= fact_index < len(facts):
+                    continue
+                if isinstance(facts[fact_index].get("dataId"), str):
+                    duplicate_data_indexes.add(fact_index)
+            if duplicate_data_indexes:
+                return None, [
+                    "composition duplicates an info_required data fact across visible "
+                    "placements; assign every dataId to exactly one visible placement."
+                ]
+            covered.update(group_indexes)
             notes.extend(normalized_group.get("placementNotes", []))
             groups.append(normalized_group)
         height = sum(group.get("referenceHeight") for group in groups)
@@ -464,12 +567,13 @@ def _anchor_plan_errors(
     if not composition_is_anchor and "S-title-anchor" not in layout_hints:
         return []
     if not composition_is_anchor:
-        body_facts = [
-            fact
-            for fact in facts
-            if "actionId" not in fact
-            and fact.get("componentHints") != ["SingleLineTitle"]
-        ]
+        body_facts: list[dict[str, Any]] = []
+        for fact in facts:
+            if "actionId" in fact:
+                continue
+            if fact.get("componentHints") == ["SingleLineTitle"]:
+                continue
+            body_facts.append(fact)
         if len(body_facts) >= 2:
             return []
         return [
@@ -506,33 +610,31 @@ def _anchor_plan_errors(
 def _secondary_body_composition_errors(
     composition: dict[str, Any] | None,
 ) -> list[str]:
-    """Require every planned SecondaryBody group to support a core group in its region."""
+    """Require planned SecondaryBody groups to have a core group in the card."""
     if not isinstance(composition, dict):
         return []
-    errors: list[str] = []
+    components: set[str] = set()
     for region in composition.get("regions", []):
         if not isinstance(region, dict):
             continue
         groups = region.get("groups", [])
         if not isinstance(groups, list):
             continue
-        components: set[str] = set()
         for group in groups:
             if not isinstance(group, dict):
                 continue
             component = group.get("component")
             if isinstance(component, str):
                 components.add(component)
-        if "SecondaryBody" not in components:
-            continue
-        if components & CORE_INFORMATION_COMPONENT_TYPES:
-            continue
-        errors.append(
-            f"composition region {region.get('id')} uses SecondaryBody without a core "
-            "information component in the same region; titles, buttons, layout containers "
-            "and other SecondaryBody groups do not count."
-        )
-    return errors
+    if "SecondaryBody" not in components:
+        return []
+    if components & CORE_INFORMATION_COMPONENT_TYPES:
+        return []
+    return [
+        "composition uses SecondaryBody without a core information component anywhere "
+        "in the card; titles, buttons, layout containers and other SecondaryBody groups "
+        "do not count."
+    ]
 
 
 def _small_content_region(
@@ -609,10 +711,6 @@ def _composition_group(
         if component != "SingleLineTitle" or placements not in ([], ["title"]):
             return None
         placements = []
-    elif len(indexes) == 1 and placements == ["value", "displayValue"]:
-        if component not in {"ProgressCircleSingle", "ProgressLine2"}:
-            return None
-        indexes = indexes * 2
     elif len(indexes) == 1 and placements == ["value", "unit"]:
         if component != "EmphasizedData":
             return None
@@ -688,6 +786,10 @@ def parse_compact_plan_call(
 ) -> CompactPlanValidationResult:
     """解析命名工具调用包，并按当前 TaskSpec 标准化 Plan。"""
     syntax_warnings: list[str] = []
+    if isinstance(raw_output, str):
+        envelope = normalize_plan_output(raw_output)
+        syntax_warnings.extend(envelope.warnings)
+        raw_output = envelope.text
     payload = _parse_json_object(raw_output, syntax_warnings)
     if set(payload) != {"name", "arguments"}:
         raise CompactPlanValidationError(
@@ -719,6 +821,12 @@ def parse_compact_plan_call(
     )
     warnings[:0] = syntax_warnings
     plan: dict[str, Any] = {"info_required": facts}
+    whole_card_click = None if require_composition else select_whole_card_click(task_spec, facts)
+    if whole_card_click is not None:
+        plan["wholeCardActionId"] = whole_card_click.action_id
+        for fact in facts:
+            if fact.get("actionId") == whole_card_click.action_id:
+                fact.pop("componentHints", None)
     if asset_ids:
         if "assetAssignments" not in arguments:
             raise CompactPlanValidationError(
@@ -728,12 +836,31 @@ def parse_compact_plan_call(
             arguments.get("assetAssignments"),
             facts,
             task_spec,
+            whole_card_action_id=(
+                whole_card_click.action_id if whole_card_click is not None else None
+            ),
         )
     layout_hints, layout_warnings = _normalize_layout_hints(
         arguments.get("layoutHints"),
         task_spec.get("size"),
     )
     warnings.extend(layout_warnings)
+    if whole_card_click is not None:
+        layout_hints = [hint for hint in layout_hints if hint in WHOLE_CARD_LAYOUTS]
+        if not layout_hints:
+            layout_hints = list(WHOLE_CARD_LAYOUTS)
+    layout_hints, dual_action_warnings = _normalize_dual_action_plan(
+        facts,
+        layout_hints,
+        task_spec.get("size"),
+    )
+    warnings.extend(dual_action_warnings)
+    layout_hints, action_layout_warnings = _normalize_two_by_four_action_layouts(
+        facts,
+        layout_hints,
+        task_spec.get("size"),
+    )
+    warnings.extend(action_layout_warnings)
     if layout_hints:
         plan["layoutHints"] = layout_hints
     composition = None
@@ -766,6 +893,9 @@ def parse_compact_plan_call(
     secondary_body_errors = _secondary_body_composition_errors(composition)
     if secondary_body_errors:
         raise CompactPlanValidationError(secondary_body_errors)
+    freshness_errors = _freshness_metadata_plan_errors(facts, composition, task_spec)
+    if freshness_errors:
+        raise CompactPlanValidationError(freshness_errors)
     warnings.extend(composition_warnings)
     duration_paths = set(compound_duration_bindings(plan, task_spec))
     for fact in facts:
@@ -807,6 +937,117 @@ def parse_compact_plan_call(
     return CompactPlanValidationResult(plan=plan, warnings=tuple(warnings))
 
 
+def _freshness_metadata_plan_errors(
+    facts: list[dict[str, Any]],
+    composition: dict[str, Any] | None,
+    task_spec: dict[str, Any],
+) -> list[str]:
+    """限制刷新元数据只在明确请求或单短文本稀疏卡中展示。"""
+
+    freshness_indexes = [
+        index for index, fact in enumerate(facts) if _is_freshness_metadata_fact(fact)
+    ]
+    if not freshness_indexes:
+        return []
+    query = task_spec.get("userQuery")
+    if isinstance(query, str) and _FRESHNESS_REQUEST.search(query):
+        return []
+    action_indexes = [
+        index for index, fact in enumerate(facts) if isinstance(fact.get("actionId"), str)
+    ]
+    content_indexes: list[int] = []
+    for index, fact in enumerate(facts):
+        if index in freshness_indexes or index in action_indexes:
+            continue
+        if _is_title_fact(fact):
+            continue
+        content_indexes.append(index)
+    sparse = (
+        len(freshness_indexes) == 1
+        and not action_indexes
+        and len(content_indexes) == 1
+    )
+    freshness_index = freshness_indexes[0]
+    freshness_fact = facts[freshness_index]
+    if not sparse:
+        return [
+            "Freshness metadata is not a normal display fact. Remove updatedAt/refreshTime "
+            "unless the user explicitly requests freshness or the card has no action and "
+            "only one short text core fact."
+        ]
+    core_index = content_indexes[0]
+    core_fact = facts[core_index]
+    core_hints = core_fact.get("componentHints")
+    freshness_hints = freshness_fact.get("componentHints")
+    short_text_core = isinstance(core_hints, list) and core_hints[:1] == ["EmphasisText"]
+    grouped_hint = (
+        isinstance(freshness_hints, list)
+        and freshness_hints[:1] == ["EmphasisText"]
+    )
+    if not short_text_core or not grouped_hint:
+        return [
+            "Sparse-card freshness metadata must be grouped into the single short text core: "
+            "use EmphasisText for both the core fact and updatedAt/refreshTime, with the "
+            "freshness value assigned to secondaryText; do not create a standalone "
+            "SecondaryBody region."
+        ]
+    errors: list[str] = []
+    if freshness_fact.get("priority") != "should":
+        errors.append(
+            "Unrequested freshness metadata is optional filler and must use priority should."
+        )
+    if composition is not None and not _composition_groups_freshness_with_core(
+        composition,
+        core_index,
+        freshness_index,
+    ):
+        errors.append(
+            "Sparse-card freshness metadata must share one EmphasisText group with the core "
+            "fact and use secondaryText; do not allocate a separate region or component."
+        )
+    return errors
+
+
+def _is_freshness_metadata_fact(fact: dict[str, Any]) -> bool:
+    path = fact.get("dataId")
+    if not isinstance(path, str):
+        return False
+    leaf = path.rsplit("/", maxsplit=1)[-1]
+    normalized = re.sub(r"[^a-z0-9]", "", leaf.lower())
+    return normalized in _FRESHNESS_METADATA_NAMES
+
+
+def _is_title_fact(fact: dict[str, Any]) -> bool:
+    hints = fact.get("componentHints")
+    return isinstance(hints, list) and hints[:1] in (
+        ["SingleLineTitle"],
+        ["DoubleLineTitle"],
+    )
+
+
+def _composition_groups_freshness_with_core(
+    composition: dict[str, Any],
+    core_index: int,
+    freshness_index: int,
+) -> bool:
+    for region in composition.get("regions", []):
+        if not isinstance(region, dict):
+            continue
+        for group in region.get("groups", []):
+            if not isinstance(group, dict) or group.get("component") != "EmphasisText":
+                continue
+            indexes = group.get("factIndexes")
+            placements = group.get("placements")
+            if not isinstance(indexes, list) or not isinstance(placements, list):
+                continue
+            paired = list(zip(indexes, placements, strict=False))
+            has_core = (core_index, "mainText") in paired
+            has_freshness = (freshness_index, "secondaryText") in paired
+            if has_core and has_freshness:
+                return True
+    return False
+
+
 def compact_plan_context(
     plan: dict[str, Any], *, implementation_conflicts: list[str] | None = None,
     execution_selected: bool = False,
@@ -817,10 +1058,29 @@ def compact_plan_context(
         if implementation_conflicts is None else implementation_conflicts
     )
     context_plan = dict(plan)
+    whole_card_instruction = ""
+    if isinstance(plan.get("wholeCardActionId"), str):
+        whole_card_instruction = (
+            "wholeCardActionId 是服务端已确认的整卡详情动作，仍是必须保留的 Action。"
+            "仅使用 S-title-content 或 S-title-dual-content，在 root Layout.onClick 放入该候选"
+            "恰好一个完整 handler，call/args、Expression 和 PathBinding 原样保留。"
+            "根内部不再生成按钮或其它点击节点，不预留按钮高度，不补动作提示文字；"
+            "不能删动作、改为子节点点击或因修复补回按钮。该动作没有按钮图标。"
+        )
+    fixed_dual_action = plan.get("layoutHints") == ["S-content-dual-action"]
     if conflicts:
         context_plan.pop("composition", None)
         context_plan["compositionNotes"] = conflicts
     asset_instruction = ""
+    pure_action_instruction = ""
+    facts = plan.get("info_required")
+    if fixed_dual_action and isinstance(facts, list):
+        if len(facts) == 2 and all("actionId" in fact for fact in facts):
+            pure_action_instruction = (
+                "本轮只有两个必要动作、没有展示事实，使用 S-content-dual-action 的 "
+                "actions-only 变体，children 仅为两个 PillButton；"
+                "不生成内容槽、标题、占位正文、空容器或伪造状态。"
+            )
     if "assetAssignments" in context_plan:
         asset_instruction = (
             "assetAssignments 冻结素材消费顺序与结果：先按 actionId 将分配落实到对应"
@@ -828,6 +1088,11 @@ def compact_plan_context(
             "assetId 为 null 时保持无图标。不得复用、互换或跳过已分配素材，也不得用"
             "未分配素材覆盖明确的空分配。"
         )
+        if whole_card_instruction:
+            asset_instruction = (
+                "assetAssignments 中整卡动作的 assetId 为 null，不生成按钮或消费按钮素材；"
+                "title 的已分配素材仍按原标题合同落实。"
+            )
     small_conflict = False
     if conflicts:
         for layout_hint in plan.get("layoutHints", []):
@@ -867,19 +1132,30 @@ def compact_plan_context(
             "普通时间、数量说明和状态不因候选排序新增强调焦点；标题与主值职责保持不变。"
             "局部修复保持待修树的合法结构，只处理明确错误。"
             f"{asset_instruction}"
+            f"{whole_card_instruction}"
+            f"{pure_action_instruction}"
             "按参考蓝图的父子关系和事实索引落实真实绑定、完整文案与所属动作；"
             "索引从0开始，不能把索引或压力样值写入最终 DSL。标题绑定保留指定标题职责。"
             "核对必要的对象标签、完整单位与全部动作，原字号不变，不能裁切或删信息。"
             "参考预算不代替标签与单位的核算；明确发现参考方案仍不成立时才整体重组。\n\n"
             f"```json\n{payload}\n```"
         )
+    layout_instruction = (
+        "本轮两个必要动作使 S-content-dual-action 成为固定布局，不得改选带标题或单动作布局。"
+        "内容候选仍为软推荐，须按正文扣除两个按钮和间距后的容量重新核对。"
+        "不按事实数量强制表格；TableText 先满足等权语义，再按实际行数核算 Recipe 高度。"
+        "首选组件不适配时重组选型，保留全部事实、两个动作及其完整参数，不缩字或补造正文。"
+        if fixed_dual_action
+        else "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
+    )
     return (
         "# 已接受的 Compact Info Plan\n\n"
         "以下 Plan 冻结 must/should 信息、静态正文和操作；正常生成与修复都必须完整展示两种优先级，"
         "只有微服务明确进入 drop_optional_component 最终兜底时，"
         "才允许省略程序指定的非 Action 事实。"
         "除标题组件职责外，"
-        "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
+        f"{layout_instruction}"
+        f"{pure_action_instruction}"
         "当 composition 已选中且合同、容量均成立时，它是本轮的执行选择；尤其"
         "S-title-anchor 不能仅因存在 PillButton 就被降级替换为底部文字动作布局。"
         f"{preference_instruction}先按对象和信息关系合组，再映射可见 Prop。"
@@ -889,6 +1165,7 @@ def compact_plan_context(
         "不得为了布局或修复删除 Plan 事实；动作必须使用 "
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
         f"{asset_instruction}\n"
+        f"{whole_card_instruction}\n"
         "若有 composition，按它的 layout/variant、region.path 与顺序 groups 实现，"
         "factIndexes 引用下面去重后的 info_required，placements 指明每条事实的可见 Prop。"
         "空映射 SingleLineTitle 只是装饰标题的容量预留，不是遗漏事实；"
@@ -901,8 +1178,9 @@ def compact_plan_context(
         "compositionNotes 是需要纠正的组合诊断，不允许通过裁切、缩字或删事实处理。"
         "确有合同/容量冲突时整体重选可承载的分区合组并重新核算，不能盲从错误计划。\n"
         "一个语义分区可使用一个 SingleLineTitle；2x4 左右独立分区"
-        "可分别使用 SingleLineTitle。被 Plan 指定给 SingleLineTitle 的标题事实必须出现在某个"
-        "SingleLineTitle.title 中，不能改由正文组件承载。需要标题加次信息时使用 DoubleLineTitle。\n"
+        "可分别使用 SingleLineTitle。componentHints 中的 SingleLineTitle 仍是软候选；"
+        "最终布局或语义不适配时，可由其它合法语义组件承载该事实，但事实仍必须完整可见。"
+        "需要标题加次信息时使用 DoubleLineTitle。\n"
         "逐项核对 dataId → 可见组件 Prop：标题、地区、更新时间也必须真实绑定；"
         "不能用用户原话或 sampleValue 写死，即使首帧文字相同。只写数据行、只在事件参数"
         "引用都不算可见。actionId → 所属对象的点击组件或用户明确要求的独立动作槽，"
@@ -926,7 +1204,9 @@ def compact_plan_context(
 
 def _component_intent_context(plan: dict[str, Any]) -> str:
     """把已接受的首选映射成核对表，不新增硬使用率门禁或模型调用。"""
-    allowed = set(_COMPONENT_HINTS["2x2"]) | set(_COMPONENT_HINTS["2x4"])
+    allowed: set[str] = set()
+    for components in MODEL_COMPONENT_TYPES_BY_SIZE.values():
+        allowed.update(components)
     groups: dict[str, list[int]] = {}
     for index, fact in enumerate(plan.get("info_required", []), start=1):
         if not isinstance(fact, dict):
@@ -957,25 +1237,39 @@ def _component_intent_context(plan: dict[str, Any]) -> str:
 @dataclass(frozen=True)
 class _CompactVisibleState:
     paths: frozenset[str]
+    path_occurrences: tuple[_CompactVisiblePathOccurrence, ...]
     literals: tuple[str, ...]
-    title_paths: frozenset[str]
-    title_literals: tuple[str, ...]
     handlers: tuple[dict[str, Any], ...]
 
 
 @dataclass(frozen=True)
+class _CompactVisiblePathOccurrence:
+    data_id: str
+    component_id: str
+    component_type: str
+    property_path: str
+
+    def to_payload(self) -> dict[str, str]:
+        return {
+            "componentId": self.component_id,
+            "componentType": self.component_type,
+            "property": self.property_path,
+        }
+
+
+@dataclass(frozen=True)
 class CompactPlanCoverageResult:
-    """区分阻断生成的 Plan 覆盖错误与仅供观察的静态文案告警。"""
+    """区分阻断生成的 Plan 覆盖错误与按阶段降级的覆盖告警。"""
 
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
+    duplicate_facts: tuple[dict[str, Any], ...] = ()
 
 
 def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleState:
     visible_paths: set[str] = set()
+    path_occurrences: list[_CompactVisiblePathOccurrence] = []
     visible_literals: list[str] = []
-    single_line_title_paths: set[str] = set()
-    single_line_title_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
     for component in components:
         visible_props = {
@@ -983,21 +1277,28 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
             for key, value in component.props.items()
             if key in _VISIBLE_PROP_NAMES
         }
+        has_separate_progress_readout = (
+            component.component_type in _PROGRESS_VALUE_DRIVER_COMPONENTS
+            and "displayValue" in visible_props
+        )
+        if has_separate_progress_readout:
+            visible_props.pop("value", None)
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
-        if component.component_type == "SingleLineTitle":
-            _collect_paths_and_literals(
-                {"title": component.props.get("title")},
-                single_line_title_paths,
-                single_line_title_literals,
+        for property_name, value in visible_props.items():
+            _collect_visible_path_occurrences(
+                value,
+                component_id=component.component_id,
+                component_type=component.component_type,
+                property_path=property_name,
+                occurrences=path_occurrences,
             )
         on_click = component.props.get("onClick")
         if isinstance(on_click, list):
             handlers.extend(item for item in on_click if isinstance(item, dict))
     return _CompactVisibleState(
         paths=frozenset(visible_paths),
+        path_occurrences=tuple(path_occurrences),
         literals=tuple(_normalize_text(value) for value in visible_literals),
-        title_paths=frozenset(single_line_title_paths),
-        title_literals=tuple(_normalize_text(value) for value in single_line_title_literals),
         handlers=tuple(handlers),
     )
 
@@ -1009,33 +1310,48 @@ def _compact_fact_coverage_result(
 ) -> CompactPlanCoverageResult:
     requirement = fact.get("requirement")
     label = requirement if isinstance(requirement, str) else "unknown requirement"
-    hints = fact.get("componentHints")
-    requires_single_line_title = isinstance(hints, list) and "SingleLineTitle" in hints
     data_id = fact.get("dataId")
-    if isinstance(data_id, str) and data_id not in state.paths:
-        return CompactPlanCoverageResult(
-            errors=(f"Plan fact is missing from visible DSL: {label} ({data_id}).",),
-            warnings=(),
+    if isinstance(data_id, str):
+        occurrences = tuple(
+            item for item in state.path_occurrences if item.data_id == data_id
         )
-    if (
-        isinstance(data_id, str)
-        and requires_single_line_title
-        and data_id not in state.title_paths
-    ):
-        return CompactPlanCoverageResult(
-            errors=(
-                "Plan title fact must be visible in a SingleLineTitle.title: "
-                f"{label} ({data_id}).",
-            ),
-            warnings=(),
-        )
+        if not occurrences:
+            return CompactPlanCoverageResult(
+                errors=(f"Plan fact is missing from visible DSL: {label} ({data_id}).",),
+                warnings=(),
+            )
+        if len(occurrences) > 1:
+            locations = ", ".join(
+                f"{item.component_id} ({item.component_type}).{item.property_path}"
+                for item in occurrences
+            )
+            duplicate_fact = {
+                "requirement": label,
+                "dataId": data_id,
+                "expectedVisibleCount": 1,
+                "actualVisibleCount": len(occurrences),
+                "occurrences": [item.to_payload() for item in occurrences],
+            }
+            return CompactPlanCoverageResult(
+                errors=(
+                    "Plan fact is displayed more than once in visible DSL: "
+                    f"{label} ({data_id}); expected 1, got {len(occurrences)}; "
+                    f"occurrences: {locations}.",
+                ),
+                warnings=(),
+                duplicate_facts=(duplicate_fact,),
+            )
     action_id = fact.get("actionId")
     if isinstance(action_id, str):
         expected = event_handlers.get(action_id)
-        if expected is None or expected not in state.handlers:
+        if expected is None or not any(
+            event_handlers_match(handler, expected) for handler in state.handlers
+        ):
+            mismatch = _event_handler_mismatch(expected, state.handlers)
             return CompactPlanCoverageResult(
                 errors=(
-                    f"Plan action is missing from visible DSL: {label} ({action_id}).",
+                    f"Plan action is missing from visible DSL: {label} ({action_id})."
+                    f"{mismatch}",
                 ),
                 warnings=(),
             )
@@ -1043,20 +1359,10 @@ def _compact_fact_coverage_result(
     text = fact.get("text")
     if isinstance(text, str):
         expected_text = _normalize_text(text)
-        if requires_single_line_title and not any(
-            expected_text in actual for actual in state.title_literals
-        ):
-            return CompactPlanCoverageResult(
-                errors=(
-                    "Plan title fact must be visible in a SingleLineTitle.title: "
-                    f"{label}.",
-                ),
-                warnings=(),
-            )
         if not expected_text or not any(expected_text in actual for actual in state.literals):
             return CompactPlanCoverageResult(
-                errors=(),
-                warnings=(f"Plan static text is not fully visible in DSL: {label}.",),
+                errors=(f"Plan static text is not fully visible in DSL: {label}.",),
+                warnings=(),
             )
     return CompactPlanCoverageResult(errors=(), warnings=())
 
@@ -1067,8 +1373,9 @@ def evaluate_compact_plan_coverage(
     task_spec: dict[str, Any],
     *,
     allowed_omitted_fact_indexes: tuple[int, ...] = (),
+    information_errors_as_warnings: bool = False,
 ) -> CompactPlanCoverageResult:
-    """检查 Plan 覆盖，并将普通静态文案的非完整命中降级为告警。"""
+    """检查 Plan 覆盖；修复后可仅放宽非 Action 展示事实。"""
     if not plan:
         return CompactPlanCoverageResult(errors=(), warnings=())
     rows = parse_compact_dsl_rows(compact_dsl)
@@ -1078,6 +1385,7 @@ def evaluate_compact_plan_coverage(
     allowed = set(allowed_omitted_fact_indexes)
     errors: list[str] = []
     warnings: list[str] = []
+    duplicate_facts: list[dict[str, Any]] = []
     facts = plan.get("info_required")
     if not isinstance(facts, list):
         return CompactPlanCoverageResult(
@@ -1090,7 +1398,13 @@ def evaluate_compact_plan_coverage(
         result = _compact_fact_coverage_result(fact, state, event_handlers)
         if index in allowed and "actionId" not in fact:
             continue
-        errors.extend(result.errors)
+        if result.duplicate_facts:
+            errors.extend(result.errors)
+            duplicate_facts.extend(result.duplicate_facts)
+        elif information_errors_as_warnings and "actionId" not in fact:
+            warnings.extend(result.errors)
+        else:
+            errors.extend(result.errors)
         warnings.extend(result.warnings)
     required_layout = _required_anchor_layout(plan, task_spec)
     if required_layout is not None:
@@ -1106,7 +1420,27 @@ def evaluate_compact_plan_coverage(
                 "composition; keep the CircleButton anchor layout instead of replacing it "
                 "with a text-action layout that compresses the required content."
             )
-    return CompactPlanCoverageResult(errors=tuple(errors), warnings=tuple(warnings))
+    required_route = compact_plan_required_route(plan, task_spec)
+    if required_route is not None:
+        locked_layout = required_route.get("layout")
+        if not isinstance(locked_layout, str):
+            locked_layout = ""
+        try:
+            match_compact_layout(
+                components,
+                size="2x2",
+                layout_scope=locked_layout,
+            )
+        except CompactLayoutRuntimeError:
+            errors.append(
+                "已接受 Plan 选择了 2x2 单焦点 S-center + DataDisplay；修复时必须保留"
+                "该布局与组件，不得降级为 SingleLineTitle + EmphasisText 或 EmphasizedData。"
+            )
+    return CompactPlanCoverageResult(
+        errors=tuple(errors),
+        warnings=tuple(warnings),
+        duplicate_facts=tuple(duplicate_facts),
+    )
 
 
 def compact_plan_coverage_errors(
@@ -1174,8 +1508,12 @@ def compact_plan_optional_drop_candidate(
     compact_dsl: str,
     plan: dict[str, Any] | None,
     task_spec: dict[str, Any],
+    *,
+    allow_must_fallback: bool = True,
+    max_fact_count: int | None = None,
+    allowed_fact_indexes: set[int] | None = None,
 ) -> CompactOptionalDropCandidate | None:
-    """优先选 should-only 组件，并在同类候选中最小化事实损失。"""
+    """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
         return None
     facts = plan.get("info_required")
@@ -1214,6 +1552,14 @@ def compact_plan_optional_drop_candidate(
             priorities.append(str(fact.get("priority") or "must"))
         if has_action_fact or not matched:
             continue
+        if max_fact_count is not None and len(matched) > max_fact_count:
+            continue
+        if allowed_fact_indexes is not None:
+            carries_unrelated_fact = any(
+                fact_index not in allowed_fact_indexes for fact_index in matched
+            )
+            if carries_unrelated_fact:
+                continue
         requirements = tuple(str(facts[index].get("requirement") or "") for index in matched)
         candidate = CompactOptionalDropCandidate(
             component_id=row.component_id,
@@ -1226,7 +1572,9 @@ def compact_plan_optional_drop_candidate(
             fallback_candidates.append(candidate)
         else:
             should_only_candidates.append(candidate)
-    candidates = should_only_candidates or fallback_candidates
+    candidates = should_only_candidates
+    if not candidates and allow_must_fallback:
+        candidates = fallback_candidates
     if not candidates:
         return None
     return min(candidates, key=lambda item: len(item.fact_indexes))
@@ -1251,6 +1599,78 @@ def _required_anchor_layout(
         if isinstance(hints, list) and hints and hints[0] == "CircleButton":
             return "S-title-anchor"
     return None
+
+
+def compact_plan_required_route(
+    plan: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> dict[str, str] | None:
+    """返回已接受 Plan 中可安全锁定的精确单焦点执行路线。"""
+    if task_spec.get("size") != "2x2" or composition_implementation_conflicts(plan):
+        return None
+    facts = plan.get("info_required")
+    if not isinstance(facts, list) or len(facts) != 1:
+        return None
+    fact = facts[0]
+    if not isinstance(fact, dict) or "actionId" in fact:
+        return None
+    component_hints = fact.get("componentHints")
+    layout_hints = plan.get("layoutHints")
+    preferred_component = (
+        component_hints[0] if isinstance(component_hints, list) and component_hints else None
+    )
+    preferred_layout = layout_hints[0] if isinstance(layout_hints, list) and layout_hints else None
+    if preferred_component != "DataDisplay" or preferred_layout != "S-center":
+        return None
+    if not _data_display_route_fits_fact(fact, task_spec):
+        return None
+    return {"layout": "S-center", "component": "DataDisplay"}
+
+
+def _data_display_route_fits_fact(
+    fact: dict[str, Any],
+    task_spec: dict[str, Any],
+) -> bool:
+    """仅在现有事实没有明确违反 DataDisplay 值容量时锁定路线。"""
+    value: Any = fact.get("text")
+    data_id = fact.get("dataId")
+    if isinstance(data_id, str):
+        value = _task_schema_sample(task_spec, data_id)
+    if value is None:
+        return isinstance(data_id, str)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return True
+    if not isinstance(value, str) or not value.strip():
+        return False
+    normalized = value.strip()
+    numeric_text = re.fullmatch(
+        r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[%％])?",
+        normalized,
+    )
+    if numeric_text is not None:
+        return True
+    character_count = len(re.sub(r"\s+", "", normalized))
+    return 1 <= character_count <= 8
+
+
+def _task_schema_sample(task_spec: dict[str, Any], data_id: str) -> Any:
+    """读取 TaskSpec 展开 schema 的样例值；未知路径不伪造结论。"""
+    parts = parse_json_pointer(data_id)
+    current: Any = task_spec.get("dataModelSchema")
+    if parts is None:
+        return None
+    for part in parts:
+        if isinstance(current, dict):
+            current = current.get(part)
+            continue
+        if isinstance(current, list) and part.isdigit():
+            index = int(part)
+            current = current[index] if 0 <= index < len(current) else None
+            continue
+        return None
+    return current.get("sampleValue") if isinstance(current, dict) else None
+
+
 def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:
     """按 TaskSpec 顺序列出可作为事实目标的叶子 JSON Pointer。"""
     schema = task_spec.get("dataModelSchema")
@@ -1299,6 +1719,8 @@ def _normalize_asset_assignments(
     value: Any,
     facts: list[dict[str, Any]],
     task_spec: dict[str, Any],
+    *,
+    whole_card_action_id: str | None = None,
 ) -> dict[str, Any]:
     """校验按钮优先、标题随后且不复用素材的显式分配。"""
     if not isinstance(value, dict) or set(value) != {"actions", "title"}:
@@ -1334,13 +1756,16 @@ def _normalize_asset_assignments(
         if action_id in normalized_actions:
             errors.append(f"{location}.actionId is duplicated: {action_id}.")
             continue
-        normalized = _normalize_single_asset_assignment(
-            assignment,
-            asset_ids,
-            location=location,
-            used_assets=used_assets,
-            errors=errors,
-        )
+        if action_id == whole_card_action_id:
+            normalized = {"assetId": None, "reason": "Whole-card detail has no button icon."}
+        else:
+            normalized = _normalize_single_asset_assignment(
+                assignment,
+                asset_ids,
+                location=location,
+                used_assets=used_assets,
+                errors=errors,
+            )
         normalized["actionId"] = action_id
         normalized_actions[action_id] = normalized
     missing_actions = [
@@ -1361,13 +1786,19 @@ def _normalize_asset_assignments(
         if unknown_keys:
             names = ", ".join(sorted(unknown_keys))
             errors.append(f"assetAssignments.title contains unsupported fields: {names}.")
-        normalized_title = _normalize_single_asset_assignment(
-            title,
-            asset_ids,
-            location="assetAssignments.title",
-            used_assets=used_assets,
-            errors=errors,
-        )
+        if _is_two_by_two_dual_action_plan(facts, task_spec.get("size")):
+            normalized_title = {
+                "assetId": None,
+                "reason": "S-content-dual-action has no title slot.",
+            }
+        else:
+            normalized_title = _normalize_single_asset_assignment(
+                title,
+                asset_ids,
+                location="assetAssignments.title",
+                used_assets=used_assets,
+                errors=errors,
+            )
     if errors:
         raise CompactPlanValidationError(errors)
     ordered_actions = [normalized_actions[action_id] for action_id in selected_action_ids]
@@ -1511,7 +1942,11 @@ def _validate_facts(
                         accepted_hints.append(hint)
                 removed_single_line_title_alternatives = False
                 removed_single_line_title_backup = False
-                if task_spec.get("size") == "2x2" and accepted_hints:
+                allow_title_backup_removal = task_spec.get("size") == "2x2"
+                if task_spec.get("size") == "2x4" and accepted_hints:
+                    if accepted_hints[0] == "Badge":
+                        allow_title_backup_removal = True
+                if allow_title_backup_removal and accepted_hints:
                     title_is_backup = accepted_hints[0] != "SingleLineTitle"
                     if title_is_backup and "SingleLineTitle" in accepted_hints:
                         accepted_hints.remove("SingleLineTitle")
@@ -1604,6 +2039,65 @@ def _normalize_layout_hints(
     if accepted != value:
         warnings.append("layoutHints removed unsupported, duplicate, or excess values.")
     return accepted, warnings
+
+
+def _normalize_two_by_four_action_layouts(
+    facts: list[dict[str, Any]],
+    layout_hints: list[str],
+    size: Any,
+) -> tuple[list[str], list[str]]:
+    """移除无法承载 2x4 显式动作的无动作布局软候选。"""
+    has_action = any(isinstance(fact.get("actionId"), str) for fact in facts)
+    if size != "2x4" or not has_action or "W-top-bottom" not in layout_hints:
+        return layout_hints, []
+
+    accepted = [layout for layout in layout_hints if layout != "W-top-bottom"]
+    warning = (
+        "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
+        "an Action and this layout has no legal action slot."
+    )
+    return accepted, [warning]
+
+
+def _normalize_dual_action_plan(
+    facts: list[dict[str, Any]],
+    layout_hints: list[str],
+    size: Any,
+) -> tuple[list[str], list[str]]:
+    """统一 2x2 双必要动作的布局和按钮，保留内容事实与软候选。"""
+    if not _is_two_by_two_dual_action_plan(facts, size):
+        return layout_hints, []
+
+    warnings: list[str] = []
+    normalized_layouts = ["S-content-dual-action"]
+    if layout_hints != normalized_layouts:
+        warnings.append(
+            "Two required 2x2 actions force layoutHints to S-content-dual-action."
+        )
+
+    for fact in facts:
+        if "actionId" not in fact:
+            continue
+        hints = fact.get("componentHints")
+        if hints != ["PillButton"]:
+            fact["componentHints"] = ["PillButton"]
+            warnings.append(
+                "A 2x2 dual-action fact uses PillButton in S-content-dual-action."
+            )
+    return normalized_layouts, warnings
+
+
+def _is_two_by_two_dual_action_plan(
+    facts: list[dict[str, Any]],
+    size: Any,
+) -> bool:
+    if size != "2x2":
+        return False
+    action_count = 0
+    for fact in facts:
+        if isinstance(fact.get("actionId"), str):
+            action_count += 1
+    return action_count == 2
 
 
 def _parse_json_object(
@@ -1772,6 +2266,58 @@ def _collect_paths_and_literals(
             _collect_paths_and_literals(child, paths, literals)
 
 
+def _collect_visible_path_occurrences(
+    value: Any,
+    *,
+    component_id: str,
+    component_type: str,
+    property_path: str,
+    occurrences: list[_CompactVisiblePathOccurrence],
+) -> None:
+    if isinstance(value, str):
+        for match in _BINDING_PATH.finditer(value):
+            occurrences.append(
+                _CompactVisiblePathOccurrence(
+                    data_id=match.group("path"),
+                    component_id=component_id,
+                    component_type=component_type,
+                    property_path=property_path,
+                )
+            )
+        return
+    if isinstance(value, dict):
+        if set(value) == {"path"} and isinstance(value.get("path"), str):
+            occurrences.append(
+                _CompactVisiblePathOccurrence(
+                    data_id=value["path"],
+                    component_id=component_id,
+                    component_type=component_type,
+                    property_path=property_path,
+                )
+            )
+            return
+        for key, child in value.items():
+            child_path = f"{property_path}.{key}"
+            _collect_visible_path_occurrences(
+                child,
+                component_id=component_id,
+                component_type=component_type,
+                property_path=child_path,
+                occurrences=occurrences,
+            )
+        return
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            child_path = f"{property_path}[{index}]"
+            _collect_visible_path_occurrences(
+                child,
+                component_id=component_id,
+                component_type=component_type,
+                property_path=child_path,
+                occurrences=occurrences,
+            )
+
+
 def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
     handlers: dict[str, dict[str, Any]] = {}
     candidates = task_spec.get("eventCandidates")
@@ -1792,8 +2338,40 @@ def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]
     return handlers
 
 
+def _event_handler_mismatch(
+    expected: dict[str, Any] | None,
+    actual_handlers: tuple[dict[str, Any], ...],
+) -> str:
+    """向修复模型说明同类事件的精确参数差异，避免按常识改写值。"""
+    if expected is None:
+        return ""
+    expected_call = expected.get("call")
+    expected_args = expected.get("args")
+    expected_intent = None
+    if isinstance(expected_args, dict):
+        expected_intent = expected_args.get("intentName")
+    closest = None
+    for handler in actual_handlers:
+        if handler.get("call") != expected_call:
+            continue
+        if closest is None:
+            closest = handler
+        handler_args = handler.get("args")
+        if isinstance(handler_args, dict) and handler_args.get("intentName") == expected_intent:
+            closest = handler
+            break
+    if closest is None:
+        return " Copy the complete call and args from the matching TaskSpec event candidate."
+    expected_text = json.dumps(expected, ensure_ascii=False, separators=(",", ":"))
+    actual_text = json.dumps(closest, ensure_ascii=False, separators=(",", ":"))
+    return (
+        f" Expected exact onClick handler {expected_text}, but found {actual_text}."
+        " Copy call and args exactly; do not infer, invert, or rewrite parameter values."
+    )
+
+
 def _component_hints(size: Any) -> tuple[str, ...]:
-    candidates = _COMPONENT_HINTS.get(size, _SHARED_FACT_COMPONENTS)
+    candidates = MODEL_COMPONENT_TYPES_BY_SIZE.get(size, SHARED_FACT_COMPONENTS)
     return tuple(
         component
         for component in candidates

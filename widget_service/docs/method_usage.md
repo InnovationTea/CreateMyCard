@@ -43,19 +43,22 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 当前能力清单及命中区间：
 
 ```text
-App [11.7.5.205, 11.7.7.330) + ROM [7.0, 7.2) -> app-11.7.5.205_rom-6.0
-App [11.7.7.330, 12.0.0.0) + ROM [7.0, 8.0) -> app-11.7.7.300_rom-7.0
+App [11.7.7.330, 12.0.0.0) + ROM [6.0, 8.0) -> app-11.7.7.300_rom-7.0
 ```
 
 App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与
 ROM 同时重叠的配置以及不存在的目标目录。
 
-能力目录名是快照标识，不用于推导实际命中范围。当前配置下 ROM 6.x、旧 App 搭配 ROM 7.2 及以上，
-以及其它未覆盖组合没有直接命中；是否使用默认清单由回退开关决定。
+能力目录名是快照标识，不用于推导实际命中范围。旧 App 和其它未覆盖组合没有直接命中；
+是否使用默认清单由回退开关决定。一期能力目录已删除，模板已使用二期。
+历史一期结果编辑时，仅素材路径恢复读取二期清单；来源文件和版本元数据保持不变，
+编辑后的业务能力按本轮清单重新校验。其它未知版本不自动映射。
+部署时应移除或更新仍指定一期目录的能力版本环境变量，否则显式加载会报目录不存在。
+协议 Profile 配置保持不变。
 
 五个接口在能力清单版本未命中或目标目录不可用且
 `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到默认的
-`app-11.7.5.205_rom-6.0` 能力清单。
+`app-11.7.7.300_rom-7.0` 能力清单。arguments 参数修复也使用同一默认配置。
 关闭开关时，第一、第二接口返回空清单/缺失能力，三个生成接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
@@ -179,14 +182,21 @@ Parser 只接受单根组件调用、字面量、白名单组件和安全对象�
 
 所有帧的插件顶层 `errorCode` 固定为 `"0"`，`errorMessage` 固定为空字符串，`items`
 固定为空数组。业务错误码、异常详情和业务响应只放在 final 帧的 `streamContent` 中。
-异常内容以中文类型说明开头，后面保留完整 `str(legacy_message)`，调用方应继续读取其中
+成功消息使用完整业务对象的紧凑标准 JSON 字符串，保留中文、原始字段及 null 值，
+不再使用 Python 对象的 `str/repr` 表现。异常内容仍以中文类型说明开头，后接完整 JSON；
+异常帧整体并非纯 JSON，调用方须先去掉说明前缀。调用方应继续读取其中
 的 `status`、`errorCode`、`error` 和 `data`，不能用插件顶层字段判断业务成功与否。
 中文说明面向主 Agent，包含异常原因和建议动作。例如：
 
 ```text
 工具参数传入有误，请检查必填字段、字段类型和字段取值后重新调用。报错信息如下：
-type='error' ... errorCode='INVALID_ARGUMENTS' error={...}
+{"type":"error","tool":"getWidgetCapabilityOverview","operation":"getWidgetCapabilityOverview","requestId":null,"data":{},"status":"failed","errorCode":"INVALID_ARGUMENTS","error":{"message":"参数无效"}}
 ```
+
+该封装由各工具入口共用；外层字段、plainText 类型、start/partial/command 帧均不变。
+调用方不得再依赖 `type='result'`、`data={...}` 等 Python 表现解析。
+多层 JSON 封装应逐层解析，不能直接向模型传递中间 JSON 字面量，也不能整体反转义业务内容；
+中文、引号、反斜杠和事件表达式按 JSON 规则保留。此调整不保证中间链路不再转义或截断。
 
 连接成功后客户端直接发送业务消息，服务不再返回 ready 帧。统一消息最小结构：
 
@@ -709,7 +719,7 @@ cloud/services/ids_client.py
 构造：
 
 ```python
-registry = CapabilityRegistry("app-11.7.5.205_rom-6.0")
+registry = CapabilityRegistry("app-11.7.7.300_rom-7.0")
 ```
 
 不传版本时可使用 device 版本推导：
@@ -1496,6 +1506,9 @@ load_json(path: Path) -> Any
 允许替换的动态参数路径和填写规则；不暴露依赖和完整参数 schema。顶层 `description` 只描述事件用途和
 用户可感知结果，固定值由 `actionTemplate` 承载，数据路径、索引替换和枚举映射由 `dynamicArguments` 承载；
 动态值来自数据能力输出时，参数说明同时写明来源数据能力 ID 和输出字段路径。
+八类开关的历史标记不登记到动作模板、内部参数 schema 或动态参数中。兼容由程序层完成：
+预检只在校验副本中忽略合法旧标记，候选比较兼容省略和整数 0/1；其它参数及外层对象继续严格校验，
+具体范围以云侧方案为准。
 
 `AssetCapabilityOverview`：第一接口的精简素材定义，只包含素材 ID 和描述；素材路径和版本信息由微服务
 内部保留并在生成阶段按 ID 还原。
@@ -1573,7 +1586,7 @@ meta
 新增能力版本：
 
 ```text
-复制 data/capabilities/app-11.7.5.205_rom-6.0 为新文件夹
+复制 data/capabilities/app-11.7.7.300_rom-7.0 为新文件夹
 修改 JSON 文件
 在 data/capabilities/registry_ranges.json 中新增不重叠的 App/ROM 区间并指向新文件夹
 ```

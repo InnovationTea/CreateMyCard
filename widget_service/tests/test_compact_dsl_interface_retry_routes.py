@@ -117,6 +117,35 @@ def test_route_retries_generation_with_one_directive_pair(monkeypatch, failure_k
     assert result.get("status") == ("success" if recovers else "failed")
 
 
+def test_route_records_loaded_retry_policy_once_per_request(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 5)
+    recorded = []
+    original_record = routes.trace_record
+
+    def record(event, **kwargs):
+        if event == "retry.policy.configured":
+            recorded.append(kwargs.get("details"))
+        return original_record(event, **kwargs)
+
+    async def generate(_service, _request, *, before_model_call):
+        await before_model_call("2x2")
+        return make_response(GenerationStatus.FAILED, ErrorCode.VALIDATION_FAILED)
+
+    monkeypatch.setattr(routes, "trace_record", record)
+    monkeypatch.setattr(WidgetGenerationService, "generate_widget_card_compact_dsl", generate)
+    with TestClient(app).websocket_connect(_PATH) as websocket:
+        websocket.send_json(_tool_payload(_CONTENT, "retry-policy"))
+        _receive_frames_until_final(websocket, _request_id("retry-policy"))
+
+    assert len(recorded) == 1
+    details = recorded[0]
+    assert isinstance(details, dict)
+    assert details.get("interfaceRetryEnabled") is True
+    assert details.get("interfaceExtraRetries") == 1
+    assert details.get("qualityRepairMaxAttempts") == 5
+
+
 def test_stringified_arguments_repaired_once_before_generation_retries(monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_compact_dsl_argument_repair_fallback", True)

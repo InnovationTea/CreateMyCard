@@ -1,0 +1,30 @@
+{
+  "unit": "vp",
+  "supportedSizes": ["2x2", "2x4"],
+  "width": {
+    "compressibleItemMargin": {
+      "maximumOverflowBySize": {
+        "2x2": 16,
+        "2x4": 16
+      },
+      "appliesTo": "row_overflow_fully_absorbable_by_item_margin",
+      "description": "当前 Row 的有效 itemMargin 总量能够完全吸收溢出。"
+    },
+    "rootFlexibleLayout": {
+      "maximumOverflowBySize": {
+        "2x2": 10,
+        "2x4": 32
+      },
+      "appliesTo": "root_row",
+      "description": "根 Row 的经验容忍上限。"
+    },
+    "weightedFlexibleLayout": {
+      "maximumOverflowBySize": {
+        "2x2": 24,
+        "2x4": 52
+      },
+      "appliesTo": "row_inside_horizontal_weight_region_without_fixed_width_boundary",
+      "description": "位于父 Row 横向权重区域内，且向上查找时未遇到不可收缩的固定宽度边界。"
+    }
+  }
+}

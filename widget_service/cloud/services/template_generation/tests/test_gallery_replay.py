@@ -1,0 +1,201 @@
+"""失败画廊的原始四业务提示预算、时间配对和重跑状态回归。"""
+
+import json
+from copy import deepcopy
+from pathlib import Path
+
+import pytest
+
+from models.generation import CandidateDataBinding, TaskSpec
+from services.template_generation.engine.advanced.ux_mixed_prompt import build_ux_mixed_prompt
+from services.template_generation.engine.cardplan.prompt_guidance import selected_template_guidance
+from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.cardplan.template_plan_planner import (
+    plan_template_candidates,
+    planner_component_candidates,
+    planner_required_template_groups,
+    planner_scope,
+)
+from services.template_generation.engine.cardplan.template_retrieval import (
+    TemplateSearchIntent,
+    search_template_variants,
+)
+from services.template_generation.test_support import provider_gallery as gallery
+from services.template_generation.test_support.gallery_replay import (
+    normalize_gallery_case,
+    prepare_failed_replay,
+)
+
+_FIXTURES = json.loads(
+    (Path(__file__).parent / "fixtures/gallery_failed_plans.json").read_text(encoding="utf-8")
+)
+
+
+def _required(mapping, key):
+    value = mapping.get(key)
+    assert value is not None, key
+    return value
+
+
+@pytest.mark.parametrize("fixture", _FIXTURES, ids=lambda item: str(item.get("index")))
+def test_original_failed_wide_plans_fit_prompt_budget(fixture) -> None:
+    task_payload = deepcopy(_required(fixture, "task"))
+    decision = deepcopy(_required(fixture, "decision"))
+    # 第 33 项同时存在样例动作映射错误；生产输入归一化单独验证。
+    if fixture.get("index") == 33:
+        for action in task_payload.get("eventCandidates", []):
+            if action.get("id") == "event.open.health.sportsRecord":
+                action["id"] = "event.open.health.activityRecord"
+        decision["action"] = ["event.open.health.activityRecord"]
+    task = TaskSpec.model_validate(task_payload)
+    card = _required(fixture, "card")
+    bindings = tuple(
+        CandidateDataBinding.model_validate(item) for item in _required(fixture, "bindings")
+    )
+    intent = TemplateSearchIntent.model_validate(decision)
+    registry = get_cardplan_registry()
+    case = _required(fixture, "case")
+    found = search_template_variants(
+        intent, task, registry, bindings, card,
+        preferred_template_ids=tuple(_required(case, "compositionTemplateIds")),
+    )
+    layout_id = _required(case, "expectedLayout") + "@1"
+    plans = plan_template_candidates(
+        intent, found, task, registry, candidate_bindings=bindings, allowed_layout_ids=(layout_id,),
+    )
+    assert plans
+    assert all(plan.layout_template_id == layout_id for plan in plans)
+    projection = build_ux_mixed_prompt(
+        task_spec=task, card_spec=card, scope=planner_scope(plans),
+        component_candidates=planner_component_candidates(plans),
+        required_template_groups=planner_required_template_groups(plans),
+        template_plans=plans, registry=registry,
+    )
+    assert sum(len(message.get("content", "")) for message in projection.messages) <= 24000
+
+
+def test_guidance_keeps_complete_selected_shared_and_unknown_blocks() -> None:
+    content = (
+        "# 规则\n公共字段约束。\n"
+        "- Alpha@1 的字段。\n  续行必须保留。\n"
+        "- Beta@1 的专属字段。\n  不应泄漏。\n"
+        "- Alpha@1 与 Beta@1 共用约束。\n"
+        "- WideLayout@1 的骨架约束。\n"
+        "- 禁止新增字段。\n"
+    )
+    actual = selected_template_guidance(
+        content, frozenset({"Alpha@1", "Beta@1"}), frozenset({"Alpha@1"}),
+    )
+    assert "公共字段约束" in actual
+    assert "续行必须保留" in actual
+    assert "Beta@1 的专属" not in actual
+    assert "不应泄漏" not in actual
+    assert "Alpha@1 与 Beta@1 共用约束" in actual
+    assert "WideLayout@1 的骨架约束" in actual
+    assert "禁止新增字段" in actual
+
+
+def test_fresh_and_replayed_inputs_keep_not_applicable_cases(tmp_path: Path) -> None:
+    original_root = tmp_path / "original"
+    manifest = gallery.write_gallery_input_dataset(original_root)
+    cases = []
+    for provider in manifest.providers:
+        for case in provider.cases:
+            cases.append({"caseId": case.caseId, "status": "failed"})
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "manifest.json").write_text(
+        json.dumps({"providers": [{"cases": cases}]}), encoding="utf-8",
+    )
+    output = tmp_path / "replay"
+    prepare_failed_replay(original_root, results, output)
+    replay = gallery.load_gallery_input_manifest(output)
+    replay_cases = []
+    for provider in replay.providers:
+        replay_cases.extend(provider.cases)
+    assert len(replay_cases) == len(cases)
+    unavailable = [case for case in replay_cases if case.notApplicableReason]
+    assert len(unavailable) == 3
+    assert {case.caseId for case in replay_cases} == {case.get("caseId") for case in cases}
+    for provider in manifest.providers:
+        for case in provider.cases:
+            source = json.loads((original_root / case.requestFile).read_text(encoding="utf-8"))
+            target = json.loads((output / case.requestFile).read_text(encoding="utf-8"))
+            assert source == target
+
+
+def test_replay_restores_external_coverage_metadata(tmp_path: Path) -> None:
+    """旧主干输入模型没有扩展字段，原批跑将它们保存在结果清单。"""
+    from services.template_generation.test_support.wide_compositions import append_wide_compositions
+
+    input_root = tmp_path / "inputs"
+    gallery.write_gallery_input_dataset(input_root)
+    manifest = append_wide_compositions(input_root)
+    provider = manifest.providers[0]
+    case = next(
+        item for item in provider.cases if item.expectedLayout == "WideFourCompactLayout"
+    )
+    result = case.model_dump()
+    result["status"] = "failed"
+    before = case.model_copy(deep=True)
+    case.compositionTemplateIds = []
+    case.constrainLayout = False
+    case.expectedActionCount = None
+    provider.cases = [case]
+    manifest.providers = [provider]
+    (input_root / "manifest.json").write_text(manifest.model_dump_json(), encoding="utf-8")
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "manifest.json").write_text(
+        json.dumps({"providers": [{"cases": [result]}]}), encoding="utf-8",
+    )
+    output = tmp_path / "replay"
+    prepare_failed_replay(input_root, results, output)
+    actual = gallery.load_gallery_input_manifest(output).providers[0].cases[0]
+    assert actual.caseId == before.caseId
+    assert actual.compositionTemplateIds == before.compositionTemplateIds
+    assert len(actual.compositionTemplateIds) == 4
+    assert actual.constrainLayout
+    assert actual.expectedActionCount == 0
+
+
+@pytest.mark.asyncio
+async def test_not_applicable_runner_skips_model_even_without_dry_run(tmp_path: Path) -> None:
+    from services.template_generation.tests.test_provider_gallery_batch import _GalleryService
+
+    manifest = gallery.write_gallery_input_dataset(tmp_path / "inputs")
+    for provider in manifest.providers:
+        provider.cases = [case for case in provider.cases if case.notApplicableReason]
+    (tmp_path / "inputs/manifest.json").write_text(
+        manifest.model_dump_json(), encoding="utf-8",
+    )
+    service = _GalleryService()
+    summary = await gallery.ProviderGalleryBatchRunner(service).run(
+        tmp_path / "inputs", tmp_path / "output",
+    )
+    assert summary.total == summary.not_applicable == 3
+    assert summary.failed == summary.success == 0
+    assert not service.requests
+
+
+def test_activity_replay_uses_registered_action_without_mutating_source(tmp_path: Path) -> None:
+    manifest = gallery.write_gallery_input_dataset(tmp_path)
+    sample = None
+    for provider in manifest.providers:
+        for case in provider.cases:
+            if case.targetTemplateId == "ActivityOverviewFull@1":
+                sample = case
+                break
+    assert sample is not None
+    source = json.loads((tmp_path / sample.requestFile).read_text(encoding="utf-8"))
+    content = _required(source, "content")
+    content["candidateEventCandidates"] = [{"capabilityId": "event.open.health.sportsRecord"}]
+    content["userQuery"] = "显示活动摘要，打开锻炼"
+    before = deepcopy(source)
+    events = gallery._load_event_capabilities(gallery._CAPABILITY_ROOT)
+    _, normalized = normalize_gallery_case(sample, source, events)
+    assert source == before
+    actual = _required(normalized, "content")
+    event = _required(actual, "candidateEventCandidates")[0]
+    assert event.get("capabilityId") == "event.open.health.activityRecord"
+    assert actual.get("userQuery") == "显示活动摘要，打开活动记录"

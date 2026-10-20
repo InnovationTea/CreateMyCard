@@ -89,7 +89,7 @@ def test_compositions_stay_in_original_domain_and_preserve_existing_requests(
             assert domains[0] == provider.providerSlug
             assert len(domains) == len(set(domains))
     assert covered == set(layouts)
-    assert composition_count == 80
+    assert composition_count == 85
     audit = json.loads((tmp_path / "wide-composition-selection.json").read_text(encoding="utf-8"))
     excluded = audit.get("excluded")
     assert isinstance(excluded, list)

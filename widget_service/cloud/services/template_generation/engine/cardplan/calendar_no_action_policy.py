@@ -26,6 +26,8 @@ from .template_retrieval import (
 
 _EVENT = "/events/0/"
 _NEGATIVE_ACTION = re.compile(
+    r"(?:不要|无需|不需要|不提供|不带|不加|不显示|不允许|禁止|无|不附带)"
+    r"(?:(?:标题|结束时间|开始时间|备注|地点)[、，或和及]){1,5}(?:操作按钮|按钮)|"
     r"(?:不要|无需|无|不需要|不提供|不带|不加|不显示|不允许|禁止)(?:任何)?"
     r"(?:(?:查看(?:日程)?详情|打开(?:日历|日程))(?:按钮)?|操作按钮|按钮|操作|交互|点击|跳转)"
 )
@@ -50,6 +52,35 @@ _ADDITIONAL_MULTIPLE_EVENTS_QUERY = re.compile(
     r"各(?:日程|会议|活动|安排)|"
     r"[两二三四五六七八九十\d]+(?:条|项)"
     r"(?:日程|会议|活动|安排|都|的(?:日期|标题|时间|地点|提醒)|(?=[，。；、\s]|$))"
+)
+_ITEMIZED_EVENTS_QUERY = re.compile(
+    r"(?:逐项|各自)(?:显示|展示|列出|查看|呈现)?(?:日程|会议|活动|安排)|"
+    r"(?:日程|会议|活动|安排)的?(?:逐项|各自)"
+)
+_NEGATED_ITEMIZED_EVENTS_QUERY = re.compile(
+    r"(?:不要|无需|不必|不用|不需要|不能|不许|禁止|不允许|别|不)(?:再)?"
+    r"(?:显示|展示|列出|看|列|按|用)?(?:(?:日程|会议|活动|安排)的?)?(?:逐项|各自)"
+)
+_ITEMIZED_FIRST_ONLY_QUERY = re.compile(
+    r"(?:只|仅)(?:要|需|需要|看|显示|展示|保留)?"
+    r"(?:首(?:个|条|项|场)|第一(?:个|条|项|场)|下(?:一)?(?:个|条|项|场)|"
+    r"最近的?(?:一|1|日程|会议|活动|安排))"
+)
+_NEGATED_FIRST_ONLY_QUERY = re.compile(
+    r"(?:不要|无需|不必|不用|不需要|不能|不许|禁止|不允许|别|不)(?:再)?"
+    + _ITEMIZED_FIRST_ONLY_QUERY.pattern
+)
+_EXCLUSIVE_CONTEXT_QUERY = re.compile(
+    r"(?:只|仅)(?:要|需|想)?(?:显示|展示|呈现|保留|看)|"
+    r"(?:只|仅)(?:要|需)|仅(?:日期|开始|时间|地点)|"
+    r"(?:不要|不需(?:要)?|无需|不显示|禁止|不允许).{0,12}(?:标题|名称|结束|额外|其他|其它)|"
+    r"\b(?:only|nothing\s+else|no\s+(?:title|end|extra))\b",
+    re.IGNORECASE,
+)
+_RICHENG3_FULL_TEXT_QUERY = re.compile(
+    r"全文|(?:不要|不能|不许|禁止|不得)(?:省略|截断|截字)|"
+    r"(?<![a-z])(?:full\s+text|without\s+(?:truncation|ellipsis))(?![a-z])",
+    re.IGNORECASE,
 )
 
 
@@ -81,6 +112,12 @@ def plan_calendar_no_action_fallback(
     query = _NEGATIVE_ACTION.sub("", task_spec.userQuery)
     if _ACTION_QUERY.search(query) or _MULTIPLE_EVENTS_QUERY.search(query):
         return result
+    itemized_query = _NEGATED_ITEMIZED_EVENTS_QUERY.sub("", query)
+    first_only_query = _NEGATED_FIRST_ONLY_QUERY.sub("", query)
+    if _ITEMIZED_EVENTS_QUERY.search(itemized_query) and not _ITEMIZED_FIRST_ONLY_QUERY.search(
+        first_only_query
+    ):
+        return result
     normalized = normalize_calendar_reminder_intent(intent, task_spec, coverage_bindings)
     normalized, bindings = _wide_reminder_inputs(normalized, task_spec, coverage_bindings)
     requested = normalized.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID, ())
@@ -89,6 +126,22 @@ def plan_calendar_no_action_fallback(
         target = _additional_fallback_template(task_spec.size, frozenset(requested))
     if target is None or target not in registry.templates:
         return result
+    compact_targets = {
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewDateCountdownReminderFull@1",
+    }
+    if target in compact_targets and _RICHENG3_FULL_TEXT_QUERY.search(query):
+        return result
+    if target == "ScheduleOverviewDatedMeetingWideFull@1" and f"{_EVENT}title" not in requested:
+        if _EXCLUSIVE_CONTEXT_QUERY.search(query):
+            return result
+        # 三、四字段复用不能违反排他要求，额外展示字段也必须已获候选授权。
+        required = {
+            f"{_EVENT}{field}"
+            for field in ("startDate", "title", "dtStart", "dtEnd", "eventLocation")
+        }
+        if not required.issubset(bindings[0].candidateOutputFields):
+            return result
     if trusted_template_candidate_ids and set(trusted_template_candidate_ids) != {target}:
         return result
     fallback_registry = CardPlanRegistry(
@@ -228,12 +281,27 @@ def _additional_fallback_template(size: str, requested: frozenset[str]) -> str |
         ("2x2", "AllDayLocationFull", {all_day, location}, {title}),
         ("2x2", "DateStartLocationFull", {date, start, location}, {title, end}),
         (
+            "2x2",
+            "EventCountNotesFull",
+            {"/eventCount", title, start, f"{_EVENT}description"},
+            set(),
+        ),
+        (
+            "2x2",
+            "DateCountdownReminderFull",
+            {title, start, date, f"{_EVENT}countdownDays", reminder},
+            set(),
+        ),
+        (
             "2x4",
             "ReminderDetailsWideFull",
             {f"{_EVENT}senderName", f"{_EVENT}importantEventType", reminder, "/updatedAt"},
             set(),
         ),
         ("2x4", "DatedMeetingWideFull", {date, title, start, end, location}, set()),
+        ("2x4", "DatedMeetingWideFull", {date, start, end, location}, set()),
+        ("2x4", "TitleTimeWideFull", {title, start}, set()),
+        ("2x4", "DatedMeetingWideFull", {date, start, location}, set()),
     )
     target: str | None = None
     for card_size, suffix, required, optional in variants:

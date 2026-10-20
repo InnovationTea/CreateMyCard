@@ -15,10 +15,10 @@
 | Renderer | `render/genui-sdk/renderer/src/` | `debug_tools/card_renderer/runtime/renderer/src/` | 由 `sync:renderer-runtime` 确定性同步。registry、`renderTree`、动态子节点、循环或 TextInput 写回行为变化时同步。 |
 | 视觉 Recipe | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/visual-recipes-v1.json` | 由云侧 Python 高阶组件模块读取 | 单一真实来源，不复制。Recipe 版本、组件参数或布局几何变化会立即影响构建，需同步适配展开逻辑和测试期望。 |
 | 布局契约 | `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/runtime/layout-contracts-v1.json` | 当前不被浏览器运行时直接导入 | 间接契约。更新后应检查生成 DSL 是否引入新布局字段，并评估 parser、components、renderer 是否需要同步；不要为它创建本地副本。 |
-| 卡片素材 | `render/platform/public/resources/` | Python `/resources/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。新增或替换素材会直接生效；目录迁移时必须同时修改 `debug_tools/static_site.py`、`debug_tools/platform/vite.config.ts` 和资源兼容测试。 |
-| 背景素材 | `render/platform/public/background_assets/` | Python `/background_assets/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。目录或命名规则变化时同步两套服务入口和测试。 |
-| Concert One 字体 | `render/platform/public/fonts/ConcertOne-Regular.ttf` | `debug_tools/card_renderer/frontend/src/assets/ConcertOne-Regular.ttf` | 二进制副本。源文件哈希变化时重新复制并执行 Vite build。 |
-| HarmonyOS 字体 | `render/platform/public/fonts/harmonyos/` | CSS `/fonts/harmonyos/` 引用、Python 资源路由和 Vite 本地中间件 | 实时目录依赖，不复制。字体目录变化时同步 `styles.css`、`debug_tools/static_site.py` 和两处 Vite 配置。 |
+| 卡片素材 | 根目录 `resources/`，按清单同步到 `debug_tools/a2ui_render/entry/src/main/resources/` | Python `/resources/...` 路由和两处 Vite 本地中间件直接读取真机资源目录 | 使用 `scripts/sync_assets.py --sync` 更新登记素材；运行时不复制到 dist。目录迁移时同步静态路由与 Vite 中间件。 |
+| 背景素材 | `debug_tools/card_renderer/assets/background_assets/` | Python `/background_assets/...` 路由和 Vite 本地中间件直接读取 | 实时目录依赖，不复制。目录或命名规则变化时同步两套服务入口和测试。 |
+| Concert One 字体 | 历史来源为根 `render`；现维护于 Debug Tools | `debug_tools/card_renderer/frontend/src/assets/ConcertOne-Regular.ttf` | 浏览器专用字体，更新后执行 Vite build。 |
+| HarmonyOS 字体 | `debug_tools/card_renderer/assets/fonts/harmonyos/` | CSS `/fonts/harmonyos/` 引用、Python 资源路由和 Vite 本地中间件 | 实时目录依赖，不复制。字体目录变化时同步 `styles.css`、`debug_tools/static_site.py` 和两处 Vite 配置。 |
 
 运行时包名仍使用 `@genui-sdk/graph`、`@genui-sdk/parser`、`@genui-sdk/components`、
 `@genui-sdk/interactions` 和 `@genui-sdk/renderer`。这些包在
@@ -44,8 +44,7 @@ Debug Tools 自己的集成层，不是根 `render` 文件的副本：它们分�
 4. `runtime/*/package.json`
    - 这些文件是供 Debug Tools npm workspace 直接引用源码的极简 manifest，不是上游构建配置副本。
 
-Concert One 字体当前与来源一致；如果同步后出现差异，应在本节
-补充差异原因。生产目录 `debug_tools/dist/` 只能通过构建生成，禁止从 `render` 手工复制。
+Concert One 字体维护于本地前端资源目录。生产目录 `debug_tools/dist/` 只能通过构建生成，禁止从 `render` 手工复制。
 
 ## 同步流程
 
@@ -74,7 +73,7 @@ git diff --name-status <旧版本> <新版本> -- widget_service/cloud/data/prot
 ### 2. 按映射同步源码
 
 - `graph`、`parser`、`components`、`interactions`、`renderer` 只同步各自的 `src/`。
-- 不复制根 `render` 的 Next.js 页面、`llm-client`、Prompt、Skill、分析器、构建产物或整套 HarmonyOS 字体。
+- 不复制根 `render` 的 Next.js 页面、`llm-client`、Prompt、Skill、分析器或构建产物。
 - 不同步根 `render/platform/lib/` 的 Compact 编译、高阶展开或 Design 样式副本。
 - 上游新增跨包 import 时，同时更新对应 `runtime/*/package.json` 和
   `card_renderer/frontend/package.json`；然后在 `debug_tools/` 执行 `npm install` 更新锁文件。
@@ -96,7 +95,7 @@ npm run check:renderer-runtime
 - `layout-contracts-v1.json` 更新时检查新增字段是否已经由 Python 转换器和组件 registry 支持。
 - `resources/` 与 `background_assets/` 是实时读取目录，只需同步引用和测试；目录根变化时必须保持
   frontend/full Python 服务与 Vite 开发服务一致，并继续拒绝 `..` 等目录穿越。
-- Concert One 字体只有哈希变化时才重新复制。HarmonyOS 字体通过受限静态路由复用，不把根 `render` 的字体目录迁入 Debug Tools。
+- 字体均由 Debug Tools 维护。HarmonyOS 字体通过受限静态路由读取，更新目录时同步 Python 和两处 Vite 入口。
 - 同步上游测试和 fixture 时保留 Debug Tools 特有的 artifact 解包、尺寸、`assetBaseUrl`、`onArtifact`、
   `onAction`、TextInput/DataModel 和错误边界测试。
 
@@ -137,3 +136,21 @@ git diff --check
 还需用浏览器至少检查一张基础组件卡、一张高阶组件卡、一张含本地图片的卡、一次点击动作和一次
 TextInput/DataModel 编辑；检查桌面与窄屏布局，并确认控制台没有新增错误。同步提交或交付说明中应记录
 上游 Git 版本、实际同步的映射项、保留的本地差异和验证结果，作为下一次同步的比较基线。
+
+## 云侧登记素材同步
+
+云侧各能力快照 `asset_capabilities.json` 的 `src` 和 `post_layout_themes.json` 中主题背景的
+`background.src` 共同构成同步范围；渐变与纯色背景不需要图片。源文件位于仓库根目录 `resources/`。
+在仓库根目录执行：
+
+```powershell
+.\.venv\Scripts\python.exe debug_tools/scripts/sync_assets.py --sync
+.\.venv\Scripts\python.exe debug_tools/scripts/sync_assets.py --check
+```
+
+脚本按 src 去重，先确认源文件完整，再原样补齐或覆盖
+`debug_tools/a2ui_render/entry/src/main/resources/base/media/`，不修改路径或文件名大小写。
+这是浏览器和真机唯一共用的图片副本，Python 与两处 Vite 直接读取，不从 `render` 回退。
+脚本不删除清单外的应用图标和历史浏览器素材；`--check` 比较 SHA-256，缺失或不同返回非零。
+当前清单去重后为 163 张，仅检查共享目标一次。主题图片与能力素材共用路径边界和摘要检查。背景和字体由 `card_renderer/assets/` 本地维护。
+资源不复制到 dist；真机资源变化使构建缓存失效，重新截图时构建 HAP。

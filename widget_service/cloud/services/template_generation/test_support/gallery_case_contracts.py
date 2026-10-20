@@ -13,7 +13,6 @@ THREE_DAY_LAYOUT = "WideHeroActionFullLayout"
 REQUIRED_ASSET_IDS = {
     "BatteryOverviewSupportHero@1": ("asset.battery_leaf_fill",),
     "BatteryOverviewChargeStatusHero@1": ("asset.battery_leaf_fill",),
-    "BluetoothDeviceOverviewMusicCompact@1": ("asset.music_fill",),
     "BluetoothDeviceOverviewEarphoneCaseHero@1": ("asset.earphone_case_16644",),
     "BluetoothDeviceOverviewEarphoneHero@1": ("asset.icon_earphone",),
     "BluetoothDeviceOverviewCaseConnectionHero@1": ("asset.earphone_case_16644",),

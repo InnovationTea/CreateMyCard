@@ -85,8 +85,8 @@
       "size": "2x4",
       "width": 300,
       "height": 150,
-      "note": "SummaryList 使用与云侧转换器一致的原生固定三行展开。",
-      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFFFF7F2\",\"itemMargin\":4},[\"header\",\"list\"]]\n[\"header\",\"SingleLineTitle\",{\"title\":\"近期日程\"}]\n[\"list\",\"SummaryList\",{\"items\":[\"项目阶段性汇报\",\"确认 Q3 设计需求\",\"申请下周出差\"],\"backgroundColor\":\"#99FFFFFF\"}]"
+      "note": "SummaryList 使用 Runtime 固定的内容背板，并在明细槽内贴底展开。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFFFF7F2\",\"itemMargin\":4},[\"header\",\"list\"]]\n[\"header\",\"SingleLineTitle\",{\"title\":\"近期日程\"}]\n[\"list\",\"SummaryList\",{\"items\":[\"项目阶段性汇报\",\"确认 Q3 设计需求\",\"申请下周出差\"]}]"
     },
     {
       "name": "Runtime · 新增共享语义组件",

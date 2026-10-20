@@ -30,7 +30,15 @@
 - 选择 Compact 时不得用 Full、Hero 或 Support 冒充；`CountdownOverviewTargetCompact@1` 不得用于
   明确要求显示标题、目标日期详情或出发后缀的场景。
 - `title` 只能来自本轮可信文本，例如“高考倒数”“运动会倒数日”“马拉松倒计时”；不得由天数反推
-  事件名或目标日期。
+  事件名或目标日期。`CountdownOverviewFull@1` 的 `title` 必须把可信标题末尾的
+  “倒计时/倒数日/倒数”替换为“还剩”（如“马拉松倒计时”传“马拉松还剩”、“高考倒数”传
+  “高考还剩”），其余模板保持原可信标题。
 - `targetDate` 只能原样使用当前 `GetCountdownDays.arguments.targetDate` 的可信 `YYYY-MM-DD` 字符串；
   不得从天数计算、改写格式或补造日期。
 - 选择模板前必须确认 `/countdownDays` 可用；0 天合法。
+
+## 出行闹钟动作
+
+`CountdownOverviewTravelSupport@1` 可按用户明确要求消费 `event.open.clock.alarm` 或
+`event.open.clock.alarmTab`，仅表示打开闹钟首页或闹钟 Tab，不表示设置闹钟或创建提醒。
+通用目标日倒计时不扩展闹钟、秒表或定时器事件。

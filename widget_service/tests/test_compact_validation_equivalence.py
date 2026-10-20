@@ -40,33 +40,27 @@ OLD_COMPACT_EVENT_HEIGHT_ERROR = (
     "Occupancy: events=112vp+margin(0vp), gaps=0vp."
 )
 
-# #512 将 SecondaryBody 规格改为按实际行布局选择，不再依赖历史 role。
-# 冻结样本不重生成，显式登记旧 metadata 12fp 在单行模式下的新错误。
-SECONDARY_BODY_FONT_CASES = {
-    98: "start_time",
-    99: "status",
-    101: "battery",
-    102: "battery_row",
-    103: "score_title",
+SECONDARY_BODY_OLD_HEIGHT_CASES = {
+    76: "condition",
     108: "condition",
 }
 
-SECONDARY_BODY_OLD_HEIGHT_CASES = {76: "condition"}
+SECONDARY_BODY_WIDTH_CASES = {77, 109}
+RETIRED_WIND_LABEL_CASE = 24
 
 
-def _secondary_body_font_error(component_id: str) -> dict:
+def _secondary_body_width_error() -> dict:
     message = (
-        f"{component_id}: SecondaryBody.fontSize must be the fixed Recipe value 14. "
-        "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row and "
-        "fontSize 12 / lineHeight 16 for multiple rows. Recompute fontSize after "
-        "changing columns, items or maxLines; do not change bindings or delete facts."
+        "component current_item1: text width overflow; complete label '电压' plus "
+        "compound value '4V' requires about 39vp of pressure width within 38.4vp at "
+        "the original body font. Keep the full label and value; use legal two-line "
+        "body text at the same font and budget its height, or regroup. Weight, "
+        "clipping and dropping units do not close this text budget."
     )
     return {
         "exception": "CompactDslValidationError",
         "message": f"Compact DSL validation failed:\n- {message}",
         "errors": [message],
-        "cause_type": "CompactDslConversionError",
-        "cause_text": message,
     }
 
 
@@ -86,9 +80,15 @@ def _secondary_body_height_error(component_id: str) -> dict:
 
 
 def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
-    font_component_id = SECONDARY_BODY_FONT_CASES.get(case_index)
-    if font_component_id is not None:
-        return _secondary_body_font_error(font_component_id)
+    if case_index == RETIRED_WIND_LABEL_CASE:
+        remaining_error = expected.get("errors", [])[0]
+        return {
+            "exception": "CompactDslValidationError",
+            "message": f"Compact DSL validation failed:\n- {remaining_error}",
+            "errors": [remaining_error],
+        }
+    if case_index in SECONDARY_BODY_WIDTH_CASES:
+        return _secondary_body_width_error()
     height_component_id = SECONDARY_BODY_OLD_HEIGHT_CASES.get(case_index)
     if height_component_id is not None:
         return _secondary_body_height_error(height_component_id)
@@ -96,9 +96,9 @@ def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
     if secondary_body_id is not None:
         message = (
             f"component {secondary_body_id}: SecondaryBody is auxiliary and cannot be the "
-            "only information component in its semantic region; pair it with a core "
-            "information component. Titles, buttons and other SecondaryBody instances "
-            "do not count."
+            "only information component in the card; pair it with a core information "
+            "component somewhere in the card. Titles, buttons and other SecondaryBody "
+            "instances do not count."
         )
         return {
             "exception": "CompactDslValidationError",

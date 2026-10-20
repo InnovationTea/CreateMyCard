@@ -1,7 +1,0 @@
-{
-  "hexPattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
-  "forbidRawTokenNames": true,
-  "maxPrimaryColorFamilies": 1,
-  "tokenNamePattern": "^(brand|warning|alert|confirm|font_|icon_|background_|comp_|interactive_|multi_color_)",
-  "sceneExtensions": []
-}

@@ -40,6 +40,9 @@ def test_binding_registry_covers_every_model_semantic_component() -> None:
         "Row",
         "Column",
         "Stack",
+        "Layout",
+        "Region",
+        "Group",
     }
 
     assert semantic_components == set(COMPACT_COMPONENT_BINDING_CONTRACTS)
@@ -54,6 +57,10 @@ def test_binding_registry_covers_every_model_semantic_component() -> None:
         ),
         (
             "TableText",
+            {"items": [{"label": {"path": "/data/items/0/name"}, "value": "1"}]},
+        ),
+        (
+            "TextBlock",
             {"items": [{"label": {"path": "/data/items/0/name"}, "value": "1"}]},
         ),
         (
@@ -77,6 +84,45 @@ def test_allows_registered_nested_path_bindings(
     )
 
     assert errors == []
+
+
+def test_text_block_label_accepts_path_binding_and_expression() -> None:
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["details"]],
+            [
+                "details",
+                "TextBlock",
+                {
+                    "items": [
+                        {
+                            "label": {"path": "/data/items/0/name"},
+                            "value": {"path": "/data/items/0/value"},
+                        },
+                        {
+                            "label": "{{ '项目 ' + ${/data/items/1/name} }}",
+                            "value": {"path": "/data/items/1/value"},
+                        },
+                    ]
+                },
+            ],
+            ["/data/items/0/name", "照明"],
+            ["/data/items/0/value", "18千瓦时"],
+            ["/data/items/1/name", "空调"],
+            ["/data/items/1/value", "34千瓦时"],
+        ]
+    )
+
+    converted = convert_compact_dsl_to_a2ui(compact_dsl, size="2x4")
+    update = json.loads(converted.splitlines()[1])["updateComponents"]
+    components = {item["id"]: item for item in update["components"]}
+
+    assert components["details_item0_label"]["content"] == (
+        "{{ ${/data/items/0/name} }}"
+    )
+    assert components["details_item1_label"]["content"] == (
+        "{{ '项目 ' + ${/data/items/1/name} }}"
+    )
 
 
 def test_emphasis_text_secondary_accepts_ordered_path_bindings() -> None:
@@ -271,7 +317,7 @@ def test_data_display_supporting_text_accepts_dynamic_binding() -> None:
     assert jsx_errors == []
 
 
-def test_data_display_converts_text_conclusion_and_dynamic_support() -> None:
+def test_data_display_ignores_legacy_font_size_and_uses_text_recipe() -> None:
     compact_dsl = _serialize(
         [
             ["root", "Column", {}, ["display"]],
@@ -279,12 +325,12 @@ def test_data_display_converts_text_conclusion_and_dynamic_support() -> None:
                 "display",
                 "DataDisplay",
                 {
-                    "label": "天气预警",
+                    "icon": "resources/base/media/air_fill.svg",
                     "value": {"path": "/data/weather/alert"},
                     "supportingText": (
                         "{{ '更新 ' + ${/data/weather/updatedAt} }}"
                     ),
-                    "fontSize": 18,
+                    "fontSize": 48,
                     "fontColor": "#FF1F4799",
                 },
             ],
@@ -303,11 +349,72 @@ def test_data_display_converts_text_conclusion_and_dynamic_support() -> None:
     assert components["display_value"]["content"] == (
         "{{ ${/data/weather/alert} }}"
     )
-    assert components["display_value"]["styles"]["fontSize"] == 18
-    assert components["display_value"]["styles"]["height"] == 24
+    assert components["display"]["children"] == [
+        "display_icon",
+        "display_value_area",
+        "display_supporting",
+    ]
+    assert components["display_icon"]["component"] == "Image"
+    assert components["display_icon"]["src"] == "resources/base/media/air_fill.svg"
+    assert components["display_icon"]["styles"]["width"] == 18
+    assert components["display_icon"]["styles"]["height"] == 18
+    assert components["display"]["styles"]["height"] == 122
+    assert components["display_value"]["styles"]["fontSize"] == 24
+    assert components["display_value_area"]["component"] == "Column"
+    assert components["display_value_area"]["children"] == ["display_value"]
+    assert components["display_value_area"]["styles"]["height"] == 60
+    assert components["display_value_area"]["styles"]["justifyContent"] == "center"
+    assert "height" not in components["display_value"]["styles"]
+    assert components["display_value"]["styles"]["lineHeight"] == 1.25
+    assert components["display_value"]["styles"]["maxLines"] == 2
     assert components["display_supporting"]["content"] == (
         "{{ '更新 ' + ${/data/weather/updatedAt} }}"
     )
+    assert components["display_supporting"]["styles"]["margin"]["top"] == 8
+    assert components["display_supporting"]["styles"]["flexShrink"] == 0
+
+
+def test_data_display_accepts_one_character_path_bound_text() -> None:
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["display"]],
+            [
+                "display",
+                "DataDisplay",
+                {
+                    "label": "结论",
+                    "value": {"path": "/data/status"},
+                    "supportingText": "当前状态",
+                    "fontColor": "#FF1F4799",
+                },
+            ],
+            ["/data/status", "优"],
+        ]
+    )
+
+    convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
+
+
+def test_data_display_rejects_text_over_eight_characters() -> None:
+    value = "这是超过八个字的文本结论"
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["display"]],
+            [
+                "display",
+                "DataDisplay",
+                {
+                    "label": "结论",
+                    "value": value,
+                    "supportingText": "当前状态",
+                    "fontColor": "#FF1F4799",
+                },
+            ],
+        ]
+    )
+
+    with pytest.raises(CompactDslConversionError, match="requires 1 to 8 characters"):
+        convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
 
 
 def test_validator_checks_semantic_prop_binding_before_expansion() -> None:

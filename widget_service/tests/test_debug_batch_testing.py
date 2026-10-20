@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from debug_tools.batch_testing import api as batch_api
 from debug_tools.batch_testing.api import _default_paths, register_batch_routes
 from debug_tools.batch_testing.runner import (
     BatchRunManager,
@@ -20,6 +21,27 @@ from debug_tools.end_to_end_debug.backend.server import create_app as create_ful
 from debug_tools.static_site import create_frontend_app
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def isolated_batch_paths(tmp_path, monkeypatch):
+    paths = (
+        tmp_path / "datasets", tmp_path / "output",
+        tmp_path / "traces", tmp_path / "cloud",
+    )
+    monkeypatch.setattr(batch_api, "_default_paths", lambda _trace_root=None: paths)
+    return paths
+
+
+@pytest.fixture(params=["frontend", "full"])
+def isolated_debug_app(request, isolated_batch_paths):
+    if request.param == "frontend":
+        app = create_frontend_app()
+    else:
+        app = create_full_app(DebugSettings(), production_settings=SimpleNamespace())
+    manager = app.state.batch_task_manager
+    assert manager.output_root == isolated_batch_paths[1].resolve()
+    return app
 
 
 def _request(query: str = "生成天气卡片") -> dict:
@@ -399,7 +421,7 @@ def test_sample_detail_recovers_trace_created_after_batch_import(tmp_path):
     assert persisted_summary.get("samples", [])[0].get("traceStatus") == "complete"
 
 
-def test_trace_artifact_api_only_serves_registered_digest(tmp_path):
+def test_trace_artifact_api_only_serves_registered_digest(tmp_path, isolated_batch_paths):
     dataset_root = tmp_path / "datasets"
     output_root = tmp_path / "output"
     trace_root = tmp_path / "traces"
@@ -524,16 +546,8 @@ async def test_batch_runner_honors_concurrency_retries_and_persists_trace(tmp_pa
     assert manager.get_sample(run_id, "Q001").get("attempts")
 
 
-@pytest.mark.parametrize(
-    "app",
-    [
-        create_frontend_app(),
-        create_full_app(DebugSettings(), production_settings=SimpleNamespace()),
-    ],
-    ids=["frontend", "full"],
-)
-def test_debug_apps_expose_batch_routes(app):
-    paths = {route.path for route in app.routes}
+def test_debug_apps_expose_batch_routes(isolated_debug_app):
+    paths = {route.path for route in isolated_debug_app.routes}
 
     assert "/debug/batch/datasets" in paths
     assert "/debug/batch/runs" in paths
@@ -541,16 +555,8 @@ def test_debug_apps_expose_batch_routes(app):
     assert "/debug/batch/runs/{run_id}/trace-artifacts/{digest}" in paths
 
 
-@pytest.mark.parametrize(
-    "app",
-    [
-        create_frontend_app(),
-        create_full_app(DebugSettings(), production_settings=SimpleNamespace()),
-    ],
-    ids=["frontend", "full"],
-)
-def test_debug_apps_serve_harmonyos_fonts_from_render_assets(app):
-    client = TestClient(app)
+def test_debug_apps_serve_harmonyos_fonts_from_debug_assets(isolated_debug_app):
+    client = TestClient(isolated_debug_app)
 
     response = client.get("/fonts/harmonyos/HarmonyOS_Sans_SC_Regular.ttf")
     missing = client.get("/fonts/harmonyos/not-found.ttf")
@@ -559,3 +565,121 @@ def test_debug_apps_serve_harmonyos_fonts_from_render_assets(app):
     assert response.headers.get("content-type") == "font/ttf"
     assert response.content
     assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["success", "degraded"])
+@pytest.mark.parametrize("collection_failure", ["none", "download", "trace"])
+async def test_generation_terminal_is_visible_before_collection(
+    tmp_path, monkeypatch, status, collection_failure
+):
+    from debug_tools.batch_testing import runner
+
+    dataset_root = tmp_path / "datasets"
+    _write_dataset(dataset_root, "Q001")
+    collecting = asyncio.Event()
+    release = asyncio.Event()
+    calls = 0
+    clock = [1.0]
+    monkeypatch.setattr(runner.time, "perf_counter", lambda: clock[0])
+
+    async def invoke(_endpoint, _request, _timeout):
+        nonlocal calls
+        calls += 1
+        clock[0] = 1.125
+        return {"status": status, "data": {"artifactUrl": "https://example.test/card.md"}}
+
+    def download(_url, _path, _roots):
+        if collection_failure == "download":
+            raise OSError("下载失败")
+        return _artifact_text()
+
+    async def import_trace(*_args):
+        collecting.set()
+        await release.wait()
+        clock[0] = 30.0
+        if collection_failure == "trace":
+            raise OSError("导入失败")
+        return {"status": "complete"}
+
+    monkeypatch.setattr(runner, "download_artifact", download)
+    manager = BatchRunManager(
+        dataset_root,
+        tmp_path / "output",
+        tmp_path / "traces",
+        tmp_path / "cloud",
+        invoke=invoke,
+    )
+    monkeypatch.setattr(manager, "_import_trace", import_trace)
+    started = manager.start_run(["Q001"], "ws://localhost/tools", 1, 2)
+    run_id = started.get("runId")
+    assert isinstance(run_id, str)
+    task = manager.tasks.get(run_id)
+    assert task is not None
+    try:
+        await asyncio.wait_for(collecting.wait(), 3)
+        summary = manager.get_sample(run_id, "Q001").get("summary")
+        assert isinstance(summary, dict)
+        assert summary.get("status") == status
+        assert summary.get("elapsedMs") == 125.0
+        assert not task.done()
+    finally:
+        release.set()
+        await task
+    summary = manager.get_sample(run_id, "Q001").get("summary")
+    assert isinstance(summary, dict)
+    assert summary.get("status") == status
+    assert summary.get("elapsedMs") == 125.0
+    assert summary.get("attemptCount") == 1
+    assert bool(summary.get("error")) == (collection_failure != "none")
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_slow_download_does_not_delay_generation_status(tmp_path, monkeypatch):
+    from threading import Event
+
+    from debug_tools.batch_testing import runner
+
+    dataset_root = tmp_path / "datasets"
+    _write_dataset(dataset_root, "Q001")
+    downloading = asyncio.Event()
+    release = Event()
+    loop = asyncio.get_running_loop()
+
+    async def invoke(_endpoint, _request, _timeout):
+        return {"status": "success", "data": {"artifactUrl": "https://example.test/card.md"}}
+
+    def download(_url, _path, _roots):
+        loop.call_soon_threadsafe(downloading.set)
+        assert release.wait(5)
+        return _artifact_text()
+
+    async def import_trace(*_args):
+        return {"status": "complete"}
+
+    monkeypatch.setattr(runner, "download_artifact", download)
+    manager = BatchRunManager(
+        dataset_root,
+        tmp_path / "output",
+        tmp_path / "traces",
+        tmp_path / "cloud",
+        invoke=invoke,
+    )
+    monkeypatch.setattr(manager, "_import_trace", import_trace)
+    started = manager.start_run(["Q001"], "ws://localhost/tools", 1, 0)
+    run_id = started.get("runId")
+    assert isinstance(run_id, str)
+    task = manager.tasks.get(run_id)
+    assert task is not None
+    try:
+        await asyncio.wait_for(downloading.wait(), 3)
+        summary = manager.get_sample(run_id, "Q001").get("summary")
+        assert isinstance(summary, dict)
+        assert summary.get("status") == "success"
+        assert isinstance(summary.get("elapsedMs"), float)
+        assert summary.get("artifactAvailable") is False
+        assert not task.done()
+    finally:
+        release.set()
+        await task

@@ -37,6 +37,7 @@ from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.capability import AssetCapabilityOverview
 from models.generation import (
     DEFAULT_WIDGET_SIZE,
+    CompactDslRetryContext,
     ModelRequestContext,
     TaskSpec,
     WidgetSize,
@@ -46,12 +47,16 @@ from services.artifact_store import ArtifactStore, ArtifactUploadError, RepairAr
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
+from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
 from services.compact_plan import (
     CompactPlanValidationError,
     compact_plan_omitted_facts,
     parse_compact_plan_call,
 )
-from services.compact_repair_strategy import CompactRepairStrategyTracker
+from services.compact_repair_strategy import (
+    CompactRepairStrategyTracker,
+    compact_capacity_recovery_failure_category,
+)
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -84,6 +89,9 @@ from services.protocol_registry import (
 )
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
+from services.single_step_edit import EDIT_FORMAT, SingleStepEditProcessor, source_digest
+from services.single_step_processor import SingleStepFallbackProcessor
+from services.single_step_prompt import SingleStepPromptBuilder
 from services.source_artifact_repository import (
     SourceArtifactError,
     SourceArtifactLoadResult,
@@ -91,6 +99,8 @@ from services.source_artifact_repository import (
 )
 from services.template_generation import TemplateSourceGenerator
 from services.validator import ArtifactValidator
+from services.widget_edit_protocol.resources import MODEL_FORMAT as SINGLE_STEP_MODEL_FORMAT
+from services.widget_edit_protocol.resources import UPSTREAM_COMMIT as SINGLE_STEP_UPSTREAM_COMMIT
 from utils.ops_metrics import report_ops_metrics
 
 _MODULE = "[Generation Service]"
@@ -291,6 +301,7 @@ class WidgetGenerationService:
         try_jsx: bool = False,
         template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
+        single_step_context: dict | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -313,6 +324,15 @@ class WidgetGenerationService:
         request_body = self._request_body_for_artifact(request)
         asset_mapping = dict(settings.asset_src_url_mapping)
         generation_mode = "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
+        is_fusion_generation = (
+            policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            and policy.operation == "generateWidgetCardCompactDsl"
+        )
+        single_step_fallback_enabled = (
+            settings.enable_single_step_generation_fallback
+            and is_fusion_generation
+            and generation_mode == "create"
+        )
         source_load_result = None
         source_url_hash = ""
         previous_design_token = None
@@ -356,7 +376,7 @@ class WidgetGenerationService:
                 source_load_result = await to_thread.run_sync(
                     partial(
                         SourceArtifactRepository.restore_asset_paths,
-                        restore_genui=not policy.stores_design_token,
+                        restore_genui=not policy.stores_design_token and not policy.single_step,
                     ),
                     source_load_result,
                     asset_mapping,
@@ -662,14 +682,30 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # 纯模板入口不依赖通用生成 Prompt；仅原始协议或允许 fallback 时按需加载。
+        template_fallback_to_fusion = (
+            template_source_generator is not None
+            and policy.operation == "generateWidgetCardCompactDsl"
+            and source_load_result is None
+        )
+        # Compact 模板失败必须能从 Fusion Plan 重启，不受 JSX 开关影响。
         prompt_started_at = time.perf_counter()
-        needs_model_prompt = template_source_generator is None or need_fallback
+        needs_model_prompt = (
+            template_source_generator is None or need_fallback or template_fallback_to_fusion
+        )
         prompt: list[dict[str, str]] = []
         if needs_model_prompt:
             from services.prompt_builder import PromptBuilder
 
-            if policy.stores_design_token:
+            if policy.single_step:
+                prompt = SingleStepPromptBuilder.build(
+                    task_spec,
+                    protocol_profile,
+                    previous_genui=(
+                        source_load_result.artifact.genui if source_load_result else None
+                    ),
+                    fallback_context=single_step_context,
+                )
+            elif policy.stores_design_token:
                 design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
                     policy.model_profile_id,
                     size=task_spec.size,
@@ -729,15 +765,22 @@ class WidgetGenerationService:
             "id": policy.model_profile_id,
             "format": policy.model_format,
         }
+        if policy.single_step:
+            model_protocol_profile["singleStepOutput"] = True
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
         quality_repair_failure_history: list[list[dict[str, Any]]] = []
         compact_repair_context_history: list[dict[str, Any]] = []
+        compact_retry_context = request._compact_dsl_retry_context
+        capacity_recovery = bool(
+            compact_retry_context is not None and compact_retry_context.capacity_recovery
+        )
         compact_repair_tracker = (
             CompactRepairStrategyTracker(
-                max_repair_attempts=settings.validation_failure_max_repair_attempts
+                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                capacity_recovery=capacity_recovery,
             )
             if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
             else None
@@ -751,7 +794,13 @@ class WidgetGenerationService:
         else:
             repair_prompt_type = "create"
 
-        processor = get_dsl_processor(policy.processor_kind)
+        single_step_theme = policy.single_step and generation_mode == "create"
+        processor = (
+            SingleStepFallbackProcessor(post_layout_theme=single_step_theme)
+            if policy.single_step else get_dsl_processor(policy.processor_kind)
+        )
+        if policy.single_step and source_load_result is not None:
+            processor = SingleStepEditProcessor(source_load_result.artifact.genui)
         from services.prompt_builder import PromptBuilder
 
         report_ops_metrics(body={"cardSizeCode": 1 if card_spec.suggestSize == "2x4" else 0})
@@ -773,11 +822,33 @@ class WidgetGenerationService:
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
         source_generated_by_template = False
+        validated_template_source: str | None = None
         accepted_compact_plan: dict | None = None
         accepted_compact_plan_warnings: tuple[str, ...] = ()
         compact_agent_messages: list[dict[str, str]] | None = None
         original_small_display_roles: dict[str, dict[str, Any]] = {}
         effective_generation_prompt = prompt
+        from services.layout_theme_contract import uses_post_layout_theme
+        from services.square_photo_expansion import expansion_enabled
+
+        def colorless_source() -> bool:
+            if policy.single_step:
+                return False
+            return uses_post_layout_theme(
+                policy.operation, template_source=source_generated_by_template,
+                jsx_source=source_generated_by_jsx,
+            )
+
+        direct_fusion_request = (
+            not policy.single_step and uses_post_layout_theme(policy.operation)
+            and template_source_generator is None
+            and not try_jsx
+        )
+        defer_size_notification = (
+            generation_mode == "create"
+            and direct_fusion_request
+            and expansion_enabled(task_spec.model_dump(mode="json", exclude_none=True))
+        )
 
         async def generate_compact_plan() -> dict:
             """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
@@ -797,6 +868,7 @@ class WidgetGenerationService:
                 task_spec,
                 plan_system_prompt,
                 prompt[1]["content"],
+                retry_context=compact_retry_context,
             )
             trace_step(
                 "plan.prompt.built",
@@ -805,6 +877,7 @@ class WidgetGenerationService:
                 duration_ms=self._elapsed_ms(plan_prompt_started_at),
                 details={
                     "messageCount": len(plan_prompt),
+                    "capacityRecovery": capacity_recovery,
                     "promptSha256": hashlib.sha256(
                         json.dumps(plan_prompt, ensure_ascii=False).encode("utf-8")
                     ).hexdigest(),
@@ -934,45 +1007,72 @@ class WidgetGenerationService:
             nonlocal effective_generation_prompt
             nonlocal model_call_phase
             nonlocal source_generated_by_jsx, source_generated_by_template
+            nonlocal validated_template_source, latest_processing_result
             source_generated_by_jsx = False
             source_generated_by_template = False
             original_small_display_roles.clear()
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
                 trace_phase("dsl")
-            if before_model_call is not None:
+            if before_model_call is not None and not defer_size_notification:
                 await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
                 try:
                     logger.info(
                         f"{_MODULE} template_source_generation_started operation={policy.operation}"
                     )
-                    result = await template_source_generator(
-                        task_spec,
-                        processing_context.card_spec,
-                        tuple(effective_bindings),
-                    )
+                    with (
+                        trace_details(generationBranch="template"),
+                        trace_span("template.generate", stage="template", kind="group") as span,
+                    ):
+                        result = await template_source_generator(
+                            task_spec.model_copy(deep=True),
+                            copy.deepcopy(processing_context.card_spec),
+                            copy.deepcopy(tuple(effective_bindings)),
+                        )
+                        span.text_artifacts["template_source"] = result
+                        span.artifact_roles["template_source"] = "output"
                     report_ops_metrics(body={"templateProposal": 1})
                     generated_dsl = require_generated_dsl(result)
                     source_generated_by_template = True
+                    if template_fallback_to_fusion:
+                        with trace_details(generationBranch="template"):
+                            template_errors = await evaluate_source_dsl(generated_dsl)
+                        if template_errors:
+                            raise A2UIModelGenerationError("; ".join(template_errors))
+                        validated_template_source = generated_dsl
                     return generated_dsl
                 except Exception as exc:
-                    fallback = (
-                        "jsx"
-                        if try_jsx
-                        else ("original_protocol_flow" if need_fallback else "none")
-                    )
+                    source_generated_by_template = False
+                    if template_fallback_to_fusion:
+                        fallback = "fusion_plan"
+                        original_small_display_roles.clear()
+                        latest_processing_result = DslProcessingResult(source_dsl="")
+                        trace_record(
+                            "template.fallback",
+                            stage="template",
+                            status="failed",
+                            details={
+                                "fallback": fallback,
+                                "errorType": type(exc).__name__,
+                                "reason": str(exc),
+                            },
+                        )
+                    elif try_jsx:
+                        fallback = "jsx"
+                    else:
+                        fallback = "original_protocol_flow" if need_fallback else "none"
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
                         f"operation={policy.operation} fallback={fallback} "
                         f"reason={type(exc).__name__} "
                         f"detail={json_for_log(str(exc))}"
                     )
-                    if not try_jsx and not need_fallback:
+                    if fallback == "none":
                         raise A2UIModelGenerationError(
                             "Template source generation failed without fallback"
                         ) from exc
-            if try_jsx:
+            if try_jsx and not template_fallback_to_fusion:
                 try:
                     logger.info(f"{_MODULE} jsx_generation_started operation={policy.operation}")
                     bridge = JsxA2UIBridge()
@@ -1003,7 +1103,11 @@ class WidgetGenerationService:
                             "JSX generation failed without fallback"
                         ) from exc
             logger.info(f"{_MODULE} model_source_generation_started operation={policy.operation}")
-            if policy.operation == "generateWidgetCardCompactDsl" and not model_client.use_mock:
+            uses_compact_plan = (
+                policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                and policy.operation == "generateWidgetCardCompactDsl"
+            )
+            if uses_compact_plan and not model_client.use_mock:
                 if source_fallback_started:
                     trace_phase_outcome("degraded", reason="fallback_to_model")
                 accepted_compact_plan = await generate_compact_plan()
@@ -1024,7 +1128,7 @@ class WidgetGenerationService:
                     details={"compactPlanApplied": True},
                     json_artifacts={"dsl_prompt_final": effective_generation_prompt},
                 )
-            elif policy.operation == "generateWidgetCardCompactDsl":
+            elif uses_compact_plan:
                 if not source_fallback_started:
                     trace_phase("dsl")
                 logger.info(f"{_MODULE} compact_plan_skipped reason=model_mock")
@@ -1095,11 +1199,14 @@ class WidgetGenerationService:
                     task_spec=task_spec.model_dump(mode="json", exclude_none=True),
                 )
                 repair_strategy = directive.to_prompt_payload()
-                trace_step(
+                trace_record(
                     "repair.strategy.selected",
                     stage="repair.strategy",
                     status="success" if directive.retryable else "stopped",
-                    details=repair_strategy,
+                    details={
+                        **repair_strategy,
+                        "nextQualityRepair": quality_repair_attempt_count + 1,
+                    },
                     json_artifacts={"repair_strategy": repair_strategy},
                     artifact_roles={"repair_strategy": "diagnostic"},
                 )
@@ -1130,7 +1237,8 @@ class WidgetGenerationService:
                     and compact_agent_messages is not None
                     else effective_generation_prompt
                 )
-                repair_prompt = PromptBuilder().build_repair(
+                repair_builder = SingleStepPromptBuilder if policy.single_step else PromptBuilder
+                repair_prompt = repair_builder().build_repair(
                     active_prompt,
                     invalid_source_dsl,
                     quality_error_payloads,
@@ -1140,6 +1248,7 @@ class WidgetGenerationService:
                     previous_failures=(
                         quality_repair_failure_history
                         if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                        or policy.single_step
                         else None
                     ),
                     repair_history=(
@@ -1155,6 +1264,8 @@ class WidgetGenerationService:
                         else {}
                     ),
                 )
+                if policy.single_step:
+                    quality_repair_failure_history.append(quality_error_payloads)
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                     quality_repair_failure_history.append(quality_error_payloads)
                     history_entry: dict[str, Any] = {
@@ -1258,19 +1369,42 @@ class WidgetGenerationService:
             processing_context_for_source = replace(
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
+                colorless_layout=colorless_source(),
                 compact_plan=accepted_compact_plan,
+                plan_information_coverage_as_warning=(
+                    quality_repair_attempt_count > 0
+                    and not settings.enable_drop_plan_fact_validation
+                ),
                 allowed_omitted_plan_fact_indexes=(
-                    compact_repair_tracker.allowed_omitted_fact_indexes
+                    compact_repair_tracker.validation_omitted_fact_indexes(
+                        accepted_compact_plan,
+                        validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                    )
                     if compact_repair_tracker is not None
                     else ()
                 ),
             )
             with trace_attempt(**validation_attempts):
                 processing_started_at = time.perf_counter()
-                processing_result = processor.process(
-                    source_dsl,
-                    processing_context_for_source,
-                )
+                processing_operation = "dsl.source_processing"
+                if policy.single_step:
+                    processing_operation = (
+                        "single_step.edit.apply" if source_load_result else "single_step.processing"
+                    )
+                with trace_span(processing_operation, stage="dsl.sourceProcessing") as span:
+                    span.text_artifacts["dsl_processing_input"] = source_dsl
+                    span.artifact_roles["dsl_processing_input"] = "input"
+                    processing_result = processor.process(
+                        source_dsl,
+                        processing_context_for_source,
+                    )
+                    span.text_artifacts["dsl_processing_output"] = processing_result.standard_dsl
+                    span.artifact_roles["dsl_processing_output"] = "output"
+                    span.json_artifacts["dsl_processing_issues"] = [
+                        issue.to_prompt_payload() for issue in processing_result.issues
+                    ]
+                    span.artifact_roles["dsl_processing_issues"] = "diagnostic"
+                    span.outcome("failed" if processing_result.errors else "success")
                 trace_record(
                     "dsl.processing.completed",
                     stage="repair.revalidate" if quality_repair_attempt_count else "dsl.processing",
@@ -1284,10 +1418,11 @@ class WidgetGenerationService:
             if not processing_result.errors:
                 try:
                     asset_mapping_started_at = time.perf_counter()
-                    processing_result = replace(
-                        processing_result,
-                        standard_dsl=asset_mapper.rewrite_standard(processing_result.standard_dsl),
-                    )
+                    if not isinstance(processor, SingleStepEditProcessor):
+                        processing_result = replace(
+                            processing_result,
+                            standard_dsl=asset_mapper.rewrite_standard(processing_result.standard_dsl),
+                        )
                     with trace_attempt(**validation_attempts):
                         trace_step(
                             "dsl.asset_mapping.completed",
@@ -1343,7 +1478,7 @@ class WidgetGenerationService:
                     latest_processing_result,
                 )
                 return conversion_errors
-            if not settings.enable_artifact_validation:
+            if not settings.enable_artifact_validation and not policy.single_step:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=enable_artifact_validation_false"
@@ -1399,7 +1534,11 @@ class WidgetGenerationService:
                 )
             artifact_validator = ArtifactValidator(asset_mapper.mapping)
             artifact_validation_started_at = time.perf_counter()
-            validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            colorless = colorless_source() or single_step_theme
+            if colorless:
+                validation_errors = artifact_validator.validate_layout(artifact, protocol_profile)
+            else:
+                validation_errors = artifact_validator.validate(artifact, protocol_profile)
             if validation_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
             validation_prompt_contexts = getattr(
@@ -1407,18 +1546,18 @@ class WidgetGenerationService:
                 "error_prompt_contexts",
                 [],
             )
-            if source_load_result:
-                report_ops_metrics(body={"validationScenarioFailure": 1})
-                source_write_roots = {
-                    item.writeResultTo
-                    for item in source_load_result.artifact.generationPlan.candidateDataBindings
-                }
-                current_write_roots = {item.writeResultTo for item in effective_bindings}
-                for removed_root in sorted(source_write_roots - current_write_roots):
-                    if removed_root in standard_dsl:
-                        validation_errors.append(
-                            f"removed data path remains in edited genui: {removed_root}"
-                        )
+            if isinstance(processor, SingleStepEditProcessor):
+                preservation_errors = processor.preservation_errors(artifact.genui)
+                validation_errors.extend(preservation_errors)
+                trace_record(
+                    "single_step.edit.patch_verified", stage="singleStepEdit",
+                    status="failed" if preservation_errors else "success",
+                    json_artifacts={"edit_patch_audit": {
+                        "sourceDigest": source_digest(processor.original),
+                        "changes": processor.applied_changes,
+                        "errors": preservation_errors,
+                    }},
+                )
             with trace_attempt(**validation_attempts):
                 trace_step(
                     "artifact_validation.completed",
@@ -1470,6 +1609,8 @@ class WidgetGenerationService:
             return [item.repair_message() for item in validation_issues]
 
         async def evaluate_source_dsl(source_dsl: str) -> list[str]:
+            if source_generated_by_template and source_dsl == validated_template_source:
+                return []
             if quality_repair_attempt_count == 0:
                 trace_phase("validation")
             with (
@@ -1485,15 +1626,30 @@ class WidgetGenerationService:
                 trace_phase_outcome("failed" if errors else "success", errorCount=len(errors))
                 return errors
 
+        repair_limit = settings.validation_failure_max_repair_attempts
         retry_on_validation_failure = (
             settings.enable_validation_failure_retry and needs_model_prompt
+        )
+        if policy.quality_repair_limit is not None:
+            retry_on_validation_failure = retry_on_validation_failure and (
+                policy.quality_repair_limit > 0
+            )
+            repair_limit = max(1, policy.quality_repair_limit)
+        trace_record(
+            "generation.policy.effective", stage="configuration", status="success",
+            details={
+                "singleStep": policy.single_step,
+                "qualityRepairEnabled": retry_on_validation_failure,
+                "qualityRepairLimit": repair_limit if retry_on_validation_failure else 0,
+                "planFactValidationEnabled": settings.enable_drop_plan_fact_validation,
+            },
         )
         try:
             retry_result = await retry_controller.run(
                 generate_source_dsl,
                 evaluate_source_dsl,
                 retry_on_quality_failure=retry_on_validation_failure,
-                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                max_repair_attempts=repair_limit,
                 repair=repair_source_dsl,
             )
         except A2UIModelGenerationError as exc:
@@ -1567,6 +1723,46 @@ class WidgetGenerationService:
         conversion_failed = not genui.strip()
         validation_failed_blocking = policy.validation_failure_blocking and bool(errors)
         if conversion_failed or validation_failed_blocking:
+            use_single_step_fallback = (
+                single_step_fallback_enabled
+                and retry_on_validation_failure
+                and retry_result.retryCount >= 5
+            )
+            if use_single_step_fallback:
+                trace_phase("fallback")
+                fallback_context = {
+                    "upstreamCommit": SINGLE_STEP_UPSTREAM_COMMIT,
+                    "promptStrategy": SINGLE_STEP_MODEL_FORMAT,
+                }
+                trace_record(
+                    "single_step.fallback.started",
+                    stage="singleStepFallback",
+                    status="started",
+                    details={
+                        "primaryRepairCount": retry_result.retryCount,
+                        "maxLogicalGenerations": 1,
+                        "upstreamCommit": SINGLE_STEP_UPSTREAM_COMMIT,
+                    },
+                    json_artifacts={"single_step_fallback_context": fallback_context},
+                    text_artifacts={"single_step_failed_compact_source": source_dsl},
+                )
+                with trace_span(
+                    "single_step.fallback", stage="singleStepFallback", kind="group",
+                ) as span:
+                    fallback_response = await self._generate_widget_card_with_policy(
+                        request,
+                        self._single_step_policy(policy, is_edit=False),
+                        before_model_call=before_model_call,
+                        single_step_context=fallback_context,
+                    )
+                    span.outcome(fallback_response.status.value)
+                trace_record(
+                    "single_step.fallback.completed",
+                    stage="singleStepFallback",
+                    status=fallback_response.status.value,
+                    details={"errorCode": fallback_response.errorCode},
+                )
+                return fallback_response
             failure_category = "conversion" if conversion_failed else "validation"
             logger.error(
                 f"{_MODULE} strict_generation_validation_failed "
@@ -1581,6 +1777,27 @@ class WidgetGenerationService:
                 removedCapabilities=removed,
                 errorCode=ErrorCode.VALIDATION_FAILED.value,
             )
+            is_blocking_compact_failure = (
+                validation_failed_blocking
+                and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+            )
+            if is_blocking_compact_failure:
+                quality_error_payloads = [
+                    issue.to_prompt_payload() for issue in latest_processing_result.errors
+                ]
+                issue_category = compact_capacity_recovery_failure_category(
+                    quality_error_payloads,
+                    layout_failure_seen=(
+                        compact_repair_tracker.layout_failure_seen
+                        if compact_repair_tracker is not None
+                        else False
+                    ),
+                )
+                if issue_category is not None:
+                    response._compact_dsl_retry_context = CompactDslRetryContext(
+                        failure_category=issue_category,
+                        capacity_recovery=True,
+                    )
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
             self._log_generation_summary(
                 request,
@@ -1595,7 +1812,6 @@ class WidgetGenerationService:
             )
             return response
         if errors:
-            report_ops_metrics(body={"validationScenarioFailure": 1})
             logger.error(
                 f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
                 f"protocol_profile_id={protocol_profile['id']} "
@@ -1613,33 +1829,50 @@ class WidgetGenerationService:
         design_token = None
         if policy.stores_design_token:
             design_token = model_client.extract_genui_payload(source_dsl)
-        final_artifact_build_started_at = time.perf_counter()
-        artifact = self._build_artifact(
-            genui,
-            card_spec.model_dump(mode="json", exclude_none=True),
-            task_spec.model_dump(mode="json", exclude_none=True),
-            effective_data_capabilities,
-            effective_events,
-            asset_candidates,
-            removed,
-            protocol_profile["id"],
-            protocol_profile["version"],
-            registry.version,
-            data_bindings=effective_bindings,
-            artifact_id=artifact_id,
-            generation_mode=generation_mode,
-            source_artifact_digest=(
-                source_load_result.artifact_digest if source_load_result else None
-            ),
-        )
-        trace_step(
-            "artifact.final.built",
-            stage="artifactBuild",
-            status="success",
-            duration_ms=self._elapsed_ms(final_artifact_build_started_at),
-            json_artifacts={"final_artifact": artifact.model_dump(mode="json", exclude_none=True)},
-            artifact_roles={"final_artifact": "output"},
-        )
+            preserve_compact_source = (
+                policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                and not source_generated_by_jsx
+            )
+            if preserve_compact_source:
+                design_token = serialize_compact_dsl_source(
+                    latest_processing_result.source_dsl,
+                    skip_compact_dsl_validation=source_generated_by_template,
+                )
+        with trace_span("artifact.final.built", stage="artifactBuild") as final_span:
+            artifact = self._build_artifact(
+                genui,
+                card_spec.model_dump(mode="json", exclude_none=True),
+                task_spec.model_dump(mode="json", exclude_none=True),
+                effective_data_capabilities,
+                effective_events,
+                asset_candidates,
+                removed,
+                protocol_profile["id"],
+                protocol_profile["version"],
+                registry.version,
+                data_bindings=effective_bindings,
+                artifact_id=artifact_id,
+                generation_mode=generation_mode,
+                source_artifact_digest=(
+                    source_load_result.artifact_digest if source_load_result else None
+                ),
+            )
+            if colorless_source() or single_step_theme:
+                from services.post_layout_theme import theme_artifact
+
+                artifact = await theme_artifact(
+                    artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
+                    ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                    allow_expansion=defer_size_notification,
+                    final_layout=design_token,
+                )
+            final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
+            if defer_size_notification and before_model_call is not None:
+                await before_model_call(final_size)
+            final_span.json_artifacts["final_artifact"] = artifact.model_dump(
+                mode="json", exclude_none=True,
+            )
+            final_span.artifact_roles["final_artifact"] = "output"
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
         logger.info(
             f"{_MODULE} artifact_built "
@@ -1679,13 +1912,16 @@ class WidgetGenerationService:
                 latest_processing_result.source_dsl,
                 accepted_compact_plan,
                 task_spec.model_dump(mode="json", exclude_none=True),
-                compact_repair_tracker.allowed_omitted_fact_indexes,
+                compact_repair_tracker.validation_omitted_fact_indexes(
+                    accepted_compact_plan,
+                    validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
+                ),
             )
         omitted_requirements = [
             str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")
         ]
         if omitted_requirements:
-            trace_step(
+            trace_record(
                 "response.plan_facts_omitted",
                 stage="responsePlanning",
                 status="success",
@@ -1711,7 +1947,7 @@ class WidgetGenerationService:
             status=response_plan.status,
             artifactUrl=artifact_save_result.artifactUrl,
             artifactDigest=artifact_save_result.artifactDigest,
-            suggestSize=card_spec.suggestSize,
+            suggestSize=final_size,
             message=response_plan.message,
             removedCapabilities=removed,
             errorCode=response_plan.errorCode,
@@ -2004,7 +2240,10 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        if "sourceArtifactUrl" in request.model_fields_set:
+        if (
+            "sourceArtifactUrl" in request.model_fields_set
+            and not get_settings().enable_single_step_widget_edit
+        ):
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
                 suggestSize=request.size or DEFAULT_WIDGET_SIZE,
@@ -2034,8 +2273,21 @@ class WidgetGenerationService:
         try_jsx: bool = False,
         template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
+        single_step_context: dict | None = None,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定路由对应的协议 profile。"""
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
+        if is_edit and get_settings().enable_single_step_widget_edit:
+            policy = self._single_step_policy(policy, is_edit=True)
+            try_jsx = False
+            template_source_generator = None
+            need_fallback = True
+            trace_record(
+                "single_step.edit.selected", stage="singleStepEdit", status="success"
+            )
+        extra_context = {}
+        if single_step_context is not None:
+            extra_context["single_step_context"] = single_step_context
         unsupported_response = self._policy_unsupported_response(request, policy)
         if unsupported_response is not None:
             return unsupported_response
@@ -2052,6 +2304,7 @@ class WidgetGenerationService:
                 before_model_call=before_model_call,
                 try_jsx=try_jsx,
                 need_fallback=need_fallback,
+                **extra_context,
             )
         template_source_generator.processor_kind = policy.processor_kind
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
@@ -2069,6 +2322,25 @@ class WidgetGenerationService:
             try_jsx=try_jsx,
             template_source_generator=template_source_generator,
             need_fallback=need_fallback,
+            **extra_context,
+        )
+
+    @staticmethod
+    def _single_step_policy(
+        policy: GenerationRoutePolicy, *, is_edit: bool,
+    ) -> GenerationRoutePolicy:
+        """保留后端；新建用单步极简协议，编辑用独立字段补丁。"""
+        return replace(
+            policy,
+            processor_kind=DslProcessorKind.STANDARD_A2UI,
+            source_format=EDIT_FORMAT if is_edit else SINGLE_STEP_MODEL_FORMAT,
+            model_profile_id=EDIT_FORMAT if is_edit else SINGLE_STEP_MODEL_FORMAT,
+            model_format=EDIT_FORMAT if is_edit else SINGLE_STEP_MODEL_FORMAT,
+            design_profile_id=None,
+            validation_failure_blocking=True,
+            stores_design_token=False,
+            single_step=True,
+            quality_repair_limit=None if is_edit else 0,
         )
 
     @staticmethod
@@ -2358,4 +2630,4 @@ class WidgetGenerationService:
     def _enable_card_template(self) -> bool:
         """Whether use template for UI generation."""
         settings = get_settings()
-        return settings.CONFIG.get("enable_card_template") == "true"
+        return settings.enable_card_template

@@ -25,6 +25,11 @@
 
 当前基线为 main `69c153f5`（已包含 #506 和 #500）。语法／语义分类及 32 个活动结构化错误码不变，
 共享解析、组件合同、布局运行时和完整产物校验继续委托原模块，不为补齐分类而复制规则。
+
+高度闭合补漏：`COMPACT_LAYOUT_HEIGHT_UNRESOLVED` 属于语义／布局与视觉约束，由
+`semantic/layout/geometry.py` 在现有高度检查位置发布；只检查可用高度未知且直接子项依赖
+填满或纵向权重的 Column。复用参考盒求解，不把最小内容高度当作实际分配高度；修复建议仍由
+共享建议配置维护，不改 SecondaryBody 的组件合同或字号检查。
 复核修正高度溢出、进度与读数对象不一致的事实／约束／建议混写，并将组件白名单的指导语移出事实描述；
 旧异常文案、顺序和判定保留。默认建议现有 8 条，按条件覆盖的专用函数接口仍按需注册。
 #506 的 Plan 警告、程序授权省略、累计省略及重试路由均保留；fixHint 不覆盖程序授权范围，
@@ -42,7 +47,7 @@
 | 检查项 | 当前落点及分类 | 执行范围 |
 |---|---|---|
 | 模型素材候选范围 | `semantic/effective.py`，语义／有效能力，`COMPACT_ASSET_NOT_ALLOWED` | 展开前登记 icon、visual.icon、items[].icon；保留展开后背景检查。兼容引用提取不重新开放 Image 等内部组件 |
-| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle、带 icon 的 CardButton 和 SingleLineTitle；自动着色、原色、PNG 保留原合同 |
+| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -75,6 +80,26 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 提示词说明只写入 fusion/prompt_source/repair.md，不恢复已删除的旧 REPAIR_SYSTEM_PROMPT.md。
 高度建议要求保留固定设计量，重组合法布局；新增规则仍按约束性质归类并复用已有运行时合同。
 
+
+## 2026-10-14 横向预算补充
+
+Issue #538 新增 `COMPACT_LAYOUT_WIDTH_OVERFLOW`，归入语义／布局与视觉约束，
+实现在 `semantic/layout/horizontal.py`；规则分类清单记录调用位置、共享依赖与未覆盖范围。
+本项检测固定横向内容超过已知分区预算，并复用既有诊断、建议和修复复检流程；
+不整体引入 PR #470 的二维估算引擎，不改变原有非阻断警告和模板来源跳过。
+当前活动结构化错误码增至 33 个；上述 32 个为 2026-10-12 的基线记录。
+
+2026-10-17 根据 2x2 与 2x4 灵动布局实测，对该规则增加来源受限的 warning 分级：有效间距能够完全
+吸收且溢出不超过 16vp；根 Row 在 2x2/2x4 中分别不超过 10vp/32vp；位于父 Row 横向权重区域内的
+Row 在 2x2/2x4 中分别不超过 24vp/52vp。判断顺序为间距、根布局、横向权重区域；固定局部 Row、
+超过对应阈值和无法确定分配的场景仍为 error。warning 保留 Occupancy 与降级原因，不进入模型修复。
+文字宽度预算仍先执行且保持严格，不受横向几何 warning 阈值影响。本次只调整既有检查项的严重程度，
+不新增诊断码，不改变其语义／布局与视觉约束归属。
+
+2026-10-19 将高度与宽度经验阈值集中到
+`data/validator_rules/compact/layout_overflow_tolerances.json`，统一声明 vp 单位、支持尺寸和适用场景，
+加载时严格校验。横向权重祖先仅在向上路径没有数值宽度且 `flexShrink:0` 的固定宽度边界时用于降级；
+间距完全吸收规则独立保留。阈值是当前实测的经验容忍值，不保证端侧一定消除溢出。
 
 ## 1. 重构目标与范围
 
@@ -155,7 +180,7 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 |---|---|---|
 | `"icon": 123` | 语法／组件 | 共享 `validate_single_line_title_layout` 检查非空静态字符串要求，错误按兼容原文传递 |
 | `icon` 是非空字符串，但不在本轮素材候选中 | 语义／有效能力 | `COMPACT_ASSET_NOT_ALLOWED`；[effective.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/effective.py) 的 `_collect_model_asset_source_errors` 检查原始组件候选集合 |
-| 使用可染色 SVG 的 ProgressCircle、CardButton 或 SingleLineTitle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求 |
+| 使用可染色 SVG 的 ProgressCircle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求；CardButton 由转换器自动补色 |
 
 上述类型检查不能证明素材文件存在，也不代表已实现所有路径格式检查；单项通过不等于完整卡片校验通过。
 当前素材属性检查已有对应组件规则和转换器委托，不新增 `syntax/assets.py` 或重复报错。
@@ -284,7 +309,7 @@ Compact 内部调用位置、执行前提、错误码和测试用例。归属表
 | BASE-01：参考画布高度 | `compact_dsl_validator.py` 的 `_REFERENCE_CANVAS_HEIGHT` 将 2×2、2×4、4×2 设为 `150.0`；root 高度预算由该值计算 | [云侧方案设计](../云侧方案设计.md)“校验与重试”要求 `160vp` 参考画布；设计尺寸为 160×160／320×160vp | 待用户确认；须联合核对画布、内边距、双动作、主数值安全盒、布局骨架、转换器及 Few-shot，不能只修改一个常量 |
 | BASE-02：W9 无动作倒计时结构冲突 | 倒计时专项要求背板直接包含标题、数值、单位三个 Text；稀疏背板规则要求直接内容 Column，包含这些 Text | 同一背板同时命中时，直接三个 Text 与嵌套内容 Column 不能同时成立；对应清单 OBS-L3455、OBS-L3909 | 待确认适用条件及优先级，单独修正规则并重建基线；等价拆分不静默跳过任一检查，未裁决前不承诺模型可修复 |
 | BASE-03：分离单位的旧建议与对齐规则冲突 | OBS-L3378 建议数值和单位放入同一 Row，并要求较小文字不加 bottom padding | OBS-L825、OBS-L1154 对混合字号要求底部补偿；照旧建议修复会触发新的对齐错误 | legacyMessage 保留原文用于兼容；迁移新诊断时明确保留底部补偿等实际约束，不复制冲突建议；建议修正独立审阅，不改校验阈值 |
-| BASE-04：日程计数规则的适用边界 | OBS-L4139 只要文本表达式引用 eventCount，就检查本节点是否包含时间范围及日程含义 | 当前 design-compact-dsl/PROMPT.md 的规则面向数量展示；计数仅参与条件判断、输出“有日程／暂无日程”时也会被当前实现检查 | 规则边界待裁决，分别覆盖数量展示、条件状态、已知及未知时间范围；不因重构扩大规则，也不要求模型臆造“今天”等时间范围 |
+| BASE-04：日程计数规则的适用边界 | OBS-L4139 曾检查 eventCount 文本是否同时包含时间范围及日程含义 | 该规则会把可读文案约束扩大成硬阻断，并可能迫使模型臆造或重复范围文案 | 2026-10-14 已暂时停用该硬校验；Prompt 可继续引导完整语义，校验器不再因缺少指定字样拒绝结果 |
 
 本表记录现有差异，不表示已选择以代码或文档为最终依据。本轮文档更新不修改总方案及运行参数。
 等价拆分的比较对象是记录下来的当前实现，暂不夹带尺寸修正；这一约束仅用于判定重构有没有改变行为，
@@ -461,6 +486,12 @@ BASE-02 至 BASE-04 不阻止纯等价拆分，但不能把已知冲突的旧建
 该约束必须同时出现在新诊断与模型说明中，不能因旧文案退出模型请求而丢失。
 本期 warning 继续通过 `CompactDslValidationResult.warnings` 返回字符串，并沿用流水线已有的
 `COMPACT_DSL_VALIDATION_WARNING` 及日志路径；不增加成功返回结果上的诊断字段，不将警告转成待修复错误。
+纵向高度门禁按 `requiredHeight - availableHeight` 计算溢出量。2×2 仅保留方案已登记的整树
+`2vp` 数值容差，2×4 不设高度容差。超过容差且最小占用及可用高度已可确定时，
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` 始终为 error，进入 `qualityErrors` 和模型 repair。根 Column、正数
+`layoutWeight` Column、可压缩 `itemMargin`、`clip`、`flexShrink` 或分布对齐都不能作为高度
+降级依据；这些属性不能消除已证明的内容最小高度。同一张卡不同层级的诊断仍分别记录，
+修复模型根据占用明细重新组合内容或选择容量足够的合法布局。
 
 ## 5. 修复建议解耦与简单配置接口
 

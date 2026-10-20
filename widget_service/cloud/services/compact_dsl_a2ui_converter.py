@@ -52,11 +52,13 @@ from services.compact_high_level_components import (
     validate_single_line_title_layout as validate_single_line_title_layout,
 )
 from services.compact_region_layout import adapt_region_layout
+from services.event_matching import event_handlers_match, is_optional_switch_event
 from services.fusion_ball_expander import (
     FusionBallExpansionError,
     expand_fusion_ball_components,
     fusion_ball_palette_for_root,
 )
+from services.theme_style_roles import in_layout_phase, property_role
 
 ThemeMode = Literal["light", "dark"]
 
@@ -74,6 +76,9 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
         "Row",
         "Column",
         "Stack",
+        "Layout",
+        "Region",
+        "Group",
         "Text",
         "ProgressCircle",
         "PillButton",
@@ -102,8 +107,8 @@ COMPACT_INPUT_COMPONENT_TYPES = frozenset(
 # Historical Few-shot and local conversion fixtures may still contain direct Text rows.
 # The live model boundary uses this narrower set and requires semantic text components.
 MODEL_COMPACT_INPUT_COMPONENT_TYPES = COMPACT_INPUT_COMPONENT_TYPES - {"Text"}
+_CONTAINER_TYPES = frozenset({"Row", "Column", "Stack", "Layout", "Region", "Group"})
 _INTERNAL_COMPONENT_TYPES = frozenset({"Image", "Divider", "Progress", "Button"})
-_CONTAINER_TYPES = frozenset({"Row", "Column", "Stack"})
 _SEMANTIC_FIELDS = {
     "Text": frozenset({"content"}),
     "Image": frozenset({"src"}),
@@ -382,10 +387,40 @@ _DESIGN_ALIASES: dict[str, dict[str, str]] = {}
 
 
 def parse_compact_dsl_rows(
-    compact_dsl: str, *, skip_compact_dsl_validation: bool = False,
+    compact_dsl: str, *, expand_layouts: bool = True, size: str | None = None,
+    skip_compact_dsl_validation: bool = False,
 ) -> tuple[CompactRow, ...]:
     """Parse Design Compact DSL into the row model shared with validation."""
-    return tuple(_parse_compact_rows(
+    from services.compact_semantic_layout import expand_semantic_layout_rows
+    rows = _parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
+    if expand_layouts:
+        expansion = expand_semantic_layout_rows(rows, size=size)
+        rows = _canonicalize_component_order(list(expansion.rows))
+    return tuple(rows)
+
+
+def expand_compact_semantic_layout(
+    compact_dsl: str, *, size: str, skip_compact_dsl_validation: bool = False,
+) -> tuple[str, dict[str, str]]:
+    """显式编译与来源映射用于 Trace；绑定修复和编辑始终保留语义原文。"""
+    from services.compact_semantic_layout import expand_semantic_layout_rows
+    rows = _parse_compact_rows(
+        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    )
+    expansion = expand_semantic_layout_rows(rows, size=size)
+    if not expansion.origins:
+        return compact_dsl, {}
+    ordered = _canonicalize_component_order(list(expansion.rows))
+    return _serialize_repaired_rows(ordered), expansion.origins
+
+
+def serialize_compact_dsl_source(
+    compact_dsl: str, *, skip_compact_dsl_validation: bool = False,
+) -> str:
+    """保存已解析、语法修正后的源行；不展开语义布局或改写业务 Props。"""
+    return _serialize_repaired_rows(_parse_compact_rows(
         compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
     ))
 
@@ -417,7 +452,7 @@ def normalize_compact_dsl_design_tokens(
 def repair_compact_dsl_safe_structure(
     compact_dsl: str, *, size: str, skip_compact_dsl_validation: bool = False,
 ) -> str:
-    """Apply only deterministic tree and formal split-panel repairs."""
+    """Apply deterministic tree and layout-specific safe repairs."""
     changed = False
     try:
         rows = _parse_compact_rows(
@@ -435,6 +470,29 @@ def repair_compact_dsl_safe_structure(
     components, _data_rows = _split_component_rows(rows)
     components_by_id = {item.component_id: item for item in components}
     root = components_by_id.get("root")
+    if (
+        size == "2x4"
+        and root is not None
+        and root.component_type == "Layout"
+        and root.props.get("layout") == "W-content-side-slots"
+    ):
+        repaired_rows: list[CompactRow] = []
+        for row in rows:
+            if not isinstance(row, ComponentRow) or row.component_type != "SingleLineTitle":
+                repaired_rows.append(row)
+                continue
+            if "icon" not in row.props and "fillColor" not in row.props:
+                repaired_rows.append(row)
+                continue
+            props = copy.deepcopy(row.props)
+            props.pop("icon", None)
+            props.pop("fillColor", None)
+            repaired_rows.append(
+                ComponentRow(row.component_id, row.component_type, props, row.children)
+            )
+            changed = True
+        rows = repaired_rows
+
     if size == "2x4" and _is_formal_split_panel_root(root, components_by_id):
         repaired_rows: list[CompactRow] = []
         panel_ids = set(root.children) if root is not None else set()
@@ -486,6 +544,8 @@ def _is_formal_split_panel_root(
             return False
         if props.get("borderRadius") != 16 or props.get("clip") is not True:
             return False
+        if in_layout_phase() and props.get("surfaceRole") == "panel":
+            continue
         if props.get("backgroundColor") != "#99FFFFFF":
             return False
     return True
@@ -498,7 +558,7 @@ def repair_compact_dsl_binding_paths(
     card_spec: dict[str, Any],
     skip_compact_dsl_validation: bool = False,
 ) -> str:
-    """Repair unique data roots or safely inline unbacked local values."""
+    """Repair unique roots/path typos or safely inline unbacked local values."""
     rows = _parse_compact_rows(
         compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
     )
@@ -523,14 +583,7 @@ def repair_compact_dsl_binding_paths(
     for path in dict.fromkeys(paths):
         if _schema_node_at_path(schema, path) is not None:
             continue
-        suffix = path
-        if path == "/data" or path.startswith("/data/"):
-            suffix = path[len("/data") :]
-        candidates: set[str] = set()
-        for root in roots:
-            candidate = f"{root.rstrip('/')}{suffix}"
-            if _schema_node_at_path(schema, candidate) is not None:
-                candidates.add(candidate)
+        candidates = _schema_binding_path_candidates(path, schema, roots)
         if len(candidates) == 1:
             path_replacements[path] = candidates.pop()
             continue
@@ -608,9 +661,9 @@ def convert_compact_dsl_to_a2ui(
     from services.compact_layout_runtime import adaptive_slot_ids
 
     profile = protocol_profile or {"version": "v0.9"}
-    rows = _parse_compact_rows(
-        compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
-    )
+    rows = list(parse_compact_dsl_rows(
+        compact_dsl, size=size, skip_compact_dsl_validation=skip_compact_dsl_validation,
+    ))
     components, data_rows = _split_component_rows(rows)
     _validate_compact_component_bindings(components)
     data_model = _build_data_model(data_rows)
@@ -728,9 +781,15 @@ def _validate_compact_component_bindings(components: list[ComponentRow]) -> None
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
+    from contextlib import ExitStack
+
     import json_repair
 
-    from services.generation_trace_recorder import trace_span
+    from services.generation_trace_recorder import (
+        TraceSpan,
+        trace_increment_span_counters,
+        trace_span,
+    )
 
     text = compact_dsl.lstrip("\ufeff").strip()
     lines = text.splitlines()
@@ -744,63 +803,71 @@ def _strip_optional_genui_fence(compact_dsl: str) -> str:
         if "```" in body:
             raise CompactDslConversionError("Compact DSL must contain exactly one genui fence.")
 
-    with trace_span(
-        "compact_dsl.jsonl_repair",
-        stage="compact_dsl.jsonl_repair",
-        operation="compact_dsl.jsonl_repair",
-    ) as span:
-        span.text_artifacts["compact_dsl_extracted"] = body
-        span.artifact_roles["compact_dsl_extracted"] = "input"
-        json_blocks: list[str] = []
-        for line in body.splitlines():
-            json_block = line.strip()
-            if json_block:
-                json_blocks.append(json_block)
+    json_blocks: list[str] = []
+    for line in body.splitlines():
+        json_block = line.strip()
+        if json_block:
+            json_blocks.append(json_block)
 
-        repaired_blocks: list[str] = []
-        repaired_count = 0
-        for block_index, block in enumerate(json_blocks, 1):
-            try:
-                json.loads(block)
-            except json.JSONDecodeError:
+    outcome = "jsonlParseNoop"
+    try:
+        with ExitStack() as stack:
+            span: TraceSpan | None = None
+            repaired_blocks: list[str] = []
+            repaired_count = 0
+            for block_index, block in enumerate(json_blocks, 1):
                 try:
-                    repaired_value = json_repair.loads(block)
-                    is_compact_row = isinstance(repaired_value, list) and bool(repaired_value)
-                    is_compact_row = is_compact_row and isinstance(repaired_value[0], str)
-                    if not is_compact_row:
-                        raise ValueError("repaired Compact DSL block must be a JSON array")
-                    repaired_block = json.dumps(
-                        repaired_value,
-                        ensure_ascii=False,
-                        separators=(",", ":"),
-                    )
-                    json.loads(repaired_block)
-                except Exception as exc:
-                    span.outcome(
-                        "failed",
-                        reason="json_repair_failed",
-                        blockIndex=block_index,
-                        exceptionType=type(exc).__name__,
-                    )
-                    return body
-                repaired_blocks.append(repaired_block)
-                repaired_count += 1
-                continue
-            repaired_blocks.append(block)
+                    json.loads(block)
+                except json.JSONDecodeError:
+                    outcome = "jsonlParseFailed"
+                    if span is None:
+                        span = stack.enter_context(trace_span(
+                            "compact_dsl.jsonl_repair",
+                            stage="compact_dsl.jsonl_repair",
+                        ))
+                        span.text_artifacts["compact_dsl_extracted"] = body
+                        span.artifact_roles["compact_dsl_extracted"] = "input"
+                        span.details["blockCount"] = len(json_blocks)
+                    try:
+                        repaired_value = json_repair.loads(block)
+                        is_compact_row = isinstance(repaired_value, list) and bool(repaired_value)
+                        is_compact_row = is_compact_row and isinstance(repaired_value[0], str)
+                        if not is_compact_row:
+                            raise ValueError("repaired Compact DSL block must be a JSON array")
+                        repaired_block = json.dumps(
+                            repaired_value,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        )
+                        json.loads(repaired_block)
+                    except Exception as exc:
+                        span.outcome(
+                            "failed",
+                            reason="json_repair_failed",
+                            blockIndex=block_index,
+                            exceptionType=type(exc).__name__,
+                            message=str(exc),
+                        )
+                        return body
+                    repaired_blocks.append(repaired_block)
+                    repaired_count += 1
+                    continue
+                repaired_blocks.append(block)
 
-        span.details.update(
-            {
-                "blockCount": len(json_blocks),
-                "repairedBlockCount": repaired_count,
-                "repairApplied": repaired_count > 0,
-            }
-        )
-        if repaired_count == 0:
-            return body
-        repaired_body = "\n".join(repaired_blocks)
-        span.text_artifacts["compact_dsl_jsonl_repaired"] = repaired_body
-        span.artifact_roles["compact_dsl_jsonl_repaired"] = "output"
-        return repaired_body
+            if span is None:
+                return body
+            repaired_body = "\n".join(repaired_blocks)
+            span.details.update({"repairedBlockCount": repaired_count, "repairApplied": True})
+            span.text_artifacts["compact_dsl_jsonl_repaired"] = repaired_body
+            span.artifact_roles["compact_dsl_jsonl_repaired"] = "output"
+            outcome = "jsonlParseRepaired"
+            return repaired_body
+    except BaseException:
+        outcome = "jsonlParseFailed"
+        raise
+    finally:
+        # ExitStack 已恢复父 Span；汇总不产生额外节点，也不进入模型/质量修复计数。
+        trace_increment_span_counters({"jsonlParseCalls": 1, outcome: 1})
 
 
 def _find_fence_opening(lines: list[str]) -> int | None:
@@ -1710,32 +1777,34 @@ def _inline_text_fonts(
 def _single_body_slot(
     component: ComponentRow, by_id: dict[str, ComponentRow],
 ) -> tuple[list[ComponentRow], ComponentRow] | None:
+    result: tuple[list[ComponentRow], ComponentRow] | None = None
     prefix = f"{VISUAL_RECIPE_VERSION}:SecondaryBody."
-    if component.props.get("_visualRecipe") != prefix + "root":
-        return None
-    wrappers: list[ComponentRow] = []
-    seen: set[str] = set()
-    current = component
-    while current.component_type in {"Row", "Column"}:
-        if current.component_id in seen or len(current.children) != 1:
-            return None
-        marker = current.props.get("_visualRecipe")
-        if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
-            return None
-        seen.add(current.component_id)
-        wrappers.append(current)
-        child = by_id.get(current.children[0])
-        if child is None:
-            return None
-        current = child
-    if current.component_type != "Text" or current.props.get("_visualRecipe") != prefix + "text":
-        return None
-    if _positive_static_number(current.props.get("height")) is None:
-        return None
-    constraints = current.props.get("constraintSize")
-    if isinstance(constraints, dict) and constraints.get("minHeight", 0) != 0:
-        return None
-    return wrappers, current
+    if component.props.get("_visualRecipe") == prefix + "root":
+        wrappers: list[ComponentRow] = []
+        seen: set[str] = set()
+        current = component
+        while current.component_type in {"Row", "Column"}:
+            if current.component_id in seen or len(current.children) != 1:
+                break
+            marker = current.props.get("_visualRecipe")
+            if marker not in {prefix + "root", prefix + "row", prefix + "item"}:
+                break
+            seen.add(current.component_id)
+            wrappers.append(current)
+            child = by_id.get(current.children[0])
+            if child is None:
+                break
+            current = child
+        else:
+            is_body_text = (
+                current.component_type == "Text"
+                and current.props.get("_visualRecipe") == prefix + "text"
+            )
+            if is_body_text and _positive_static_number(current.props.get("height")) is not None:
+                constraints = current.props.get("constraintSize")
+                if not isinstance(constraints, dict) or constraints.get("minHeight", 0) == 0:
+                    result = wrappers, current
+    return result
 
 
 def _align_inline_body_slots(components: list[ComponentRow]) -> list[ComponentRow]:
@@ -1892,8 +1961,9 @@ def _normalize_component(
     props = _expand_component_design(component)
     if normalize_axis_aliases:
         _repair_axis_value_aliases(component.component_type, props)
-        if component.component_type == "Row" and props.get("alignItems") == "baseline":
-            props["alignItems"] = "bottom"
+    # Recipe的字底对齐须使用Form已有枚举，包含无独立unit的单Text行。
+    if component.component_type == "Row" and props.get("alignItems") == "baseline":
+        props["alignItems"] = "bottom"
     resolved_props: dict[str, Any] = {}
     for property_name, value in props.items():
         resolved_props[property_name] = _resolve_tokens(
@@ -1955,6 +2025,8 @@ def _resolve_tokens(
     if not isinstance(value, str):
         return value
     if property_name in _COLOR_PROPERTIES:
+        if in_layout_phase():
+            return property_role(property_name, value)
         return _COLOR_TOKENS.get(value, value)
     return value
 
@@ -2112,6 +2184,10 @@ def _normalize_text_component(styles: dict[str, Any]) -> None:
 def _normalize_root_component(styles: dict[str, Any]) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
+    if in_layout_phase():
+        styles.pop("backgroundColor", None)
+        styles.pop("linearGradient", None)
+        return
     if not any(name in styles for name in ("linearGradient", "backgroundColor", "backgroundImage")):
         styles["backgroundColor"] = _DEFAULT_ROOT_BACKGROUND
 
@@ -2213,6 +2289,34 @@ def _card_spec_data_roots(card_spec: dict[str, Any]) -> list[str]:
     return roots
 
 
+def _schema_binding_path_candidates(
+    path: str,
+    schema: dict[str, Any],
+    roots: list[str],
+) -> set[str]:
+    """仅返回由单个常见语法笔误得到、且在 schema 中真实存在的唯一候选集合。"""
+    variants = [path]
+    if path.endswith("}"):
+        variants.append(path[:-1])
+    if path.startswith(("/data/", "/state/")):
+        for index, char in enumerate(path):
+            if char == ".":
+                variants.append(f"{path[:index]}/{path[index + 1:]}")
+
+    candidates: set[str] = set()
+    for variant in dict.fromkeys(variants):
+        if variant != path and _schema_node_at_path(schema, variant) is not None:
+            candidates.add(variant)
+        suffix = variant
+        if variant == "/data" or variant.startswith("/data/"):
+            suffix = variant[len("/data") :]
+        for root in roots:
+            candidate = f"{root.rstrip('/')}{suffix}"
+            if candidate != path and _schema_node_at_path(schema, candidate) is not None:
+                candidates.add(candidate)
+    return candidates
+
+
 def _candidate_asset_sources(task_spec: dict[str, Any]) -> set[str]:
     candidates = task_spec.get("assetCandidates")
     if not isinstance(candidates, list):
@@ -2284,6 +2388,8 @@ def _event_handler_replacements(
             key = _stable_json(handler)
             if key in allowed_keys:
                 continue
+            if any(event_handlers_match(handler, candidate) for candidate in allowed_handlers):
+                continue
             matched = _matching_event_handler(handler, allowed_handlers)
             if matched is not None:
                 replacements[key] = copy.deepcopy(matched)
@@ -2302,6 +2408,8 @@ def _matching_event_handler(
         candidate for candidate in allowed_handlers if candidate.get("call") == call
     ]
     for candidate in same_call_handlers:
+        if is_optional_switch_event(handler) or is_optional_switch_event(candidate):
+            continue
         candidate_args = candidate.get("args")
         if isinstance(candidate_args, dict) and _event_args_match(args, candidate_args):
             return candidate

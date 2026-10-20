@@ -16,6 +16,44 @@ export type BatchDatasetItem = {
   error: string;
 };
 
+export type BatchRate = {
+  numerator: number;
+  denominator: number;
+  percent: number | null;
+};
+
+export type BatchMetricTotals = {
+  firstDslPassRate: BatchRate;
+  firstRequestDeliveryRate: BatchRate;
+  finalDeliveryRate: BatchRate;
+  preDslFailed: number;
+  firstDslUnknown: number;
+  repairRescueRate: BatchRate;
+  batchRetryRate: BatchRate;
+  batchRetryRescueRate: BatchRate;
+  qualityRepairAttempts: number | null;
+  modelPhysicalCalls: number | null;
+  repairObservedAttempts: number;
+  modelObservedAttempts: number;
+  terminalAttempts: number;
+  coverageObserved: number;
+  coverageMissing: number;
+  p95ElapsedMs: number | null;
+};
+
+export type BatchSampleMetrics = {
+  firstDsl: 'passed' | 'failed' | 'before_dsl_failure' | 'unknown';
+  requestSize?: string;
+  firstRequestStatus: string | null;
+  firstRequestDelivered: boolean;
+  qualityRepairAttempts: number | null;
+  modelPhysicalCalls: number | null;
+  repairObservedAttempts: number;
+  modelObservedAttempts: number;
+  terminalAttempts: number;
+  missingInformationWarnings: number | null;
+};
+
 export type BatchSampleSummary = {
   id: string;
   fileName: string;
@@ -35,6 +73,7 @@ export type BatchSampleSummary = {
   traceRecordCount: number;
   traceSchemaVersion?: string;
   traceDurationMs?: number;
+  generationMetrics?: BatchSampleMetrics;
 };
 
 export type DeviceCaptureItem = {
@@ -65,6 +104,8 @@ export type DeviceCaptureConfig = {
 };
 
 export type BatchRun = {
+  effectiveServiceConfig?: Record<string, unknown>;
+  configWarnings?: string[];
   runId: string;
   sourceType?: string;
   name?: string | null;
@@ -74,6 +115,8 @@ export type BatchRun = {
   endpoint: string;
   concurrency: number;
   maxRetries: number;
+  observedRetryParameters?: Record<string, (boolean | number)[]>;
+  retryConfigSnapshot?: Record<string, boolean | number>;
   total: number;
   completed: number;
   success: number;
@@ -82,6 +125,10 @@ export type BatchRun = {
   cancelled: number;
   averageElapsedMs: number;
   traceWarnings: number;
+  generationMetrics?: BatchMetricTotals & {
+    version: number;
+    bySize: (BatchMetricTotals & { size: string })[];
+  };
   samples: BatchSampleSummary[];
   taskId?: string;
   datasetId?: string;
@@ -315,6 +362,9 @@ export type ValidationFailureItem = {
 };
 
 export type BatchExecution = Partial<BatchRun> & {
+  effectiveServiceConfig?: Record<string, unknown>;
+  configWarnings?: string[];
+  serviceOverrides?: Record<string, unknown>;
   runId: string;
   taskId: string;
   status: string;
@@ -356,9 +406,33 @@ export type BatchScheduler = {
 };
 
 export type ServiceConfigDefaults = {
-  values: Record<string, string | number | boolean>;
+  localConfigExists: boolean;
+  values: Record<string, unknown>;
   sources: Record<string, string>;
+  exposedKeys: string[];
+  fields: ServiceConfigField[];
+  version: string;
 };
+
+export type ServiceConfigField = {
+  name: string;
+  displayName: string;
+  type: string;
+  source: string;
+  group: 'exposed' | 'defaults';
+  sensitive: boolean;
+  editable: boolean;
+  readOnlyReason: string;
+  description?: string;
+};
+
+export function saveServiceConfigDefaults(version: string, changes: Record<string, unknown>): Promise<ServiceConfigDefaults> {
+  return requestJson('/debug/batch/service-config/defaults', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ version, changes }),
+  });
+}
 
 export type ConnectionAvailability = {
   mainAgent: { available: boolean; detail: string };

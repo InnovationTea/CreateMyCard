@@ -1,0 +1,50 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "id": "browser-capture",
+  "name": "浏览器截图",
+  "version": "3.0.0",
+  "description": "仅采集截图和渲染证据，供画廊及其它插件复用。",
+  "entrypoint": "builtin",
+  "dependence": [],
+  "outputs": [
+    {
+      "key": "web-quality-evidence",
+      "scope": "sample",
+      "title": "Web 质量检测证据",
+      "dataType": "json",
+      "required": false
+    },
+    {
+      "key": "browser-capture",
+      "scope": "sample",
+      "title": "Web 渲染截图",
+      "dataType": "image",
+      "renderer": "gallery",
+      "required": true
+    },
+    {
+      "key": "capture-summary",
+      "scope": "dataset",
+      "title": "截图汇总",
+      "dataType": "metrics",
+      "required": true,
+      "renderer": "kpi"
+    }
+  ],
+  "presentation": {
+    "defaultView": "gallery",
+    "sampleFields": [
+      {
+        "key": "captureStatus",
+        "label": "截图状态",
+        "type": "string",
+        "filterable": true,
+        "sortable": true
+      }
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}

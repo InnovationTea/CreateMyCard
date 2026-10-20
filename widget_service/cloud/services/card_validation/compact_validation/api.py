@@ -41,6 +41,9 @@ from services.card_validation.compact_validation.semantic.layout.assets import (
 from services.card_validation.compact_validation.semantic.layout.geometry import (
     _collect_height_budget_errors,
 )
+from services.card_validation.compact_validation.semantic.layout.horizontal import (
+    _collect_horizontal_budget_errors,
+)
 from services.card_validation.compact_validation.semantic.layout.text_width import (
     _collect_text_width_budget_errors,
 )
@@ -48,6 +51,7 @@ from services.card_validation.compact_validation.semantic.numeric_display import
     _collect_numeric_component_errors,
 )
 from services.card_validation.compact_validation.semantic.plan_contracts import (
+    collect_actions_only_plan_errors,
     collect_plan_contract_errors,
     collect_secondary_body_context_errors,
 )
@@ -62,6 +66,7 @@ from services.compact_dsl_a2ui_converter import (
     parse_compact_dsl_rows,
 )
 from services.compact_layout_runtime import CompactLayoutRuntimeError, match_compact_layout
+from services.compact_whole_card_click import accepted_whole_card_click
 
 from .context import ComponentRows, ValidationContext
 from .diagnostics import DiagnosticCollector
@@ -84,9 +89,17 @@ def validate_compact_dsl(
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
-        rows = parse_compact_dsl_rows(compact_dsl)
+        original_rows = parse_compact_dsl_rows(
+            compact_dsl,
+            expand_layouts=False,
+            size=task_spec.get("size"),
+        )
+        rows = parse_compact_dsl_rows(compact_dsl, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
+    from services.compact_semantic_layout import collect_semantic_layout_warnings
+
+    warnings = list(collect_semantic_layout_warnings(original_rows))
     components = ComponentRows(row for row in rows if isinstance(row, ComponentRow))
     context = ValidationContext(
         original_source=compact_dsl if original_source is None else original_source,
@@ -96,6 +109,11 @@ def validate_compact_dsl(
         data_rows=[],
         task_spec=task_spec,
         card_spec=card_spec,
+    )
+    from services.compact_dsl_a2ui_converter import expand_compact_semantic_layout
+
+    _expanded_source, context.layout_origins = expand_compact_semantic_layout(
+        compact_dsl, size=task_spec.get("size"),
     )
     if enforce_model_component_types:
         model_errors = collect_model_component_errors(components)
@@ -112,17 +130,29 @@ def validate_compact_dsl(
             layout_errors.append("Compact layout validation requires a valid widget size.")
         else:
             try:
-                match_compact_layout(components, size=size, layout_scope=layout_scope)
+                whole_card_click = accepted_whole_card_click(task_spec, compact_plan)
+                match_compact_layout(
+                    components, size=size, layout_scope=layout_scope,
+                    root_action_handler=(
+                        whole_card_click.handler if whole_card_click is not None else None
+                    ),
+                )
             except CompactLayoutRuntimeError as exc:
                 layout_errors.append(str(exc))
     binding_contract_errors = _compact_component_binding_errors(
         components, task_spec.get("dataModelSchema")
+    )
+    collect_actions_only_plan_errors(
+        [row for row in original_rows if isinstance(row, ComponentRow)],
+        compact_plan,
+        binding_contract_errors,
     )
     collect_plan_contract_errors(
         components,
         task_spec,
         compact_plan,
         binding_contract_errors,
+        size=size if isinstance(size, str) else None,
     )
     if enforce_model_component_types:
         collect_secondary_body_context_errors(components, binding_contract_errors)
@@ -147,16 +177,28 @@ def validate_compact_dsl(
     errors = DiagnosticCollector()
     _collect_asset_source_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
-    _collect_ambiguous_metric_text_errors(components, task_spec, errors)
+    _collect_ambiguous_metric_text_errors(
+        components, task_spec, errors, layout_origins=context.layout_origins,
+    )
     _collect_semantic_text_errors(components, task_spec, errors)
     _collect_raw_boolean_text_errors(components, task_spec, errors)
     _collect_progress_value_errors(components, task_spec, errors)
     _collect_progress_readout_object_errors(components, task_spec, errors)
     _collect_unbound_action_hint_errors(components, errors)
     budget_components = normalize_mixed_font_text_rows(components, data_model=data_model)
-    _collect_height_budget_errors(budget_components, task_spec, card_spec, errors, protocol_profile)
+    _collect_height_budget_errors(
+        budget_components, task_spec, card_spec, errors, protocol_profile,
+        layout_origins=context.layout_origins,
+    )
     _collect_text_width_budget_errors(
-        budget_components, task_spec, card_spec, errors, protocol_profile
+        budget_components, task_spec, card_spec, errors, protocol_profile,
+        include_label_pressure=(card_spec.get("suggestSize") or task_spec.get("size")) == "2x4",
+        warnings=warnings,
+    )
+    _collect_horizontal_budget_errors(
+        budget_components, task_spec, card_spec, errors, protocol_profile,
+        warnings=warnings,
+        original_components=context.original_components,
     )
     for component in components:
         location = f"component {component.component_id}.props"
@@ -173,8 +215,8 @@ def validate_compact_dsl(
     errors.extend(layout_errors)
     if errors:
         raise _validation_error(errors, context, repair_context)
-    warnings = _unused_data_capability_warnings(binding_paths, card_spec)
-    return CompactDslValidationResult(warnings=tuple(warnings))
+    warnings.extend(_unused_data_capability_warnings(binding_paths, card_spec))
+    return CompactDslValidationResult(warnings=tuple(dict.fromkeys(warnings)))
 
 
 def _validation_error(

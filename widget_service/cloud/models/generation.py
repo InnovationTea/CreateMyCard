@@ -22,6 +22,14 @@ class ModelRequestContext:
     app_name: str
 
 
+@dataclass(frozen=True)
+class CompactDslRetryContext:
+    """在接口级重试之间传递的内部恢复上下文，不进入外部协议。"""
+
+    failure_category: str
+    capacity_recovery: bool = False
+
+
 class DeviceContext(BaseModel):
     _source_rom_version: str | None = PrivateAttr(default=None)
 

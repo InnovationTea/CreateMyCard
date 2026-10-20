@@ -23,11 +23,13 @@ from services.generation_pipeline import (
     DslProcessingResult,
     DslProcessorKind,
     QualityIssue,
+    _capture_processing_result,
     get_dsl_processor,
 )
 from services.generation_trace_recorder import (
     GenerationTraceRecorder,
     TraceRecord,
+    TraceSpan,
     trace_attempt,
     trace_record,
     trace_span,
@@ -75,6 +77,43 @@ def test_trace_record_omits_empty_fields() -> None:
         "startOffsetMs": 0.0,
         "details": {"zero": 0, "false": False},
     }
+
+
+def test_processing_trace_issues_keep_severity() -> None:
+    span = TraceSpan()
+    result = DslProcessingResult(
+        source_dsl='["root","Column",{},[]]',
+        issues=(
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_PLAN_FACT_OMITTED",
+                message="fact omitted",
+                severity="warning",
+            ),
+            QualityIssue(
+                stage="validation",
+                code="COMPACT_DSL_VALIDATION_FAILED",
+                message="layout invalid",
+            ),
+        ),
+    )
+
+    _capture_processing_result(span, result)
+
+    assert span.json_artifacts["dsl_processing_issues"] == [
+        {
+            "stage": "validation",
+            "code": "COMPACT_PLAN_FACT_OMITTED",
+            "message": "fact omitted",
+            "severity": "warning",
+        },
+        {
+            "stage": "validation",
+            "code": "COMPACT_DSL_VALIDATION_FAILED",
+            "message": "layout invalid",
+            "severity": "error",
+        },
+    ]
 
 
 def test_trace_uid_can_be_read_before_argument_repair() -> None:
@@ -536,6 +575,7 @@ async def test_upload_failure_keeps_trace_terminal_state(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_plan_contract_retry_has_independent_trace_counts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -552,7 +592,11 @@ async def test_plan_contract_retry_has_independent_trace_counts(
     async def generate(_client, _prompt, profile=None, **_kwargs) -> str:
         nonlocal plan_calls
         if (profile or {}).get("format") != "raw-json":
-            return "source-compact-dsl"
+            return (
+                '["root","Layout",{"layout":"S-title-content"},["title","content"]]\n'
+                '["title","SingleLineTitle",{"title":"天气","fontSize":12}]\n'
+                '["content","EmphasisText",{"mainText":"晴","fontSize":18}]'
+            )
         plan_calls += 1
         if plan_calls == 1:
             return "not-json"
@@ -641,6 +685,7 @@ async def test_plan_contract_retry_has_independent_trace_counts(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_quality_repair_records_prompt_model_and_revalidation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -675,7 +720,11 @@ async def test_quality_repair_records_prompt_model_and_revalidation(
         )
 
     async def repair(_client, _prompt, _profile=None) -> str:
-        return "repaired-source-compact-dsl"
+        return (
+            '["root","Layout",{"layout":"S-title-content"},["title","content"]]\n'
+            '["title","SingleLineTitle",{"title":"天气","fontSize":12}]\n'
+            '["content","EmphasisText",{"mainText":"晴","fontSize":18}]'
+        )
 
     monkeypatch.setattr(processor, "process", process)
     monkeypatch.setattr(A2UIModelClient, "generate_repair", repair)

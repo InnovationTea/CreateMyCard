@@ -22,7 +22,7 @@ Column({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent",
 )
 #End
 
-#Template BluetoothDeviceOverviewCaseConnectionCompact@1(props: { caseIcon?: asset })
+#Template BluetoothDeviceOverviewConnectionBatterySupport@1(props: { caseIcon?: asset })
 data = { battery: $path("/batteryLevel"), connected: $path("/isConnected") }
 Column(
     {
@@ -48,7 +48,8 @@ Column(
         },
         Column(
             {
-                "width": "matchParent",
+                "layoutWeight": 1,
+                "constraintSize": {"minWidth": 0},
                 "height": "matchParent",
                 "itemMargin": 4,
                 "justifyContent": "center",
@@ -67,6 +68,14 @@ Column(
                 props.caseIcon,
                 { "width": 24, "height": 24, "fillColor": $theme('supportContentColor') }
             ),
+        #else
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("E", {"width": 17.5, "height": 17.5, "fontSize": 12,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
         #endif
     )
 )

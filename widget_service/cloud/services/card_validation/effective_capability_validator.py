@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from services.event_matching import event_handlers_match
+
 from .base import (
     BaseValidator,
     expression_references,
@@ -277,8 +279,8 @@ class EffectiveCapabilityValidator(BaseValidator):
             return False
         if not isinstance(args, dict):
             args = {}
-        expected = self._stable_json({"call": call, "args": args})
-        return any(self._stable_json(item) == expected for item in allowed_actions)
+        actual = {"call": call, "args": args}
+        return any(event_handlers_match(actual, item) for item in allowed_actions)
 
     def _stable_json(self, value: Any) -> str:
         return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))

@@ -57,7 +57,7 @@ def _source() -> CompactDslArtifactSource:
         taskSpec=task.model_dump(mode="json"),
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom6.0-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-6.0",
+            capabilityRegistryVersion="app-11.7.7.300_rom-7.0",
             createdAt=0,
         ),
     )
@@ -84,6 +84,47 @@ def _quality_errors(prompt: list[dict[str, str]]) -> list[dict[str, Any]]:
     assert "原文第 2 行" in message
     assert "约束：" in message
     return errors
+
+
+@pytest.mark.usefixtures("isolated_theme_stage")
+def test_fixed_item_overflow_is_exported_with_capacity_fit_context() -> None:
+    source = "\n".join(
+        [
+            '["root","Layout",{"layout":"W-top-bottom",'
+            '"variant":"continuous"},["title","primary","details"]]',
+            '["title","SingleLineTitle",{"title":"行程","fontSize":12}]',
+            '["primary","EmphasisText",{"mainText":"还有30天","fontSize":18}]',
+            '["details","SummaryList",{"items":['
+            '"事项一","事项二","事项三","事项四","事项五"]}]',
+        ]
+    )
+    plan = {
+        "info_required": [
+            {"requirement": f"事项{label}", "priority": "must"}
+            for label in ("一", "二", "三", "四", "五")
+        ]
+    }
+    context = DslProcessingContext(
+        size="2x4",
+        card_spec={"suggestSize": "2x4"},
+        task_spec={
+            "size": "2x4",
+            "appVersion": "11.7.7.300",
+            "dataModelSchema": {"data": {}},
+            "eventCandidates": [],
+            "assetCandidates": [],
+        },
+        protocol_profile={},
+        compact_plan=plan,
+    )
+
+    result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
+
+    assert result.errors
+    capacity_fits = result.errors[0].to_diagnostic_payload().get("capacityFits")
+    assert isinstance(capacity_fits, list)
+    assert capacity_fits[0]["actualItemCount"] == 5
+    assert capacity_fits[0]["overflowItemCount"] == 2
 
 
 @pytest.mark.asyncio
@@ -131,6 +172,7 @@ async def test_standalone_fixed_rounds_preserve_result_and_exception(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 async def test_online_restores_nested_facts_before_formatting_and_preserves_records(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -151,8 +193,12 @@ async def test_online_restores_nested_facts_before_formatting_and_preserves_reco
     processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
     original_process = processor.process
     internal_payloads: list[list[dict[str, Any]]] = []
+    information_coverage_warning_modes: list[bool] = []
 
     def process(source: str, context: DslProcessingContext) -> Any:
+        information_coverage_warning_modes.append(
+            context.plan_information_coverage_as_warning
+        )
         result = original_process(source, context)
         for issue in result.errors:
             diagnostics = issue.prompt_context.get("compactDiagnostics")
@@ -197,6 +243,7 @@ async def test_online_restores_nested_facts_before_formatting_and_preserves_reco
         assert SRC in message
         assert URL not in message
     assert len(saved_records) == 2
+    assert information_coverage_warning_modes == [False, True, True]
     failed_record = saved_records[0]
     assert failed_record.model_generated_compact_dsl == INVALID
     assert failed_record.validation_errors == tuple(internal_payloads[1])

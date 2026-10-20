@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   cancelBatchRun,
@@ -47,13 +47,23 @@ export function BatchTaskCenterRoute() {
   const [backendFilter, setBackendFilter] = useState('all');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const [loading, setLoading] = useState(true);
+  const pendingRefresh = useRef<Promise<void> | null>(null);
 
-  const refresh = useCallback(async () => {
-    const [taskItems, schedulerState] = await Promise.all([
-      listBatchTasks(), getBatchScheduler(),
-    ]);
-    setTasks(taskItems);
-    setScheduler(schedulerState);
+  const refresh = useCallback((): Promise<void> => {
+    if (pendingRefresh.current) return pendingRefresh.current;
+    const request = Promise.allSettled([
+      listBatchTasks().then(setTasks),
+      getBatchScheduler().then(setScheduler),
+    ]).then((results) => {
+      const failed = results.find((result) => result.status === 'rejected');
+      if (failed?.status === 'rejected') throw failed.reason;
+    }).finally(() => {
+      pendingRefresh.current = null;
+      setLoading(false);
+    });
+    pendingRefresh.current = request;
+    return request;
   }, []);
 
   useEffect(() => {
@@ -137,7 +147,9 @@ export function BatchTaskCenterRoute() {
             <select value={backendFilter} onChange={(event) => setBackendFilter(event.target.value)}>
               <option value="all">全部后端</option><option value="managed">本地受管</option><option value="deployed">已部署</option>
             </select>
-            <button type="button" className="batch-refresh" onClick={() => refresh()}>刷新</button>
+            <button type="button" className="batch-refresh" onClick={() => {
+              void refresh().catch((reason) => setError(String(reason)));
+            }}>刷新</button>
           </div>
         </div>
         <div className="batch-task-table-scroll">
@@ -189,7 +201,9 @@ export function BatchTaskCenterRoute() {
               );
             })}</tbody>
           </table>
-          {!visibleTasks.length && <div className="batch-empty">暂无匹配任务，点击“创建任务”开始配置。</div>}
+          {!visibleTasks.length && <div className="batch-empty" role={loading ? 'status' : undefined}>
+            {loading ? '正在加载任务记录…' : '暂无匹配任务，点击“创建任务”开始配置。'}
+          </div>}
         </div>
       </section>
 

@@ -669,7 +669,7 @@ ArtifactStore.save
   "errorMessage": "",
   "reply": {
     "streamInfo": {
-      "streamContent": "完整旧业务消息的字符串形式",
+      "streamContent": "完整业务消息的标准 JSON 字符串，错误时保留中文说明前缀",
       "streamingTextId": "session-001&interaction-compact-001",
       "streamType": "final",
       "textType": "plainText"

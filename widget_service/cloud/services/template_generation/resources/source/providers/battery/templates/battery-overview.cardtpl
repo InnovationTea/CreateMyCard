@@ -1,4 +1,4 @@
-#Template BatteryOverviewFull@1(props: { batteryIcon: asset })
+#Template BatteryOverviewFull@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -64,6 +64,7 @@ Column(
                     "strokeWidth": 6
                 }
             ),
+            #if props.batteryIcon
             Image(props.batteryIcon,
                 {
                     "width": 24,
@@ -72,6 +73,28 @@ Column(
                     "fillColor": $theme('supportContentColor')
                 }
             )
+            #else
+            Stack(
+                {
+                    "width": 28,
+                    "height": 28,
+                    "borderRadius": 14,
+                    "alignContent": "center",
+                    "backgroundColor": $theme('supportContentColor')
+                },
+                Text("E",
+                    {
+                        "width": 28,
+                        "height": 28,
+                        "fontSize": 12,
+                        "fontWeight": 500,
+                        "fontColor": "#FFFFFFFF",
+                        "textAlign": "center",
+                        "maxLines": 1
+                    }
+                )
+            )
+            #endif
         )
     )
 )
@@ -1830,7 +1853,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewTemperatureFull@1(props: { temperatureIcon: asset })
+#Template BatteryOverviewTemperatureFull@1(props: { temperatureIcon?: asset })
 data = {
     temperature: $path("/batteryTemperatureText"),
     pluggedType: $path("/pluggedTypeDesc"),
@@ -1876,6 +1899,7 @@ Column(
                     "constraintSize": {"minWidth": 0, "minHeight": 0}
                 }
             ),
+            #if props.temperatureIcon
             Image(props.temperatureIcon,
                 {
                     "fillColor": $theme('supportContentColor'),
@@ -1885,6 +1909,7 @@ Column(
                     "flexShrink": 0
                 }
             )
+            #endif
         ),
         Column(
             {
@@ -2716,9 +2741,7 @@ Row(
         "alignItems": "center",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0},
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-        "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-        "borderRadius": $theme("supportContentStyle.borderRadius")
+
     },
     Column(
         {
@@ -2770,11 +2793,8 @@ Row(
         "width": "matchParent",
         "height": "matchParent",
         "itemMargin": 4,
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
-        "backgroundColor": $theme('supportContentStyle.backgroundColor'),
-        "borderRadius": $theme('supportContentStyle.borderRadius'),
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },

@@ -6,10 +6,14 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import re
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+from services.theme_style_roles import in_layout_phase, recipe_roles, role
 
 VISUAL_RECIPE_VERSION = "visual-recipes-v1"
 _CONTRACT_PATH = (
@@ -35,10 +39,77 @@ _PALETTE_ROLES = frozenset(
     }
 )
 _DEFAULT_PALETTE = "blue"
+_TEXT_BLOCK_FULL_WIDTH_BUDGET = 280.0
+_TEXT_BLOCK_FULL_WIDTH_ALLOWANCE = 4.0
 
 
 class CompactComponentRuntimeError(ValueError):
     """Raised when the visual recipe contract is unavailable or malformed."""
+
+
+@dataclass(frozen=True)
+class TextBlockWidthContract:
+    """组件能力与槽位容量分离；所有尺寸取自同一视觉配方。"""
+
+    minimum_items: int
+    maximum_items: int
+    item_minimum_width: float
+    gap: float
+
+    def required_width(self, count: int) -> float:
+        if isinstance(count, bool) or not isinstance(count, int):
+            raise CompactComponentRuntimeError("TextBlock item count must be an integer.")
+        if not self.minimum_items <= count <= self.maximum_items:
+            raise CompactComponentRuntimeError("TextBlock item count is outside recipe capacity.")
+        return count * self.item_minimum_width + (count - 1) * self.gap
+
+    def capacity_for_width(self, width: float) -> int:
+        if not math.isfinite(width) or width < 0:
+            raise CompactComponentRuntimeError("TextBlock available width must be non-negative.")
+        for count in range(self.maximum_items, self.minimum_items - 1, -1):
+            if self.required_width(count) <= width:
+                return count
+        return 0
+
+
+def text_block_width_contract(size: str = "2x4") -> TextBlockWidthContract:
+    """读取配方的固有上限，不把某个卡片槽宽写成组件上限。"""
+    recipe = component_visual_recipe("TextBlock", size=size)
+    metrics = recipe.get("metrics")
+    if not isinstance(metrics, dict):
+        raise CompactComponentRuntimeError("TextBlock visual recipe has invalid metrics.")
+    minimum = metrics.get("minimumItems")
+    maximum = metrics.get("maximumItems")
+    if isinstance(minimum, bool) or isinstance(maximum, bool):
+        raise CompactComponentRuntimeError("TextBlock visual recipe has invalid capacity.")
+    if not isinstance(minimum, int) or not isinstance(maximum, int):
+        raise CompactComponentRuntimeError("TextBlock visual recipe has invalid capacity.")
+    if minimum < 1 or maximum < minimum:
+        raise CompactComponentRuntimeError("TextBlock visual recipe has invalid capacity.")
+    _, item = visual_recipe_part("TextBlock", "item", size=size)
+    _, root = visual_recipe_part("TextBlock", "root", size=size)
+    constraint = item.get("constraintSize")
+    if not isinstance(constraint, dict):
+        raise CompactComponentRuntimeError("TextBlock visual recipe has invalid item constraints.")
+    width = constraint.get("minWidth")
+    gap = root.get("itemMargin")
+    for value in (width, gap):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise CompactComponentRuntimeError("TextBlock visual recipe has invalid width metrics.")
+        if not math.isfinite(value) or value < 0:
+            raise CompactComponentRuntimeError("TextBlock visual recipe has invalid width metrics.")
+    if width <= 0:
+        raise CompactComponentRuntimeError("TextBlock item minimum width must be positive.")
+    return TextBlockWidthContract(minimum, maximum, float(width), float(gap))
+
+
+def text_block_full_width_budget(available: float, full_width: float) -> float:
+    """仅放宽接近 280vp 的满宽参考预算，不改变渲染尺寸或窄槽位。"""
+    if available < full_width:
+        return available
+    if available < _TEXT_BLOCK_FULL_WIDTH_BUDGET - _TEXT_BLOCK_FULL_WIDTH_ALLOWANCE:
+        return available
+    return max(available, _TEXT_BLOCK_FULL_WIDTH_BUDGET)
 
 
 @lru_cache(maxsize=1)
@@ -65,6 +136,8 @@ def resolve_card_color_palette(
     fusion_ball_active: bool = False,
 ) -> dict[str, str]:
     """Resolve semantic content-color roles from the authored root surface."""
+    if in_layout_phase():
+        return {name: role(name) for name in _PALETTE_ROLES}
     palettes = _load_contract()["palettes"]
     if fusion_ball_active:
         return _palette_roles(palettes, "fusionDark")
@@ -119,7 +192,7 @@ def component_visual_recipe(
                 f"Visual recipe variant {variant} is not registered for {component_name}."
             )
         resolved = _deep_merge(resolved, variant_recipe)
-    return resolved
+    return recipe_roles(component_name, resolved) if in_layout_phase() else resolved
 
 
 def secondary_body_variant(items: list[dict[str, Any]], columns: int = 2) -> str | None:
@@ -129,6 +202,61 @@ def secondary_body_variant(items: list[dict[str, Any]], columns: int = 2) -> str
         if item.get("maxLines", 1) == 2:
             multiline = True
     return "multiline" if multiline else None
+
+
+@dataclass(frozen=True)
+class SecondaryBodyLayout:
+    row_sizes: tuple[int, ...]
+    max_lines: tuple[int, ...]
+    multiline: bool
+
+
+def secondary_body_text_width(text: str, font: float) -> float:
+    """保守字符压力估算，不作为精确字体测量或新的校验门禁。"""
+    return sum(font * (0.6 if character.isascii() else 1.0) for character in text)
+
+
+def secondary_body_layout(
+    items: list[dict[str, Any]],
+    *,
+    columns: int,
+    texts: list[str | None],
+    width: float | None,
+    separator: str,
+) -> SecondaryBodyLayout:
+    """首帧可知时按完整文字分组；未知文案不静态化，不猜测。"""
+    row_sizes: list[int] = []
+    max_lines: list[int] = []
+    multiline = secondary_body_variant(items, columns) is not None
+    for item in items:
+        max_lines.append(item.get("maxLines", 1))
+    index = 0
+    while index < len(items):
+        row_size = min(columns, len(items) - index)
+        text = texts[index]
+        if width is not None and text is not None:
+            if "\n" in text or secondary_body_text_width(text, 14.0) > width:
+                multiline = True
+                row_size = 1
+            if row_size == 2:
+                next_text = texts[index + 1]
+                if next_text is not None:
+                    combined = text + separator + next_text
+                    if secondary_body_text_width(combined, 14.0) > width:
+                        row_size = 1
+                        multiline = True
+        row_sizes.append(row_size)
+        index += row_size
+    if len(row_sizes) > 1:
+        multiline = True
+    if multiline and width is not None:
+        for index, text in enumerate(texts):
+            if text is None:
+                continue
+            required = secondary_body_text_width(text, 12.0)
+            if "\n" in text or width < required <= width * 2:
+                max_lines[index] = 2
+    return SecondaryBodyLayout(tuple(row_sizes), tuple(max_lines), multiline)
 
 
 def visual_recipe_part(

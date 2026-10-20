@@ -1,0 +1,64 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个桌面卡片记录喝水，结合运动健康数据展示今日步数、热量消耗等运动数据，并提醒喝水",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {},
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/dailyDistanceText",
+          "/dailySteps",
+          "/dailyTotalCaloriesText"
+        ]
+      }
+    ],
+    "title": "喝水·运动",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "结合运动健康数据展示步数、热量消耗等，并提醒喝水。",
+    "candidateAssetIds": [
+      "asset.drop_1",
+      "asset.flame_fill",
+      "asset.figure_run"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.330",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "035",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个桌面卡片记录喝水，结合运动健康数据展示今日步数、热量消耗等运动数据，并提醒喝水",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个桌面卡片记录喝水，结合运动健康数据展示今日步数、热量消耗等运动数据，并提醒喝水",
+  "candidateDataBindings": [],
+  "title": "喝水·运动",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "结合运动健康数据展示步数、热量消耗等，并提醒喝水。",
+  "candidateAssetIds": []
+}

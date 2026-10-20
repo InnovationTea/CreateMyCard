@@ -8,6 +8,7 @@ from pathlib import Path
 import requests
 
 from app.logger import logger, task_logger
+from utils.url_guard import UrlBlockedError, validate_url_for_ssrf
 
 _MODULE = "[File Download]"
 
@@ -88,8 +89,11 @@ async def download_file(
 ):
     """
     下载文件并保存到本地
-    url: 文件下载链接
+    url: 文件下载链接（用户可控，SSRF 防护见 validate_url_for_ssrf）
     save_path: 本地保存路径
+
+    allow_redirects 参数保留仅为兼容既有调用方签名；
+    重定向目标不经过 SSRF 校验，统一禁用（固定 False）。
     """
 
     try:
@@ -100,15 +104,23 @@ async def download_file(
         if not check_save_dir_and_no_overwrite(save_path):
             raise Exception("下载失败: 保存目录不存在或文件已存在")
 
+        # SSRF 防护：请求前校验协议与目标地址，私网/保留 IP 一律拒绝
+        try:
+            validate_url_for_ssrf(url)
+        except UrlBlockedError as exc:
+            logger.error(f"{_MODULE} 下载失败: URL 未通过安全校验: {exc}")
+            raise DownloadFileError(f"下载失败: {exc}") from exc
+
         response = requests.get(
             url,
             stream=True,
             timeout=timeout_seconds,
             allow_redirects=allow_redirects,
+            verify=False
         )
         if response.status_code == 404:
             raise DownloadFileNotFoundError("下载失败: 文件不存在")
-        if not allow_redirects and 300 <= response.status_code < 400:
+        if 300 <= response.status_code < 400:
             raise DownloadFileError("下载失败: 不允许重定向")
         response.raise_for_status()
 
@@ -174,8 +186,15 @@ async def download_file_async(url, file_name, semaphore):
         try:
             save_path = os.path.join(task_logger.get_session_id(), file_name)
             timeout = aiohttp.ClientTimeout(total=300, connect=30)
+            await asyncio.to_thread(validate_url_for_ssrf, url)
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=timeout) as response:
+                async with session.get(
+                    url, timeout=timeout, allow_redirects=False
+                ) as response:
+                    if response.status >= 400:
+                        response.raise_for_status()
+                    if 300 <= response.status < 400:
+                        raise DownloadFileError("下载失败: 不允许重定向")
                     response.raise_for_status()
 
                     async with aiofiles.open(save_path, 'wb') as f:

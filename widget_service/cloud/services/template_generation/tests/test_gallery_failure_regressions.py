@@ -45,6 +45,9 @@ from services.template_generation.test_support.provider_gallery import (
 
 
 @pytest.mark.parametrize(("query", "has_action"), [
+    ("不附带标题、结束时间或按钮", False),
+    ("不附带标题、结束时间或按钮，但点击查看详情", True),
+    ("不要标题和备注，显示按钮", True),
     ("无按钮", False), ("不显示操作按钮", False), ("无需任何操作按钮", False),
     ("无按钮，但点击打开日历", True), ("不要按钮，但点按查看详情", True),
     ("显示按钮", True), ("无法打开日历，需要按钮", True),
@@ -125,7 +128,7 @@ def test_required_gallery_assets_are_registered_and_semantic(template_id: str) -
 @pytest.mark.parametrize("template_id", [
     "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1",
 ])
-@pytest.mark.parametrize("version", ["app-11.7.5.205_rom-6.0", "app-11.7.7.300_rom-7.0"])
+@pytest.mark.parametrize("version", ["app-11.7.7.300_rom-7.0"])
 def test_battery_leaf_replaces_missing_phone_icon(template_id: str, version: str) -> None:
     assets = _load_asset_capabilities(_CAPABILITY_ROOT.parent / version)
     assert "asset.icon_phone" not in assets
@@ -152,8 +155,10 @@ def test_battery_leaf_replaces_missing_phone_icon(template_id: str, version: str
 @pytest.mark.parametrize("template_id", [
     "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1",
 ])
-@pytest.mark.parametrize("asset_id", ["asset.phone_fill", "asset.ic_phone", "asset.emoji_phone1"])
-def test_battery_leaf_contract_rejects_phone_call_icons(template_id: str, asset_id: str) -> None:
+@pytest.mark.parametrize("asset_id", [
+    "asset.phone_fill", "asset.icon_earphone", "asset.icon_weather_thermometer_medium",
+])
+def test_battery_leaf_contract_rejects_unrelated_icons(template_id: str, asset_id: str) -> None:
     assets = _load_asset_capabilities(_CAPABILITY_ROOT.parent / "app-11.7.7.300_rom-7.0")
     asset = assets.get(asset_id)
     assert asset is not None

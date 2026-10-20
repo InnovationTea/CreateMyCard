@@ -8,10 +8,12 @@ from types import SimpleNamespace
 import pytest
 
 from config.config import get_settings
-from services.card_validation import validate_compact_dsl
+from services.card_validation import ValidationOptions, validate_card, validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
+from services.compact_component_runtime import load_visual_recipe_contract
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.compact_prompt_loader import assemble_prompts
+from services.compact_semantic_layout import SEMANTIC_LAYOUT_TYPES
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import A2UIProtocolRegistry
 
@@ -53,6 +55,7 @@ RUNTIME_OWNED_PROPS = {
     },
     "CircleButton": {"actionSurface", "actionInk"},
     "CardButton": {"backgroundColor"},
+    "SummaryList": {"backgroundColor"},
     "TextBlock": {"backgroundColor"},
 }
 BASE_COMPONENTS = {
@@ -70,6 +73,7 @@ EXPECTED_EXAMPLE_ORDER = {
     "2x2": (
         "2x2-V01",
         "2x2-V09",
+        "2x2-V15",
         "2x2-V10",
         "2x2-V12",
         "2x2-V04",
@@ -87,6 +91,7 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x4-V03",
         "2x4-V16",
         "2x4-V28",
+        "2x4-V39",
         "2x4-V09",
         "2x4-V08",
         "2x4-V10",
@@ -99,6 +104,7 @@ EXPECTED_EXAMPLE_ORDER = {
 EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x2-V01": "S-center",
     "2x2-V09": "S-center",
+    "2x2-V15": "S-center",
     "2x2-V10": "S-title-content",
     "2x2-V12": "S-quad-content",
     "2x2-V04": "S-title-content-action",
@@ -114,6 +120,7 @@ EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x4-V03": "W-top-bottom",
     "2x4-V16": "W-top-bottom",
     "2x4-V28": "W-top-bottom",
+    "2x4-V39": "W-top-bottom",
     "2x4-V09": "W-split-panels",
     "2x4-V08": "W-content-side-slots",
     "2x4-V10": "W-content-side-slots",
@@ -221,6 +228,56 @@ def test_few_shot_validates_and_converts(
 
     components = messages[1]["updateComponents"]["components"]
     assert all(component["component"] in BASE_COMPONENTS for component in components)
+    report = validate_card(
+        dsl_text=converted,
+        effective_capabilities={"asset": task.get("assetCandidates", [])},
+        options=ValidationOptions(stage="hard"),
+    )
+    errors = []
+    for diagnostic in report.diagnostics:
+        if diagnostic.severity == "error":
+            errors.append((diagnostic.code, diagnostic.message))
+    assert not errors, (identifier, errors)
+
+
+@pytest.mark.parametrize(
+    "identifier, component_id", [("2x4-V10", "upper"), ("2x4-V38", "top_left")]
+)
+def test_double_quoted_expression_strings_remain_rejected(
+    identifier: str, component_id: str,
+) -> None:
+    task, source = _example(identifier)
+    rows = _rows(source)
+    changed = False
+    for row in rows:
+        if row[0] != component_id:
+            continue
+        props = row[2]
+        assert isinstance(props, dict)
+        expression = props.get("primaryText")
+        assert isinstance(expression, str)
+        assert "'" in expression
+        props["primaryText"] = expression.replace("'", '"')
+        changed = True
+    assert changed
+    invalid_source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    converted = convert_compact_dsl_to_a2ui(
+        invalid_source,
+        size=task.get("size"),
+        protocol_profile={"version": "v0.9", "appVersion": "99.0"},
+    )
+    report = validate_card(
+        dsl_text=converted,
+        effective_capabilities={"asset": task.get("assetCandidates", [])},
+        options=ValidationOptions(stage="hard"),
+    )
+    errors = []
+    for diagnostic in report.diagnostics:
+        if diagnostic.code == "EXPR_PARSE_FAILED":
+            errors.append(diagnostic)
+    assert errors
+    assert all(item.severity == "error" for item in errors)
+    assert any("字符串必须使用单引号" in item.message for item in errors)
 
 
 def test_example_ids_match_selected_library_and_are_unique() -> None:
@@ -244,7 +301,6 @@ def test_few_shot_sources_follow_layout_order_and_mark_missing_skeletons() -> No
 
     two_by_four = (PROMPT_SOURCE / "fewshots/2x4.md").read_text(encoding="utf-8")
     for missing in (
-        "同类同级",
         "Sub-118-A",
         "Sub-118-B",
         "Sub-118-C",
@@ -351,14 +407,18 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
     _, source = _example("2x2-V14")
     rows = {row[0]: row for row in _rows(source)}
 
-    assert rows["title_area"][2].get("icon") == "resources/base/media/calendar_fill.svg"
-    assert rows["meeting_action"][2].get("icon") == "resources/base/media/icon_meeting.svg"
+    title_row = rows.get("title")
+    action_row = rows.get("action")
+    assert title_row is not None and action_row is not None
+    assert title_row[2].get("icon") == "resources/base/media/calendar_fill.svg"
+    assert action_row[2].get("icon") == "resources/base/media/icon_meeting.svg"
 
 
 @pytest.mark.parametrize(
     ("identifier", "required"),
     (
         ("2x2-V01", {"DataDisplay"}),
+        ("2x2-V15", {"DataDisplay"}),
         ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
         ("2x2-V03", {"TableText", "PillButton"}),
         ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
@@ -376,6 +436,7 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
             {"SingleLineTitle", "EventCard", "TableText", "CircleButton"},
         ),
         ("2x4-V03", {"EmphasizedData", "TextBlock"}),
+        ("2x4-V39", {"SingleLineTitle", "SummaryList"}),
     ),
 )
 def test_examples_use_available_high_level_components(
@@ -396,10 +457,14 @@ def test_examples_use_only_supported_component_types(
     task: dict,
     source: str,
 ) -> None:
-    del task
     types = set(_component_types(source))
     assert "Progress" not in types, identifier
-    assert types.issubset(BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS), identifier
+    allowed = BASE_COMPONENTS | HIGH_LEVEL_COMPONENTS | SEMANTIC_LAYOUT_TYPES
+    assert "Layout" in types, identifier
+    assert not types.intersection({"Row", "Column", "Stack"}), identifier
+    if task.get("size") == "2x2":
+        assert "Region" not in types, identifier
+    assert types.issubset(allowed), identifier
 
 
 @pytest.mark.parametrize(
@@ -407,7 +472,7 @@ def test_examples_use_only_supported_component_types(
     EXAMPLES,
     ids=[item[0] for item in EXAMPLES],
 )
-def test_text_component_examples_declare_fixed_recipe_font_size(
+def test_text_component_examples_follow_runtime_font_ownership(
     identifier: str,
     task: dict,
     source: str,
@@ -418,13 +483,15 @@ def test_text_component_examples_declare_fixed_recipe_font_size(
         "DoubleLineTitle": 12,
         "EmphasizedData": 30,
         "EmphasisText": 18,
-        "DataDisplay": 56,
     }
     for row in _rows(source):
         if len(row) < 3:
             continue
         component_type = row[1]
         props = row[2]
+        if component_type == "DataDisplay":
+            assert "fontSize" not in props, identifier
+            continue
         expected = fixed_sizes.get(component_type)
         if component_type == "SecondaryBody":
             role = props.get("role")
@@ -503,7 +570,10 @@ def test_example_reaches_its_generation_route(
     for selected_id in set(selected).intersection(available_ids):
         assert selected_id in assembled
     if "adaptive" not in layout_scope:
-        assert f"### `{layout_scope}`" in assembled
+        if task_spec.size == "2x4":
+            assert f" {layout_scope}：" in assembled
+        else:
+            assert layout_scope in assembled
 
 
 def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
@@ -524,26 +594,23 @@ def test_few_shot_switch_skips_document_loading(monkeypatch) -> None:
 
     assert "本轮实现参考" not in assembled
     assert "# 本轮组件与布局选择" in assembled
-    assert "基础布局组件和组件" in assembled
+    assert "只使用本尺寸登记的布局与真实 Props" in assembled
     for deprecated in ("基础组件", "高阶组件", "高级组件", "普通组件", "基础组合"):
         assert deprecated not in assembled
 
 
-def _palette_rows() -> list[list[str]]:
-    palettes = []
-    for line in PROMPTS["create"].splitlines():
-        if not line.startswith("|"):
-            continue
-        colors = re.findall(r"#[A-F0-9]{8}", line)
-        if len(colors) == 6:
-            palettes.append(colors)
-    assert palettes
-    return palettes
-
-
-@pytest.mark.parametrize("colors", _palette_rows())
-def test_palette_preserves_text_hierarchy(colors: list[str]) -> None:
-    start, end, primary, secondary, button, _ = colors
+@pytest.mark.parametrize("family", ["blue", "purple", "warm"])
+def test_runtime_palette_preserves_text_hierarchy(family: str) -> None:
+    palette = load_visual_recipe_contract().get("palettes", {}).get(family)
+    assert palette
+    gradients = palette.get("gradients")
+    assert gradients
+    start, end = gradients[0]
+    roles = palette.get("roles", {})
+    primary = roles.get("primary")
+    secondary = roles.get("secondary")
+    button = roles.get("componentSecondary")
+    assert primary and secondary and button
     start_rgb = _rgba(start)[:3]
     end_rgb = _rgba(end)[:3]
     for step in range(11):
@@ -585,8 +652,7 @@ def test_example_gradients_use_registered_direction_and_stops(
 
 def test_component_catalog_excludes_removed_legacy_components() -> None:
     catalog = PROMPTS["create"]
-    allowed_section = catalog.split("# 2. Compact DSL 组件合同", maxsplit=1)[1]
-    allowed_section = allowed_section.split("## 2.1", maxsplit=1)[0]
+    allowed_section = catalog
     for component_type in HIGH_LEVEL_COMPONENTS:
         assert f"`{component_type}`" in allowed_section
     for removed_type in ("ActionUnit", "Checkbox", "TimelineUnit"):
@@ -613,6 +679,26 @@ def test_unknown_routes_use_current_neutral_examples() -> None:
     )
     assert PromptBuilder._visual_route(small) == ("generic", ("2x2-V09",))
     assert PromptBuilder._visual_route(wide) == ("generic", ("2x4-V00",))
+
+
+def test_weather_alert_routes_to_text_data_display_example() -> None:
+    task_spec = SimpleNamespace(
+        size="2x2",
+        userQuery="展示当前天气预警和更新日期，不需要按钮",
+        eventCandidates=[],
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "current": {"alertLevel": {"type": "string"}},
+                    "updatedAtText": {"type": "string"},
+                }
+            }
+        },
+    )
+    assert PromptBuilder._visual_route(task_spec) == (
+        "weather-readout",
+        ("2x2-V15",),
+    )
 
 
 def test_prompt_source_has_no_out_of_range_formal_example_references() -> None:

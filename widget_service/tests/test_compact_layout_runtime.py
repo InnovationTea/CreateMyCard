@@ -8,7 +8,11 @@ from types import SimpleNamespace
 import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
-from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+from services.compact_dsl_a2ui_converter import (
+    ComponentRow,
+    expand_compact_semantic_layout,
+    parse_compact_dsl_rows,
+)
 from services.compact_layout_runtime import (
     LAYOUT_CONTRACT_VERSION,
     CompactLayoutRuntimeError,
@@ -17,6 +21,7 @@ from services.compact_layout_runtime import (
     match_compact_layout,
 )
 from services.compact_prompt_loader import assemble_prompts
+from services.compact_semantic_layout import collect_semantic_layout_warnings
 from services.prompt_builder import PromptBuilder
 
 PROMPT_SOURCE = (
@@ -254,14 +259,20 @@ def test_2x4_few_shots_match_the_layout_declared_in_each_heading() -> None:
     _layout_pseudocodes(),
     ids=[item[0] for item in _layout_pseudocodes()],
 )
-def test_documented_layout_uses_abstract_genui_pseudocode(
+def test_documented_layout_uses_registered_semantic_or_legacy_pseudocode(
     layout_id: str,
     size: str,
     source: str,
 ) -> None:
-    del layout_id, size
     rows = [json.loads(line) for line in source.splitlines()]
     assert rows[0][0] == "root"
+    if rows[0][1] == "Layout":
+        assert rows[0][2].get("layout") == layout_id
+        assert layout_id in layout_ids_for_size(size)
+        children = rows[0][3]
+        assert children and len(children) == len(set(children))
+        assert all(isinstance(child, str) and "?" not in child for child in children)
+        return
     assert any(
         isinstance(row[1], str) and row[1].startswith("<")
         for row in rows
@@ -594,7 +605,9 @@ def test_unknown_layout_scope_is_rejected() -> None:
 
 
 def test_s_dual_info_rejects_non_contract_slot_heights() -> None:
-    source = _layout_fixture("S-dual-info")
+    source, _origins = expand_compact_semantic_layout(
+        _layout_fixture("S-dual-info"), size="2x2",
+    )
 
     def mutate(row: list) -> None:
         if row[0] == "shanghai":
@@ -629,25 +642,33 @@ def test_w_content_side_slots_rejects_non_contract_slot_heights() -> None:
         )
 
 
-def test_w_content_side_slots_rejects_action_then_information() -> None:
-    source = _layout_fixture("W-content-side-slots")
+@pytest.mark.parametrize("orientation", ["content-left", "content-right"])
+def test_w_content_side_slots_warns_for_action_then_information(orientation: str) -> None:
+    def reverse_mixed_slots(row: list) -> None:
+        if row[0] == "root":
+            row[2]["orientation"] = orientation
+            row[3] = ["main", "settings", "connection"]
 
-    def mutate(row: list) -> None:
-        if row[0] == "connection":
-            row[1] = "CardButton"
-            row[2]["onClick"] = [
-                {"call": "clickToDeeplink", "args": {"intentName": "Settings"}}
-            ]
-        if row[0] == "settings":
-            row[1] = "InfoBlock"
-            row[2].pop("onClick", None)
+    source = _mutate_rows(
+        _layout_fixture("W-content-side-slots"),
+        reverse_mixed_slots,
+    )
+    original_rows = parse_compact_dsl_rows(
+        source,
+        expand_layouts=False,
+        size="2x4",
+    )
+    result = match_compact_layout(
+        _components(source),
+        size="2x4",
+        layout_scope="W-content-side-slots",
+    )
 
-    with pytest.raises(CompactLayoutRuntimeError, match="W-content-side-slots"):
-        match_compact_layout(
-            _components(_mutate_rows(source, mutate)),
-            size="2x4",
-            layout_scope="W-content-side-slots",
-        )
+    assert result.layout_id == "W-content-side-slots"
+    assert collect_semantic_layout_warnings(original_rows) == (
+        "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；"
+        "当前顺序仍允许转换。",
+    )
 
 
 def test_w_content_side_slots_rejects_event_on_information_slot() -> None:

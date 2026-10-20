@@ -13,8 +13,8 @@
       "capabilityId": "GetPhoneBatteryInfo",
       "dataDomain": "/data/phoneBattery",
       "dataSchema": {
-        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
-        "version": "app-11.7.5.205_rom-6.0"
+        "path": "capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json",
+        "version": "app-11.7.7.300_rom-7.0"
       }
     }
   ],
@@ -35,7 +35,7 @@
       "templateId": "BatteryOverviewFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Full，展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态；batteryIcon 必填。",
+      "description": "手机电量 Full，展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态；batteryIcon 可选，无素材时在进度环内显示字母 E 作为电量标识。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -335,7 +335,7 @@
       "templateId": "BatteryOverviewTemperatureFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池温度 Full，顶部展示标题和温度图标，中部展示当前温度与充电器类型，底部两行展示更新时间。",
+      "description": "电池温度 Full，顶部展示标题和可选温度图标，中部展示当前温度与充电器类型，底部两行展示更新时间。无温度素材时省略图标，不影响模板选择。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -563,6 +563,102 @@
         "/batteryCapacityLevelDesc",
         "/pluggedTypeDesc"
       ]
+    },
+    {
+      "templateId": "BatteryOverviewPercentHealthDetailsFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比与健康详情 Full；2x2 无按钮、无需图标。顶部手机电量、大字百分比，下方充电状态、电池健康、充电类型三行，右侧字段加粗。四项文本数据均必需，不依赖数值电量或电量等级。",
+      "entry": "templates/battery-percent-health-details-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/healthStatusDesc",
+        "/pluggedTypeDesc"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "BatteryOverviewPercentHealthCurrentDetailsFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比、健康与电流详情 Full；2x2 无按钮、无需图标。顶部手机电量、大字百分比，下方充电状态、电池健康、当前电流三行，右侧字段加粗。四项文本数据均必需，不依赖数值电量或电量等级。",
+      "entry": "templates/battery-percent-health-current-details-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/healthStatusDesc",
+        "/nowCurrentText"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "BatteryOverviewChargingTemperatureFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "充电温度与电量Full：参考HealthTemperature的小标题、大字状态、温度辅行，顶部12fp标题优先使用传入title，缺省或空字符串显示手机电池，请求标题非空时逐字传入title。实际充电状态18fp加粗，温度14fp，下方弹性留白，左下角12fp电量: N%。充电状态、温度文本和电量文本三项均必需；充电温度与电量齐全时优先参考此完整模板。无图标、按钮、数值电量或健康要求，不推断温度正常或快充。",
+      "entry": "templates/battery-charging-temperature-full.cardtpl",
+      "primaryData": [
+        "/batteryTemperatureText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/batterySOCText"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "BatteryOverviewTemperatureStatusFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "BAT020式居中三段温度Full：顶部16fp请求title，无title用手机电池，中间30fp温度，底部12fp“电量: N%”。仅温度必需；电量文本、充电状态和充电器类型可选，无素材或按钮。仅电量时底行居中；有充电信息时左侧保留辅助信息、右侧展示电量。请求标题非空时逐字传入title。不推断温度正常。",
+      "entry": "templates/battery-temperature-status-full.cardtpl",
+      "primaryData": [
+        "/batteryTemperatureText"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewPercentStatusFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "充电状态 Hero 对应的无按钮 Full：顶部手机电量和可选健康、更新时间，30fp百分比大字，可选等级与温度在主值下方，充电状态独立固定在左下角；仅需电量文本，无图标或数值电量要求。",
+      "entry": "templates/battery-percent-status-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [],
+      "optionalData": [
+        "/chargingStatusDesc",
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/batteryTemperatureText",
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingTypePercentFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "居中三段式充电类型百分比 Full：顶部16fp实际充电状态，中间38fp电量文本，底部12fp充电器类型。三项文本均必需，无数值电量、图标或按钮要求；支持2x2单焦点和2x4与天气Full组合。",
+      "entry": "templates/battery-charging-type-percent-full.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/pluggedTypeDesc"
+      ],
+      "optionalData": []
     },
     {
       "templateId": "BatteryOverviewPercentTextFull@1",

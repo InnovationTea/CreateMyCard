@@ -10,6 +10,7 @@ from functools import partial
 
 from app.logger import logger
 from config.config import Settings, get_settings
+from custom.aliyun_bailian_transport import AliyunBailianHttpTransport
 from custom.deepseek_official_http_transport import DeepSeekOfficialHttpTransport
 from custom.deepseek_platform_client import DeepSeekPlatformClient
 from custom.llmclient import LLMClientOptions, stream_genui
@@ -70,6 +71,7 @@ class ModelExecutionRuntime:
         deepseek_platform_transport: ModelTransport | None = None,
         llmclient_transport: ModelTransport | None = None,
         deepseek_official_http_transport: DeepSeekOfficialHttpTransport | None = None,
+        aliyun_bailian_transport: AliyunBailianHttpTransport | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self._semaphore = asyncio.Semaphore(self.settings.model_max_concurrency)
@@ -79,6 +81,9 @@ class ModelExecutionRuntime:
         )
         self._deepseek_official_http_transport = (
             deepseek_official_http_transport or DeepSeekOfficialHttpTransport(self.settings)
+        )
+        self._aliyun_bailian_transport = (
+            aliyun_bailian_transport or AliyunBailianHttpTransport(self.settings)
         )
         self._llmclient_generate = (
             llmclient_transport.generate
@@ -94,6 +99,7 @@ class ModelExecutionRuntime:
         """关闭共享 HTTP 连接池并停止接收新的 llmclient 线程任务。"""
         await self._mep_transport.aclose()
         await self._deepseek_official_http_transport.aclose()
+        await self._aliyun_bailian_transport.aclose()
         self._llmclient_executor.shutdown(wait=False, cancel_futures=False)
 
     async def generate_once(
@@ -213,6 +219,9 @@ class ModelExecutionRuntime:
             return await self._await_async_provider(provider, operation)
         if provider == "llmclient":
             return await self._generate_llmclient(messages)
+        if provider == "aliyun_bailian":
+            operation = self._aliyun_bailian_transport.generate(messages, request_context)
+            return await self._await_async_provider(provider, operation)
         raise ModelTransportError(
             f"unsupported model provider: {provider}",
             code="MODEL_PROVIDER_UNSUPPORTED",

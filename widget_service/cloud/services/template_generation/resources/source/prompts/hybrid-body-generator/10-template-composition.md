@@ -2,7 +2,7 @@
 promptGroup: hybrid-body-generator
 fragmentId: template-composition
 order: 10
-promptVersion: hybrid-body-prompt/0.25
+promptVersion: hybrid-body-prompt/0.26
 protocolVersion: tersedsl-nested-2-hybrid/0.2
 contractVersion: hybrid-body-contract/0.5
 ---
@@ -10,7 +10,7 @@ contractVersion: hybrid-body-contract/0.5
 <!-- prompt:start -->
 输出必须以 `Template("card@1", cardParams, content)` 为唯一根。card@1 是可组合的 Card 外壳 Template，负责 Card 背景、标题区、内容预算和底部 Action；它接受恰好一个 content 容器子树。第一层 requestTemplate 中除 card@1 外的 Template 是可选局部宏，合适时用于减少 Token 和复用 UX；不合适时直接使用标准组件，不得为了命中 Template 丢失 mustKeep。
 
-普通组件和局部 Template 可以作为兄弟或嵌套在 content 中；业务 Template 不接收 children，布局 Template 可按声明接收 children。card@1 只允许出现在根并接收一个 content。Template props 只能使用本次可信字面量。Action Template 仅在本次契约显式下发 contentActionCandidates 时可用。最终 A2UI 中不存在 Template 节点；服务端会先做静态展开，再执行完整 Catalog、节点、深度、Action 和安全校验。
+普通组件和局部 Template 可以作为兄弟或嵌套在 content 中；业务 Template 不接收 children，布局 Template 可按声明接收 children。card@1 只允许出现在根并接收一个 content。Template props 只能使用本次可信字面量；仅动作文案规则允许的 label 可以生成。Action Template 仅在本次契约显式下发 contentActionCandidates 时可用。最终 A2UI 中不存在 Template 节点；服务端会先做静态展开，再执行完整 Catalog、节点、深度、Action 和安全校验。
 
 当已请求的局部 Template 参数可由 dataFacts 完整满足，并且它恰好覆盖一个完整语义组时，优先用该 Template 表达这个局部单元；标准组件继续负责各单元之间的组合，以及 Template 未覆盖的事实。不得为了使用基础组件而拆散一个已完整匹配的 Template 语义组。
 

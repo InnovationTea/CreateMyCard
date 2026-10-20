@@ -60,13 +60,16 @@ from services.template_generation.engine.tersel_converter import (
     serialize_task_spec_data,
 )
 
+from .action_labels import LABEL_ACTION_TEMPLATES, validate_action_label
 from .business_actions import supports_business_action
+from .calendar_weather_presentation import center_calendar_weather_full
 from .fusion_ball_background import (
     FusionBallPalette,
     apply_content_safe_inset,
     apply_fusion_ball_background,
 )
 from .generic_metrics import GENERIC_HEALTH_LABELS
+from .layout_surface_policy import apply_layout_surface, configure_layout_surface
 from .models import (
     CARDTPL_SOURCE_FORMATS,
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -443,6 +446,7 @@ def compile_ux_layout_card(
         task_spec=task_spec,
         provider_binding_roots=_provider_binding_roots(card_spec),
     )
+    expanded = center_calendar_weather_full(expanded, composition, size=task_spec.size)
     _validate_required_template_groups(state, contract)
     layout_id = _parsed_layout_template_id(composition, registry)
     embedded_action_count = sum(
@@ -744,16 +748,16 @@ def _validate_card_params(
         return
     if not isinstance(action, dict) or set(action) != {"label", "id"}:
         raise TerselConversionError("card@1 action must contain label and id.")
-    pair = (action.get("label"), action.get("id"))
-    approved = {(item.display_label, item.action_id) for item in contract.action_bindings}
-    if pair not in approved:
+    action_id = action.get("id")
+    selected_binding = next(
+        (item for item in contract.action_bindings if item.action_id == action_id), None,
+    )
+    if selected_binding is None:
         raise TerselConversionError("card@1 action label/id pair is not approved.")
-    if action["id"] in contract.content_action_ids:
+    validate_action_label(selected_binding, action.get("label"))
+    if action_id in contract.content_action_ids:
         raise TerselConversionError("content Action cannot be used by card@1.")
     event_ids = {item.id for item in task_spec.eventCandidates}
-    selected_binding = next(
-        item for item in contract.action_bindings if item.action_id == action["id"]
-    )
     if selected_binding.event_id not in event_ids:
         raise TerselConversionError("card@1 action is not in TaskSpec.")
 
@@ -886,11 +890,7 @@ def _expand_call(
                 else _compact_text_roles(child)
                 for source, child in zip(call.children, children, strict=True)
             )
-        return Nested2Node(
-            call.name,
-            values,
-            children,
-        )
+        return configure_layout_surface(call, Nested2Node(call.name, values, children))
     wire_id = call.name
     if wire_id not in contract.allowed_template_ids:
         raise TerselConversionError(f"Template is not allowed: {wire_id}")
@@ -922,6 +922,14 @@ def _expand_call(
         raise TerselConversionError(
             f"Template params are invalid for {wire_id}/{size}: {errors[0].message}"
         )
+    title_fallback_template = (
+        wire_id == "BatteryOverviewChargingTemperatureFull@1"
+        or definition.business_id == "BluetoothDeviceOverview"
+    )
+    if title_fallback_template and params.get("title") == "":
+        # 这些模板将空标题视为未传；模板条件原本只判断参数是否存在。
+        params = dict(params)
+        params.pop("title", None)
     params = _normalize_template_asset_params(
         params,
         definition.asset_parameter_semantic_tags,
@@ -929,12 +937,18 @@ def _expand_call(
         required_parameters=frozenset(
             str(item) for item in variant.parameters_schema.get("required", ())
         ),
+        optional_semantic_fallback_parameters=(
+            frozenset({"leftEarIcon", "rightEarIcon", "caseIcon"})
+            if definition.business_id == "BluetoothDeviceOverview"
+            else frozenset()
+        ),
     )
     _validate_template_params(
         params,
         definition.asset_parameter_semantic_tags,
         contract,
         variant.parameters_schema,
+        action_template_id=wire_id,
     )
     params = _normalize_charging_settings_button(
         wire_id, params, provider_binding_roots, task_spec.size
@@ -961,7 +975,7 @@ def _expand_call(
             "WideTwoFocusTwoActionLayout",
         }
         and task_spec.size == "2x4"
-        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact"}
+        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact", "Support"}
     )
     if (
         variant.supported_card_sizes
@@ -1070,7 +1084,7 @@ def _expand_call(
         state.action_occurrences.append(action_id)
         if action_id not in state.action_ids:
             state.action_ids.append(action_id)
-    return root
+    return configure_layout_surface(call, root)
 
 
 def _normalize_charging_settings_button(
@@ -1123,12 +1137,8 @@ def _wrap_action_template(
     )
     if binding is None or action_id not in contract.content_action_ids:
         raise TerselConversionError(f"Action Provider Template is not approved: {wire_id}")
-    if action_component in {"PillAction", "CompactAction", "CompactSubtitleAction"} and (
-        params.get("label") != binding.display_label
-    ):
-        raise TerselConversionError(
-            f"{action_component} label/actionId pair is not approved."
-        )
+    if wire_id in LABEL_ACTION_TEMPLATES:
+        validate_action_label(binding, params.get("label"))
     if (
         action_component == "CompactSubtitleAction"
         and binding.display_subtitle
@@ -1203,6 +1213,12 @@ def _validate_provider_template_state(
             "healthTemperatureHero",
             "percentTextFull",
             "percentDetailsFull",
+            "percentHealthDetailsFull",
+            "percentHealthCurrentDetailsFull",
+            "percentStatusFull",
+            "chargingTypePercentFull",
+            "temperatureStatusFull",
+            "chargingTemperatureFull",
             "percentLevelHero",
             "percentLevelFull",
             "percentRingCompact",
@@ -1307,10 +1323,10 @@ def _validate_provider_template_state(
             if facts.is_connected is None or not has_case:
                 raise TerselConversionError("Case connection Hero requires connection and battery.")
             return
-        if variant_name == "caseConnectionCompact":
+        if variant_name == "connectionBatterySupport":
             if facts.is_connected is None or not has_case:
                 raise TerselConversionError(
-                    "Case connection Compact requires connection and battery."
+                    "Connection battery Support requires connection and battery."
                 )
             return
         if variant_name == "tripleBatteryWideHalf":
@@ -1361,8 +1377,15 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
                 )
             return
-        if variant_name == "musicCompact":
+        if variant_name == "musicSupport":
             # 纯歌单入口：不渲染耳机数据，因此不设任何数据前提。
+            return
+        if variant_name == "earbudPairChargingFull":
+            has_three_batteries = has_case and has_left and has_right
+            if not has_three_batteries or facts.case_charging_status is None:
+                raise TerselConversionError(
+                    "Earbud charging Full requires three batteries and a case charging state."
+                )
             return
         if variant_name == "earbudPairFull":
             if facts.is_connected is None and facts.earphone_name is None:
@@ -4524,8 +4547,19 @@ def _validate_template_params(
     asset_tags: dict[str, tuple[str, ...]],
     contract: HybridBodyContract,
     parameter_schema: dict[str, Any] | None = None,
+    *,
+    action_template_id: str | None = None,
 ) -> None:
     for key, value in params.items():
+        if key == "label" and action_template_id in LABEL_ACTION_TEMPLATES:
+            action_id = params.get("actionId")
+            binding = next(
+                (item for item in contract.action_bindings if item.action_id == action_id), None,
+            )
+            if binding is None or action_id not in contract.content_action_ids:
+                raise TerselConversionError("Action label requires an approved content Action.")
+            validate_action_label(binding, value)
+            continue
         if (
             parameter_schema
             and key.casefold().endswith("path")
@@ -4617,6 +4651,7 @@ def _normalize_template_asset_params(
     contract: HybridBodyContract,
     *,
     required_parameters: frozenset[str],
+    optional_semantic_fallback_parameters: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     normalized = dict(params)
     for key, value in params.items():
@@ -4644,6 +4679,12 @@ def _normalize_template_asset_params(
             if required_tags.issubset(set(contract.asset_semantic_tags_by_source.get(source, ())))
         ]
         if len(candidates) != 1:
+            can_use_text_fallback = (
+                key in optional_semantic_fallback_parameters and key not in required_parameters
+            )
+            if can_use_text_fallback:
+                normalized.pop(key, None)
+                continue
             raise TerselConversionError(
                 f"Template asset semantics do not match {key}: {value}"
             )
@@ -5094,7 +5135,7 @@ def _template_value(
     elif value.kind == "interpolation":
         raise TerselConversionError("Template interpolation must be the first Text value.")
     elif value.kind == "expression":
-        resolved_value = _provider_runtime_expression(value, bindings)
+        resolved_value = _provider_runtime_expression(value, bindings, params)
     elif value.kind == "compile-time-conditional":
         resolved_value = _provider_compile_time_conditional(
             value,
@@ -5286,6 +5327,7 @@ def _provider_static_interpolation(
 def _provider_runtime_expression(
     value: TemplateValue,
     bindings: dict[str, str],
+    params: dict[str, Any] | None = None,
 ) -> str:
     parts: list[str] = []
     for item in value.items:
@@ -5294,6 +5336,12 @@ def _provider_runtime_expression(
             if placeholder is None:
                 raise TerselConversionError(f"Template binding is missing: {item.name}")
             parts.append(_a2ui_expression_reference(placeholder))
+            continue
+        if item.kind == "parameter":
+            parameter = params.get(item.name or "") if params is not None else None
+            if not isinstance(parameter, str):
+                raise TerselConversionError("Template Expr props must be strings.")
+            parts.append(_a2ui_expression_string(parameter))
             continue
         if item.kind == "literal" and isinstance(item.value, str):
             parts.append(item.value)
@@ -5644,7 +5692,9 @@ def _compile_card_shell(
             "alignContent": "center",
             "onClick": [{"call": binding.call, "args": binding.args}],
         }
-        label_values: tuple[Any, ...] = (binding.display_label, "compact-action")
+        label_values: tuple[Any, ...] = (
+            validate_action_label(binding, action.get("label")), "compact-action",
+        )
         if action_style is not None:
             label_values = (
                 *label_values,
@@ -6479,6 +6529,7 @@ _PROVIDER_TEMPLATE_DIRECT_VARIANTS = {
         "earbudsDynamicWideFull": "earbuds",
         "earbudsSupport": "earbuds",
         "earbudPairFull": "earbuds",
+        "earbudPairChargingFull": "earbuds",
         "completeWideFull": "earbuds",
         "earbudPairCompact": "earbuds",
         "completePhoneWideFull": "earbuds",
@@ -6697,6 +6748,12 @@ def _validate_provider_template_layout_action_requirements(
         ),
     }
     wide_composition = wide_composition_contracts.get(layout_id)
+    if (
+        layout_id == "WideFullTwoCompactLayout"
+        and not action_names
+        and layout_kinds == ("Full", "Support", "Support")
+    ):
+        return
     if layout_id == "WideFullTwoCompactLayout" and action_names == ("CompactAction",) * 2:
         if layout_kinds != ("Full",):
             raise TerselConversionError(
@@ -6707,10 +6764,21 @@ def _validate_provider_template_layout_action_requirements(
         ("CompactAction",),
         ("CompactSubtitleAction",),
     }:
-        if layout_kinds not in {("Full", "Compact"), ("Hero", "Compact")}:
+        if layout_kinds not in {
+            ("Full", "Compact"),
+            ("Full", "Support"),
+            ("Hero", "Compact"),
+            ("Hero", "Support"),
+        }:
             raise TerselConversionError(
                 f"{layout_id} Provider Template slot combination is invalid."
             )
+        return
+    if layout_id == "WideFullTwoCompactLayout" and not action_names and layout_kinds == (
+        "Full",
+        "Support",
+        "Support",
+    ):
         return
     if layout_id == "WideHalfTwoCompactLayout" and action_names == ("CompactAction",):
         if layout_kinds != ("WideHalf", "Compact"):
@@ -8014,12 +8082,13 @@ def _instantiate_provider_layout_blueprint(
         raise TerselConversionError(
             f"Provider Layout Template child count is invalid: {definition.wire_id}"
         )
-    return _instantiate_blueprint(
+    root = _instantiate_blueprint(
         variant.root,
         params,
         theme_values=registry.theme_reference_values(contract.theme_profile_id),
         spread_children=children,
     )
+    return apply_layout_surface(root, layout_id, params)
 
 
 def _lower_single_focus_layout(
@@ -9178,7 +9247,7 @@ def _lower_ux_action(
         if size != "2x4" and not allow_action_tile_2x2:
             raise TerselConversionError("ActionTile is only available for 2x4.")
         return _lower_action_tile(
-            binding.display_label,
+            validate_action_label(binding, params.get("label", binding.display_label)),
             icon,
             background,
             foreground,
@@ -9291,6 +9360,11 @@ def _lower_action_template_tree(
         values[options_index] = cleaned
         return Nested2Node(filled.component_type, tuple(values), filled.children)
     styled = apply_foreground(content)
+    # CompactAction is rendered inside a layout-owned support slot.  The slot
+    # supplies the shared surface, radius, and padding; adding an action
+    # background here would create a second nested panel inside that slot.
+    if node.component_type == "CompactAction":
+        return styled
     return _merge_node_options(styled, {"backgroundColor": background})
 
 

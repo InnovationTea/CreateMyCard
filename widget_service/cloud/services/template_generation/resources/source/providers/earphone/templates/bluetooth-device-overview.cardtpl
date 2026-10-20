@@ -54,6 +54,7 @@ Column(
                 "alignItems": "center"
             },
             #if props.leftEarIcon
+            #if props.rightEarIcon
             Image(props.leftEarIcon,
                 {
                     "width": 12,
@@ -62,14 +63,21 @@ Column(
                 }
             ),
             #else
-            Text("左",
-                {
-                    "width": 12,
-                    "height": 12,
-                    "fontSize": 10,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.left} + '%'`),
@@ -90,6 +98,7 @@ Column(
                 "itemMargin": 4,
                 "alignItems": "center"
             },
+            #if props.leftEarIcon
             #if props.rightEarIcon
             Image(props.rightEarIcon,
                 {
@@ -99,14 +108,21 @@ Column(
                 }
             ),
             #else
-            Text("右",
-                {
-                    "width": 12,
-                    "height": 12,
-                    "fontSize": 10,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.right} + '%'`),
@@ -124,7 +140,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewHero@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewHero@1(props: { title?: string, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -146,7 +162,8 @@ Column(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
     #if data.left && data.right
-    Text(data.name,
+    #if props.title
+    Text(Expr(data.connected ? data.name : props.title),
         {
             "width": "matchParent",
             "height": 16,
@@ -157,7 +174,21 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
+    #else
+    Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+        {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #endif
     #else
     Text("耳机播控",
         {
@@ -172,7 +203,7 @@ Column(
         }
     ),
     #endif
-    Text(Expr(`${data.connected}? '已链接' : '未链接'`),
+    Text(Expr(`${data.connected}? '已连接' : '未连接'`),
         {
             "width": "matchParent",
             "fontSize": 18,
@@ -202,6 +233,7 @@ Column(
                 "alignItems": "center",
             },
             #if props.leftEarIcon
+            #if props.rightEarIcon
             Image(props.leftEarIcon,
                 {
                     "width": 12,
@@ -210,12 +242,21 @@ Column(
                 }
             ),
             #else
-            Text("左",
-                {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 12,
-                    "fontWeight": 500
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.left} + '%'`),
@@ -234,6 +275,7 @@ Column(
                 "justifyContent": "start",
                 "alignItems": "center",
             },
+            #if props.leftEarIcon
             #if props.rightEarIcon
             Image(props.rightEarIcon,
                 {
@@ -243,12 +285,21 @@ Column(
                 }
             ),
             #else
-            Text("右",
-                {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 12,
-                    "fontWeight": 500
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr(`'' + ${data.right} + '%'`),
@@ -261,8 +312,9 @@ Column(
         )
     ),
     #else
-    Text(data.name,
+    Text(Expr(data.connected ? data.name : ''),
         {
+            "visibility": Expr(data.connected ? 'visible' : 'none'),
             "width": "matchParent",
             "height": 16,
             "fontSize": 12,
@@ -284,6 +336,7 @@ Column(
             "alignItems": "center",
         },
         #if props.leftEarIcon
+        #if props.rightEarIcon
         Image(props.leftEarIcon,
             {
                 "width": 12,
@@ -292,12 +345,21 @@ Column(
             }
         ),
         #else
-        Text("左",
-            {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 12,
-                "fontWeight": 500
-            }
+        Stack({"width": 12, "height": 12, "borderRadius": 6,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 12, "height": 12, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+        #else
+        Stack({"width": 12, "height": 12, "borderRadius": 6,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 12, "height": 12, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
         ),
         #endif
         Text(data.leftChargingStatus,
@@ -319,6 +381,7 @@ Column(
             "justifyContent": "start",
             "alignItems": "center",
         },
+        #if props.leftEarIcon
         #if props.rightEarIcon
         Image(props.rightEarIcon,
             {
@@ -328,12 +391,21 @@ Column(
             }
         ),
         #else
-        Text("右",
-            {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 12,
-                "fontWeight": 500
-            }
+        Stack({"width": 12, "height": 12, "borderRadius": 6,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 12, "height": 12, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+        #else
+        Stack({"width": 12, "height": 12, "borderRadius": 6,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 12, "height": 12, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
         ),
         #endif
         Text(data.rightChargingStatus,
@@ -349,7 +421,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudsPhoneWideFull@1(props: { sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudsPhoneWideFull@1(props: { title?: string, sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -372,7 +444,8 @@ Column(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
     #if data.battery
-    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : data.name + ' · 未连接 · 充电盒 ' + data.battery + '%'),
+    #if props.title
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : props.title + ' · 未连接 · 充电盒 ' + data.battery + '%'),
         {
             "width": "matchParent",
             "fontSize": 11,
@@ -383,9 +456,9 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
     #else
-    Text(Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : '蓝牙耳机' + ' · 未连接 · 充电盒 ' + data.battery + '%'),
         {
             "width": "matchParent",
             "fontSize": 11,
@@ -396,7 +469,36 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
+    #endif
+    #else
+    #if props.title
+    Text(Expr(data.connected ? data.name + ' · 已连接' : props.title + ' · 未连接'),
+        {
+            "width": "matchParent",
+            "fontSize": 11,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textAlign": "start",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #else
+    Text(Expr(data.connected ? data.name + ' · 已连接' : '蓝牙耳机' + ' · 未连接'),
+        {
+            "width": "matchParent",
+            "fontSize": 11,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textAlign": "start",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #endif
     #endif
     Row(
         {
@@ -437,6 +539,7 @@ Column(
                     }
                 ),
                 #if props.leftEarIcon
+                #if props.rightEarIcon
                 Image(props.leftEarIcon,
                     {
                         "fillColor": $theme('supportContentColor'),
@@ -444,6 +547,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -490,6 +610,7 @@ Column(
                         "strokeWidth": 6
                     }
                 ),
+                #if props.leftEarIcon
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
@@ -498,6 +619,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -579,7 +717,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudsDynamicWideFull@1(props: { sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudsDynamicWideFull@1(props: { title?: string, sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -607,7 +745,8 @@ Column(
             "alignItems": "top",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Text(Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
+        #if props.title
+        Text(Expr(data.connected ? data.name + ' · 已连接' : props.title + ' · 未连接'),
             {
                 "width": "matchParent",
                 "fontSize": 12,
@@ -619,7 +758,22 @@ Column(
                 "layoutWeight": 1,
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name + ' · 已连接' : '蓝牙耳机' + ' · 未连接'),
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis",
+                "layoutWeight": 1,
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
+        #endif
         #if props.sourceIcon
         Image(props.sourceIcon,
             {
@@ -672,6 +826,7 @@ Column(
                     }
                 ),
                 #if props.leftEarIcon
+                #if props.rightEarIcon
                 Image(props.leftEarIcon,
                     {
                         "fillColor": $theme('supportContentColor'),
@@ -679,6 +834,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -725,6 +897,7 @@ Column(
                         "strokeWidth": 6
                     }
                 ),
+                #if props.leftEarIcon
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
@@ -733,6 +906,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -892,23 +1082,43 @@ Row(
             )
         ),
         #else
-        Text(Expr('L ' + data.left + '% R ' + data.right + '%'),
-            {
-                "fontSize": 12,
-                "fontWeight": 400,
-                "height": 16,
-                "fontColor": $theme('supportContentColor')
-            }
+        Row({"width": "matchParent", "height": 16, "itemMargin": 2, "alignItems": "center"},
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("L", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.left + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')}),
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("R", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.right + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')})
         )
         #endif
         #else
-        Text(Expr('L ' + data.left + '% R ' + data.right + '%'),
-            {
-                "fontSize": 12,
-                "fontWeight": 400,
-                "height": 16,
-                "fontColor": $theme('supportContentColor')
-            }
+        Row({"width": "matchParent", "height": 16, "itemMargin": 2, "alignItems": "center"},
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("L", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.left + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')}),
+          Stack({"width": 12, "height": 12, "borderRadius": 6,
+            "alignContent": "center", "flexShrink": 0,
+            "backgroundColor": $theme('supportContentColor')},
+            Text("R", {"width": 12, "height": 12, "fontSize": 10,
+              "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+              "maxLines": 1})
+          ),
+          Text(Expr(data.right + "%"), {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10, "maxFontSize": 12, "fontWeight": 400, "maxLines": 1, "constraintSize": {"minWidth": 0}, "fontColor": $theme('supportContentColor')})
         )
         #endif
     ),
@@ -1027,7 +1237,7 @@ Row(
 )
 #End
 
-#Template BluetoothDeviceOverviewNameAndConnectionSupport@1(props: { bluetoothIconOrDeviceIcon?: asset, actionId?: string })
+#Template BluetoothDeviceOverviewNameAndConnectionSupport@1(props: { title?: string, bluetoothIconOrDeviceIcon?: asset, actionId?: string })
 data = {
     name: $path("/earphoneName"),
     connected: $path("/isConnected")
@@ -1059,7 +1269,8 @@ Row(
                 "constraintSize": {"minWidth": 0, "minHeight": 0},
                 "layoutWeight": 1,
             },
-            Text(data.name,
+            #if props.title
+            Text(Expr(data.connected ? data.name : props.title),
                 {
                     "fontSize": 14,
                     "height": 24,
@@ -1069,7 +1280,20 @@ Row(
                     "textOverflow": "ellipsis",
                     "constraintSize": {"minWidth": 0, "minHeight": 0}
                 }
-            ),
+            )
+            #else
+            Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+                {
+                    "fontSize": 14,
+                    "height": 24,
+                    "fontWeight": 700,
+                    "fontColor": $theme('primaryColor'),
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
+            )
+            #endif
             Text(Expr(data.connected ? '已连接' : '未连接'),
                 {
                     "fontSize": 12,
@@ -1250,7 +1474,7 @@ Row(
                 }
             ),
             #else
-            Text("耳机仓",
+            Text("耳机盒",
                 {
                     "fontSize": 12,
                     "fontWeight": 500,
@@ -1398,12 +1622,30 @@ Stack(
                         "alignItems": "center"
                     },
                     #if props.leftEarIcon
+                    #if props.rightEarIcon
                     Image(props.leftEarIcon,
                         {
                             "width": 16,
                             "height": 16,
                             "fillColor": $theme('supportContentColor')
                         }
+                    ),
+                    #else
+                    Stack({"width": 16, "height": 16, "borderRadius": 8,
+                      "alignContent": "center", "flexShrink": 0,
+                      "backgroundColor": $theme('supportContentColor')},
+                      Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                        "maxLines": 1})
+                    ),
+                    #endif
+                    #else
+                    Stack({"width": 16, "height": 16, "borderRadius": 8,
+                      "alignContent": "center", "flexShrink": 0,
+                      "backgroundColor": $theme('supportContentColor')},
+                      Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                        "maxLines": 1})
                     ),
                     #endif
                     Text("左耳机",
@@ -1486,6 +1728,7 @@ Stack(
                         "itemMargin": 4,
                         "alignItems": "center"
                     },
+                    #if props.leftEarIcon
                     #if props.rightEarIcon
                     Image(props.rightEarIcon,
                         {
@@ -1493,6 +1736,23 @@ Stack(
                             "height": 16,
                             "fillColor": $theme('supportContentColor')
                         }
+                    ),
+                    #else
+                    Stack({"width": 16, "height": 16, "borderRadius": 8,
+                      "alignContent": "center", "flexShrink": 0,
+                      "backgroundColor": $theme('supportContentColor')},
+                      Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                        "maxLines": 1})
+                    ),
+                    #endif
+                    #else
+                    Stack({"width": 16, "height": 16, "borderRadius": 8,
+                      "alignContent": "center", "flexShrink": 0,
+                      "backgroundColor": $theme('supportContentColor')},
+                      Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                        "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                        "maxLines": 1})
                     ),
                     #endif
                     Text("右耳机",
@@ -1563,7 +1823,11 @@ Column(
     { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
     #if data.name
       #if data.connected
-        Text(data.name, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
+        #if props.title
+        Text(Expr(data.connected ? data.name : props.title), { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
+        #else
+        Text(Expr(data.connected ? data.name : '蓝牙耳机'), { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
+        #endif
       #elseif props.title
         Text(props.title, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
       #else
@@ -1586,12 +1850,14 @@ Column(
     )
     #endif
   ),
-    Row({ "width": 126, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 9,
+    Row({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 126 : "matchParent") : "matchParent") : "matchParent"), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 9,
         "justifyContent": "start", "alignItems": "start" },
-        Column({ "width": 36, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
-            "justifyContent": "start", "alignItems": "start" },
+        Column({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
+            "justifyContent": "start", "alignItems": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center") },
             Stack({ "width": 16, "height": 16, "alignContent": "center" },
                 #if props.leftEarIcon
+                #if props.rightEarIcon
+                #if props.caseIcon
                 Image(props.leftEarIcon,
                     {
                         "width": 12,
@@ -1600,25 +1866,40 @@ Column(
                     }
                 ),
                 #else
-                Text("左",
-                    {
-                        "width": 16,
-                        "height": 16,
-                        "fontSize": 10,
-                        "fontWeight": 400,
-                        "fontColor": "#99FFFFFF",
-                        "maxLines": 1
-                    }
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 ),
                 #endif
             ),
             Text(Expr('' + data.left + '%'),
                 {
-                    "width": 36,
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
                     "height": 16,
                     "fontSize": 12,
                     "fontWeight": 500,
-                    "textAlign": "start",
+                    "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"),
                     "fontColor": "#FFFFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1628,11 +1909,11 @@ Column(
             #if data.caseCharge
             Text(data.leftCharge,
                 {
-                    "width": 36,
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
                     "height": 14,
                     "fontSize": 10,
                     "fontWeight": 400,
-                    "textAlign": "start",
+                    "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"),
                     "fontColor": "#99FFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1643,11 +1924,11 @@ Column(
         ),
         Column(
             {
-                "width": 36,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1),
                 "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34),
                 "itemMargin": 2,
                 "justifyContent": "start",
-                "alignItems": "start"
+                "alignItems": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center")
             },
             Stack(
                 {
@@ -1655,7 +1936,9 @@ Column(
                     "height": 16,
                     "alignContent": "center"
                 },
+                #if props.leftEarIcon
                 #if props.rightEarIcon
+                #if props.caseIcon
                 Image(props.rightEarIcon,
                     {
                         "width": 12,
@@ -1664,25 +1947,40 @@ Column(
                     }
                 ),
                 #else
-                Text("右",
-                    {
-                        "width": 16,
-                        "height": 16,
-                        "fontSize": 10,
-                        "fontWeight": 400,
-                        "fontColor": "#99FFFFFF",
-                        "maxLines": 1
-                    }
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 ),
                 #endif
             ),
             Text(Expr('' + data.right + '%'),
                 {
-                    "width": 36,
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
                     "height": 16,
                     "fontSize": 12,
                     "fontWeight": 500,
-                    "textAlign": "start",
+                    "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"),
                     "fontColor": "#FFFFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1692,11 +1990,11 @@ Column(
             #if data.caseCharge
             Text(data.rightCharge,
                 {
-                    "width": 36,
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
                     "height": 14,
                     "fontSize": 10,
                     "fontWeight": 400,
-                    "textAlign": "start",
+                    "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"),
                     "fontColor": "#99FFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1707,11 +2005,11 @@ Column(
         ),
         Column(
             {
-                "width": 36,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1),
                 "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34),
                 "itemMargin": 2,
                 "justifyContent": "start",
-                "alignItems": "start"
+                "alignItems": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center")
             },
             Stack(
                 {
@@ -1719,6 +2017,8 @@ Column(
                     "height": 16,
                     "alignContent": "center"
                 },
+                #if props.leftEarIcon
+                #if props.rightEarIcon
                 #if props.caseIcon
                 Image(props.caseIcon,
                     {
@@ -1728,25 +2028,40 @@ Column(
                     }
                 ),
                 #else
-                Text("盒",
-                    {
-                        "width": 16,
-                        "height": 16,
-                        "fontSize": 10,
-                        "fontWeight": 400,
-                        "fontColor": "#99FFFFFF",
-                        "maxLines": 1
-                    }
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("E", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("E", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("E", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 ),
                 #endif
             ),
             Text(Expr('' + data.case + '%'),
                 {
-                    "width": 36,
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
                     "height": 16,
                     "fontSize": 12,
                     "fontWeight": 500,
-                    "textAlign": "start",
+                    "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"),
                     "fontColor": "#FFFFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1756,11 +2071,11 @@ Column(
             #if data.caseCharge
             Text(data.caseCharge,
                 {
-                    "width": 36,
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
                     "height": 14,
                     "fontSize": 10,
                     "fontWeight": 400,
-                    "textAlign": "start",
+                    "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"),
                     "fontColor": "#99FFFFFF",
                     "maxLines": 1,
                     "textOverflow": "ellipsis"
@@ -1773,7 +2088,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewCompleteWideFull@1(props: { sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewCompleteWideFull@1(props: { title?: string, sourceIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -1801,7 +2116,8 @@ Column(
             "alignItems": "top",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Text(Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
+        #if props.title
+        Text(Expr(data.connected ? data.name + ' · 已连接' : props.title + ' · 未连接'),
             {
                 "width": "matchParent",
                 "fontSize": 12,
@@ -1813,7 +2129,22 @@ Column(
                 "layoutWeight": 1,
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name + ' · 已连接' : '蓝牙耳机' + ' · 未连接'),
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textAlign": "start",
+                "textOverflow": "ellipsis",
+                "layoutWeight": 1,
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
+        #endif
         #if props.sourceIcon
         Image(props.sourceIcon,
             {
@@ -1865,6 +2196,7 @@ Column(
                     }
                 ),
                 #if props.leftEarIcon
+                #if props.rightEarIcon
                 Image(props.leftEarIcon,
                     {
                         "fillColor": $theme('supportContentColor'),
@@ -1872,6 +2204,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -1916,6 +2265,7 @@ Column(
                         "strokeWidth": 6
                     }
                 ),
+                #if props.leftEarIcon
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
@@ -1924,6 +2274,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -1956,7 +2323,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudPairCompact@1(props: { caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudPairCompact@1(props: { title?: string, caseIcon?: asset, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     name: $path("/earphoneName"),
     left: $path("/leftBatteryLevel"),
@@ -1982,7 +2349,8 @@ Column(
             "itemMargin": 4,
             "alignItems": "center"
         },
-        Text(data.name,
+        #if props.title
+        Text(Expr(data.connected ? data.name : props.title),
             {
                 "fontSize": 12,
                 "fontWeight": 700,
@@ -1992,7 +2360,20 @@ Column(
                 "flexShrink": 1,
                 "constraintSize": {"minWidth": 0, "maxWidth": 74}
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+            {
+                "fontSize": 12,
+                "fontWeight": 700,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "flexShrink": 1,
+                "constraintSize": {"minWidth": 0, "maxWidth": 74}
+            }
+        )
+        #endif
         Text("|",
             {
                 "width": 6,
@@ -2027,20 +2408,23 @@ Column(
     Row(
         {
             "width": "matchParent",
-            "height": 12,
+            "height": 26,
             "itemMargin": #Expr(data.case ? 8 : 12),
             "justifyContent": "start",
             "alignItems": "center",
         },
-        Row(
+        Column(
             {
-                "width": 36,
-                "height": 12,
-                "itemMargin": 0,
-                "justifyContent": "spaceBetween",
+                "layoutWeight": 1,
+                "height": 26,
+                "itemMargin": 2,
+                "justifyContent": "start",
                 "alignItems": "center",
             },
             #if props.leftEarIcon
+            #if props.rightEarIcon
+            #if data.case
+            #if props.caseIcon
             Image(props.leftEarIcon,
                 {
                     "width": 12,
@@ -2049,31 +2433,62 @@ Column(
                 }
             ),
             #else
-            Text("左",
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Image(props.leftEarIcon,
                 {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 10,
-                    "fontWeight": 400
+                    "width": 12,
+                    "height": 12,
+                    "fillColor": $theme('supportContentColor')
                 }
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr('' + data.left + '%'),
                 {
+                    "width": "matchParent", "height": 12, "maxLines": 1, "flexShrink": 0,
                     "fontColor": $theme('supportContentColor'),
                     "fontSize": 10,
-                    "fontWeight": 400
+                    "fontWeight": 400, "textAlign": "center"
                 }
             )
         ),
-        Row(
+        Column(
             {
-                "width": 36,
-                "height": 12,
-                "itemMargin": 0,
-                "justifyContent": "spaceBetween",
+                "layoutWeight": 1,
+                "height": 26,
+                "itemMargin": 2,
+                "justifyContent": "start",
                 "alignItems": "center",
             },
+            #if props.leftEarIcon
             #if props.rightEarIcon
+            #if data.case
+            #if props.caseIcon
             Image(props.rightEarIcon,
                 {
                     "width": 12,
@@ -2082,31 +2497,61 @@ Column(
                 }
             ),
             #else
-            Text("右",
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Image(props.rightEarIcon,
                 {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 10,
-                    "fontWeight": 400
+                    "width": 12,
+                    "height": 12,
+                    "fillColor": $theme('supportContentColor')
                 }
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr('' + data.right + '%'),
                 {
+                    "width": "matchParent", "height": 12, "maxLines": 1, "flexShrink": 0,
                     "fontColor": $theme('supportContentColor'),
                     "fontSize": 10,
-                    "fontWeight": 400
+                    "fontWeight": 400, "textAlign": "center"
                 }
             )
         ),
         #if data.case
-        Row(
+        Column(
             {
-                "width": 36,
-                "height": 12,
-                "itemMargin": 0,
-                "justifyContent": "spaceBetween",
+                "layoutWeight": 1,
+                "height": 26,
+                "itemMargin": 2,
+                "justifyContent": "start",
                 "alignItems": "center"
             },
+            #if props.leftEarIcon
+            #if props.rightEarIcon
             #if props.caseIcon
             Image(props.caseIcon,
                 {
@@ -2116,19 +2561,39 @@ Column(
                 }
             ),
             #else
-            Text("盒",
-                {
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 10,
-                    "fontWeight": 400
-                }
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("E", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("E", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("E", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
             ),
             #endif
             Text(Expr('' + data.case + '%'),
                 {
+                    "width": "matchParent", "height": 12, "maxLines": 1, "flexShrink": 0,
                     "fontColor": $theme('supportContentColor'),
                     "fontSize": 10,
-                    "fontWeight": 400
+                    "fontWeight": 400,
+                    "textAlign": "center"
                 }
             )
         )
@@ -2137,7 +2602,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewCompletePhoneWideFull@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewCompletePhoneWideFull@1(props: { title?: string, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     connected: $path("/isConnected"),
     name: $path("/earphoneName"),
@@ -2159,7 +2624,8 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : data.name + ' · 未连接 · 充电盒 ' + data.battery + '%'),
+    #if props.title
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : props.title + ' · 未连接 · 充电盒 ' + data.battery + '%'),
         {
             "width": "matchParent",
             "fontSize": 11,
@@ -2170,7 +2636,21 @@ Column(
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
-    ),
+    )
+    #else
+    Text(Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : '蓝牙耳机' + ' · 未连接 · 充电盒 ' + data.battery + '%'),
+        {
+            "width": "matchParent",
+            "fontSize": 11,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textAlign": "start",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #endif
     Row(
         {
             "width": "matchParent",
@@ -2209,6 +2689,7 @@ Column(
                     }
                 ),
                 #if props.leftEarIcon
+                #if props.rightEarIcon
                 Image(props.leftEarIcon,
                     {
                         "fillColor": $theme('supportContentColor'),
@@ -2216,6 +2697,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -2260,6 +2758,7 @@ Column(
                         "strokeWidth": 6
                     }
                 ),
+                #if props.leftEarIcon
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
@@ -2268,6 +2767,23 @@ Column(
                         "height": 18,
                         "objectFit": "contain"
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             ),
@@ -2391,12 +2907,12 @@ Column(
             }
         ),
         #else
-        Text("耳机仓",
-            {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 10,
-                "fontWeight": 400
-            }
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("E", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
         ),
         #endif
         Text(data.charging,
@@ -2682,6 +3198,7 @@ Row(
                     }
                 ),
                 #if props.leftEarIcon
+                #if props.rightEarIcon
                 Image(props.leftEarIcon,
                     {
                         "width": 20,
@@ -2689,6 +3206,23 @@ Row(
                         "objectFit": "contain",
                         "fillColor": $theme('supportContentColor')
                     }
+                )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
                 )
                 #endif
             )
@@ -2749,6 +3283,7 @@ Row(
                         "backgroundColor": $theme('progressBackgroundColor')
                     }
                 ),
+                #if props.leftEarIcon
                 #if props.rightEarIcon
                 Image(props.rightEarIcon,
                     {
@@ -2758,6 +3293,23 @@ Row(
                         "fillColor": $theme('supportContentColor')
                     }
                 )
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
+                #endif
+                #else
+                Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 17.5, "height": 17.5, "fontSize": 12,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                )
                 #endif
             )
         )
@@ -2765,7 +3317,7 @@ Row(
 )
 #End
 
-#Template BluetoothDeviceOverviewMusicFull@1(props: { deviceIcon: asset })
+#Template BluetoothDeviceOverviewMusicFull@1(props: { title?: string, deviceIcon: asset })
 data = {
     name: $path("/earphoneName"),
     connected: $path("/isConnected"),
@@ -2784,7 +3336,8 @@ Column(
             "width": "matchParent",
             "itemMargin": 14
         },
-        Text(data.name,
+        #if props.title
+        Text(Expr(data.connected ? data.name : props.title),
             {
                 "height": 16,
                 "fontSize": 12,
@@ -2792,7 +3345,18 @@ Column(
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1
             }
-        ),
+        )
+        #else
+        Text(Expr(data.connected ? data.name : '蓝牙耳机'),
+            {
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1
+            }
+        )
+        #endif
         Row(
             {
                 "width": "matchParent",
@@ -2889,7 +3453,7 @@ Column(
             "justifyContent": "spaceBetween",
             "alignItems": "top"
         },
-        Text("耳机仓",
+        Text("耳机盒",
             {
                 "width": "matchParent",
                 "fontSize": 14,
@@ -2946,7 +3510,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewMusicCompact@1(props: { musicIcon: asset, actionId?: string })
+#Template BluetoothDeviceOverviewMusicSupport@1(props: { musicIcon: asset, actionId?: string })
 data = {}
 Row(
     {
@@ -2956,9 +3520,6 @@ Row(
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-        "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-        "borderRadius": $theme("supportContentStyle.borderRadius"),
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0},
         "onClick": EventAction(props?.actionId)

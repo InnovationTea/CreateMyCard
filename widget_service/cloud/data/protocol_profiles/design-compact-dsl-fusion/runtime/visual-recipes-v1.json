@@ -95,7 +95,6 @@
           "styles": {
             "width": "matchParent",
             "height": 12,
-            "itemMargin": 0,
             "flexShrink": 0,
             "justifyContent": "start",
             "alignItems": "center"
@@ -204,6 +203,17 @@
             "flexShrink": 0
           }
         }
+      },
+      "sizes": {
+        "2x4": {
+          "parts": {
+            "root": {
+              "styles": {
+                "width": "wrapContent"
+              }
+            }
+          }
+        }
       }
     },
     "EmphasisText": {
@@ -251,7 +261,7 @@
       "alignment": "aligned",
       "metrics": {
         "minimumItems": 1,
-        "maximumItems": 4
+        "maximumItems": 6
       },
       "parts": {
         "root": {
@@ -715,9 +725,10 @@
           "component": "Text",
           "styles": {
             "height": 16,
-            "fontSize": 10,
+            "fontSize": 12,
             "fontWeight": 500,
             "maxLines": 1,
+            "textOverflow": "ellipsis",
             "flexShrink": 1,
             "constraintSize": {
               "minWidth": 0
@@ -824,9 +835,40 @@
                 "height": 57
               }
             },
+            "copy": {
+              "styles": {
+                "height": "matchParent",
+                "padding": {
+                  "top": 8
+                },
+                "justifyContent": "start",
+                "itemMargin": 2
+              }
+            },
             "primary": {
               "styles": {
-                "fontSize": 14
+                "fontSize": 14,
+                "height": 19,
+                "lineHeight": 1.3571428571428572
+              }
+            },
+            "secondary": {
+              "styles": {
+                "fontSize": 12,
+                "height": 16,
+                "lineHeight": 1.3333333333333333
+              }
+            },
+            "primaryRow": {
+              "styles": {
+                "height": 19
+              }
+            },
+            "primaryValue": {
+              "styles": {
+                "fontSize": 14,
+                "height": 19,
+                "lineHeight": 1.3571428571428572
               }
             }
           }
@@ -1041,7 +1083,7 @@
             "width": "matchParent",
             "height": "matchParent",
             "itemMargin": 8,
-            "alignItems": "stretch",
+            "alignItems": "top",
             "justifyContent": "start",
             "layoutWeight": 1,
             "flexShrink": 1,
@@ -1162,6 +1204,7 @@
             "fontWeight": 700,
             "textAlign": "start",
             "maxLines": 1,
+            "textOverflow": "ellipsis",
             "flexShrink": 1,
             "constraintSize": {
               "minWidth": 0
@@ -1583,15 +1626,34 @@
             "maxLines": 1
           }
         },
+        "icon": {
+          "component": "Image",
+          "styles": {
+            "width": 18,
+            "height": 18,
+            "objectFit": "contain",
+            "flexShrink": 0
+          }
+        },
         "value": {
           "component": "Text",
           "styles": {
             "height": 60,
-            "fontSize": 56,
+            "fontSize": 48,
             "fontWeight": 700,
             "textAlign": "center",
             "maxLines": 1,
             "width": "matchParent"
+          }
+        },
+        "valueArea": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "height": 60,
+            "alignItems": "center",
+            "justifyContent": "center",
+            "flexShrink": 1
           }
         },
         "supporting": {
@@ -1609,10 +1671,33 @@
       "variants": {
         "textConclusion": {
           "parts": {
+            "root": {
+              "styles": {
+                "height": 122
+              }
+            },
+            "valueArea": {
+              "styles": {
+                "flexShrink": 0
+              }
+            },
             "value": {
               "styles": {
-                "height": 24,
-                "fontSize": 18
+                "height": 60,
+                "fontSize": 24,
+                "lineHeight": 1.25,
+                "maxLines": 2
+              }
+            },
+            "supporting": {
+              "styles": {
+                "margin": {
+                  "top": 8,
+                  "right": 0,
+                  "bottom": 0,
+                  "left": 0
+                },
+                "flexShrink": 0
               }
             }
           }
@@ -1693,8 +1778,49 @@
       }
     },
     "SummaryList": {
-      "alignment": "native",
-      "parts": {}
+      "alignment": "aligned",
+      "parts": {
+        "root": {
+          "component": "Column",
+          "styles": {
+            "width": "matchParent",
+            "height": "matchParent",
+            "itemMargin": 8,
+            "alignItems": "start",
+            "justifyContent": "end",
+            "layoutWeight": 1,
+            "flexShrink": 1,
+            "constraintSize": {
+              "minHeight": 64
+            }
+          }
+        },
+        "item": {
+          "component": "Row",
+          "styles": {
+            "width": "matchParent",
+            "height": 28,
+            "padding": {
+              "left": 12,
+              "right": 12
+            },
+            "borderRadius": 8,
+            "backgroundColor": "#99FFFFFF",
+            "alignItems": "center",
+            "flexShrink": 0
+          }
+        },
+        "text": {
+          "component": "Text",
+          "styles": {
+            "width": "matchParent",
+            "fontSize": 12,
+            "fontWeight": 400,
+            "maxLines": 1,
+            "textOverflow": "ellipsis"
+          }
+        }
+      }
     }
   }
 }

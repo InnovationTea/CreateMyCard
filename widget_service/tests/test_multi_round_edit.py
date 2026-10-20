@@ -101,6 +101,8 @@ def editable_artifact_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "artifact_base_url", "https://obs.test/widget")
     monkeypatch.setattr(settings, "enable_widget_edit", True)
+    # 本组验证关闭单步开关后的原编辑链路，新默认路由在单步专项中覆盖。
+    monkeypatch.setattr(settings, "enable_single_step_widget_edit", False)
     monkeypatch.setattr(settings, "enable_artifact_download_mock", True)
     monkeypatch.setattr(
         "services.artifact_store.file_obs",

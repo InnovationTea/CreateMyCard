@@ -21,8 +21,6 @@ data = {
 Stack({
   "width": "matchParent",
   "height": "matchParent",
-  "borderRadius": $theme('supportContentStyle.borderRadius'),
-  "backgroundColor": $theme('supportContentStyle.backgroundColor'),
   "alignContent": "center",
   "onClick": EventAction(props.actionId)
 },
@@ -30,7 +28,6 @@ Stack({
   Row({
     "width": "matchParent",
     "height": "matchParent",
-    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
     "justifyContent": "spaceBetween",
     "alignItems": "center"
   },
@@ -78,7 +75,6 @@ Stack({
   Row({
     "width": "matchParent",
     "height": "matchParent",
-    "padding": {"left": 12, "top": 0, "right": 16, "bottom": 0},
     "justifyContent": "spaceBetween",
     "alignItems": "center"
   },
@@ -133,8 +129,6 @@ data = {
 Stack({
   "width": "matchParent",
   "height": "matchParent",
-  "borderRadius": $theme('supportContentStyle.borderRadius'),
-  "backgroundColor": $theme('supportContentStyle.backgroundColor'),
   "alignContent": "center",
   "onClick": EventAction(props.actionId),
   "_preserveOriginalColor": true
@@ -143,7 +137,7 @@ Stack({
     "width": "matchParent",
     "height": "matchParent",
     "itemMargin": 4,
-    "padding": { "left": 12, "top": 8, "right": 12, "bottom": 8 },
+    "padding": { "top": 8, "bottom": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center"
   },

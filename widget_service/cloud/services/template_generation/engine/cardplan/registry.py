@@ -18,6 +18,7 @@ from services.template_generation.engine.advanced.models import (
 )
 
 from .models import BusinessTemplateGroup, TemplateDefinition, TemplateVariant, ThemeDefinition
+from .prompt_guidance import selected_template_guidance
 from .provider_bundle import (
     LoadedProviderBundle,
     load_provider_bundles,
@@ -53,6 +54,11 @@ CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS = frozenset(
         "ScheduleOverviewDateStartLocationFull@1",
         "ScheduleOverviewReminderDetailsWideFull@1",
         "ScheduleOverviewDatedMeetingWideFull@1",
+        "ScheduleOverviewTitleTimeWideFull@1",
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewEventCountThreeTimeNotesWideFull@1",
+        "ScheduleOverviewDateTitleFull@1",
+        "ScheduleOverviewDateCountdownReminderFull@1",
     }
 )
 
@@ -388,20 +394,21 @@ class CardPlanRegistry:
     def provider_second_layer_guidance(
         self,
         component_ids: tuple[str, ...],
+        *,
+        selected_template_ids: tuple[str, ...] = (),
     ) -> tuple[dict[str, str], ...]:
         """Return Provider guidance without repeating the full Template catalog."""
-        return tuple(
-            {
-                "providerId": bundle.manifest.provider_id,
-                "content": self._without_template_catalog(
-                    self._without_disabled_template_references(
-                        bundle,
-                        bundle.second_layer_rule,
-                    )
-                ),
-            }
-            for bundle in self._provider_bundles_for_components(component_ids)
-        )
+        guidance: list[dict[str, str]] = []
+        selected = frozenset(selected_template_ids)
+        for bundle in self._provider_bundles_for_components(component_ids):
+            content = self._without_template_catalog(
+                self._without_disabled_template_references(bundle, bundle.second_layer_rule)
+            )
+            if selected:
+                business_ids = frozenset(item.wire_id for item in bundle.templates)
+                content = selected_template_guidance(content, business_ids, selected)
+            guidance.append({"providerId": bundle.manifest.provider_id, "content": content})
+        return tuple(guidance)
 
     def provider_data_domains_for_components(
         self,

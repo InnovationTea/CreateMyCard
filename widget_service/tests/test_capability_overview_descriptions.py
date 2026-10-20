@@ -13,7 +13,6 @@ from services.ids_client import IDSClient, IDSDeviceCapabilityState
 from services.task_spec_builder import TaskSpecBuilder
 from services.widget_generation_service import WidgetGenerationService
 
-LEGACY_REGISTRY = "app-11.7.5.205_rom-6.0"
 CURRENT_REGISTRY = "app-11.7.7.300_rom-7.0"
 
 
@@ -60,16 +59,16 @@ def test_overview_uses_short_assets_and_keeps_event_contract(overview_request):
         assert row.get("dynamicArguments") == expected_arguments
 
 
-def test_legacy_overview_keeps_full_asset_descriptions(overview_request):
+def test_legacy_request_falls_back_to_current_asset_descriptions(monkeypatch, overview_request):
+    monkeypatch.setattr(get_settings(), "enable_default_capability_registry_fallback", True)
     request = overview_request.model_copy(update={"prdVer": "11.7.5.205"})
-    registry = CapabilityRegistry(version=LEGACY_REGISTRY)
+    registry = CapabilityRegistry(version=CURRENT_REGISTRY)
     assets = registry.list_asset_capabilities()
     response = WidgetGenerationService().get_widget_capability_overview(request)
     assert len(response.assetCandidates) == len(assets)
     for overview, asset in zip(response.assetCandidates, assets, strict=True):
-        assert asset.overviewDescription is None
         assert overview.id == asset.id
-        assert overview.description == asset.description
+        assert overview.description == (asset.overviewDescription or asset.description)
 
 
 def test_overview_falls_back_for_current_assets_without_short_description(
@@ -109,10 +108,6 @@ def test_blank_short_description_is_rejected(description):
 def test_short_description_preserves_selection_boundaries():
     registry = CapabilityRegistry(version=CURRENT_REGISTRY)
     restrictions = {
-        "asset.emoji_activity": ("生日", "不用于运动", "普通会议"),
-        "asset.emoji_clean": ("家居清扫", "不用于内存清理"),
-        "asset.emoji_mobileNetwork": ("Wi-Fi", "蓝牙", "不支持流量网速"),
-        "asset.emoji_note": ("静态待办", "不支持备忘读取"),
         "asset.emoji_heartRate": ("最近运动心率", "实时心率", "不表示当前健康状态"),
         "asset.ic_public_connection_filled": ("合法图标位", "不代表", "Wi-Fi", "蓝牙"),
         "asset.ic_purification": ("空气质量", "不代表等级"),

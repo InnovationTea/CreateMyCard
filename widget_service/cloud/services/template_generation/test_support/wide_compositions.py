@@ -21,12 +21,18 @@ from services.template_generation.test_support.template_examples import _object_
 DEFAULT_SEED = 20261014
 # 选取字段明确、无强制内嵌动作的代表模板；其余垂域按骨架角色随机搭配。
 _POOL = {
+    "current-time": {
+        "Full": ("CurrentTimeOverviewDateFull@1",),
+        "Support": ("CurrentTimeOverviewSupport@1",),
+    },
     "battery": {
+        "Support": ("BatteryOverviewPhoneTextSupport@1",),
         "Full": ("BatteryOverviewPercentTextFull@1",),
         "Hero": ("BatteryOverviewStatusRingHero@1", "BatteryOverviewTemperatureRingHero@1"),
         "Compact": ("BatteryOverviewPercentRingCompact@1",),
     },
     "calendar": {
+        "Support": ("ScheduleOverviewStartTimeSupport@1",),
         "Full": ("ScheduleOverviewTitleTimeFull@1",),
         "Hero": ("ScheduleOverviewTitleHero@1",),
         "Compact": ("ScheduleOverviewReminderCompact@1",),
@@ -38,17 +44,20 @@ _POOL = {
         "WideHalf": ("CountdownOverviewWideHalf@1",),
     },
     "earphone": {
+        "Support": ("BluetoothDeviceOverviewNameAndConnectionSupport@1",),
         "Full": ("BluetoothDeviceOverviewEarphonePercentTextFull@1",),
         "Hero": ("BluetoothDeviceOverviewEarbudPairHero@1",),
-        "Compact": ("BluetoothDeviceOverviewCaseConnectionCompact@1",),
+        "Compact": ("BluetoothDeviceOverviewEarphoneCaseCompact@1",),
         "WideHalf": ("BluetoothDeviceOverviewTripleBatteryWideHalf@1",),
     },
     "health-sport": {
+        "Support": ("ActivityOverviewSupport@1",),
         "Full": ("ActivityOverviewFull@1", "HeartRateOverviewFull@1"),
         "Hero": ("ActivityOverviewHero@1", "HeartRateOverviewHero@1"),
         "Compact": ("ActivityOverviewCompact@1", "SleepOverviewCompact@1"),
     },
     "weather": {
+        "Support": ("WeatherOverviewFeelsLikeWindSupport@1",),
         "Full": ("WeatherOverviewFull@1",),
         "Hero": ("WeatherOverviewFeelsLikeHero@1",),
         "Compact": ("WeatherOverviewCompact@1",),
@@ -58,9 +67,9 @@ _POOL = {
 _ACTIONS = {
     "BatteryOverview": ("event.open.settings.battery", "event.open.settings.batteryHealth"),
     "CalendarOverview": ("event.viewCalendarEvent", "event.enter.meeting"),
-    "CountdownOverview": ("event.open.clock.alarm",),
+    "CountdownOverview": ("event.open.clock.alarmTab",),
     "BluetoothDeviceOverview": ("event.open.settings.bluetooth", "event.open.music.daily"),
-    "ActivityOverview": ("event.open.health.sport",),
+    "ActivityOverview": ("event.open.health.activityRecord",),
     "HeartRateOverview": ("event.open.health.sport",),
     "SleepOverview": ("event.open.health.sleep",),
     "WeatherOverview": ("event.open.weather",),
@@ -69,17 +78,18 @@ _SHARED_ACTIONS = (
     "event.open.settings.battery",
     "event.open.music.daily",
     "event.open.health.sport",
-    "event.open.clock.alarm",
+    "event.open.clock.alarmTab",
 )
 _ACTION_LABELS = {
     "event.open.settings.battery": "打开电池设置",
     "event.open.settings.batteryHealth": "打开电池健康",
     "event.viewCalendarEvent": "查看第一个日程详情",
     "event.enter.meeting": "进入第一个日程的会议",
-    "event.open.clock.alarm": "打开闹钟",
+    "event.open.clock.alarmTab": "打开闹钟",
     "event.open.settings.bluetooth": "打开蓝牙设置",
     "event.open.music.daily": "打开每日音乐",
     "event.open.health.sport": "打开锻炼",
+    "event.open.health.activityRecord": "打开活动记录",
     "event.open.health.sleep": "打开睡眠详情",
     "event.open.weather": "打开当前城市天气",
 }
@@ -152,6 +162,8 @@ def _choose(
     valid = []
     for combination in product(*options):
         domains = {item.business.provider_slug for item in combination}
+        if domains == {"current-time"}:
+            continue
         if len(domains) != len(combination):
             continue
         if len(_action_ids(layout, combination)) != len(layout.action_templates):

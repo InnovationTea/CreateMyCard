@@ -16,6 +16,7 @@ from services.card_validation.compact_validation.semantic.asset_references impor
 from services.compact_dsl_a2ui_converter import (
     ComponentRow,
 )
+from services.event_matching import event_handlers_match
 
 
 def _collect_asset_source_errors(
@@ -125,7 +126,7 @@ def _collect_event_candidate_error(
     errors: list[str],
 ) -> None:
     location = f"component {component.component_id}.props.onClick"
-    if handler not in allowed_handlers:
+    if not any(event_handlers_match(handler, candidate) for candidate in allowed_handlers):
         emit_error(
             errors,
             CompactDiagnostic(
@@ -133,7 +134,7 @@ def _collect_event_candidate_error(
                 validation_class="semantic",
                 category="effective",
                 message=f"组件 {component.component_id} 的点击 handler 不匹配本轮事件候选。",
-                expected={"allowedHandlers": allowed_handlers, "exactMatch": True},
+                expected={"allowedHandlers": allowed_handlers},
                 actual=handler,
                 component_id=component.component_id,
                 property_path="/onClick/0",

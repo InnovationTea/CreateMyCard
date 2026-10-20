@@ -6,6 +6,7 @@ import asyncio
 import copy
 import hashlib
 import json
+import logging
 import re
 import shutil
 import time
@@ -24,11 +25,19 @@ from debug_tools.end_to_end_debug.backend.debug_agent.upstream_ws_client import 
     UpstreamToolError,
     parse_legacy_stream_content,
 )
+from debug_tools.file_io import atomic_write_text
 
-from .artifacts import download_artifact, parse_artifact_blocks, write_artifact_blocks
+from .artifacts import (
+    download_artifact,
+    find_local_artifact,
+    parse_artifact_blocks,
+    write_artifact_blocks,
+)
+from .metrics import enrich_run_metrics
 from .trace_parser import TraceImporter
 
 _OPERATION = "generateWidgetCardCompactDsl"
+_logger = logging.getLogger(__name__)
 _SAMPLE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 _TRACE_DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 _DETERMINISTIC_ERROR_CODES = frozenset(
@@ -47,12 +56,7 @@ def utc_now() -> str:
 
 def atomic_write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(f"{path.suffix}.tmp")
-    temporary.write_text(
-        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    atomic_write_text(path, json.dumps(value, ensure_ascii=False, indent=2) + "\n")
 
 
 def normalize_endpoint(base_url: str) -> str:
@@ -132,7 +136,8 @@ async def invoke_generate(
         raise UpstreamToolError("正式工具 WebSocket 调用超时") from exc
     except json.JSONDecodeError as exc:
         raise UpstreamToolError("正式工具返回非法 JSON") from exc
-    except UpstreamToolError:
+    except UpstreamToolError as exc:
+        exc.frames = tuple(frames)
         raise
     except (OSError, websockets.WebSocketException) as exc:
         raise UpstreamToolError(f"正式工具 WebSocket 调用失败: {type(exc).__name__}") from exc
@@ -546,11 +551,17 @@ class BatchRunManager:
             reverse=True,
         )
 
-    def get_run(self, run_id: str) -> dict[str, Any]:
+    def get_run(self, run_id: str, *, include_metrics: bool = True) -> dict[str, Any]:
         state = self.runs.get(run_id)
         if state is not None:
-            return state.public_dict()
-        return self._read_run_file(run_id, "summary.json")
+            summary = state.public_dict()
+            run_dir = state.output_dir
+        else:
+            summary = self._read_run_file(run_id, "summary.json")
+            run_dir = self._safe_run_dir(run_id)
+        if include_metrics:
+            summary = enrich_run_metrics(summary, run_dir)
+        return summary
 
     def get_sample(self, run_id: str, sample_id: str) -> dict[str, Any]:
         if not _SAMPLE_ID_PATTERN.fullmatch(sample_id):
@@ -563,18 +574,28 @@ class BatchRunManager:
             raise KeyError(sample_id) from exc
         result = self._read_json(sample_dir / "result.json")
         attempts: list[dict[str, Any]] = []
-        trace_metadata_updated = False
+        result_metadata_updated = False
         for attempt_dir in sorted(sample_dir.glob("attempt_*")):
             attempt: dict[str, Any] = {"name": attempt_dir.name}
             for name in ("request", "response", "result", "blocks"):
                 path = attempt_dir / f"{name}.json"
                 if path.is_file():
                     attempt[name] = self._read_json(path)
+            if self._refresh_missing_artifact(attempt_dir, attempt):
+                result_metadata_updated = True
+                final_attempt = result.get("finalAttempt")
+                if (
+                    isinstance(final_attempt, int)
+                    and attempt_dir.name == f"attempt_{final_attempt:03d}"
+                ):
+                    attempt_result = attempt.get("result")
+                    if isinstance(attempt_result, dict):
+                        self._copy_result_metadata(attempt_result, result)
             trace_view_path = attempt_dir / "trace" / "view.json"
             if trace_view_path.is_file():
                 attempt["trace"] = self._read_json(trace_view_path)
             if self._refresh_missing_trace(run_dir, attempt_dir, attempt):
-                trace_metadata_updated = True
+                result_metadata_updated = True
                 final_attempt = result.get("finalAttempt")
                 if isinstance(final_attempt, int) and attempt_dir.name == (
                     f"attempt_{final_attempt:03d}"
@@ -586,10 +607,54 @@ class BatchRunManager:
             if genui_path.is_file():
                 attempt["genui"] = genui_path.read_text(encoding="utf-8")
             attempts.append(attempt)
-        if trace_metadata_updated:
+        if result_metadata_updated:
             atomic_write_json(sample_dir / "result.json", result)
-            self._update_run_trace_metadata(run_id, sample_id, result, run_dir)
+            self._update_run_result_metadata(run_id, sample_id, result, run_dir)
         return {"summary": result, "attempts": attempts}
+
+    def _refresh_missing_artifact(self, attempt_dir: Path, attempt: dict[str, Any]) -> bool:
+        response = attempt.get("response")
+        attempt_result = attempt.get("result")
+        if not isinstance(response, dict) or not isinstance(attempt_result, dict):
+            return False
+        if response.get("status") not in {"success", "degraded"}:
+            return False
+        if (attempt_dir / "genui.jsonl").is_file():
+            return False
+        data = response.get("data")
+        artifact_url = data.get("artifactUrl") if isinstance(data, dict) else None
+        if not isinstance(artifact_url, str) or not artifact_url:
+            return False
+        try:
+            roots = self._artifact_roots(attempt_dir.parent.parent)
+            if find_local_artifact(artifact_url, roots) is None:
+                return False
+            content = download_artifact(
+                artifact_url, attempt_dir / "artifact.md", roots, local_only=True
+            )
+            blocks = self._save_artifact_preview(attempt_dir, content)
+        except (OSError, ValueError) as exc:
+            _logger.warning("补齐本地产物失败: %s: %s", type(exc).__name__, exc)
+            return False
+        attempt_result["artifactAvailable"] = True
+        attempt_result["dslAvailable"] = True
+        attempt_result["blockNames"] = sorted(blocks)
+        if attempt_result.get("traceStatus") != "invalid":
+            attempt_result["error"] = ""
+        attempt["blocks"] = blocks
+        atomic_write_json(attempt_dir / "result.json", attempt_result)
+        return True
+
+    @staticmethod
+    def _save_artifact_preview(attempt_dir: Path, content: str) -> dict[str, Any]:
+        blocks = parse_artifact_blocks(content)
+        genui = blocks.get("genui")
+        if not isinstance(genui, str) or not genui.strip():
+            raise ValueError("artifact 缺少有效 genui 代码块")
+        atomic_write_json(attempt_dir / "blocks.json", blocks)
+        write_artifact_blocks(attempt_dir, blocks)
+        (attempt_dir / "genui.jsonl").write_text(genui, encoding="utf-8")
+        return blocks
 
     def _refresh_missing_trace(
         self,
@@ -607,9 +672,10 @@ class BatchRunManager:
         if not isinstance(uid, str) or not uid:
             return False
         with self._trace_refresh_lock:
-            if not self.trace_importer.is_terminal(uid):
+            importer = self._trace_importer_for_run(run_dir)
+            if not importer.is_terminal(uid):
                 return False
-            refreshed = self.trace_importer.import_trace(
+            refreshed = importer.import_trace(
                 uid,
                 attempt_dir / "trace",
                 run_dir / "trace_blobs",
@@ -627,7 +693,7 @@ class BatchRunManager:
         target["traceDurationMs"] = _trace_duration(view)
 
     @staticmethod
-    def _copy_trace_result_metadata(source: dict[str, Any], target: dict[str, Any]) -> None:
+    def _copy_result_metadata(source: dict[str, Any], target: dict[str, Any]) -> None:
         for name in (
             "traceStatus",
             "traceRecordCount",
@@ -635,8 +701,11 @@ class BatchRunManager:
             "traceDurationMs",
         ):
             target[name] = source.get(name)
+        for name in ("artifactAvailable", "dslAvailable", "error"):
+            if name in source:
+                target[name] = source.get(name)
 
-    def _update_run_trace_metadata(
+    def _update_run_result_metadata(
         self,
         run_id: str,
         sample_id: str,
@@ -647,7 +716,7 @@ class BatchRunManager:
         if state is not None:
             for sample in state.samples:
                 if sample.get("id") == sample_id:
-                    self._copy_trace_result_metadata(result, sample)
+                    self._copy_result_metadata(result, sample)
                     break
             self._persist_state(state)
             return
@@ -661,7 +730,7 @@ class BatchRunManager:
                 continue
             for sample in samples:
                 if isinstance(sample, dict) and sample.get("id") == sample_id:
-                    self._copy_trace_result_metadata(result, sample)
+                    self._copy_result_metadata(result, sample)
                     break
             summary["traceWarnings"] = sum(
                 1
@@ -723,7 +792,8 @@ class BatchRunManager:
                         return
                     await self._execute_sample(state, sample, item)
             except asyncio.CancelledError:
-                sample["status"] = "cancelled"
+                if sample.get("status") not in {"success", "degraded", "failed", "unsupported"}:
+                    sample["status"] = "cancelled"
             except Exception as exc:
                 sample["status"] = "failed"
                 sample["error"] = f"{type(exc).__name__}: {exc}"
@@ -754,7 +824,7 @@ class BatchRunManager:
     ) -> None:
         sample["status"] = "running"
         source = json.loads(item.path.read_text(encoding="utf-8"))
-        total_started = time.perf_counter()
+        generation_elapsed = 0.0
         final_attempt: dict[str, Any] | None = None
         start_attempt = int(sample.get("attemptCount") or 0)
         for attempt in range(start_attempt, state.max_retries + 1):
@@ -774,8 +844,31 @@ class BatchRunManager:
             attempt_dir.mkdir(parents=True, exist_ok=True)
             atomic_write_json(attempt_dir / "request.json", request)
             sample["attemptCount"] = attempt + 1
+            sample["status"] = "running"
             self._persist_state(state)
-            final_attempt = await self._execute_attempt(state, request, uid, attempt_dir, attempt)
+
+            def publish_response(
+                response: dict[str, Any],
+                elapsed_ms: float,
+                response_uid: str = uid,
+                response_attempt: int = attempt,
+            ) -> None:
+                nonlocal generation_elapsed
+                generation_elapsed += elapsed_ms
+                sample["uid"] = response_uid
+                sample["status"] = response.get("status") or "failed"
+                sample["errorCode"] = response.get("errorCode") or ""
+                sample["error"] = _error_text(response.get("error"))
+                sample["elapsedMs"] = round(generation_elapsed, 2)
+                atomic_write_json(
+                    state.output_dir / str(sample.get("id")) / "result.json",
+                    {**sample, "finalAttempt": response_attempt},
+                )
+                self._persist_state(state)
+
+            final_attempt = await self._execute_attempt(
+                state, request, uid, attempt_dir, attempt, publish_response
+            )
             sample["uid"] = uid
             sample["status"] = final_attempt.get("status", "failed")
             sample["errorCode"] = final_attempt.get("errorCode", "")
@@ -793,7 +886,6 @@ class BatchRunManager:
                 break
             if error_code in _DETERMINISTIC_ERROR_CODES:
                 break
-        sample["elapsedMs"] = round((time.perf_counter() - total_started) * 1000, 2)
         if final_attempt is not None:
             result = {**sample, "finalAttempt": int(sample.get("attemptCount", 1)) - 1}
             atomic_write_json(
@@ -809,6 +901,7 @@ class BatchRunManager:
         uid: str,
         attempt_dir: Path,
         attempt: int,
+        publish_response: Callable[[dict[str, Any], float], None],
     ) -> dict[str, Any]:
         started = time.perf_counter()
         response: dict[str, Any] = {}
@@ -818,6 +911,15 @@ class BatchRunManager:
         blocks: dict[str, Any] = {}
         try:
             response = await self.invoke(state.endpoint, request, state.timeout_seconds)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+            if isinstance(exc, UpstreamToolError) and exc.frames:
+                response = {"frames": list(exc.frames)}
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+        publish_response(response, elapsed_ms)
+        try:
             atomic_write_json(attempt_dir / "response.json", response)
             data = response.get("data")
             artifact_url = data.get("artifactUrl") if isinstance(data, dict) else None
@@ -826,36 +928,32 @@ class BatchRunManager:
                     download_artifact,
                     str(artifact_url),
                     attempt_dir / "artifact.md",
-                    self._artifact_roots(),
+                    self._artifact_roots(state.output_dir),
                 )
                 artifact_available = True
-                blocks = parse_artifact_blocks(artifact_text)
-                atomic_write_json(attempt_dir / "blocks.json", blocks)
-                write_artifact_blocks(attempt_dir, blocks)
-                genui = blocks.get("genui")
-                if isinstance(genui, str) and genui.strip():
-                    (attempt_dir / "genui.jsonl").write_text(genui, encoding="utf-8")
-                    dsl_available = True
-                else:
-                    error = "artifact 缺少有效 genui 代码块"
+                blocks = self._save_artifact_preview(attempt_dir, artifact_text)
+                dsl_available = True
             elif response.get("status") in {"success", "degraded"}:
                 error = "响应未返回 artifactUrl"
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
-        trace = await self._import_trace(uid, attempt_dir, state.output_dir)
+        try:
+            trace = await self._import_trace(uid, attempt_dir, state.output_dir)
+        except Exception as exc:
+            trace = {"status": "invalid"}
+            trace_error = f"Trace 导入失败: {type(exc).__name__}: {exc}"
+            error = f"{error}; {trace_error}" if error else trace_error
         status = str(response.get("status") or "failed")
-        completed = status in {"success", "degraded"} and artifact_available and dsl_available
-        if status in {"success", "degraded"} and not completed:
-            status = "failed"
+        completed = status in {"success", "degraded"}
         result = {
             "attempt": attempt,
             "uid": uid,
             "status": status,
             "errorCode": str(response.get("errorCode") or ""),
             "error": error or _error_text(response.get("error")),
-            "elapsedMs": round((time.perf_counter() - started) * 1000, 2),
+            "elapsedMs": elapsed_ms,
             "artifactAvailable": artifact_available,
             "dslAvailable": dsl_available,
             "blockNames": sorted(blocks),
@@ -874,20 +972,66 @@ class BatchRunManager:
         attempt_dir: Path,
         run_dir: Path,
     ) -> dict[str, Any]:
+        importer = self._trace_importer_for_run(run_dir)
         for _ in range(50):
-            if await asyncio.to_thread(self.trace_importer.is_terminal, uid):
+            if await asyncio.to_thread(importer.is_terminal, uid):
                 break
             await asyncio.sleep(0.1)
         return await asyncio.to_thread(
-            self.trace_importer.import_trace,
+            importer.import_trace,
             uid,
             attempt_dir / "trace",
             run_dir / "trace_blobs",
         )
 
-    def _artifact_roots(self) -> tuple[Path, ...]:
+    def _effective_service_config(self, run_dir: Path) -> dict[str, Any]:
+        path = self.output_root / "executions" / f"{run_dir.name}.json"
+        result: dict[str, Any] = {}
+        if path.is_file():
+            effective = self._read_json(path).get("effectiveServiceConfig")
+            if isinstance(effective, dict):
+                result = effective
+        return result
+
+    def _trace_importer_for_run(self, run_dir: Path) -> TraceImporter:
+        value = self._effective_service_config(run_dir).get("generation_trace_root")
+        importer = self.trace_importer
+        if isinstance(value, str) and value:
+            root = Path(value)
+            if not root.is_absolute():
+                root = self.cloud_root.parent / root
+            if root.resolve() != self.trace_importer.trace_root:
+                importer = TraceImporter(root)
+        return importer
+
+    def _artifact_roots(self, run_dir: Path | None = None) -> tuple[Path, ...]:
+        from .service_manager import resolve_artifact_workspace
+
+        service_config: dict[str, Any] | None = None
+        summary_path = run_dir / "summary.json" if run_dir is not None else None
+        if summary_path is not None and summary_path.is_file():
+            summary = self._read_json(summary_path)
+            task_id = summary.get("taskId")
+            if isinstance(task_id, str) and _SAMPLE_ID_PATTERN.fullmatch(task_id):
+                task_path = (self.output_root / "tasks" / f"{task_id}.json").resolve()
+                if task_path.is_relative_to(self.output_root) and task_path.is_file():
+                    task = self._read_json(task_path)
+                    config = task.get("serviceConfig")
+                    if task.get("backendMode") == "managed" and isinstance(config, dict):
+                        service_config = config
+        if run_dir is not None:
+            effective = self._effective_service_config(run_dir)
+            if effective:
+                service_config = effective
         workspace = self.cloud_root / "workspace"
-        return workspace, workspace / "mock_obs", self.cloud_root
+        configured = resolve_artifact_workspace(self.cloud_root.parent, service_config)
+        return (
+            configured,
+            configured / "mock_obs",
+            workspace,
+            workspace / "mock_obs",
+            self.cloud_root,
+        )
 
     @staticmethod
     def _snapshot_evaluation(dataset_root: Path, output_dir: Path) -> None:
@@ -925,6 +1069,8 @@ class BatchRunManager:
 
     def _persist_state(self, state: BatchRunState) -> None:
         summary = state.public_dict()
+        if state.status in {"completed", "cancelled", "failed", "interrupted"}:
+            summary = enrich_run_metrics(summary, state.output_dir)
         atomic_write_json(state.output_dir / "manifest.json", summary)
         atomic_write_json(state.output_dir / "summary.json", summary)
         (state.output_dir / "summary.md").write_text(
@@ -943,10 +1089,41 @@ class BatchRunManager:
             f"- 成功/降级/失败: {summary.get('success', 0)}/"
             f"{summary.get('degraded', 0)}/{summary.get('failed', 0)}",
             f"- Trace 告警: {summary.get('traceWarnings', 0)}",
+        ]
+        metrics = summary.get("generationMetrics")
+        if isinstance(metrics, dict):
+            for key, label in (
+                ("firstDslPassRate", "首稿校验通过率"),
+                ("firstRequestDeliveryRate", "首次请求交付率（含内部修复，不含批跑重试）"),
+                ("finalDeliveryRate", "最终交付率（含降级）"),
+                ("repairRescueRate", "内部修复挽救率"),
+                ("batchRetryRate", "批跑重试率"),
+                ("batchRetryRescueRate", "批跑重试挽救率"),
+            ):
+                rate = metrics.get(key)
+                if isinstance(rate, dict):
+                    percent = rate.get("percent")
+                    display = f"{percent}%" if percent is not None else "未知"
+                    lines.append(
+                        f"- {label}: {display}（{rate.get('numerator')}/{rate.get('denominator')}）"
+                    )
+            lines.append(f"- 生成前失败 / 首稿证据缺失: {metrics.get('preDslFailed')} / "
+                         f"{metrics.get('firstDslUnknown')}")
+            for key, label in (
+                ("qualityRepairAttempts", "内部修复尝试"),
+                ("modelPhysicalCalls", "模型物理调用"),
+                ("p95ElapsedMs", "P95 总耗时(ms)"),
+            ):
+                value = metrics.get(key)
+                lines.append(f"- {label}: {value if value is not None else '未知'}")
+            observed = metrics.get("coverageObserved", 0)
+            missing = metrics.get("coverageMissing") if observed else "未知"
+            lines.append(f"- 交付信息缺失告警: {missing} 个样本，覆盖检查证据 {observed} 个样本")
+        lines.extend([
             "",
             "| 样本 | 状态 | 尝试 | 耗时(ms) | Trace | 错误码 |",
             "|---|---|---:|---:|---|---|",
-        ]
+        ])
         samples = summary.get("samples")
         if isinstance(samples, list):
             for sample in samples:

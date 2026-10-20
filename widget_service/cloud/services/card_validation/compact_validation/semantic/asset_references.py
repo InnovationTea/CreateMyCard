@@ -15,6 +15,7 @@ _ICON_COMPONENTS = frozenset(
         "PillButton",
         "CircleButton",
         "CardButton",
+        "DataDisplay",
         "InfoBlock",
         "SingleLineTitle",
     }

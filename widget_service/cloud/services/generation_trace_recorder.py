@@ -261,6 +261,7 @@ class GenerationTraceRecorder:
         self._latency_by_stage: dict[str, float] = defaultdict(float)
         self._attempt_counts: dict[str, int] = defaultdict(int)
         self._retry_counts: dict[str, int] = defaultdict(int)
+        self._span_counters: dict[str, dict[str, int]] = {}
         self._finalized = False
 
     def bind_request(self, uid: str, *, enabled: bool, trace_root: Path) -> None:
@@ -309,6 +310,7 @@ class GenerationTraceRecorder:
             self._latency_by_stage = defaultdict(float)
             self._attempt_counts = defaultdict(int)
             self._retry_counts = defaultdict(int)
+            self._span_counters = {}
             self._finalized = False
 
     def _disable(self, uid: str) -> None:
@@ -397,6 +399,11 @@ class GenerationTraceRecorder:
                     span_id = self.writer.new_span_id()
                 else:
                     span_id = _SPAN_CONTEXT.get() or self.writer.root_span_id
+            record_metrics = dict(metrics or {})
+            if record_type == "span":
+                with self._state_lock:
+                    counters = self._span_counters.pop(span_id, {})
+                record_metrics.update(counters)
             self.writer.write_record(
                 TraceRecord(
                     event=event,
@@ -414,13 +421,27 @@ class GenerationTraceRecorder:
                     duration_ms=duration_ms,
                     attempts=attempts,
                     details=merged_details,
-                    metrics=metrics or {},
+                    metrics=record_metrics,
                     artifacts=artifact_refs,
                 )
             )
         except Exception as exc:
             self.writer.mark_failure()
             logger.warning(f"{_MODULE} trace_record_failed exception_type={type(exc).__name__}")
+
+    def increment_span_counters(self, counters: Mapping[str, int]) -> None:
+        """按活动阶段汇总轻量计数；线程复制上下文时仍按 Span 隔离。"""
+        if not self.enabled or self.writer is None:
+            return
+        try:
+            span_id = _SPAN_CONTEXT.get() or self.writer.root_span_id
+            with self._state_lock:
+                accumulated = self._span_counters.setdefault(span_id, {})
+                for name, count in counters.items():
+                    accumulated[name] = accumulated.get(name, 0) + count
+        except Exception as exc:
+            self.writer.mark_failure()
+            logger.warning(f"{_MODULE} trace_counter_failed exception_type={type(exc).__name__}")
 
     @contextmanager
     def span(
@@ -648,6 +669,12 @@ def trace_step(event: str, **kwargs: Any) -> None:
     trace_record(event, _record_type="span", **kwargs)
 
 
+def trace_increment_span_counters(counters: Mapping[str, int]) -> None:
+    recorder = current_trace_recorder()
+    if recorder is not None:
+        recorder.increment_span_counters(counters)
+
+
 class _TraceFlow:
     """管理异步生成流程中依次执行的阶段，不推算或补造阶段耗时。"""
 
@@ -691,18 +718,35 @@ def trace_flow(function):
         token = _FLOW_CONTEXT.set(flow)
         failure: BaseException | None = None
         try:
-            flow.switch("prepare")
-            result = await function(*args, **kwargs)
-            status = getattr(result, "status", None)
-            if status is not None:
-                trace_phase_outcome(getattr(status, "value", str(status)))
-            if flow.span is not None and hasattr(result, "model_dump"):
-                flow.span.json_artifacts["generation_response"] = result.model_dump(
-                    mode="json",
-                    exclude_none=True,
-                )
-                flow.span.artifact_roles["generation_response"] = "output"
-            return result
+            policy = args[2] if len(args) > 2 else kwargs.get("policy")
+            branch = "fusion"
+            if getattr(policy, "single_step", False):
+                branch = "single_step_create"
+                if getattr(policy, "source_format", "") == "single-step-edit-patch":
+                    branch = "single_step_edit"
+            with (
+                trace_details(generationBranch=branch),
+                trace_attempt(generation=trace_next_attempt("generationBranches")),
+                trace_span("generation.branch", stage="generation.branch", kind="group") as span,
+            ):
+                try:
+                    flow.switch("prepare")
+                    result = await function(*args, **kwargs)
+                    status = getattr(result, "status", None)
+                    if status is not None:
+                        resolved_status = getattr(status, "value", str(status))
+                        trace_phase_outcome(resolved_status)
+                        span.outcome(resolved_status)
+                    if flow.span is not None and hasattr(result, "model_dump"):
+                        flow.span.json_artifacts["generation_response"] = result.model_dump(
+                            mode="json", exclude_none=True,
+                        )
+                        flow.span.artifact_roles["generation_response"] = "output"
+                    flow.close()
+                    return result
+                except BaseException as exc:
+                    flow.close(exc)
+                    raise
         except BaseException as exc:
             failure = exc
             raise
@@ -825,8 +869,11 @@ def _artifact_role(name: str, roles: Mapping[str, str] | None) -> str:
 
 
 def _event_category(event: str, stage: str | None) -> str:
+    if event == "theme" or event.startswith("theme."):
+        return "validation" if event == "theme.validation" else "transform"
     source = f"{event}.{stage or ''}".casefold()
     mappings = (
+        ("transform", ("single_step.edit", "single_step.fallback")),
         ("request", ("request", "interface")),
         ("protocol", ("protocol", "registry")),
         ("source", ("source_artifact",)),

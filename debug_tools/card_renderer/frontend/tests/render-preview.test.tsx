@@ -32,6 +32,32 @@ function textA2ui(content: string) {
 }
 
 describe('Render 内核预览', () => {
+  it('滚轮缩放画布并限制在 50% 到 360%', () => {
+    const view = render(<CardRenderer initialValue="" previewOnly />);
+    const stage = screen.getByLabelText('卡片缩放画布');
+    const matte = view.container.querySelector('.card-renderer__matte');
+    fireEvent.wheel(stage, { deltaY: -100 });
+    expect(matte).toHaveStyle({ transform: 'scale(2.3)' });
+    fireEvent.wheel(stage, { deltaY: 100 });
+    expect(matte).toHaveStyle({ transform: 'scale(2.2)' });
+    for (let index = 0; index < 40; index += 1) fireEvent.wheel(stage, { deltaY: 100 });
+    expect(matte).toHaveStyle({ transform: 'scale(0.5)' });
+    for (let index = 0; index < 40; index += 1) fireEvent.wheel(stage, { deltaY: -100 });
+    expect(matte).toHaveStyle({ transform: 'scale(3.6)' });
+  });
+
+  it('受控画布通过回调缩放并阻止滚轮滚动页面', () => {
+    const onZoomChange = vi.fn();
+    const view = render(<CardRenderer initialValue="" previewOnly zoom={160} onZoomChange={onZoomChange} />);
+    const stage = screen.getByLabelText('卡片缩放画布');
+    expect(fireEvent.wheel(stage, { deltaY: -100, cancelable: true })).toBe(false);
+    expect(onZoomChange).toHaveBeenCalledWith(170);
+    view.rerender(<CardRenderer initialValue="" previewOnly zoom={170} onZoomChange={onZoomChange} />);
+    expect(view.container.querySelector('.card-renderer__matte')).toHaveStyle({ transform: 'scale(1.7)' });
+    fireEvent.wheel(stage, { deltaY: 100 });
+    expect(onZoomChange).toHaveBeenLastCalledWith(160);
+  });
+
   it('修改客户端版本取消旧请求，再按新版本转换', async () => {
     let resolveResponse!: (value: unknown) => void;
     const fetchMock = vi.fn().mockImplementationOnce(() => new Promise(resolve => {

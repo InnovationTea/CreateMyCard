@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 from debug_tools.batch_testing.postprocess import PostprocessManager
-from debug_tools.postprocess_plugins.gallery.plugin import BatchGalleryManager, run_builtin
+from debug_tools.postprocess_plugins.gallery.capture import run_capture as run_builtin
+from debug_tools.postprocess_plugins.gallery.plugin import BatchGalleryManager
 
 PLUGIN_DIR = Path(__file__).resolve().parents[2] / "debug_tools/postprocess_plugins/quality-score"
 SPEC = importlib.util.spec_from_file_location("quality_plugin_test", PLUGIN_DIR / "plugin.py")
@@ -53,7 +54,7 @@ def make_context(tmp_path: Path, findings: list | None = None) -> dict:
         "outputDir": str(output),
         "upstreamResults": [
             {
-                "pluginId": "browser-gallery",
+                "pluginId": "browser-capture",
                 "result": {
                     "artifacts": [{"key": "web-quality-evidence", "data": evidence}],
                 },
@@ -224,15 +225,19 @@ async def test_gallery_keeps_quality_and_history_image(tmp_path: Path) -> None:
         }
 
     manager = BatchGalleryManager(tmp_path, "http://localhost/debug", capture=capture)
-    output = run_dir / "postprocess/one/plugins/browser-gallery"
+    output = run_dir / "postprocess/one/plugins/browser-capture"
     output.mkdir(parents=True)
     result = await run_builtin(manager, "run", output, {})
     sample = result.get("sampleResults", [])[0]
     assert any(x.get("key") == "web-quality-evidence" for x in sample.get("artifacts", []))
-    manager.capture_path("run", "Q001").write_bytes(b"second image")
-    assert (output / "Q001.png").read_bytes() == b"first image"
-    manifest = json.loads((PLUGIN_DIR.parent / "gallery/plugin.json").read_text(encoding="utf-8"))
-    PostprocessManager._normalize_stage("browser-gallery", result, manifest)
+    other = output.parent / "second-capture"
+    other.mkdir()
+    await capture("unused", other)
+    (other / "1.png").write_bytes(b"second image")
+    assert (output / "1.png").read_bytes() == b"first image"
+    manifest_path = PLUGIN_DIR.parent / "browser_capture/plugin.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    PostprocessManager._normalize_stage("browser-capture", result, manifest, asset_root=output)
 
 
 @pytest.mark.asyncio
@@ -258,7 +263,7 @@ async def test_host_runs_browser_dependency_and_scores_without_new_frontend(tmp_
         return await run_builtin(gallery, run_id, output, config)
 
     manager = PostprocessManager(
-        tmp_path, PLUGIN_DIR.parent, builtin_runners={"browser-gallery": builtin}
+        tmp_path, PLUGIN_DIR.parent, builtin_runners={"browser-capture": builtin}
     )
     await manager.start()
     try:

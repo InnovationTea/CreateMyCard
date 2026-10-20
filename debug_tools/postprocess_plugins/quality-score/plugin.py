@@ -92,7 +92,7 @@ def _pending(reason: str, boundary: str = BOUNDARY) -> dict[str, Any]:
 
 def _evidence(context: dict[str, Any]) -> dict[str, Any] | None:
     for stage in context.get("upstreamResults", []):
-        if stage.get("pluginId") != "browser-gallery":
+        if stage.get("pluginId") != "browser-capture":
             continue
         result = stage.get("result") or {}
         for artifact in result.get("artifacts", []):
@@ -131,11 +131,11 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
         return _pending("最终产物没有 GenUI，无法对当前卡片评分")
     evidence = _evidence(context)
     if not evidence or evidence.get("schemaVersion") != "web-quality-v1":
-        return _pending("缺少新版 Web 检测证据；先再次运行浏览器渲染画廊，再运行评分")
+        return _pending("缺少新版 Web 检测证据；先再次运行浏览器截图，再运行评分")
     source = dsl_path.read_text(encoding="utf-8")
     digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
     if evidence.get("sourceSha256") != digest:
-        return _pending("DSL 已变化或证据未绑定当前 DSL；请重新运行画廊")
+        return _pending("DSL 已变化或证据未绑定当前 DSL；请重新运行浏览器截图")
     blocks_path = _inside(run_dir, str(source_dir / "blocks.json"))
     blocks = _read_object(blocks_path) if blocks_path.is_file() else None
     render_context = {"query": sample.get("query"), "size": sample.get("size"), "blocks": blocks}
@@ -146,7 +146,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
     if app_version is not None or "appVersion" in saved_context:
         render_context["appVersion"] = app_version
     if evidence.get("renderContext") != render_context:
-        return _pending("Query、尺寸、客户端版本或最终产物上下文已变化；请重新运行画廊")
+        return _pending("Query、尺寸、客户端版本或最终产物上下文已变化；请重新运行浏览器截图")
     render_failed = evidence.get("renderFailed") is True
     if not render_failed and evidence.get("complete") is not True:
         return _pending("网页测量未完成，不能用空问题单评分")
@@ -160,7 +160,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
     if not render_failed and not expected_coverage.issubset(evidence.get("coverage", [])):
         return _pending("检测证据未包含本版声明的检查范围")
     if not render_failed and "findings" not in evidence:
-        return _pending("检测结果缺少 findings；请重新运行画廊")
+        return _pending("检测结果缺少 findings；请重新运行浏览器截图")
     findings = evidence.get("findings", [])
     if not isinstance(findings, list) or any(not isinstance(x, dict) for x in findings):
         raise ValueError("检测证据 findings 格式错误")
@@ -179,7 +179,7 @@ def process_sample(context: dict[str, Any]) -> dict[str, Any]:
             return _pending("本次截图文件缺失")
         image_bytes = image_path.read_bytes()
         if hashlib.sha256(image_bytes).hexdigest() != evidence.get("imageSha256"):
-            return _pending("截图哈希不匹配；请重新运行画廊")
+            return _pending("截图哈希不匹配；请重新运行浏览器截图")
     return _score_result(context, findings, evidence, image_path, BOUNDARY)
 
 

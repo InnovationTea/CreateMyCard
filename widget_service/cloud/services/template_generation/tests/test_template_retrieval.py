@@ -816,6 +816,10 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     assert "不得为了迁就布局限制而省略" in messages[0]["content"]
     assert "这些组合约束由服务端 Planner" in messages[0]["content"]
     assert "不得判断业务是否能组成布局" in messages[0]["content"]
+    assert "默认心率展示字段 /exerciseHeartRateAvg" in messages[0]["content"]
+    assert messages[0]["content"].index("天气卡片的默认基础展示字段") < messages[0][
+        "content"
+    ].index("默认心率展示字段 /exerciseHeartRateAvg")
 
 
 def test_calendar_first_layer_rule_excludes_meeting_action_parameters() -> None:
@@ -911,18 +915,20 @@ def test_search_supports_2x4_prompt_and_composition_slot_retrieval() -> None:
 
 def test_search_rejects_two_data_businesses() -> None:
     task = _task()
-    task.dataModelSchema["data"]["systemMem"] = {
-        "usagePercent": _field(65, "number"),
-        "availableMemText": _field("4.2 GB"),
-        "totalMemText": _field("12 GB"),
+    task.dataModelSchema["data"]["phoneBattery"] = {
+        "batteryCapacityLevelDesc": _field("正常"),
+        "batterySOC": _field(65, "integer"),
+        "batterySOCText": _field("65%"),
+        "chargingStatusDesc": _field("未充电"),
     }
-    memory = CandidateDataBinding(
-        capabilityId="GetSystemMemInfo",
-        writeResultTo="/data/systemMem",
+    battery = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
         candidateOutputFields=[
-            "/usagePercent",
-            "/availableMemText",
-            "/totalMemText",
+            "/batteryCapacityLevelDesc",
+            "/batterySOC",
+            "/batterySOCText",
+            "/chargingStatusDesc",
         ],
     )
     with pytest.raises(TemplateRetrievalMiss, match="multiple data businesses"):
@@ -936,22 +942,23 @@ def test_search_rejects_two_data_businesses() -> None:
                         "/current/condition",
                         "/current/coldLevel",
                     ),
-                    "GetSystemMemInfo": (
-                        "/usagePercent",
-                        "/availableMemText",
-                        "/totalMemText",
+                    "GetPhoneBatteryInfo": (
+                        "/batteryCapacityLevelDesc",
+                        "/batterySOC",
+                        "/batterySOCText",
+                        "/chargingStatusDesc",
                     ),
                 },
             ),
             task,
             CardPlanRegistry(),
-            (_binding(), memory),
+            (_binding(), battery),
             {
                 "dataBindings": [
                     {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
                     {
-                        "capabilityId": "GetSystemMemInfo",
-                        "writeResultTo": "/data/systemMem",
+                        "capabilityId": "GetPhoneBatteryInfo",
+                        "writeResultTo": "/data/phoneBattery",
                     },
                 ]
             },
@@ -1072,13 +1079,15 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         registry=registry,
     )
     action = projection.contract.action_bindings[0]
+    assert action.display_label is None
+    generated_label = "查看天气与日程"
     source = (
         'Template("HeroTitleContentActionLayout@1",{},'
         'Template("WeatherOverviewHeroTitle@1",{}),'
         'Template("ScheduleOverviewHeroContent@1",{}),'
         'Template("PillAction@1",'
         + json.dumps(
-            {"actionId": action.action_id, "label": action.display_label},
+            {"actionId": action.action_id, "label": generated_label},
             ensure_ascii=False,
             separators=(",", ":"),
         )
@@ -1126,7 +1135,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
     themed_text_count = 0
     action_buttons = [item for item in components if item.get("component") == "Button"]
     assert len(action_buttons) == 1
-    assert action_buttons[0].get("label") == action.display_label
+    assert action_buttons[0].get("label") == generated_label
     for component in components:
         content_key = "label" if component.get("component") == "Button" else "content"
         content = component.get(content_key)
@@ -1139,7 +1148,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         )
         is_weather_title = any(path in content for path in weather_title_paths)
         is_calendar_title = "/data/calendar/events/0/title" in content
-        if content == action.display_label or is_calendar_title or is_weather_title:
+        if content == generated_label or is_calendar_title or is_weather_title:
             expected_color = (
                 expected_support_color if is_weather_title else expected_primary_color
             )
@@ -2717,30 +2726,123 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
     assert battery_percent_ids <= descendant_ids(row_children[1])
 
 
-def test_required_current_date_must_not_be_silently_dropped() -> None:
+def test_required_uncovered_capability_must_not_be_silently_dropped() -> None:
     """模板未承载的用户必选能力必须整体拒绝，禁止静默丢弃成单业务。"""
     intent = TemplateSearchIntent(
         requiredOutputFieldsByCapability={
             "ViewWeather": ("/current/temperatureText",),
-            "GetCurrentTime": ("/currentDate",),
+            "GetAppPowerConsumptionRanking": ("/rankingList/0/powerText",),
         },
     )
     task = _task()
-    task.dataModelSchema["data"]["time"] = {"currentDate": _field("2026-10-12")}
-    time_binding = CandidateDataBinding(
-        capabilityId="GetCurrentTime",
-        writeResultTo="/data/time",
-        candidateOutputFields=["/currentDate"],
+    task.dataModelSchema["data"]["powerRanking"] = {
+        "rankingList": [{"powerText": _field("53%")}],
+    }
+    ranking_binding = CandidateDataBinding(
+        capabilityId="GetAppPowerConsumptionRanking",
+        writeResultTo="/data/powerRanking",
+        candidateOutputFields=["/rankingList/0/powerText"],
     )
     card_spec = _card_spec()
     card_spec["dataBindings"].append(
-        {"capabilityId": "GetCurrentTime", "writeResultTo": "/data/time"},
+        {"capabilityId": "GetAppPowerConsumptionRanking", "writeResultTo": "/data/powerRanking"},
     )
 
     with pytest.raises(
         TemplateRetrievalMiss,
-        match="no provider template covers capability GetCurrentTime",
+        match=(
+            "no provider template covers capability GetAppPowerConsumptionRanking"
+        ),
     ):
         search_template_variants(
-            intent, task, get_cardplan_registry(), (_binding(), time_binding), card_spec,
+            intent, task, get_cardplan_registry(), (_binding(), ranking_binding), card_spec,
         )
+
+
+def _current_time_task() -> TaskSpec:
+    return TaskSpec(
+        userQuery="显示当前时间",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "currentTime": {
+                    "currentDate": _field("2026-07-09"),
+                    "dayOfWeek": _field("星期四"),
+                    "lunarDate": _field("六月十五"),
+                    "updatedAt": _field("2026-07-09 15:30:00"),
+                }
+            }
+        },
+    )
+
+
+def _current_time_binding() -> CandidateDataBinding:
+    return CandidateDataBinding(
+        capabilityId="GetCurrentTime",
+        writeResultTo="/data/currentTime",
+        candidateOutputFields=[
+            "/currentDate",
+            "/dayOfWeek",
+            "/lunarDate",
+            "/updatedAt",
+        ],
+    )
+
+
+def _current_time_card_spec() -> dict[str, Any]:
+    return {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetCurrentTime", "writeResultTo": "/data/currentTime"}
+        ],
+    }
+
+
+def test_current_time_updated_fields_search_includes_updated_full_and_support() -> None:
+    """只要更新时间时，CurrentTimeOverview 必须给出 UpdatedFull 与 Support 候选。"""
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetCurrentTime": ("/updatedAt",)},
+        primaryOutputFieldByCapability={"GetCurrentTime": "/updatedAt"},
+    )
+    result = search_template_variants(
+        intent,
+        _current_time_task(),
+        get_cardplan_registry(),
+        (_current_time_binding(),),
+        _current_time_card_spec(),
+    )
+
+    groups = [
+        group for group in result.business_candidates if group.business_id == "CurrentTimeOverview"
+    ]
+    assert len(groups) == 1
+    candidates = {candidate.template_id: candidate for candidate in groups[0].candidates}
+    assert "CurrentTimeOverviewUpdatedFull@1" in candidates
+    assert "CurrentTimeOverviewSupport@1" in candidates
+    assert all(
+        "/updatedAt" in candidate.covered_explicit_fields
+        for candidate in candidates.values()
+    )
+
+
+def test_current_time_date_fields_search_includes_date_full() -> None:
+    """只要今天日期时，CurrentTimeOverview 必须给出 DateFull 候选。"""
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"GetCurrentTime": ("/currentDate",)},
+        primaryOutputFieldByCapability={"GetCurrentTime": "/currentDate"},
+    )
+    result = search_template_variants(
+        intent,
+        _current_time_task(),
+        get_cardplan_registry(),
+        (_current_time_binding(),),
+        _current_time_card_spec(),
+    )
+
+    groups = [
+        group for group in result.business_candidates if group.business_id == "CurrentTimeOverview"
+    ]
+    assert len(groups) == 1
+    assert "CurrentTimeOverviewDateFull@1" in {
+        candidate.template_id for candidate in groups[0].candidates
+    }
