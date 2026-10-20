@@ -90,11 +90,11 @@ def test_blue_replaces_only_the_retired_ball_colors(case):
     assert hashlib.sha256(canonical.encode()).hexdigest() == case.get("digest")
 
 
-def test_all_themes_are_self_contained_and_only_four_photos_remain():
+def test_all_themes_are_self_contained_and_only_ten_photos_remain():
     config = registry.load_theme_registry()
     entries = config.get("themes", [])
-    assert len(entries) == 14
-    assert len({theme.get("id") for theme in entries}) == 14
+    assert len(entries) == 20
+    assert len({theme.get("id") for theme in entries}) == 20
     for theme in entries:
         assert "palette" not in theme
         assert theme.get("background")
@@ -105,6 +105,10 @@ def test_all_themes_are_self_contained_and_only_four_photos_remain():
     assert {item.get("id") for item in photos} == {
         "photo-ux-water-lily-square", "photo-ux-sleep-square",
         "photo-ux-sport-center-wide", "photo-ux-star-trails-wide",
+        "photo-ux-autumn-square", "photo-ux-yellow-arch-square",
+        "photo-ux-metronome-square",
+        "photo-ux-galaxy-sleep-square",
+        "photo-ux-geometry-calendar-square", "photo-ux-flowers-weather-square",
     }
     for pool in ("subjectlessWidePhotos", "squareExpansions"):
         assert registry.registered_themes(pool, include_disabled=True) == []
@@ -154,7 +158,7 @@ def test_duplicate_theme_id_rejected():
 def test_registry_returns_independent_copies():
     first = registry.load_theme_registry()
     first.get("themes", []).clear()
-    assert len(registry.load_theme_registry().get("themes", [])) == 14
+    assert len(registry.load_theme_registry().get("themes", [])) == 20
 
 
 def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch):
@@ -171,7 +175,7 @@ def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch
     assert "gradient-blue-added" not in {theme.get("id") for theme in registry.registered_themes()}
     entries.remove(extra)
     use_config(monkeypatch, config)
-    assert len(registry.registered_themes()) == 14
+    assert len(registry.registered_themes()) == 20
 
 
 @pytest.mark.parametrize("identity", [

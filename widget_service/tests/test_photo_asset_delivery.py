@@ -51,15 +51,21 @@ def artifact():
     )
 
 
-def test_all_four_photos_have_distinct_obs_delivery_addresses():
+def test_original_four_photos_keep_obs_and_new_six_have_empty_addresses():
     photos = [item for item in registry.load_theme_registry().get("themes", [])
               if item.get("kind") == "photo"]
-    assert len(photos) == 4
+    assert len(photos) == 10
     configured = {}
     for item in photos:
         background = item.get("background", {})
         address = background.get("remoteUrl")
         assert isinstance(address, str)
+        if item.get("id") in {"photo-ux-autumn-square", "photo-ux-yellow-arch-square",
+                              "photo-ux-metronome-square", "photo-ux-galaxy-sleep-square",
+                              "photo-ux-geometry-calendar-square",
+                              "photo-ux-flowers-weather-square"}:
+            assert address == ""
+            continue
         parsed = urlsplit(address)
         assert parsed.scheme == "https"
         assert parsed.hostname == "lfcontentcenterdev.hwcloudtest.cn"
@@ -80,8 +86,14 @@ def test_all_four_photos_have_distinct_obs_delivery_addresses():
     ("photo-ux-sport-center-wide", "2x4"),
     ("photo-ux-sleep-square", "2x2"),
     ("photo-ux-water-lily-square", "2x2"),
+    ("photo-ux-autumn-square", "2x2"),
+    ("photo-ux-yellow-arch-square", "2x2"),
+    ("photo-ux-metronome-square", "2x2"),
+    ("photo-ux-galaxy-sleep-square", "2x2"),
+    ("photo-ux-geometry-calendar-square", "2x2"),
+    ("photo-ux-flowers-weather-square", "2x2"),
 ])
-def test_configured_obs_urls_pass_existing_final_asset_validation(monkeypatch, photo_id, size):
+def test_registered_photo_sources_pass_existing_final_asset_validation(monkeypatch, photo_id, size):
     photo = next(item for item in registry.registered_themes("photos")
                  if item.get("id") == photo_id)
     original = artifact()
@@ -95,9 +107,10 @@ def test_configured_obs_urls_pass_existing_final_asset_validation(monkeypatch, p
         A2UIProtocolRegistry(original.meta.protocolProfileId).get_profile(),
     ))
     assert not audit.get("finalValidationErrors"), audit
-    assert photo.get("remoteUrl")
-    assert node_by_id(delivered.genui, themes.PREFIX + "image").get("src") == photo.get("remoteUrl")
-    assert node_by_id(delivered.genui, themes.PREFIX + "base").get("src") == photo.get("remoteUrl")
+    expected = photo.get("remoteUrl") or photo.get("src")
+    assert expected
+    assert node_by_id(delivered.genui, themes.PREFIX + "image").get("src") == expected
+    assert node_by_id(delivered.genui, themes.PREFIX + "base").get("src") == expected
     assert node_by_id(delivered.genui, "root").get("styles", {}).get("backgroundColor")
 
 
@@ -178,7 +191,7 @@ def test_theme_prompt_never_receives_remote_url(monkeypatch, enabled):
     result, audit = asyncio.run(themes.select_theme(
         layout, task(), client, final_layout=sample.layout,
     ))
-    assert (audit.get("themeId") == PHOTO_ID) is enabled
+    assert (audit.get("themeId") in {PHOTO_ID, "photo-ux-flowers-weather-square"}) is enabled
     assert ADDRESS not in json.dumps(theme_description(photo))
     assert ADDRESS not in json.dumps(client.generate.call_args.args)
     assert ADDRESS not in result

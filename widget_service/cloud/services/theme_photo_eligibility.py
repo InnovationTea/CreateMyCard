@@ -30,6 +30,8 @@ def photo_content_reason(photo: dict, task: dict, evidence: dict,
         return "图片内容限制需要语义布局根节点"
     if policy.get("kind") == "sleep-square":
         return _sleep_reason(policy, task, evidence, root, by_id)
+    if policy.get("kind") == "sleep-capsule-square":
+        return _sleep_capsule_reason(policy, task, by_id)
     if policy.get("kind") == "weather-square":
         return _weather_reason(policy, task, evidence, root, by_id)
     if policy.get("kind") == "running-main":
@@ -38,6 +40,12 @@ def photo_content_reason(photo: dict, task: dict, evidence: dict,
         return _left_main_reason(policy, evidence, root, by_id)
     if policy.get("kind") == "calendar-square":
         return _calendar_reason(policy, task, evidence, root, by_id)
+    if policy.get("kind") == "calendar-text-square":
+        return _calendar_text_reason(task, evidence, root, by_id)
+    if policy.get("kind") == "dual-countdown-square":
+        return _countdown_reason(policy, evidence, root, by_id)
+    if policy.get("kind") == "music-square":
+        return _music_reason(policy, evidence, root, by_id)
     return "未知图片内容限制"
 
 
@@ -66,8 +74,8 @@ def _sleep_reason(policy: dict, task: dict, evidence: dict,
     for path in state.paths:
         if not path.startswith("/data/healthSport/") or path.rsplit("/", 1)[-1] not in allowed:
             return "睡眠图片不能混入其它业务或健康指标"
-    if any(row.component_type in policy.get("excludeComponents", []) for row in rows):
-        return "睡眠图片不允许胶囊按钮"
+    if policy.get("buttonPolicy") == "none" and _has_independent_control(rows, evidence):
+        return "卧室睡眠图片不允许按钮或独立可点击控件"
     layout = root.props.get("layout")
     placements = policy.get("layouts", {})
     placement = placements.get(layout)
@@ -95,9 +103,6 @@ def _sleep_content_left_aligned(root: ComponentRow, by_id: dict, flow: dict) -> 
         child = by_id.get(identity)
         if child is None:
             return False
-        # Button labels may be centered, but remain included in the root line budget.
-        if child.component_type in {"PillButton", "CircleButton"}:
-            continue
         if not flow.get(identity, {}).get("leftAligned"):
             return False
     return True
@@ -235,37 +240,179 @@ def _calendar_reason(policy: dict, task: dict, evidence: dict,
                      root: ComponentRow, by_id: dict) -> str | None:
     data = task.get("dataModelSchema", {}).get("data", {})
     rows = _subtree("root", by_id)
-    if not isinstance(data, dict) or set(data) != {"calendar"}:
-        return "拱门图片仅用于日程会议单业务"
-    if not _business_paths_match(_compact_visible_state(rows).paths, "calendar"):
-        return "拱门图片需要真实日程内容且不能混入其它业务"
     placement = policy.get("layouts", {}).get(root.props.get("layout"))
-    if placement != "left" or len(root.children) < 2:
-        return "拱门图片需要内容区居左的布局"
-    for row in rows:
-        if row.props.get("onClick") and row.component_id != "root":
-            return "拱门图片内容区必须纯文字且不能有按钮"
-        if row.component_type in {"CircleButton", "PillButton", "CardButton", "Button"}:
-            return "拱门图片内容区必须纯文字且不能有按钮"
-    if evidence.get("buttonIds"):
-        return "拱门图片不允许按钮或独立可点击控件"
-    if "nonTextIds" not in evidence or "nonTextAncestors" not in evidence:
-        return "无法确认拱门卡片为纯文字"
-    header = by_id.get(root.children[0])
-    if header is None or header.component_type != "SingleLineTitle":
-        return "无法确认拱门卡片的顶部标题"
-    ancestors = evidence.get("nonTextAncestors", {})
-    for identity in evidence.get("nonTextIds", []):
-        if header.component_id not in ancestors.get(identity, []):
-            return "拱门图片内容区只能包含文字，图标仅允许出现在顶部标题"
+    header = by_id.get(root.children[0]) if root.children else None
+    reason: str | None = None
+    if not isinstance(data, dict) or set(data) != {"calendar"}:
+        reason = "拱门图片仅用于日程会议单业务"
+    elif not _business_paths_match(_compact_visible_state(rows).paths, "calendar"):
+        reason = "拱门图片需要真实日程内容且不能混入其它业务"
+    elif placement != "left" or len(root.children) < 2:
+        reason = "拱门图片需要内容区居左的布局"
+    elif header is None or header.component_type != "SingleLineTitle":
+        reason = "无法确认拱门卡片的顶部标题"
     flow = evidence.get("textFlow", {})
     lines = 0
     for identity in root.children[1:]:
+        if reason is not None:
+            break
+        child = by_id.get(identity)
+        if child is None:
+            reason = "拱门图片缺少完整内容证据"
+            break
         item = flow.get(identity, {})
         limit = item.get("maxLines")
-        if type(limit) is not int or limit <= 0 or not item.get("leftAligned"):
-            return "拱门图片内容未居左或缺少文字行数证据"
+        if type(limit) is not int or limit < 0:
+            reason = "拱门图片缺少文字行数证据"
+            break
+        is_button = child.component_type in {"CircleButton", "PillButton", "CardButton", "Button"}
+        if limit > 0 and not is_button and not item.get("leftAligned"):
+            reason = "拱门图片内容未居左"
+            break
         lines += limit
-    if lines > policy.get("maxTextLines", 0):
-        return "拱门图片内容区文字超过两行"
-    return None
+    if reason is None:
+        if lines <= 0:
+            reason = "拱门图片需要可见的日程文字"
+        elif lines > policy.get("maxTextLines", 0):
+            reason = "拱门图片内容区文字超过两行"
+    return reason
+
+
+def _countdown_reason(policy: dict, evidence: dict,
+                      root: ComponentRow, by_id: dict) -> str | None:
+    reason: str | None = None
+    if root.props.get("layout") != policy.get("layout") or len(root.children) != 2:
+        reason = "双倒计时图片需要上下两个信息背板"
+    subjects = set()
+    for identity in root.children:
+        if reason is not None:
+            break
+        panel = by_id.get(identity)
+        if panel is None or panel.component_type != "InfoBlock":
+            reason = "双倒计时图片需要两个InfoBlock背板"
+            break
+        if identity not in evidence.get("panelIds", []):
+            reason = "双倒计时图片缺少可见信息背板"
+            break
+        state = _compact_visible_state(_subtree(identity, by_id))
+        if not state.paths or any(not path.startswith("/data/countdown/") for path in state.paths):
+            reason = "每个背板必须展示真实倒计时且不能混入其它业务"
+            break
+        entries = set()
+        for path in state.paths:
+            parent, _, field_name = path.rpartition("/")
+            if field_name == "countdownDays":
+                entries.add(parent)
+        if len(entries) != 1:
+            reason = "每个背板必须展示一个倒计时天数"
+            break
+        subjects.update(entries)
+    if reason is None and len(subjects) != 2:
+        reason = "两个背板必须对应不同倒计时"
+    return reason
+
+
+def _calendar_text_reason(task: dict, evidence: dict,
+                          root: ComponentRow, by_id: dict) -> str | None:
+    data = task.get("dataModelSchema", {}).get("data", {})
+    rows = _subtree("root", by_id)
+    header = by_id.get(root.children[0]) if root.children else None
+    reason: str | None = None
+    if not isinstance(data, dict) or set(data) != {"calendar"}:
+        reason = "几何图片仅用于日程会议单业务"
+    elif not _business_paths_match(_compact_visible_state(rows).paths, "calendar"):
+        reason = "几何图片需要真实日程内容且不能混入其它业务"
+    elif header is None or header.component_type != "SingleLineTitle":
+        reason = "几何会议图片需要可识别的顶部标题与内容区"
+    elif _has_independent_control(rows, evidence):
+        reason = "几何会议图片的纯文字内容不允许按钮或独立点击控件"
+    else:
+        body = []
+        for identity in root.children[1:]:
+            body.extend(_subtree(identity, by_id))
+        if not _business_paths_match(_compact_visible_state(body).paths, "calendar"):
+            reason = "几何会议图片内容区需要真实日程文字"
+        ancestors = evidence.get("nonTextAncestors", {})
+        for identity in evidence.get("nonTextIds", []):
+            if header.component_id not in ancestors.get(identity, []):
+                reason = "几何会议图片仅允许标题装饰图标，内容区必须纯文字"
+                break
+    return reason
+
+
+def _has_independent_control(rows: list[ComponentRow], evidence: dict) -> bool:
+    if evidence.get("buttonIds"):
+        return True
+    for row in rows:
+        if row.component_type in {"PillButton", "CircleButton", "CardButton", "Button"}:
+            return True
+        if row.component_id != "root" and row.props.get("onClick"):
+            return True
+    return False
+
+
+def _sleep_capsule_reason(policy: dict, task: dict, by_id: dict) -> str | None:
+    rows = _subtree("root", by_id)
+    state = _compact_visible_state(rows)
+    reason: str | None = None
+    if expansion_business(task) != "sleep" or not _business_paths_match(state.paths, "sleep"):
+        reason = "银河图片仅用于真实睡眠单业务"
+    else:
+        has_capsule = False
+        for row in rows:
+            if row.component_type == policy.get("requiredComponent") and row.props.get("onClick"):
+                has_capsule = True
+        if not has_capsule:
+            reason = "银河睡眠图片必须带可点击胶囊按钮"
+    return reason
+
+
+def _music_reason(policy: dict, evidence: dict, root: ComponentRow, by_id: dict) -> str | None:
+    rows = _subtree("root", by_id)
+    state = _compact_visible_state(rows)
+    reason: str | None = None
+    if state.paths:
+        if any(not path.startswith("/data/earphone/") for path in state.paths):
+            reason = "节拍器图片仅用于耳机单业务或纯音乐入口"
+    elif not _only_music_actions(rows):
+        reason = "节拍器图片需要真实耳机内容或音乐跳转动作"
+    if reason is None:
+        lines = _music_content_lines(policy, evidence, root, by_id)
+        if lines is None:
+            reason = "无法确认耳机音乐卡片的内容区文字行数上界"
+        elif lines <= 0 or lines > policy.get("maxTextLines", 0):
+            reason = "耳机音乐图片要求内容区1至3行文字"
+    return reason
+
+
+def _music_content_lines(policy: dict, evidence: dict,
+                         root: ComponentRow, by_id: dict) -> int | None:
+    flow = evidence.get("textFlow", {})
+    lines = flow.get("root", {}).get("maxLines")
+    result: int | None = None
+    if type(lines) is int and lines > 0:
+        result = lines
+        header = by_id.get(root.children[0]) if root.children else None
+        exclude_title = not policy.get("includeTitle", True) and header is not None
+        if exclude_title and header.component_type == "SingleLineTitle":
+            title_lines = flow.get(header.component_id, {}).get("maxLines")
+            if type(title_lines) is not int or title_lines <= 0:
+                result = None
+            else:
+                result -= title_lines
+    return result
+
+
+def _only_music_actions(rows: list[ComponentRow]) -> bool:
+    found = False
+    for row in rows:
+        for action in row.props.get("onClick", []):
+            if not isinstance(action, dict):
+                return False
+            arguments = action.get("args", {})
+            if not isinstance(arguments, dict) or action.get("call") != "clickToDeeplink":
+                return False
+            if arguments.get("intentName") != "Music":
+                return False
+            found = True
+    return found

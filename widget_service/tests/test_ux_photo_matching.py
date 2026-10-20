@@ -370,7 +370,7 @@ def test_sleep_only_excludes_top_title_not_bottom_support(support_lines, allowed
     nodes.append({"id": "support", "component": "Text", "content": "睡眠详情",
                   "styles": {"maxLines": support_lines}})
     reason = themes.photo_reason(ux("sleep-square"), sleep_task(), photo_layout_evidence(nodes),
-                                 final_layout=sleep_anchor_layout())
+                                 final_layout=sleep_support_layout())
     assert (reason is None) is allowed
 
 
@@ -393,8 +393,15 @@ def sleep_anchor_layout(button="CircleButton"):
     ])
 
 
+def sleep_support_layout():
+    rows = [json.loads(line) for line in sleep_anchor_layout().splitlines()]
+    rows[0][2]["layout"] = "S-title-dual-content"
+    rows[0][3].remove("action")
+    return '\n'.join(json.dumps(row, ensure_ascii=False) for row in rows[:-1])
+
+
 @pytest.mark.parametrize("button", ["CircleButton", "PillButton"])
-def test_sleep_allows_icon_and_capsule_buttons(button):
+def test_bedroom_sleep_rejects_icon_and_capsule_buttons(button):
     nodes = sleep_nodes()
     nodes[0].get("children", []).extend(["support", "action"])
     nodes.extend([
@@ -404,7 +411,7 @@ def test_sleep_allows_icon_and_capsule_buttons(button):
     ])
     reason = themes.photo_reason(ux("sleep-square"), sleep_task(), photo_layout_evidence(nodes),
                                  final_layout=sleep_anchor_layout(button))
-    assert reason is None
+    assert reason == "卧室睡眠图片不允许按钮或独立可点击控件"
 
 
 @pytest.mark.parametrize("alignment", ["center", "end"])
@@ -412,7 +419,23 @@ def test_sleep_left_layout_cannot_hide_centered_or_right_aligned_text(alignment)
     nodes = sleep_nodes()
     nodes[2].get("styles", {})["textAlign"] = alignment
     assert themes.photo_reason(ux("sleep-square"), sleep_task(), photo_layout_evidence(nodes),
-                               final_layout=sleep_anchor_layout()) is not None
+                               final_layout=sleep_support_layout()) == "睡眠图片内容未居左"
+
+
+@pytest.mark.parametrize("identity,allowed", [
+    ("root", True), ("header", False), ("reading", False),
+])
+def test_bedroom_sleep_excludes_independent_clicks_but_not_whole_card(identity, allowed):
+    nodes = sleep_nodes()
+    node = next(item for item in nodes if item.get("id") == identity)
+    node["onClick"] = [{"call": "open"}]
+    rows = [json.loads(line) for line in SLEEP_LAYOUT.splitlines()]
+    row = next(item for item in rows if item[0] == identity)
+    row[2]["onClick"] = [{"call": "open"}]
+    compact = '\n'.join(json.dumps(item) for item in rows)
+    reason = themes.photo_reason(ux("sleep-square"), sleep_task(), photo_layout_evidence(nodes),
+                                 final_layout=compact)
+    assert (reason is None) is allowed
 
 
 def test_sleep_bottom_content_may_have_centered_text():

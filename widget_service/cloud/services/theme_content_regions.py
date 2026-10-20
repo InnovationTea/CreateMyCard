@@ -2,6 +2,20 @@
 
 from __future__ import annotations
 
+from services.theme_style_roles import ROLE_PATTERN, is_role
+
+
+def panel_ids(nodes: list[dict]) -> list[str]:
+    result = []
+    for node in nodes:
+        background = node.get("styles", {}).get("backgroundColor")
+        if node.get("component") not in {"Row", "Column", "Stack"} or not is_role(background):
+            continue
+        match = ROLE_PATTERN.fullmatch(background)
+        if match is not None and match[1] == "panel" and float(match[2] or 1) > 0:
+            result.append(node.get("id"))
+    return result
+
 
 def button_ids(nodes: list[dict]) -> list[str]:
     result = []
@@ -33,6 +47,7 @@ def photo_layout_evidence(nodes: list[dict]) -> dict:
             reason = "背景需要自适应前景根节点"
     return {"basis": "layout-only", "complete": reason is None, "reason": reason,
             "contentIds": content_ids, "buttonIds": button_ids(nodes),
+            "panelIds": panel_ids(nodes),
             "nonTextIds": non_text_ids,
             "nonTextAncestors": _non_text_ancestors(nodes, non_text_ids),
             "textFlow": text_flow_evidence(nodes),

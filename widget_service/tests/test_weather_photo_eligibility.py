@@ -230,14 +230,15 @@ def test_weather_selection_preserves_foreground_and_does_not_render(monkeypatch,
     result, audit = asyncio.run(themes.select_theme(
         source, task(), client, final_layout=sample.layout,
     ))
-    assert (audit.get("themeId") == PHOTO_ID) is (enabled and layout == "S-title-content")
+    weather_ids = {PHOTO_ID, "photo-ux-flowers-weather-square"}
+    assert (audit.get("themeId") in weather_ids) is (enabled and layout == "S-title-content")
     assert themes.foreground_signature(source) == themes.foreground_signature(result)
     assert audit.get("deviceGeometryKnown") is False
     process.assert_not_called()
 
 
 @pytest.mark.parametrize("change", [
-    {"subjectless": True}, {"business": "sleep"}, {"sizes": ["2x4"]},
+    {"business": "sleep"}, {"sizes": ["2x4"]},
     {"contentEligibility": {"kind": "weather-square", "layouts": {"S-center": "left"}}},
     {"contentEligibility": {"kind": "weather-square", "layouts": {"S-title-content": "bottom"}}},
     {"contentEligibility": {"kind": "weather-square", "layouts": {"S-title-anchor": "left"}}},

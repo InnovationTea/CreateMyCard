@@ -34,6 +34,19 @@ _FRAME = {
     },
 }
 _CONTENT_ELIGIBILITY = {"oneOf": [
+    {"type": "object", "additionalProperties": False, "required": ["kind"],
+     "properties": {"kind": {"const": "calendar-text-square"}}},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "maxTextLines", "includeTitle"],
+     "properties": {"kind": {"const": "music-square"},
+                    "maxTextLines": {"const": 3}, "includeTitle": {"const": False}}},
+    {"type": "object", "additionalProperties": False, "required": ["kind", "layout"],
+     "properties": {"kind": {"const": "dual-countdown-square"},
+                    "layout": {"const": "S-dual-info"}}},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "requiredComponent"],
+     "properties": {"kind": {"const": "sleep-capsule-square"},
+                    "requiredComponent": {"const": "PillButton"}}},
     {"type": "object", "additionalProperties": False,
      "required": ["kind", "mainBusiness"],
      "properties": {"kind": {"const": "left-main-wide"},
@@ -45,7 +58,10 @@ _CONTENT_ELIGIBILITY = {"oneOf": [
          "maxTextLines": {"const": 2}, "includeTitle": {"const": False},
          "layouts": {"type": "object", "minProperties": 1, "additionalProperties": False,
                      "properties": {"S-title-content": {"const": "left"},
-                                    "S-title-dual-content": {"const": "left"}}},
+                                    "S-title-dual-content": {"const": "left"},
+                                    "S-title-anchor": {"const": "left"},
+                                    "S-title-content-action": {"const": "left"},
+                                    "S-title-primary-secondary-action": {"const": "left"}}},
      }},
     {"type": "object", "additionalProperties": False, "required": ["kind", "layouts"],
      "properties": {
@@ -55,13 +71,12 @@ _CONTENT_ELIGIBILITY = {"oneOf": [
                                     "S-title-dual-content": {"const": "left"}}},
      }},
     {"type": "object", "additionalProperties": False,
-     "required": ["kind", "maxTextLines", "includeTitle", "excludeComponents", "layouts"],
+     "required": ["kind", "maxTextLines", "includeTitle", "buttonPolicy", "layouts"],
      "properties": {
          "kind": {"const": "sleep-square"},
          "maxTextLines": {"type": "integer", "minimum": 1},
          "includeTitle": {"type": "boolean"},
-         "excludeComponents": {"type": "array", "uniqueItems": True,
-                               "items": {"const": "PillButton"}},
+         "buttonPolicy": {"const": "none"},
          "layouts": {"type": "object", "minProperties": 1, "additionalProperties": False,
                      "properties": {"S-title-content": {"const": "bottom"},
                                     "S-title-dual-content": {"const": "left"},
@@ -213,14 +228,23 @@ def _validate_content_eligibility(theme: dict) -> None:
     if policy.get("kind") in square_business:
         if sizes != ["2x2"] or theme.get("business") != square_business.get(policy.get("kind")):
             raise ValueError("Square eligibility requires a matching 2x2 business photo")
-        if theme.get("subjectless") is not False:
+        if policy.get("kind") == "calendar-square" and theme.get("subjectless") is not False:
             raise ValueError("Square layout policy must retain its subject")
     else:
         if theme.get("subjectless") is not True:
             raise ValueError("Content eligibility requires a native subjectless photo")
-        if policy.get("kind") == "sleep-square":
+        if policy.get("kind") in {"sleep-square", "sleep-capsule-square"}:
             if sizes != ["2x2"] or theme.get("business") != "sleep":
                 raise ValueError("Sleep content eligibility requires a 2x2 sleep photo")
+        elif policy.get("kind") == "dual-countdown-square":
+            if sizes != ["2x2"] or theme.get("business") != "countdown":
+                raise ValueError("Countdown eligibility requires a 2x2 countdown photo")
+        elif policy.get("kind") == "music-square":
+            if sizes != ["2x2"] or theme.get("business") != "music":
+                raise ValueError("Music eligibility requires a 2x2 music photo")
+        elif policy.get("kind") == "calendar-text-square":
+            if sizes != ["2x2"] or theme.get("business") != "calendar":
+                raise ValueError("Text calendar eligibility requires a 2x2 calendar photo")
         elif sizes != ["2x4"] or "subjectlessLayout" not in theme:
             raise ValueError("Main business eligibility requires a 2x4 side-slot photo")
         if policy.get("kind") == "left-main-wide":
@@ -298,6 +322,31 @@ def _validate_native_photo(theme: dict) -> None:
                     raise ValueError("Photo subject region exceeds its bounds")
 
 
+def _validate_photo_selection(groups: list, by_id: dict) -> None:
+    _check(groups, {"type": "array", "items": {
+        "type": "object", "additionalProperties": False,
+        "required": ["id", "mode", "themeIds"],
+        "properties": {"id": _TEXT, "mode": {"const": "uniform"}, "themeIds": {
+            "type": "array", "minItems": 2, "uniqueItems": True, "items": _TEXT,
+        }},
+    }}, "photoSelectionGroups")
+    seen_ids = set()
+    seen_groups = set()
+    for group in groups:
+        if group.get("id") in seen_groups:
+            raise ValueError("Duplicate photo selection group")
+        seen_groups.add(group.get("id"))
+        contracts = set()
+        for identity in group.get("themeIds", []):
+            theme = by_id.get(identity)
+            if theme is None or theme.get("pool") != "photos" or identity in seen_ids:
+                raise ValueError("Photo selection requires distinct registered native photos")
+            seen_ids.add(identity)
+            contracts.add((theme.get("business"), tuple(theme.get("sizes", []))))
+        if len(contracts) != 1:
+            raise ValueError("Equivalent photo selection requires the same business and size")
+
+
 def validate_registry(payload: dict) -> None:
     # JSON numeric values must remain finite, including frame and blur parameters.
     json.dumps(payload, allow_nan=False)
@@ -313,6 +362,14 @@ def validate_registry(payload: dict) -> None:
             raise ValueError(f"Duplicate theme ID: {identity}")
         by_id[identity] = theme
     _validate_selection(payload.get("selection"), by_id)
+    _validate_photo_selection(payload.get("photoSelectionGroups", []), by_id)
+    _check(payload.get("photoSurfaceStyle"), {
+        "type": "object", "additionalProperties": False, "required": ["backdropBlur"],
+        "properties": {"backdropBlur": {
+            "type": "object", "additionalProperties": False, "required": ["radius"],
+            "properties": {"radius": {"type": "number", "minimum": 0}},
+        }},
+    }, "photoSurfaceStyle")
     photo_fallbacks = payload.get("photoFallbacks")
     _check(photo_fallbacks, _PHOTO_FALLBACKS, "photoFallbacks")
     identity = photo_fallbacks.get("lightText", {}).get("themeId")

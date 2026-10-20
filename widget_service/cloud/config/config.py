@@ -68,7 +68,7 @@ class Settings(BaseSettings):
         CONFIG: ConfigHelper = ConfigHelper("cloud")
     WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
     enable_photo_background_theme: bool = (
-        CONFIG.get("enable_photo_background_theme", "false") == "true"
+        CONFIG.get("enable_photo_background_theme", "true") == "true"
     )
     enable_subjectless_wide_theme: bool = (
         CONFIG.get("enable_subjectless_wide_theme", "false") == "true"

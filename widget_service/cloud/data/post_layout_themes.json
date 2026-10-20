@@ -4,6 +4,13 @@
     "mode": "layout-only",
     "unknownGeometryPolicy": "reject-subject-photos"
   },
+  "photoSurfaceStyle": {
+    "backdropBlur": {"radius": 20}
+  },
+  "photoSelectionGroups": [
+    {"id": "weather-square", "mode": "uniform",
+     "themeIds": ["photo-ux-water-lily-square", "photo-ux-flowers-weather-square"]}
+  ],
   "photoFallbacks": {
     "darkText": {
       "colors": ["#FFFFFFFF", "#FFE6E6E6"],
@@ -527,13 +534,13 @@
       "kind": "photo",
       "pool": "photos",
       "name": "睡眠 · 暗色卧室",
-      "description": "仅用于2x2睡眠单业务，内容居左或贴底、内容区最多3行文字；顶部标题不计入行数，允许胶囊及图标按钮，按钮文案计入行数但可居中。暗色卧室按无主体背景处理，固定白色文字及融球前景配色，背景随宿主自适应。",
+      "description": "仅用于2x2睡眠单业务，内容居左或贴底、内容区最多3行文字，顶部标题不计入；不允许任何按钮或独立可点击控件。暗色卧室按无主体背景处理，白色文字及既有前景配色，背景随宿主自适应。",
       "subjectless": true,
       "contentEligibility": {
         "kind": "sleep-square",
         "maxTextLines": 3,
         "includeTitle": false,
-        "excludeComponents": [],
+        "buttonPolicy": "none",
         "layouts": {
           "S-title-content": "bottom",
           "S-title-dual-content": "left",
@@ -595,7 +602,7 @@
       ],
       "contentTone": "dark",
       "subjectPosition": "床枕与床头物件按无主体处理；原主体坐标仅留作素材记录。",
-      "layoutHint": "睡眠单业务；内容居左或贴底，内容区最多3行（不含顶部标题，含按钮文案），允许胶囊及图标按钮",
+      "layoutHint": "睡眠单业务；内容居左或贴底，内容区最多3行，不含顶部标题，无任何按钮",
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
@@ -926,6 +933,301 @@
           "secondary": 204,
           "tertiary": 153
         }
+      }
+    },
+    {
+      "id": "photo-ux-geometry-calendar-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "日程会议 · 浅色几何",
+      "description": "浅色织物质感与抽象几何色块，按无主体背景使用。仅用于2x2日程会议单业务；顶部标题装饰图标允许，内容区必须为真实日程纯文字，无图标、按钮或图表。不额外限制文字行数和对齐方式。黑色文字与图标，黑字透明度沿用100%/80%/60%，不改变既有布局。",
+      "subjectless": true,
+      "contentEligibility": {"kind": "calendar-text-square"},
+      "sizes": ["2x2"],
+      "business": "calendar",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "light",
+      "subjectPosition": "抽象几何纹理按无主体背景使用，不推测真实卡片尺寸。",
+      "layoutHint": "2x2日程会议，标题图标允许，内容区纯文字、无图标或按钮，不限行数",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX", "file": "111(3)/1×1/24_2336209995_huge.jpg",
+        "originalSize": [9449, 9449], "assetSize": [9449, 9449],
+        "sourceSha256": "51d5e703b1058479f6bf9c03b7d5f571e437ad2af2d775b52c69453d62e25edc",
+        "assetSha256": "51d5e703b1058479f6bf9c03b7d5f571e437ad2af2d775b52c69453d62e25edc",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_geometry_calendar_square.jpg", "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000", "secondary": "#CC000000", "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000", "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-flowers-weather-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "天气 · 花草纹理",
+      "description": "深绿花草纹理与蓝紫花点，按无主体背景使用。仅用于2x2普通天气单业务，与小花天气图沿用同一内容准入：内容区居左，无任何按钮或独立点击控件，不用于预警、降雨专题。白色文字与图标。两张天气图同时适用时由程序等概率选择，不减少图片命中率。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "weather-square",
+        "layouts": {"S-title-content": "left", "S-title-dual-content": "left"}
+      },
+      "sizes": ["2x2"],
+      "business": "weather",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "dark",
+      "subjectPosition": "散布花草纹理按无主体背景使用；只启用方图，不恢复宽图电量匹配。",
+      "layoutHint": "2x2普通天气单业务，正文居左，无按钮，与小花图等概率使用",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX", "file": "t5/t5/202105071027164_2x2.JPG",
+        "originalSize": [1249, 1249], "assetSize": [1249, 1249],
+        "sourceSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
+        "assetSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
+        "processing": "UX原图逐字节复制，仅统一资源文件名为小写jpg；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_flowers_weather_square.jpg", "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF", "secondary": "#CCFFFFFF", "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF", "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-galaxy-sleep-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "睡眠 · 银河",
+      "description": "深蓝至浅紫的银河星空，无需保护单一主体。仅用于2x2睡眠单业务，必须带真实可点击的胶囊按钮；内容区不限文字行数、对齐方式，允许图标。白色文字与图标，胶囊及既有背板使用透明白底和统一模糊20，保持原布局。",
+      "subjectless": true,
+      "contentEligibility": {"kind": "sleep-capsule-square", "requiredComponent": "PillButton"},
+      "sizes": ["2x2"],
+      "business": "sleep",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "dark",
+      "subjectPosition": "银河纹理按无主体背景使用，不推测端侧像素尺寸。",
+      "layoutHint": "2x2睡眠单业务，必须带胶囊按钮，内容区无行数或对齐限制",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t5/t5/1999942301_huge_2x2.jpg",
+        "originalSize": [2969, 2969],
+        "assetSize": [2969, 2969],
+        "sourceSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
+        "assetSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_galaxy_sleep_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF", "secondary": "#CCFFFFFF", "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF", "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-metronome-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "耳机音乐 · 暗色节拍器",
+      "description": "暗色摄影，右侧节拍器与暖色光线，左侧为深色留白。用于2x2耳机状态单业务或纯音乐快捷入口，内容区文字最多3行，不计顶部标题，按钮文案计入；允许图标及按钮，不额外限制对齐方式。白色文字和图标，透明白色背板和按钮。",
+      "subjectless": true,
+      "contentEligibility": {"kind": "music-square", "maxTextLines": 3, "includeTitle": false},
+      "sizes": ["2x2"],
+      "business": "music",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "dark",
+      "subjectPosition": "按无主体背景使用，不以参考尺寸估计端侧遮挡。",
+      "layoutHint": "2x2耳机状态单业务或纯音乐入口，内容区含按钮文案最多3行，不含顶部标题",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "111(2)/1×1/37_2671692057_huge.jpg",
+        "originalSize": [4320, 4320],
+        "assetSize": [4320, 4320],
+        "sourceSha256": "6c6296eed88052a38883925916e627d6af2e337b283aca132b356c24c4a12132",
+        "assetSha256": "6c6296eed88052a38883925916e627d6af2e337b283aca132b356c24c4a12132",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_metronome_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF", "secondary": "#CCFFFFFF", "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF", "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-autumn-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "倒计时 · 秋色插画",
+      "description": "秋色插画用于2x2双倒计时，上下两个信息背板分别展示一个真实倒计时，不限制名称：生日与考试、旅行与纪念日等均可。黑色文字和图标，沿用既有透明白色背板，两背板统一模糊20。单倒计时和混合其它业务不适用。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "dual-countdown-square",
+        "layout": "S-dual-info"
+      },
+      "sizes": ["2x2"],
+      "business": "countdown",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "light",
+      "subjectPosition": "散布季节装饰按无主体处理，不将整幅背景当作主体禁放区。",
+      "layoutHint": "2x2双倒计时，S-dual-info上下两个信息背板，不限制倒计时名称",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/t2/1162731252926775296_2x2.jpeg",
+        "originalSize": [3078, 3078],
+        "assetSize": [3078, 3078],
+        "sourceSha256": "6ffccb5748af48783c1fc94ecd7a6984c84e2378e428d40b7c298fbd60ee5a98",
+        "assetSha256": "6ffccb5748af48783c1fc94ecd7a6984c84e2378e428d40b7c298fbd60ee5a98",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_autumn_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-yellow-arch-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "日程会议 · 黄色拱门",
+      "description": "黄色拱门位于右侧中部，左侧及下方为平静天空和沙地。仅用于2x2日程会议单业务，正文居左，内容区文字最多2行，不计顶部标题；允许图标及按钮，按钮文案计入行数，纯图标不占行数。按钮文案可按组件标准居中，业务正文不能居中或两端对齐。黑色文字和图标，沿用既有透明白色按钮与背板。",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "calendar-square",
+        "maxTextLines": 2,
+        "includeTitle": false,
+        "layouts": {
+          "S-title-content": "left",
+          "S-title-dual-content": "left",
+          "S-title-anchor": "left",
+          "S-title-content-action": "left",
+          "S-title-primary-secondary-action": "left"
+        }
+      },
+      "sizes": ["2x2"],
+      "business": "calendar",
+      "composition": "native",
+      "subjectBounds": [0.56, 0.32, 0.42, 0.36],
+      "subjectRegions": [[0.56, 0.32, 0.42, 0.36]],
+      "contentRegions": [[0, 0, 0.54, 1], [0, 0, 1, 0.3], [0, 0.7, 1, 0.3]],
+      "contentTone": "light",
+      "subjectPosition": "右侧中部拱门；坐标仅用于素材记录和开发复核，不推测真实卡片尺寸。",
+      "layoutHint": "2x2日程会议单业务，正文居左，含按钮文案的内容区最多2行，不含顶部标题，允许图标及按钮",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/t2/40_1850229736_huge_2x2_2.jpg",
+        "originalSize": [2354, 2354],
+        "assetSize": [2354, 2354],
+        "sourceSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
+        "assetSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_yellow_arch_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
       }
     }
   ]

@@ -10,6 +10,7 @@ import pytest
 from config.config import get_settings
 from models.generation import TaskSpec
 from services import post_layout_theme as themes
+from services import post_layout_theme_registry as registry
 from services import theme_selection_policy as policy
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.prompt_builder import PromptBuilder
@@ -105,15 +106,15 @@ def test_sleep_reminder_expands_violet_without_photo_or_foreground_change(
     assert "__post_theme_image" not in by_id
 
 
-@pytest.mark.parametrize("layout,main_lines,allowed", [
-    ("S-title-content-action", 2, True),
-    ("S-title-content-action", 3, False),
-    ("S-title-primary-secondary-action", 1, True),
-    ("S-title-primary-secondary-action", 2, False),
+@pytest.mark.parametrize("layout,main_lines,body_lines", [
+    ("S-title-content-action", 2, 3),
+    ("S-title-content-action", 3, 4),
+    ("S-title-primary-secondary-action", 1, 3),
+    ("S-title-primary-secondary-action", 2, 4),
 ])
 @pytest.mark.parametrize("with_icon", [False, True])
-def test_sleep_capsule_photo_keeps_three_line_budget_and_foreground(
-    monkeypatch, layout, main_lines, allowed, with_icon,
+def test_capsule_uses_galaxy_without_three_line_limit_or_foreground_change(
+    monkeypatch, layout, main_lines, body_lines, with_icon,
 ):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", True)
     compact = sleep_layout(layout, with_icon=with_icon)
@@ -127,25 +128,26 @@ def test_sleep_capsule_photo_keeps_three_line_budget_and_foreground(
     flow = photo_layout_evidence(nodes).get("textFlow", {})
     assert flow.get("action", {}).get("maxLines") == 1
     assert not flow.get("action", {}).get("leftAligned")
-    body_lines = flow.get("root", {}).get("maxLines", 0) - flow.get("title", {}).get("maxLines", 0)
-    assert body_lines == (3 if allowed else 4)
-    client = SimpleNamespace(generate=AsyncMock(return_value='{"themeId":"photo-ux-sleep-square"}'))
+    actual_lines = flow.get("root", {}).get("maxLines", 0)
+    actual_lines -= flow.get("title", {}).get("maxLines", 0)
+    assert actual_lines == body_lines
+    client = SimpleNamespace(generate=AsyncMock(
+        return_value='{"themeId":"photo-ux-galaxy-sleep-square"}'
+    ))
     final, audit = asyncio.run(themes.select_theme(
         source, sleep_task(), client, final_layout=compact,
     ))
-    assert (audit.get("themeId") == "photo-ux-sleep-square") is allowed
-    if allowed:
-        assert audit.get("selectorError") is None
-        assert audit.get("candidates") == ["photo-ux-sleep-square"]
-    else:
-        reason = audit.get("rejected", {}).get("photo-ux-sleep-square")
-        assert reason == "睡眠卡片文字超过图片允许的行数"
+    assert audit.get("themeId") == "photo-ux-galaxy-sleep-square"
+    assert audit.get("selectorError") is None
+    assert audit.get("candidates") == ["photo-ux-galaxy-sleep-square"]
+    reason = audit.get("rejected", {}).get("photo-ux-sleep-square")
+    assert reason == "卧室睡眠图片不允许按钮或独立可点击控件"
     assert themes.foreground_signature(source) == themes.foreground_signature(final)
 
 
 @pytest.mark.parametrize("layout", ["S-title-content-action", "S-title-primary-secondary-action"])
 @pytest.mark.parametrize("alignment", ["center", "end"])
-def test_sleep_capsule_does_not_exempt_business_text_alignment(monkeypatch, layout, alignment):
+def test_galaxy_sleep_does_not_restrict_content_alignment(monkeypatch, layout, alignment):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", True)
     compact = sleep_layout(layout)
     with layout_phase():
@@ -153,12 +155,77 @@ def test_sleep_capsule_does_not_exempt_business_text_alignment(monkeypatch, layo
     messages = themes.decode(source)
     primary = next(node for node in themes.components(messages) if node.get("id") == "primary_main")
     primary.get("styles", {})["textAlign"] = alignment
-    client = SimpleNamespace(generate=AsyncMock(return_value='{"themeId":"photo-ux-sleep-square"}'))
+    client = SimpleNamespace(generate=AsyncMock(
+        return_value='{"themeId":"photo-ux-galaxy-sleep-square"}'
+    ))
     _, audit = asyncio.run(themes.select_theme(
         themes.encode(messages), sleep_task(), client, final_layout=compact,
     ))
-    assert audit.get("rejected", {}).get("photo-ux-sleep-square") == "睡眠图片内容未居左"
-    assert audit.get("themeId") != "photo-ux-sleep-square"
+    reason = audit.get("rejected", {}).get("photo-ux-sleep-square")
+    assert reason == "卧室睡眠图片不允许按钮或独立可点击控件"
+    assert audit.get("themeId") == "photo-ux-galaxy-sleep-square"
+
+
+@pytest.mark.parametrize("change", [
+    "no-button", "circle-only", "missing-click", "unreachable-button", "static", "mixed", "wide",
+])
+def test_galaxy_requires_reachable_clickable_capsule_and_real_square_sleep(change):
+    task = sleep_task()
+    compact = sleep_layout("S-title-content-action")
+    with layout_phase():
+        source = convert_compact_dsl_to_a2ui(compact, size="2x2")
+    rows = [json.loads(line) for line in compact.splitlines()]
+    root = next(row for row in rows if row[0] == "root")
+    action = next(row for row in rows if row[0] == "action")
+    primary = next(row for row in rows if row[0] == "primary")
+    if change == "no-button":
+        root[3].remove("action")
+        rows.remove(action)
+    elif change == "circle-only":
+        action[1] = "CircleButton"
+    elif change == "missing-click":
+        action[2].pop("onClick")
+    elif change == "unreachable-button":
+        root[3].remove("action")
+    elif change == "static":
+        primary[2]["mainText"] = "昨晚睡得很好"
+    elif change == "mixed":
+        primary[2]["secondaryText"] = {"path": "/data/healthSport/dailySteps"}
+    else:
+        task["size"] = "2x4"
+    compact = '\n'.join(json.dumps(row, ensure_ascii=False) for row in rows)
+    evidence = photo_layout_evidence(themes.components(themes.decode(source)))
+    photo = next(item for item in registry.registered_themes("photos")
+                 if item.get("id") == "photo-ux-galaxy-sleep-square")
+    assert themes.photo_reason(photo, task, evidence, final_layout=compact) is not None
+
+
+def test_galaxy_does_not_require_line_count_evidence():
+    compact = sleep_layout()
+    with layout_phase():
+        source = convert_compact_dsl_to_a2ui(compact, size="2x2")
+    evidence = photo_layout_evidence(themes.components(themes.decode(source)))
+    evidence.pop("textFlow")
+    photo = next(item for item in registry.registered_themes("photos")
+                 if item.get("id") == "photo-ux-galaxy-sleep-square")
+    assert themes.photo_reason(photo, sleep_task(), evidence, final_layout=compact) is None
+
+
+@pytest.mark.parametrize("change", ["business", "size", "circle", "line-limit"])
+def test_galaxy_registry_keeps_capsule_sleep_contract(change):
+    config = registry.load_theme_registry()
+    photo = next(item for item in config.get("themes", [])
+                 if item.get("id") == "photo-ux-galaxy-sleep-square")
+    if change == "business":
+        photo["business"] = "sport"
+    elif change == "size":
+        photo["sizes"] = ["2x4"]
+    elif change == "circle":
+        photo.get("contentEligibility", {})["requiredComponent"] = "CircleButton"
+    else:
+        photo.get("contentEligibility", {})["maxTextLines"] = 3
+    with pytest.raises(ValueError):
+        registry.validate_registry(config)
 
 
 @pytest.mark.parametrize("label,limit,expected", [
