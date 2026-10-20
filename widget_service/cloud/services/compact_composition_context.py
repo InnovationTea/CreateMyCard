@@ -25,6 +25,7 @@ from services.compact_composition_planner import (
 )
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
+from services.event_matching import event_handlers_match
 
 _GEOMETRY_KEYS = frozenset({
     "width", "height", "padding", "margin", "itemMargin", "fontSize", "fontWeight",
@@ -488,9 +489,16 @@ def repair_action_labels(source: str, task: dict[str, Any]) -> dict[str, str]:
         for event in task.get("eventCandidates", []):
             if not isinstance(event, dict):
                 continue
-            handler = {key: event.get(key) for key in ("call", "args")}
-            if handler in handlers and isinstance(event.get("id"), str):
-                labels[event.get("id")] = label
+            event_id = event.get("id")
+            if not isinstance(event_id, str):
+                continue
+            handler = {"call": event.get("call"), "args": event.get("args")}
+            for actual in handlers:
+                if not isinstance(actual, dict):
+                    continue
+                if event_handlers_match(actual, handler):
+                    labels[event_id] = label
+                    break
     return labels
 
 

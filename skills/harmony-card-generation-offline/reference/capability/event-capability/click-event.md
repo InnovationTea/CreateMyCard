@@ -231,10 +231,6 @@
             "itemName": {
               "type": "string",
               "description": "固定填写省电模式配置项 battery_saving_mode。"
-            },
-            "switchFlag": {
-              "type": "number",
-              "description": "根据用户要求填写：开启为 0，关闭为 1。"
             }
           }
         }
