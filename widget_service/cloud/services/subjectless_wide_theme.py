@@ -6,7 +6,7 @@ import unicodedata
 from config.config import get_settings
 from services.post_layout_theme_registry import registered_themes
 from services.square_photo_expansion import SLEEP_FIELDS
-from services.theme_content_regions import layout_evidence_reason
+from services.theme_content_regions import layout_evidence_reason, photo_layout_exclusion_reason
 
 
 def matching_businesses(task: dict) -> set[str]:
@@ -46,11 +46,15 @@ def wide_gate(task: dict) -> dict:
     return {"eligible": reason is None, "reason": reason, "businesses": businesses}
 
 
-def background_reason(photo: dict, task: dict, evidence: dict, gate: dict) -> str | None:
+def background_reason(photo: dict, task: dict, evidence: dict, gate: dict,
+                      *, final_layout: str | None = None) -> str | None:
     if not gate.get("eligible"):
         return gate.get("reason") or "未通过准入"
     if task.get("size") != "2x4" or photo.get("size") != "2x4":
         return "仅原生2x4"
+    layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
+    if layout_reason:
+        return layout_reason
     if photo.get("business") not in gate.get("businesses", []):
         return "业务不匹配"
     if photo.get("composition") != "subjectless" or photo.get("objectFit") != "fill":

@@ -51,19 +51,17 @@ def artifact():
     )
 
 
-def test_original_four_photos_keep_obs_and_new_six_have_empty_addresses():
+def test_original_four_photos_keep_obs_and_new_ten_have_empty_addresses():
     photos = [item for item in registry.load_theme_registry().get("themes", [])
               if item.get("kind") == "photo"]
-    assert len(photos) == 10
+    assert len(photos) == 14
     configured = {}
     for item in photos:
         background = item.get("background", {})
         address = background.get("remoteUrl")
         assert isinstance(address, str)
-        if item.get("id") in {"photo-ux-autumn-square", "photo-ux-yellow-arch-square",
-                              "photo-ux-metronome-square", "photo-ux-galaxy-sleep-square",
-                              "photo-ux-geometry-calendar-square",
-                              "photo-ux-flowers-weather-square"}:
+        if item.get("id") not in {"photo-ux-star-trails-wide", "photo-ux-sleep-square",
+                                  "photo-ux-sport-center-wide", "photo-ux-water-lily-square"}:
             assert address == ""
             continue
         parsed = urlsplit(address)
@@ -90,8 +88,12 @@ def test_original_four_photos_keep_obs_and_new_six_have_empty_addresses():
     ("photo-ux-yellow-arch-square", "2x2"),
     ("photo-ux-metronome-square", "2x2"),
     ("photo-ux-galaxy-sleep-square", "2x2"),
-    ("photo-ux-geometry-calendar-square", "2x2"),
+    ("photo-ux-desk-lamp-calendar-square", "2x2"),
     ("photo-ux-flowers-weather-square", "2x2"),
+    ("photo-ux-violin-music-square", "2x2"),
+    ("photo-ux-bulb-battery-square", "2x2"),
+    ("photo-ux-green-bulb-battery-square", "2x2"),
+    ("photo-ux-green-bulb-battery-wide", "2x4"),
 ])
 def test_registered_photo_sources_pass_existing_final_asset_validation(monkeypatch, photo_id, size):
     photo = next(item for item in registry.registered_themes("photos")

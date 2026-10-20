@@ -27,7 +27,11 @@ from services.post_layout_theme_registry import (
     selection_rules,
     user_background_roles,
 )
-from services.theme_content_regions import layout_evidence_reason, photo_layout_evidence
+from services.theme_content_regions import (
+    layout_evidence_reason,
+    photo_layout_evidence,
+    photo_layout_exclusion_reason,
+)
 from services.theme_layout_summary import (
     layout_summary,
     matches_subjectless_layout,
@@ -115,6 +119,9 @@ def photo_reason(
 ) -> str | None:
     if photo.get("size") != task.get("size"):
         return "尺寸不匹配"
+    layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
+    if layout_reason:
+        return layout_reason
     query = task.get("userQuery", "")
     if re.search(r"纯色|渐变|[融绒]球|不要.*(?:图|背景)|不用.*(?:图|背景)|无图", query):
         return "用户明确其它主题或不要图片"
@@ -133,6 +140,7 @@ def photo_reason(
         "information": "资讯|新闻|信息咨询|news",
         "smart-home": "智慧家|智能家居|全屋|灯光|smartHome",
         "calendar": "日程|会议|安排|calendar",
+        "battery": "电量|电池|充电|续航|phoneBattery",
     }
     if not re.search(patterns.get(business, r"(?!)"), query + "\n" + schema, re.I):
         return "业务不适用"
@@ -525,7 +533,8 @@ async def select_theme(
 
         wide_audit = wide_gate(task)
         for photo in registered_themes("subjectlessWidePhotos"):
-            reason = background_reason(photo, task, evidence, wide_audit)
+            reason = background_reason(photo, task, evidence, wide_audit,
+                                       final_layout=final_layout)
             if overrides:
                 reason = "用户明确颜色优先，不使用固定图片背景"
             if reason:
@@ -543,6 +552,12 @@ async def select_theme(
                 rejected[photo.get("id")] = reason
             else:
                 candidates.append(photo)
+    layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
+    if layout_reason:
+        for candidate in candidates:
+            if candidate.get("kind") == "photo":
+                rejected[candidate.get("id")] = layout_reason
+        candidates = [candidate for candidate in candidates if candidate.get("kind") != "photo"]
     if overrides:
         candidates = [item for item in candidates if item.get("kind") in {"gradient", "solid"}]
     photos = [item for item in candidates if item.get("kind") == "photo"]

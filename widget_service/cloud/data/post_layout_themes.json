@@ -9,7 +9,9 @@
   },
   "photoSelectionGroups": [
     {"id": "weather-square", "mode": "uniform",
-     "themeIds": ["photo-ux-water-lily-square", "photo-ux-flowers-weather-square"]}
+     "themeIds": ["photo-ux-water-lily-square", "photo-ux-flowers-weather-square"]},
+    {"id": "battery-square", "mode": "uniform",
+     "themeIds": ["photo-ux-bulb-battery-square", "photo-ux-green-bulb-battery-square"]}
   ],
   "photoFallbacks": {
     "darkText": {
@@ -936,12 +938,12 @@
       }
     },
     {
-      "id": "photo-ux-geometry-calendar-square",
+      "id": "photo-ux-desk-lamp-calendar-square",
       "enabled": true,
       "kind": "photo",
       "pool": "photos",
-      "name": "日程会议 · 浅色几何",
-      "description": "浅色织物质感与抽象几何色块，按无主体背景使用。仅用于2x2日程会议单业务；顶部标题装饰图标允许，内容区必须为真实日程纯文字，无图标、按钮或图表。不额外限制文字行数和对齐方式。黑色文字与图标，黑字透明度沿用100%/80%/60%，不改变既有布局。",
+      "name": "日程会议 · 台灯",
+      "description": "灰色背景与右侧台灯，按已确认规则作为整幅背景使用，替换浅色几何素材。仅用于2x2日程会议单业务；顶部标题装饰图标允许，内容区必须为真实日程纯文字，无图标、按钮或图表。不额外限制文字行数和对齐方式。黑色文字与图标，黑字透明度沿用100%/80%/60%，不改变既有布局。",
       "subjectless": true,
       "contentEligibility": {"kind": "calendar-text-square"},
       "sizes": ["2x2"],
@@ -951,18 +953,18 @@
       "subjectRegions": [[0, 0, 1, 1]],
       "contentRegions": [[0, 0, 1, 1]],
       "contentTone": "light",
-      "subjectPosition": "抽象几何纹理按无主体背景使用，不推测真实卡片尺寸。",
+      "subjectPosition": "台灯在右侧，沿用已确认的纯文字会议准入，不以未知真机尺寸证明主体避让。",
       "layoutHint": "2x2日程会议，标题图标允许，内容区纯文字、无图标或按钮，不限行数",
       "matchingPolicy": "layout-only",
       "source": {
-        "provider": "UX", "file": "111(3)/1×1/24_2336209995_huge.jpg",
-        "originalSize": [9449, 9449], "assetSize": [9449, 9449],
-        "sourceSha256": "51d5e703b1058479f6bf9c03b7d5f571e437ad2af2d775b52c69453d62e25edc",
-        "assetSha256": "51d5e703b1058479f6bf9c03b7d5f571e437ad2af2d775b52c69453d62e25edc",
+        "provider": "UX", "file": "t6/t6/1638849088_huge_2x2.jpg",
+        "originalSize": [4358, 4358], "assetSize": [4358, 4358],
+        "sourceSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
+        "assetSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
         "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
       },
       "background": {
-        "src": "resources/base/media/bg_ux_geometry_calendar_square.jpg", "remoteUrl": "",
+        "src": "resources/base/media/bg_ux_desk_lamp_calendar_square.jpg", "remoteUrl": "",
         "objectFit": "fill",
         "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
                   "align": "topStart"}
@@ -1076,9 +1078,9 @@
       "kind": "photo",
       "pool": "photos",
       "name": "耳机音乐 · 暗色节拍器",
-      "description": "暗色摄影，右侧节拍器与暖色光线，左侧为深色留白。用于2x2耳机状态单业务或纯音乐快捷入口，内容区文字最多3行，不计顶部标题，按钮文案计入；允许图标及按钮，不额外限制对齐方式。白色文字和图标，透明白色背板和按钮。",
+      "description": "暗色摄影，右侧节拍器与暖色光线，左侧为深色留白。用于2x2耳机状态单业务或纯音乐快捷入口，必须恰好两个真实可点击按钮，不限制文字行数，允许图标，不额外限制对齐方式。整卡点击和一个按钮上的多个动作不计作多个按钮。白色文字和图标，透明白色背板和按钮。",
       "subjectless": true,
-      "contentEligibility": {"kind": "music-square", "maxTextLines": 3, "includeTitle": false},
+      "contentEligibility": {"kind": "music-dual-buttons-square", "buttonCount": 2},
       "sizes": ["2x2"],
       "business": "music",
       "composition": "native",
@@ -1087,7 +1089,7 @@
       "contentRegions": [[0, 0, 1, 1]],
       "contentTone": "dark",
       "subjectPosition": "按无主体背景使用，不以参考尺寸估计端侧遮挡。",
-      "layoutHint": "2x2耳机状态单业务或纯音乐入口，内容区含按钮文案最多3行，不含顶部标题",
+      "layoutHint": "2x2耳机状态单业务或纯音乐入口，恰好两个可点击按钮，不限行数",
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
@@ -1117,16 +1119,382 @@
       }
     },
     {
+      "id": "photo-ux-bulb-battery-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "电量 · 暖色灯泡",
+      "description": "黑色背景与右侧暖色灯泡，用于2x2手机电量相关内容。必须实际展示手机电量数据，内容区最多3行，不计顶部标题，按钮文案计入；不允许环状进度条，允许图标和按钮，不增加对齐限制。与绿色灯泡方图同时符合时由程序各50%随机选择。白色文字和图标，透明白色背板及按钮，保持原布局。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "battery-square",
+        "maxTextLines": 3,
+        "includeTitle": false,
+        "allowRingProgress": false
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "battery",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "右侧暖色灯泡，按确认的电量内容规则准入，不估测端侧遮挡。",
+      "layoutHint": "2x2电量相关业务，内容区最多3行，不含顶部标题，无环状进度条，与绿色方图等概率使用",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/1698562528_huge.jpg",
+        "originalSize": [
+          3995,
+          3995
+        ],
+        "assetSize": [
+          3995,
+          3995
+        ],
+        "sourceSha256": "4dc175ea80bf5e87be15d880aab26a945970d6c7e61aee16b4fba39c58bfc38d",
+        "assetSha256": "4dc175ea80bf5e87be15d880aab26a945970d6c7e61aee16b4fba39c58bfc38d",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_bulb_battery_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-green-bulb-battery-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "电量 · 绿色灯泡",
+      "description": "深绿森林与右侧发光灯泡轮廓，用于2x2手机电量相关内容。必须实际展示手机电量数据，内容区最多3行，不计顶部标题，按钮文案计入；不允许环状进度条，允许图标和按钮，不增加对齐限制。与黑底暖色灯泡方图同时符合时由程序各50%随机选择。白色文字和图标，透明白色背板及按钮，保持原布局。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "battery-square",
+        "maxTextLines": 3,
+        "includeTitle": false,
+        "allowRingProgress": false
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "battery",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "右侧灯泡轮廓，按确认的电量内容规则准入，不估测端侧遮挡。",
+      "layoutHint": "2x2电量相关业务，内容区最多3行，不含顶部标题，无环状进度条，与黑底方图等概率使用",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/1893293404624388096_2x2_2.jpg",
+        "originalSize": [
+          2948,
+          2948
+        ],
+        "assetSize": [
+          2948,
+          2948
+        ],
+        "sourceSha256": "4b19435402ca1618a5cd442724a12c7e5c8dd0943c513047ab2f128db2e95cca",
+        "assetSha256": "4b19435402ca1618a5cd442724a12c7e5c8dd0943c513047ab2f128db2e95cca",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_green_bulb_battery_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-green-bulb-battery-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "电量 · 森林灯泡",
+      "description": "深绿色森林中间的发光灯泡轮廓，仅用于2x4左主焦点电量、右侧上下两个小背板的布局。左侧主焦点实际展示手机电量，左侧正文最多3行，不计顶部标题，计左侧按钮文字；右侧文字不计，允许右侧其它业务。左右两个大背板、右侧才有电量或左右反转均不适用。白色文字和图标，透明白色背板及按钮，不改变现有布局。",
+      "subjectless": true,
+      "subjectlessLayout": {"layout": "W-content-side-slots", "orientation": "content-left"},
+      "contentEligibility": {
+        "kind": "battery-wide", "maxTextLines": 3, "includeTitle": false
+      },
+      "sizes": [
+        "2x4"
+      ],
+      "business": "battery",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "森林中部的灯泡轮廓，按确认的宽版电量规则作为整幅背景使用。",
+      "layoutHint": "2x4左侧电量主焦点，左侧正文最多3行，右侧上下两个小背板",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/1893293404624388096_2x4_2.jpg",
+        "originalSize": [
+          6882,
+          3441
+        ],
+        "assetSize": [
+          6882,
+          3441
+        ],
+        "sourceSha256": "9fd4d66557bb5c53c2e8bd55234531ee13ae50d1a04fa9051cb9a55b6ff466b4",
+        "assetSha256": "9fd4d66557bb5c53c2e8bd55234531ee13ae50d1a04fa9051cb9a55b6ff466b4",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_green_bulb_battery_wide.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-violin-music-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "耳机音乐 · 小提琴",
+      "description": "暗色舞台与右侧小提琴演奏者，用于2x2耳机状态单业务或纯音乐快捷入口。恰好两个可点击按钮的场景交给节拍器，其他场景内容区最多4行，不计顶部标题，按钮文案计入；允许图标和按钮，不增加对齐限制。白色文字和图标，透明白色背板及按钮。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "music-square",
+        "maxTextLines": 4,
+        "includeTitle": false,
+        "excludedButtonCount": 2
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "music",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "演奏者在右侧，按确认的音乐内容规则准入，不估测端侧遮挡。",
+      "layoutHint": "2x2其它耳机或纯音乐入口，非恰好两个按钮，内容区最多4行",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/2087189737477373952.jpeg",
+        "originalSize": [
+          2010,
+          2010
+        ],
+        "assetSize": [
+          2010,
+          2010
+        ],
+        "sourceSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
+        "assetSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
+        "processing": "UX原图逐字节复制，仅统一资源文件名；未裁切、调色或二次压缩，OBS地址待配置"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_violin_music_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
       "id": "photo-ux-autumn-square",
       "enabled": true,
       "kind": "photo",
       "pool": "photos",
       "name": "倒计时 · 秋色插画",
-      "description": "秋色插画用于2x2双倒计时，上下两个信息背板分别展示一个真实倒计时，不限制名称：生日与考试、旅行与纪念日等均可。黑色文字和图标，沿用既有透明白色背板，两背板统一模糊20。单倒计时和混合其它业务不适用。",
+      "description": "秋色插画用于2x2非运动双倒计时，保留上下两个信息背板分别展示真实倒计时的规则；也用于假期、节日、周末或周日等单倒计时，不局限国庆中秋。运动、马拉松倒计时不适用，其它单倒计时不放宽。白色文字和图标沿用100%/80%/60%，已有背板和按钮透明度及模糊20不变，单倒计时不额外加背板。",
       "subjectless": true,
       "contentEligibility": {
-        "kind": "dual-countdown-square",
-        "layout": "S-dual-info"
+        "kind": "countdown-square", "dualLayout": "S-dual-info",
+        "singleBusiness": "holiday", "excludedBusiness": "sport"
       },
       "sizes": ["2x2"],
       "business": "countdown",
@@ -1136,7 +1504,7 @@
       "contentRegions": [[0, 0, 1, 1]],
       "contentTone": "light",
       "subjectPosition": "散布季节装饰按无主体处理，不将整幅背景当作主体禁放区。",
-      "layoutHint": "2x2双倒计时，S-dual-info上下两个信息背板，不限制倒计时名称",
+      "layoutHint": "2x2非运动双倒计时保留上下两背板；假期或节日单倒计时不强制背板",
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
@@ -1156,12 +1524,12 @@
       },
       "content": {
         "roles": {
-          "primary": "#FF000000",
-          "secondary": "#CC000000",
-          "tertiary": "#99000000",
-          "graphicPrimary": "#FF000000",
-          "graphicSecondary": "#CC000000",
-          "graphicTertiary": "#99000000",
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
           "componentSecondary": "#33FFFFFF",
           "componentTertiary": "#1AFFFFFF"
         },

@@ -215,7 +215,7 @@ def test_autumn_requires_two_visible_panels_with_distinct_countdowns(change):
     assert rejection(sample, AUTUMN_ID) is not None
 
 
-def test_autumn_keeps_palette_and_both_panel_blurs_without_changing_layout():
+def test_autumn_white_palette_keeps_both_panel_blurs_without_changing_layout():
     sample = autumn_sample("旅行与纪念日倒计时", "旅行", "纪念日")
     final = themes.apply_theme(sample.source, photo(AUTUMN_ID), sample.task, {})
     assert themes.foreground_signature(final) == themes.foreground_signature(sample.source)
@@ -228,8 +228,8 @@ def test_autumn_keeps_palette_and_both_panel_blurs_without_changing_layout():
     for node in nodes:
         if node.get("component") == "Text":
             text_colors.add(node.get("styles", {}).get("fontColor"))
-    assert text_colors <= {"#FF000000", "#CC000000", "#99000000"}
-    assert "#FF000000" in text_colors
+    assert text_colors <= {"#FFFFFFFF", "#CCFFFFFF", "#99FFFFFF"}
+    assert "#FFFFFFFF" in text_colors
 
 
 @pytest.mark.parametrize("identity", [AUTUMN_ID, CALENDAR_ID])
@@ -254,17 +254,18 @@ def test_new_photos_obey_switch_and_preserve_foreground(monkeypatch, identity, e
     if enabled:
         expected = {identity}
         if identity == CALENDAR_ID:
-            expected.add("photo-ux-geometry-calendar-square")
+            expected.add("photo-ux-desk-lamp-calendar-square")
         assert set(audit.get("candidates", [])) == expected
         nodes = themes.components(themes.decode(result))
         root = next(node for node in nodes if node.get("id") == "root")
-        assert root.get("styles", {}).get("backgroundColor") == "#FFE6E6E6"
+        expected_base = "#FF1F1F99" if identity == AUTUMN_ID else "#FFE6E6E6"
+        assert root.get("styles", {}).get("backgroundColor") == expected_base
         background = next(node for node in nodes if node.get("id") == themes.PREFIX + "image")
         assert background.get("src") == photo(identity).get("src")
 
 
 @pytest.mark.parametrize("identity", [AUTUMN_ID, CALENDAR_ID])
-def test_new_photo_assets_empty_obs_and_complete_black_palette(identity):
+def test_new_photo_assets_empty_obs_and_complete_palette(identity):
     item = photo(identity)
     assert item.get("remoteUrl") == ""
     src = item.get("src")
@@ -273,8 +274,9 @@ def test_new_photo_assets_empty_obs_and_complete_black_palette(identity):
     digest = hashlib.sha256(asset.read_bytes()).hexdigest()
     assert digest == item.get("source", {}).get("assetSha256")
     colors = item.get("content", {}).get("roles", {})
+    rgb = "FFFFFF" if identity == AUTUMN_ID else "000000"
     for color_role, alpha in (("primary", "FF"), ("secondary", "CC"), ("tertiary", "99")):
-        assert colors.get(color_role) == "#" + alpha + "000000"
+        assert colors.get(color_role) == "#" + alpha + rgb
     assert colors.get("componentSecondary") == "#33FFFFFF"
     assert item.get("content", {}).get("panelBySize") == {"2x2": "#33FFFFFF"}
 

@@ -42,10 +42,12 @@ def photo_content_reason(photo: dict, task: dict, evidence: dict,
         return _calendar_reason(policy, task, evidence, root, by_id)
     if policy.get("kind") == "calendar-text-square":
         return _calendar_text_reason(task, evidence, root, by_id)
-    if policy.get("kind") == "dual-countdown-square":
-        return _countdown_reason(policy, evidence, root, by_id)
-    if policy.get("kind") == "music-square":
+    if policy.get("kind") == "countdown-square":
+        return _countdown_reason(policy, task, evidence, root, by_id, values)
+    if policy.get("kind") in {"music-square", "music-dual-buttons-square"}:
         return _music_reason(policy, evidence, root, by_id)
+    if policy.get("kind") in {"battery-square", "battery-wide"}:
+        return _battery_reason(policy, evidence, root, by_id)
     return "未知图片内容限制"
 
 
@@ -278,10 +280,44 @@ def _calendar_reason(policy: dict, task: dict, evidence: dict,
     return reason
 
 
-def _countdown_reason(policy: dict, evidence: dict,
-                      root: ComponentRow, by_id: dict) -> str | None:
+def _countdown_reason(policy: dict, task: dict, evidence: dict,
+                      root: ComponentRow, by_id: dict, values: dict) -> str | None:
+    state = _compact_visible_state(_subtree("root", by_id))
+    texts = list(state.literals)
+    subjects = set()
+    for path in state.paths:
+        value = values.get(path)
+        if isinstance(value, str):
+            texts.append(value)
+        parent, _, field_name = path.rpartition("/")
+        if field_name == "countdownDays":
+            subjects.add(parent)
+    text = " ".join(texts)
     reason: str | None = None
-    if root.props.get("layout") != policy.get("layout") or len(root.children) != 2:
+    if not state.paths or any(not path.startswith("/data/countdown/") for path in state.paths):
+        reason = "秋色图片需要真实倒计时且不能混入其它业务"
+    elif re.search(r"运动|马拉松|跑步|训练|赛事|比赛|\b(?:marathon|running|sports?|workout|race)\b",
+                   text + " " + task.get("userQuery", ""), re.I):
+        reason = "秋色图片不用于运动或马拉松倒计时"
+    elif root.props.get("layout") == policy.get("dualLayout"):
+        reason = _dual_countdown_reason(policy, evidence, root, by_id)
+    elif len(subjects) != 1:
+        reason = "秋色单倒计时图片要求一个真实倒计时"
+    elif re.search(r"生日|考试|纪念|约会|约饭|聚餐|旅行|出游|出行|出差|婚礼|面试|会议|开会|"
+                   r"演唱会|音乐会|\b(?:birthday|exam|anniversary|meeting|wedding|trip)\b",
+                   text, re.I):
+        reason = "其它单倒计时不能仅因日期含节假日而使用秋色图片"
+    elif not re.search(r"节|假期|假日|放假|休假|寒假|暑假|年假|调休|元旦|新年|中秋|国庆|"
+                       r"清明|端午|重阳|除夕|跨年|周末|周日|周天|星期日|星期天|"
+                       r"holiday|vacation|festival|weekend|sunday|christmas|new year", text, re.I):
+        reason = "秋色单倒计时仅用于可见的假期或节日内容"
+    return reason
+
+
+def _dual_countdown_reason(policy: dict, evidence: dict,
+                           root: ComponentRow, by_id: dict) -> str | None:
+    reason: str | None = None
+    if root.props.get("layout") != policy.get("dualLayout") or len(root.children) != 2:
         reason = "双倒计时图片需要上下两个信息背板"
     subjects = set()
     for identity in root.children:
@@ -319,23 +355,23 @@ def _calendar_text_reason(task: dict, evidence: dict,
     header = by_id.get(root.children[0]) if root.children else None
     reason: str | None = None
     if not isinstance(data, dict) or set(data) != {"calendar"}:
-        reason = "几何图片仅用于日程会议单业务"
+        reason = "纯文字会议图片仅用于日程会议单业务"
     elif not _business_paths_match(_compact_visible_state(rows).paths, "calendar"):
-        reason = "几何图片需要真实日程内容且不能混入其它业务"
+        reason = "纯文字会议图片需要真实日程内容且不能混入其它业务"
     elif header is None or header.component_type != "SingleLineTitle":
-        reason = "几何会议图片需要可识别的顶部标题与内容区"
+        reason = "纯文字会议图片需要可识别的顶部标题与内容区"
     elif _has_independent_control(rows, evidence):
-        reason = "几何会议图片的纯文字内容不允许按钮或独立点击控件"
+        reason = "纯文字会议图片不允许按钮或独立点击控件"
     else:
         body = []
         for identity in root.children[1:]:
             body.extend(_subtree(identity, by_id))
         if not _business_paths_match(_compact_visible_state(body).paths, "calendar"):
-            reason = "几何会议图片内容区需要真实日程文字"
+            reason = "纯文字会议图片内容区需要真实日程文字"
         ancestors = evidence.get("nonTextAncestors", {})
         for identity in evidence.get("nonTextIds", []):
             if header.component_id not in ancestors.get(identity, []):
-                reason = "几何会议图片仅允许标题装饰图标，内容区必须纯文字"
+                reason = "纯文字会议图片仅允许标题装饰图标，内容区必须纯文字"
                 break
     return reason
 
@@ -373,22 +409,98 @@ def _music_reason(policy: dict, evidence: dict, root: ComponentRow, by_id: dict)
     reason: str | None = None
     if state.paths:
         if any(not path.startswith("/data/earphone/") for path in state.paths):
-            reason = "节拍器图片仅用于耳机单业务或纯音乐入口"
+            reason = "音乐图片仅用于耳机单业务或纯音乐入口"
     elif not _only_music_actions(rows):
-        reason = "节拍器图片需要真实耳机内容或音乐跳转动作"
+        reason = "音乐图片需要真实耳机内容或音乐跳转动作"
     if reason is None:
-        lines = _music_content_lines(policy, evidence, root, by_id)
-        if lines is None:
-            reason = "无法确认耳机音乐卡片的内容区文字行数上界"
-        elif lines <= 0 or lines > policy.get("maxTextLines", 0):
-            reason = "耳机音乐图片要求内容区1至3行文字"
+        button_count = _clickable_button_count(rows)
+        if policy.get("kind") == "music-dual-buttons-square":
+            if button_count != policy.get("buttonCount"):
+                reason = "节拍器图片要求恰好两个可点击按钮"
+        elif button_count == policy.get("excludedButtonCount"):
+            reason = "两个按钮的耳机音乐场景使用节拍器图片"
+        else:
+            lines = _content_lines(policy, evidence, root, by_id)
+            if lines is None:
+                reason = "无法确认耳机音乐卡片的内容区文字行数上界"
+            elif lines <= 0 or lines > policy.get("maxTextLines", 0):
+                reason = "小提琴图片要求内容区1至4行文字"
     return reason
 
 
-def _music_content_lines(policy: dict, evidence: dict,
-                         root: ComponentRow, by_id: dict) -> int | None:
+def _clickable_button_count(rows: list[ComponentRow]) -> int:
+    count = 0
+    for row in rows:
+        if row.component_type not in {"PillButton", "CircleButton", "CardButton", "Button"}:
+            continue
+        if row.props.get("onClick"):
+            count += 1
+    return count
+
+
+def _battery_reason(policy: dict, evidence: dict,
+                    root: ComponentRow, by_id: dict) -> str | None:
+    rows = _subtree("root", by_id)
+    state = _compact_visible_state(rows)
+    reason: str | None = None
+    if not any(path.startswith("/data/phoneBattery/") for path in state.paths):
+        reason = "电量图片需要实际展示手机电量相关数据"
+    elif policy.get("allowRingProgress") is False and _has_ring_progress(rows):
+        reason = "方版电量图片不允许环状进度条"
+    elif policy.get("kind") == "battery-wide":
+        reason = _wide_battery_reason(policy, evidence, root, by_id)
+    else:
+        lines = _content_lines(policy, evidence, root, by_id)
+        if lines is None:
+            reason = "无法确认电量卡片的内容区文字行数上界"
+        elif lines <= 0 or lines > policy.get("maxTextLines", 0):
+            reason = "方版电量图片要求内容区1至3行文字"
+    return reason
+
+
+def _wide_battery_reason(policy: dict, evidence: dict,
+                         root: ComponentRow, by_id: dict) -> str | None:
+    main = by_id.get(root.children[0]) if root.children else None
+    reason: str | None = None
+    if main is None or main.component_type != "Region":
+        reason = "宽版电量图片需要左侧主业务区域"
+    else:
+        primary_index = 0 if main.props.get("variant") == "center" else 1
+        if len(main.children) <= primary_index:
+            reason = "宽版电量图片缺少左侧主焦点"
+        else:
+            primary = _compact_visible_state(_subtree(main.children[primary_index], by_id))
+            whole = _compact_visible_state(_subtree(main.component_id, by_id))
+            if not primary.paths:
+                reason = "宽版电量图片要求左侧主焦点实际展示电量"
+            elif any(not path.startswith("/data/phoneBattery/") for path in whole.paths):
+                reason = "宽版电量图片左侧主业务必须为电量"
+            else:
+                lines = _content_lines(policy, evidence, main, by_id)
+                if lines is None:
+                    reason = "无法确认左侧电量正文行数"
+                elif lines <= 0 or lines > policy.get("maxTextLines", 0):
+                    reason = "宽版电量图片左侧正文最多3行"
+    return reason
+
+
+def _has_ring_progress(rows: list[ComponentRow]) -> bool:
+    for row in rows:
+        if row.component_type in {"ProgressCircle", "ProgressCircleSingle"}:
+            return True
+        if row.component_type == "Progress" and row.props.get("type") == "ring":
+            return True
+        visual = row.props.get("visual")
+        if row.component_type == "InfoBlock" and isinstance(visual, dict):
+            if visual.get("type") == "progressCircle":
+                return True
+    return False
+
+
+def _content_lines(policy: dict, evidence: dict,
+                   root: ComponentRow, by_id: dict) -> int | None:
     flow = evidence.get("textFlow", {})
-    lines = flow.get("root", {}).get("maxLines")
+    lines = flow.get(root.component_id, {}).get("maxLines")
     result: int | None = None
     if type(lines) is int and lines > 0:
         result = lines

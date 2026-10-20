@@ -37,12 +37,29 @@ _CONTENT_ELIGIBILITY = {"oneOf": [
     {"type": "object", "additionalProperties": False, "required": ["kind"],
      "properties": {"kind": {"const": "calendar-text-square"}}},
     {"type": "object", "additionalProperties": False,
-     "required": ["kind", "maxTextLines", "includeTitle"],
+     "required": ["kind", "buttonCount"],
+     "properties": {"kind": {"const": "music-dual-buttons-square"},
+                    "buttonCount": {"const": 2}}},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "maxTextLines", "includeTitle", "excludedButtonCount"],
      "properties": {"kind": {"const": "music-square"},
+                    "maxTextLines": {"const": 4}, "includeTitle": {"const": False},
+                    "excludedButtonCount": {"const": 2}}},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "maxTextLines", "includeTitle", "allowRingProgress"],
+     "properties": {"kind": {"const": "battery-square"},
+                    "maxTextLines": {"const": 3}, "includeTitle": {"const": False},
+                    "allowRingProgress": {"const": False}}},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "maxTextLines", "includeTitle"],
+     "properties": {"kind": {"const": "battery-wide"},
                     "maxTextLines": {"const": 3}, "includeTitle": {"const": False}}},
-    {"type": "object", "additionalProperties": False, "required": ["kind", "layout"],
-     "properties": {"kind": {"const": "dual-countdown-square"},
-                    "layout": {"const": "S-dual-info"}}},
+    {"type": "object", "additionalProperties": False,
+     "required": ["kind", "dualLayout", "singleBusiness", "excludedBusiness"],
+     "properties": {"kind": {"const": "countdown-square"},
+                    "dualLayout": {"const": "S-dual-info"},
+                    "singleBusiness": {"const": "holiday"},
+                    "excludedBusiness": {"const": "sport"}}},
     {"type": "object", "additionalProperties": False,
      "required": ["kind", "requiredComponent"],
      "properties": {"kind": {"const": "sleep-capsule-square"},
@@ -236,12 +253,18 @@ def _validate_content_eligibility(theme: dict) -> None:
         if policy.get("kind") in {"sleep-square", "sleep-capsule-square"}:
             if sizes != ["2x2"] or theme.get("business") != "sleep":
                 raise ValueError("Sleep content eligibility requires a 2x2 sleep photo")
-        elif policy.get("kind") == "dual-countdown-square":
+        elif policy.get("kind") == "countdown-square":
             if sizes != ["2x2"] or theme.get("business") != "countdown":
                 raise ValueError("Countdown eligibility requires a 2x2 countdown photo")
-        elif policy.get("kind") == "music-square":
+        elif policy.get("kind") in {"music-square", "music-dual-buttons-square"}:
             if sizes != ["2x2"] or theme.get("business") != "music":
                 raise ValueError("Music eligibility requires a 2x2 music photo")
+        elif policy.get("kind") in {"battery-square", "battery-wide"}:
+            expected_size = "2x2" if policy.get("kind") == "battery-square" else "2x4"
+            if sizes != [expected_size] or theme.get("business") != "battery":
+                raise ValueError("Battery eligibility requires a matching size battery photo")
+            if policy.get("kind") == "battery-wide" and "subjectlessLayout" not in theme:
+                raise ValueError("Wide battery requires a left main side-slot layout")
         elif policy.get("kind") == "calendar-text-square":
             if sizes != ["2x2"] or theme.get("business") != "calendar":
                 raise ValueError("Text calendar eligibility requires a 2x2 calendar photo")

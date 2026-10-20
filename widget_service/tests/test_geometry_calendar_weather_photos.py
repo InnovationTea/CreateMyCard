@@ -15,13 +15,13 @@ from services.theme_content_regions import photo_layout_evidence
 from test_autumn_calendar_photos import calendar_sample, photo, rejection
 from test_weather_photo_eligibility import fixture, task
 
-CALENDAR = "photo-ux-geometry-calendar-square"
+CALENDAR = "photo-ux-desk-lamp-calendar-square"
 WEATHER = ["photo-ux-water-lily-square", "photo-ux-flowers-weather-square"]
 
 
 @pytest.mark.parametrize("alignment", ["start", "center", "end"])
 @pytest.mark.parametrize("lines", [1, 3, 5])
-def test_geometry_calendar_allows_header_icon_and_unrestricted_body_text(alignment, lines):
+def test_desk_lamp_calendar_allows_header_icon_and_unrestricted_body_text(alignment, lines):
     sample = calendar_sample("S-title-content")
     node = next(item for item in sample.nodes if item.get("id") == "primary_main")
     node.get("styles", {}).update(textAlign=alignment, maxLines=lines)
@@ -35,7 +35,7 @@ def test_geometry_calendar_allows_header_icon_and_unrestricted_body_text(alignme
     "content-icon", "orphan-icon", "chart", "pill", "circle", "clickable-text",
     "mixed", "static-body", "missing-header", "wide",
 ])
-def test_geometry_calendar_rejects_non_text_body_and_other_business(change):
+def test_desk_lamp_calendar_rejects_non_text_body_and_other_business(change):
     if change in {"pill", "circle"}:
         layout = "S-title-content-action" if change == "pill" else "S-title-anchor"
         component = "PillButton" if change == "pill" else "CircleButton"
@@ -65,7 +65,7 @@ def test_geometry_calendar_rejects_non_text_body_and_other_business(change):
     assert rejection(sample, CALENDAR) is not None
 
 
-def test_geometry_calendar_allows_whole_card_click_not_independent_button():
+def test_desk_lamp_calendar_allows_whole_card_click_not_independent_button():
     sample = calendar_sample("S-title-content")
     rows = [json.loads(line) for line in sample.compact.splitlines()]
     rows[0][2]["onClick"] = [{"call": "open"}]

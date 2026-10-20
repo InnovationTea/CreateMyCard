@@ -48,10 +48,57 @@ def photo_layout_evidence(nodes: list[dict]) -> dict:
     return {"basis": "layout-only", "complete": reason is None, "reason": reason,
             "contentIds": content_ids, "buttonIds": button_ids(nodes),
             "panelIds": panel_ids(nodes),
+            "sideBySidePanels": _side_by_side_panels(nodes),
             "nonTextIds": non_text_ids,
             "nonTextAncestors": _non_text_ancestors(nodes, non_text_ids),
             "textFlow": text_flow_evidence(nodes),
             "deviceGeometryKnown": False}
+
+
+def _side_by_side_panels(nodes: list[dict]) -> bool:
+    by_id = {node.get("id"): node for node in nodes}
+    panels = set(panel_ids(nodes))
+
+    def unwrap(identity: str) -> dict:
+        visited = set()
+        node = by_id.get(identity, {})
+        while node.get("component") in {"Row", "Column", "Stack"}:
+            current = node.get("id")
+            if current in visited or current in panels:
+                break
+            visited.add(current)
+            child_ids = node.get("children", [])
+            if len(child_ids) != 1:
+                break
+            node = by_id.get(child_ids[0], {})
+        return node
+
+    root = unwrap("root")
+    children = root.get("children", [])
+    if root.get("component") != "Row" or len(children) != 2:
+        return False
+    return all(unwrap(identity).get("id") in panels for identity in children)
+
+
+def photo_layout_exclusion_reason(task: dict, evidence: dict,
+                                  final_layout: str | None = None) -> str | None:
+    reason: str | None = None
+    if task.get("size") == "2x4":
+        split = evidence.get("sideBySidePanels") is True
+        if final_layout:
+            from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+
+            try:
+                rows = parse_compact_dsl_rows(final_layout, expand_layouts=False)
+            except ValueError:
+                reason = "无法确认图片的定稿宽卡布局"
+            else:
+                for row in rows:
+                    if isinstance(row, ComponentRow) and row.component_id == "root":
+                        split = split or row.props.get("layout") == "W-split-panels"
+        if split:
+            reason = "2x4左右两个大背板布局不使用图片背景"
+    return reason
 
 
 def _non_text_ancestors(nodes: list[dict], identities: list[str]) -> dict:
@@ -103,6 +150,8 @@ def text_flow_evidence(nodes: list[dict]) -> dict:
                     flow = {"maxLines": limit,
                             "leftAligned": styles.get("textAlign", "center") in {"start", "left"}}
         elif kind in {"Image", "Icon", "Divider"}:
+            flow = {"maxLines": 0, "leftAligned": True}
+        elif kind == "Progress" and styles.get("type", node.get("type")) == "ring":
             flow = {"maxLines": 0, "leftAligned": True}
         elif kind in {"Row", "Column", "Stack"}:
             children = node.get("children", [])

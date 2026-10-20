@@ -35,6 +35,7 @@ def test_layout_evidence_reports_unknown_geometry_and_complete_buttons():
     assert evidence == {
         "basis": "layout-only", "complete": True, "reason": None,
         "contentIds": ["title", "icon"], "buttonIds": ["action"], "deviceGeometryKnown": False,
+        "sideBySidePanels": False,
         "panelIds": [],
         "nonTextIds": ["icon"], "nonTextAncestors": {"icon": ["action", "root"]},
     }

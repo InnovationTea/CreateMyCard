@@ -49,9 +49,9 @@ def test_photo_gates_do_not_cross_size_pools(enabled, size, gate):
     assert gate(task_for(size)).get("eligible") is False
 
 
-def test_only_ten_ux_assets_are_active_and_present():
+def test_only_fourteen_ux_assets_are_active_and_present():
     root = Path(__file__).resolve().parents[2]
-    expected = {"photos": 10, "subjectlessWidePhotos": 0, "squareExpansions": 0}
+    expected = {"photos": 14, "subjectlessWidePhotos": 0, "squareExpansions": 0}
     for key, count in expected.items():
         entries = themes.registered_themes(key)
         assert isinstance(entries, list) and len(entries) == count
