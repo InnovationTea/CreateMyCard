@@ -91,12 +91,13 @@
       "alignment": "aligned",
       "parts": {
         "root": {
-          "component": "Stack",
+          "component": "Row",
           "styles": {
             "width": "matchParent",
             "height": 12,
             "flexShrink": 0,
-            "alignContent": "start"
+            "justifyContent": "start",
+            "alignItems": "center"
           }
         },
         "title": {
@@ -126,17 +127,14 @@
           "parts": {
             "root": {
               "styles": {
-                "alignContent": "end"
+                "height": 20,
+                "justifyContent": "spaceBetween"
               }
             },
             "title": {
               "styles": {
-                "padding": {
-                  "top": 0,
-                  "right": 24,
-                  "bottom": 0,
-                  "left": 0
-                },
+                "width": "wrapContent",
+                "layoutWeight": 1,
                 "flexShrink": 1,
                 "constraintSize": {
                   "minWidth": 0
@@ -727,7 +725,7 @@
           "component": "Text",
           "styles": {
             "height": 16,
-            "fontSize": 10,
+            "fontSize": 12,
             "fontWeight": 500,
             "maxLines": 1,
             "textOverflow": "ellipsis",
