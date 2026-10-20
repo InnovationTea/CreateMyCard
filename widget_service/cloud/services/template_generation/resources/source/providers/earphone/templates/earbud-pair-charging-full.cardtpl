@@ -26,11 +26,31 @@ Column(
      "alignItems": "top", "flexShrink": 0, "constraintSize": {"minWidth": 0}},
     Column(
       {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+       "alignItems": "center", "constraintSize": {"minWidth": 0}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
         #if props.leftEarIcon
+        #if props.rightEarIcon
+        #if props.caseIcon
         Image(props.leftEarIcon, {"width": 12, "height": 12,
           "fillColor": $theme('supportContentColor')}),
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("L", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
         #else
         Stack({"width": 16, "height": 16, "borderRadius": 8,
           "alignContent": "center", "flexShrink": 0,
@@ -43,16 +63,36 @@ Column(
       ),
       Text(Expr('' + data.left + '%'),
         {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
-         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     ),
     Column(
       {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "start", "constraintSize": {"minWidth": 0}},
+       "alignItems": "center", "constraintSize": {"minWidth": 0}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
+        #if props.leftEarIcon
         #if props.rightEarIcon
+        #if props.caseIcon
         Image(props.rightEarIcon, {"width": 12, "height": 12,
           "fillColor": $theme('supportContentColor')}),
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("R", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
         #else
         Stack({"width": 16, "height": 16, "borderRadius": 8,
           "alignContent": "center", "flexShrink": 0,
@@ -65,24 +105,49 @@ Column(
       ),
       Text(Expr('' + data.right + '%'),
         {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
-         "textAlign": "start", "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     ),
     Column(
       {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": #Expr(props.caseIcon ? "start" : "center"), "constraintSize": {"minWidth": 0}},
-      Stack({"width": #Expr(props.caseIcon ? 16 : 30), "height": 16, "alignContent": "center"},
+       "alignItems": "center", "constraintSize": {"minWidth": 0}},
+      Stack({"width": 16, "height": 16, "alignContent": "center"},
+        #if props.leftEarIcon
+        #if props.rightEarIcon
         #if props.caseIcon
         Image(props.caseIcon, {"width": 12, "height": 12,
           "fillColor": $theme('supportContentColor')}),
         #else
-        Text("耳机盒", {"width": 30, "height": 16, "fontSize": 10, "fontWeight": 400, "textAlign": "center",
-          "fontColor": $theme('supportContentColor'), "maxLines": 1}),
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("E", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("E", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
+        #endif
+        #else
+        Stack({"width": 16, "height": 16, "borderRadius": 8,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("E", {"width": 16, "height": 16, "fontSize": 10,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
         #endif
       ),
       Text(Expr('' + data.case + '%'),
         {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
-         "textAlign": #Expr(props.caseIcon ? "start" : "center"), "fontColor": $theme('primaryColor'), "maxLines": 1,
+         "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     )
   )

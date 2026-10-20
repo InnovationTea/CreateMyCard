@@ -6,6 +6,7 @@ from models.generation import TaskSpec
 from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
 from services.compact_layout_runtime import match_compact_layout
 from services.compact_plan import _compact_visible_state
+from services.post_layout_theme_registry import load_theme_registry
 from services.prompt_builder import PromptBuilder
 
 
@@ -17,28 +18,32 @@ def default_palette_family(task: dict) -> str | None:
     roots = set(data) if isinstance(data, dict) else set()
     if len(roots) > 1:
         return None
-    if roots == {"healthSport"}:
-        return "purple"
-    if roots in ({"calendar"}, {"countdown"}):
-        return "warm"
-    return "blue"
+    selection = load_theme_registry().get("selection", {})
+    families = selection.get("familyByDataRoot", {})
+    if len(roots) == 1:
+        return families.get(next(iter(roots)), selection.get("defaultFamily"))
+    return selection.get("defaultFamily")
 
 
 def _business_token(task: TaskSpec) -> str | None:
     route, _ = PromptBuilder._visual_route(task)
-    if route in {"earphone-status", "battery-readout"}:
-        return "fusion-ball-battery-teal"
-    if route == "countdown":
-        return "fusion-ball-sport-orange"
-    if route == "calendar-event":
-        explicit_meeting = "融球" in task.userQuery and re.search("会议|开会|评审", task.userQuery)
-        return "fusion-ball-schedule-cool" if explicit_meeting else "fusion-ball-schedule-warm"
-    if route == "health-readout":
-        if re.search("睡眠|专注|睡了|深睡|小睡", task.userQuery):
-            return "fusion-ball-sleep-violet"
-        if re.search("运动|步数|训练|跑步", task.userQuery):
-            return "fusion-ball-sport-orange"
-    return None
+    roots = {root.casefold() for root in PromptBuilder._data_roots(task)}
+    # Generic reminder wording in the layout route does not change a health-only business.
+    if route == "calendar-event" and roots == {"healthsport"}:
+        route = "health-readout"
+    selected: str | None = None
+    for rule in load_theme_registry().get("selection", {}).get("fusionRouting", []):
+        if route not in rule.get("routes", []):
+            continue
+        matches = True
+        for pattern in rule.get("queryAll", []):
+            if not re.search(pattern, task.userQuery):
+                matches = False
+                break
+        if matches:
+            selected = rule.get("themeId")
+            break
+    return selected
 
 
 def fusion_candidate_gate(task: dict, final_layout: str | None) -> dict:

@@ -451,7 +451,7 @@ def normalize_compact_dsl_design_tokens(
 def repair_compact_dsl_safe_structure(
     compact_dsl: str, *, size: str, skip_compact_dsl_validation: bool = False,
 ) -> str:
-    """Apply only deterministic tree and formal split-panel repairs."""
+    """Apply deterministic tree and layout-specific safe repairs."""
     changed = False
     try:
         rows = _parse_compact_rows(
@@ -469,6 +469,29 @@ def repair_compact_dsl_safe_structure(
     components, _data_rows = _split_component_rows(rows)
     components_by_id = {item.component_id: item for item in components}
     root = components_by_id.get("root")
+    if (
+        size == "2x4"
+        and root is not None
+        and root.component_type == "Layout"
+        and root.props.get("layout") == "W-content-side-slots"
+    ):
+        repaired_rows: list[CompactRow] = []
+        for row in rows:
+            if not isinstance(row, ComponentRow) or row.component_type != "SingleLineTitle":
+                repaired_rows.append(row)
+                continue
+            if "icon" not in row.props and "fillColor" not in row.props:
+                repaired_rows.append(row)
+                continue
+            props = copy.deepcopy(row.props)
+            props.pop("icon", None)
+            props.pop("fillColor", None)
+            repaired_rows.append(
+                ComponentRow(row.component_id, row.component_type, props, row.children)
+            )
+            changed = True
+        rows = repaired_rows
+
     if size == "2x4" and _is_formal_split_panel_root(root, components_by_id):
         repaired_rows: list[CompactRow] = []
         panel_ids = set(root.children) if root is not None else set()
@@ -757,9 +780,15 @@ def _validate_compact_component_bindings(components: list[ComponentRow]) -> None
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
+    from contextlib import ExitStack
+
     import json_repair
 
-    from services.generation_trace_recorder import trace_span
+    from services.generation_trace_recorder import (
+        TraceSpan,
+        trace_increment_span_counters,
+        trace_span,
+    )
 
     text = compact_dsl.lstrip("\ufeff").strip()
     lines = text.splitlines()
@@ -773,65 +802,71 @@ def _strip_optional_genui_fence(compact_dsl: str) -> str:
         if "```" in body:
             raise CompactDslConversionError("Compact DSL must contain exactly one genui fence.")
 
-    with trace_span(
-        "compact_dsl.jsonl_repair",
-        stage="compact_dsl.jsonl_repair",
-        operation="compact_dsl.jsonl_repair",
-    ) as span:
-        span.text_artifacts["compact_dsl_extracted"] = body
-        span.artifact_roles["compact_dsl_extracted"] = "input"
-        json_blocks: list[str] = []
-        for line in body.splitlines():
-            json_block = line.strip()
-            if json_block:
-                json_blocks.append(json_block)
+    json_blocks: list[str] = []
+    for line in body.splitlines():
+        json_block = line.strip()
+        if json_block:
+            json_blocks.append(json_block)
 
-        repaired_blocks: list[str] = []
-        repaired_count = 0
-        for block_index, block in enumerate(json_blocks, 1):
-            try:
-                json.loads(block)
-            except json.JSONDecodeError as parse_exc:
+    outcome = "jsonlParseNoop"
+    try:
+        with ExitStack() as stack:
+            span: TraceSpan | None = None
+            repaired_blocks: list[str] = []
+            repaired_count = 0
+            for block_index, block in enumerate(json_blocks, 1):
                 try:
-                    repaired_value = json_repair.loads(block)
-                    is_compact_row = isinstance(repaired_value, list) and bool(repaired_value)
-                    is_compact_row = is_compact_row and isinstance(repaired_value[0], str)
-                    if not is_compact_row:
-                        raise ValueError(
-                            "repaired Compact DSL block must be a JSON array"
-                        ) from parse_exc
-                    repaired_block = json.dumps(
-                        repaired_value,
-                        ensure_ascii=False,
-                        separators=(",", ":"),
-                    )
-                    json.loads(repaired_block)
-                except Exception as exc:
-                    span.outcome(
-                        "failed",
-                        reason="json_repair_failed",
-                        blockIndex=block_index,
-                        exceptionType=type(exc).__name__,
-                    )
-                    return body
-                repaired_blocks.append(repaired_block)
-                repaired_count += 1
-                continue
-            repaired_blocks.append(block)
+                    json.loads(block)
+                except json.JSONDecodeError:
+                    outcome = "jsonlParseFailed"
+                    if span is None:
+                        span = stack.enter_context(trace_span(
+                            "compact_dsl.jsonl_repair",
+                            stage="compact_dsl.jsonl_repair",
+                        ))
+                        span.text_artifacts["compact_dsl_extracted"] = body
+                        span.artifact_roles["compact_dsl_extracted"] = "input"
+                        span.details["blockCount"] = len(json_blocks)
+                    try:
+                        repaired_value = json_repair.loads(block)
+                        is_compact_row = isinstance(repaired_value, list) and bool(repaired_value)
+                        is_compact_row = is_compact_row and isinstance(repaired_value[0], str)
+                        if not is_compact_row:
+                            raise ValueError("repaired Compact DSL block must be a JSON array")
+                        repaired_block = json.dumps(
+                            repaired_value,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        )
+                        json.loads(repaired_block)
+                    except Exception as exc:
+                        span.outcome(
+                            "failed",
+                            reason="json_repair_failed",
+                            blockIndex=block_index,
+                            exceptionType=type(exc).__name__,
+                            message=str(exc),
+                        )
+                        return body
+                    repaired_blocks.append(repaired_block)
+                    repaired_count += 1
+                    continue
+                repaired_blocks.append(block)
 
-        span.details.update(
-            {
-                "blockCount": len(json_blocks),
-                "repairedBlockCount": repaired_count,
-                "repairApplied": repaired_count > 0,
-            }
-        )
-        if repaired_count == 0:
-            return body
-        repaired_body = "\n".join(repaired_blocks)
-        span.text_artifacts["compact_dsl_jsonl_repaired"] = repaired_body
-        span.artifact_roles["compact_dsl_jsonl_repaired"] = "output"
-        return repaired_body
+            if span is None:
+                return body
+            repaired_body = "\n".join(repaired_blocks)
+            span.details.update({"repairedBlockCount": repaired_count, "repairApplied": True})
+            span.text_artifacts["compact_dsl_jsonl_repaired"] = repaired_body
+            span.artifact_roles["compact_dsl_jsonl_repaired"] = "output"
+            outcome = "jsonlParseRepaired"
+            return repaired_body
+    except BaseException:
+        outcome = "jsonlParseFailed"
+        raise
+    finally:
+        # ExitStack 已恢复父 Span；汇总不产生额外节点，也不进入模型/质量修复计数。
+        trace_increment_span_counters({"jsonlParseCalls": 1, outcome: 1})
 
 
 def _find_fence_opening(lines: list[str]) -> int | None:
@@ -2273,7 +2308,7 @@ def _schema_binding_path_candidates(
             candidates.add(variant)
         suffix = variant
         if variant == "/data" or variant.startswith("/data/"):
-            suffix = variant.removeprefix("/data")
+            suffix = variant[len("/data") :]
         for root in roots:
             candidate = f"{root.rstrip('/')}{suffix}"
             if candidate != path and _schema_node_at_path(schema, candidate) is not None:

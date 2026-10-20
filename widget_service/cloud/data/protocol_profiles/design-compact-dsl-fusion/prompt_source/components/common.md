@@ -26,6 +26,11 @@ description: 共用单组件的语义、Props、容量和示例；尺寸差异�
 | 操作 | `PillButton` | 操作文案 + 可选图标 | 两种尺寸内容区内的直属操作 | 一个实例绑定一个真实动作 |
 
 符合专用语义、类型及容量时优先相应组件；不为用组件补造字段。单一核心与真实同级关系不能混淆。
+2x2 无动作且整卡只有一个核心读数或1–8字短文本结论及其紧密支撑时，优先使用尺寸专属的
+`S-center` + `DataDisplay`；不要仅放置一个 `EmphasizedData` 或 `EmphasisText`。一个明确核心附带地点、
+备注、限定或短明细等从属信息时，使用普通核心组件与 `SecondaryBody`。恰好两个等权、各自能够独立
+理解的短信息不是“核心 + 补充”，应各用一个 `InfoBlock`，再由尺寸布局承载，不把其中一项降为
+`SecondaryBody`。
 尺寸专属组件见对应尺寸总表。Text 不是生成候选。
 <!-- /prompt:selection -->
 
@@ -55,8 +60,8 @@ description: 共用单组件的语义、Props、容量和示例；尺寸差异�
 
 #### 槽位与容量
 
-无 `icon` 时占高 `12vp`，与内部 `12fp/400` 单行文字一致，不额外保留上下 padding；有 `icon` 时占高 `20vp`，
-图标固定右对齐为 `20×20vp`，标题在剩余宽度内单行省略。标题图标分配遵守 Core 素材规则；有可用匹配候选时默认填写，不可点击，不承载动态状态。
+无 `icon` 时按 `12vp` 单行标题参与父布局高度计算；有 `icon` 时按 `20vp` 参与高度计算。
+带图标变体使用端侧已兼容的 `20vp` 高 Row，标题文字以 `layoutWeight: 1` 占据剩余宽度，`20×20vp` 图标保持在右侧垂直居中；标题在剩余文字区单行省略，不能与图标重叠。标题图标分配遵守 Core 素材规则；有可用匹配候选时默认填写，不可点击，不承载动态状态。
 
 #### 示例
 
@@ -125,6 +130,9 @@ description: 共用单组件的语义、Props、容量和示例；尺寸差异�
 #### 选择条件
 
 用于一个内容区中唯一需要突出的核心数值或单一测量读数。多个同级指标和普通文本结论不使用。
+但在2x2无动作卡片中，若该数值是整卡唯一核心且只有单位、更新时间等紧密支撑，优先使用
+`S-center` + `DataDisplay`；只有存在动作、独立补充事实或其它内容分区时，才保留 `EmphasizedData`，
+并按需与 `SecondaryBody` 组合。
 普通状态、名称、日期等明确非量化内容使用文本组件；数字字符串、单一带单位测量读数和合法绑定、
 Expression 仍按原合同使用，不根据字段类型为 string 就改写或截取内容。
 完整多段时长（如“7小时1分”）包含多个数量与单位，属于文本读数：作为主信息使用
@@ -157,8 +165,14 @@ Expression 仍按原合同使用，不根据字段类型为 string 就改写或�
 
 #### 选择条件
 
-用于一个分区最重要的文本结论、类别或状态。次文本只补充同一个核心语义；数值核心使用
-`EmphasizedData`，事件、进度或比较保持专用组件。
+用于一个分区最重要的文本结论、类别或状态。次文本只补充同一个核心语义；纯单一数值核心使用
+`EmphasizedData`，事件、进度或比较保持专用组件。已经格式化的主读数与同一对象的一至两个短状态共同
+构成一个完整摘要时，可以使用 `EmphasisText`：主读数进入 `mainText`，紧密关联的状态进入
+`secondaryText`。这种组合以完整表达同一语义组为目的，不把互不相关的字段或仍需30fp强调的独立量化
+主值降为次要文本。
+但在2x2无动作卡片中，若1–8字短文本结论是整卡唯一核心且只有更新时间等紧密支撑，优先使用
+`S-center` + `DataDisplay`；只有存在动作、独立补充事实或其它内容分区时，才保留 `EmphasisText`，
+并按需与 `SecondaryBody` 组合。
 
 #### 组件属性
 
@@ -177,14 +191,16 @@ Expression 仍按原合同使用，不根据字段类型为 string 就改写或�
 ```genui
 ["connection","EmphasisText",{"mainText":{"path":"/data/earphone/connectionStatus"},"secondaryText":{"path":"/data/earphone/name"},"fontSize":18}]
 ```
-多个紧密关联的短字段共同组成次文本时，直接按显示顺序绑定；每个字段仍会独立响应数据更新：
+例如当前温度、天气现象与空气质量共同组成同一时点的天气摘要时，温度文本作为主文本，天气现象和
+空气质量共同组成次文本；所有动态字段仍会独立响应数据更新：
 
 ```genui
-["weather","EmphasisText",{"mainText":{"path":"/data/weather/current/condition"},"secondaryText":[{"path":"/data/weather/location/prefectureName"},{"path":"/data/weather/location/districtName"}],"fontSize":18}]
+["weather","EmphasisText",{"mainText":{"path":"/data/weather/current/temperatureText"},"secondaryText":"{{ ${/data/weather/current/condition} + ' | 空气质量 ' + ${/data/weather/current/airQuality} }}","fontSize":18}]
 ```
 
-上述 `secondaryText` 展开为 `城市值 | 区域值`。需要为各值增加静态标签时，改用包含全部绑定的完整
-Expression；`mainText` 不接受数组，互不相关或需要逐项标签的多个字段改用 `SecondaryBody` 或 `TableText`。
+不需要静态标签的多个紧密关联短字段，也可以使用至少两个有序 PathBinding 组成的数组，由转换器以
+` | ` 连接。需要增加“空气质量”等静态标签时，如上例使用包含全部绑定的完整 Expression；
+`mainText` 不接受数组，互不相关或需要逐项独立查看的多个字段改用 `SecondaryBody` 或 `TableText`。
 
 
 ### 6. `SecondaryBody`
@@ -246,7 +262,9 @@ Expression；保留原始绑定、标签和单位。不因能拼接 Expression �
 
 用于固定或有明确高度的小槽中属于同一对象或指标的一组“主信息 + 辅助信息”。尾部可显示语义图标，或由主信息驱动的
 真实占比圆环，但不承载动作；
-完整业务区、两个同级指标和无主辅关系的字段不使用。
+完整业务区、两个同级指标和无主辅关系的字段不放进同一个InfoBlock；本限制针对单个实例，
+不排除合法双信息块组合中每块分别表达一个指标。指标名可作为secondaryText的静态说明，
+不要求主次两行都绑定动态值；不为满足两行结构引入额外事实。
 
 #### 组件属性
 
@@ -263,6 +281,7 @@ Expression；保留原始绑定、标签和单位。不因能拼接 Expression �
 #### 槽位与容量
 
 每个合法小槽只放一个 `InfoBlock`，两行文字保持单行。尺寸、variant 和文字区宽度由尺寸文件规定。
+`secondaryText` 统一使用 12fp/500、16vp 行盒；该调整不改变 `unit` 的独立字号 Recipe。
 `primaryText` 应完整可读；`secondaryText` 超出文字区时由 Recipe 在尾部显示省略号，并产生 warning，
 不因此拒绝整张卡。省略只影响辅助文字的可见尾部，原始绑定与完整数据保持不变。
 
@@ -276,6 +295,11 @@ visual 不是装饰；`progressCircle` 只用于可验证的 `0–100` 主值。
 每行只承载一个动态业务值，不把第二个动态字段拼入 `primaryText`；同级对象需要区分时允许添加一个简短
 静态对象标签，指标名需要帮助理解时允许添加一个简短静态标签。`visual.type:"progressCircle"` 的
 `primaryText` 仍必须是原始有限数值或完整百分比，不得添加标签。外层和内部均不得写 `onClick`。
+2x2 恰好两个同级 InfoBlock 时使用无独立标题的 `S-dual-info`，不额外生成 `SingleLineTitle`；
+对象、日期和指标标签保留在各自块内。用户明确要求独立可见标题或动作时，不使用该双信息块组合。
+`secondaryText` 仅作静态说明时，优先用它承载完整指标名及必要对象限定，`primaryText` 只放该读数，
+独立单位用 `unit`；不要把已有说明重复拼进主行造成超宽。辅助行已有动态事实时不能覆盖它，
+主行仍保留辨别对象所必需的简短标签；两行合起来必须完整可懂，不新增或删除事实。
 
 ### 8. `TableText`
 

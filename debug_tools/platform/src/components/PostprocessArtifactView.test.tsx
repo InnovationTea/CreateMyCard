@@ -1,10 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PostprocessArtifact } from '../batchApi';
 import { PostprocessArtifactView } from './PostprocessArtifactView';
 
 describe('PostprocessArtifactView', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   it.each([
     ['metrics', 'kpi', [{ label: '召回率', value: 87.5, unit: '%' }], '87.5'],
     ['records', 'table', [{ component: 'SingleLineTitle', matched: 3 }], 'SingleLineTitle'],
@@ -86,6 +86,33 @@ describe('PostprocessArtifactView', () => {
     expect(screen.getByRole('button', { name: '查看第 1 张图片' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '查看第 1 张图片' }));
     expect(screen.getByRole('img', { name: '第一次校验' })).toBeInTheDocument();
+  });
+
+  it.each(['browser-capture', 'device-capture'])(
+    'renders a single %s image when the manifest uses the gallery renderer',
+    (key) => {
+      render(<PostprocessArtifactView artifact={{
+        key, title: '卡片截图', dataType: 'image', renderer: 'gallery',
+        url: `/assets/${key}/Q001.png`, alt: 'Q001 截图', fullUrl: '/assets/full.png',
+      }} />);
+      expect(screen.getByRole('img', { name: 'Q001 截图' })).toHaveAttribute(
+        'src', `/assets/${key}/Q001.png`,
+      );
+      expect(screen.getByRole('link', { name: '查看原图 ↗' })).toHaveAttribute('href', '/assets/full.png');
+      expect(screen.queryByText('暂无图片')).not.toBeInTheDocument();
+    },
+  );
+
+  it('keeps gallery collections ahead of a fallback URL and handles empty collections', () => {
+    const { rerender } = render(<PostprocessArtifactView artifact={{
+      key: 'images', dataType: 'image', renderer: 'gallery', url: '/fallback.png',
+      data: [{ url: '/first.png', alt: '列表图片' }],
+    }} />);
+    expect(screen.getByRole('img', { name: '列表图片' })).toHaveAttribute('src', '/first.png');
+    rerender(<PostprocessArtifactView artifact={{
+      key: 'images', dataType: 'image', renderer: 'gallery', data: [],
+    }} />);
+    expect(screen.getByText('暂无图片')).toBeInTheDocument();
   });
 
   it('renders DSL items when a finalized image is not available yet', async () => {

@@ -18,6 +18,7 @@ tmp/
 temp/
 
 # Environment / secrets
+/debug_tools/debug_tool.yaml
 .env
 .env.*
 !.env.example
@@ -61,6 +62,7 @@ coverage/
 
 output/
 debug_tools/batch_output/
+debug_tools/device_output/
 widget_service/workspace
 debug_tools/package-lock.json
 
@@ -75,10 +77,10 @@ test/
 test.jsonl
 /widget_service/cloud/compact-dsl-renderer/
 /widget_service/cloud/a2ui-renderer/
-!/widget_service/cloud/fusion-runner/
-/widget_service/cloud/fusion-runner/*
-!/widget_service/cloud/fusion-runner/build_gallery.mjs
+/widget_service/cloud/fusion-runner/
 /widget_service/cloud/runner-output/
+/widget_service/tools/
+/docs/plans/
 /widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/generated/
 artifact_*.md
 /widget_service/cloud/workspace

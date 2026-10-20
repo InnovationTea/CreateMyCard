@@ -4,7 +4,7 @@ import math
 import re
 from typing import Any
 
-from .trace_semantics import content_label, operation_title
+from .trace_semantics import content_label, jsonl_parse_summary, operation_title
 
 _ID = re.compile(r"^[a-f0-9]{16}$")
 _EVENT_ID = re.compile(r"^[a-f0-9]{32}$")
@@ -131,11 +131,19 @@ def build_semantic_view(uid, records, manifest, normalize_artifacts, warnings):
         if isinstance(metrics, dict):
             metrics.update(_object(record.get("metrics")))
     for node in nodes:
+        parse_summary = jsonl_parse_summary(_object(node.get("metrics")))
+        if parse_summary:
+            description = str(node.get("description") or "")
+            node["description"] = (
+                f"{description}；{parse_summary}" if description else parse_summary
+            )
         if node.get("kind") != "group":
             continue
         own_refs = node.get("artifacts")
         aggregated: list[dict[str, Any]] = list(own_refs) if isinstance(own_refs, list) else []
         for child in nodes:
+            if child.get("id") == node.get("id"):
+                continue
             if _descendant(child, str(node.get("id")), node_map):
                 refs = child.get("artifacts")
                 if isinstance(refs, list):

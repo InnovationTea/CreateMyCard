@@ -164,7 +164,7 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
         ),
     ],
 )
-def test_plugin_final_response_uses_legacy_string_and_empty_items(
+def test_plugin_final_response_uses_json_string_and_empty_items(
     legacy_message,
     expected_explanation,
 ):
@@ -173,7 +173,11 @@ def test_plugin_final_response_uses_legacy_string_and_empty_items(
 
     assert response.errorCode == "0"
     assert response.errorMessage == ""
-    assert response.reply.streamInfo.streamContent == expected_prefix + str(legacy_message)
+    content = response.reply.streamInfo.streamContent
+    assert content.startswith(expected_prefix)
+    assert json_module.loads(content.removeprefix(expected_prefix)) == legacy_message.model_dump(
+        mode="json"
+    )
     assert response.reply.items == []
 
 
@@ -524,9 +528,11 @@ def test_drop_plan_fact_validation_is_disabled_by_default_and_can_be_enabled(mon
     assert Settings(_env_file=None).enable_drop_plan_fact_validation is False
 
 
-def test_model_failure_retry_is_disabled_by_default(monkeypatch):
+def test_model_failure_retry_is_enabled_by_default_and_can_be_disabled(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", raising=False)
 
+    assert Settings(_env_file=None).enable_model_failure_retry is True
+    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", "false")
     assert Settings(_env_file=None).enable_model_failure_retry is False
 
 
@@ -1768,7 +1774,9 @@ def test_event_capability_registry_uses_package_dependencies_only():
     assert destination["properties"]["location"]["enum"] == ["home", "company"]
     power_schema = capability_by_id["event.setPowerSavingMode"].parametersSchema
     switch_flag = power_schema["properties"]["params"]["properties"]["switchFlag"]
-    assert switch_flag.get("description") == "开启省电模式填写 0，关闭省电模式填写 1。"
+    assert switch_flag.get("description") == (
+        "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。"
+    )
     weather = capability_by_id["event.open.weather"]
     assert "/location/cityCode" in weather.parametersSchema["properties"]["uri"]["description"]
     meeting = capability_by_id["event.enter.meeting"]

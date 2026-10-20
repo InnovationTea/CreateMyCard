@@ -1,359 +1,1603 @@
 {
-  "version": 1,
+  "version": 2,
   "matching": {
-    "dynamicTextReservation": {
-      "mode": "contract-or-estimated"
+    "mode": "layout-only",
+    "unknownGeometryPolicy": "reject-subject-photos"
+  },
+  "photoSurfaceStyle": {
+    "backdropBlur": {"radius": 20}
+  },
+  "photoSelectionGroups": [
+    {"id": "weather-square", "mode": "uniform",
+     "themeIds": ["photo-ux-water-lily-square", "photo-ux-flowers-weather-square"]},
+    {"id": "battery-square", "mode": "uniform",
+     "themeIds": ["photo-ux-bulb-battery-square", "photo-ux-green-bulb-battery-square"]}
+  ],
+  "photoFallbacks": {
+    "darkText": {
+      "colors": ["#FFFFFFFF", "#FFE6E6E6"],
+      "direction": "LeftBottom"
+    },
+    "lightText": {
+      "themeId": "fusion-ball-schedule-blue"
     }
   },
-  "photos": [
+  "selection": {
+    "rules": "1. 用户明确的颜色、纯色、深色、渐变或背景素材要求优先；自定义时必须检查文字、图标和按钮相对直接背景的可读性。\n2. 未指定时，简单 2x2 单业务且实际展示独立事实不超过 3 项、仅一个内容组、显式动作不超过 1 个，可使用对应融球；运行时允许且业务匹配时优先融球。单会议时间线使用暖色微渐变。列表、双分区、多组指标及 2x4 使用浅色微渐变，不为使用融球删掉用户必需内容。\n3. 事实按语义计数，同一组件中承载的不同事实仍分别计数；纯主题标题和 CTA 不计入事实数。运行时禁止融球时，直接使用对应微渐变，不能模拟球体。\n4. 色板由核心业务确定，不按 few-shot 的主题机械复制。天气、耳机、电量、设备、未知业务默认蓝色；睡眠、专注、一般运动和健康概览默认紫色；日程、会议、倒计时和纪念日默认暖色。心率主读数使用紫色 root，只在合法图表、图标或已由动态数据证明的局部状态中使用粉红；不随预览值擅自切换告警色。多业务以用户明确的主业务为准，无主次或未覆盖时用蓝色。",
+    "defaultFamily": "blue",
+    "familyByDataRoot": {
+      "healthSport": "purple",
+      "calendar": "warm",
+      "countdown": "warm"
+    },
+    "fallbacks": {
+      "blue": "gradient-blue",
+      "purple": "gradient-purple",
+      "warm": "gradient-warm"
+    },
+    "fusionRouting": [
+      {
+        "routes": [
+          "calendar-event"
+        ],
+        "themeId": "fusion-ball-schedule-blue"
+      },
+      {
+        "routes": [
+          "earphone-status",
+          "battery-readout"
+        ],
+        "themeId": "fusion-ball-battery-teal"
+      },
+      {
+        "routes": [
+          "countdown"
+        ],
+        "themeId": "fusion-ball-sport-orange"
+      },
+      {
+        "routes": [
+          "health-readout"
+        ],
+        "queryAll": [
+          "睡眠|专注|睡了|深睡|小睡"
+        ],
+        "themeId": "fusion-ball-sleep-violet"
+      },
+      {
+        "routes": [
+          "health-readout"
+        ],
+        "queryAll": [
+          "运动|步数|训练|跑步"
+        ],
+        "themeId": "fusion-ball-sport-orange"
+      }
+    ]
+  },
+  "userColorOverrides": {
+    "namedColors": {
+      "白色": "#FFFFFFFF",
+      "黑色": "#FF000000",
+      "红色": "#FFFF0000",
+      "蓝色": "#FF0000FF",
+      "绿色": "#FF008000",
+      "紫色": "#FF800080",
+      "黄色": "#FFFFFF00",
+      "橙色": "#FFFFA500"
+    },
+    "neutralLight": {
+      "primary": "#FF1A1A1A",
+      "secondary": "#991A1A1A",
+      "tertiary": "#661A1A1A",
+      "graphicPrimary": "#FF1A1A1A",
+      "graphicSecondary": "#991A1A1A",
+      "graphicTertiary": "#661A1A1A",
+      "componentSecondary": "#331A1A1A",
+      "componentTertiary": "#1A1A1A1A"
+    },
+    "neutralDark": {
+      "primary": "#FFFFFFFF",
+      "secondary": "#CCFFFFFF",
+      "tertiary": "#99FFFFFF",
+      "graphicPrimary": "#FFFFFFFF",
+      "graphicSecondary": "#CCFFFFFF",
+      "graphicTertiary": "#99FFFFFF",
+      "componentSecondary": "#33FFFFFF",
+      "componentTertiary": "#1AFFFFFF"
+    },
+    "legacyPanelColors": [
+      "#CCFFFFFF",
+      "#99FFFFFF"
+    ]
+  },
+  "themes": [
     {
-      "id": "photo-rain-ink-square",
-      "size": "2x2",
-      "business": "rain",
-      "subjectPosition": "右上",
+      "id": "gradient-blue",
+      "enabled": true,
+      "kind": "gradient",
+      "pool": "standard",
+      "name": "蓝色浅色微渐变",
+      "description": "蓝色浅色微渐变，沿用原业务配色。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "blue",
+      "backgroundAliases": [
+        "#FFE5EDFE",
+        "#FFCBDDFE",
+        "#FFF1F6FE"
+      ],
+      "background": {
+        "colors": [
+          "#FFCBDDFE",
+          "#FFF1F6FE"
+        ],
+        "direction": "RightBottom"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF1F4799",
+          "secondary": "#991F4799",
+          "tertiary": "#661F4799",
+          "graphicPrimary": "#FF1F4799",
+          "graphicSecondary": "#991F4799",
+          "graphicTertiary": "#661F4799",
+          "componentSecondary": "#331F4799",
+          "componentTertiary": "#1A1F4799"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "gradient-purple",
+      "enabled": true,
+      "kind": "gradient",
+      "pool": "standard",
+      "name": "紫色浅色微渐变",
+      "description": "紫色浅色微渐变，沿用原业务配色。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "purple",
+      "backgroundAliases": [
+        "#FFDBCCFF",
+        "#FFF6F2FF"
+      ],
+      "background": {
+        "colors": [
+          "#FFDBCCFF",
+          "#FFF6F2FF"
+        ],
+        "direction": "RightBottom"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF563D99",
+          "secondary": "#99563D99",
+          "tertiary": "#66563D99",
+          "graphicPrimary": "#FF563D99",
+          "graphicSecondary": "#99563D99",
+          "graphicTertiary": "#66563D99",
+          "componentSecondary": "#33563D99",
+          "componentTertiary": "#1A563D99"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "gradient-warm",
+      "enabled": true,
+      "kind": "gradient",
+      "pool": "standard",
+      "name": "暖色浅色微渐变",
+      "description": "暖色浅色微渐变，沿用原业务配色。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "warm",
+      "backgroundAliases": [
+        "#FFFFE0CC",
+        "#FFFFF7F2"
+      ],
+      "background": {
+        "colors": [
+          "#FFFFE0CC",
+          "#FFFFF7F2"
+        ],
+        "direction": "RightBottom"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF8C4B1C",
+          "secondary": "#998C4B1C",
+          "tertiary": "#668C4B1C",
+          "graphicPrimary": "#FF8C4B1C",
+          "graphicSecondary": "#998C4B1C",
+          "graphicTertiary": "#668C4B1C",
+          "componentSecondary": "#338C4B1C",
+          "componentTertiary": "#1A8C4B1C"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "solid-blue",
+      "enabled": true,
+      "kind": "solid",
+      "pool": "standard",
+      "name": "蓝色纯色",
+      "description": "蓝色无渐变固定底色，仅用户明确要求纯色时选择。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "blue",
+      "backgroundAliases": [
+        "#FFE5EDFE",
+        "#FFCBDDFE",
+        "#FFF1F6FE"
+      ],
+      "background": {
+        "color": "#FFF1F6FE"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF1F4799",
+          "secondary": "#991F4799",
+          "tertiary": "#661F4799",
+          "graphicPrimary": "#FF1F4799",
+          "graphicSecondary": "#991F4799",
+          "graphicTertiary": "#661F4799",
+          "componentSecondary": "#331F4799",
+          "componentTertiary": "#1A1F4799"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "solid-purple",
+      "enabled": true,
+      "kind": "solid",
+      "pool": "standard",
+      "name": "紫色纯色",
+      "description": "紫色无渐变固定底色，仅用户明确要求纯色时选择。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "purple",
+      "backgroundAliases": [
+        "#FFDBCCFF",
+        "#FFF6F2FF"
+      ],
+      "background": {
+        "color": "#FFF6F2FF"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF563D99",
+          "secondary": "#99563D99",
+          "tertiary": "#66563D99",
+          "graphicPrimary": "#FF563D99",
+          "graphicSecondary": "#99563D99",
+          "graphicTertiary": "#66563D99",
+          "componentSecondary": "#33563D99",
+          "componentTertiary": "#1A563D99"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "solid-warm",
+      "enabled": true,
+      "kind": "solid",
+      "pool": "standard",
+      "name": "暖色纯色",
+      "description": "暖色无渐变固定底色，仅用户明确要求纯色时选择。",
+      "sizes": [
+        "2x2",
+        "2x4"
+      ],
+      "family": "warm",
+      "backgroundAliases": [
+        "#FFFFE0CC",
+        "#FFFFF7F2"
+      ],
+      "background": {
+        "color": "#FFFFF7F2"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF8C4B1C",
+          "secondary": "#998C4B1C",
+          "tertiary": "#668C4B1C",
+          "graphicPrimary": "#FF8C4B1C",
+          "graphicSecondary": "#998C4B1C",
+          "graphicTertiary": "#668C4B1C",
+          "componentSecondary": "#338C4B1C",
+          "componentTertiary": "#1A8C4B1C"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF",
+          "2x4": "#99FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-battery-teal",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "电量青绿融球",
+      "description": "耳机、手机电量；简洁单业务融球，白色内容。",
+      "businessDescription": "耳机、手机电量",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FF1F9985",
+          "medium": "#FF24B3B3",
+          "small": "#FF5AB38E"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-schedule-blue",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "会议蓝色融球",
+      "description": "单个会议、日程、提醒；沿用原融球触发条件，使用模板蓝色背景和白色内容。",
+      "businessDescription": "单个会议、日程、提醒（沿用原融球触发条件）",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FF1F1F99",
+          "medium": "#FF2B65D9",
+          "small": "#FF57AED9"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-sleep-violet",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "睡眠紫色融球",
+      "description": "睡眠、专注；简洁单业务融球，白色内容。",
+      "businessDescription": "睡眠、专注",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FF493D99",
+          "medium": "#FF5536B3",
+          "small": "#FF7D6B99"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "fusion-ball-sport-orange",
+      "enabled": true,
+      "kind": "fusion",
+      "pool": "standard",
+      "name": "运动橙色融球",
+      "description": "倒计时、纪念日、运动；简洁单业务融球，白色内容。",
+      "businessDescription": "倒计时、纪念日、运动",
+      "sizes": [
+        "2x2"
+      ],
+      "background": {
+        "ballColors": {
+          "large": "#FFF24131",
+          "medium": "#FFFF8833",
+          "small": "#FFE68073"
+        },
+        "glassColor": "#0DFFFFFF",
+        "blurRadius": 210,
+        "shellColor": "#00000000"
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sleep-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "睡眠 · 暗色卧室",
+      "description": "仅用于2x2睡眠单业务，内容居左或贴底、内容区最多3行文字，顶部标题不计入；不允许任何按钮或独立可点击控件。暗色卧室按无主体背景处理，白色文字及既有前景配色，背景随宿主自适应。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "sleep-square",
+        "maxTextLines": 3,
+        "includeTitle": false,
+        "buttonPolicy": "none",
+        "layouts": {
+          "S-title-content": "bottom",
+          "S-title-dual-content": "left",
+          "S-title-anchor": "left",
+          "S-title-content-action": "left",
+          "S-title-primary-secondary-action": "left"
+        }
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "sleep",
+      "composition": "native",
       "subjectBounds": [
-        0.46,
-        0.08,
-        0.54,
-        0.6
+        0.43,
+        0.28,
+        0.57,
+        0.48
       ],
       "subjectRegions": [
         [
-          0.9,
-          0.08,
-          0.1,
-          0.1
-        ],
-        [
-          0.8,
-          0.18,
-          0.2,
-          0.1
-        ],
-        [
-          0.7,
-          0.28,
-          0.3,
-          0.1
-        ],
-        [
-          0.6,
-          0.38,
-          0.4,
-          0.1
-        ],
-        [
-          0.51,
-          0.48,
-          0.49,
-          0.1
+          0.43,
+          0.32,
+          0.36,
+          0.14
         ],
         [
           0.46,
-          0.58,
+          0.46,
           0.54,
-          0.1
+          0.3
+        ],
+        [
+          0.79,
+          0.28,
+          0.21,
+          0.18
         ]
       ],
-      "description": "恢复原始右上大雨伞，伞面与伞骨以分段区域标注为禁放主体；左侧及底部深色雨幕可放内容，雨丝水滴是背景纹理，底部文字绘制在图片上方。固定构图禁止运行时移动。",
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.42,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0.28
+        ],
+        [
+          0,
+          0.78,
+          1,
+          0.22
+        ]
+      ],
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_rain_ink_top_right_square.jpg",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "subjectPosition": "床枕与床头物件按无主体处理；原主体坐标仅留作素材记录。",
+      "layoutHint": "睡眠单业务；内容居左或贴底，内容区最多3行，不含顶部标题，无任何按钮",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X2配图/2X2睡眠.jpg",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "sourceSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
+        "assetSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sleep_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/e31754799fa04fa6b6b4e6df51983bde/b7096a154b63450bb5008c7ddf03de86.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
-      "id": "photo-sunflower-blue",
-      "size": "2x2",
+      "id": "photo-ux-water-lily-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "天气 · 水面小花",
+      "description": "蓝绿色水面油画，小花位于右侧中部；仅用于2x2普通天气单业务，内容区整体居左，上下位置不限，贴底内容也必须居左。无任何按钮或独立可点击控件，标题内及嵌套按钮也排除。不限制为三行；不用于标签在左数值在右的两端对齐、预警、降雨专题、混合业务或双列布局。沿用固定白字及融球前景体系，背景自适应填满宿主。",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "weather-square",
+        "layouts": {
+          "S-title-content": "left",
+          "S-title-dual-content": "left"
+        }
+      },
+      "sizes": ["2x2"],
       "business": "weather",
-      "subjectPosition": "右上",
+      "composition": "native",
+      "subjectBounds": [0.71, 0.43, 0.23, 0.24],
+      "subjectRegions": [[0.71, 0.43, 0.23, 0.24]],
+      "contentRegions": [[0, 0, 0.69, 1], [0, 0, 1, 0.4], [0, 0.7, 1, 0.3]],
+      "contentTone": "light",
+      "subjectPosition": "唯一花朵及其紧邻叶片位于右侧中部，水面笔触不作为主体；坐标用于开发态复核，不代表已知真机占位。",
+      "layoutHint": "普通天气单业务；内容区整体居左，上下位置不限；无任何按钮或独立可点击控件",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2/test1/46_2585506173_huge_cu2.jpg",
+        "originalSize": [974, 974],
+        "assetSize": [974, 974],
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
+        "sourceSha256": "ca34b18297b0d7ea0100cb47f4108175bbfec42acd8da12638259de3313d9fc7",
+        "assetSha256": "ca34b18297b0d7ea0100cb47f4108175bbfec42acd8da12638259de3313d9fc7"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_water_lily_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/509eefa8a023475b840ddd807e9ec308/f9f21a9906f24fceb8ede73ca129bc4b.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-star-trails-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "睡眠 · 星轨",
+      "description": "蓝色星轨与夜间山湖背景，仅用于2x4左侧睡眠主业务、右侧上下两个小背板的定稿布局。左侧主内容必须是睡眠指标，整个左侧主业务的文字均居左，不混入其它业务。仅右侧出现睡眠或居中、两端对齐不适用。白字及既有透明白底托，随宿主自适应填充。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "left-main-wide",
+        "mainBusiness": "sleep"
+      },
+      "sizes": [
+        "2x4"
+      ],
+      "business": "sleep",
+      "composition": "native",
       "subjectBounds": [
-        0.31,
-        0.1,
-        0.69,
-        0.69
+        0,
+        0,
+        1,
+        1
       ],
       "subjectRegions": [
         [
-          0.67,
-          0.1,
-          0.29,
-          0.1
-        ],
-        [
-          0.61,
-          0.2,
-          0.37,
-          0.07
-        ],
-        [
-          0.57,
-          0.27,
-          0.43,
-          0.08
-        ],
-        [
-          0.52,
-          0.35,
-          0.48,
-          0.07
-        ],
-        [
-          0.4,
-          0.42,
-          0.6,
-          0.105
-        ],
-        [
-          0.38,
-          0.525,
-          0.62,
-          0.025
-        ],
-        [
-          0.35,
-          0.55,
-          0.65,
-          0.03
-        ],
-        [
-          0.31,
-          0.58,
-          0.69,
-          0.06
-        ],
-        [
-          0.31,
-          0.64,
-          0.42,
-          0.045
-        ],
-        [
-          0.39,
-          0.685,
-          0.31,
-          0.025
-        ],
-        [
-          0.91,
-          0.64,
-          0.09,
-          0.08
-        ],
-        [
-          0.39,
-          0.71,
-          0.31,
-          0.04
-        ],
-        [
-          0.5,
-          0.75,
-          0.06,
-          0.04
+          0,
+          0,
+          1,
+          1
         ]
       ],
-      "description": "用户确认的斜向缩小向日葵，花朵由右上伸向中下部；花瓣、花盘、茎叶按分段主体区域避让，外接矩形不是整块禁放。左侧及底部蓝天可放白字，右下保留图标按钮空位；胶囊整体豁免，图标按钮内容仍正常校验。纯背景不含文字和按钮，运行时不移动构图。",
-      "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_sunflower_diagonal_clear_button_v5.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
-      }
-    },
-    {
-      "id": "photo-vinyl-dark-square",
-      "size": "2x2",
-      "business": "music",
-      "subjectPosition": "右",
-      "subjectBounds": [
-        0.59,
-        0.24,
-        0.41,
-        0.76
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
       ],
-      "description": "右侧唱盘与唱臂整体为禁放主体，顶部和左侧为深色底，融球白色字系。胶囊按钮整体按既定规则豁免。",
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_vinyl_right_v3.jpg",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "subjectPosition": "按已确认的左主业务右双槽布局准入；主体坐标仅用于素材记录，不作为真机几何证明。",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/选中/641616211_huge_2x4.jpg",
+        "originalSize": [
+          3869,
+          1934
+        ],
+        "assetSize": [
+          2196,
+          1098
+        ],
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
+        "sourceSha256": "2d91a22cf19191d3cdf380dc8585686531aa8622cdc316b1a3eec423c91ffe60",
+        "assetSha256": "fe3b8795738d24db8c65f123dedc2e1e10c903e9a3f011e1bb88ff378b4020a1"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_star_trails_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c0a4b5a6b7784b30a8c82e664e97179f/1d3518d2f7d643b1ad3210dbf3718464.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      },
+      "subjectlessLayout": {
+        "layout": "W-content-side-slots",
+        "orientation": "content-left"
       }
     },
     {
-      "id": "photo-balloon-sky",
-      "size": "2x2",
-      "business": "countdown",
-      "subjectPosition": "右上",
-      "subjectBounds": [
-        0.52,
-        0.07,
-        0.42,
-        0.53
-      ],
-      "description": "右上热气球与吊篮，主体区域禁放正文；左侧和底部为蓝灰天空，融球白色字系。构图已烘焙，禁止运行时移动或裁剪。",
-      "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_balloon_topright_v4.jpg",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
-      }
-    }
-  ],
-  "subjectlessWidePhotos": [
-    {
-      "id": "photo-subjectless-w04",
-      "size": "2x4",
-      "business": "weather",
-      "composition": "subjectless",
-      "description": "W04 蓝色薄云纹，中深色低对比无主体底图，适合融球白字层级；全画布内容可覆盖，不改变布局。",
-      "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_subjectless_w04_white_text_v2.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
-      }
-    },
-    {
-      "id": "photo-subjectless-b05",
-      "size": "2x4",
-      "business": "battery",
-      "composition": "subjectless",
-      "description": "B05 原版青绿纹理，按用户截图恢复；手机电量业务无主体底图，沿用融球白字层级与白色20%底托，不改变布局。",
-      "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_subjectless_b05.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
-      }
-    },
-    {
-      "id": "photo-subjectless-h04",
-      "size": "2x4",
-      "business": "sleep",
-      "composition": "subjectless",
-      "description": "H04 睡眠静紫，无主体纹理，全画布内容可覆盖，不改变布局。",
-      "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_subjectless_h04.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
-      }
-    }
-  ],
-  "squareExpansions": [
-    {
-      "id": "photo-music-square-to-wide",
+      "id": "photo-ux-sport-center-wide",
+      "enabled": true,
       "kind": "photo",
-      "sourceSize": "2x2",
-      "size": "2x4",
-      "business": "music",
-      "composition": "square-left",
-      "description": "原2x2音乐内容完整放左半区，右半区为墨镜人物；不移动原内容，不新增数据。",
-      "subjectPosition": "右",
+      "pool": "photos",
+      "name": "运动健康 · 中央小跑者",
+      "description": "仅用于2x4左侧一个主业务、右侧上下两个小背板的布局，且左侧主业务为马拉松倒计时或跑步；仅右侧有运动数据或按钮不适用，普通步数、一般运动和其它倒计时不适用。固定白色文字及融球前景配色，背景随宿主自适应。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "running-main",
+        "mainBusinesses": ["marathon-countdown", "running"]
+      },
+      "sizes": [
+        "2x4"
+      ],
+      "business": "sport",
+      "composition": "native",
       "subjectBounds": [
-        0.53,
-        0,
-        0.47,
-        1
+        0.435,
+        0.23,
+        0.17,
+        0.55
+      ],
+      "subjectRegions": [
+        [
+          0.435,
+          0.23,
+          0.17,
+          0.18
+        ],
+        [
+          0.48,
+          0.41,
+          0.11,
+          0.15
+        ],
+        [
+          0.46,
+          0.56,
+          0.08,
+          0.22
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          0.425,
+          1
+        ],
+        [
+          0.615,
+          0,
+          0.385,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0.21
+        ],
+        [
+          0,
+          0.8,
+          1,
+          0.2
+        ],
+        [
+          0.56,
+          0.57,
+          0.44,
+          0.43
+        ]
       ],
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_expansion_music_right_v1.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "subjectPosition": "中央小跑者按无主体处理；原主体坐标仅留作素材记录。",
+      "subjectlessLayout": {
+        "layout": "W-content-side-slots",
+        "orientation": "content-left"
+      },
+      "layoutHint": "左侧马拉松倒计时或跑步主焦点 + 右侧上下小背板",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "2X4配图/上不布局-运动健康类1.jpg",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "sourceSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯",
+        "assetSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_sport_center_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/d93044a536754ee1b0b3df876a4b4a4a/7ed31d488be64c56be8095ee3a1f80c7.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
       }
     },
     {
-      "id": "photo-countdown-square-to-wide",
+      "id": "photo-ux-desk-lamp-calendar-square",
+      "enabled": true,
       "kind": "photo",
-      "sourceSize": "2x2",
-      "size": "2x4",
-      "business": "countdown",
-      "composition": "square-left",
-      "description": "原2x2倒计时内容完整放左半区，右半区为小鸟与树枝；左右各半，背景允许少量拉伸，不裁切或移动主体。",
-      "subjectPosition": "右",
-      "subjectBounds": [
-        0.5,
-        0,
-        0.5,
-        1
-      ],
+      "pool": "photos",
+      "name": "日程会议 · 台灯",
+      "description": "灰色背景与右侧台灯，按已确认规则作为整幅背景使用，替换浅色几何素材。仅用于2x2日程会议单业务；顶部标题装饰图标允许，内容区必须为真实日程纯文字，无图标、按钮或图表。不额外限制文字行数和对齐方式。黑色文字与图标，黑字透明度沿用100%/80%/60%，不改变既有布局。",
+      "subjectless": true,
+      "contentEligibility": {"kind": "calendar-text-square"},
+      "sizes": ["2x2"],
+      "business": "calendar",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
       "contentTone": "light",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_expansion_countdown_right_v1.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "subjectPosition": "台灯在右侧，沿用已确认的纯文字会议准入，不以未知真机尺寸证明主体避让。",
+      "layoutHint": "2x2日程会议，标题图标允许，内容区纯文字、无图标或按钮，不限行数",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX", "file": "t6/t6/1638849088_huge_2x2.jpg",
+        "originalSize": [4358, 4358], "assetSize": [4358, 4358],
+        "sourceSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
+        "assetSha256": "2f6beb73ad28940577665647ef6351b5c558e4f222033345376b88c3ea371b55",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_desk_lamp_calendar_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/bb46d472142f4f1aab06d40887446737/a43a1022db1f4cdea95ba51b7a69eeaf.jpg",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000", "secondary": "#CC000000", "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000", "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
       }
     },
     {
-      "id": "photo-sleep-square-to-wide",
+      "id": "photo-ux-flowers-weather-square",
+      "enabled": true,
       "kind": "photo",
-      "sourceSize": "2x2",
-      "size": "2x4",
+      "pool": "photos",
+      "name": "天气 · 花草纹理",
+      "description": "深绿花草纹理与蓝紫花点，按无主体背景使用。仅用于2x2普通天气单业务，与小花天气图沿用同一内容准入：内容区居左，无任何按钮或独立点击控件，不用于预警、降雨专题。白色文字与图标。两张天气图同时适用时由程序等概率选择，不减少图片命中率。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "weather-square",
+        "layouts": {"S-title-content": "left", "S-title-dual-content": "left"}
+      },
+      "sizes": ["2x2"],
+      "business": "weather",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "dark",
+      "subjectPosition": "散布花草纹理按无主体背景使用；只启用方图，不恢复宽图电量匹配。",
+      "layoutHint": "2x2普通天气单业务，正文居左，无按钮，与小花图等概率使用",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX", "file": "t5/t5/202105071027164_2x2.JPG",
+        "originalSize": [1249, 1249], "assetSize": [1249, 1249],
+        "sourceSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
+        "assetSha256": "d65467974dfa5344d218ff56415f55ba461f6178e71b47191afacd263ac09c43",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_flowers_weather_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7b643ea798b94e6baafb4dfb9d3f2ecc/f6ad98662caa4aa4a43c427fe462d8c6.jpg",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF", "secondary": "#CCFFFFFF", "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF", "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-galaxy-sleep-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "睡眠 · 银河",
+      "description": "深蓝至浅紫的银河星空，无需保护单一主体。仅用于2x2睡眠单业务，必须带真实可点击的胶囊按钮；内容区不限文字行数、对齐方式，允许图标。白色文字与图标，胶囊及既有背板使用透明白底和统一模糊20，保持原布局。",
+      "subjectless": true,
+      "contentEligibility": {"kind": "sleep-capsule-square", "requiredComponent": "PillButton"},
+      "sizes": ["2x2"],
       "business": "sleep",
-      "composition": "square-left",
-      "description": "原2x2睡眠内容完整放左半区，右半区为月亮；左右各半，背景允许少量拉伸，不裁切或移动主体。",
-      "subjectPosition": "右",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "dark",
+      "subjectPosition": "银河纹理按无主体背景使用，不推测端侧像素尺寸。",
+      "layoutHint": "2x2睡眠单业务，必须带胶囊按钮，内容区无行数或对齐限制",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t5/t5/1999942301_huge_2x2.jpg",
+        "originalSize": [2969, 2969],
+        "assetSize": [2969, 2969],
+        "sourceSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
+        "assetSha256": "52b5b55c6dd2ca40f07442e216b07aefb883ede01055f4eefd1f73cb1f4c5ce2",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_galaxy_sleep_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/1e392b7251e94a3fa291e536c6d0b235/e213e509d578420c92e5a0dde86f42be.jpg",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF", "secondary": "#CCFFFFFF", "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF", "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-metronome-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "耳机音乐 · 暗色节拍器",
+      "description": "暗色摄影，右侧节拍器与暖色光线，左侧为深色留白。用于2x2耳机状态单业务或纯音乐快捷入口，必须恰好两个真实可点击按钮，不限制文字行数，允许图标，不额外限制对齐方式。整卡点击和一个按钮上的多个动作不计作多个按钮。白色文字和图标，透明白色背板和按钮。",
+      "subjectless": true,
+      "contentEligibility": {"kind": "music-dual-buttons-square", "buttonCount": 2},
+      "sizes": ["2x2"],
+      "business": "music",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "dark",
+      "subjectPosition": "按无主体背景使用，不以参考尺寸估计端侧遮挡。",
+      "layoutHint": "2x2耳机状态单业务或纯音乐入口，恰好两个可点击按钮，不限行数",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "111(2)/1×1/37_2671692057_huge.jpg",
+        "originalSize": [4320, 4320],
+        "assetSize": [4320, 4320],
+        "sourceSha256": "6c6296eed88052a38883925916e627d6af2e337b283aca132b356c24c4a12132",
+        "assetSha256": "fd4905bd6b2660dcc361f1a85cb91d9827acfcab49852524bc1c4a2f3d2db3ed",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_metronome_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/78c16b4eb1864c8b97281dace4657680/566bc89e22084b58a64b08e245f4aea4.jpg",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF", "secondary": "#CCFFFFFF", "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF", "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF", "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-bulb-battery-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "电量 · 暖色灯泡",
+      "description": "黑色背景与右侧暖色灯泡，用于2x2手机电量相关内容。必须实际展示手机电量数据，内容区最多3行，不计顶部标题，按钮文案计入；不允许环状进度条，允许图标和按钮，不增加对齐限制。与绿色灯泡方图同时符合时由程序各50%随机选择。白色文字和图标，透明白色背板及按钮，保持原布局。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "battery-square",
+        "maxTextLines": 3,
+        "includeTitle": false,
+        "allowRingProgress": false
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "battery",
+      "composition": "native",
       "subjectBounds": [
-        0.53,
         0,
-        0.47,
+        0,
+        1,
         1
       ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
       "contentTone": "dark",
-      "palette": "fusionDark",
-      "src": "resources/base/media/bg_expansion_sleep_right_v1.jpg",
-      "objectFit": "fill",
-      "frame": {
-        "slotWidth": 1,
-        "slotHeight": 1,
-        "imageWidth": 1,
-        "imageHeight": 1,
-        "align": "topStart"
+      "subjectPosition": "右侧暖色灯泡，按确认的电量内容规则准入，不估测端侧遮挡。",
+      "layoutHint": "2x2电量相关业务，内容区最多3行，不含顶部标题，无环状进度条，与绿色方图等概率使用",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/1698562528_huge.jpg",
+        "originalSize": [
+          3995,
+          3995
+        ],
+        "assetSize": [
+          3995,
+          3995
+        ],
+        "sourceSha256": "4dc175ea80bf5e87be15d880aab26a945970d6c7e61aee16b4fba39c58bfc38d",
+        "assetSha256": "8ec6c9b97dc72fed25935da0181ff770344092333c238b4c516ec2c6586edefb",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_bulb_battery_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c16030ee7839415cb87cc63bd7a4e681/341f8b53609d4dcba491cfa444eb5a6d.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-green-bulb-battery-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "电量 · 绿色灯泡",
+      "description": "深绿森林与右侧发光灯泡轮廓，用于2x2手机电量相关内容。必须实际展示手机电量数据，内容区最多3行，不计顶部标题，按钮文案计入；不允许环状进度条，允许图标和按钮，不增加对齐限制。与黑底暖色灯泡方图同时符合时由程序各50%随机选择。白色文字和图标，透明白色背板及按钮，保持原布局。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "battery-square",
+        "maxTextLines": 3,
+        "includeTitle": false,
+        "allowRingProgress": false
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "battery",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "右侧灯泡轮廓，按确认的电量内容规则准入，不估测端侧遮挡。",
+      "layoutHint": "2x2电量相关业务，内容区最多3行，不含顶部标题，无环状进度条，与黑底方图等概率使用",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/1893293404624388096_2x2_2.jpg",
+        "originalSize": [
+          2948,
+          2948
+        ],
+        "assetSize": [
+          2948,
+          2948
+        ],
+        "sourceSha256": "4b19435402ca1618a5cd442724a12c7e5c8dd0943c513047ab2f128db2e95cca",
+        "assetSha256": "9cf5c9710b08a8702bfeb638c090b6950126d1ebd6e0bcee5ec8be9244251b37",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_green_bulb_battery_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/971a1024e0db4b9ba4c30a2696cd82af/ee412fd3b63f44bc8313ae64e86f0097.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-green-bulb-battery-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "电量 · 森林灯泡",
+      "description": "深绿色森林中间的发光灯泡轮廓，仅用于2x4左主焦点电量、右侧上下两个小背板的布局。左侧主焦点实际展示手机电量，左侧正文最多3行，不计顶部标题，计左侧按钮文字；右侧文字不计，允许右侧其它业务。左右两个大背板、右侧才有电量或左右反转均不适用。白色文字和图标，透明白色背板及按钮，不改变现有布局。",
+      "subjectless": true,
+      "subjectlessLayout": {"layout": "W-content-side-slots", "orientation": "content-left"},
+      "contentEligibility": {
+        "kind": "battery-wide", "maxTextLines": 3, "includeTitle": false
+      },
+      "sizes": [
+        "2x4"
+      ],
+      "business": "battery",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "森林中部的灯泡轮廓，按确认的宽版电量规则作为整幅背景使用。",
+      "layoutHint": "2x4左侧电量主焦点，左侧正文最多3行，右侧上下两个小背板",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/1893293404624388096_2x4_2.jpg",
+        "originalSize": [
+          6882,
+          3441
+        ],
+        "assetSize": [
+          1640,
+          820
+        ],
+        "sourceSha256": "9fd4d66557bb5c53c2e8bd55234531ee13ae50d1a04fa9051cb9a55b6ff466b4",
+        "assetSha256": "11d17a9296d1201d5157cedc8f70153cdc3b146378795e0bc33db90fbfe3dfc6",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_green_bulb_battery_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/4e7d3f23a7de4f05b6806b6122006dd6/e0431b19039f48628832bb25f2f1c484.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-violin-music-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "耳机音乐 · 小提琴",
+      "description": "暗色舞台与右侧小提琴演奏者，用于2x2耳机状态单业务或纯音乐快捷入口。恰好两个可点击按钮的场景交给节拍器，其他场景内容区最多4行，不计顶部标题，按钮文案计入；允许图标和按钮，不增加对齐限制。白色文字和图标，透明白色背板及按钮。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "music-square",
+        "maxTextLines": 4,
+        "includeTitle": false,
+        "excludedButtonCount": 2
+      },
+      "sizes": [
+        "2x2"
+      ],
+      "business": "music",
+      "composition": "native",
+      "subjectBounds": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "subjectRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentRegions": [
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "contentTone": "dark",
+      "subjectPosition": "演奏者在右侧，按确认的音乐内容规则准入，不估测端侧遮挡。",
+      "layoutHint": "2x2其它耳机或纯音乐入口，非恰好两个按钮，内容区最多4行",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "t6/t6/2087189737477373952.jpeg",
+        "originalSize": [
+          2010,
+          2010
+        ],
+        "assetSize": [
+          2010,
+          2010
+        ],
+        "sourceSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
+        "assetSha256": "9913b996c270f9a45c4ae60770840edfe1577e6b9a92e9012e083efcdc6980b0",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_violin_music_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/cf14fc054a8a48c795d6d1cbe1a1de6e/65bed62e8017438d889958df55eac9ab.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-autumn-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "倒计时 · 秋色插画",
+      "description": "秋色插画用于2x2非运动双倒计时，保留上下两个信息背板分别展示真实倒计时的规则；也用于假期、节日、周末或周日等单倒计时，不局限国庆中秋。运动、马拉松倒计时不适用，其它单倒计时不放宽。白色文字和图标沿用100%/80%/60%，已有背板和按钮透明度及模糊20不变，单倒计时不额外加背板。",
+      "subjectless": true,
+      "contentEligibility": {
+        "kind": "countdown-square", "dualLayout": "S-dual-info",
+        "singleBusiness": "holiday", "excludedBusiness": "sport"
+      },
+      "sizes": ["2x2"],
+      "business": "countdown",
+      "composition": "native",
+      "subjectBounds": [0, 0, 1, 1],
+      "subjectRegions": [[0, 0, 1, 1]],
+      "contentRegions": [[0, 0, 1, 1]],
+      "contentTone": "light",
+      "subjectPosition": "散布季节装饰按无主体处理，不将整幅背景当作主体禁放区。",
+      "layoutHint": "2x2非运动双倒计时保留上下两背板；假期或节日单倒计时不强制背板",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/t2/1162731252926775296_2x2.jpeg",
+        "originalSize": [3078, 3078],
+        "assetSize": [3078, 3078],
+        "sourceSha256": "6ffccb5748af48783c1fc94ecd7a6984c84e2378e428d40b7c298fbd60ee5a98",
+        "assetSha256": "9600a94f0b35c60b4514e6a357bae987f80d57dc14f1913727f5c5f76c6d405d",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_autumn_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/2124ce8c50ae4fc9896654f09c9fb0ce/735744dff73f464fb1a61c053ff6b7d1.jpg",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
+      }
+    },
+    {
+      "id": "photo-ux-yellow-arch-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "日程会议 · 黄色拱门",
+      "description": "黄色拱门位于右侧中部，左侧及下方为平静天空和沙地。仅用于2x2日程会议单业务，正文居左，内容区文字最多2行，不计顶部标题；允许图标及按钮，按钮文案计入行数，纯图标不占行数。按钮文案可按组件标准居中，业务正文不能居中或两端对齐。黑色文字和图标，沿用既有透明白色按钮与背板。",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "calendar-square",
+        "maxTextLines": 2,
+        "includeTitle": false,
+        "layouts": {
+          "S-title-content": "left",
+          "S-title-dual-content": "left",
+          "S-title-anchor": "left",
+          "S-title-content-action": "left",
+          "S-title-primary-secondary-action": "left"
+        }
+      },
+      "sizes": ["2x2"],
+      "business": "calendar",
+      "composition": "native",
+      "subjectBounds": [0.56, 0.32, 0.42, 0.36],
+      "subjectRegions": [[0.56, 0.32, 0.42, 0.36]],
+      "contentRegions": [[0, 0, 0.54, 1], [0, 0, 1, 0.3], [0, 0.7, 1, 0.3]],
+      "contentTone": "light",
+      "subjectPosition": "右侧中部拱门；坐标仅用于素材记录和开发复核，不推测真实卡片尺寸。",
+      "layoutHint": "2x2日程会议单业务，正文居左，含按钮文案的内容区最多2行，不含顶部标题，允许图标及按钮",
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "test2(1)/test2/t2/40_1850229736_huge_2x2_2.jpg",
+        "originalSize": [2354, 2354],
+        "assetSize": [2354, 2354],
+        "sourceSha256": "262206b096eb443dde0d1c795d5e860e4bd76808c1189476542b0aecb4d5f0d7",
+        "assetSha256": "1f3547940092766f078adc49fd0336b80c47babbc7c28dfc84d467d031dc4b9c",
+        "processing": "与background.remoteUrl对应的OBS交付文件逐字节一致，不二次处理；原始UX来源保留供追溯"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_yellow_arch_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/608c92483de14288b8100047dda41a69/63a153d8f8304caaa387666c012d4ce0.jpg",
+        "objectFit": "fill",
+        "frame": {"slotWidth": 1, "slotHeight": 1, "imageWidth": 1, "imageHeight": 1,
+                  "align": "topStart"}
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {"2x2": "#33FFFFFF"},
+        "explicitTextAlpha": {"secondary": 204, "tertiary": 153}
       }
     }
   ]

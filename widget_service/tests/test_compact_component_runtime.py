@@ -46,7 +46,7 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
     assert contract["components"]["ProgressLine2"]["alignment"] == "aligned"
     assert contract["components"]["ProgressCircleSingle"]["alignment"] == "aligned"
     assert contract["components"]["DataDisplay"]["alignment"] == "aligned"
-    assert contract["components"]["SummaryList"]["alignment"] == "native"
+    assert contract["components"]["SummaryList"]["alignment"] == "aligned"
     assert contract["components"]["SingleLineTitle"]["alignment"] == "aligned"
     assert set(contract["palettes"]) == {
         "blue",
@@ -59,17 +59,44 @@ def test_visual_recipe_contract_registers_all_high_level_components() -> None:
 
 
 def test_data_display_registers_text_conclusion_recipe() -> None:
+    numeric_recipe = component_visual_recipe("DataDisplay")
     recipe = component_visual_recipe("DataDisplay", variant="textConclusion")
 
-    assert recipe["parts"]["value"]["styles"]["height"] == 24
-    assert recipe["parts"]["value"]["styles"]["fontSize"] == 18
+    assert numeric_recipe["parts"]["value"]["styles"]["fontSize"] == 48
+    assert recipe["parts"]["root"]["styles"]["height"] == 122
+    assert recipe["parts"]["value"]["styles"]["height"] == 60
+    assert recipe["parts"]["value"]["styles"]["fontSize"] == 24
+    assert recipe["parts"]["value"]["styles"]["lineHeight"] == 1.25
+    assert recipe["parts"]["value"]["styles"]["maxLines"] == 2
+    assert recipe["parts"]["valueArea"]["component"] == "Column"
+    assert recipe["parts"]["valueArea"]["styles"]["height"] == 60
+    assert recipe["parts"]["valueArea"]["styles"]["justifyContent"] == "center"
+    assert recipe["parts"]["valueArea"]["styles"]["flexShrink"] == 0
+    assert recipe["parts"]["supporting"]["styles"]["margin"]["top"] == 8
+    assert recipe["parts"]["supporting"]["styles"]["flexShrink"] == 0
+    assert recipe["parts"]["icon"]["component"] == "Image"
+    assert recipe["parts"]["icon"]["styles"]["width"] == 18
+    assert recipe["parts"]["icon"]["styles"]["height"] == 18
 
 
-def test_single_line_title_with_icon_recipe_reserves_header_height() -> None:
+def test_summary_list_uses_panel_rows_and_bottom_alignment() -> None:
+    recipe = component_visual_recipe("SummaryList", size="2x4")
+
+    assert recipe["parts"]["root"]["styles"]["height"] == "matchParent"
+    assert recipe["parts"]["root"]["styles"]["justifyContent"] == "end"
+    assert recipe["parts"]["item"]["styles"]["backgroundColor"] == "#99FFFFFF"
+    assert recipe["parts"]["text"]["styles"]["fontSize"] == 12
+
+
+def test_single_line_title_with_icon_recipe_uses_endpoint_compatible_row() -> None:
     recipe = component_visual_recipe("SingleLineTitle", variant="withIcon")
 
+    assert recipe["parts"]["root"]["component"] == "Row"
     assert recipe["parts"]["root"]["styles"]["height"] == 20
     assert recipe["parts"]["root"]["styles"]["justifyContent"] == "spaceBetween"
+    assert recipe["parts"]["root"]["styles"]["alignItems"] == "center"
+    assert recipe["parts"]["title"]["styles"]["width"] == "wrapContent"
+    assert recipe["parts"]["title"]["styles"]["layoutWeight"] == 1
     assert recipe["parts"]["icon"]["styles"]["width"] == 20
     assert recipe["parts"]["icon"]["styles"]["height"] == 20
 
@@ -129,15 +156,16 @@ def test_two_by_four_fixed_slot_recipes_share_height_and_shrink_policy() -> None
     assert info_recipe["parts"]["primary"]["styles"]["fontSize"] == 14
     assert info_recipe["parts"]["secondary"]["styles"]["textOverflow"] == "ellipsis"
     assert action_recipe["parts"]["label"]["styles"]["fontSize"] == 14
-    assert component_visual_recipe("InfoBlock", size="2x2")["parts"]["primary"][
-        "styles"
-    ]["fontSize"] == 16
+    compact_info_recipe = component_visual_recipe("InfoBlock", size="2x2")
+    assert compact_info_recipe["parts"]["primary"]["styles"]["fontSize"] == 16
+    assert compact_info_recipe["parts"]["secondary"]["styles"]["fontSize"] == 12
+    assert compact_info_recipe["parts"]["secondary"]["styles"]["height"] == 16
 
 
 def test_single_line_title_visual_recipe_keeps_default_title_only() -> None:
     recipe = component_visual_recipe("SingleLineTitle", size="2x2")
 
-    assert recipe["parts"]["root"]["styles"]["itemMargin"] == 0
+    assert "itemMargin" not in recipe["parts"]["root"]["styles"]
     assert recipe["parts"]["root"]["styles"]["height"] == 12
     assert recipe["parts"]["title"]["styles"]["lineHeight"] == 1
     assert set(recipe["parts"]) == {"root", "title", "icon"}
@@ -296,8 +324,11 @@ def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> Non
     other_components = {
         name: recipe
         for name, recipe in components.items()
-        if name not in {"InfoBlock", "TextBlock", "CardButton"}
+        if name not in {"InfoBlock", "SummaryList", "TextBlock", "CardButton"}
     }
+    assert components["SummaryList"]["parts"]["text"]["styles"][
+        "textOverflow"
+    ] == "ellipsis"
     assert "ellipsis" not in json.dumps(other_components)
 
 

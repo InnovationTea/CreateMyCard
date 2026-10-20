@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Local debugging tools for the AI widget card service"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "ruamel.yaml>=0.18,<0.19",
+    "json5>=0.17.3",
     "widget-service",
 ]
 
@@ -16,6 +18,27 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["debug_tools"]
+artifacts = [
+    "debug_tools/a2ui_render/**",
+    "!debug_tools/a2ui_render/.hvigor/**",
+    "!debug_tools/a2ui_render/.preview/**",
+    "!debug_tools/a2ui_render/node_modules/**",
+    "!debug_tools/a2ui_render/oh_modules/**",
+    "!debug_tools/a2ui_render/test-output/**",
+    "!debug_tools/a2ui_render/**/.test/**",
+    "!debug_tools/a2ui_render/**/build/**",
+    "!debug_tools/a2ui_render/local.properties",
+]
+exclude = [
+    "debug_tools/a2ui_render/.hvigor/**",
+    "debug_tools/a2ui_render/.preview/**",
+    "debug_tools/a2ui_render/node_modules/**",
+    "debug_tools/a2ui_render/oh_modules/**",
+    "debug_tools/a2ui_render/test-output/**",
+    "debug_tools/a2ui_render/**/.test/**",
+    "debug_tools/a2ui_render/**/build/**",
+    "debug_tools/a2ui_render/local.properties",
+]
 
 [tool.uv.sources]
 widget-service = { path = "widget_service", editable = true }

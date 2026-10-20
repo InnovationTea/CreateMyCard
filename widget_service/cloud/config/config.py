@@ -68,23 +68,16 @@ class Settings(BaseSettings):
         CONFIG: ConfigHelper = ConfigHelper("cloud")
     WORKSPACE_ROOT: Path = Path(CONFIG.get("workspace_root", WORKSPACE_ROOT))
     enable_photo_background_theme: bool = (
-        CONFIG.get("enable_photo_background_theme", "false") == "true"
+        CONFIG.get("enable_photo_background_theme", "true") == "true"
     )
-    post_layout_measure_command: list[str] = Field(default_factory=list)
     enable_subjectless_wide_theme: bool = (
         CONFIG.get("enable_subjectless_wide_theme", "false") == "true"
-    )
-    subjectless_wide_sample_rate: float = Field(
-        default=float(CONFIG.get("subjectless_wide_sample_rate", "0.10")), ge=0, le=1
     )
     enable_square_music_photo_expansion: bool = (
         CONFIG.get("enable_square_music_photo_expansion", "false") == "true"
     )
     enable_square_photo_expansion: bool = (
         CONFIG.get("enable_square_photo_expansion", "false") == "true"
-    )
-    square_photo_expansion_sample_rate: float = Field(
-        default=float(CONFIG.get("square_photo_expansion_sample_rate", "0.10")), ge=0, le=1
     )
     hag_slb_url: str = CONFIG.get("hag_slb_url")
     osms_prepare_url: str = urljoin(hag_slb_url, CONFIG.get("osms_prepare_url"))
@@ -199,6 +192,20 @@ class Settings(BaseSettings):
     deepseek_official_http_enable_thinking: bool = (
         CONFIG.get("deepseek_official_http_enable_thinking", "false") == "true"
     )
+    # 可选阿里云百炼通道；不复用官方DeepSeek或WebSocket凭据。
+    aliyun_bailian_base_url: str = CONFIG.get(
+        "aliyun_bailian_base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    aliyun_bailian_api_key: str = Field(
+        default=CONFIG.get("aliyun_bailian_api_key", ""), repr=False,
+    )
+    aliyun_bailian_model: str = CONFIG.get("aliyun_bailian_model", "deepseek-v4.1-flash")
+    aliyun_bailian_temperature: float = CONFIG.get("aliyun_bailian_temperature", 0.7)
+    aliyun_bailian_top_p: float = CONFIG.get("aliyun_bailian_top_p", 0.9)
+    aliyun_bailian_max_tokens: int = CONFIG.get("aliyun_bailian_max_tokens", 8192)
+    aliyun_bailian_enable_thinking: bool = (
+        CONFIG.get("aliyun_bailian_enable_thinking", "false") == "true"
+    )
     # DeepSeekPlatform 配置
     deepseek_platform_access_key: str = CONFIG.get("deepseek_platform_access_key")
     deepseek_platform_secret_key_sts_config_key: str = CONFIG.get(
@@ -232,10 +239,16 @@ class Settings(BaseSettings):
         CONFIG.get("enable_default_capability_registry_fallback") == "true"
     )
     enable_validation_failure_retry: bool = CONFIG.get("enable_validation_failure_retry") == "true"
+    enable_widget_edit: bool = CONFIG.get("enable_widget_edit", "true") == "true"
+    enable_single_step_generation_fallback: bool = (
+        CONFIG.get("enable_single_step_generation_fallback", "false") == "true"
+    )
+    enable_single_step_widget_edit: bool = (
+        CONFIG.get("enable_single_step_widget_edit", "true") == "true"
+    )
     enable_drop_plan_fact_validation: bool = (
         CONFIG.get("enable_drop_plan_fact_validation", "false") == "true"
     )
-    enable_widget_edit: bool = CONFIG.get("enable_widget_edit") == "true"
     enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
     enable_widget_directive_commands: bool = (
         CONFIG.get("enable_widget_directive_commands") == "true"
@@ -263,6 +276,9 @@ class Settings(BaseSettings):
     enable_design_compact_runtime_prompt_context: bool = (
         CONFIG.get("enable_design_compact_runtime_prompt_context", "false") == "true"
     )
+    enable_design_compact_deterministic_repair: bool = (
+        CONFIG.get("enable_design_compact_deterministic_repair", "true") == "true"
+    )
     compact_dsl_interface_retry_count: int = Field(
         default=CONFIG.get("compact_dsl_interface_retry_count", 1),
         ge=0,
@@ -273,6 +289,7 @@ class Settings(BaseSettings):
     )
     enable_openai_fallback: bool = CONFIG.get("enable_openai_fallback") == "true"
     enable_sensitive_log_fields: bool = CONFIG.get("enable_sensitive_log_fields") == "true"
+    enable_card_template: bool = CONFIG.get("enable_card_template", "false") == "true"
     enable_generation_trace_recording: bool = (
         CONFIG.get("enable_generation_trace_recording", "false") == "true"
     )
@@ -358,6 +375,7 @@ class Settings(BaseSettings):
             "deepseek_platform",
             "llmclient",
             "deepseek_official_http",
+            "aliyun_bailian",
         }
         if value not in allowed:
             raise ValueError(f"unsupported model provider: {value}")

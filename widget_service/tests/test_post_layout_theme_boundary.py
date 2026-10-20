@@ -85,7 +85,8 @@ async def test_fusion_service_always_themes_after_colorless_layout(monkeypatch):
     saved = []
     source = '\n'.join([
         '["root","Layout",{"layout":"S-center"},["value"]]',
-        '["value","DataDisplay",{"label":"静态卡片","value":"就绪","supportingText":"状态"}]',
+        '["value","DataDisplay",{"label":"静态卡片","value":"服务已就绪",'
+        '"supportingText":"状态","fontSize":24}]',
     ])
 
     def model(_client, profile, prompt):

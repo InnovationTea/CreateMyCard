@@ -23,13 +23,33 @@ Column(
         "constraintSize": { "minWidth": 0, "minHeight": 0 },
         "margin": { "top": 0, "bottom": 4, "left": 0, "right": 0 }
     }),
-    Row({ "width": 126, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 9,
+    Row({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 126 : "matchParent") : "matchParent") : "matchParent"), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 9,
         "justifyContent": "start", "alignItems": "start" },
-        Column({ "width": 36, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
-            "justifyContent": "start", "alignItems": "start" },
+        Column({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
+            "justifyContent": "start", "alignItems": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center") },
             Stack({ "width": 16, "height": 16, "alignContent": "center" },
                 #if props.leftEarIcon
+                #if props.rightEarIcon
+                #if props.caseIcon
                     Image(props.leftEarIcon, { "width": 12, "height": 12, "fillColor": "#99FFFFFF" }),
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("L", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
                 #else
                 Stack({"width": 16, "height": 16, "borderRadius": 8,
                   "alignContent": "center", "flexShrink": 0,
@@ -41,25 +61,45 @@ Column(
                 #endif
             ),
             Text(Expr('' + data.left + '%'), {
-                "width": 36, "height": 16, "fontSize": 12, "fontWeight": 500,
-                "textAlign": "start", "fontColor": "#FFFFFFFF", "maxLines": 1,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "height": 16, "fontSize": 12, "fontWeight": 500,
+                "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"), "fontColor": "#FFFFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             }),
             #if data.leftCharge && data.rightCharge
                 #if data.caseCharge
             Text(data.leftCharge, {
-                "width": 36, "height": 14, "fontSize": 10, "fontWeight": 400,
-                "textAlign": "start", "fontColor": "#99FFFFFF", "maxLines": 1,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "height": 14, "fontSize": 10, "fontWeight": 400,
+                "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"), "fontColor": "#99FFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             })
                 #endif
             #endif
         ),
-        Column({ "width": 36, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
-            "justifyContent": "start", "alignItems": "start" },
+        Column({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
+            "justifyContent": "start", "alignItems": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center") },
             Stack({ "width": 16, "height": 16, "alignContent": "center" },
+                #if props.leftEarIcon
                 #if props.rightEarIcon
+                #if props.caseIcon
                     Image(props.rightEarIcon, { "width": 12, "height": 12, "fillColor": "#99FFFFFF" }),
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("R", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
                 #else
                 Stack({"width": 16, "height": 16, "borderRadius": 8,
                   "alignContent": "center", "flexShrink": 0,
@@ -71,40 +111,65 @@ Column(
                 #endif
             ),
             Text(Expr('' + data.right + '%'), {
-                "width": 36, "height": 16, "fontSize": 12, "fontWeight": 500,
-                "textAlign": "start", "fontColor": "#FFFFFFFF", "maxLines": 1,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "height": 16, "fontSize": 12, "fontWeight": 500,
+                "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"), "fontColor": "#FFFFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             }),
             #if data.leftCharge && data.rightCharge
                 #if data.caseCharge
             Text(data.rightCharge, {
-                "width": 36, "height": 14, "fontSize": 10, "fontWeight": 400,
-                "textAlign": "start", "fontColor": "#99FFFFFF", "maxLines": 1,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "height": 14, "fontSize": 10, "fontWeight": 400,
+                "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"), "fontColor": "#99FFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             })
                 #endif
             #endif
         ),
-        Column({ "width": 36, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
-            "justifyContent": "start", "alignItems": #Expr(props.caseIcon ? "start" : "center") },
-            Stack({ "width": #Expr(props.caseIcon ? 16 : 30), "height": 16, "alignContent": "center" },
+        Column({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
+            "justifyContent": "start", "alignItems": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center") },
+            Stack({ "width": 16, "height": 16, "alignContent": "center" },
+                #if props.leftEarIcon
+                #if props.rightEarIcon
                 #if props.caseIcon
                     Image(props.caseIcon, { "width": 13.73, "height": 10, "fillColor": "#99FFFFFF" }),
                 #else
-                    Text("耳机盒", { "width": 30, "height": 16, "fontSize": 10,
-                        "fontWeight": 400, "textAlign": "center", "fontColor": $theme('supportContentColor'), "maxLines": 1 }),
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("E", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("E", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
+                #endif
+                #else
+                Stack({"width": 16, "height": 16, "borderRadius": 8,
+                  "alignContent": "center", "flexShrink": 0,
+                  "backgroundColor": $theme('supportContentColor')},
+                  Text("E", {"width": 16, "height": 16, "fontSize": 10,
+                    "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                    "maxLines": 1})
+                ),
                 #endif
             ),
             Text(Expr('' + data.case + '%'), {
-                "width": 36, "height": 16, "fontSize": 12, "fontWeight": 500,
-                "textAlign": #Expr(props.caseIcon ? "start" : "center"), "fontColor": "#FFFFFFFF", "maxLines": 1,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "height": 16, "fontSize": 12, "fontWeight": 500,
+                "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"), "fontColor": "#FFFFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             }),
             #if data.leftCharge && data.rightCharge
                 #if data.caseCharge
             Text(data.caseCharge, {
-                "width": 36, "height": 14, "fontSize": 10, "fontWeight": 400,
-                "textAlign": #Expr(props.caseIcon ? "start" : "center"), "fontColor": "#99FFFFFF", "maxLines": 1,
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "height": 14, "fontSize": 10, "fontWeight": 400,
+                "textAlign": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center"), "fontColor": "#99FFFFFF", "maxLines": 1,
                 "textOverflow": "ellipsis"
             })
                 #endif

@@ -1,0 +1,54 @@
+{
+  "apiVersion": "batch-postprocess-v2",
+  "version": "3.0.0",
+  "entrypoint": "plugin.py",
+  "dependence": [],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "id": "data-analysis",
+  "name": "数据分析",
+  "timeoutSeconds": 120,
+  "description": "统一分析全部请求 Trace 与最终产物，统计接口成功率、耗时、重试、模型性能及实际使用比例。",
+  "outputs": [
+    {
+      "key": "analysis",
+      "scope": "sample",
+      "title": "样本分析",
+      "dataType": "json",
+      "required": true
+    },
+    {
+      "key": "statistics",
+      "scope": "dataset",
+      "title": "数据集统计",
+      "dataType": "json",
+      "required": true
+    },
+    {
+      "key": "overview",
+      "scope": "dataset",
+      "title": "统计覆盖",
+      "dataType": "metrics",
+      "required": true,
+      "renderer": "kpi"
+    },
+    {
+      "key": "usage",
+      "scope": "dataset",
+      "title": "实际使用比例",
+      "dataType": "records",
+      "renderer": "table",
+      "required": true
+    },
+    {
+      "key": "models",
+      "scope": "dataset",
+      "title": "模型分阶段性能",
+      "dataType": "records",
+      "renderer": "table",
+      "required": true
+    }
+  ]
+}

@@ -594,6 +594,20 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert tool["function"]["parameters"]["required"] == ["info_required"]
 
 
+@pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 8), ("2x4", 12)])
+def test_plan_tool_explains_must_fact_guidance_by_card_size(
+    size: str,
+    max_must_facts: int,
+) -> None:
+    spec = task_spec()
+    spec["size"] = size
+
+    tool = build_compact_plan_tool(spec)
+    priority = tool["function"]["parameters"]["properties"]["info_required"]["items"]
+    priority = priority["properties"]["priority"]
+    assert f"最多可提交 {max_must_facts} 条 must 信息" in priority["description"]
+
+
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 def test_plan_tool_explains_registered_layout_names_without_new_fields(size: str) -> None:
     spec = task_spec()
@@ -648,7 +662,7 @@ def test_dual_action_plan_tool_only_offers_the_unique_layout() -> None:
     }
 
 
-def test_dual_action_plan_is_normalized_to_compact_content_and_pill_buttons() -> None:
+def test_dual_action_plan_preserves_content_hints_and_normalizes_buttons() -> None:
     payload = {
         "name": "submit_card_plan",
         "arguments": {
@@ -687,12 +701,13 @@ def test_dual_action_plan_is_normalized_to_compact_content_and_pill_buttons() ->
         dual_action_task_spec(),
     )
 
-    assert result.plan["layoutHints"] == ["S-content-dual-action"]
-    facts = result.plan["info_required"]
-    assert facts[0]["componentHints"] == ["TableText"]
-    assert facts[1]["componentHints"] == ["TableText"]
-    assert facts[2]["componentHints"] == ["PillButton"]
-    assert facts[3]["componentHints"] == ["PillButton"]
+    assert result.plan.get("layoutHints") == ["S-content-dual-action"]
+    facts = result.plan.get("info_required")
+    assert isinstance(facts, list)
+    assert facts[0].get("componentHints") == ["ProgressCircleSingle", "EmphasizedData"]
+    assert facts[1].get("componentHints") == ["SecondaryBody", "TableText"]
+    assert facts[2].get("componentHints") == ["PillButton"]
+    assert facts[3].get("componentHints") == ["PillButton"]
 
 
 def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
@@ -750,7 +765,7 @@ def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
     }
 
 
-def test_action_coverage_reports_exact_event_argument_mismatch() -> None:
+def test_action_coverage_accepts_equivalent_switch_flag() -> None:
     spec = dual_action_task_spec()
     plan = {
         "info_required": [
@@ -774,10 +789,7 @@ def test_action_coverage_reports_exact_event_argument_mismatch() -> None:
 
     errors = compact_plan_coverage_errors(source, plan, spec)
 
-    assert len(errors) == 1
-    assert '"switchFlag":0' in errors[0]
-    assert '"switchFlag":1' in errors[0]
-    assert "do not infer, invert, or rewrite parameter values" in errors[0]
+    assert not errors
 
 
 def test_plan_tool_requires_explicit_asset_assignments_for_candidates() -> None:
@@ -1350,6 +1362,61 @@ def test_anchor_composition_cannot_be_replaced_by_text_action_layout() -> None:
     )
 
 
+def test_single_focus_data_display_route_cannot_be_downgraded_during_repair() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "must",
+                "dataId": "/data/calendar/events/0/title",
+                "componentHints": ["DataDisplay", "EmphasisText"],
+            }
+        ],
+        "layoutHints": ["S-center"],
+    }
+    downgraded = "\n".join(
+        [
+            '["root","Layout",{"layout":"S-title-content"},["header","display"]]',
+            '["header","SingleLineTitle",{"title":"会议"}]',
+            '["display","EmphasisText",{"mainText":'
+            '{"path":"/data/calendar/events/0/title"}}]',
+        ]
+    )
+    preserved = "\n".join(
+        [
+            '["root","Layout",{"layout":"S-center"},["display"]]',
+            '["display","DataDisplay",{"label":"会议","value":'
+            '{"path":"/data/calendar/events/0/title"},"supportingText":"今日"}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(downgraded, plan, spec)
+
+    assert errors == (
+        "已接受 Plan 选择了 2x2 单焦点 S-center + DataDisplay；修复时必须保留"
+        "该布局与组件，不得降级为 SingleLineTitle + EmphasisText 或 EmphasizedData。",
+    )
+    assert compact_plan_coverage_errors(preserved, plan, spec) == ()
+
+    long_value_spec = task_spec()
+    schema = long_value_spec.get("dataModelSchema")
+    assert isinstance(schema, dict)
+    data = schema.get("data")
+    assert isinstance(data, dict)
+    calendar = data.get("calendar")
+    assert isinstance(calendar, dict)
+    events = calendar.get("events")
+    assert isinstance(events, list)
+    assert events
+    first_event = events[0]
+    assert isinstance(first_event, dict)
+    title = first_event.get("title")
+    assert isinstance(title, dict)
+    title["sampleValue"] = "这是明确超过八个字的文本结论"
+    assert compact_plan_coverage_errors(downgraded, plan, long_value_spec) == ()
+
+
 def test_optional_drop_candidate_prefers_should_only_component() -> None:
     spec = task_spec()
     plan = {
@@ -1731,11 +1798,12 @@ def test_drop_fact_validation_switch_keeps_normal_coverage_and_action_checks(
     assert all("actionId" not in fact for fact in omitted)
 
 
-def test_processor_reports_missing_static_plan_text_as_warning() -> None:
+def test_processor_reports_missing_static_plan_text_as_initial_error() -> None:
     plan = {
         "info_required": [
             {
                 "requirement": "卡片标题",
+                "priority": "must",
                 "text": "静态卡片",
                 "componentHints": ["EmphasisText"],
             }
@@ -1756,12 +1824,12 @@ def test_processor_reports_missing_static_plan_text_as_warning() -> None:
         context,
     )
 
-    assert result.standard_dsl
-    assert result.errors == ()
+    assert result.standard_dsl == ""
+    assert len(result.errors) == 1
+    assert result.errors[0].code == "COMPACT_PLAN_COVERAGE_FAILED"
+    assert "卡片标题" in result.errors[0].message
     warnings = tuple(issue for issue in result.issues if issue.severity == "warning")
-    assert len(warnings) == 1
-    assert warnings[0].code == "COMPACT_PLAN_COVERAGE_WARNING"
-    assert "卡片标题" in warnings[0].message
+    assert warnings == ()
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -1791,6 +1859,11 @@ def test_repair_coverage_downgrades_information_but_not_action(size: str) -> Non
                 "priority": "must",
             },
             {
+                "requirement": "展示静态说明",
+                "text": "必须保留的静态说明",
+                "priority": "must",
+            },
+            {
                 "requirement": "打开设备设置",
                 "actionId": "event.open.settings",
                 "priority": "must",
@@ -1805,7 +1878,7 @@ def test_repair_coverage_downgrades_information_but_not_action(size: str) -> Non
     )
 
     strict = evaluate_compact_plan_coverage(source, plan, spec)
-    assert len(strict.errors) == 2
+    assert len(strict.errors) == 3
     assert strict.warnings == ()
 
     repaired = evaluate_compact_plan_coverage(
@@ -1816,8 +1889,9 @@ def test_repair_coverage_downgrades_information_but_not_action(size: str) -> Non
     )
     assert len(repaired.errors) == 1
     assert "Plan action is missing" in repaired.errors[0]
-    assert len(repaired.warnings) == 1
-    assert "Plan fact is missing" in repaired.warnings[0]
+    assert len(repaired.warnings) == 2
+    assert any("Plan fact is missing" in warning for warning in repaired.warnings)
+    assert any("Plan static text" in warning for warning in repaired.warnings)
 
 
 def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
@@ -1825,6 +1899,7 @@ def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
         "info_required": [
             {
                 "requirement": "卡片标题",
+                "priority": "must",
                 "text": "center",
             }
         ]
@@ -1839,15 +1914,16 @@ def test_static_fact_is_not_satisfied_by_visual_style_props() -> None:
     errors = compact_plan_coverage_errors(source, plan, task_spec())
     warnings = compact_plan_coverage_warnings(source, plan, task_spec())
 
-    assert errors == ()
-    assert warnings == ("Plan static text is not fully visible in DSL: 卡片标题.",)
+    assert errors == ("Plan static text is not fully visible in DSL: 卡片标题.",)
+    assert warnings == ()
 
 
-def test_shortened_static_plan_text_is_warning_only() -> None:
+def test_shortened_static_plan_text_is_initial_error() -> None:
     plan = {
         "info_required": [
             {
                 "requirement": "展示提醒文字“每天带孩子出去运动两次”",
+                "priority": "must",
                 "text": "每天带孩子出去运动两次",
                 "componentHints": ["SecondaryBody"],
             }
@@ -1861,8 +1937,8 @@ def test_shortened_static_plan_text_is_warning_only() -> None:
         ]
     )
 
-    assert compact_plan_coverage_errors(source, plan, task_spec()) == ()
-    assert compact_plan_coverage_warnings(source, plan, task_spec()) == (
+    assert compact_plan_coverage_errors(source, plan, task_spec()) == (
         "Plan static text is not fully visible in DSL: "
         "展示提醒文字“每天带孩子出去运动两次”.",
     )
+    assert compact_plan_coverage_warnings(source, plan, task_spec()) == ()

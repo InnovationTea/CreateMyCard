@@ -250,6 +250,46 @@ function requireDisplay(id: string, type: string, props: RecordValue, name: stri
   if (!isDisplayValue(props[name])) throw new Error(`${id}: ${type}.${name} 必须是可显示文本。`);
 }
 
+function dataDisplayValueKind(
+  value: unknown,
+  data?: ExpansionDataContext,
+): { kind?: "numeric" | "text"; text?: string } {
+  if (record(value) && Object.keys(value).length === 1 && typeof value.path === "string") {
+    value = data?.get(value.path);
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return { kind: "numeric" };
+  if (typeof value !== "string" || !value.trim() || value.trim().startsWith("{{")) return {};
+  const normalized = value.trim();
+  if (/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[%％])?$/.test(normalized)) {
+    return { kind: "numeric" };
+  }
+  return { kind: "text", text: normalized };
+}
+
+function dataDisplayVariant(
+  id: string,
+  props: RecordValue,
+  data?: ExpansionDataContext,
+): string | undefined {
+  const { kind, text } = dataDisplayValueKind(props.value, data);
+  const fontSize = props.fontSize;
+  if (kind === "numeric" && fontSize === 24) {
+    throw new Error(`${id}: 数值 DataDisplay.value 必须使用 48fp。`);
+  }
+  if (kind === "text" && fontSize !== undefined && fontSize !== 24) {
+    throw new Error(`${id}: 文本 DataDisplay.value 必须使用 24fp。`);
+  }
+  if (text !== undefined) {
+    const characterCount = [...text.replace(/\s+/g, "")].length;
+    if (characterCount < 4 || characterCount > 8) {
+      throw new Error(`${id}: 文本 DataDisplay.value 必须为 4–8 个字符。`);
+    }
+  }
+  return fontSize === 24 || (fontSize === undefined && kind === "text")
+    ? "textConclusion"
+    : undefined;
+}
+
 function emphasisSecondaryContent(id: string, value: unknown): unknown {
   if (!Array.isArray(value)) {
     if (!isDisplayValue(value)) throw new Error(`${id}: EmphasisText.secondaryText 必须是可显示文本。`);
@@ -541,6 +581,89 @@ function secondaryPrefixedValue(label: string, value: unknown) {
     return "{{ '" + escaped + "' + (" + value.trim().slice(2, -2).trim() + ") }}";
   }
   return label + String(value);
+}
+
+function previewDisplayValues(props: RecordValue): unknown[] {
+  const values: unknown[] = [];
+  const append = (value: unknown) => {
+    if (isDisplayValue(value)) values.push(value);
+  };
+  for (const name of [
+    "title", "mainText", "secondaryText", "value", "displayValue", "primaryText",
+    "secondaryInfo", "secondaryLabel", "label", "supportingText",
+  ]) {
+    append(props[name]);
+  }
+  if (Array.isArray(props.items)) {
+    for (const item of props.items) {
+      if (isDisplayValue(item)) {
+        append(item);
+        continue;
+      }
+      if (!record(item)) continue;
+      for (const name of ["title", "label", "value", "time", "location", "unit"]) {
+        append(item[name]);
+      }
+    }
+  }
+  return values;
+}
+
+function previewHighLevelFallback(
+  id: string,
+  node: MiniNode,
+  palette: Record<string, string>,
+): Array<[string, MiniNode]> {
+  const actionTypes = new Set(["PillButton", "CircleButton", "CardButton"]);
+  const placement = Object.fromEntries(
+    PLACEMENT_PROPS.filter(key => key in node.props).map(key => [key, clone(node.props[key])]),
+  );
+  const values = previewDisplayValues(node.props);
+  if (actionTypes.has(node.type)) {
+    return [[id, {
+      type: "Button",
+      props: {
+        label: values[0] ?? "操作",
+        width: "matchParent",
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: palette.actionSurface,
+        fontColor: palette.actionInk,
+        ...placement,
+        ...(node.props.onClick === undefined ? {} : { onClick: clone(node.props.onClick) }),
+      },
+      children: [],
+    }]];
+  }
+
+  const children = (values.length ? values : [`无法完整预览 ${node.type}`])
+    .map((_, index) => `${id}_preview_text${index}`);
+  const rows: Array<[string, MiniNode]> = [[id, {
+    type: "Column",
+    props: {
+      width: "matchParent",
+      itemMargin: 2,
+      alignItems: "start",
+      justifyContent: "start",
+      ...placement,
+    },
+    children,
+  }]];
+  children.forEach((child, index) => {
+    rows.push([child, {
+      type: "Text",
+      props: {
+        content: values[index] ?? `无法完整预览 ${node.type}`,
+        width: "matchParent",
+        fontSize: index === 0 ? 14 : 12,
+        fontWeight: index === 0 ? 500 : 400,
+        fontColor: palette.primary,
+        maxLines: 2,
+      },
+      children: [],
+    }]);
+  });
+  return rows;
 }
 
 function expandHighLevel(
@@ -1532,31 +1655,100 @@ function expandHighLevel(
 
   if (type === "DataDisplay") {
     if (size !== "2x2") throw new Error("DataDisplay 仅支持 2x2 卡片。");
-    const allowed = ["label", "value", "supportingText", "fontColor", "fontSize"];
-    requireProps(id, type, p, ["label", "value", "supportingText", "fontColor"], allowed);
-    requireRecipeFontSize(id, type, p, size, "value");
-    if (typeof p.label !== "string" || !p.label.trim()
-      || typeof p.supportingText !== "string" || !p.supportingText.trim()) {
-      throw new Error(`${id}: DataDisplay.label/supportingText 必须是非空文本。`);
+    const allowed = [
+      "label", "icon", "fillColor", "value", "supportingText", "fontColor", "fontSize",
+    ];
+    requireProps(id, type, p, ["value", "supportingText", "fontColor"], allowed);
+    const variant = dataDisplayVariant(id, p, data);
+    requireRecipeFontSize(id, type, p, size, "value", variant);
+    const label = typeof p.label === "string" && p.label.trim() ? p.label : undefined;
+    const icon = typeof p.icon === "string" && p.icon.trim() ? p.icon : undefined;
+    if (p.label !== undefined && label === undefined) {
+      throw new Error(`${id}: DataDisplay.label 必须是非空静态文本。`);
+    }
+    if (p.icon !== undefined && icon === undefined) {
+      throw new Error(`${id}: DataDisplay.icon 必须是非空静态路径。`);
+    }
+    if ((label === undefined) === (icon === undefined)) {
+      throw new Error(`${id}: DataDisplay 必须在 label 和 icon 中二选一。`);
+    }
+    if (variant === undefined && label === undefined) {
+      throw new Error(`${id}: 数值 DataDisplay 必须使用文本 label。`);
+    }
+    if (p.fillColor !== undefined) {
+      if (icon === undefined) throw new Error(`${id}: DataDisplay.fillColor 需要 icon。`);
+      requireColor(id, type, p, "fillColor");
+      if (/\.(?:png|jpe?g|webp|gif|bmp)$/i.test(icon)) {
+        throw new Error(`${id}: DataDisplay 位图 icon 不能设置 fillColor。`);
+      }
     }
     requireDisplay(id, type, p, "value");
+    requireDisplay(id, type, p, "supportingText");
     requireColor(id, type, p, "fontColor");
     const secondaryColor = colorWithAlpha(String(p.fontColor), 0.6);
-    const label = `${id}_label`;
-    const value = `${id}_value`;
-    const supporting = `${id}_supporting`;
-    return [
-      row(id, type, "root", size, {}, [label, value, supporting]),
-      row(label, type, "label", size, { content: p.label, fontColor: secondaryColor }),
-      row(value, type, "value", size, { content: p.value, fontColor: p.fontColor }),
+    const labelId = `${id}_label`;
+    const iconId = `${id}_icon`;
+    const valueAreaId = `${id}_value_area`;
+    const valueId = `${id}_value`;
+    const supportingId = `${id}_supporting`;
+    const leadingId = label === undefined ? iconId : labelId;
+    const valueChildId = variant === "textConclusion" ? valueAreaId : valueId;
+    const valueRow = row(
+      valueId,
+      type,
+      "value",
+      size,
+      { content: p.value, fontColor: p.fontColor },
+      [],
+      variant,
+    );
+    if (variant === "textConclusion") delete valueRow[1].props.height;
+    const rows: Array<[string, MiniNode]> = [
+      row(id, type, "root", size, {}, [leadingId, valueChildId, supportingId], variant),
+      valueRow,
       row(
-        supporting,
+        supportingId,
         type,
         "supporting",
         size,
         { content: p.supportingText, fontColor: secondaryColor },
+        [],
+        variant,
       ),
     ];
+    if (variant === "textConclusion") {
+      rows.splice(1, 0, row(
+        valueAreaId,
+        type,
+        "valueArea",
+        size,
+        {},
+        [valueId],
+        variant,
+      ));
+    }
+    if (label !== undefined) {
+      rows.splice(1, 0, row(
+        labelId,
+        type,
+        "label",
+        size,
+        { content: label, fontColor: secondaryColor },
+        [],
+        variant,
+      ));
+    } else {
+      rows.splice(1, 0, row(
+        iconId,
+        type,
+        "icon",
+        size,
+        { src: icon, ...(p.fillColor === undefined ? {} : { fillColor: p.fillColor }) },
+        [],
+        variant,
+      ));
+    }
+    return rows;
   }
 
   if (type === "TopTextBottomValue") {
@@ -1608,9 +1800,9 @@ function expandHighLevel(
   if (type === "SummaryList") {
     if (size !== "2x4") throw new Error("SummaryList 仅支持 2x4 卡片。");
     const allowed = ["items", "fontColor", "backgroundColor"];
-    requireProps(id, type, p, allowed, allowed);
+    requireProps(id, type, p, ["items", "fontColor"], allowed);
     requireColor(id, type, p, "fontColor");
-    requireColor(id, type, p, "backgroundColor");
+    if (p.backgroundColor !== undefined) requireColor(id, type, p, "backgroundColor");
     if (!Array.isArray(p.items)
       || p.items.length < 2
       || p.items.length > 3
@@ -1618,42 +1810,35 @@ function expandHighLevel(
       throw new Error(`${id}: SummaryList.items 需要 2–3 项可显示文本。`);
     }
     const children = p.items.map((_, index) => `${id}_item${index}`);
-    const rows: Array<[string, MiniNode]> = [[id, {
-      type: "Column",
-      props: {
-        width: "matchParent",
-        height: p.items.length === 2 ? 64 : 102,
-        itemMargin: 8,
-        alignItems: "start",
-      },
+    const minimumHeight = p.items.length === 2 ? 64 : 102;
+    const rows: Array<[string, MiniNode]> = [row(
+      id,
+      type,
+      "root",
+      size,
+      { constraintSize: { minHeight: minimumHeight } },
       children,
-    }]];
+    )];
     p.items.forEach((item, index) => {
       const text = `${children[index]}_text`;
-      rows.push([children[index], {
-        type: "Row",
-        props: {
-          width: "matchParent",
-          height: 28,
-          padding: { left: 12, right: 12 },
-          borderRadius: 8,
-          backgroundColor: p.backgroundColor,
-          alignItems: "center",
-        },
-        children: [text],
-      }]);
-      rows.push([text, {
-        type: "Text",
-        props: {
+      rows.push(row(
+        children[index],
+        type,
+        "item",
+        size,
+        p.backgroundColor === undefined ? {} : { backgroundColor: p.backgroundColor },
+        [text],
+      ));
+      rows.push(row(
+        text,
+        type,
+        "text",
+        size,
+        {
           content: item,
-          width: "matchParent",
-          fontSize: 12,
-          fontWeight: 400,
           fontColor: p.fontColor,
-          maxLines: 1,
         },
-        children: [],
-      }]);
+      ));
     });
     return rows;
   }
@@ -1686,7 +1871,18 @@ export function expandCompactComponents(
 
   for (const [id, node] of input) {
     const parent = [...input.values()].find(item => item.children.includes(id));
-    const rows = expandHighLevel(id, node, size, palette, data, secondaryWidths.get(id));
+    let rows: Array<[string, MiniNode]> | null;
+    try {
+      rows = expandHighLevel(id, node, size, palette, data, secondaryWidths.get(id));
+    } catch (error) {
+      if (!data?.previewMode
+        || !(HIGH_LEVEL_COMPONENT_TYPES as readonly string[]).includes(node.type)) {
+        throw error;
+      }
+      const reason = error instanceof Error ? error.message : String(error);
+      data.warn?.(`${id}: ${reason} 宽松预览已改用只读占位展开。`);
+      rows = previewHighLevelFallback(id, node, palette);
+    }
     if (rows) {
       if (node.type === "CircleButton") {
         const centeredSlot = parent?.type === "Stack"
@@ -1724,23 +1920,41 @@ export function expandCompactComponents(
     if (!["SingleLineTitle", "TimelineUnit"].includes(node.type)) continue;
     requireNoChildren(id, node.type, node.children);
     if (node.type === "SingleLineTitle") {
-      const allowed = ["title", "fontColor", "fontSize"];
+      const allowed = ["title", "icon", "fillColor", "fontColor", "fontSize"];
+      const icon = typeof p.icon === "string" && p.icon.trim() ? p.icon : undefined;
+      const variant = icon ? "withIcon" : undefined;
+      const rootVisual = visualRecipePart("SingleLineTitle", "root", size, variant);
+      const expectedHeight = rootVisual.styles.height;
       const invalid = Object.keys(p).some(key => !allowed.includes(key) && !PLACEMENT_PROPS.includes(key))
         || p.title == null
         || typeof p.fontColor !== "string"
-        || (p.height !== undefined && p.height !== 12);
+        || (p.icon !== undefined && !icon)
+        || (p.fillColor !== undefined && (!icon || !isArgbColor(p.fillColor)))
+        || (p.height !== undefined && p.height !== expectedHeight);
       if (invalid) {
-        throw new Error("SingleLineTitle 只接受 title 和合法布局属性；文字色由运行时注入。");
+        throw new Error(
+          "SingleLineTitle 只接受 title、静态 icon、可选 fillColor 和合法布局属性；"
+            + "文字色由运行时注入。",
+        );
       }
-      requireRecipeFontSize(id, node.type, p, size, "title");
-      const rootVisual = visualRecipePart("SingleLineTitle", "root", size);
-      const titleVisual = visualRecipePart("SingleLineTitle", "title", size);
+      requireRecipeFontSize(id, node.type, p, size, "title", variant);
+      const titleVisual = visualRecipePart("SingleLineTitle", "title", size, variant);
       const children = [`${id}_title`];
       add(children[0], "Text", {
         ...titleVisual.styles,
         content: p.title,
         fontColor: p.fontColor,
       });
+      if (icon) {
+        const iconId = `${id}_icon`;
+        const iconVisual = visualRecipePart("SingleLineTitle", "icon", size, variant);
+        children.push(iconId);
+        add(iconId, iconVisual.component, {
+          ...iconVisual.styles,
+          src: icon,
+          ...(p.fillColor === undefined ? {} : { fillColor: p.fillColor }),
+        });
+      }
       nodes.set(id, {
         type: rootVisual.component,
         props: {

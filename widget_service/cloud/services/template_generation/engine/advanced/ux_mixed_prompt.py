@@ -9,6 +9,10 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from models.generation import TaskSpec
+from services.template_generation.engine.cardplan.action_labels import (
+    action_label_candidate,
+    action_label_request,
+)
 from services.template_generation.engine.cardplan.generated.prompts import (
     UX_MIXED_SYSTEM_PROMPT_KERNEL,
 )
@@ -53,6 +57,7 @@ _WEATHER_BUILTIN_ASSETS = (
     "resources/base/media/sun_max.svg",
     "resources/base/media/cold.svg",
 )
+_COUNTDOWN_TITLE_SUFFIXES = ("倒计时", "倒数日", "倒数")
 _MAX_UX_MIXED_PROMPT_CHARS = 24_000
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _COMPACT_ACTION_TEMPLATE_ID = "CompactAction@1"
@@ -71,6 +76,17 @@ class _SecondLayerLayoutSelection:
     action_template_ids: tuple[str, ...] = ()
     embeds_support_actions: bool = False
     business_layout_kinds_by_position: tuple[str, ...] = ()
+
+
+def _countdown_title_aliases(card_spec: dict[str, Any]) -> tuple[str, ...]:
+    """把“X倒计时/倒数日/倒数”形式的卡片标题补一个“X还剩”可信别名。"""
+    title = card_spec.get("title")
+    if not isinstance(title, str):
+        return ()
+    for suffix in _COUNTDOWN_TITLE_SUFFIXES:
+        if title.endswith(suffix) and len(title) > len(suffix):
+            return (f"{title[: -len(suffix)]}还剩",)
+    return ()
 
 
 def _weather_builtin_assets_for_components(components: tuple[Any, ...]) -> tuple[str, ...]:
@@ -431,7 +447,11 @@ def build_ux_mixed_prompt(
     contract = base.contract.model_copy(
         update={
             "trusted_literals": tuple(dict.fromkeys(
-                (*base.contract.trusted_literals, *GENERIC_HEALTH_LABELS.values())
+                (
+                    *base.contract.trusted_literals,
+                    *GENERIC_HEALTH_LABELS.values(),
+                    *_countdown_title_aliases(card_spec),
+                )
             )),
             # 原子计划已校验操作归属，内置按钮不占布局根的 Action 槽位。
             "content_action_ids": (
@@ -585,6 +605,7 @@ def build_ux_mixed_prompt(
     )
     user = "\n".join(
         (
+            *action_label_request(task_spec.userQuery, contract.action_bindings),
             "themeId=" + json.dumps(base.theme_id, ensure_ascii=False),
             "cardComposition="
             + json.dumps({"businessTitleCandidate": card_spec.get("title")}, ensure_ascii=False),
@@ -758,19 +779,13 @@ def _candidate_groups_for_prompt(
 
 def _selected_action_candidates(
     contract: HybridBodyContract,
-) -> tuple[dict[str, str], ...]:
+) -> tuple[dict[str, Any], ...]:
     selected_ids = set(contract.content_action_ids)
-    entries: list[dict[str, str]] = []
+    entries: list[dict[str, Any]] = []
     for action in contract.action_bindings:
         if action.action_id not in selected_ids:
             continue
-        entry = {
-            "actionId": action.action_id,
-            "label": action.display_label,
-        }
-        if action.display_subtitle:
-            entry["subtitle"] = action.display_subtitle
-        entries.append(entry)
+        entries.append(action_label_candidate(action))
     return tuple(entries)
 
 
@@ -797,7 +812,7 @@ def _asset_prompt_candidates(
 def _output_grammar(
     layout_template_ids: tuple[str, ...],
     required_template_groups: tuple[tuple[str, ...], ...],
-    selected_actions: tuple[dict[str, str], ...],
+    selected_actions: tuple[dict[str, Any], ...],
     action_template_ids: tuple[str, ...],
     *,
     embeds_support_actions: bool,
@@ -847,7 +862,7 @@ def _output_grammar(
 def _layout_output_option(
     layout_template_id: str,
     required_template_groups: tuple[tuple[str, ...], ...],
-    selected_actions: tuple[dict[str, str], ...],
+    selected_actions: tuple[dict[str, Any], ...],
     action_template_ids: tuple[str, ...],
 ) -> dict[str, Any]:
     layout_id = layout_template_id.removesuffix("@1")
@@ -1101,9 +1116,9 @@ def _planned_layout_selection(
 
 def _planned_output_grammar(
     plans: tuple[TemplatePlan, ...],
-    selected_actions: tuple[dict[str, str], ...],
+    selected_actions: tuple[dict[str, Any], ...],
 ) -> dict[str, Any]:
-    actions_by_id: dict[str, dict[str, str]] = {}
+    actions_by_id: dict[str, dict[str, Any]] = {}
     for item in selected_actions:
         action_id = item.get("actionId")
         if not isinstance(action_id, str):

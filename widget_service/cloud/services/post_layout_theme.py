@@ -1,36 +1,46 @@
-"""冻结 A2UI 后选择受控主题；几何未知时不使用图片。"""
+"""冻结 A2UI 后选择主题；无主体图按布局匹配，未知几何不放行有主体图。"""
 
 from __future__ import annotations
 
-import asyncio
 import copy
 import hashlib
 import json
 import math
 import re
-from functools import lru_cache
-from pathlib import Path
+import secrets
 from typing import Any
 
 from config.config import get_settings
-from services.compact_component_runtime import (
-    load_visual_recipe_contract,
-    resolve_card_color_palette,
-)
+from services.asset_url_mapper import AssetUrlMapper
 from services.fusion_ball_expander import (
-    FUSION_BALL_DESIGN_TOKENS,
     build_fusion_ball_content_id,
+    build_fusion_ball_palette,
     expand_fusion_ball_components,
     fusion_ball_enabled,
-    fusion_ball_palette_for_root,
 )
-from services.generation_trace_recorder import trace_step
-from services.theme_content_regions import capsule_ids
+from services.generation_trace_recorder import trace_operation, trace_record, trace_span
+from services.post_layout_theme_registry import (
+    fallback_theme,
+    load_theme_registry,
+    photo_fallback,
+    registered_themes,
+    selection_rules,
+    user_background_roles,
+)
+from services.theme_content_regions import (
+    layout_evidence_reason,
+    photo_layout_evidence,
+    photo_layout_exclusion_reason,
+)
+from services.theme_layout_summary import (
+    layout_summary,
+    matches_subjectless_layout,
+    theme_description,
+)
+from services.theme_photo_eligibility import photo_content_reason
 from services.theme_selection_policy import default_palette_family, fusion_candidate_gate
-from services.theme_style_roles import COLOR_FIELDS, is_role, resolve_role, unpainted_document
+from services.theme_style_roles import COLOR_FIELDS, ROLE_PATTERN, is_role, resolve_role
 
-MANIFEST = Path(__file__).resolve().parents[1] / "data/post_layout_themes.json"
-SELECTION_RULES = MANIFEST.parent / "post_layout_theme_selection.md"
 PREFIX = "__post_theme_"
 FUSION_FOREGROUND_ID = build_fusion_ball_content_id("root")
 _FOREGROUND_IDS = frozenset({PREFIX + "foreground", FUSION_FOREGROUND_ID})
@@ -46,7 +56,7 @@ FUSION_IDS = frozenset(
         "fusionBallGlassLayer",
     }
 )
-STYLE_KEYS = COLOR_FIELDS | {"linearGradient"}
+STYLE_KEYS = COLOR_FIELDS | {"linearGradient", "backdropBlur"}
 
 
 def decode(source: str) -> list[dict]:
@@ -92,45 +102,6 @@ def foreground_signature(source: str) -> str:
     return hashlib.sha256(serialized.encode()).hexdigest()
 
 
-async def measure(
-    source: str, size: str, *, data_model_schema: dict | None = None,
-    layout_size: str | None = None,
-) -> dict:
-    command = get_settings().post_layout_measure_command
-    if not command:
-        return {"complete": False, "reason": "未配置渲染测量器"}
-    process = await asyncio.create_subprocess_exec(
-        *command,
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    payload = json.dumps(
-        {
-            "source": unpainted_document(source),
-            "size": size,
-            "layoutSize": layout_size or size,
-            "capsuleIds": capsule_ids(components(decode(source))),
-            "dataModelSchema": data_model_schema or {},
-            "dynamicTextReservation": json.loads(MANIFEST.read_text(encoding="utf-8"))
-            .get("matching", {}).get("dynamicTextReservation", {}),
-        },
-        ensure_ascii=False,
-    ).encode()
-    try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(payload), timeout=45)
-    except (TimeoutError, asyncio.CancelledError):
-        process.kill()
-        await process.communicate()
-        raise
-    if process.returncode:
-        raise ValueError("Renderer measurement failed: " + stderr.decode(errors="replace")[-800:])
-    evidence = json.loads(stdout)
-    if not isinstance(evidence, dict):
-        raise ValueError("Renderer evidence must be an object")
-    return evidence
-
-
 def schema_field_names(value: Any) -> list[str]:
     if not isinstance(value, dict):
         return []
@@ -143,10 +114,17 @@ def schema_field_names(value: Any) -> list[str]:
     return result
 
 
-def photo_reason(photo: dict, task: dict, evidence: dict) -> str | None:
+def photo_reason(
+    photo: dict, task: dict, evidence: dict, *, final_layout: str | None = None,
+) -> str | None:
     if photo.get("size") != task.get("size"):
         return "尺寸不匹配"
+    layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
+    if layout_reason:
+        return layout_reason
     query = task.get("userQuery", "")
+    if re.search(r"纯色|渐变|[融绒]球|不要.*(?:图|背景)|不用.*(?:图|背景)|无图", query):
+        return "用户明确其它主题或不要图片"
     schema = " ".join(schema_field_names(task.get("dataModelSchema", {})))
     if re.search("预警|警报|台风|暴雨|暴雪|雷暴|weatherAlert", query + schema, re.I):
         return "异常天气不使用正常天气图片"
@@ -158,11 +136,32 @@ def photo_reason(photo: dict, task: dict, evidence: dict) -> str | None:
         "countdown": r"倒计时|还有\s*(?:几|多少|\d+)\s*天|countdown",
         "sleep": "睡眠|睡了|睡得|深睡|小睡|nightSleep|sleepScore",
         "sport": "运动|跑步|训练|马拉松|步数|走了|exercise|steps",
+        "travel": "出行|航班|飞机|机场|flight|travel",
+        "information": "资讯|新闻|信息咨询|news",
+        "smart-home": "智慧家|智能家居|全屋|灯光|smartHome",
+        "calendar": "日程|会议|安排|calendar",
+        "battery": "电量|电池|充电|续航|phoneBattery",
     }
     if not re.search(patterns.get(business, r"(?!)"), query + "\n" + schema, re.I):
         return "业务不适用"
     if business == "weather" and re.search("降雨|降水|下雨", query):
-        return "降雨场景使用雨伞候选"
+        return "降雨场景不使用正常天气图片"
+    required_layout = photo.get("subjectlessLayout")
+    if required_layout and not matches_subjectless_layout(final_layout, required_layout):
+        return "无主体图片需要左侧主内容、右侧上下双槽的定稿布局"
+    reason = layout_evidence_reason(evidence)
+    if reason:
+        return reason
+    layout_authorized = photo.get("contentEligibility", {}).get("kind") in {
+        "weather-square", "calendar-square",
+    }
+    if photo.get("subjectless") is not True and not layout_authorized:
+        return "真实卡片宽高未知，无法确认主体与文字、完整按钮及图标避让"
+    return photo_content_reason(photo, task, evidence, final_layout)
+
+
+def _photo_geometry_reason(photo: dict, evidence: dict) -> str | None:
+    """开发诊断中的归一化避让检查，不作为云侧准入依据。"""
     if evidence.get("complete") is not True:
         return evidence.get("reason", "无法可靠测量内容")
     occupied = evidence.get("occupied")
@@ -170,7 +169,7 @@ def photo_reason(photo: dict, task: dict, evidence: dict) -> str | None:
         return "没有可靠占用范围"
     if evidence.get("unsafe"):
         return "动态范围不确定或存在裁切/不支持组件"
-    avoidance = evidence.get("subjectAvoidance", occupied)
+    avoidance = occupied
     if not isinstance(avoidance, list):
         return "内容测量不完整"
     box = photo.get("subjectBounds")
@@ -188,6 +187,11 @@ def photo_reason(photo: dict, task: dict, evidence: dict) -> str | None:
         outside_vertical = y < by or y + height > by + bh + 1e-9
         if outside_horizontal or outside_vertical:
             return "主体区域配置无效"
+    content_regions = photo.get("contentRegions")
+    if photo.get("subjectless") is True:
+        # 业务及可选布局已在入口准入；仅无主体配置取消避让，仍检查完整画布占用。
+        regions = []
+        content_regions = [[0, 0, 1, 1]]
     for item in avoidance:
         if not isinstance(item, dict):
             return "内容测量不完整"
@@ -200,7 +204,17 @@ def photo_reason(photo: dict, task: dict, evidence: dict) -> str | None:
             overlaps_vertical = top < y + height and top + rh > y
             if overlaps_horizontal and overlaps_vertical:
                 return f"主体区域与内容 {item.get('id', '')} 冲突"
+        if content_regions and not any(_contains(region, rect) for region in content_regions):
+            return f"内容 {item.get('id', '')} 超出UX可用区域"
     return None
+
+
+def _contains(region: list, rect: list) -> bool:
+    x, y, width, height = region
+    left, top, rw, rh = rect
+    horizontal = left >= x and left + rw <= x + width + 1e-9
+    vertical = top >= y and top + rh <= y + height + 1e-9
+    return horizontal and vertical
 
 
 def valid_rect(value: Any) -> bool:
@@ -213,16 +227,7 @@ def valid_rect(value: Any) -> bool:
 
 def user_color_overrides(query: str) -> dict:
     # 只接受原文明示的目标+色名/十六进制，不从业务推断告警或强调色。
-    names = {
-        "白色": "#FFFFFFFF",
-        "黑色": "#FF000000",
-        "红色": "#FFFF0000",
-        "蓝色": "#FF0000FF",
-        "绿色": "#FF008000",
-        "紫色": "#FF800080",
-        "黄色": "#FFFFFF00",
-        "橙色": "#FFFFA500",
-    }
+    names = load_theme_registry().get("userColorOverrides", {}).get("namedColors", {})
     token = "(?:#[0-9A-Fa-f]{8}|#[0-9A-Fa-f]{6}|" + "|".join(names) + ")"
     result = {}
     for role, target in (("text", "文字|字体|字色|字"), ("background", "背景|底色")):
@@ -239,37 +244,21 @@ def user_color_overrides(query: str) -> dict:
     return result
 
 
-@lru_cache(maxsize=1)
 def original_selection_rules() -> str:
-    """只后移原融合选择合同，不复制色值或另造背景偏好。"""
-    return SELECTION_RULES.read_text(encoding="utf-8").strip()
+    """选择合同和业务描述从统一配置生成，不在模型输入中包含色值。"""
+    return selection_rules()
 
 
 def presets(task: dict) -> list[dict]:
     result = []
-    palettes = load_visual_recipe_contract().get("palettes", {})
-    for name in ("blue", "purple", "warm"):
-        palette = palettes.get(name, {})
-        result.append(
-            {
-                "id": "gradient-" + name,
-                "kind": "gradient",
-                "palette": name,
-                "gradient": palette.get("gradients", [])[0],
-            }
-        )
-    for name in ("blue", "purple", "warm"):
-        result.append(
-            {
-                "id": "solid-" + name,
-                "kind": "solid",
-                "palette": name,
-                "background": palettes.get(name, {}).get("gradients", [])[0][1],
-            }
-        )
-    if task.get("size") == "2x2" and fusion_ball_enabled(task.get("appVersion")):
-        for token in FUSION_BALL_DESIGN_TOKENS:
-            result.append({"id": token, "kind": "fusion", "palette": "fusionDark"})
+    for theme in registered_themes("standard"):
+        size = task.get("size")
+        if size and size not in theme.get("sizes", []):
+            continue
+        if theme.get("kind") == "fusion":
+            if size != "2x2" or not fusion_ball_enabled(task.get("appVersion")):
+                continue
+        result.append(theme)
     return result
 
 
@@ -320,20 +309,14 @@ def photo_background(photo: dict) -> list[dict]:
 
 
 def fusion_background(theme: dict, task: dict) -> list[dict]:
-    root = {
-        "component_type": "Column",
-        "id": "root",
-        "component_id": "root",
-        "props": {"design": theme.get("id")},
-    }
-    # 原算法只负责预置背景；不让旧展开器改动最终前景颜色或几何。
-    from services.compact_high_level_components import ComponentRow
-
-    palette = fusion_ball_palette_for_root(
-        [ComponentRow("root", "Column", root["props"])],
-        size=task.get("size"),
-        app_version=task.get("appVersion"),
+    background = theme.get("background", {})
+    colors = background.get("ballColors", {})
+    if not fusion_ball_enabled(task.get("appVersion")):
+        raise ValueError("Fusion theme is not enabled for this runtime")
+    palette = build_fusion_ball_palette(
+        colors.get("large"), colors.get("medium"), colors.get("small")
     )
+    # 原算法只负责预置背景；不让旧展开器改动最终前景颜色或几何。
     expanded = expand_fusion_ball_components(
         [{"id": "root", "component": "Column", "children": [], "styles": {}}],
         palette,
@@ -344,8 +327,53 @@ def fusion_background(theme: dict, task: dict) -> list[dict]:
         identity = item.get("id", "")
         if not identity.startswith("fusionBall"):
             continue
+        if identity == "fusionBallGlassLayer":
+            styles = item.get("styles", {})
+            styles["backgroundColor"] = background.get("glassColor")
+            styles["backdropBlur"] = {"radius": background.get("blurRadius")}
         result.append(item)
     return result
+
+
+def apply_photo_fallback(
+    shell: dict, foreground: dict, layers: list[dict], task: dict, primary: str,
+) -> None:
+    fallback = photo_fallback(primary)
+    background = fallback.get("background", {})
+    styles = shell.setdefault("styles", {})
+    if fallback.get("kind") == "gradient":
+        colors = background.get("colors", [])
+        styles["backgroundColor"] = colors[-1]
+        styles["linearGradient"] = {
+            "direction": background.get("direction"),
+            "colors": [[colors[0], 0], [colors[1], 1]],
+        }
+    else:
+        styles["backgroundColor"] = background.get("ballColors", {}).get("large")
+        if fusion_ball_enabled(task.get("appVersion")):
+            # 融球在图片后面；前景仍需端侧防溢出标记，避免球体参与内容尺寸适配。
+            foreground["id"] = FUSION_FOREGROUND_ID
+            shell["children"] = [PREFIX + "background", FUSION_FOREGROUND_ID]
+            layers[0].get("children", []).insert(0, "fusionBallBackground")
+            layers.extend(fusion_background(fallback, task))
+
+
+def _has_content_surface(node: dict, legacy_panels: list[str]) -> bool:
+    if node.get("component") not in {"Row", "Column", "Stack", "Button"}:
+        return False
+    background = node.get("styles", {}).get("backgroundColor")
+    if is_role(background):
+        match = ROLE_PATTERN.fullmatch(background)
+        if match is None or float(match[2] or 1) == 0:
+            return False
+        if match[1] == "panel":
+            return True
+        return match[1] in {"componentSecondary", "componentTertiary"} and bool(node.get("onClick"))
+    if not isinstance(background, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", background):
+        return False
+    if int(background[1:3], 16) == 0:
+        return False
+    return background in legacy_panels or bool(node.get("onClick"))
 
 
 def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
@@ -355,27 +383,32 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
     collision = any(node.get("id") in reserved_ids for node in nodes)
     if collision or any(str(node.get("id", "")).startswith(PREFIX) for node in nodes):
         raise ValueError("Theme must only be applied once")
-    palettes = load_visual_recipe_contract().get("palettes", {})
-    # 图片仅替换融球背景，不接受素材级的前景配色或背板覆盖。
-    palette_name = "fusionDark" if theme.get("kind") == "photo" else theme.get("palette")
-    if theme.get("kind") in {"photo", "fusion"}:
-        panel = "#33FFFFFF"
-    else:
-        panel = "#99FFFFFF" if task.get("size") == "2x4" else "#CCFFFFFF"
-    roles = palettes.get(palette_name, {}).get("roles", {})
+    content = theme.get("content", {})
+    panel = content.get("panelBySize", {}).get(task.get("size"))
+    roles = copy.deepcopy(content.get("roles", {}))
+    if not roles or not panel:
+        raise ValueError("Theme is missing complete content colors for this size")
     requested_background = overrides.get("background", {}).get("color")
     if requested_background:
-        roles = resolve_card_color_palette({"backgroundColor": requested_background})
+        roles = user_background_roles(requested_background)
     primary = overrides.get("text", {}).get("color", roles.get("primary"))
     secondary = roles.get("secondary")
     if "text" in overrides:
-        secondary = "#CC" + primary[3:]
+        alpha = content.get("explicitTextAlpha", {}).get("secondary")
+        secondary = f"#{alpha:02X}" + primary[3:]
     roles = {**roles, "primary": primary, "secondary": secondary}
     if "text" in overrides:
-        roles["tertiary"] = "#99" + primary[3:]
+        alpha = content.get("explicitTextAlpha", {}).get("tertiary")
+        roles["tertiary"] = f"#{alpha:02X}" + primary[3:]
+    registry_config = load_theme_registry()
+    override_config = registry_config.get("userColorOverrides", {})
+    legacy_panels = override_config.get("legacyPanelColors", [])
+    photo_active = theme.get("kind") == "photo" and not requested_background
+    surface_style = registry_config.get("photoSurfaceStyle", {}) if photo_active else {}
     root = next(node for node in nodes if node.get("id") == "root")
     for node in nodes:
         styles = node.setdefault("styles", {})
+        content_surface = bool(surface_style) and _has_content_surface(node, legacy_panels)
         role_keys = set()
         for key in COLOR_FIELDS:
             if is_role(styles.get(key)):
@@ -396,20 +429,23 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
             old = styles.get("backgroundColor")
             if isinstance(old, str) and old.startswith("#00"):
                 continue
-            is_panel = old in {"#CCFFFFFF", "#99FFFFFF"}
+            is_panel = old in legacy_panels
             if is_panel:
                 styles["backgroundColor"] = panel
             else:
                 styles["backgroundColor"] = roles.get("componentSecondary")
+        if content_surface and not styles.get("backgroundColor", "#00").startswith("#00"):
+            styles.update(copy.deepcopy(surface_style))
     root_styles = root.get("styles", {})
     background = overrides.get("background", {}).get("color")
     kind = theme.get("kind")
+    background_config = theme.get("background", {})
     if background or kind == "solid":
-        root_styles["backgroundColor"] = background or theme.get("background")
+        root_styles["backgroundColor"] = background or background_config.get("color")
     elif kind == "gradient":
-        pair = theme.get("gradient")
+        pair = background_config.get("colors")
         root_styles["linearGradient"] = {
-            "direction": "RightBottom",
+            "direction": background_config.get("direction"),
             "colors": [[pair[0], 0], [pair[1], 1]],
         }
     else:
@@ -433,7 +469,9 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
             },
         }
         if kind == "fusion":
-            shell["styles"]["backgroundColor"] = "#00000000"
+            shell["styles"]["backgroundColor"] = background_config.get("shellColor")
+        elif kind == "photo":
+            apply_photo_fallback(shell, root, layers, task, primary)
         nodes[:0] = [shell, *layers]
     result = encode(records)
     if foreground_signature(source) != foreground_signature(result):
@@ -441,19 +479,30 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
     return result
 
 
+def select_equivalent_photo(selected: str, candidates: list[dict]) -> tuple[str, dict]:
+    audit = {}
+    eligible = {item.get("id") for item in candidates if item.get("kind") == "photo"}
+    for group in load_theme_registry().get("photoSelectionGroups", []):
+        members = group.get("themeIds", [])
+        if selected not in members:
+            continue
+        available = [identity for identity in members if identity in eligible]
+        if len(available) > 1:
+            selected = secrets.choice(available)
+            audit = {"group": group.get("id"), "mode": "uniform",
+                     "eligible": available, "selected": selected}
+        break
+    return selected, audit
+
+
 async def select_theme(
     source: str, task: dict, client: Any, *, allow_expansion: bool = False,
     final_layout: str | None = None,
 ) -> tuple[str, dict]:
-    evidence = {"complete": False, "reason": "图片主题已关闭"}
+    evidence = {"basis": "layout-only", "complete": False, "deviceGeometryKnown": False,
+                "reason": "图片主题已关闭"}
     if get_settings().enable_photo_background_theme:
-        try:
-            evidence = await measure(
-                source, task.get("size", "2x2"),
-                data_model_schema=task.get("dataModelSchema", {}),
-            )
-        except (OSError, ValueError) as exc:
-            evidence = {"complete": False, "reason": str(exc)}
+        evidence = photo_layout_evidence(components(decode(source)))
     fusion_gate = fusion_candidate_gate(task, final_layout)
     candidates = [
         item for item in presets(task)
@@ -463,15 +512,15 @@ async def select_theme(
     if family:
         candidates = [
             item for item in candidates
-            if item.get("kind") == "fusion" or item.get("palette") == family
+            if item.get("kind") == "fusion" or item.get("family") == family
         ]
-    fallback_id = "gradient-" + (family or "blue")
+    fallback = fallback_theme(family)
+    fallback_id = fallback.get("id")
     overrides = user_color_overrides(task.get("userQuery", ""))
     rejected = {}
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     native_subjectless = get_settings().enable_subjectless_wide_theme and task.get("size") == "2x4"
-    for photo in manifest.get("photos", []):
-        reason = photo_reason(photo, task, evidence)
+    for photo in registered_themes("photos"):
+        reason = photo_reason(photo, task, evidence, final_layout=final_layout)
         if overrides:
             reason = "用户明确颜色优先，本轮使用固定底色/渐变"
         if reason:
@@ -483,8 +532,9 @@ async def select_theme(
         from services.subjectless_wide_theme import background_reason, wide_gate
 
         wide_audit = wide_gate(task)
-        for photo in manifest.get("subjectlessWidePhotos", []):
-            reason = background_reason(photo, task, evidence, wide_audit)
+        for photo in registered_themes("subjectlessWidePhotos"):
+            reason = background_reason(photo, task, evidence, wide_audit,
+                                       final_layout=final_layout)
             if overrides:
                 reason = "用户明确颜色优先，不使用固定图片背景"
             if reason:
@@ -494,7 +544,7 @@ async def select_theme(
     if allow_expansion:
         from services.square_photo_expansion import expansion_reason
 
-        for photo in manifest.get("squareExpansions", []):
+        for photo in registered_themes("squareExpansions"):
             reason = expansion_reason(photo, task, evidence)
             if overrides:
                 reason = "用户明确颜色优先，不扩展固定图片主题"
@@ -502,8 +552,17 @@ async def select_theme(
                 rejected[photo.get("id")] = reason
             else:
                 candidates.append(photo)
+    layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
+    if layout_reason:
+        for candidate in candidates:
+            if candidate.get("kind") == "photo":
+                rejected[candidate.get("id")] = layout_reason
+        candidates = [candidate for candidate in candidates if candidate.get("kind") != "photo"]
     if overrides:
         candidates = [item for item in candidates if item.get("kind") in {"gradient", "solid"}]
+    photos = [item for item in candidates if item.get("kind") == "photo"]
+    if photos:
+        candidates = photos
     allowed = {item.get("id"): item for item in candidates}
     expansions = [item.get("id") for item in candidates if item.get("composition") == "square-left"]
     prompt = [
@@ -514,15 +573,16 @@ async def select_theme(
             "以下为本次最终主题选择合同，优先于上面原规则的默认推荐："
             "布局已定稿。只能从候选选择一个themeId，不输出色值、不改布局。"
             "选择顺序：用户明确要求的主题 > preferredExpansions > eligiblePhotos > 其它候选。"
-            "eligiblePhotos已通过业务、尺寸和主体避让检查，不要因业务同时属于其它类别而跳过。"
+            "eligiblePhotos已通过业务、逻辑规格及无主体图片的布局条件，"
+            "云侧不知道实际卡片宽高，不声称已通过真实像素避让。"
+            "不要因业务同时属于其它类别而跳过。"
             "没有用户指定其它主题且eligiblePhotos非空时，从eligiblePhotos中选择；"
             "否则严格按以下原融合方案规则选择，不额外偏好融球。"
             "普通候选只是已登记主题，不代表都符合本轮业务和内容量条件。"
-            "按finalLayout实际展示的语义事实、内容分组及动作判断；不要按组件数量计事实，"
+            "按layoutSummary实际展示的语义事实、内容分组及动作判断；不要按组件数量计事实，"
             "也不要把候选数据或候选事件当作已展示内容。不能确认满足融球条件时使用纯色渐变。"
             "2x4禁止融球；2x2也不能给未登记融球映射的业务套用其它业务的融球。"
-            "gradient-blue/purple/warm分别是原有蓝/紫/暖浅色纯色渐变；"
-            "solid-blue/purple/warm只在用户明确要求无渐变的纯色时选择。"
+            "gradient类型是原有浅色微渐变；solid类型只在用户明确要求无渐变的纯色时选择。"
             "若preferredExpansions非空，表示本轮已授权2x2原内容不动、扩宽为2x4的图片实验，"
             "优先从这些已通过校验的候选中选择；尺寸由脚本处理，不要求你排版。"
             '只输出JSON：{"themeId":"候选ID"}，不输出颜色或设计属性。'
@@ -534,26 +594,22 @@ async def select_theme(
                 {
                     "query": task.get("userQuery"),
                     "size": task.get("size"),
-                    "finalLayout": final_layout or components(decode(source)),
-                    "fusionEligibility": fusion_gate,
-                    "candidates": list(allowed),
-                    "eligiblePhotos": [
-                        {
-                            "themeId": item.get("id"),
-                            "business": item.get("business"),
-                            "description": item.get("description"),
-                            "occupancyCheck": "passed",
-                        }
-                        for item in candidates if item.get("kind") == "photo"
-                    ],
+                    "layoutSummary": {
+                        **layout_summary(final_layout, components(decode(source))),
+                        "fusionEligibility": fusion_gate,
+                    },
+                    "candidates": [theme_description(item) for item in candidates],
+                    "eligiblePhotos": [item.get("id") for item in candidates
+                                       if item.get("kind") == "photo"],
                     "preferredExpansions": expansions,
-                    "userColors": overrides,
+                    "userPreferences": {key: value.get("evidence")
+                                        for key, value in overrides.items()},
                 },
                 ensure_ascii=False,
             ),
         },
     ]
-    selected = fallback_id
+    selected = candidates[0].get("id") if photos else fallback_id
     choice_error = None
     try:
         raw = await client.generate(
@@ -569,6 +625,7 @@ async def select_theme(
         selected = choice.get("themeId")
     except (ValueError, RuntimeError) as exc:
         choice_error = str(exc)
+    selected, photo_selection = select_equivalent_photo(selected, candidates)
     theme = allowed.get(selected)
     try:
         if theme.get("composition") == "square-left":
@@ -580,20 +637,23 @@ async def select_theme(
     except ValueError as exc:
         choice_error = str(exc)
         selected = fallback_id
-        theme = allowed.get(selected)
+        theme = fallback
         result = apply_theme(source, theme, task, overrides)
     audit = {
         "themeId": selected,
         "theme": theme,
         "rejected": rejected,
-        "measurement": evidence,
+        "layoutEvidence": evidence,
+        "deviceGeometryKnown": False,
         "subjectlessWideGate": wide_audit,
         "fusionEligibility": fusion_gate,
         "defaultPalette": family,
         "userColors": overrides,
         "selectorError": choice_error,
+        "photoSelection": photo_selection,
         "candidates": list(allowed),
         "geometryUnchanged": True,
+        "geometryCheckBasis": "foreground-structure",
         "foregroundSignature": foreground_signature(source),
         "sourceSize": task.get("size"),
         "outputSize": theme.get("size", task.get("size")),
@@ -608,6 +668,12 @@ async def select_theme(
 def same_visible_geometry(before: dict, after: dict) -> bool:
     if not before.get("complete") or not after.get("complete"):
         return False
+    first_views, second_views = before.get("responsive", []), after.get("responsive", [])
+    if len(first_views) != len(second_views):
+        return False
+    for first_view, second_view in zip(first_views, second_views, strict=True):
+        if not same_visible_geometry(first_view, second_view):
+            return False
     left, right = before.get("visible", []), after.get("visible", [])
     if len(left) != len(right):
         return False
@@ -622,16 +688,33 @@ def same_visible_geometry(before: dict, after: dict) -> bool:
     return True
 
 
+def _validate_theme(artifact: Any, validator: Any, profile: dict, *, fallback: bool) -> list[str]:
+    with trace_span("theme.validation", stage="theme.validation") as span:
+        span.details["fallback"] = fallback
+        span.json_artifacts["theme_validation_input"] = artifact.model_dump(mode="json")
+        span.artifact_roles["theme_validation_input"] = "input"
+        errors = validator.validate(artifact, profile)
+        span.json_artifacts["theme_validation_errors"] = errors
+        span.artifact_roles["theme_validation_errors"] = "diagnostic"
+        span.outcome("failed" if errors else "success", errorCount=len(errors))
+        return errors
+
+
+@trace_operation("theme", kind="group")
 async def theme_artifact(
     artifact: Any, task: dict, client: Any, validator: Any, profile: dict,
     *, allow_expansion: bool = True, final_layout: str | None = None,
 ) -> Any:
     source = artifact.genui
-    result, audit = await select_theme(
-        source, task, client,
-        allow_expansion=allow_expansion and artifact.meta.generationMode == "create",
-        final_layout=final_layout,
-    )
+    with trace_span("theme.selection", stage="theme.selection") as span:
+        result, audit = await select_theme(
+            source, task, client,
+            allow_expansion=allow_expansion and artifact.meta.generationMode == "create",
+            final_layout=final_layout,
+        )
+        span.json_artifacts["theme_selection_audit"] = audit
+        span.artifact_roles["theme_selection_audit"] = "diagnostic"
+        span.outcome("recovered" if audit.get("selectorError") else "success")
     themed = artifact.model_copy(deep=True)
     themed.genui = result
     theme = audit.get("theme", {})
@@ -640,40 +723,29 @@ async def theme_artifact(
         themed.cardSpec["suggestSize"] = "2x4"
         themed.taskSpec["size"] = "2x4"
     if theme.get("kind") == "photo":
-        asset = {"id": theme.get("id"), "src": theme.get("src"), "description": "预置主题背景"}
+        src = theme.get("src")
+        address = theme.get("remoteUrl") or src
+        if address != src:
+            mapper = AssetUrlMapper({src: address}, {src})
+            themed.genui = mapper.rewrite_standard(themed.genui)
+        asset = {"id": theme.get("id"), "src": address, "description": "主题背景"}
         themed.taskSpec.setdefault("assetCandidates", []).append(asset)
         themed.effectiveCapabilities.setdefault("asset", []).append(asset.get("id"))
-    errors = validator.validate(themed, profile)
+    errors = _validate_theme(themed, validator, profile, fallback=False)
     if audit.get("userColors"):
         audit["userColorContrastWarnings"] = [e for e in errors if e.startswith("VISUAL.CONTRAST")]
         errors = [e for e in errors if not e.startswith("VISUAL.CONTRAST")]
-    before_measure = audit.get("measurement", {})
-    if before_measure.get("complete") and theme.get("kind") in {"photo", "fusion"}:
-        try:
-            after_measure = await measure(
-                themed.genui, audit.get("outputSize", "2x2"),
-                data_model_schema=task.get("dataModelSchema", {}),
-                layout_size=task.get("size") if expanded else None,
-            )
-            if expanded:
-                from services.square_photo_expansion import same_square_geometry
-
-                unchanged = same_square_geometry(before_measure, after_measure)
-            else:
-                unchanged = same_visible_geometry(before_measure, after_measure)
-            audit["renderGeometryUnchanged"] = unchanged
-            audit["afterMeasurement"] = after_measure
-            if not unchanged:
-                errors.append("THEME.GEOMETRY: rendered text geometry changed")
-        except (OSError, ValueError) as exc:
-            errors.append("THEME.MEASUREMENT: " + str(exc))
     audit["finalValidationErrors"] = errors
     if errors:
+        trace_record(
+            "theme.fallback", stage="theme", status="scheduled",
+            json_artifacts={"theme_rejected_audit": audit},
+            artifact_roles={"theme_rejected_audit": "diagnostic"},
+        )
         themed = artifact.model_copy(deep=True)
-        fallback_id = "gradient-" + (default_palette_family(task) or "blue")
-        fallback = next(item for item in presets(task) if item.get("id") == fallback_id)
+        fallback = fallback_theme(default_palette_family(task))
         themed.genui = apply_theme(source, fallback, task, audit.get("userColors", {}))
-        fallback_errors = validator.validate(themed, profile)
+        fallback_errors = _validate_theme(themed, validator, profile, fallback=True)
         if fallback_errors:
             raise ValueError("Final gradient validation failed: " + str(fallback_errors))
         audit["themeId"] = fallback.get("id")
@@ -681,7 +753,7 @@ async def theme_artifact(
         audit["theme"] = fallback
         audit["outputSize"] = task.get("size")
         audit["fallbackReason"] = "所选主题最终校验失败，使用纯色渐变；不重新排版"
-    trace_step(
+    trace_record(
         "theme.completed",
         stage="theme",
         status="success",

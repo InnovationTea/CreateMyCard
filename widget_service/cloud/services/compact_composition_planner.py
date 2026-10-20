@@ -10,9 +10,14 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from services.compact_component_runtime import component_visual_recipe, secondary_body_variant
+from services.compact_component_runtime import (
+    component_visual_recipe,
+    secondary_body_variant,
+    text_block_width_contract,
+)
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
+from services.compact_slot_compatibility import auxiliary_groups_have_core, check_component_slot
 
 _CONTAINERS = {"Column", "Row", "Stack"}
 _SEARCH_LIMIT = 4096
@@ -91,7 +96,9 @@ def feasible_composition_candidates(
                 groups: list[dict[str, Any]] = []
                 for bundle in combination:
                     groups.extend(copy.deepcopy(bundle))
-                for allocation in _allocations(zones, groups, actions, size):
+                if not auxiliary_groups_have_core(groups):
+                    continue
+                for allocation in _allocations(zones, groups, actions, size, layout_id=name):
                     examined += 1
                     if examined >= pattern_stop:
                         limited = True
@@ -725,6 +732,7 @@ def _ordinary_pair(size: str, pair: tuple[dict[str, Any], ...], columns: int) ->
 
 
 def _text_block(size: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+    contract = text_block_width_contract(size)
     root = _part(size, "TextBlock", "root")
     item_styles = _part(size, "TextBlock", "item")
     value = _part(size, "TextBlock", "value")
@@ -733,13 +741,13 @@ def _text_block(size: str, items: list[dict[str, Any]]) -> dict[str, Any]:
         sample = _sample_with_unit(item)
         item_widths.append(
             max(
-                item_styles.get("constraintSize", {}).get("minWidth", 0),
+                contract.item_minimum_width,
                 _text_width(sample, value.get("fontSize"))
                 + _extent(item_styles.get("padding"), "width"),
             )
         )
     width = max(item_widths) * len(items)
-    width += root.get("itemMargin", 0) * (len(items) - 1)
+    width += contract.gap * (len(items) - 1)
     return {
         "component": "TextBlock",
         "factIndexes": [item.get("index") for item in items],
@@ -900,6 +908,8 @@ def _allocations(
     groups: list[dict[str, Any]],
     actions: list[dict[str, Any]],
     size: str,
+    *,
+    layout_id: str | None = None,
 ):
     allocation: list[list[dict[str, Any]]] = [[] for _ in zones]
     remaining = list(groups)
@@ -944,12 +954,24 @@ def _allocations(
             body_zones.append(i)
         else:
             return
+    if not body_zones and not remaining and not unused_actions:
+        yield allocation
+        return
     if not body_zones:
         return
     # 动作进入独立槽，或所在分区底部；禁止在 forbid-subtree 的信息槽塞按钮。
     pools = []
-    for _group in remaining:
-        pools.append(body_zones)
+    for group in remaining:
+        compatible_zones: list[int] = []
+        for index in body_zones:
+            zone = zones[index]
+            assessment = check_component_slot(
+                group, size=size, layout_id=layout_id, slot_rule=zone.rule,
+                width=zone.width, height=zone.height,
+            )
+            if assessment.status != "incompatible":
+                compatible_zones.append(index)
+        pools.append(compatible_zones)
     for _action in unused_actions:
         pools.append(
             [i for i in body_zones if zones[i].rule.get("eventPolicy") != "forbid-subtree"]

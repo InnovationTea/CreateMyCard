@@ -93,7 +93,7 @@ def attribute_task():
 
 def attribute_row(value):
     return ComponentRow("body", "SecondaryBody", {
-        "role": "supporting", "width": "matchParent",
+        "width": "matchParent",
         "items": [{"label": "Status", "value": value}],
     })
 
@@ -128,8 +128,8 @@ def test_single_attribute_keeps_none_or_complete_tuple(attribute_task, value, ex
 
 
 @pytest.mark.parametrize("overrides", [
-    {"role": "body"},
-    {"columns": 2},
+    {"fontSize": 12},
+    {"columns": 3},
     {"items": []},
     {"items": [{"label": "A", "value": {"path": "/data/weather/state"}},
                {"label": "B", "value": {"path": "/data/weather/temperature"}}]},

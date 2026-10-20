@@ -101,3 +101,15 @@ describe('schema helpers', () => {
     });
   });
 });
+
+
+describe('standard JSON tool response', () => {
+  it.each(['', '参数错误：', '  参数错误：  '])('preserves envelope and data with prefix %s', (prefix) => {
+    const payload = {
+      type: 'final', operation: 'generateWidgetCardCompactDsl', requestId: 'session&interaction',
+      status: 'failed', errorCode: 'INVALID_ARGUMENTS', error: { message: '输入错误' },
+      data: { flag: false, value: null, text: '包含 type= 和中文：' },
+    };
+    expect(parseLegacyToolResponse(prefix + JSON.stringify(payload))).toEqual(payload);
+  });
+});

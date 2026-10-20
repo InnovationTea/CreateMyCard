@@ -12,8 +12,56 @@ from services.card_validation.compact_validation.syntax.expressions import (
 )
 from services.compact_component_semantics import CORE_INFORMATION_COMPONENT_TYPES
 from services.compact_dsl_a2ui_converter import ComponentRow
+from services.compact_whole_card_click import accepted_whole_card_click
+from services.event_matching import event_handlers_match
 
 _BUTTON_COMPONENT_TYPES = frozenset({"PillButton", "CircleButton", "CardButton"})
+
+
+def collect_actions_only_plan_errors(
+    source_components: list[ComponentRow],
+    compact_plan: dict[str, Any] | None,
+    errors: list[str],
+) -> None:
+    """无内容双动作必须由完整的已接受计划授权，不豁免任何展示事实。"""
+    root = next((row for row in source_components if row.component_id == "root"), None)
+    if root is None:
+        return
+    actions_only = False
+    if root.component_type == "Layout":
+        if root.props.get("layout") != "S-content-dual-action":
+            return
+        actions_only = root.props.get("variant") == "actions-only" or len(root.children) == 2
+    elif root.component_type == "Column" and isinstance(compact_plan, dict):
+        by_id = {row.component_id: row for row in source_components}
+        buttons = []
+        for child_id in root.children:
+            child = by_id.get(child_id)
+            if child is not None and child.component_type == "PillButton":
+                buttons.append(child)
+        actions_only = len(root.children) == 2 and len(buttons) == 2
+    if not actions_only:
+        return
+    facts = compact_plan.get("info_required") if isinstance(compact_plan, dict) else None
+    action_ids: set[str] = set()
+    valid = isinstance(facts, list) and len(facts) == 2
+    if isinstance(facts, list):
+        for fact in facts:
+            if not isinstance(fact, dict):
+                valid = False
+                continue
+            action_id = fact.get("actionId")
+            if not isinstance(action_id, str) or not action_id:
+                valid = False
+                continue
+            if "dataId" in fact or "text" in fact:
+                valid = False
+            action_ids.add(action_id)
+    if not valid or len(action_ids) != 2:
+        errors.append(
+            "S-content-dual-action actions-only requires an accepted Plan containing "
+            "exactly two distinct actions and no display facts; preserve all required content."
+        )
 
 
 def collect_plan_contract_errors(
@@ -27,6 +75,7 @@ def collect_plan_contract_errors(
     """校验模型输出对 Plan 素材分配和语义分区的落实情况。"""
     _collect_title_icon_contract_errors(components, errors)
     _collect_title_button_icon_conflict_errors(components, errors)
+    _collect_whole_card_click_errors(components, task_spec, compact_plan, errors, size=size)
     _collect_plan_asset_assignment_errors(
         components,
         task_spec,
@@ -35,6 +84,37 @@ def collect_plan_contract_errors(
         size=size,
     )
     _collect_anchor_support_errors(components, compact_plan, errors)
+
+
+def _collect_whole_card_click_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    compact_plan: dict[str, Any] | None,
+    errors: list[str],
+    *,
+    size: str | None,
+) -> None:
+    """整卡动作的唯一承载和精确参数归属跨文件一致性，不扩展组件或事件能力。"""
+    if size != "2x2" or not isinstance(compact_plan, dict):
+        return
+    root = next((row for row in components if row.component_id == "root"), None)
+    selected = accepted_whole_card_click(task_spec, compact_plan)
+    if selected is None:
+        root_click = root is not None and bool(root.props.get("onClick"))
+        if compact_plan.get("wholeCardActionId") is not None or root_click:
+            errors.append("Whole-card click requires an accepted eligible read-only detail action.")
+        return
+    if root is None or root.props.get("onClick") != [selected.handler]:
+        errors.append(
+            "Whole-card action must bind its exact single call/args handler to root.onClick."
+        )
+    for row in components:
+        if row.component_id == "root":
+            continue
+        if row.component_type in _BUTTON_COMPONENT_TYPES or row.props.get("onClick"):
+            errors.append(
+                f"Whole-card action has an extra button or click target: {row.component_id}."
+            )
 
 
 def _collect_title_icon_contract_errors(
@@ -126,6 +206,7 @@ def _collect_plan_asset_assignment_errors(
         return
     asset_sources = _asset_sources_by_id(task_spec)
     event_handlers = _event_handlers_by_id(task_spec)
+    whole_card_click = accepted_whole_card_click(task_spec, compact_plan)
     buttons = [
         component
         for component in components
@@ -138,6 +219,10 @@ def _collect_plan_asset_assignment_errors(
                 continue
             action_id = assignment.get("actionId")
             if not isinstance(action_id, str):
+                continue
+            if whole_card_click is not None and action_id == whole_card_click.action_id:
+                if assignment.get("assetId") is not None:
+                    errors.append("Whole-card action must not reserve a button icon.")
                 continue
             handler = event_handlers.get(action_id)
             if handler is None:
@@ -412,4 +497,8 @@ def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]
 
 def _component_uses_handler(component: ComponentRow, handler: dict[str, Any]) -> bool:
     on_click = component.props.get("onClick")
-    return isinstance(on_click, list) and handler in on_click
+    if not isinstance(on_click, list):
+        return False
+    return any(
+        event_handlers_match(actual, handler) for actual in on_click if isinstance(actual, dict)
+    )

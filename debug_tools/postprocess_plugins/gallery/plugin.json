@@ -1,34 +1,34 @@
 {
   "apiVersion": "batch-postprocess-v2",
+  "version": "3.0.0",
+  "entrypoint": "builtin",
+  "dependence": [
+    "browser-capture",
+    "data-analysis"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  },
   "id": "browser-gallery",
   "name": "浏览器渲染画廊",
-  "version": "2.1.0",
-  "description": "通过浏览器渲染全部样本，并生成内嵌截图、可离线打开的 HTML 画廊。",
-  "entrypoint": "builtin",
-  "dependence": [],
+  "description": "复用截图与数据分析结果生成可筛选的离线 HTML 画廊。",
   "outputs": [
-    {
-      "key": "web-quality-evidence",
-      "scope": "sample",
-      "title": "Web 质量检测证据",
-      "dataType": "json",
-      "required": false
-    },
     {
       "key": "browser-capture",
       "scope": "sample",
-      "title": "Web 渲染截图",
+      "title": "渲染截图",
       "dataType": "image",
-      "renderer": "gallery",
-      "required": true
+      "required": false,
+      "renderer": "gallery"
     },
     {
       "key": "browser-gallery",
       "scope": "dataset",
       "title": "浏览器渲染画廊",
       "dataType": "link",
-      "renderer": "link",
-      "required": true
+      "required": true,
+      "renderer": "link"
     }
   ],
   "presentation": {
@@ -42,9 +42,5 @@
         "sortable": true
       }
     ]
-  },
-  "configSchema": {
-    "type": "object",
-    "additionalProperties": false
   }
 }

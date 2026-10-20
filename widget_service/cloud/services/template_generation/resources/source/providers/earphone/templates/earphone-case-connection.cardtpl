@@ -69,8 +69,13 @@ Column(
                 { "width": 24, "height": 24, "fillColor": $theme('supportContentColor') }
             ),
         #else
-            Text("耳机盒", {"width": 30, "height": 16, "fontSize": 10, "fontWeight": 400,
-                "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+        Stack({"width": 17.5, "height": 17.5, "borderRadius": 8.75,
+          "alignContent": "center", "flexShrink": 0,
+          "backgroundColor": $theme('supportContentColor')},
+          Text("E", {"width": 17.5, "height": 17.5, "fontSize": 12,
+            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+            "maxLines": 1})
+        ),
         #endif
     )
 )

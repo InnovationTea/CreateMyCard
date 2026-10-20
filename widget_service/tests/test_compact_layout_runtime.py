@@ -21,6 +21,7 @@ from services.compact_layout_runtime import (
     match_compact_layout,
 )
 from services.compact_prompt_loader import assemble_prompts
+from services.compact_semantic_layout import collect_semantic_layout_warnings
 from services.prompt_builder import PromptBuilder
 
 PROMPT_SOURCE = (
@@ -641,28 +642,33 @@ def test_w_content_side_slots_rejects_non_contract_slot_heights() -> None:
         )
 
 
-def test_w_content_side_slots_rejects_action_then_information() -> None:
-    # 此测试针对既有物理布局匹配；语义输入的角色错误会更早由编译器拒绝。
-    source, _origins = expand_compact_semantic_layout(
-        _layout_fixture("W-content-side-slots"), size="2x4",
+@pytest.mark.parametrize("orientation", ["content-left", "content-right"])
+def test_w_content_side_slots_warns_for_action_then_information(orientation: str) -> None:
+    def reverse_mixed_slots(row: list) -> None:
+        if row[0] == "root":
+            row[2]["orientation"] = orientation
+            row[3] = ["main", "settings", "connection"]
+
+    source = _mutate_rows(
+        _layout_fixture("W-content-side-slots"),
+        reverse_mixed_slots,
+    )
+    original_rows = parse_compact_dsl_rows(
+        source,
+        expand_layouts=False,
+        size="2x4",
+    )
+    result = match_compact_layout(
+        _components(source),
+        size="2x4",
+        layout_scope="W-content-side-slots",
     )
 
-    def mutate(row: list) -> None:
-        if row[0] == "connection":
-            row[1] = "CardButton"
-            row[2]["onClick"] = [
-                {"call": "clickToDeeplink", "args": {"intentName": "Settings"}}
-            ]
-        if row[0] == "settings":
-            row[1] = "InfoBlock"
-            row[2].pop("onClick", None)
-
-    with pytest.raises(CompactLayoutRuntimeError, match="W-content-side-slots"):
-        match_compact_layout(
-            _components(_mutate_rows(source, mutate)),
-            size="2x4",
-            layout_scope="W-content-side-slots",
-        )
+    assert result.layout_id == "W-content-side-slots"
+    assert collect_semantic_layout_warnings(original_rows) == (
+        "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；"
+        "当前顺序仍允许转换。",
+    )
 
 
 def test_w_content_side_slots_rejects_event_on_information_slot() -> None:

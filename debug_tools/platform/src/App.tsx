@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes, useLocation, useMatch } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useMatch } from 'react-router-dom';
 import { WorkbenchProvider } from './context';
 import CallHistory from './components/CallHistory';
 import SettingsPanel from './components/SettingsPanel';
 import { EndToEndRoute } from './routes/EndToEndRoute';
 import { InterfaceRoute } from './routes/InterfaceRoute';
 import { RendererRoute } from './routes/RendererRoute';
+import { DeviceRenderRoute } from './routes/DeviceRenderRoute';
 import { BatchRoute } from './routes/BatchRoute';
 import { BatchTraceRoute } from './routes/BatchTraceRoute';
 import { BatchTaskCenterRoute } from './routes/BatchTaskCenterRoute';
@@ -17,25 +18,23 @@ import { QualityCompareRoute } from './routes/QualityCompareRoute';
 import { QualityEvaluationRoute } from './routes/QualityEvaluationRoute';
 import { ValidationFailureCaptureRoute } from './routes/ValidationFailureCaptureRoute';
 import { QualityImportRoute } from './routes/QualityImportRoute';
-import { BackendStatusWidget } from './components/BackendStatusWidget';
 
 const navigation = [
   { path: '/end-to-end', label: '端到端调试', detail: 'Main Agent · Agent 调试' },
   { path: '/interface', label: '接口调试', detail: 'WebSocket · API 调试' },
   { path: '/renderer', label: '卡片渲染', detail: 'GenUI · 预览检查' },
+  { path: '/device-render', label: '设备渲染', detail: 'HDC · 编译与设备预览' },
   { path: '/batch', label: '批量测试', detail: '数据集 · Trace 分析' },
   { path: '/quality', label: '质量评分', detail: '样本选择 · 评分与对比' },
   { path: '/settings', label: '连接配置', detail: '地址 · 固定参数' },
 ];
 
 function Shell() {
-  const { pathname } = useLocation();
   const isEndToEnd = useMatch('/end-to-end') !== null;
   const [hasVisitedEndToEnd, setHasVisitedEndToEnd] = useState(isEndToEnd);
   useEffect(() => {
     if (isEndToEnd) setHasVisitedEndToEnd(true);
   }, [isEndToEnd]);
-  const showBackendStatus = pathname === '/settings';
   return (
     <div className="workbench-shell">
       <aside className="navigation-rail">
@@ -66,7 +65,6 @@ function Shell() {
       </aside>
 
       <main className="workbench-main">
-        {showBackendStatus && <BackendStatusWidget allowManagedStart={pathname === '/settings'} />}
         <section className="route-content">
           {/* 保留已打开的会话和连接，导航只切换可见性，不触发卸载清理。 */}
           {(isEndToEnd || hasVisitedEndToEnd) && (
@@ -78,6 +76,7 @@ function Shell() {
             <Route path="/end-to-end" element={null} />
             <Route path="/interface" element={<InterfaceRoute />} />
             <Route path="/renderer" element={<RendererRoute />} />
+            <Route path="/device-render" element={<DeviceRenderRoute />} />
             <Route path="/batch" element={<BatchTaskCenterRoute />} />
             <Route path="/batch/new" element={<BatchTaskCreateRoute />} />
             <Route path="/batch/tasks/:taskId" element={<BatchRoute />} />

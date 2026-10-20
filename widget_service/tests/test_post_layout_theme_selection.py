@@ -11,6 +11,7 @@ import pytest
 from config.config import get_settings
 from services import post_layout_theme as themes
 from services import theme_selection_policy as policy
+from services.compact_component_runtime import load_visual_recipe_contract
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.layout_theme_contract import layout_only_prompt
 from services.protocol_registry import A2UIProtocolRegistry
@@ -20,6 +21,10 @@ LAYOUT = '\n'.join([
     '["root","Column",{"width":"matchParent","height":"matchParent"},["value"]]',
     '["value","EmphasisText",{"mainText":"已连接"}]',
 ])
+FUSION_THEME_IDS = {
+    "fusion-ball-schedule-blue", "fusion-ball-battery-teal",
+    "fusion-ball-sleep-violet", "fusion-ball-sport-orange",
+}
 
 
 @pytest.fixture
@@ -43,7 +48,7 @@ def test_fusion_candidates_require_square_and_runtime_gate(monkeypatch, enabled,
     balls = [item for item in candidates if item.get("kind") == "fusion"]
     assert bool(balls) == (enabled and size == "2x2")
     if balls:
-        assert {item.get("id") for item in balls} == set(themes.FUSION_BALL_DESIGN_TOKENS)
+        assert {item.get("id") for item in balls} == FUSION_THEME_IDS
 
 
 def test_selection_contract_reuses_original_mapping_without_color_values():
@@ -55,7 +60,7 @@ def test_selection_contract_reuses_original_mapping_without_color_values():
         "天气、耳机、电量、设备、未知业务默认蓝色",
         "睡眠、专注、一般运动和健康概览默认紫色",
         "日程、会议、倒计时和纪念日默认暖色",
-        "用户明确要求融球的单个会议",
+        "单个会议、日程、提醒（沿用原融球触发条件）",
     ):
         assert clause in rules
     assert not re.search(r"#[0-9a-fA-F]{6,8}", rules)
@@ -77,7 +82,7 @@ def test_gradient_colors_and_geometry_unchanged(settings, size, family):
     assert themes.foreground_signature(source) == themes.foreground_signature(final)
     nodes = themes.components(themes.decode(final))
     root = next(node for node in nodes if node.get("id") == "root")
-    pair = themes.load_visual_recipe_contract().get("palettes", {}).get(family, {}).get("gradients")
+    pair = load_visual_recipe_contract().get("palettes", {}).get(family, {}).get("gradients")
     assert pair
     assert root.get("styles", {}).get("linearGradient") == {
         "direction": "RightBottom", "colors": [[pair[0][0], 0], [pair[0][1], 1]],
@@ -85,11 +90,13 @@ def test_gradient_colors_and_geometry_unchanged(settings, size, family):
     messages = client.generate.call_args.args[0]
     payload = json.loads(messages[1].get("content"))
     assert payload.get("size") == size
-    assert payload.get("finalLayout") == LAYOUT
+    assert "finalLayout" not in payload
+    assert payload.get("layoutSummary", {}).get("complete") is True
+    assert "已连接" in json.dumps(payload.get("layoutSummary"), ensure_ascii=False)
     assert themes.original_selection_rules() in messages[0].get("content")
 
 
-@pytest.mark.parametrize("token", sorted(themes.FUSION_BALL_DESIGN_TOKENS))
+@pytest.mark.parametrize("token", sorted(FUSION_THEME_IDS))
 def test_wide_rejects_model_attempt_to_select_fusion(settings, monkeypatch, token):
     monkeypatch.setattr(themes, "fusion_ball_enabled", lambda version: True)
     task = {"size": "2x4", "userQuery": "耳机状态"}
@@ -113,13 +120,15 @@ def test_layout_prompt_still_excludes_original_color_contract():
     assert "不选择主题" in prompt
 
 
-def test_final_a2ui_is_available_when_compact_source_not_provided(settings):
+def test_visible_summary_is_available_when_compact_source_not_provided(settings):
     source = layout_source("2x2")
     client = SimpleNamespace(generate=AsyncMock(return_value='{"themeId":"gradient-blue"}'))
     asyncio.run(themes.select_theme(source, {"size": "2x2", "userQuery": "天气"}, client))
     messages = client.generate.call_args.args[0]
     payload = json.loads(messages[1].get("content"))
-    assert payload.get("finalLayout") == themes.components(themes.decode(source))
+    assert "finalLayout" not in payload
+    assert payload.get("layoutSummary", {}).get("source") == "expanded-visible-content"
+    assert "已连接" in json.dumps(payload.get("layoutSummary"), ensure_ascii=False)
 
 
 @pytest.mark.parametrize("size,expected", [("2x2", "#CCFFFFFF"), ("2x4", "#99FFFFFF")])
@@ -145,7 +154,7 @@ def test_light_panel_is_original_white_surface_not_button_color(size, expected, 
     ("earphone", 2, "fusion-ball-battery-teal"),
     ("earphone", 4, None),
     ("weather", 2, None),
-    ("calendar", 3, "fusion-ball-schedule-warm"),
+    ("calendar", 3, "fusion-ball-schedule-blue"),
 ])
 def test_business_and_visible_facts_gate(monkeypatch, business, count, expected):
     monkeypatch.setattr(policy, "match_compact_layout", lambda *a, **k: SimpleNamespace(
@@ -170,16 +179,10 @@ def test_grouped_layouts_excluded(monkeypatch, layout_id):
     assert policy.fusion_candidate_gate(task, LAYOUT).get("allowedTokens") == []
 
 
-def test_only_three_native_wide_images_are_registered():
-    manifest = json.loads(themes.MANIFEST.read_text(encoding="utf-8"))
-    wide = manifest.get("subjectlessWidePhotos", [])
-    assert {item.get("business") for item in wide} == {"weather", "battery", "sleep"}
-    assert len(wide) == 3
-    battery = next(item for item in wide if item.get("business") == "battery")
-    assert battery.get("src") == "resources/base/media/bg_subjectless_b05.jpg"
-    assert all(item.get("objectFit") == "fill" for item in wide)
-    assert len(manifest.get("photos", [])) == 4
-    assert len(manifest.get("squareExpansions", [])) == 3
+def test_removed_photo_pools_are_empty_including_disabled_entries():
+    assert len(themes.registered_themes("photos")) == 14
+    assert themes.registered_themes("subjectlessWidePhotos", include_disabled=True) == []
+    assert themes.registered_themes("squareExpansions", include_disabled=True) == []
 
 
 @pytest.mark.parametrize("business,family", [

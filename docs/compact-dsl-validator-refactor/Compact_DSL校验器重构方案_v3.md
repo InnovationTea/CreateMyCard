@@ -47,7 +47,7 @@
 | 检查项 | 当前落点及分类 | 执行范围 |
 |---|---|---|
 | 模型素材候选范围 | `semantic/effective.py`，语义／有效能力，`COMPACT_ASSET_NOT_ALLOWED` | 展开前登记 icon、visual.icon、items[].icon；保留展开后背景检查。兼容引用提取不重新开放 Image 等内部组件 |
-| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle、带 icon 的 CardButton 和 SingleLineTitle；自动着色、原色、PNG 保留原合同 |
+| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -88,6 +88,18 @@ Issue #538 新增 `COMPACT_LAYOUT_WIDTH_OVERFLOW`，归入语义／布局与视�
 本项检测固定横向内容超过已知分区预算，并复用既有诊断、建议和修复复检流程；
 不整体引入 PR #470 的二维估算引擎，不改变原有非阻断警告和模板来源跳过。
 当前活动结构化错误码增至 33 个；上述 32 个为 2026-10-12 的基线记录。
+
+2026-10-17 根据 2x2 与 2x4 灵动布局实测，对该规则增加来源受限的 warning 分级：有效间距能够完全
+吸收且溢出不超过 16vp；根 Row 在 2x2/2x4 中分别不超过 10vp/32vp；位于父 Row 横向权重区域内的
+Row 在 2x2/2x4 中分别不超过 24vp/52vp。判断顺序为间距、根布局、横向权重区域；固定局部 Row、
+超过对应阈值和无法确定分配的场景仍为 error。warning 保留 Occupancy 与降级原因，不进入模型修复。
+文字宽度预算仍先执行且保持严格，不受横向几何 warning 阈值影响。本次只调整既有检查项的严重程度，
+不新增诊断码，不改变其语义／布局与视觉约束归属。
+
+2026-10-19 将高度与宽度经验阈值集中到
+`data/validator_rules/compact/layout_overflow_tolerances.json`，统一声明 vp 单位、支持尺寸和适用场景，
+加载时严格校验。横向权重祖先仅在向上路径没有数值宽度且 `flexShrink:0` 的固定宽度边界时用于降级；
+间距完全吸收规则独立保留。阈值是当前实测的经验容忍值，不保证端侧一定消除溢出。
 
 ## 1. 重构目标与范围
 
@@ -168,7 +180,7 @@ Issue #538 新增 `COMPACT_LAYOUT_WIDTH_OVERFLOW`，归入语义／布局与视�
 |---|---|---|
 | `"icon": 123` | 语法／组件 | 共享 `validate_single_line_title_layout` 检查非空静态字符串要求，错误按兼容原文传递 |
 | `icon` 是非空字符串，但不在本轮素材候选中 | 语义／有效能力 | `COMPACT_ASSET_NOT_ALLOWED`；[effective.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/effective.py) 的 `_collect_model_asset_source_errors` 检查原始组件候选集合 |
-| 使用可染色 SVG 的 ProgressCircle、CardButton 或 SingleLineTitle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求 |
+| 使用可染色 SVG 的 ProgressCircle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求；CardButton 由转换器自动补色 |
 
 上述类型检查不能证明素材文件存在，也不代表已实现所有路径格式检查；单项通过不等于完整卡片校验通过。
 当前素材属性检查已有对应组件规则和转换器委托，不新增 `syntax/assets.py` 或重复报错。
@@ -474,6 +486,12 @@ BASE-02 至 BASE-04 不阻止纯等价拆分，但不能把已知冲突的旧建
 该约束必须同时出现在新诊断与模型说明中，不能因旧文案退出模型请求而丢失。
 本期 warning 继续通过 `CompactDslValidationResult.warnings` 返回字符串，并沿用流水线已有的
 `COMPACT_DSL_VALIDATION_WARNING` 及日志路径；不增加成功返回结果上的诊断字段，不将警告转成待修复错误。
+纵向高度门禁按 `requiredHeight - availableHeight` 计算溢出量。2×2 仅保留方案已登记的整树
+`2vp` 数值容差，2×4 不设高度容差。超过容差且最小占用及可用高度已可确定时，
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` 始终为 error，进入 `qualityErrors` 和模型 repair。根 Column、正数
+`layoutWeight` Column、可压缩 `itemMargin`、`clip`、`flexShrink` 或分布对齐都不能作为高度
+降级依据；这些属性不能消除已证明的内容最小高度。同一张卡不同层级的诊断仍分别记录，
+修复模型根据占用明细重新组合内容或选择容量足够的合法布局。
 
 ## 5. 修复建议解耦与简单配置接口
 

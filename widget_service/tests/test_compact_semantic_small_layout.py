@@ -39,7 +39,7 @@ def _leaf(identifier: str, kind: str) -> list:
     elif kind == "SecondaryBody":
         props = {"items": [{"value": "已更新"}], "fontSize": 14}
     elif kind == "DataDisplay":
-        props = {"label": "剩余", "value": 7, "supportingText": "天", "fontSize": 56}
+        props = {"label": "剩余", "value": 7, "supportingText": "天", "fontSize": 48}
     elif kind == "InfoBlock":
         props = {"primaryText": "设备", "secondaryText": "在线",
                  "backgroundColor": "#CCFFFFFF"}
@@ -75,6 +75,8 @@ def _layout_source(layout: str, variant: str = "standard", action: bool = False)
     assert kinds is not None
     if variant == "stacked-info":
         kinds = ["SingleLineTitle", "InfoBlock", "InfoBlock"]
+    if layout == "S-content-dual-action" and variant == "actions-only":
+        kinds = ["PillButton", "PillButton"]
     if action:
         kinds.append("PillButton")
     leaves = []

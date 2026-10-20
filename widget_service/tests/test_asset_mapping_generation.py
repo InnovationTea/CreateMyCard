@@ -43,6 +43,25 @@ def json_rows(text):
     return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
+def plan_output() -> str:
+    """模拟模型提交合法计划，保留本测试需要验证的标题素材分配。"""
+    return json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {"requirement": "展示天气主题", "priority": "must", "text": "天气"},
+                ],
+                "assetAssignments": {
+                    "actions": [],
+                    "title": {"assetId": "asset.drop_1"},
+                },
+            },
+        },
+        ensure_ascii=False,
+    )
+
+
 def request(**updates):
     values = {
         "uid": "test-user",
@@ -63,8 +82,12 @@ def storage(tmp_path, monkeypatch, isolated_theme_stage):
     settings = get_settings()
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "enable_widget_edit", True)
+    # 本文件验证旧路由的素材还原/重新映射；字段补丁编辑保留已交付地址。
+    monkeypatch.setattr(settings, "enable_single_step_widget_edit", False)
     monkeypatch.setattr(settings, "enable_artifact_download_mock", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
+    monkeypatch.setattr(settings, "enable_design_compact_runtime_prompt_context", False)
     monkeypatch.setattr(settings, "asset_src_url_mapping", {SRC: URL})
     monkeypatch.setattr(
         WidgetGenerationService, "_enable_card_template", staticmethod(lambda: False)
@@ -193,11 +216,16 @@ async def test_generation_maps_before_validation_and_saves_separate_sources(
     standard = convert_compact_dsl_to_a2ui(token, size="2x4")
     inputs = []
     validated = []
+    phases = []
 
-    def generate(_client, prompt, _profile, **_kwargs):
+    def generate(_client, prompt, profile, *, phase="initial", **_kwargs):
         inputs.append(json.dumps(prompt, ensure_ascii=False))
+        phases.append(phase)
         # 生成期间配置变化，不应改变本次请求的映射快照。
         monkeypatch.setattr(settings, "asset_src_url_mapping", {SRC: URL + "changed"})
+        if phase == "plan":
+            assert profile.get("id") == "compact-info-plan"
+            return plan_output()
         return token if kind == "compact_dsl" else standard
 
     async def template(_generator, task, *_args):
@@ -235,6 +263,10 @@ async def test_generation_maps_before_validation_and_saves_separate_sources(
 
     result = await getattr(WidgetGenerationService(), f"generate_widget_card_{kind}")(request())
     assert result.status == GenerationStatus.SUCCESS
+    if backend == "model":
+        assert phases == (["plan", "initial"] if kind == "compact_dsl" else ["initial"])
+    else:
+        assert not phases
     source = await asyncio.to_thread(SourceArtifactRepository().load, result.artifactUrl)
     assert inputs
     for model_input in inputs:
@@ -269,9 +301,14 @@ async def test_edit_and_legacy_url_migration_preserve_source_artifact(
 ):
     monkeypatch.setattr(get_settings(), "enable_artifact_validation", False)
     prompts = []
+    phases = []
 
-    def generate(_client, prompt, _profile, **_kwargs):
+    def generate(_client, prompt, profile, *, phase="initial", **_kwargs):
         prompts.append(json.dumps(prompt, ensure_ascii=False))
+        phases.append(phase)
+        if phase == "plan":
+            assert profile.get("id") == "compact-info-plan"
+            return plan_output()
         return design_source()
 
     monkeypatch.setattr(A2UIModelClient, "generate", generate)
@@ -327,6 +364,7 @@ async def test_edit_and_legacy_url_migration_preserve_source_artifact(
         assert edited_source.artifact.meta.capabilityRegistryVersion == "app-11.7.7.300_rom-7.0"
         created = edited
     assert source_path.read_bytes() == original_bytes
+    assert phases == ["plan", "initial"] * 3
     for prompt in prompts:
         assert URL not in prompt
 
@@ -339,9 +377,14 @@ async def test_repair_uses_original_paths_and_remaps_final_output(storage, monke
     monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 1)
     prompts = []
     validated = []
+    phases = []
 
-    def generate(_client, prompt, _profile, **_kwargs):
+    def generate(_client, prompt, profile, *, phase="initial", **_kwargs):
         prompts.append(json.dumps(prompt, ensure_ascii=False))
+        phases.append(phase)
+        if phase == "plan":
+            assert profile.get("id") == "compact-info-plan"
+            return plan_output()
         return design_source()
 
     def validate(validator, artifact, _profile):
@@ -355,7 +398,8 @@ async def test_repair_uses_original_paths_and_remaps_final_output(storage, monke
     monkeypatch.setattr(ArtifactValidator, "validate", validate)
     result = await WidgetGenerationService().generate_widget_card_compact_dsl(request())
     assert result.status == GenerationStatus.SUCCESS
-    assert len(prompts) == 2
+    assert phases == ["plan", "initial", "repair"]
+    assert len(prompts) == 3
     assert len(validated) == 2
     for prompt in prompts:
         assert URL not in prompt

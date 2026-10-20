@@ -1,7 +1,6 @@
 """Post-layout fusion must retain the native renderer's overflow marker."""
 
 import copy
-import json
 
 import pytest
 
@@ -13,6 +12,8 @@ from services.theme_style_roles import role
 
 FOREGROUND_ID = build_fusion_ball_content_id("root")
 TASK = {"size": "2x2", "appVersion": "99.0.0", "userQuery": "Sleep"}
+FUSION_THEME_IDS = [theme.get("id") for theme in themes.registered_themes("standard")
+                    if theme.get("kind") == "fusion"]
 
 
 @pytest.fixture(autouse=True)
@@ -50,7 +51,7 @@ def layout_source(root_type="Column"):
     return themes.encode(records)
 
 
-def fusion_theme(token="fusion-ball-schedule-warm"):
+def fusion_theme(token="fusion-ball-schedule-blue"):
     return next(item for item in themes.presets(TASK) if item.get("id") == token)
 
 
@@ -59,7 +60,7 @@ def node_by_id(source, identity):
                 if node.get("id") == identity)
 
 
-@pytest.mark.parametrize("token", themes.FUSION_BALL_DESIGN_TOKENS)
+@pytest.mark.parametrize("token", FUSION_THEME_IDS)
 @pytest.mark.parametrize("root_type", ["Column", "Row", "Stack"])
 def test_fusion_retains_renderer_marker_and_original_foreground(token, root_type):
     source = layout_source(root_type)
@@ -138,15 +139,14 @@ def test_normal_themes_do_not_add_renderer_marker(kind):
 
 @pytest.mark.parametrize("pool", ["photos", "subjectlessWidePhotos", "squareExpansions"])
 def test_photo_wrappers_remain_unchanged(pool):
-    manifest = json.loads(themes.MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest.get(pool)
+    entries = themes.registered_themes(pool, include_disabled=True)
     assert entries
     theme = {**copy.deepcopy(entries[0]), "kind": "photo"}
     source = layout_source()
     if pool == "squareExpansions":
         result = expand_square(source, theme, TASK)
     else:
-        result = themes.apply_theme(source, theme, TASK, {})
+        result = themes.apply_theme(source, theme, {**TASK, "size": theme.get("size")}, {})
     assert FOREGROUND_ID not in result
     assert node_by_id(result, "__post_theme_foreground").get("component") == "Column"
     assert themes.foreground_signature(source) == themes.foreground_signature(result)

@@ -15,6 +15,7 @@ from starlette.concurrency import run_in_threadpool
 
 from debug_tools.paths import CLOUD_ROOT, DEBUG_TOOLS_ROOT, WIDGET_SERVICE_ROOT
 
+from .managed_config import ConfigConflict, save_configuration
 from .quality import compare as compare_quality
 from .quality import evaluation as quality_evaluation
 from .quality_import import MAX_REQUEST_BYTES, import_batch
@@ -53,6 +54,13 @@ class StartManagedServiceRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     serviceConfig: dict[str, Any] = Field(default_factory=dict)
+
+
+class SaveServiceConfigRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: str
+    changes: dict[str, Any]
 
 
 def _default_paths(
@@ -119,7 +127,21 @@ def register_batch_routes(
 
     @app.get("/debug/batch/service-config/defaults")
     async def batch_service_defaults() -> dict[str, Any]:
-        return task_manager.service_defaults()
+        try:
+            return task_manager.service_defaults()
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.patch("/debug/batch/service-config/defaults")
+    async def save_service_defaults(request: SaveServiceConfigRequest) -> dict[str, Any]:
+        try:
+            return save_configuration(task_manager.project_root, request.changes, request.version)
+        except ConfigConflict as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail="配置文件保存失败，原文件未覆盖") from exc
 
     async def connection_status(tool_ws_base_url: str) -> dict[str, Any]:
         deployed_available, deployed_detail = await probe_service_health(tool_ws_base_url)
@@ -128,9 +150,7 @@ def register_batch_routes(
             "mainAgent": {
                 "available": main_agent_available,
                 "detail": (
-                    "调试 Agent 后端已就绪"
-                    if main_agent_available
-                    else "当前仅启动静态工作台"
+                    "调试 Agent 后端已就绪" if main_agent_available else "当前仅启动静态工作台"
                 ),
             },
             "deployedService": {
@@ -147,7 +167,9 @@ def register_batch_routes(
     @app.post("/debug/batch/connections/managed/start")
     async def start_managed_service(request: StartManagedServiceRequest) -> dict[str, Any]:
         try:
-            endpoint = await task_manager.service_controller.ensure(request.serviceConfig)
+            if request.serviceConfig:
+                raise ValueError("手动启动只使用服务器已保存配置，请先保存默认值")
+            endpoint = await task_manager.service_controller.ensure({})
         except (RuntimeError, ValueError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return await connection_status(endpoint)
@@ -169,12 +191,12 @@ def register_batch_routes(
 
     @app.get("/debug/batch/tasks")
     async def batch_tasks() -> dict[str, Any]:
-        return {"items": task_manager.list_tasks()}
+        return {"items": await run_in_threadpool(task_manager.list_tasks)}
 
     @app.get("/debug/batch/tasks/{task_id}")
     async def batch_task(task_id: str) -> dict[str, Any]:
         try:
-            return task_manager.get_task(task_id)
+            return await run_in_threadpool(task_manager.get_task, task_id)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="批量测试任务不存在") from exc
 
@@ -216,7 +238,7 @@ def register_batch_routes(
 
     @app.get("/debug/batch/scheduler")
     async def batch_scheduler() -> dict[str, Any]:
-        return task_manager.scheduler_state()
+        return await run_in_threadpool(task_manager.scheduler_state)
 
     @app.post("/debug/batch/scheduler/resume")
     async def resume_batch_scheduler() -> dict[str, Any]:
@@ -266,9 +288,13 @@ def register_batch_routes(
     ) -> dict[str, Any]:
         try:
             return compare_quality(
-                task_manager.postprocess_manager, leftRunId, rightRunId,
-                leftExecutionId, rightExecutionId,
-                leftSampleId, rightSampleId,
+                task_manager.postprocess_manager,
+                leftRunId,
+                rightRunId,
+                leftExecutionId,
+                rightExecutionId,
+                leftSampleId,
+                rightSampleId,
             )
         except (KeyError, OSError) as exc:
             raise HTTPException(status_code=404, detail="批次或评分结果不存在") from exc
@@ -278,7 +304,7 @@ def register_batch_routes(
     @app.get("/debug/batch/runs/{run_id}")
     async def batch_run(run_id: str) -> dict[str, Any]:
         try:
-            return task_manager.get_run(run_id)
+            return await run_in_threadpool(task_manager.get_run, run_id)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="批跑记录不存在") from exc
 
@@ -317,10 +343,7 @@ def register_batch_routes(
         except (KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
             raise HTTPException(status_code=404, detail="后处理执行不存在") from exc
 
-    @app.get(
-        "/debug/batch/runs/{run_id}/postprocess/{execution_id}/plugins/"
-        "{plugin_id}/dashboard"
-    )
+    @app.get("/debug/batch/runs/{run_id}/postprocess/{execution_id}/plugins/{plugin_id}/dashboard")
     async def batch_postprocess_dashboard(
         run_id: str,
         execution_id: str,
@@ -335,10 +358,7 @@ def register_batch_routes(
         except (KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
             raise HTTPException(status_code=404, detail="后处理看板不存在") from exc
 
-    @app.get(
-        "/debug/batch/runs/{run_id}/postprocess/{execution_id}/plugins/"
-        "{plugin_id}/samples"
-    )
+    @app.get("/debug/batch/runs/{run_id}/postprocess/{execution_id}/plugins/{plugin_id}/samples")
     async def batch_postprocess_samples(
         run_id: str,
         execution_id: str,
@@ -443,7 +463,7 @@ def register_batch_routes(
             path = task_manager.device_capture_path(run_id, sample_id, kind)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="真机截图不存在") from exc
-        media_type = "image/png" if kind == "card" else "image/jpeg"
+        media_type = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
         return FileResponse(path, media_type=media_type)
 
     @app.get("/debug/batch/runs/{run_id}/gallery.html")

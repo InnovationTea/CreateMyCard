@@ -2,10 +2,12 @@
   "apiVersion": "batch-postprocess-v2",
   "id": "component-recall",
   "name": "组件召回分析",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "依据数据集显式真值统计每个样本的高阶组件召回情况与数据集宏平均。",
   "entrypoint": "plugin.py",
-  "dependence": [],
+  "dependence": [
+    "data-analysis"
+  ],
   "timeoutSeconds": 60,
   "outputs": [
     {

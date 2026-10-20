@@ -1,5 +1,21 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-20：2×2外层重组结构整理归生成修复编排，落点仍为
+`services/compact_outer_recomposition.py`。候选生成与有限搜索分离，32个实际候选使用显式预算；
+候选顺序、首个合格即采用及原稿回退语义保持不变。Compact规则判定仍委托公共校验入口，
+Plan事实动作覆盖仍委托`compact_plan_coverage_errors`；不新增或迁移语法／语义检查项。
+重组仅返回结果，现有Trace仍由`generation_pipeline.py`记录，本次不调整日志打点。
+
+2026-10-17：纯双动作布局与开关事件比较补充：
+
+| 检查项 | 分类与实际落点 | 归属理由及边界 |
+|---|---|---|
+| actions-only 结构与几何 | 共享语义布局编译 `compact_semantic_layout.py`、布局合同 | 只增加同名布局的无内容变体，按钮尺寸与标准内容变体不变 |
+| actions-only 必要事实授权 | 语义／跨文件一致性，`semantic/plan_contracts.py` | 已接受 Plan 必须恰好两个不同动作且无展示事实，不豁免覆盖检查 |
+| 组件槽位角色与确定容量下界 | 生成侧共享 `compact_slot_compatibility.py`，组合候选复用 | 读取既有布局和 Recipe；未知不判可行，不新增发布错误码或复制几何校验 |
+| 设置开关整数标记等价 | 语义／有效能力，`semantic/effective.py`；共享比较 `event_matching.py` | 仅同一合法设置开关的 0/1 等价，Plan 覆盖、素材和最终产物共用，其他字段精确比较 |
+
+
 > 2026-10-12 Fusion 融合修订：本文原有数量、源码位置和验证结果描述融合前版本。当前分支同步 main `69c153f5`；本次按用户要求将 PR 净差异压成单个提交，SVG 填色按用户要求保留 PR497 前规则，迁移去向与实际验证见 [Fusion 融合记录](Compact_DSL_Fusion融合记录.md)。旧规则不得因目录合并重新启用。
 
 - 日期：2026-09-30
@@ -10,6 +26,26 @@
 
 
 ## Fusion 融合后的当前生效约定
+
+2026-10-17：2×2 单业务唯一只读详情支持服务端派生的整卡动作承载。
+compact_whole_card_click.py 只提供已登记动作、对象与用户按钮要求的共享适用性合同，
+compact_plan.py 在接受阶段保留动作事实并派生 wholeCardActionId，不由模型自行授权。
+根点击与完整 handler、唯一入口、按钮素材的一致性归语义／跨文件一致性，落点
+semantic/plan_contracts.py；布局动作槽计数仍归语义／布局，委托 compact_layout_runtime.py，
+api.py 仅透传复核后的 handler，不复制适用性或计数判定。组件、绑定、容量及端侧事件协议不变；
+无已接受整卡上下文、2×4、模板与无 Plan 路径继续原合同。
+
+2026-10-17：请求内跨结构、容量、覆盖与动作素材的联合重组归生成修复编排，
+由 compact_repair_strategy.py 消费历史类别及源稿拓扑摘要；compact_repair_context.py
+仅提取拓扑和已接受合同摘要，不产生校验错误。PromptBuilder 交接联合核对清单。
+结构、事实、动作、素材及几何的判定、严重级别、顺序和 Drop 授权均保留原归属与行为。
+
+2026-10-17：TextBlock 槽位容量属于生成合同与组合建议，宽度参数仍由
+compact_component_runtime.py 的 Recipe 提供，compact_composition_context.py 交接实际槽宽，
+compact_composition_planner.py 共用最小宽度合同；不改语义／布局的横向预算判定。
+组件树的重复引用、多父引用、空容器仍归语法／组件；不可达等编译检查保留原落点。
+compact_repair_strategy.py 仅消费已有诊断与兼容说明，统一路由至布局结构重组；
+不在修复路由复制判定、不新增校验项或错误码。
 
 2026-10-16：修复语义布局展开重新解析时遗漏模板来源上下文的问题（issue #570）。
 组件类型白名单仍属语法／组件，唯一判定位置为 compact_dsl_a2ui_converter.py 的
@@ -28,6 +64,11 @@ Action 事实、事件 handler、动作素材、动作槽及其它 Compact 校�
 enable_drop_plan_fact_validation 默认关闭；开启时在 Repair 阶段恢复严格事实覆盖，仅保留程序明确
 授权的 Drop 豁免范围。
 
+2026-10-19：修正首次 Plan 静态事实覆盖的严重程度。`compact_plan.py` 不再将 `text`
+未完整可见无条件写为 warning；首次 DSL 评估与数据事实一样生成覆盖 error，进入
+模型 Repair 后才按上述请求级政策决定是否降为 warning。归属仍为生成编排层的 Plan
+覆盖检查，不在 Compact 语法／语义校验器内重复实现。
+
 2026-10-15：SecondaryBody.items数量上限由4改为6，归属语法／组件合同，仍委托
 compact_high_level_components.py的共享组件校验，不在分类入口重复实现。实际数量超过6时进入
 既有组件修复，由compact_repair_strategy.py说明可选补充项清理与Plan保护；容量归属与Drop授权不变。
@@ -40,8 +81,9 @@ api.py 仅启用该尺寸的检查。未知值或兄弟标签不估猜，不恢�
 检查在原失败信息中列出有序角色及该父区允许的变体；仍委托该编译器判定，校验分类入口不重复实现。
 不改变成功/失败边界、几何或检查顺序，不包含业务答案，仍通过既有转换错误路径传递。
 2026-10-15 将 `W-content-side-slots` 中“上方 CardButton、下方 InfoBlock”的顺序检查从转换错误降为
-warning；共享 Runtime 继续确定性展开原顺序，校验入口只收集建议，不复制槽位判断。槽位数量、组件角色、
-父区变体与几何检查仍为原有硬校验。
+warning；共享 Runtime 继续确定性展开原顺序，版本化物理布局合同同步登记左右方向下的反向混合槽，
+避免后续布局匹配将同一建议重新升级为错误。校验入口只收集建议，不复制槽位判断；槽位数量、组件角色、
+事件归属、父区变体与几何检查仍为原有硬校验。
 
 2×4 多字段文本宽度检查在同一 semantic/layout/text_width.py 中复用既有安全解析器，
 不增加任意表达式求值器。已知字符串连接与简单布尔分支按完整文案核算，未知值和算术不猜测；
@@ -68,7 +110,7 @@ warning；共享 Runtime 继续确定性展开原顺序，校验入口只收集�
 | 检查项 | 当前落点及分类 | 执行范围 |
 |---|---|---|
 | 模型素材候选范围 | `semantic/effective.py`，语义／有效能力，`COMPACT_ASSET_NOT_ALLOWED` | 展开前登记 icon、visual.icon、items[].icon；保留展开后背景检查。兼容引用提取不重新开放 Image 等内部组件 |
-| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle、带 icon 的 CardButton 和 SingleLineTitle；自动着色、原色、PNG 保留原合同 |
+| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -104,6 +146,11 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 
 ## 横向固定内容预算补充（2026-10-14，Issue #538）
 
+2026-10-19：满宽四项 TextBlock 的横向校验上限放宽至 280vp，允许实际满宽参考槽位
+至多 4vp 的预算差额。判定仍归 `semantic/layout/horizontal.py`，共享预算计算放在
+`compact_component_runtime.py`，Plan/生成容量说明复用；校验入口仅透传展开前组件。
+不调整渲染 Recipe、窄分区、其它 Row、动作或高度规则，不新增诊断码。
+
 | 检查项 | 分类与实际文件 | 归属理由及边界 |
 |---|---|---|
 | `COMPACT_LAYOUT_WIDTH_OVERFLOW` | 语义／布局与视觉约束，`semantic/layout/horizontal.py` | 判断展开后 Row 的固定内容、嵌套后代、margin 和间距能否放入当前参考分区；属于空间预算，不属于语法或绑定 |
@@ -114,6 +161,19 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 错误事实通过 `CompactDiagnostic` 返回，建议在 `repair_hints.json` 登记；流水线继续负责修复编排。
 本次新增 1 个活动结构化错误码（合计 33 个），规则登记夹具与 `test_compact_horizontal_budget.py` 同步。
 未知几何、未建模约束、任意二维相交及字形裁切不在本项覆盖范围内，不把未报错等同于像素验证通过。
+
+2026-10-17 根据 2x2 与 2x4 灵动布局实测增加严重程度分级：当前 Row 的有效间距能够完全吸收溢出
+且溢出不超过 16vp 时降为 warning；根 Row 的 2x2/2x4 阈值分别为 10vp/32vp；位于父 Row 分配的
+正数 `layoutWeight` 横向权重区域内时，2x2/2x4 阈值分别为 24vp/52vp。判断顺序为间距、根布局、
+横向权重区域，warning 保留 Occupancy 与降级原因。固定局部 Row、超过对应阈值和无法确定分配的场景
+仍为 error。文字宽度预算先于本项执行并保持严格；同一产物存在文字宽度错误时，不能被本项 warning
+放行。该调整不改变检查项分类、实际文件、错误码及调用顺序。
+
+2026-10-19：高度与宽度经验阈值统一由
+`data/validator_rules/compact/layout_overflow_tolerances.json` 提供，配置声明 vp 单位、2x2/2x4 和各适用
+场景，并在加载时校验。横向权重区域向上查找遇到数值宽度且 `flexShrink:0` 的固定宽度边界即停止，
+不得继续凭更高层祖先权重降级；间距完全吸收仍独立判断。阈值只表示经验容忍，不证明端侧必然消除
+溢出。本项仍归 `semantic/layout/horizontal.py`，配置解析归同目录 `overflow_tolerances.py`。
 
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
 高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
@@ -174,7 +234,7 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 |---|---|---|
 | 胶囊 ActionUnit 的 `icon` 为数字，如 `123` | 语法／组件 | `syntax/components.py` 的 `_collect_action_unit_errors` 检查非空字符串要求，错误码为 `COMPACT_ACTION_ICON_INVALID` |
 | 素材字段为非空字符串，但不在本轮候选集合内 | 语义／有效能力 | `semantic/effective.py` 的 `_collect_model_asset_source_errors` 检查原始图标是否允许使用，错误码为 `COMPACT_ASSET_NOT_ALLOWED` |
-| 可染色 SVG 缺少显式颜色 | 语义／布局与视觉约束 | `semantic/layout/assets.py` 的 `_collect_asset_color_errors` 检查视觉要求，错误码为 `COMPACT_SVG_FILL_COLOR_MISSING` |
+| ProgressCircle 的可染色 SVG 缺少显式颜色 | 语义／布局与视觉约束 | `semantic/layout/assets.py` 的 `_collect_asset_color_errors` 检查视觉要求，错误码为 `COMPACT_SVG_FILL_COLOR_MISSING`；CardButton 由转换器自动补色 |
 | Progress.value 绑定源不是数值（OBS-L1590） | 数据绑定 | 源字段类型与目标组件的数值输入不相容 |
 | 首帧值与外部声明 schema 类型不一致（OBS-L4824） | 跨文件一致性 | 产物数据与结构化声明不一致 |
 | 直接展示布尔值（OBS-L1564） | 展示语义 | 数据类型本身可以合法，错误在面向用户的表达方式 |
@@ -886,7 +946,11 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 
   当前归属：语义／布局与视觉约束，`semantic/layout/geometry.py`。2026-10-15 按确认仅在高度校验
   视图中忽略 2x4 语义展开生成 Column 的 8vp 纵向间距；参考槽位同步使用该视图，其它高度约束不变。
-  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。
+  使用语义来源映射识别，不按任意 ID 前缀豁免；不改变 DSL、A2UI 和 Renderer。2026-10-17 将
+  2026-10-20 取消上述纵向 warning 降级：2×2 仅保留整树 `2vp` 数值容差，2×4 不设高度容差；
+  超过容差后，只要最小占用及可用高度可确定，根 Column、正数 `layoutWeight` Column 和可压缩
+  `itemMargin` 都继续输出 `COMPACT_LAYOUT_HEIGHT_OVERFLOW` error，进入布局容量修复。不改变本项的
+  语义／布局与视觉约束分类及实际文件。
 
   原始诊断：component {component.component_id}: vertical layout requires at least {_format_vp(required_height)}vp within {_format_vp(available_height)}vp; it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, or gaps instead of relying on clipping, flex shrink, or distributed alignment.
 

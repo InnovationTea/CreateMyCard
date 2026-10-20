@@ -62,7 +62,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   });
   assert.equal(
     (dataDisplay.getNode("display_value")?.props.styles as Record<string, unknown>).fontSize,
-    56,
+    48,
   );
 
   const info = compileMiniDsl(fixtures.examples[1].source, { size: "2x2" }).graph;
@@ -153,7 +153,15 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal((metrics.getNode("metrics_item0_unit")?.props.styles as Record<string, unknown>).fontSize, 12);
 
   const summary = compileMiniDsl(fixtures.examples[10].source, { size: "2x4" }).graph;
-  assert.equal((summary.getNode("list")?.props.styles as Record<string, unknown>).height, 102);
+  const summaryRoot = summary.getNode("list")?.props.styles as Record<string, unknown>;
+  const summaryConstraint = summaryRoot.constraintSize as Record<string, unknown>;
+  assert.equal(summaryRoot.height, "matchParent");
+  assert.equal(summaryRoot.justifyContent, "end");
+  assert.equal(summaryConstraint.minHeight, 102);
+  assert.equal(
+    (summary.getNode("list_item0")?.props.styles as Record<string, unknown>).backgroundColor,
+    "#99FFFFFF",
+  );
 
   const shared = compileMiniDsl(fixtures.examples[11].source, { size: "2x4" }).graph;
   assert.equal(
@@ -360,7 +368,7 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
     {
       type: "DataDisplay",
       props: { label: "倒计时", value: 3, supportingText: "天" },
-      fontSize: 56,
+      fontSize: 48,
     },
     {
       type: "TableText",
@@ -398,6 +406,47 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
       /fontSize.*固定 Recipe 值/,
     );
   }
+});
+
+test("DataDisplay 文本模式展开居中图标、24fp 双行结论和动态支撑文本", () => {
+  const source = [
+    ["root", "Layout", {
+      layout: "S-center",
+      linearGradient: {
+        direction: "RightBottom",
+        colors: [["#FFCBDDFE", 0], ["#FFF1F6FE", 1]],
+      },
+    }, ["display"]],
+    ["display", "DataDisplay", {
+      icon: "resources/base/media/ic_weatherWarning.svg",
+      value: { path: "/data/weather/current/alertLevel" },
+      supportingText: { path: "/data/weather/updatedAtText" },
+      fontSize: 24,
+    }],
+    ["/data/weather/current/alertLevel", "蓝色预警"],
+    ["/data/weather/updatedAtText", "2026-9-19 更新"],
+  ].map(row => JSON.stringify(row)).join("\n");
+  const graph = compileMiniDsl(source, { size: "2x2", previewMode: true }).graph;
+  const display = graph.getNode("display");
+  const value = graph.getNode("display_value");
+
+  assert.deepEqual(
+    display?.children,
+    ["display_icon", "display_value_area", "display_supporting"],
+  );
+  assert.equal(graph.getNode("display_icon")?.type, "Extended.Image");
+  const valueArea = graph.getNode("display_value_area");
+  const valueAreaStyles = valueArea?.props.styles as Record<string, unknown>;
+  assert.deepEqual(valueArea?.children, ["display_value"]);
+  assert.equal(valueAreaStyles.height, 60);
+  assert.equal(valueAreaStyles.justifyContent, "center");
+  assert.equal((value?.props.styles as Record<string, unknown>).fontSize, 24);
+  assert.equal((value?.props.styles as Record<string, unknown>).lineHeight, 1.25);
+  assert.equal((value?.props.styles as Record<string, unknown>).maxLines, 2);
+  assert.equal((value?.props.styles as Record<string, unknown>).height, undefined);
+  const supportingStyles = graph.getNode("display_supporting")?.props.styles as Record<string, unknown>;
+  assert.deepEqual(supportingStyles.margin, { top: 8, right: 0, bottom: 0, left: 0 });
+  assert.equal(supportingStyles.flexShrink, 0);
 });
 
 test("SecondaryBody 保留绑定、按行布局切换字号并忽略历史角色", () => {

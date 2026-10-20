@@ -63,6 +63,7 @@ def _secondary_body_width_error() -> dict:
         "errors": [message],
     }
 
+
 def _secondary_body_height_error(component_id: str) -> dict:
     message = (
         f"component {component_id}: vertical layout requires at least 19vp within 18vp; "

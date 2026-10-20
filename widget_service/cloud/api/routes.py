@@ -49,6 +49,7 @@ from services.compact_dsl_argument_repair import (
     recover_compact_dsl_content,
 )
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
+from services.generation_retry_policy import retry_policy_details
 from services.generation_trace_recorder import (
     trace_increment_retry,
     trace_observe_attempt,
@@ -698,7 +699,11 @@ def _build_plugin_stream_response(
     出参：插件顶层始终成功；业务异常说明和完整旧消息放入 streamContent。
     """
     resolved_streaming_text_id = streaming_text_id or legacy_message.requestId or uuid.uuid4().hex
-    stream_content = str(legacy_message)
+    stream_content = json.dumps(
+        legacy_message.model_dump(mode="json"),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
     error_explanation = _error_explanation(legacy_message.errorCode)
     if isinstance(legacy_message, WidgetWebSocketErrorMessage):
         details = legacy_message.error.get("details")
@@ -711,7 +716,7 @@ def _build_plugin_stream_response(
         errorMessage="",
         reply=WidgetPluginReply(
             streamInfo=WidgetStreamInfo(
-                # 插件只消费字符串字段；保留旧消息的完整字符串表现，避免拆散旧协议字段。
+                # 插件只消费字符串字段；完整业务消息使用标准 JSON，避免 repr 单引号膨胀。
                 streamContent=stream_content,
                 streamingTextId=resolved_streaming_text_id,
             ),
@@ -1006,7 +1011,7 @@ async def _serve_operation_websocket(
                 request_log = json_for_log(
                     request.model_dump(
                         mode="json",
-                        exclude={"uid", "sourceArtifactUrl"},
+                        exclude={"uid", "sourceArtifactUrl", "device"},
                         exclude_none=True,
                     )
                 )
@@ -1075,6 +1080,12 @@ async def _serve_operation_websocket(
 
                     if operation == COMPACT_DSL_OPERATION:
                         settings = get_settings()
+                        trace_record(
+                            "retry.policy.configured",
+                            stage="configuration",
+                            status="success",
+                            details=retry_policy_details(settings),
+                        )
                         result = await run_compact_dsl_with_retry(
                             lambda attempt_request: handler(
                                 service, attempt_request, send_model_start_command

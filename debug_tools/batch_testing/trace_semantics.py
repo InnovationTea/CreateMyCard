@@ -1,6 +1,20 @@
 """操作标识与内容名称的中文语义，集中维护调试展示词汇。"""
 
 OPERATION_TITLES = {
+    "generation.branch": "生成分支",
+    "fallback": "单步兜底阶段",
+    "template.generate": "模板生成",
+    "theme": "主题处理",
+    "theme.selection": "选择与应用主题",
+    "theme.validation": "主题最终校验",
+    "single_step.fallback": "单步新建兜底",
+    "single_step.edit.apply": "解析并应用编辑补丁",
+    "single_step.processing": "单步转换",
+    "dsl.source_processing": "处理生成源",
+    "dsl.semantic_layout.expanded": "展开语义布局",
+    "dsl.outer_recomposition.completed": "调整外层组合",
+    "compact_dsl.jsonl_repair": "修复 DSL 结构",
+    "argument_repair.completed": "修复请求参数",
     "request": "请求全链路",
     "interface.attempt": "生成尝试",
     "prepare": "请求准备",
@@ -45,6 +59,24 @@ OPERATION_TITLES = {
 }
 
 CONTENT_LABELS = {
+    "theme_before": "主题处理前 A2UI",
+    "theme_after": "主题处理后 A2UI",
+    "theme_audit": "主题处理审计",
+    "theme_selection_audit": "主题选择审计",
+    "theme_rejected_audit": "主题回退依据",
+    "theme_validation_input": "主题待校验产物",
+    "theme_validation_errors": "主题校验问题",
+    "semantic_layout_source": "展开前语义布局",
+    "semantic_layout_expanded": "展开后语义布局",
+    "semantic_layout_origins": "语义布局来源",
+    "outer_recomposition_input": "外层调整前 DSL",
+    "outer_recomposition_output": "外层调整后 DSL",
+    "repair_strategy": "定向修复策略",
+    "omitted_requirements": "最终省略的信息",
+    "single_step_fallback_context": "单步兜底上下文",
+    "single_step_failed_compact_source": "兜底前失败 DSL",
+    "edit_patch_audit": "编辑补丁审计",
+    "template_source": "模板生成结果",
     "raw_request": "原始请求",
     "normalized_generation_request": "归一化请求",
     "card_spec": "卡片规格",
@@ -91,6 +123,7 @@ CONTENT_LABELS = {
 def operation_title(operation: str, attempts: dict) -> str:
     title = OPERATION_TITLES.get(operation, f"未命名步骤 · {operation}")
     dimension = {
+        "generation.branch": "generation",
         "interface.attempt": "interface",
         "plan.attempt": "plan",
         "repair.attempt": "qualityRepair",
@@ -117,3 +150,19 @@ def content_label(name: str) -> str:
                 label = value
                 break
     return label or name
+
+
+def jsonl_parse_summary(metrics: dict) -> str:
+    """旧 Trace 没有汇总指标时不补造零值。"""
+    calls = metrics.get("jsonlParseCalls")
+    if not isinstance(calls, int) or isinstance(calls, bool):
+        return ""
+    parts = [f"JSONL 解析 {calls} 次"]
+    for key, label in (
+        ("jsonlParseNoop", "无需修复"),
+        ("jsonlParseRepaired", "修复成功"),
+        ("jsonlParseFailed", "修复失败"),
+    ):
+        count = metrics.get(key, 0)
+        parts.append(f"{label} {count} 次")
+    return "，".join(parts)
