@@ -61,6 +61,8 @@ def test_sync_updates_one_shared_copy_and_preserves_unregistered_assets(tmp_path
     manifest = tmp_path / sync_assets.CAPABILITIES_ROOT / "test/asset_capabilities.json"
     manifest.parent.mkdir(parents=True)
     manifest.write_text(json.dumps([{"src": "resources/base/media/sample.svg"}]), encoding="utf-8")
+    theme_path = tmp_path / sync_assets.THEMES_PATH
+    theme_path.write_text(json.dumps({"themes": []}), encoding="utf-8")
     assets = sync_assets.registered_assets(tmp_path)
     target = next(iter(sync_assets.TARGETS.values()))
     destination = tmp_path / target / assets[0].relative
@@ -81,3 +83,49 @@ def test_sync_updates_one_shared_copy_and_preserves_unregistered_assets(tmp_path
     assert not result[0].missing
     assert not result[0].different
     assert not (tmp_path / "render").exists()
+
+
+def test_theme_images_are_checked_synced_and_deduplicated(tmp_path: Path) -> None:
+    source = tmp_path / "resources/base/media/sleep.jpg"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"theme-image")
+    manifest = tmp_path / sync_assets.CAPABILITIES_ROOT / "test/asset_capabilities.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text("[]", encoding="utf-8")
+    theme_path = tmp_path / sync_assets.THEMES_PATH
+    theme_path.write_text(
+        json.dumps(
+            {
+                "themes": [
+                    {"background": {"colors": ["#FFFFFFFF"]}},
+                    {"background": {"src": "resources/base/media/sleep.jpg"}},
+                    {"background": {"src": "resources/base/media/sleep.jpg"}},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    assets = sync_assets.registered_assets(tmp_path)
+    assert len(assets) == 1
+    before = sync_assets.synchronize(tmp_path, assets, write=False)
+    assert before[0].missing == ["resources/base/media/sleep.jpg"]
+    sync_assets.synchronize(tmp_path, assets, write=True)
+    after = sync_assets.synchronize(tmp_path, assets, write=False)
+    assert not after[0].missing
+    assert not after[0].different
+    source.unlink()
+    with pytest.raises(ValueError, match="登记素材源文件不存在"):
+        sync_assets.registered_assets(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "src", ["resources/base/media/../secret.jpg", "https://example.test/a.jpg"]
+)
+def test_theme_images_reject_unsafe_paths(tmp_path: Path, src: str) -> None:
+    manifest = tmp_path / sync_assets.CAPABILITIES_ROOT / "test/asset_capabilities.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text("[]", encoding="utf-8")
+    theme_path = tmp_path / sync_assets.THEMES_PATH
+    theme_path.write_text(json.dumps({"themes": [{"background": {"src": src}}]}), encoding="utf-8")
+    with pytest.raises(ValueError, match="素材路径必须位于"):
+        sync_assets.registered_assets(tmp_path)

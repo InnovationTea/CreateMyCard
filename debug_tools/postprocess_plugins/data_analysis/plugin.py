@@ -86,6 +86,7 @@ def process_dataset(context: dict[str, Any]) -> dict[str, Any]:
         ("planMs", "计划平均耗时"),
         ("generateMs", "生成平均耗时"),
         ("repairMs", "修复平均耗时"),
+        ("themeMs", "主题平均耗时"),
         ("elapsedMs", "接口端到端平均耗时"),
         ("interfaceRetries", "平均接口重试"),
         ("repairs", "平均质量修复"),

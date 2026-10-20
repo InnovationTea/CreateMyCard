@@ -86,7 +86,7 @@ def test_phase_intervals_merge_and_root_elapsed_wins():
     result = analyze_request(view, {"elapsedMs": 999}, "attempt_000")
     assert result.get("elapsedMs") == 100
     assert result.get("elapsedSource") == "trace.request"
-    assert result.get("phasesMs") == {"plan": 30.0, "generate": 25.0, "repair": 0.0}
+    assert result.get("phasesMs") == {"plan": 30.0, "generate": 25.0, "repair": 0.0, "theme": 0.0}
     assert result.get("counts", {}).get("repairs") == 1
 
 

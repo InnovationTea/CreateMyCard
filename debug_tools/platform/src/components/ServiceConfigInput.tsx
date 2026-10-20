@@ -20,7 +20,7 @@ export function ServiceConfigInput({ field, value, onChange, onValidity }: Props
     return <div className="service-config-readonly" title={field.readOnlyReason}>{!field.sensitive && <pre title={typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}>{typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}</pre>}<small>{field.readOnlyReason}</small></div>;
   }
   if (field.type === 'bool') {
-    return <input aria-label={field.displayName} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />;
+    return <input aria-label={field.displayName} title={field.description} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />;
   }
   const edit = (next: string) => {
     setText(next);

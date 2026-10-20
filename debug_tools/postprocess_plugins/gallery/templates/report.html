@@ -47,7 +47,7 @@ const seconds=n=>n==null?'未知':`${(n/1000).toFixed(2)}s`;
 const decimal=n=>n==null?'未知':Number(n).toFixed(2);
 const avg=x=>x?.count?x.sum/x.count:null;
 const scalarKeys=['sampleCount','requestCount','paddedCount','effectiveCount'];
-const meanKeys=['elapsedMs','planMs','generateMs','repairMs','interfaceRetries','repairs','modelRetries','planRetries','providerFallbacks'];
+const meanKeys=['elapsedMs','planMs','generateMs','repairMs','themeMs','interfaceRetries','repairs','modelRetries','planRetries','providerFallbacks'];
 const merge=(items,key)=>items.reduce((a,s)=>({sum:a.sum+(s[key]?.sum||0),count:a.count+(s[key]?.count||0)}),{sum:0,count:0});
 function aggregate(items){
  const stats=items.map(x=>x.statistics),result={};
@@ -55,7 +55,7 @@ function aggregate(items){
  for(const key of meanKeys)result[key]=merge(stats,key);
  for(const key of ['pass1','pass2'])result[key]=stats.reduce((a,s)=>({hits:a.hits+(s[key]?.hits||0),count:a.count+(s[key]?.count||0)}),{hits:0,count:0});
  result.models={};
- for(const phase of ['all','plan','generate','repair','unknown']){
+ for(const phase of ['all','plan','generate','repair','theme','unknown']){
   result.models[phase]={};
   for(const key of ['ttftMs','tps'])result.models[phase][key]=merge(stats.map(s=>s.models?.[phase]||{}),key);
  }
@@ -71,11 +71,11 @@ const metric=(label,value,note)=>`<div class="metric"><span>${esc(label)}</span>
 function showStats(items){
  const s=aggregate(items);let output=metric('当前样本',items.length,`全部 ${data.cases.length} 个 · 降级 ${items.filter(x=>x.status==='degraded').length}`);
  for(const key of ['pass1','pass2'])output+=metric(key==='pass1'?'pass@1':'pass@2',pct(s[key].hits,s[key].count),`成功 ${s[key].hits} / 已知 ${s[key].count} · 实际请求 ${s.requestCount}`);
- for(const [key,label] of [['planMs','计划平均耗时'],['generateMs','生成平均耗时'],['repairMs','修复平均耗时'],['elapsedMs','接口端到端平均耗时']])output+=metric(label,seconds(avg(s[key])),`有效记录 ${s[key].count}`);
+ for(const [key,label] of [['planMs','计划平均耗时'],['generateMs','生成平均耗时'],['repairMs','修复平均耗时'],['themeMs','主题平均耗时'],['elapsedMs','接口端到端平均耗时']])output+=metric(label,seconds(avg(s[key])),`有效记录 ${s[key].count}`);
  for(const [key,label] of [['interfaceRetries','平均接口重试'],['repairs','平均质量修复'],['modelRetries','平均模型失败重试'],['planRetries','平均计划重试'],['providerFallbacks','平均提供方切换']])output+=metric(label,decimal(avg(s[key])),`有效记录 ${s[key].count}`);
  $('metrics').innerHTML=output;
  let details='<h2>模型物理调用</h2><div class="metrics">';
- for(const [phase,label] of [['all','全部'],['plan','计划'],['generate','生成'],['repair','修复'],['unknown','阶段未知']]){
+ for(const [phase,label] of [['all','全部'],['plan','计划'],['generate','生成'],['repair','修复'],['theme','主题'],['unknown','阶段未知']]){
   const m=s.models[phase];if(phase==='unknown'&&!m.ttftMs.count&&!m.tps.count)continue;
   details+=metric(`${label} TTFT`,seconds(avg(m.ttftMs)),`有效调用 ${m.ttftMs.count}`)+metric(`${label} TPS`,decimal(avg(m.tps)),`token/s · 有效调用 ${m.tps.count}`);
  }
