@@ -102,6 +102,7 @@ def plan_calendar_no_action_fallback(
     enable_fusion_ball: bool = False,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_layout_ids: tuple[str, ...] = (),
 ) -> CalendarNoActionFallback | None:
     """仅重试一次；保留全部首层字段和动作，不合适时保留原失败。"""
     result: CalendarNoActionFallback | None = None
@@ -162,7 +163,10 @@ def plan_calendar_no_action_fallback(
             card_spec,
             preferred_template_ids=(target,),
         )
-        plans = plan_template_candidates(normalized, found, task_spec, fallback_registry)
+        plans = plan_template_candidates(
+            normalized, found, task_spec, fallback_registry,
+            allowed_layout_ids=trusted_template_layout_ids,
+        )
     except TemplateRetrievalMiss as exc:
         # 受控重试未能覆盖原意图，由调用方继续报告原 Search/Planner 失败。
         logger.info(

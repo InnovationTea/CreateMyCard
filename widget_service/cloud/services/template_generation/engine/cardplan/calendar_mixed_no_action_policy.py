@@ -37,6 +37,7 @@ def plan_calendar_weather_no_action_fallback(
     enable_fusion_ball: bool = False,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_layout_ids: tuple[str, ...] = (),
 ) -> CalendarNoActionFallback | None:
     """保留两业务的全部字段，仅开放一个日期标题 Full，仍由正式检索与规划验证。"""
     result: CalendarNoActionFallback | None = None
@@ -73,7 +74,10 @@ def plan_calendar_weather_no_action_fallback(
             card_spec,
             preferred_template_ids=trusted_template_candidate_ids,
         )
-        plans = plan_template_candidates(intent, found, task_spec, fallback_registry)
+        plans = plan_template_candidates(
+            intent, found, task_spec, fallback_registry,
+            allowed_layout_ids=trusted_template_layout_ids,
+        )
     except TemplateRetrievalMiss as exc:
         logger.info(
             "[Template Generation] calendar_weather_no_action_fallback selected=False "

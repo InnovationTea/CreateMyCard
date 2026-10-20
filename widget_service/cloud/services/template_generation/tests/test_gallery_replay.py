@@ -7,7 +7,11 @@ from pathlib import Path
 import pytest
 
 from models.generation import CandidateDataBinding, TaskSpec
-from services.template_generation.engine.advanced.ux_mixed_prompt import build_ux_mixed_prompt
+from services.template_generation.engine.advanced import ux_mixed_prompt
+from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    UxMixedPromptProjection,
+    build_ux_mixed_prompt,
+)
 from services.template_generation.engine.cardplan.prompt_guidance import selected_template_guidance
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.cardplan.template_plan_planner import (
@@ -37,8 +41,7 @@ def _required(mapping, key):
     return value
 
 
-@pytest.mark.parametrize("fixture", _FIXTURES, ids=lambda item: str(item.get("index")))
-def test_original_failed_wide_plans_fit_prompt_budget(fixture) -> None:
+def _build_failed_wide_prompt(fixture) -> UxMixedPromptProjection:
     task_payload = deepcopy(_required(fixture, "task"))
     decision = deepcopy(_required(fixture, "decision"))
     # 第 33 项同时存在样例动作映射错误；生产输入归一化单独验证。
@@ -65,13 +68,51 @@ def test_original_failed_wide_plans_fit_prompt_budget(fixture) -> None:
     )
     assert plans
     assert all(plan.layout_template_id == layout_id for plan in plans)
-    projection = build_ux_mixed_prompt(
+    return build_ux_mixed_prompt(
         task_spec=task, card_spec=card, scope=planner_scope(plans),
         component_candidates=planner_component_candidates(plans),
         required_template_groups=planner_required_template_groups(plans),
         template_plans=plans, registry=registry,
     )
-    assert sum(len(message.get("content", "")) for message in projection.messages) <= 24000
+
+
+@pytest.mark.parametrize("fixture", _FIXTURES, ids=lambda item: str(item.get("index")))
+def test_original_failed_wide_plans_fit_prompt_budget(fixture) -> None:
+    projection = _build_failed_wide_prompt(fixture)
+    assert sum(len(message.get("content", "")) for message in projection.messages) <= 64_000
+
+
+@pytest.mark.parametrize("prompt_chars", [24_001, 64_000, 64_001])
+def test_prompt_budget_keeps_complete_messages_and_rejects_overflow(
+    monkeypatch: pytest.MonkeyPatch, prompt_chars: int,
+) -> None:
+    fixture = _FIXTURES[0]
+    original = _build_failed_wide_prompt(fixture)
+    original_chars = sum(len(message.get("content", "")) for message in original.messages)
+    assert original_chars < prompt_chars
+    expanded_kernel = (
+        ux_mixed_prompt.UX_MIXED_SYSTEM_PROMPT_KERNEL + "约" * (prompt_chars - original_chars)
+    )
+    monkeypatch.setattr(ux_mixed_prompt, "UX_MIXED_SYSTEM_PROMPT_KERNEL", expanded_kernel)
+
+    if prompt_chars > 64_000:
+        with pytest.raises(
+            ValueError,
+            match=(
+                rf"UX Mixed Prompt exceeds the service input budget: total={prompt_chars}, "
+                r"limit=64000, provider_rules=\d+, plans=\d+"
+            ),
+        ):
+            _build_failed_wide_prompt(fixture)
+    else:
+        expanded = _build_failed_wide_prompt(fixture)
+        assert expanded.messages == [
+            {"role": "system", "content": expanded_kernel},
+            original.messages[1],
+        ]
+        assert sum(len(message.get("content", "")) for message in expanded.messages) == prompt_chars
+        assert expanded.contract == original.contract
+        assert expanded.requested_template_ids == original.requested_template_ids
 
 
 def test_guidance_keeps_complete_selected_shared_and_unknown_blocks() -> None:
@@ -93,6 +134,52 @@ def test_guidance_keeps_complete_selected_shared_and_unknown_blocks() -> None:
     assert "Alpha@1 与 Beta@1 共用约束" in actual
     assert "WideLayout@1 的骨架约束" in actual
     assert "禁止新增字段" in actual
+
+
+def test_guidance_preserves_public_paragraphs_but_keeps_indented_item_continuations() -> None:
+    content = (
+        "# 规则\n\n"
+        "- Alpha@1 的专属字段。\n\n"
+        "  缩进续行仍是 Alpha 的要求。\n\n"
+        "Beta@1 示例后的独立公共段落。\n"
+        "公共规则的第二行。\n\n"
+        "- Gamma@1 的字段。\n\n"
+        "  Gamma 续行必须完整保留。\n"
+    )
+    actual = selected_template_guidance(
+        content, frozenset({"Alpha@1", "Beta@1", "Gamma@1"}), frozenset({"Gamma@1"}),
+    )
+    assert "Alpha" not in actual
+    assert "Beta@1 示例后的独立公共段落。\n公共规则的第二行。" in actual
+    assert "- Gamma@1 的字段。\n\n  Gamma 续行必须完整保留。" in actual
+
+
+@pytest.mark.parametrize(
+    "template_id",
+    [
+        "BluetoothDeviceOverviewHero@1",
+        "BluetoothDeviceOverviewEarbudPairCompact@1",
+        "BluetoothDeviceOverviewEarbudPairFull@1",
+    ],
+)
+def test_earphone_guidance_preserves_complete_shared_title_and_connection_rules(
+    template_id: str,
+) -> None:
+    registry = get_cardplan_registry()
+    component_ids = ("BluetoothDeviceOverview",)
+    full = registry.provider_second_layer_guidance(component_ids)
+    full_content = _required(full[0], "content")
+    title_rule = "支持 title 的上述模板必须逐字传入非空 cardComposition.businessTitleCandidate"
+    shared_paragraph = next(
+        paragraph for paragraph in full_content.split("\n\n") if title_rule in paragraph
+    )
+    assert "耳机名称与连接状态同时存在时" in shared_paragraph
+    filtered = registry.provider_second_layer_guidance(
+        component_ids, selected_template_ids=(template_id,),
+    )
+    actual = _required(filtered[0], "content")
+    assert shared_paragraph in actual
+    assert "BluetoothDeviceOverviewEarbudPairRingFull@1" not in actual
 
 
 def test_fresh_and_replayed_inputs_keep_not_applicable_cases(tmp_path: Path) -> None:

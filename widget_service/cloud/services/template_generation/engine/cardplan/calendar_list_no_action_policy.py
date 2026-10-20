@@ -126,6 +126,7 @@ def plan_calendar_list_no_action_fallback(
     enable_fusion_ball: bool = False,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_layout_ids: tuple[str, ...] = (),
 ) -> CalendarNoActionFallback | None:
     """不删减原意图；调用方仅在旧 Search/Planner 与单条补充分支均未命中后调用。"""
     result: CalendarNoActionFallback | None = None
@@ -171,7 +172,10 @@ def plan_calendar_list_no_action_fallback(
             card_spec,
             preferred_template_ids=(target,),
         )
-        plans = plan_template_candidates(selection.intent, found, task_spec, fallback_registry)
+        plans = plan_template_candidates(
+            selection.intent, found, task_spec, fallback_registry,
+            allowed_layout_ids=trusted_template_layout_ids,
+        )
     except TemplateRetrievalMiss as exc:
         logger.info(
             "[Template Generation] calendar_list_no_action_fallback selected=False "

@@ -274,6 +274,7 @@ async def generate_template_a2ui(
                     enable_fusion_ball=enable_fusion_ball,
                     trusted_template_candidate_ids=trusted_template_candidate_ids,
                     trusted_template_action_ids=trusted_template_action_ids,
+                    trusted_template_layout_ids=trusted_template_layout_ids,
                 )
                 if fallback is None:
                     fallback = plan_calendar_list_no_action_fallback(
@@ -285,6 +286,7 @@ async def generate_template_a2ui(
                         enable_fusion_ball=enable_fusion_ball,
                         trusted_template_candidate_ids=trusted_template_candidate_ids,
                         trusted_template_action_ids=trusted_template_action_ids,
+                        trusted_template_layout_ids=trusted_template_layout_ids,
                     )
                 if fallback is None:
                     fallback = plan_calendar_weather_no_action_fallback(
@@ -296,6 +298,7 @@ async def generate_template_a2ui(
                         enable_fusion_ball=enable_fusion_ball,
                         trusted_template_candidate_ids=trusted_template_candidate_ids,
                         trusted_template_action_ids=trusted_template_action_ids,
+                        trusted_template_layout_ids=trusted_template_layout_ids,
                     )
                 if fallback is None:
                     raise

@@ -16,7 +16,9 @@ def selected_template_guidance(
     blocks: list[list[str]] = []
     current: list[str] = []
     for line in content.splitlines():
-        boundary = line.startswith("- ") or line.startswith("#")
+        after_blank = bool(current) and not current[-1].strip()
+        public_paragraph = after_blank and bool(line.strip()) and not line[0].isspace()
+        boundary = line.startswith("- ") or line.startswith("#") or public_paragraph
         if boundary and current:
             blocks.append(current)
             current = []
@@ -27,6 +29,9 @@ def selected_template_guidance(
     visible: list[str] = []
     for block in blocks:
         text = "\n".join(block)
+        if not block[0].startswith("- "):
+            visible.append(text)
+            continue
         references = frozenset(_TEMPLATE_REFERENCE.findall(text))
         business_references = references.intersection(business_template_ids)
         unrelated = business_references.isdisjoint(selected_template_ids)

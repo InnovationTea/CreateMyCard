@@ -58,7 +58,7 @@ _WEATHER_BUILTIN_ASSETS = (
     "resources/base/media/cold.svg",
 )
 _COUNTDOWN_TITLE_SUFFIXES = ("倒计时", "倒数日", "倒数")
-_MAX_UX_MIXED_PROMPT_CHARS = 24_000
+_MAX_UX_MIXED_PROMPT_CHARS = 64_000
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _COMPACT_ACTION_TEMPLATE_ID = "CompactAction@1"
 _COMPACT_SUBTITLE_ACTION_TEMPLATE_ID = "CompactSubtitleAction@1"
