@@ -71,16 +71,14 @@
         "SetMobileData": {
           "params": {
             "switchFlag": {
-              "type": "number",
+              "type": "integer",
               "enum": [
                 0,
                 1
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         }
       }
     },
@@ -139,7 +137,7 @@
               ]
             },
             "switchFlag": {
-              "type": "number",
+              "type": "integer",
               "enum": [
                 0,
                 1
@@ -148,8 +146,7 @@
           },
           "required": [
             "appBundleName",
-            "itemName",
-            "switchFlag"
+            "itemName"
           ]
         },
         "EnterSettingPage": {
@@ -169,44 +166,38 @@
         "SetLocationSettingSwicth": {
           "params": {
             "switchFlag": {
-              "type": "number",
+              "type": "integer",
               "enum": [
                 0,
                 1
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         },
         "SetScreenUseTimeManageSwitch": {
           "params": {
             "switchFlag": {
-              "type": "number",
+              "type": "integer",
               "enum": [
                 0,
                 1
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         },
         "SetMicSettingSwicth": {
           "params": {
             "switchFlag": {
-              "type": "number",
+              "type": "integer",
               "enum": [
                 0,
                 1
               ]
             }
           },
-          "required": [
-            "switchFlag"
-          ]
+          "required": []
         },
         "SetSettingOption": {
           "params": {

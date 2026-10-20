@@ -134,7 +134,7 @@ def _collect_event_candidate_error(
                 validation_class="semantic",
                 category="effective",
                 message=f"组件 {component.component_id} 的点击 handler 不匹配本轮事件候选。",
-                expected={"allowedHandlers": allowed_handlers, "switchFlagsEquivalent": [0, 1]},
+                expected={"allowedHandlers": allowed_handlers},
                 actual=handler,
                 component_id=component.component_id,
                 property_path="/onClick/0",

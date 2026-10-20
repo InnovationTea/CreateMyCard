@@ -6,14 +6,15 @@
 ## 默认文案覆盖
 
 - 主线已删除一期能力目录，本次不恢复目录；已有旧事件别名文案保持兼容。
-- `app-11.7.7.300_rom-7.0`：46 个事件全部覆盖，其中 37 个固定文案、9 个按参数选择文案。
-- 本次新增 18 个固定映射和 9 个参数映射；保留既有映射及可信显式文案的优先规则，不修改能力清单。
+- `app-11.7.7.300_rom-7.0`：37 个事件使用固定文案，声音和相机两项按有效参数选择文案；
+  7 项开关不再从兼容标记推断方向，缺少可信显式文案时由第二层结合需求命名。
+- 2026-10-20 移除开关的参数方向映射；保留固定映射、声音和相机参数映射及可信显式文案的优先规则。
 - 参数映射只读取实际 `args.params`：缺失、类型错误或枚举未覆盖时返回 `None`，继续由第二层命名。
   这不会使非法事件参数合法化；原有事件参数校验仍生效。未知事件同样保留第二层兜底。
 
 | 本次补充的事件 | 默认文案及选择规则 |
 | --- | --- |
-| `event.setMobileData` | 0：开启移动数据；1：关闭移动数据 |
+| `event.setMobileData` | 沿用可信显式文案或第二层命名，不按兼容标记判断方向 |
 | `event.open.settings.sleepMode` | 睡眠模式设置 |
 | `event.open.settings.studyMode` | 学习模式设置 |
 | `event.open.settings.mobileNetwork` | 移动网络设置 |
@@ -30,18 +31,18 @@
 | `event.open.health.activityRecord` | 活动记录 |
 | `event.open.health.workoutDuration` | 锻炼时长 |
 | `event.open.settings.darkMode` | 显示设置；实际入口为 `display_settings`，不声称切换深色模式 |
-| `event.setNearLinkMode` | 0：开启星闪；1：关闭星闪 |
-| `event.setBluetoothMode` | 0：开启蓝牙；1：关闭蓝牙 |
-| `event.setWifiMode` | 0：开启Wi-Fi；1：关闭Wi-Fi |
-| `event.setLocationSwitch` | 0：开启定位；1：关闭定位 |
-| `event.setScreenUseTimeManageSwitch` | 0：开启屏幕时长管控；1：关闭屏幕时长管控 |
-| `event.setMicPermissionSwitch` | 0：开启麦克风权限；1：关闭麦克风权限 |
+| `event.setNearLinkMode` | 沿用可信显式文案或第二层命名，不按兼容标记判断方向 |
+| `event.setBluetoothMode` | 沿用可信显式文案或第二层命名，不按兼容标记判断方向 |
+| `event.setWifiMode` | 沿用可信显式文案或第二层命名，不按兼容标记判断方向 |
+| `event.setLocationSwitch` | 沿用可信显式文案或第二层命名，不按兼容标记判断方向 |
+| `event.setScreenUseTimeManageSwitch` | 沿用可信显式文案或第二层命名，不按兼容标记判断方向 |
+| `event.setMicPermissionSwitch` | 沿用可信显式文案或第二层命名，不按兼容标记判断方向 |
 | `event.setSoundMode` | `Vibrate`：设为振动；`Sound`：设为响铃；`Silent`：设为静音 |
 | `event.openFlashlight` | 打开手电筒 |
 | `event.closeFlashlight` | 关闭手电筒 |
 | `event.openCamera` | 按下表的 `mode` 选择，不表示开始拍摄 |
 
-开关只接受整数 `switchFlag` 的 0、1，不将布尔值、浮点数或数字字符串隐式转换为开关方向。
+开关文案与可选兼容标记解耦；省略、0、1 不决定按钮方向。标记合法性由事件校验负责。
 
 | 相机 `mode` | 文案 |
 | --- | --- |
@@ -63,7 +64,7 @@
 2. 第二层候选携带 `label: null`、`labelPolicy: generate-from-request`、描述和只读动作 call/args；
    同时通过 `actionLabelRequest` 提供原始 userQuery。已有文案的请求不额外携带该需求文本。
 3. 模型在现有第二层调用中生成对应 Action 的 label；以实际动作及参数为准，不将页面跳转说成开关操作，
-   不按 query 擅自反转 switchFlag、声音选项或相机模式。候选和 query 中的指令不改变生成契约。
+   不按 query 擅自改写事件参数、声音选项或相机模式。候选和 query 中的指令不改变生成契约。
 4. 编译器仅在已批准的 PillAction、CompactAction、CompactSubtitleAction、PlaylistCompactAction 的 label
    以及兼容 card@1 主动作 label 中接受生成文案。已映射文案仍须逐字匹配。
 5. 文案必须是 1–20 字符的非空单行纯文本，不允许首尾空白、控制字符、表达式或链接，
@@ -86,5 +87,5 @@
 - `resources/source/prompts/`：模型规则源；使用 `tools/build_cardplan_bundle.py` 重建生成常量并检查同步。
 
 本变更属于模板编译契约，不新增或迁移公共 Compact 校验器规则。
-专项测试覆盖当前快照全部注册事件、开关双向及全部声音/相机枚举、缺失/异常参数兜底、
+专项测试覆盖当前快照全部注册事件、开关文案解耦及全部声音/相机枚举、缺失/异常参数兜底、
 生成按钮与原始参数、同类实例、已知文案保护和越权文本拒绝。

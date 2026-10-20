@@ -7,7 +7,7 @@
 | actions-only 结构与几何 | 共享语义布局编译 `compact_semantic_layout.py`、布局合同 | 只增加同名布局的无内容变体，按钮尺寸与标准内容变体不变 |
 | actions-only 必要事实授权 | 语义／跨文件一致性，`semantic/plan_contracts.py` | 已接受 Plan 必须恰好两个不同动作且无展示事实，不豁免覆盖检查 |
 | 组件槽位角色与确定容量下界 | 生成侧共享 `compact_slot_compatibility.py`，组合候选复用 | 读取既有布局和 Recipe；未知不判可行，不新增发布错误码或复制几何校验 |
-| 设置开关整数标记等价 | 语义／有效能力，`semantic/effective.py`；共享比较 `event_matching.py` | 仅同一合法设置开关的 0/1 等价，Plan 覆盖、素材和最终产物共用，其他字段精确比较 |
+| 已登记开关历史标记兼容 | 语义／有效能力，`semantic/effective.py`；共享规范化与比较 `event_matching.py` | 2026-10-20 覆盖八类已登记开关；注册表不声明历史标记，预检仅在 schema 校验副本中处理，Plan、素材与最终产物共用省略和整数 0/1 等价规则；其它参数精确比较，非法显式值不通过转换修正放行 |
 
 
 > 2026-10-12 Fusion 融合修订：本文原有数量、源码位置和验证结果描述融合前版本。当前分支同步 main `69c153f5`；本次按用户要求将 PR 净差异压成单个提交，SVG 填色按用户要求保留 PR497 前规则，迁移去向与实际验证见 [Fusion 融合记录](Compact_DSL_Fusion融合记录.md)。旧规则不得因目录合并重新启用。

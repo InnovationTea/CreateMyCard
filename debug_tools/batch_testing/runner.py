@@ -136,7 +136,8 @@ async def invoke_generate(
         raise UpstreamToolError("正式工具 WebSocket 调用超时") from exc
     except json.JSONDecodeError as exc:
         raise UpstreamToolError("正式工具返回非法 JSON") from exc
-    except UpstreamToolError:
+    except UpstreamToolError as exc:
+        exc.frames = tuple(frames)
         raise
     except (OSError, websockets.WebSocketException) as exc:
         raise UpstreamToolError(f"正式工具 WebSocket 调用失败: {type(exc).__name__}") from exc

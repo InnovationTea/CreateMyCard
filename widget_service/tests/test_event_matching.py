@@ -45,7 +45,7 @@ def test_other_event_changes_remain_blocking(case: str) -> None:
     elif case == "extra":
         params["other"] = 1
     else:
-        params.pop("switchFlag")
+        params.pop("appBundleName")
     assert not event_handlers_match(actual, _handler())
 
 
