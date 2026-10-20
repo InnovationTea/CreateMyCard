@@ -39,7 +39,7 @@ def _leaf(identifier: str, kind: str) -> list:
     elif kind == "SecondaryBody":
         props = {"items": [{"value": "已更新"}], "fontSize": 14}
     elif kind == "DataDisplay":
-        props = {"label": "剩余", "value": 7, "supportingText": "天", "fontSize": 56}
+        props = {"label": "剩余", "value": 7, "supportingText": "天", "fontSize": 48}
     elif kind == "InfoBlock":
         props = {"primaryText": "设备", "secondaryText": "在线",
                  "backgroundColor": "#CCFFFFFF"}

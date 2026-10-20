@@ -14,6 +14,7 @@ from services.card_validation.compact_validation.diagnostics import (
 from services.card_validation.compact_validation.semantic.layout.overflow_tolerances import (
     layout_overflow_tolerances,
 )
+from services.compact_component_runtime import text_block_full_width_budget
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_region_layout import reference_region_boxes
 
@@ -315,6 +316,7 @@ def _collect_horizontal_budget_errors(
     protocol_profile: dict[str, Any] | None = None,
     *,
     warnings: list[str] | None = None,
+    original_components: list[ComponentRow] | None = None,
 ) -> None:
     size = card_spec.get("suggestSize") or task_spec.get("size")
     if not isinstance(size, str) or size not in {"2x2", "2x4"}:
@@ -329,6 +331,20 @@ def _collect_horizontal_budget_errors(
             errors.append(str(exc))
         return
     by_id = {node.component_id: node for node in components}
+    four_item_text_blocks: set[str] = set()
+    for component in original_components or ():
+        items = component.props.get("items")
+        if component.component_type != "TextBlock" or not isinstance(items, list):
+            continue
+        if len(items) == 4:
+            four_item_text_blocks.add(component.component_id)
+    root = by_id.get("root")
+    root_box = boxes.get("root")
+    root_padding = _inset(root.props, "padding") if root is not None else None
+    full_width: float | None = None
+    if root_box is not None and root_padding is not None:
+        if root_box.width is not None:
+            full_width = max(0.0, root_box.width - root_padding)
     parents: dict[str, str] = {}
     for node in components:
         for child_id in node.children:
@@ -344,6 +360,8 @@ def _collect_horizontal_budget_errors(
             continue
         budget = _children_budget(node, by_id, frozenset({node.component_id}))
         available = max(0.0, box.width - padding)
+        if size == "2x4" and node.component_id in four_item_text_blocks and full_width is not None:
+            available = text_block_full_width_budget(available, full_width)
         if budget is None or budget.minimum <= available + 1e-7:
             continue
         overflow = budget.minimum - available

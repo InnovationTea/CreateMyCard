@@ -16,6 +16,7 @@ from core.errors import ErrorCode
 from models.artifact import WidgetArtifact
 from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
+from services.post_layout_theme_registry import registered_themes
 from utils.download_file_from_url import (
     DownloadFileError,
     DownloadFileNotFoundError,
@@ -102,6 +103,7 @@ class SourceArtifactRepository:
             )
         registry = CapabilityRegistry(version=asset_version)
         originals = {item.id: item.src for item in registry.list_asset_capabilities()}
+        theme_sources: dict[str, str] | None = None
         candidates = artifact.taskSpec.get("assetCandidates", [])
         if not isinstance(candidates, list):
             raise ValueError("source assetCandidates must be a list")
@@ -115,6 +117,14 @@ class SourceArtifactRepository:
             original = originals.get(asset_id) if isinstance(asset_id, str) else None
             if not isinstance(src, str):
                 continue
+            if original is None and isinstance(asset_id, str):
+                # 仅能力库外的主题素材需要恢复；普通图标不依赖主题配置。
+                if theme_sources is None:
+                    theme_sources = {}
+                    for theme in registered_themes(include_disabled=True):
+                        if theme.get("kind") == "photo":
+                            theme_sources[theme.get("id")] = theme.get("src")
+                original = theme_sources.get(asset_id, src)
             if original is None:
                 original = src
             declared_sources.add(original)

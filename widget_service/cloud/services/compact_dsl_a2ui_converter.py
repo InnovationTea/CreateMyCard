@@ -451,7 +451,7 @@ def normalize_compact_dsl_design_tokens(
 def repair_compact_dsl_safe_structure(
     compact_dsl: str, *, size: str, skip_compact_dsl_validation: bool = False,
 ) -> str:
-    """Apply only deterministic tree and formal split-panel repairs."""
+    """Apply deterministic tree and layout-specific safe repairs."""
     changed = False
     try:
         rows = _parse_compact_rows(
@@ -469,6 +469,29 @@ def repair_compact_dsl_safe_structure(
     components, _data_rows = _split_component_rows(rows)
     components_by_id = {item.component_id: item for item in components}
     root = components_by_id.get("root")
+    if (
+        size == "2x4"
+        and root is not None
+        and root.component_type == "Layout"
+        and root.props.get("layout") == "W-content-side-slots"
+    ):
+        repaired_rows: list[CompactRow] = []
+        for row in rows:
+            if not isinstance(row, ComponentRow) or row.component_type != "SingleLineTitle":
+                repaired_rows.append(row)
+                continue
+            if "icon" not in row.props and "fillColor" not in row.props:
+                repaired_rows.append(row)
+                continue
+            props = copy.deepcopy(row.props)
+            props.pop("icon", None)
+            props.pop("fillColor", None)
+            repaired_rows.append(
+                ComponentRow(row.component_id, row.component_type, props, row.children)
+            )
+            changed = True
+        rows = repaired_rows
+
     if size == "2x4" and _is_formal_split_panel_root(root, components_by_id):
         repaired_rows: list[CompactRow] = []
         panel_ids = set(root.children) if root is not None else set()

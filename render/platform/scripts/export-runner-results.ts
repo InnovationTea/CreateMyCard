@@ -30,6 +30,7 @@ type Summary = {
   total?: number;
   success?: number;
   failed?: number;
+  partial?: number;
   results: SummaryResult[];
 };
 
@@ -39,14 +40,22 @@ type InputPayload = {
     title?: string;
     size?: CardSize;
     appVersion?: string;
+    candidateDataBindings?: CapabilityCandidate[];
+    candidateEventCandidates?: CapabilityCandidate[];
   };
   userQuery?: string;
   title?: string;
   size?: CardSize;
   appVersion?: string;
+  candidateDataBindings?: CapabilityCandidate[];
+  candidateEventCandidates?: CapabilityCandidate[];
   deviceInfo?: {
     prdVer?: string;
   };
+};
+
+type CapabilityCandidate = {
+  capabilityId?: string;
 };
 
 type RenderedCase = SummaryResult & {
@@ -248,6 +257,79 @@ async function loadInput(index: number, inputDirectory: string): Promise<InputPa
   return source ? JSON.parse(source) as InputPayload : {};
 }
 
+async function resultIndices(directory: string, pattern: RegExp): Promise<number[]> {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const indices: number[] = [];
+  for (const entry of entries) {
+    const match = pattern.exec(entry.name);
+    if (!match) continue;
+    const index = Number(match[1]);
+    if (Number.isInteger(index)) indices.push(index);
+  }
+  return indices;
+}
+
+function inputCapabilities(input: InputPayload): string[] {
+  const content = input.content ?? {};
+  const bindings = content.candidateDataBindings ?? input.candidateDataBindings ?? [];
+  const events = content.candidateEventCandidates ?? input.candidateEventCandidates ?? [];
+  const capabilities: string[] = [];
+  for (const candidate of [...bindings, ...events]) {
+    const capabilityId = candidate.capabilityId?.trim();
+    if (capabilityId && !capabilities.includes(capabilityId)) capabilities.push(capabilityId);
+  }
+  return capabilities;
+}
+
+async function buildPartialSummary(
+  batchDirectory: string,
+  inputDirectory: string,
+): Promise<Summary> {
+  const [compactIndices, a2uiIndices, rejectedIndices] = await Promise.all([
+    resultIndices(path.join(batchDirectory, "designcompactdsl"), /^q(\d+)\.jsonl$/),
+    resultIndices(path.join(batchDirectory, "dsl"), /^q(\d+)\.jsonl$/),
+    resultIndices(path.join(batchDirectory, "rejected"), /^q(\d+)$/),
+  ]);
+  const finalIndices = new Set([...compactIndices, ...a2uiIndices]);
+  const indices = [...new Set([...finalIndices, ...rejectedIndices])]
+    .sort((left, right) => left - right);
+  if (!indices.length) {
+    throw new Error("批次目录没有可导出的最终结果或 rejected 中间结果");
+  }
+
+  const results: SummaryResult[] = [];
+  for (const index of indices) {
+    const input = await loadInput(index, inputDirectory);
+    const content = input.content ?? {};
+    const size = content.size ?? input.size;
+    if (size !== "2x2" && size !== "2x4") {
+      const filename = `Q${String(index).padStart(3, "0")}.json`;
+      throw new Error(`部分结果 ${filename} 缺少合法 size，请确认 --cards 指向原始任务目录`);
+    }
+    results.push({
+      index,
+      title: content.title ?? input.title ?? `Q${index}`,
+      size,
+      capabilities: inputCapabilities(input),
+      status: "partial",
+    });
+  }
+  return {
+    round: `${path.basename(batchDirectory)}（部分结果）`,
+    total: results.length,
+    success: 0,
+    failed: 0,
+    partial: results.length,
+    results,
+  };
+}
+
 function rejectedVariantLabel(caller: string, filename: string): string {
   const callerIndex = Number(caller.replace("caller-", ""));
   const match = /^(\d+)\.(initial|repair)\.attempt-(\d+)\.rejected\.jsonl$/.exec(filename);
@@ -313,7 +395,7 @@ async function loadCase(
   const content = input.content ?? {};
   const finalVariant: RenderedVariant = {
     key: "final",
-    label: compactDsl ? "最终结果" : "最终结果（未生成）",
+    label: compactDsl || cloudA2ui ? "最终结果" : "最终结果（未生成）",
     compactDsl,
     issues: "",
     componentTypes: componentTypes(compactDsl),
@@ -449,7 +531,9 @@ function renderCase(item: RenderedCase): string {
     ...item.variants.flatMap(variant => [variant.label, ...variant.componentTypes]),
     ...(item.capabilities ?? []),
   ].join(" ").toLocaleLowerCase();
-  const statusClass = item.status === "success" ? "success" : "failure";
+  const statusClass = item.status === "success"
+    ? "success"
+    : item.status === "partial" ? "partial" : "failure";
   const selector = item.variants.length > 1
     ? `<label class="variantPicker"><span>查看版本</span><select data-variant-select>${item.variants.map(variant => `<option value="${escapeHtml(variant.key)}">${escapeHtml(variant.label)}</option>`).join("")}</select></label>`
     : `<span class="finalOnly">仅有最终结果</span>`;
@@ -509,6 +593,7 @@ function pageStyles(): string {
     .statusGroup,.metaRow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
     .status,.size,.badge,.componentBadge,.capabilityBadge { padding:3px 7px; border-radius:999px; font-size:9px; font-weight:600; }
     .status.success { color:var(--green); background:#e8f7f0; }
+    .status.partial { color:var(--amber); background:#fff5d8; }
     .status.failure { color:var(--red); background:#fff0f0; }
     .size { color:#5c46b8; background:#f0edff; }
     .query { min-height:34px; margin:10px 18px 8px; color:var(--muted); font-size:11px; line-height:1.55; }
@@ -605,6 +690,7 @@ function renderDocument(summary: Summary, cases: RenderedCase[]): string {
     <div class="summary">
       <div class="metric"><b>${cases.length}</b><span>总任务</span></div>
       <div class="metric"><b>${summary.success ?? 0}</b><span>生成成功</span></div>
+      ${summary.partial ? `<div class="metric"><b>${summary.partial}</b><span>部分结果</span></div>` : ""}
       <div class="metric"><b>${rendered}</b><span>渲染成功</span></div>
       <div class="metric"><b>${summary.failed ?? 0}</b><span>生成失败</span></div>
       <div class="metric"><b>${renderFailed}</b><span>渲染失败</span></div>
@@ -621,6 +707,7 @@ function renderDocument(summary: Summary, cases: RenderedCase[]): string {
         <button type="button" aria-pressed="false" data-filter="2x4">2×4</button>
         <button type="button" aria-pressed="false" data-filter="success">生成成功</button>
         <button type="button" aria-pressed="false" data-filter="failed">生成失败</button>
+        ${summary.partial ? `<button type="button" aria-pressed="false" data-filter="partial">部分结果</button>` : ""}
         <button type="button" aria-pressed="false" data-filter="rendered">已渲染</button>
       </div>
       <span class="count" data-count>${cases.length} / ${cases.length}</span>
@@ -638,9 +725,15 @@ async function main(): Promise<void> {
   const batchDirectory = path.resolve(argument("--input") ?? defaultBatchDirectory);
   const inputDirectory = path.resolve(argument("--cards") ?? defaultInputDirectory);
   const outputPath = path.resolve(argument("--output") ?? path.join(batchDirectory, "example.html"));
-  const summary = JSON.parse(
-    await readFile(path.join(batchDirectory, "summary.json"), "utf8"),
-  ) as Summary;
+  const summaryPath = path.join(batchDirectory, "summary.json");
+  let summary: Summary;
+  if (existsSync(summaryPath)) {
+    summary = JSON.parse(await readFile(summaryPath, "utf8")) as Summary;
+  } else if (process.argv.includes("--partial")) {
+    summary = await buildPartialSummary(batchDirectory, inputDirectory);
+  } else {
+    throw new Error(`批次目录缺少 summary.json：${summaryPath}`);
+  }
   const cases = await Promise.all(
     summary.results.map(result => loadCase(result, batchDirectory, inputDirectory)),
   );

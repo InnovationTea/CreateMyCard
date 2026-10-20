@@ -39,6 +39,8 @@ _PALETTE_ROLES = frozenset(
     }
 )
 _DEFAULT_PALETTE = "blue"
+_TEXT_BLOCK_FULL_WIDTH_BUDGET = 280.0
+_TEXT_BLOCK_FULL_WIDTH_ALLOWANCE = 4.0
 
 
 class CompactComponentRuntimeError(ValueError):
@@ -99,6 +101,15 @@ def text_block_width_contract(size: str = "2x4") -> TextBlockWidthContract:
     if width <= 0:
         raise CompactComponentRuntimeError("TextBlock item minimum width must be positive.")
     return TextBlockWidthContract(minimum, maximum, float(width), float(gap))
+
+
+def text_block_full_width_budget(available: float, full_width: float) -> float:
+    """仅放宽接近 280vp 的满宽参考预算，不改变渲染尺寸或窄槽位。"""
+    if available < full_width:
+        return available
+    if available < _TEXT_BLOCK_FULL_WIDTH_BUDGET - _TEXT_BLOCK_FULL_WIDTH_ALLOWANCE:
+        return available
+    return max(available, _TEXT_BLOCK_FULL_WIDTH_BUDGET)
 
 
 @lru_cache(maxsize=1)

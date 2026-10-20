@@ -47,7 +47,7 @@
 | 检查项 | 当前落点及分类 | 执行范围 |
 |---|---|---|
 | 模型素材候选范围 | `semantic/effective.py`，语义／有效能力，`COMPACT_ASSET_NOT_ALLOWED` | 展开前登记 icon、visual.icon、items[].icon；保留展开后背景检查。兼容引用提取不重新开放 Image 等内部组件 |
-| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle、带 icon 的 CardButton 和 SingleLineTitle；自动着色、原色、PNG 保留原合同 |
+| 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -180,7 +180,7 @@ Row 在 2x2/2x4 中分别不超过 24vp/52vp。判断顺序为间距、根布局
 |---|---|---|
 | `"icon": 123` | 语法／组件 | 共享 `validate_single_line_title_layout` 检查非空静态字符串要求，错误按兼容原文传递 |
 | `icon` 是非空字符串，但不在本轮素材候选中 | 语义／有效能力 | `COMPACT_ASSET_NOT_ALLOWED`；[effective.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/effective.py) 的 `_collect_model_asset_source_errors` 检查原始组件候选集合 |
-| 使用可染色 SVG 的 ProgressCircle、CardButton 或 SingleLineTitle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求 |
+| 使用可染色 SVG 的 ProgressCircle 未配置颜色 | 语义／布局与视觉约束 | `COMPACT_SVG_FILL_COLOR_MISSING`；[assets.py](../../widget_service/cloud/services/card_validation/compact_validation/semantic/layout/assets.py) 的 `_collect_asset_color_errors` 检查显式染色要求；CardButton 由转换器自动补色 |
 
 上述类型检查不能证明素材文件存在，也不代表已实现所有路径格式检查；单项通过不等于完整卡片校验通过。
 当前素材属性检查已有对应组件规则和转换器委托，不新增 `syntax/assets.py` 或重复报错。
@@ -486,14 +486,12 @@ BASE-02 至 BASE-04 不阻止纯等价拆分，但不能把已知冲突的旧建
 该约束必须同时出现在新诊断与模型说明中，不能因旧文案退出模型请求而丢失。
 本期 warning 继续通过 `CompactDslValidationResult.warnings` 返回字符串，并沿用流水线已有的
 `COMPACT_DSL_VALIDATION_WARNING` 及日志路径；不增加成功返回结果上的诊断字段，不将警告转成待修复错误。
-当前业务策略按溢出量与可压缩来源共同决定纵向高度超限的严重程度。校验器按
-`requiredHeight - availableHeight` 计算溢出量；不超过 `35vp` 且属于根 Column、直接父节点为 Column 的
-正数 `layoutWeight` Column，或溢出可完全由当前 Column 的有效 `itemMargin` 间距总量吸收时，诊断降为
-warning，交由端侧灵动布局处理。`layoutWeight` 只有在父 Column 中才代表纵向分配，父 Row 中的横向
-权重不能作为高度降级依据。warning 文本保留 `COMPACT_LAYOUT_HEIGHT_OVERFLOW` 规则标识、实际占用、
-可用高度、超限值及降级原因，沿用上述结果及日志出口，不进入结构化 error、`qualityErrors` 或模型
-repair。同一张卡不同层级的诊断分别判断和记录。其它固定局部 Column、溢出量超过 `35vp` 及高度
-无法闭合仍保持阻断；本节的 error 诊断示例继续代表这些严格场景。
+纵向高度门禁按 `requiredHeight - availableHeight` 计算溢出量。2×2 仅保留方案已登记的整树
+`2vp` 数值容差，2×4 不设高度容差。超过容差且最小占用及可用高度已可确定时，
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` 始终为 error，进入 `qualityErrors` 和模型 repair。根 Column、正数
+`layoutWeight` Column、可压缩 `itemMargin`、`clip`、`flexShrink` 或分布对齐都不能作为高度
+降级依据；这些属性不能消除已证明的内容最小高度。同一张卡不同层级的诊断仍分别记录，
+修复模型根据占用明细重新组合内容或选择容量足够的合法布局。
 
 ## 5. 修复建议解耦与简单配置接口
 

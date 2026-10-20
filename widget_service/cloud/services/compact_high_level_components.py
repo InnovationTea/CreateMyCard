@@ -79,6 +79,8 @@ _SYSTEM_FONT_ROLE_BY_COMPONENT = {
 }
 _SYSTEM_ICON_ROLE_BY_COMPONENT = {
     "SingleLineTitle": "graphicPrimary",
+    "DataDisplay": "graphicPrimary",
+    "CardButton": "primary",
 }
 
 
@@ -107,8 +109,12 @@ def apply_system_component_colors(
         icon = props.get("icon")
         tintable_icon = isinstance(icon, str) and icon.lower().endswith(".svg")
         if icon_role is not None and tintable_icon and not native_asset(icon):
-            # 标题 SVG 的语义角色由运行时确定，并纠正历史 DSL 中的自由透明度。
-            props["fillColor"] = _system_palette_color(palette, icon_role)
+            # SVG 的语义角色由运行时确定；标题继续纠正历史自由透明度，动作仅补缺省值。
+            system_fill = _system_palette_color(palette, icon_role)
+            if component.component_type == "CardButton":
+                props.setdefault("fillColor", system_fill)
+            else:
+                props["fillColor"] = system_fill
         resolved.append(
             ComponentRow(
                 component.component_id,
@@ -295,6 +301,7 @@ def expand_high_level_component_rows(
                 available_width=secondary_widths.get(component.component_id),
             )
         elif component.component_type in {
+            "DataDisplay",
             "EmphasizedData",
             "InfoBlock",
             "NumericRatioStack",
@@ -416,10 +423,15 @@ def validate_single_line_title_layout(components: list[ComponentRow], *, size: s
             part_name="title",
             size=size,
         )
-        _validate_single_line_title_props(header, components)
+        _validate_single_line_title_props(header, components, size=size)
 
 
-def _validate_single_line_title_props(header: ComponentRow, components: list[ComponentRow]) -> None:
+def _validate_single_line_title_props(
+    header: ComponentRow,
+    components: list[ComponentRow],
+    *,
+    size: str,
+) -> None:
     title = header.props.get("title")
     valid_title = isinstance(title, str) and bool(title.strip())
     if not valid_title and not _is_path_binding(title):
@@ -450,7 +462,14 @@ def _validate_single_line_title_props(header: ComponentRow, components: list[Com
         if is_bitmap and fill_color is not None:
             raise CompactDslConversionError("SingleLineTitle bitmap icon must not set fillColor.")
     height = header.props.get("height")
-    expected_height = 20 if has_icon else 12
+    variant = "withIcon" if has_icon else None
+    _, root_styles = _visual_recipe_part_for_converter(
+        "SingleLineTitle",
+        "root",
+        size=size,
+        variant=variant,
+    )
+    expected_height = root_styles.get("height")
     if height is not None and height != expected_height:
         raise CompactDslConversionError(
             f"SingleLineTitle.height must be {expected_height} when provided."
@@ -1948,7 +1967,11 @@ def _expand_info_block(
         )
     if visual_type == "icon":
         image_props: dict[str, Any] = {"src": visual_icon}
-        if visual.get("color") != "native":
+        preserve_color = visual.get("color") == "native"
+        if in_layout_phase():
+            # 融合链路只信任素材声明，模型的 native 不能豁免单色 SVG 染色。
+            preserve_color = native_asset(visual_icon) or not visual_icon.lower().endswith(".svg")
+        if not preserve_color:
             image_props["fillColor"] = component.props.get(
                 "fillColor",
                 component.props["fontColor"],
@@ -2838,26 +2861,80 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
     return [root, *rows]
 
 
-def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRow]:
+def _data_display_value_kind(
+    component: ComponentRow,
+    data_model: dict[str, Any] | None,
+) -> tuple[str | None, str | None]:
+    value = component.props.get("value")
+    if _is_path_binding(value):
+        found, sample = _json_pointer_value(data_model or {}, value.get("path"))
+        value = sample if found else None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return "numeric", None
+    if not isinstance(value, str) or not value.strip() or value.strip().startswith("{{"):
+        return None, None
+    normalized = value.strip()
+    if re.fullmatch(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[%％])?", normalized):
+        return "numeric", None
+    return "text", normalized
+
+
+def _data_display_variant(
+    component: ComponentRow,
+    data_model: dict[str, Any] | None,
+) -> str | None:
+    value_kind, text_sample = _data_display_value_kind(component, data_model)
+    if text_sample is not None:
+        character_count = len(re.sub(r"\s+", "", text_sample))
+        if not 1 <= character_count <= 8:
+            raise CompactDslConversionError(
+                f"{component.component_id}: text DataDisplay.value requires 1 to 8 characters."
+            )
+    if value_kind == "text":
+        return "textConclusion"
+    return None
+
+
+def _expand_data_display(
+    component: ComponentRow,
+    size: str,
+    *,
+    data_model: dict[str, Any] | None = None,
+) -> list[ComponentRow]:
     if size != "2x2":
         raise CompactDslConversionError("DataDisplay currently requires a 2x2 card.")
-    allowed = {"label", "value", "supportingText", "fontColor", "fontSize"}
+    allowed = {
+        "label",
+        "icon",
+        "fillColor",
+        "value",
+        "supportingText",
+        "fontColor",
+        "fontSize",
+    }
     _validate_high_level_props(
         component,
-        required={"label", "value", "supportingText", "fontColor"},
+        required={"value", "supportingText", "fontColor"},
         allowed=allowed,
     )
-    variant = "textConclusion" if component.props.get("fontSize") == 18 else None
-    _validate_recipe_font_size(
-        component,
-        component_name="DataDisplay",
-        part_name="value",
-        size=size,
-        variant=variant,
+    variant = _data_display_variant(component, data_model)
+    label = component.props.get("label")
+    has_label = isinstance(label, str) and bool(label.strip())
+    has_icon = isinstance(component.props.get("icon"), str) and bool(
+        component.props["icon"].strip()
     )
-    if not isinstance(component.props.get("label"), str) or not component.props["label"].strip():
+    if label is not None and not has_label:
         raise CompactDslConversionError(
             f"{component.component_id}: DataDisplay.label must be non-empty text."
+        )
+    _validate_optional_icon(component)
+    if has_label == has_icon:
+        raise CompactDslConversionError(
+            f"{component.component_id}: DataDisplay requires exactly one of label or icon."
+        )
+    if variant is None and not has_label:
+        raise CompactDslConversionError(
+            f"{component.component_id}: numeric DataDisplay requires a text label."
         )
     _require_text_value(component, "value")
     _require_text_value(component, "supportingText")
@@ -2865,48 +2942,85 @@ def _expand_data_display(component: ComponentRow, size: str) -> list[ComponentRo
     secondary_color = _color_with_alpha(component.props["fontColor"], 0.6)
 
     label_id = f"{component.component_id}_label"
+    icon_id = f"{component.component_id}_icon"
+    value_area_id = f"{component.component_id}_value_area"
     value_id = f"{component.component_id}_value"
     supporting_id = f"{component.component_id}_supporting"
-    return [
+    leading_id = label_id if has_label else icon_id
+    value_child_id = value_area_id if variant == "textConclusion" else value_id
+    value_row = _visual_row(
+        value_id,
+        "DataDisplay",
+        "value",
+        size=size,
+        variant=variant,
+        props={
+            "content": copy.deepcopy(component.props["value"]),
+            "fontColor": component.props["fontColor"],
+        },
+    )
+    if variant == "textConclusion":
+        value_row = _without_fixed_height(value_row)
+    rows = [
         _visual_row(
             component.component_id,
             "DataDisplay",
             "root",
             size=size,
-            children=(label_id, value_id, supporting_id),
-        ),
-        _visual_row(
-            label_id,
-            "DataDisplay",
-            "label",
-            size=size,
-            props={
-                "content": component.props["label"],
-                "fontColor": secondary_color,
-            },
-        ),
-        _visual_row(
-            value_id,
-            "DataDisplay",
-            "value",
-            size=size,
             variant=variant,
-            props={
-                "content": copy.deepcopy(component.props["value"]),
-                "fontColor": component.props["fontColor"],
-            },
+            children=(leading_id, value_child_id, supporting_id),
         ),
+        value_row,
         _visual_row(
             supporting_id,
             "DataDisplay",
             "supporting",
             size=size,
+            variant=variant,
             props={
                 "content": copy.deepcopy(component.props["supportingText"]),
                 "fontColor": secondary_color,
             },
         ),
     ]
+    if variant == "textConclusion":
+        rows.insert(
+            1,
+            _visual_row(
+                value_area_id,
+                "DataDisplay",
+                "valueArea",
+                size=size,
+                variant=variant,
+                children=(value_id,),
+            ),
+        )
+    if has_label:
+        rows.insert(
+            1,
+            _visual_row(
+                label_id,
+                "DataDisplay",
+                "label",
+                size=size,
+                props={"content": label, "fontColor": secondary_color},
+            ),
+        )
+    else:
+        icon_props = {"src": component.props["icon"]}
+        if "fillColor" in component.props:
+            icon_props["fillColor"] = component.props["fillColor"]
+        rows.insert(
+            1,
+            _visual_row(
+                icon_id,
+                "DataDisplay",
+                "icon",
+                size=size,
+                props=icon_props,
+            ),
+        )
+    return rows
 
 
 def _expand_top_text_bottom_value(
@@ -2998,9 +3112,14 @@ def _expand_summary_list(component: ComponentRow, size: str) -> list[ComponentRo
     if size != "2x4":
         raise CompactDslConversionError("SummaryList currently requires a 2x4 card.")
     allowed = {"items", "fontColor", "backgroundColor"}
-    _validate_high_level_props(component, required=allowed, allowed=allowed)
+    _validate_high_level_props(
+        component,
+        required={"items", "fontColor"},
+        allowed=allowed,
+    )
     _require_color(component, "fontColor")
-    _require_color(component, "backgroundColor")
+    if "backgroundColor" in component.props:
+        _require_color(component, "backgroundColor")
     items = component.props.get("items")
     if not isinstance(items, list) or not 2 <= len(items) <= 3:
         raise CompactDslConversionError(
@@ -3013,46 +3132,40 @@ def _expand_summary_list(component: ComponentRow, size: str) -> list[ComponentRo
             )
 
     row_ids = [f"{component.component_id}_item{index}" for index in range(len(items))]
+    minimum_height = 64 if len(items) == 2 else 102
     rows = [
-        ComponentRow(
+        _visual_row(
             component.component_id,
-            "Column",
-            {
-                "width": "matchParent",
-                "height": 64 if len(items) == 2 else 102,
-                "itemMargin": 8,
-                "alignItems": "start",
-            },
-            tuple(row_ids),
+            "SummaryList",
+            "root",
+            size=size,
+            props={"constraintSize": {"minHeight": minimum_height}},
+            children=tuple(row_ids),
         )
     ]
     for index, item in enumerate(items):
         text_id = f"{row_ids[index]}_text"
+        item_props: dict[str, Any] = {}
+        if "backgroundColor" in component.props:
+            item_props["backgroundColor"] = component.props["backgroundColor"]
         rows.extend(
             [
-                ComponentRow(
+                _visual_row(
                     row_ids[index],
-                    "Row",
-                    {
-                        "width": "matchParent",
-                        "height": 28,
-                        "padding": {"left": 12, "right": 12},
-                        "borderRadius": 8,
-                        "backgroundColor": component.props["backgroundColor"],
-                        "alignItems": "center",
-                    },
-                    (text_id,),
+                    "SummaryList",
+                    "item",
+                    size=size,
+                    props=item_props,
+                    children=(text_id,),
                 ),
-                ComponentRow(
+                _visual_row(
                     text_id,
-                    "Text",
-                    {
+                    "SummaryList",
+                    "text",
+                    size=size,
+                    props={
                         "content": copy.deepcopy(item),
-                        "width": "matchParent",
-                        "fontSize": 12,
-                        "fontWeight": 400,
                         "fontColor": component.props["fontColor"],
-                        "maxLines": 1,
                     },
                 ),
             ]
@@ -3320,7 +3433,7 @@ def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> li
     )
     root_styles.pop("_visualRecipe", None)
     title_styles.pop("_visualRecipe", None)
-    item_margin = root_styles.pop("itemMargin", 0)
+    root_styles.pop("itemMargin", None)
     title_id = f"{component.component_id}_title"
     children = [title_id]
     icon_id = f"{component.component_id}_icon"
@@ -3330,7 +3443,6 @@ def _convert_single_line_title(component: ComponentRow, size: str = "2x2") -> li
         "id": component.component_id,
         "component": root_type,
         "children": children,
-        "itemMargin": item_margin,
         "styles": root_styles,
     }
     title_styles["fontColor"] = props.get("fontColor")

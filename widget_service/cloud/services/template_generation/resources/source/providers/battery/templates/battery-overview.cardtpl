@@ -2741,9 +2741,7 @@ Row(
         "alignItems": "center",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0},
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
-        "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-        "borderRadius": $theme("supportContentStyle.borderRadius")
+
     },
     Column(
         {
@@ -2795,11 +2793,8 @@ Row(
         "width": "matchParent",
         "height": "matchParent",
         "itemMargin": 4,
-        "padding": {"left": 12, "top": 8, "right": 12, "bottom": 8},
         "justifyContent": "spaceBetween",
         "alignItems": "center",
-        "backgroundColor": $theme('supportContentStyle.backgroundColor'),
-        "borderRadius": $theme('supportContentStyle.borderRadius'),
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },

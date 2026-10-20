@@ -47,7 +47,8 @@ def test_plan_and_generation_always_receive_slot_capacity(
     system = prompt[0].get("content")
     assert isinstance(system, str)
     assert "4项至少280vp" in system
-    assert "276vp，最多容纳3项" in system
+    assert "实际槽宽为276vp" in system
+    assert "280vp，最多容纳4项" in system
     plan_prompt = builder.build_compact_plan(task, system, prompt[1].get("content", ""))
     plan_system = plan_prompt[0].get("content")
     assert isinstance(plan_system, str)
@@ -153,7 +154,9 @@ def test_recipe_changes_reach_capacity_planner_and_prompt(monkeypatch) -> None:
     assert "4项至少356vp" in compact_text_block_capacity_context("2x4")
 
 
-@pytest.mark.parametrize("extra_width, available, capacity", [(0.0, 276, 3), (4.0, 280, 4)])
+@pytest.mark.parametrize(
+    "extra_width, available, capacity", [(0.0, 280, 4), (4.0, 280, 4)]
+)
 def test_capacity_follows_reference_canvas_without_global_three_item_limit(
     monkeypatch, extra_width: float, available: int, capacity: int,
 ) -> None:

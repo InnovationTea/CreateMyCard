@@ -179,16 +179,10 @@ def test_grouped_layouts_excluded(monkeypatch, layout_id):
     assert policy.fusion_candidate_gate(task, LAYOUT).get("allowedTokens") == []
 
 
-def test_old_native_wide_images_are_retained_but_inactive():
-    wide = themes.registered_themes("subjectlessWidePhotos", include_disabled=True)
-    assert {item.get("business") for item in wide} == {"weather", "battery", "sleep"}
-    assert len(wide) == 3
-    battery = next(item for item in wide if item.get("business") == "battery")
-    assert battery.get("src") == "resources/base/media/bg_subjectless_b05.jpg"
-    assert all(item.get("objectFit") == "fill" for item in wide)
-    assert len(themes.registered_themes("photos")) == 12
-    assert themes.registered_themes("subjectlessWidePhotos") == []
-    assert themes.registered_themes("squareExpansions") == []
+def test_removed_photo_pools_are_empty_including_disabled_entries():
+    assert len(themes.registered_themes("photos")) == 14
+    assert themes.registered_themes("subjectlessWidePhotos", include_disabled=True) == []
+    assert themes.registered_themes("squareExpansions", include_disabled=True) == []
 
 
 @pytest.mark.parametrize("business,family", [

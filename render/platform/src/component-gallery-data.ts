@@ -514,15 +514,15 @@ export const COMPONENT_GALLERY: GalleryComponent[] = [
     category: "共享组件",
     sizes: ["2x4"],
     summary: "2–3 条等权、单行的短摘要列表。",
-    usage: "合同定义在共享组件中；Fusion 当前只进入 2×4 的列表明细槽，每项固定单行显示。",
-    props: ["items[2..3]", "backgroundColor"],
+    usage: "只进入 2×4 的列表明细槽；Runtime 统一提供内容背板，并将条目组贴底显示。",
+    props: ["items[2..3]"],
     size: "2x4",
     width: 300,
     height: 150,
     source: dsl(
       wideRoot(["header", "list"], { itemMargin: 4, backgroundColor: "#FFFFF7F2" }),
       ["header", "SingleLineTitle", { title: "近期日程" }],
-      ["list", "SummaryList", { items: ["项目阶段性汇报", "确认 Q3 设计需求", "申请下周出差"], backgroundColor: WHITE_PANEL }],
+      ["list", "SummaryList", { items: ["项目阶段性汇报", "确认 Q3 设计需求", "申请下周出差"] }],
     ),
   },
 ];

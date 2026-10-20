@@ -3529,7 +3529,7 @@
     },
     {
       "input": {
-        "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"justifyContent\":\"center\",\"alignItems\":\"center\",\"design\":\"fusion-ball-sport-orange\"},[\"display\"]]\n[\"display\",\"DataDisplay\",{\"label\":\"运动会倒计时\",\"value\":{\"path\":\"/data/countdown/countdownDays\"},\"supportingText\":\"天\",\"fontSize\":56,\"width\":\"matchParent\"}]\n[\"/data/countdown/countdownDays\",32]",
+        "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"justifyContent\":\"center\",\"alignItems\":\"center\",\"design\":\"fusion-ball-sport-orange\"},[\"display\"]]\n[\"display\",\"DataDisplay\",{\"label\":\"运动会倒计时\",\"value\":{\"path\":\"/data/countdown/countdownDays\"},\"supportingText\":\"天\",\"fontSize\":48,\"width\":\"matchParent\"}]\n[\"/data/countdown/countdownDays\",32]",
         "task_spec": {
           "userQuery": "帮我做张运动会倒计时卡片，看看离运动会还有多少天。",
           "size": "2x2",
@@ -3572,7 +3572,7 @@
     },
     {
       "input": {
-        "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"alignItems\":\"center\",\"justifyContent\":\"center\",\"linearGradient\":{\"direction\":\"RightBottom\",\"colors\":[[\"#FFCBDDFE\",0],[\"#FFF1F6FE\",1]]}},[\"display\"]]\n[\"display\",\"DataDisplay\",{\"label\":\"当前任务\",\"value\":{\"path\":\"/data/view/value\"},\"supportingText\":\"项\",\"fontSize\":56,\"width\":\"matchParent\"}]\n[\"/data/view/value\",42]",
+        "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"alignItems\":\"center\",\"justifyContent\":\"center\",\"linearGradient\":{\"direction\":\"RightBottom\",\"colors\":[[\"#FFCBDDFE\",0],[\"#FFF1F6FE\",1]]}},[\"display\"]]\n[\"display\",\"DataDisplay\",{\"label\":\"当前任务\",\"value\":{\"path\":\"/data/view/value\"},\"supportingText\":\"项\",\"fontSize\":48,\"width\":\"matchParent\"}]\n[\"/data/view/value\",42]",
         "task_spec": {
           "userQuery": "展示当前任务数，并注明单位是项",
           "size": "2x2",

@@ -43,7 +43,7 @@ def _errors(source: str, **kwargs: object) -> CompactDslValidationError:
     return captured.value
 
 
-def test_two_by_four_height_over_126_is_non_blocking_warning() -> None:
+def test_two_by_four_height_over_126_is_blocking_error() -> None:
     items = [
         {
             "title": "澳大利亚网球公开赛",
@@ -108,23 +108,19 @@ def test_two_by_four_height_over_126_is_non_blocking_warning() -> None:
 
     result = DesignCompactProcessor().process(source, context)
 
-    assert result.errors == ()
-    assert result.standard_dsl
-    warnings = [item for item in result.issues if item.severity == "warning"]
-    assert len(warnings) == 2
-    assert all(item.code == "COMPACT_DSL_VALIDATION_WARNING" for item in warnings)
-    assert all("COMPACT_LAYOUT_HEIGHT_OVERFLOW" in item.message for item in warnings)
-    assert any("at least 158vp within 126vp" in item.message for item in warnings)
-    assert any("at least 140vp within 108vp" in item.message for item in warnings)
-    assert all("it overflows by 32vp" in item.message for item in warnings)
-    assert any(
-        "component root" in item.message and "Fallback: root_flexible_layout" in item.message
-        for item in warnings
-    )
-    assert any(
-        "component body" in item.message and "Fallback: weighted_flexible_layout" in item.message
-        for item in warnings
-    )
+    assert not result.standard_dsl
+    assert result.errors
+    diagnostics = []
+    for issue in result.errors:
+        issue_diagnostics = issue.prompt_context.get("compactDiagnostics", [])
+        assert isinstance(issue_diagnostics, list)
+        diagnostics.extend(issue_diagnostics)
+    height_diagnostics = [
+        item for item in diagnostics if item.get("code") == "COMPACT_LAYOUT_HEIGHT_OVERFLOW"
+    ]
+    assert len(height_diagnostics) == 2
+    assert {item.get("componentId") for item in height_diagnostics} == {"root", "body"}
+    assert all(item.get("severity") == "error" for item in height_diagnostics)
 
 
 def test_model_whitelist_precedes_layout_and_expansion(monkeypatch: pytest.MonkeyPatch) -> None:

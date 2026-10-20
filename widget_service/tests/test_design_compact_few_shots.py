@@ -55,6 +55,7 @@ RUNTIME_OWNED_PROPS = {
     },
     "CircleButton": {"actionSurface", "actionInk"},
     "CardButton": {"backgroundColor"},
+    "SummaryList": {"backgroundColor"},
     "TextBlock": {"backgroundColor"},
 }
 BASE_COMPONENTS = {
@@ -72,6 +73,7 @@ EXPECTED_EXAMPLE_ORDER = {
     "2x2": (
         "2x2-V01",
         "2x2-V09",
+        "2x2-V15",
         "2x2-V10",
         "2x2-V12",
         "2x2-V04",
@@ -89,6 +91,7 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x4-V03",
         "2x4-V16",
         "2x4-V28",
+        "2x4-V39",
         "2x4-V09",
         "2x4-V08",
         "2x4-V10",
@@ -101,6 +104,7 @@ EXPECTED_EXAMPLE_ORDER = {
 EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x2-V01": "S-center",
     "2x2-V09": "S-center",
+    "2x2-V15": "S-center",
     "2x2-V10": "S-title-content",
     "2x2-V12": "S-quad-content",
     "2x2-V04": "S-title-content-action",
@@ -116,6 +120,7 @@ EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x4-V03": "W-top-bottom",
     "2x4-V16": "W-top-bottom",
     "2x4-V28": "W-top-bottom",
+    "2x4-V39": "W-top-bottom",
     "2x4-V09": "W-split-panels",
     "2x4-V08": "W-content-side-slots",
     "2x4-V10": "W-content-side-slots",
@@ -236,7 +241,7 @@ def test_few_shot_validates_and_converts(
 
 
 @pytest.mark.parametrize(
-    "identifier, component_id", [("2x4-V10", "phone"), ("2x4-V38", "top_left")]
+    "identifier, component_id", [("2x4-V10", "upper"), ("2x4-V38", "top_left")]
 )
 def test_double_quoted_expression_strings_remain_rejected(
     identifier: str, component_id: str,
@@ -296,7 +301,6 @@ def test_few_shot_sources_follow_layout_order_and_mark_missing_skeletons() -> No
 
     two_by_four = (PROMPT_SOURCE / "fewshots/2x4.md").read_text(encoding="utf-8")
     for missing in (
-        "同类同级",
         "Sub-118-A",
         "Sub-118-B",
         "Sub-118-C",
@@ -403,14 +407,18 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
     _, source = _example("2x2-V14")
     rows = {row[0]: row for row in _rows(source)}
 
-    assert rows["title_area"][2].get("icon") == "resources/base/media/calendar_fill.svg"
-    assert rows["meeting_action"][2].get("icon") == "resources/base/media/icon_meeting.svg"
+    title_row = rows.get("title")
+    action_row = rows.get("action")
+    assert title_row is not None and action_row is not None
+    assert title_row[2].get("icon") == "resources/base/media/calendar_fill.svg"
+    assert action_row[2].get("icon") == "resources/base/media/icon_meeting.svg"
 
 
 @pytest.mark.parametrize(
     ("identifier", "required"),
     (
         ("2x2-V01", {"DataDisplay"}),
+        ("2x2-V15", {"DataDisplay"}),
         ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
         ("2x2-V03", {"TableText", "PillButton"}),
         ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
@@ -428,6 +436,7 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
             {"SingleLineTitle", "EventCard", "TableText", "CircleButton"},
         ),
         ("2x4-V03", {"EmphasizedData", "TextBlock"}),
+        ("2x4-V39", {"SingleLineTitle", "SummaryList"}),
     ),
 )
 def test_examples_use_available_high_level_components(
@@ -463,7 +472,7 @@ def test_examples_use_only_supported_component_types(
     EXAMPLES,
     ids=[item[0] for item in EXAMPLES],
 )
-def test_text_component_examples_declare_fixed_recipe_font_size(
+def test_text_component_examples_follow_runtime_font_ownership(
     identifier: str,
     task: dict,
     source: str,
@@ -474,13 +483,15 @@ def test_text_component_examples_declare_fixed_recipe_font_size(
         "DoubleLineTitle": 12,
         "EmphasizedData": 30,
         "EmphasisText": 18,
-        "DataDisplay": 56,
     }
     for row in _rows(source):
         if len(row) < 3:
             continue
         component_type = row[1]
         props = row[2]
+        if component_type == "DataDisplay":
+            assert "fontSize" not in props, identifier
+            continue
         expected = fixed_sizes.get(component_type)
         if component_type == "SecondaryBody":
             role = props.get("role")
@@ -668,6 +679,26 @@ def test_unknown_routes_use_current_neutral_examples() -> None:
     )
     assert PromptBuilder._visual_route(small) == ("generic", ("2x2-V09",))
     assert PromptBuilder._visual_route(wide) == ("generic", ("2x4-V00",))
+
+
+def test_weather_alert_routes_to_text_data_display_example() -> None:
+    task_spec = SimpleNamespace(
+        size="2x2",
+        userQuery="展示当前天气预警和更新日期，不需要按钮",
+        eventCandidates=[],
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "current": {"alertLevel": {"type": "string"}},
+                    "updatedAtText": {"type": "string"},
+                }
+            }
+        },
+    )
+    assert PromptBuilder._visual_route(task_spec) == (
+        "weather-readout",
+        ("2x2-V15",),
+    )
 
 
 def test_prompt_source_has_no_out_of_range_formal_example_references() -> None:

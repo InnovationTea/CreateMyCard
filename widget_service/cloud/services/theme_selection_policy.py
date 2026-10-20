@@ -27,6 +27,10 @@ def default_palette_family(task: dict) -> str | None:
 
 def _business_token(task: TaskSpec) -> str | None:
     route, _ = PromptBuilder._visual_route(task)
+    roots = {root.casefold() for root in PromptBuilder._data_roots(task)}
+    # Generic reminder wording in the layout route does not change a health-only business.
+    if route == "calendar-event" and roots == {"healthsport"}:
+        route = "health-readout"
     selected: str | None = None
     for rule in load_theme_registry().get("selection", {}).get("fusionRouting", []):
         if route not in rule.get("routes", []):

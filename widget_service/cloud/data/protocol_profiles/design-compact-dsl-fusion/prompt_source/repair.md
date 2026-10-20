@@ -47,7 +47,10 @@ expanded 位置来自模板展开，不是模型 Props。回到原语义 Layout/
 | full_dsl | 失败诊断与事实核对材料 | 从输入与接受 Plan 重建完整 DSL，不沿用失败旧拓扑 |
 
 component_contract_repair 处理组件合同；parent_layout_recompose 重新分配报错父区的完整信息组与动作。无 repairStrategy 的兼容入口才默认局部最小修改。
+semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region 或 Group：严格调整该节点直属 children 的数量、顺序和角色，保留其它区域和合法变体，不修改展开后几何。第一次原样返回时必须再执行精确修复；同一合同连续两次未闭合才升级父布局，父布局仍失败后才重建整份 DSL。
 只有语法、Props、绑定或素材错误时，不因此重选合法布局、删除视觉或改未报错图标/颜色/事件。若同时有容量、结构或缺事实错误，不能冻结已不成立的布局；按本轮升级范围处理所有关联问题。
+若 repairRouteLock 指定 `S-center` + `DataDisplay`，说明已接受 Plan 只有一个无动作核心事实且首选路线仍成立；所有 scope 都保留该布局和组件，只修报错 Props、绑定、素材或数据行。升级时“不要再次提交相同组件结构”仅禁止重复同一错误实现，不授权改成 `SingleLineTitle` + `EmphasisText` / `EmphasizedData`。
+`DataDisplay.fontSize` 由 Runtime Recipe 管理：数值模式固定48fp，文本模式固定24fp。修复时不新增、修改或依赖该 Prop；旧 DSL 已携带的字号不会成为校验错误。
 
 ## 3. 修复顺序
 
@@ -58,6 +61,10 @@ component_contract_repair 处理组件合同；parent_layout_recompose 重新分
 5. **整体回归。** 逐项对照全部事实和动作、单位次数、绑定、素材及每区宽高。更换/删除组件同步清理旧子树与引用，不留空值、孤立节点或空槽。横排不自动解决溢出，每列完整文字和换行都须放下。
 
 “最小修改”保护的是正确事实、对象关系、动作和设计量，不是已经放不下的旧拓扑。补动作先用已有合法动作槽，没有时换可承载全部操作的布局；不加第三固定槽、不把动作挂到信息块、不复制入口。
+同级组合换型时成组保持同规格及各自标签，不因其中一个值为数字而单独改成大号核心、将另一项降为辅助。
+组件类型不是硬约束；确实不适配时在授权scope内保留关系、事实和动作重选合法组合，不为保留双信息块删除内容。
+2x2 两个同级 InfoBlock 若带有非用户要求的概括性 SingleLineTitle，改为无标题 S-dual-info；保留日期、
+对象名、指标名及全部绑定在各自块内。用户明确要求独立可见标题或动作时，不得删除要求，改选其它合法组合。
 联合重组先按全部保留事实和动作核算整卡，再分配信息组与合法角色；不要从上次超预算堆叠继续减间距。
 比较全宽合组、同行或分行、不同合法组件及父布局，保留固定字号、完整标签和值；不固定选择某个布局。
 允许去除的仅是用户未要求且合同允许省略的装饰标题，不删除用户标题或事实。
@@ -73,6 +80,7 @@ component_contract_repair 处理组件合同；parent_layout_recompose 重新分
 | 实际问题 | 最小合法处理 |
 |---|---|
 | InfoBlock 的 progressCircle 主值格式错误 | 保留 visual/icon，同一数值改原始 PathBinding，百分号放 unit；不删环绕过校验 |
+| InfoBlock 主文本超宽 | 先按组件合同恢复读数与静态说明的分工；不得覆盖动态辅助值。完整读数仍放不下时才在scope内重选合法组合，不因可移出的静态前缀直接退化为表格或主辅混搭 |
 | SecondaryBody 动态 label | 保留静态标签；动态部分与原 value 按显示顺序合入同项完整 value Expression，保留全部绑定 |
 | SecondaryBody 项数/字号/宽度 | 最多6项，只移除未被 Plan 要求的重复或可选项；必要项改组合。按最终单/多行使用规定字号；长值可 columns:1、maxLines:2并计新增行高 |
 | EmphasizedData 误装多段时长 | 完整绑定迁入 EmphasisText.mainText 固定18fp，辅助时长保持正文规格；不截数字或删单位 |

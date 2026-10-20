@@ -86,6 +86,47 @@ def _quality_errors(prompt: list[dict[str, str]]) -> list[dict[str, Any]]:
     return errors
 
 
+@pytest.mark.usefixtures("isolated_theme_stage")
+def test_fixed_item_overflow_is_exported_with_capacity_fit_context() -> None:
+    source = "\n".join(
+        [
+            '["root","Layout",{"layout":"W-top-bottom",'
+            '"variant":"continuous"},["title","primary","details"]]',
+            '["title","SingleLineTitle",{"title":"行程","fontSize":12}]',
+            '["primary","EmphasisText",{"mainText":"还有30天","fontSize":18}]',
+            '["details","SummaryList",{"items":['
+            '"事项一","事项二","事项三","事项四","事项五"]}]',
+        ]
+    )
+    plan = {
+        "info_required": [
+            {"requirement": f"事项{label}", "priority": "must"}
+            for label in ("一", "二", "三", "四", "五")
+        ]
+    }
+    context = DslProcessingContext(
+        size="2x4",
+        card_spec={"suggestSize": "2x4"},
+        task_spec={
+            "size": "2x4",
+            "appVersion": "11.7.7.300",
+            "dataModelSchema": {"data": {}},
+            "eventCandidates": [],
+            "assetCandidates": [],
+        },
+        protocol_profile={},
+        compact_plan=plan,
+    )
+
+    result = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT).process(source, context)
+
+    assert result.errors
+    capacity_fits = result.errors[0].to_diagnostic_payload().get("capacityFits")
+    assert isinstance(capacity_fits, list)
+    assert capacity_fits[0]["actualItemCount"] == 5
+    assert capacity_fits[0]["overflowItemCount"] == 2
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("succeeds", [True, False])
 async def test_standalone_fixed_rounds_preserve_result_and_exception(

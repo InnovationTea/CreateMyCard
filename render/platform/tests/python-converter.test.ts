@@ -81,6 +81,25 @@ test("页面预览在正式转换以 422 拒绝后使用宽松本地展开", asy
   assert.ok(result.warnings.some(message => message.includes("宽松预览已使用 68")));
 });
 
+test("语义布局被正式转换拒绝后仍可近似展开并预览", async () => {
+  const source = [
+    '["root","Layout",{"layout":"W-top-bottom","variant":"continuous"},["title","primary","details"]]',
+    '["title","SingleLineTitle",{"title":"杭州秋日漫游","icon":"resources/base/media/weather.svg","fontSize":12}]',
+    '["primary","EmphasisText",{"mainText":"Day1 灵隐寺祈福","secondaryText":"09:00–11:30","fontSize":18}]',
+    '["details","SummaryList",{"items":["Day1 私厨晚餐","Day2 小河直街"]}]',
+  ].join("\n");
+  const result = await compileCompactDslForPreview(source, {
+    size: "2x4",
+    fetchImpl: async () => Response.json({ detail: "测试用正式合同错误" }, { status: 422 }),
+  });
+
+  assert.equal(result.graph.getRoot()?.type, "Extended.Column");
+  assert.equal(result.graph.getNode("title_icon")?.props.src, "resources/base/media/weather.svg");
+  assert.ok(result.graph.getNode("root__preview_body"));
+  assert.match(result.warnings[0], /测试用正式合同错误/);
+  assert.ok(result.warnings.some(message => message.includes("只用于定位错误")));
+});
+
 test("无法连接正式转换器时给出可执行提示", async () => {
   await assert.rejects(
     compileCompactDslWithPython('["root","Text",{}]', {

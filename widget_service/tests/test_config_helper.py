@@ -44,9 +44,12 @@ def test_missing_spec_uses_default_config(
     assert helper.get("compact_dsl_argument_repair_max_attempts") == 2
     assert helper.get("enable_compact_dsl_interface_retry") == "true"
     assert helper.get("compact_dsl_interface_retry_count") == 1
+    assert helper.get("enable_single_step_generation_fallback") == "false"
+    assert helper.get("enable_single_step_widget_edit") == "true"
+    assert helper.get("enable_widget_edit") == "true"
     assert "enable_post_layout_theme" not in helper
     assert "enable_post_layout_theme" not in Settings.model_fields
-    assert helper.get("enable_photo_background_theme") == "false"
+    assert helper.get("enable_photo_background_theme") == "true"
     assert helper.get("enable_subjectless_wide_theme") == "false"
     assert helper.get("enable_square_photo_expansion") == "false"
 
@@ -177,6 +180,18 @@ def test_removed_theme_switch_cannot_restore_front_loaded_theme(
     settings = Settings(_env_file=tmp_path / "missing.env")
 
     assert not hasattr(settings, "enable_post_layout_theme")
+
+
+@pytest.mark.parametrize("key", [
+    "ENABLE_PHOTO_BACKGROUND_THEME", "WIDGET_SERVICE_ENABLE_PHOTO_BACKGROUND_THEME",
+])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_photo_switch_can_override_enabled_default(monkeypatch, tmp_path, key, enabled):
+    monkeypatch.delenv("ENABLE_PHOTO_BACKGROUND_THEME", raising=False)
+    monkeypatch.delenv("WIDGET_SERVICE_ENABLE_PHOTO_BACKGROUND_THEME", raising=False)
+    monkeypatch.setenv(key, str(enabled).lower())
+    settings = Settings(_env_file=tmp_path / "missing.env")
+    assert settings.enable_photo_background_theme is enabled
 
 
 def test_settings_reads_prompt_file_alias_from_env(

@@ -6,7 +6,6 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any
 
-from app.logger import logger
 from services.card_validation.compact_validation.diagnostics import (
     CompactDiagnostic,
     CompactDslValidationError,
@@ -68,7 +67,6 @@ from services.compact_dsl_a2ui_converter import (
 )
 from services.compact_layout_runtime import CompactLayoutRuntimeError, match_compact_layout
 from services.compact_whole_card_click import accepted_whole_card_click
-from services.validation_execution import ValidationExecutionContext
 
 from .context import ComponentRows, ValidationContext
 from .diagnostics import DiagnosticCollector
@@ -78,59 +76,6 @@ from .syntax.components import collect_model_component_errors
 
 
 def validate_compact_dsl(
-    compact_dsl: str,
-    *,
-    task_spec: dict[str, Any],
-    card_spec: dict[str, Any],
-    compact_plan: dict[str, Any] | None = None,
-    protocol_profile: dict[str, Any] | None = None,
-    layout_scope: str | None = None,
-    enforce_model_component_types: bool = False,
-    original_source: str | None = None,
-    repair_context: RepairGuidanceContext | None = None,
-    execution_context: ValidationExecutionContext | None = None,
-) -> CompactDslValidationResult:
-    """校验 Compact DSL，并在日志中保留本次校验的业务身份。"""
-
-    identity = execution_context or ValidationExecutionContext()
-    log_fields = identity.log_fields()
-    logger.info(f"[Compact Validation] validation_started {log_fields}")
-    try:
-        result = _validate_compact_dsl(
-            compact_dsl,
-            task_spec=task_spec,
-            card_spec=card_spec,
-            compact_plan=compact_plan,
-            protocol_profile=protocol_profile,
-            layout_scope=layout_scope,
-            enforce_model_component_types=enforce_model_component_types,
-            original_source=original_source,
-            repair_context=repair_context,
-        )
-    except CompactDslValidationError as exc:
-        message = (
-            f"[Compact Validation] validation_failed {log_fields} "
-            f"error_count={len(exc.errors)}"
-        )
-        if identity.is_probe:
-            logger.info(message)
-        else:
-            logger.warning(message)
-        raise
-    except Exception as exc:
-        logger.error(
-            f"[Compact Validation] validation_crashed {log_fields} "
-            f"exception_type={type(exc).__name__}"
-        )
-        raise
-    logger.info(
-        f"[Compact Validation] validation_completed {log_fields} "
-        f"warning_count={len(result.warnings)}"
-    )
-    return result
-
-
-def _validate_compact_dsl(
     compact_dsl: str,
     *,
     task_spec: dict[str, Any],
@@ -244,7 +189,6 @@ def _validate_compact_dsl(
     _collect_height_budget_errors(
         budget_components, task_spec, card_spec, errors, protocol_profile,
         layout_origins=context.layout_origins,
-        warnings=warnings,
     )
     _collect_text_width_budget_errors(
         budget_components, task_spec, card_spec, errors, protocol_profile,
@@ -254,6 +198,7 @@ def _validate_compact_dsl(
     _collect_horizontal_budget_errors(
         budget_components, task_spec, card_spec, errors, protocol_profile,
         warnings=warnings,
+        original_components=context.original_components,
     )
     for component in components:
         location = f"component {component.component_id}.props"
