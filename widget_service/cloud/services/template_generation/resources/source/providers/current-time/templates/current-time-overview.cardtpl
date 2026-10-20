@@ -57,7 +57,7 @@ Column(
     ),
     Text(
         data.currentDate,
-        { "width": "matchParent", "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+        { "width": "matchParent", "fontSize": 20, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
     ),
     #if data.lunarDate
     Text(
