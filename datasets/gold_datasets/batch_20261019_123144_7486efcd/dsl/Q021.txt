@@ -1,0 +1,15 @@
+["root","Layout",{"layout":"S-title-primary-secondary-action"},["header","nap","sleep_detail","action"]]
+
+["header","SingleLineTitle",{"title":"昨日作息","icon":"resources/base/media/moon_z_fill_1.svg","fontSize":12}]
+
+["nap","EmphasisText",{"mainText":"{{ '白天小睡 ' + ${/data/healthSport/totalNapDurationText} }}","fontSize":18}]
+
+["sleep_detail","SecondaryBody",{"items":[{"label":"入睡 ","value":{"path":"/data/healthSport/fallAsleepTimeText"}},{"label":"醒来 ","value":{"path":"/data/healthSport/wakeupTimeText"}}],"separator":" | ","fontSize":14}]
+
+["action","PillButton",{"label":"打开闹钟","icon":"resources/base/media/alarm_fill_1.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Clock","bundleName":"com.huawei.hmos.clock","abilityName":"com.huawei.hmos.clock.phone","uri":""}}]}]
+
+["/data/healthSport/totalNapDurationText","0分"]
+
+["/data/healthSport/fallAsleepTimeText","23:15"]
+
+["/data/healthSport/wakeupTimeText","07:30"]

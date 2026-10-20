@@ -1,0 +1,39 @@
+{
+  "userQuery": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+  "size": "2x2",
+  "appVersion": "11.9.9.342",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "sleepTypeDesc": {
+          "type": "string",
+          "description": "睡眠记录方式或类型的描述，例如“科学睡眠”、“普通睡眠”、“手动输入睡眠”、“手机记录睡眠”。",
+          "sampleValue": "科学睡眠"
+        },
+        "nightSleepDurationText": {
+          "type": "string",
+          "description": "可直接显示的夜间正式睡眠总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“7小时1分”。",
+          "sampleValue": "7小时1分"
+        },
+        "deepSleepDurationText": {
+          "type": "string",
+          "description": "可直接显示的夜间正式睡眠深睡总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“2小时15分”。",
+          "sampleValue": "2小时15分"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "id": "asset.moon_z_fill_1",
+      "src": "resources/base/media/moon_z_fill_1.svg",
+      "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。"
+    },
+    {
+      "id": "asset.emoji_time",
+      "src": "resources/base/media/emoji_time.png",
+      "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：当前时间、计时或时长统计相关卡片。不适用：只含时间字段的日程或会议卡片。"
+    }
+  ]
+}

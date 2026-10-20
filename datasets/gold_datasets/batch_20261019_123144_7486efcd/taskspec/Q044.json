@@ -1,0 +1,68 @@
+{
+  "userQuery": "帮我做个卡片，查看剩余电量，点击打开省电模式，并且可以直接导航回家。",
+  "size": "2x2",
+  "appVersion": "11.9.9.342",
+  "eventCandidates": [
+    {
+      "id": "event.setPowerSavingMode",
+      "description": "点击一键开启/关闭省电模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetSettingSwitch",
+        "params": {
+          "appBundleName": "com.huawei.hmos.settings",
+          "itemName": "battery_saving_mode",
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "id": "event.startNavigate",
+      "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "StartNavigate",
+        "params": {
+          "dstLocation": {
+            "location": "home",
+            "latitude": "",
+            "longitude": ""
+          }
+        }
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "phoneBattery": {
+        "batterySOC": {
+          "type": "integer",
+          "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+          "sampleValue": 68
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "当前设备电池的充电状态文本描述。",
+          "sampleValue": "未充电"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "id": "asset.battery_leaf_fill",
+      "src": "resources/base/media/battery_leaf_fill.svg",
+      "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+    },
+    {
+      "id": "asset.location_north_up_right_fill",
+      "src": "resources/base/media/location_north_up_right_fill.svg",
+      "description": "样式：方向导航实心图标，默认黑色，图形为指向右上方的导航箭头；适用：地图导航、方向指引、路线规划。"
+    },
+    {
+      "id": "asset.house_fill",
+      "src": "resources/base/media/house_fill.svg",
+      "description": "样式：默认黑色的单色房屋实心图标，内部通过镂空表现门洞，支持通过 fillColor 与卡片配色统一；适用：首页导航、智能家居入口、回家提醒。"
+    }
+  ]
+}

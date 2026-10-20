@@ -1,0 +1,51 @@
+{
+  "userQuery": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+  "size": "2x2",
+  "appVersion": "11.9.9.342",
+  "eventCandidates": [
+    {
+      "id": "event.open.clock.alarm",
+      "description": "打开闹钟应用首页",
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Clock",
+        "bundleName": "com.huawei.hmos.clock",
+        "abilityName": "com.huawei.hmos.clock.phone",
+        "uri": ""
+      }
+    }
+  ],
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "totalNapDurationText": {
+          "type": "string",
+          "description": "可直接显示的白天零星小睡累计总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“45分”或“0分”。",
+          "sampleValue": "0分"
+        },
+        "fallAsleepTimeText": {
+          "type": "string",
+          "description": "格式化后的确切入睡时刻短文本（HH:mm），例如“23:15”。",
+          "sampleValue": "23:15"
+        },
+        "wakeupTimeText": {
+          "type": "string",
+          "description": "格式化后的确切醒来时刻短文本（HH:mm），例如“07:30”。",
+          "sampleValue": "07:30"
+        }
+      }
+    }
+  },
+  "assetCandidates": [
+    {
+      "id": "asset.moon_z_fill_1",
+      "src": "resources/base/media/moon_z_fill_1.svg",
+      "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。"
+    },
+    {
+      "id": "asset.alarm_fill_1",
+      "src": "resources/base/media/alarm_fill_1.svg",
+      "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。"
+    }
+  ]
+}

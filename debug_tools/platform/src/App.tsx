@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes, useMatch } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useLocation, useMatch } from 'react-router-dom';
 import { WorkbenchProvider } from './context';
 import CallHistory from './components/CallHistory';
 import SettingsPanel from './components/SettingsPanel';
@@ -17,7 +17,9 @@ import { QualityRoute } from './routes/QualityRoute';
 import { QualityCompareRoute } from './routes/QualityCompareRoute';
 import { QualityEvaluationRoute } from './routes/QualityEvaluationRoute';
 import { ValidationFailureCaptureRoute } from './routes/ValidationFailureCaptureRoute';
-import { QualityImportRoute } from './routes/QualityImportRoute';
+import { ExpectImportRoute } from './routes/ExpectImportRoute';
+import { ExpectCompareRoute } from './routes/ExpectCompareRoute';
+import { ExpectGalleryRoute } from './routes/ExpectGalleryRoute';
 
 const navigation = [
   { path: '/end-to-end', label: '端到端调试', detail: 'Main Agent · Agent 调试' },
@@ -25,11 +27,13 @@ const navigation = [
   { path: '/renderer', label: '卡片渲染', detail: 'GenUI · 预览检查' },
   { path: '/device-render', label: '设备渲染', detail: 'HDC · 编译与设备预览' },
   { path: '/batch', label: '批量测试', detail: '数据集 · Trace 分析' },
+  { path: '/expect', label: '期望对比', detail: '期望输出 · 实际渲染配对' },
   { path: '/quality', label: '质量评分', detail: '样本选择 · 评分与对比' },
   { path: '/settings', label: '连接配置', detail: '地址 · 固定参数' },
 ];
 
 function Shell() {
+  const { search } = useLocation();
   const isEndToEnd = useMatch('/end-to-end') !== null;
   const [hasVisitedEndToEnd, setHasVisitedEndToEnd] = useState(isEndToEnd);
   useEffect(() => {
@@ -50,6 +54,7 @@ function Shell() {
             <NavLink
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
               to={item.path}
+              end={item.path === '/expect'}
               key={item.path}
             >
               <span className="nav-item-icon" aria-hidden="true">{item.label.slice(0, 1)}</span>
@@ -81,9 +86,17 @@ function Shell() {
             <Route path="/batch/new" element={<BatchTaskCreateRoute />} />
             <Route path="/batch/tasks/:taskId" element={<BatchRoute />} />
             <Route path="/batch/legacy/:runId" element={<BatchRoute />} />
+            <Route path="/expect" element={<ExpectCompareRoute />} />
+            <Route path="/expect/import" element={<ExpectImportRoute />} />
+            {/* 外部产出的真实输出按批次导入后，直接与期望批次在同一套规则下配对。 */}
+            <Route path="/expect/actual-import" element={<ExpectImportRoute purpose="actual" />} />
+            <Route path="/expect/gallery" element={<ExpectGalleryRoute />} />
+            <Route path="/expect/gallery/import" element={<ExpectImportRoute origin="gallery" />} />
             <Route path="/quality" element={<QualityRoute />} />
-            <Route path="/quality/import" element={<QualityImportRoute />} />
+            <Route path="/quality/import" element={<ExpectImportRoute origin="quality" />} />
             <Route path="/quality/compare" element={<QualityCompareRoute />} />
+            {/* 期望对比已独立成模块；旧地址带参跳转，避免历史链接丢失批次。 */}
+            <Route path="/quality/expect" element={<Navigate replace to={{ pathname: '/expect', search }} />} />
             <Route path="/quality/evaluation" element={<QualityEvaluationRoute />} />
             <Route path="/settings" element={<SettingsPanel />} />
             <Route path="*" element={<Navigate replace to="/end-to-end" />} />

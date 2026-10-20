@@ -1,0 +1,23 @@
+["root","Layout",{"layout":"W-split-panels"},["steps_panel","exercise_panel"]]
+
+["steps_panel","Region",{"variant":"title-content"},["steps_title","steps_value"]]
+
+["steps_title","SingleLineTitle",{"title":"今日步数","icon":"resources/base/media/figure_run.svg","fontSize":12}]
+
+["steps_value","EmphasizedData",{"value":{"path":"/data/healthSport/dailySteps"},"unit":"步","fontSize":30}]
+
+["exercise_panel","Region",{"variant":"title-content"},["exercise_title","exercise_detail"]]
+
+["exercise_title","SingleLineTitle",{"title":{"path":"/data/healthSport/exerciseTypeName"},"fontSize":12}]
+
+["exercise_detail","SecondaryBody",{"columns":1,"items":[{"label":"热量","value":{"path":"/data/healthSport/exerciseCalorieText"}},{"label":"时长","value":{"path":"/data/healthSport/exerciseDurationText"}},{"label":"平均心率","value":"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}"}],"fontSize":12}]
+
+["/data/healthSport/dailySteps",6200]
+
+["/data/healthSport/exerciseTypeName","户外跑步"]
+
+["/data/healthSport/exerciseCalorieText","260 千卡"]
+
+["/data/healthSport/exerciseDurationText","40分"]
+
+["/data/healthSport/exerciseHeartRateAvg",135]

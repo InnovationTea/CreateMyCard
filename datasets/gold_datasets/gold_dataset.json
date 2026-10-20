@@ -1,0 +1,1358 @@
+{
+  "schemaVersion": "gold-dataset-v3",
+  "idFormat": "<runId>-<sampleId>",
+  "pathsRelativeTo": "gold_dataset.json 所在目录（datasets/gold_datasets）",
+  "generatedAt": "2026-10-19T09:20:00+00:00",
+  "batchOutputDir": "../../debug_tools/batch_output",
+  "runCount": 2,
+  "sampleCount": 9,
+  "runs": [
+    {
+      "runId": "batch_20261019_123144_7486efcd",
+      "datasetId": "20261016_request_baseline",
+      "taskId": "task_6883b4de43c6",
+      "batchSourcePath": "../../debug_tools/batch_output/batch_20261019_123144_7486efcd",
+      "screenshotCount": 8,
+      "sampleCount": 8,
+      "samples": [
+        {
+          "id": "batch_20261019_123144_7486efcd-Q003",
+          "sampleId": "Q003",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "下一场日程是18天后上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+          "title": "发布会提醒",
+          "size": "2x2",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0003.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q003.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-primary-secondary-action\"},[\"header\",\"countdown\",\"event_info\",\"action\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":{\"path\":\"/data/calendar/events/0/title\"},\"icon\":\"resources/base/media/stopwatch_fill.svg\",\"fontSize\":12}]\n\n[\"countdown\",\"EmphasizedData\",{\"value\":{\"path\":\"/data/countdown/countdownDays\"},\"unit\":\"天\",\"fontSize\":30}]\n\n[\"event_info\",\"SecondaryBody\",{\"items\":[{\"label\":\"开始 \",\"value\":{\"path\":\"/data/calendar/events/0/dtStart\"}}],\"fontSize\":14}]\n\n[\"action\",\"PillButton\",{\"label\":\"查看详情\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"ViewCalendarEvent\",\"params\":{\"entityId\":\"{{ ${/data/calendar/events/0/entityId} }}\"}}}]}]\n\n[\"/data/countdown/countdownDays\",30]\n\n[\"/data/calendar/events/0/title\",\"产品发布会\"]\n\n[\"/data/calendar/events/0/dtStart\",\"上午10:00\"]\n\n[\"/data/calendar/events/0/entityId\",\"example-event-001\"]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q003.json",
+          "taskspec": {
+            "userQuery": "下一场日程是18天后上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+            "size": "2x2",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [
+              {
+                "id": "event.viewCalendarEvent",
+                "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
+                "call": "clickToIntent",
+                "args": {
+                  "intentName": "ViewCalendarEvent",
+                  "params": {
+                    "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+                  }
+                }
+              }
+            ],
+            "dataModelSchema": {
+              "data": {
+                "countdown": {
+                  "countdownDays": {
+                    "type": "integer",
+                    "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+                    "sampleValue": 30
+                  }
+                },
+                "calendar": {
+                  "events": [
+                    {
+                      "title": {
+                        "type": "string",
+                        "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+                        "sampleValue": "项目例会"
+                      },
+                      "dtStart": {
+                        "type": "string",
+                        "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                        "sampleValue": "14:00"
+                      },
+                      "entityId": {
+                        "type": "string",
+                        "description": "系统日程的全局唯一实体ID。",
+                        "sampleValue": "example-event-001"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.stopwatch_fill",
+                "src": "resources/base/media/stopwatch_fill.svg",
+                "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+              },
+              {
+                "id": "asset.calendar_fill",
+                "src": "resources/base/media/calendar_fill.svg",
+                "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"
+              },
+              {
+                "id": "asset.icon_schedule",
+                "src": "resources/base/media/icon_schedule.svg",
+                "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。"
+              }
+            ]
+          }
+        },
+        {
+          "id": "batch_20261019_123144_7486efcd-Q006",
+          "sampleId": "Q006",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "明天上午九点有产品立项会，下午三点有客户交流会，帮我做个卡片，分别看两场会议的标题和开始时间。",
+          "title": "明日双会",
+          "size": "2x2",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0006.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q006.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-content\"},[\"header\",\"event\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"明日会议\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"fontSize\":12}]\n\n[\"event\",\"EventCard\",{\"items\":[{\"title\":{\"path\":\"/data/calendar/events/0/title\"},\"time\":{\"path\":\"/data/calendar/events/0/dtStart\"}},{\"title\":{\"path\":\"/data/calendar/events/1/title\"},\"time\":{\"path\":\"/data/calendar/events/1/dtStart\"}}],\"density\":\"compact\"}]\n\n[\"/data/calendar/events/0/title\",\"产品立项会\"]\n\n[\"/data/calendar/events/0/dtStart\",\"09:00\"]\n\n[\"/data/calendar/events/1/title\",\"客户交流会\"]\n\n[\"/data/calendar/events/1/dtStart\",\"15:00\"]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q006.json",
+          "taskspec": {
+            "userQuery": "明天上午九点有产品立项会，下午三点有客户交流会，帮我做个卡片，分别看两场会议的标题和开始时间。",
+            "size": "2x2",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [],
+            "dataModelSchema": {
+              "data": {
+                "calendar": {
+                  "events": [
+                    {
+                      "title": {
+                        "type": "string",
+                        "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+                        "sampleValue": "项目例会"
+                      },
+                      "dtStart": {
+                        "type": "string",
+                        "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                        "sampleValue": "14:00"
+                      }
+                    },
+                    {
+                      "title": {
+                        "type": "string",
+                        "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+                        "sampleValue": "项目例会"
+                      },
+                      "dtStart": {
+                        "type": "string",
+                        "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                        "sampleValue": "14:00"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.calendar_fill",
+                "src": "resources/base/media/calendar_fill.svg",
+                "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"
+              },
+              {
+                "id": "asset.icon_schedule",
+                "src": "resources/base/media/icon_schedule.svg",
+                "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。"
+              },
+              {
+                "id": "asset.icon_meeting",
+                "src": "resources/base/media/icon_meeting.svg",
+                "description": "样式：默认白色的单色线面结合会议演示板图标，画板内有两条横线，原始尺寸为 14×14，支持通过 fillColor 与卡片配色统一；适用：会议、汇报、演示、议程。"
+              }
+            ]
+          }
+        },
+        {
+          "id": "batch_20261019_123144_7486efcd-Q012",
+          "sampleId": "Q012",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+          "title": "睡眠分析",
+          "size": "2x2",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0012.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q012.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-dual-content\"},[\"header\",\"sleep_total\",\"sleep_detail\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"睡眠分析\",\"icon\":\"resources/base/media/moon_z_fill_1.svg\",\"fontSize\":12}]\n\n[\"sleep_total\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/nightSleepDurationText\"},\"secondaryText\":\"昨晚总睡眠\",\"fontSize\":18}]\n\n[\"sleep_detail\",\"SecondaryBody\",{\"items\":[{\"label\":\"记录类型\",\"value\":{\"path\":\"/data/healthSport/sleepTypeDesc\"}},{\"label\":\"深睡\",\"value\":{\"path\":\"/data/healthSport/deepSleepDurationText\"}}],\"columns\":1,\"fontSize\":12}]\n\n[\"/data/healthSport/nightSleepDurationText\",\"7小时1分\"]\n\n[\"/data/healthSport/sleepTypeDesc\",\"科学睡眠\"]\n\n[\"/data/healthSport/deepSleepDurationText\",\"2小时15分\"]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q012.json",
+          "taskspec": {
+            "userQuery": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+            "size": "2x2",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [],
+            "dataModelSchema": {
+              "data": {
+                "healthSport": {
+                  "sleepTypeDesc": {
+                    "type": "string",
+                    "description": "睡眠记录方式或类型的描述，例如“科学睡眠”、“普通睡眠”、“手动输入睡眠”、“手机记录睡眠”。",
+                    "sampleValue": "科学睡眠"
+                  },
+                  "nightSleepDurationText": {
+                    "type": "string",
+                    "description": "可直接显示的夜间正式睡眠总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“7小时1分”。",
+                    "sampleValue": "7小时1分"
+                  },
+                  "deepSleepDurationText": {
+                    "type": "string",
+                    "description": "可直接显示的夜间正式睡眠深睡总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“2小时15分”。",
+                    "sampleValue": "2小时15分"
+                  }
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.moon_z_fill_1",
+                "src": "resources/base/media/moon_z_fill_1.svg",
+                "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。"
+              },
+              {
+                "id": "asset.emoji_time",
+                "src": "resources/base/media/emoji_time.png",
+                "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：当前时间、计时或时长统计相关卡片。不适用：只含时间字段的日程或会议卡片。"
+              }
+            ]
+          }
+        },
+        {
+          "id": "batch_20261019_123144_7486efcd-Q021",
+          "sampleId": "Q021",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+          "title": "作息提醒",
+          "size": "2x2",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0021.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q021.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-primary-secondary-action\"},[\"header\",\"nap\",\"sleep_detail\",\"action\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"昨日作息\",\"icon\":\"resources/base/media/moon_z_fill_1.svg\",\"fontSize\":12}]\n\n[\"nap\",\"EmphasisText\",{\"mainText\":\"{{ '白天小睡 ' + ${/data/healthSport/totalNapDurationText} }}\",\"fontSize\":18}]\n\n[\"sleep_detail\",\"SecondaryBody\",{\"items\":[{\"label\":\"入睡 \",\"value\":{\"path\":\"/data/healthSport/fallAsleepTimeText\"}},{\"label\":\"醒来 \",\"value\":{\"path\":\"/data/healthSport/wakeupTimeText\"}}],\"separator\":\" | \",\"fontSize\":14}]\n\n[\"action\",\"PillButton\",{\"label\":\"打开闹钟\",\"icon\":\"resources/base/media/alarm_fill_1.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Clock\",\"bundleName\":\"com.huawei.hmos.clock\",\"abilityName\":\"com.huawei.hmos.clock.phone\",\"uri\":\"\"}}]}]\n\n[\"/data/healthSport/totalNapDurationText\",\"0分\"]\n\n[\"/data/healthSport/fallAsleepTimeText\",\"23:15\"]\n\n[\"/data/healthSport/wakeupTimeText\",\"07:30\"]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q021.json",
+          "taskspec": {
+            "userQuery": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+            "size": "2x2",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [
+              {
+                "id": "event.open.clock.alarm",
+                "description": "打开闹钟应用首页",
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Clock",
+                  "bundleName": "com.huawei.hmos.clock",
+                  "abilityName": "com.huawei.hmos.clock.phone",
+                  "uri": ""
+                }
+              }
+            ],
+            "dataModelSchema": {
+              "data": {
+                "healthSport": {
+                  "totalNapDurationText": {
+                    "type": "string",
+                    "description": "可直接显示的白天零星小睡累计总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“45分”或“0分”。",
+                    "sampleValue": "0分"
+                  },
+                  "fallAsleepTimeText": {
+                    "type": "string",
+                    "description": "格式化后的确切入睡时刻短文本（HH:mm），例如“23:15”。",
+                    "sampleValue": "23:15"
+                  },
+                  "wakeupTimeText": {
+                    "type": "string",
+                    "description": "格式化后的确切醒来时刻短文本（HH:mm），例如“07:30”。",
+                    "sampleValue": "07:30"
+                  }
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.moon_z_fill_1",
+                "src": "resources/base/media/moon_z_fill_1.svg",
+                "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。"
+              },
+              {
+                "id": "asset.alarm_fill_1",
+                "src": "resources/base/media/alarm_fill_1.svg",
+                "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。"
+              }
+            ]
+          }
+        },
+        {
+          "id": "batch_20261019_123144_7486efcd-Q039",
+          "sampleId": "Q039",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+          "title": "今日锻炼",
+          "size": "2x2",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0039.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q039.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-anchor\"},[\"header\",\"type_name\",\"duration\",\"open_sport\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"最近运动\",\"icon\":\"resources/base/media/stopwatch_fill.svg\",\"fontSize\":12}]\n\n[\"type_name\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/exerciseTypeName\"},\"secondaryText\":\"最近一次\",\"fontSize\":18}]\n\n[\"duration\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/exerciseDurationText\"},\"secondaryText\":\"运动时长\",\"fontSize\":18}]\n\n[\"open_sport\",\"CircleButton\",{\"icon\":\"resources/base/media/figure_run.svg\",\"accessibility\":{\"label\":\"打开运动健康的锻炼页\"},\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Health\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"huaweischeme://healthapp/home/sport?sportType=2\"}}]}]\n\n[\"/data/healthSport/exerciseTypeName\",\"户外跑步\"]\n\n[\"/data/healthSport/exerciseDurationText\",\"40分\"]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q039.json",
+          "taskspec": {
+            "userQuery": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+            "size": "2x2",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [
+              {
+                "id": "event.open.health.sport",
+                "description": "打开运动健康应用的锻炼Tab页",
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Health",
+                  "bundleName": "",
+                  "abilityName": "",
+                  "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+                }
+              }
+            ],
+            "dataModelSchema": {
+              "data": {
+                "healthSport": {
+                  "exerciseTypeName": {
+                    "type": "string",
+                    "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+                    "sampleValue": "户外跑步"
+                  },
+                  "exerciseDurationText": {
+                    "type": "string",
+                    "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+                    "sampleValue": "40分"
+                  }
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.figure_run",
+                "src": "resources/base/media/figure_run.svg",
+                "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+              },
+              {
+                "id": "asset.stopwatch_fill",
+                "src": "resources/base/media/stopwatch_fill.svg",
+                "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+              }
+            ]
+          }
+        },
+        {
+          "id": "batch_20261019_123144_7486efcd-Q044",
+          "sampleId": "Q044",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "帮我做个卡片，查看剩余电量，点击打开省电模式，并且可以直接导航回家。",
+          "title": "低电量导航",
+          "size": "2x2",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0044.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q044.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-content-dual-action\"},[\"battery_summary\",\"cta_power\",\"cta_nav\"]]\n\n[\"battery_summary\",\"TableText\",{\"items\":[{\"label\":\"剩余电量\",\"value\":\"{{ ${/data/phoneBattery/batterySOC} + '%' }}\"},{\"label\":\"状态\",\"value\":{\"path\":\"/data/phoneBattery/chargingStatusDesc\"}}],\"fontSize\":12}]\n\n[\"cta_power\",\"PillButton\",{\"label\":\"省电模式\",\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"SetSettingSwitch\",\"params\":{\"appBundleName\":\"com.huawei.hmos.settings\",\"itemName\":\"battery_saving_mode\",\"switchFlag\":0}}}]}]\n\n[\"cta_nav\",\"PillButton\",{\"label\":\"导航回家\",\"icon\":\"resources/base/media/house_fill.svg\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"StartNavigate\",\"params\":{\"dstLocation\":{\"location\":\"home\",\"latitude\":\"\",\"longitude\":\"\"}}}}]}]\n\n[\"/data/phoneBattery/batterySOC\",68]\n\n[\"/data/phoneBattery/chargingStatusDesc\",\"未充电\"]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q044.json",
+          "taskspec": {
+            "userQuery": "帮我做个卡片，查看剩余电量，点击打开省电模式，并且可以直接导航回家。",
+            "size": "2x2",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [
+              {
+                "id": "event.setPowerSavingMode",
+                "description": "点击一键开启/关闭省电模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
+                "call": "clickToIntent",
+                "args": {
+                  "intentName": "SetSettingSwitch",
+                  "params": {
+                    "appBundleName": "com.huawei.hmos.settings",
+                    "itemName": "battery_saving_mode",
+                    "switchFlag": 0
+                  }
+                }
+              },
+              {
+                "id": "event.startNavigate",
+                "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
+                "call": "clickToIntent",
+                "args": {
+                  "intentName": "StartNavigate",
+                  "params": {
+                    "dstLocation": {
+                      "location": "home",
+                      "latitude": "",
+                      "longitude": ""
+                    }
+                  }
+                }
+              }
+            ],
+            "dataModelSchema": {
+              "data": {
+                "phoneBattery": {
+                  "batterySOC": {
+                    "type": "integer",
+                    "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+                    "sampleValue": 68
+                  },
+                  "chargingStatusDesc": {
+                    "type": "string",
+                    "description": "当前设备电池的充电状态文本描述。",
+                    "sampleValue": "未充电"
+                  }
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.battery_leaf_fill",
+                "src": "resources/base/media/battery_leaf_fill.svg",
+                "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+              },
+              {
+                "id": "asset.location_north_up_right_fill",
+                "src": "resources/base/media/location_north_up_right_fill.svg",
+                "description": "样式：方向导航实心图标，默认黑色，图形为指向右上方的导航箭头；适用：地图导航、方向指引、路线规划。"
+              },
+              {
+                "id": "asset.house_fill",
+                "src": "resources/base/media/house_fill.svg",
+                "description": "样式：默认黑色的单色房屋实心图标，内部通过镂空表现门洞，支持通过 fillColor 与卡片配色统一；适用：首页导航、智能家居入口、回家提醒。"
+              }
+            ]
+          }
+        },
+        {
+          "id": "batch_20261019_123144_7486efcd-Q070",
+          "sampleId": "Q070",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "帮我做个运动卡片，刚完成一次训练，看看今天走了多少步，还有最近一次训练练了什么、消耗多少热量、练了多久和平均心率。",
+          "title": "训练概览",
+          "size": "2x4",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0070.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q070.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"W-split-panels\"},[\"steps_panel\",\"exercise_panel\"]]\n\n[\"steps_panel\",\"Region\",{\"variant\":\"title-content\"},[\"steps_title\",\"steps_value\"]]\n\n[\"steps_title\",\"SingleLineTitle\",{\"title\":\"今日步数\",\"icon\":\"resources/base/media/figure_run.svg\",\"fontSize\":12}]\n\n[\"steps_value\",\"EmphasizedData\",{\"value\":{\"path\":\"/data/healthSport/dailySteps\"},\"unit\":\"步\",\"fontSize\":30}]\n\n[\"exercise_panel\",\"Region\",{\"variant\":\"title-content\"},[\"exercise_title\",\"exercise_detail\"]]\n\n[\"exercise_title\",\"SingleLineTitle\",{\"title\":{\"path\":\"/data/healthSport/exerciseTypeName\"},\"fontSize\":12}]\n\n[\"exercise_detail\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"热量\",\"value\":{\"path\":\"/data/healthSport/exerciseCalorieText\"}},{\"label\":\"时长\",\"value\":{\"path\":\"/data/healthSport/exerciseDurationText\"}},{\"label\":\"平均心率\",\"value\":\"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}\"}],\"fontSize\":12}]\n\n[\"/data/healthSport/dailySteps\",6200]\n\n[\"/data/healthSport/exerciseTypeName\",\"户外跑步\"]\n\n[\"/data/healthSport/exerciseCalorieText\",\"260 千卡\"]\n\n[\"/data/healthSport/exerciseDurationText\",\"40分\"]\n\n[\"/data/healthSport/exerciseHeartRateAvg\",135]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q070.json",
+          "taskspec": {
+            "userQuery": "帮我做个运动卡片，刚完成一次训练，看看今天走了多少步，还有最近一次训练练了什么、消耗多少热量、练了多久和平均心率。",
+            "size": "2x4",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [],
+            "dataModelSchema": {
+              "data": {
+                "healthSport": {
+                  "dailySteps": {
+                    "type": "integer",
+                    "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+                    "sampleValue": 6200
+                  },
+                  "exerciseCalorieText": {
+                    "type": "string",
+                    "description": "可直接显示的单次专业运动净热量消耗文本，已换算并包含“千卡”单位；展示时不得再次追加热量单位。例如“98 千卡”。",
+                    "sampleValue": "260 千卡"
+                  },
+                  "exerciseTypeName": {
+                    "type": "string",
+                    "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+                    "sampleValue": "户外跑步"
+                  },
+                  "exerciseDurationText": {
+                    "type": "string",
+                    "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+                    "sampleValue": "40分"
+                  },
+                  "exerciseHeartRateAvg": {
+                    "type": "integer",
+                    "description": "专业运动期间平均心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+                    "sampleValue": 135
+                  }
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.figure_run",
+                "src": "resources/base/media/figure_run.svg",
+                "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+              },
+              {
+                "id": "asset.flame_fill",
+                "src": "resources/base/media/flame_fill.svg",
+                "description": "样式：默认黑色的单色实心火焰图标；适用：运动热量消耗、燃烧、火焰或加热状态。"
+              },
+              {
+                "id": "asset.heart_fill",
+                "src": "resources/base/media/heart_fill.svg",
+                "description": "样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"
+              },
+              {
+                "id": "asset.stopwatch_fill",
+                "src": "resources/base/media/stopwatch_fill.svg",
+                "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+              }
+            ]
+          }
+        },
+        {
+          "id": "batch_20261019_123144_7486efcd-Q071",
+          "sampleId": "Q071",
+          "runId": "batch_20261019_123144_7486efcd",
+          "query": "帮我做个训练记录卡片，展示运动日期、运动类型、运动时长、开始时间、结束时间、平均心率和最高心率，点击打开运动健康的锻炼页。",
+          "title": "训练记录",
+          "size": "2x4",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0071.png",
+          "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+          "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q071.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"W-split-panels\"},[\"left\",\"right\"]]\n\n[\"left\",\"Region\",{\"variant\":\"title-hero-support\"},[\"left_title\",\"type_text\",\"time_body\"]]\n\n[\"left_title\",\"SingleLineTitle\",{\"title\":{\"path\":\"/data/healthSport/targetDateText\"},\"icon\":\"resources/base/media/calendar_fill.svg\",\"fontSize\":12}]\n\n[\"type_text\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/exerciseTypeName\"},\"secondaryText\":\"{{ '时长 ' + ${/data/healthSport/exerciseDurationText} }}\",\"fontSize\":18}]\n\n[\"time_body\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"开始\",\"value\":{\"path\":\"/data/healthSport/exerciseStartTimeText\"}},{\"label\":\"结束\",\"value\":{\"path\":\"/data/healthSport/exerciseEndTimeText\"}}],\"fontSize\":12}]\n\n[\"right\",\"Region\",{\"variant\":\"title-content-action\"},[\"heart_title\",\"heart_body\",\"open_sport\"]]\n\n[\"heart_title\",\"SingleLineTitle\",{\"title\":\"心率\",\"icon\":\"resources/base/media/heart_fill.svg\",\"fontSize\":12}]\n\n[\"heart_body\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"平均心率\",\"value\":\"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}\"},{\"label\":\"最高心率\",\"value\":\"{{ ${/data/healthSport/exerciseHeartRateMax} + '次/分钟' }}\"}],\"fontSize\":12}]\n\n[\"open_sport\",\"PillButton\",{\"label\":\"打开锻炼\",\"icon\":\"resources/base/media/figure_run.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Health\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"huaweischeme://healthapp/home/sport?sportType=2\"}}]}]\n\n[\"/data/healthSport/targetDateText\",\"2026-08-06\"]\n\n[\"/data/healthSport/exerciseTypeName\",\"户外跑步\"]\n\n[\"/data/healthSport/exerciseDurationText\",\"40分\"]\n\n[\"/data/healthSport/exerciseStartTimeText\",\"18:30\"]\n\n[\"/data/healthSport/exerciseEndTimeText\",\"19:10\"]\n\n[\"/data/healthSport/exerciseHeartRateAvg\",135]\n\n[\"/data/healthSport/exerciseHeartRateMax\",168]",
+          "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q071.json",
+          "taskspec": {
+            "userQuery": "帮我做个训练记录卡片，展示运动日期、运动类型、运动时长、开始时间、结束时间、平均心率和最高心率，点击打开运动健康的锻炼页。",
+            "size": "2x4",
+            "appVersion": "11.9.9.342",
+            "eventCandidates": [
+              {
+                "id": "event.open.health.sport",
+                "description": "打开运动健康应用的锻炼Tab页",
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Health",
+                  "bundleName": "",
+                  "abilityName": "",
+                  "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+                }
+              }
+            ],
+            "dataModelSchema": {
+              "data": {
+                "healthSport": {
+                  "exerciseHeartRateAvg": {
+                    "type": "integer",
+                    "description": "专业运动期间平均心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+                    "sampleValue": 135
+                  },
+                  "exerciseHeartRateMax": {
+                    "type": "integer",
+                    "description": "专业运动期间最大心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+                    "sampleValue": 168
+                  },
+                  "targetDateText": {
+                    "type": "string",
+                    "description": "该组健康与运动数据所归属的确切日期文本，格式为 YYYY-MM-DD，例如 '2026-07-06'。用于明确展示当前查阅的是哪一天的数据。",
+                    "sampleValue": "2026-08-06"
+                  },
+                  "exerciseTypeName": {
+                    "type": "string",
+                    "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+                    "sampleValue": "户外跑步"
+                  },
+                  "exerciseDurationText": {
+                    "type": "string",
+                    "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+                    "sampleValue": "40分"
+                  },
+                  "exerciseStartTimeText": {
+                    "type": "string",
+                    "description": "专业运动开始的确切时刻文本（HH:mm），例如“18:30”。",
+                    "sampleValue": "18:30"
+                  },
+                  "exerciseEndTimeText": {
+                    "type": "string",
+                    "description": "专业运动结束的确切时刻文本（HH:mm），例如“19:50”。",
+                    "sampleValue": "19:10"
+                  }
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.heart_fill",
+                "src": "resources/base/media/heart_fill.svg",
+                "description": "样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"
+              },
+              {
+                "id": "asset.figure_run",
+                "src": "resources/base/media/figure_run.svg",
+                "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+              },
+              {
+                "id": "asset.stopwatch_fill",
+                "src": "resources/base/media/stopwatch_fill.svg",
+                "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+              },
+              {
+                "id": "asset.calendar_fill",
+                "src": "resources/base/media/calendar_fill.svg",
+                "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "runId": "batch_20261019_123219_e3720ab5",
+      "datasetId": "20261016_online_updated",
+      "taskId": "task_c998d10e1c57",
+      "batchSourcePath": "../../debug_tools/batch_output/batch_20261019_123219_e3720ab5",
+      "screenshotCount": 1,
+      "sampleCount": 1,
+      "samples": [
+        {
+          "id": "batch_20261019_123219_e3720ab5-Q003",
+          "sampleId": "Q003",
+          "runId": "batch_20261019_123219_e3720ab5",
+          "query": "显示电池电量和状态",
+          "title": "手机电量",
+          "size": "2x2",
+          "batchStatus": "success",
+          "attempt": 0,
+          "screenshotPath": "batch_20261019_123219_e3720ab5/screenshot/Q003.png",
+          "screenshotCapturedBy": "exec_a2b966541175/device-capture",
+          "compactDslPath": "batch_20261019_123219_e3720ab5/dsl/Q003.txt",
+          "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-content-action\"},[\"header\",\"battery\",\"action\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"手机电池\",\"fontSize\":12}]\n\n[\"battery\",\"ProgressCircleSingle\",{\"value\":{\"path\":\"/data/phoneBattery/batterySOCText\"},\"total\":100,\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"displayValue\":{\"path\":\"/data/phoneBattery/batterySOCText\"},\"label\":\"剩余电量\",\"secondaryLabel\":{\"path\":\"/data/phoneBattery/chargingStatusDesc\"}}]\n\n[\"action\",\"PillButton\",{\"label\":\"电池设置\",\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Settings\",\"bundleName\":\"com.huawei.hmos.settings\",\"abilityName\":\"com.huawei.hmos.settings.MainAbility\",\"uri\":\"battery\"}}]}]\n\n[\"/data/phoneBattery/batterySOCText\",\"68%\"]\n\n[\"/data/phoneBattery/chargingStatusDesc\",\"未充电\"]",
+          "taskspecPath": "batch_20261019_123219_e3720ab5/taskspec/Q003.json",
+          "taskspec": {
+            "userQuery": "显示电池电量和状态",
+            "size": "2x2",
+            "appVersion": "11.7.7.351",
+            "eventCandidates": [
+              {
+                "id": "event.open.settings.battery",
+                "description": "打开系统设置中的电池页",
+                "call": "clickToDeeplink",
+                "args": {
+                  "abilityName": "com.huawei.hmos.settings.MainAbility",
+                  "bundleName": "com.huawei.hmos.settings",
+                  "intentName": "Settings",
+                  "uri": "battery"
+                }
+              }
+            ],
+            "dataModelSchema": {
+              "data": {
+                "phoneBattery": {
+                  "batteryCapacityLevelDesc": {
+                    "type": "string",
+                    "description": "设备电池电量等级的语义化文本描述。",
+                    "sampleValue": "正常电量"
+                  },
+                  "batterySOCText": {
+                    "type": "string",
+                    "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
+                    "sampleValue": "68%"
+                  },
+                  "batteryTemperatureText": {
+                    "type": "string",
+                    "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+                    "sampleValue": "29.0 ℃"
+                  },
+                  "chargingStatusDesc": {
+                    "type": "string",
+                    "description": "当前设备电池的充电状态文本描述。",
+                    "sampleValue": "未充电"
+                  },
+                  "healthStatusDesc": {
+                    "type": "string",
+                    "description": "当前设备电池的物理健康状态文本描述。",
+                    "sampleValue": "正常"
+                  },
+                  "pluggedTypeDesc": {
+                    "type": "string",
+                    "description": "当前设备连接的充电器类型文本描述。",
+                    "sampleValue": "未连接充电器"
+                  }
+                }
+              }
+            },
+            "assetCandidates": [
+              {
+                "id": "asset.battery_leaf_fill",
+                "src": "resources/base/media/battery_leaf_fill.svg",
+                "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "samples": [
+    {
+      "id": "batch_20261019_123144_7486efcd-Q003",
+      "sampleId": "Q003",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "下一场日程是18天后上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+      "title": "发布会提醒",
+      "size": "2x2",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0003.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q003.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-primary-secondary-action\"},[\"header\",\"countdown\",\"event_info\",\"action\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":{\"path\":\"/data/calendar/events/0/title\"},\"icon\":\"resources/base/media/stopwatch_fill.svg\",\"fontSize\":12}]\n\n[\"countdown\",\"EmphasizedData\",{\"value\":{\"path\":\"/data/countdown/countdownDays\"},\"unit\":\"天\",\"fontSize\":30}]\n\n[\"event_info\",\"SecondaryBody\",{\"items\":[{\"label\":\"开始 \",\"value\":{\"path\":\"/data/calendar/events/0/dtStart\"}}],\"fontSize\":14}]\n\n[\"action\",\"PillButton\",{\"label\":\"查看详情\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"ViewCalendarEvent\",\"params\":{\"entityId\":\"{{ ${/data/calendar/events/0/entityId} }}\"}}}]}]\n\n[\"/data/countdown/countdownDays\",30]\n\n[\"/data/calendar/events/0/title\",\"产品发布会\"]\n\n[\"/data/calendar/events/0/dtStart\",\"上午10:00\"]\n\n[\"/data/calendar/events/0/entityId\",\"example-event-001\"]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q003.json",
+      "taskspec": {
+        "userQuery": "下一场日程是18天后上午十点的产品发布会，帮我做个卡片，看离发布会还有几天、日程标题和开始时间，点一下查看日程详情。",
+        "size": "2x2",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [
+          {
+            "id": "event.viewCalendarEvent",
+            "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
+            "call": "clickToIntent",
+            "args": {
+              "intentName": "ViewCalendarEvent",
+              "params": {
+                "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+              }
+            }
+          }
+        ],
+        "dataModelSchema": {
+          "data": {
+            "countdown": {
+              "countdownDays": {
+                "type": "integer",
+                "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+                "sampleValue": 30
+              }
+            },
+            "calendar": {
+              "events": [
+                {
+                  "title": {
+                    "type": "string",
+                    "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+                    "sampleValue": "项目例会"
+                  },
+                  "dtStart": {
+                    "type": "string",
+                    "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                    "sampleValue": "14:00"
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "description": "系统日程的全局唯一实体ID。",
+                    "sampleValue": "example-event-001"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.stopwatch_fill",
+            "src": "resources/base/media/stopwatch_fill.svg",
+            "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+          },
+          {
+            "id": "asset.calendar_fill",
+            "src": "resources/base/media/calendar_fill.svg",
+            "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"
+          },
+          {
+            "id": "asset.icon_schedule",
+            "src": "resources/base/media/icon_schedule.svg",
+            "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123144_7486efcd-Q006",
+      "sampleId": "Q006",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "明天上午九点有产品立项会，下午三点有客户交流会，帮我做个卡片，分别看两场会议的标题和开始时间。",
+      "title": "明日双会",
+      "size": "2x2",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0006.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q006.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-content\"},[\"header\",\"event\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"明日会议\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"fontSize\":12}]\n\n[\"event\",\"EventCard\",{\"items\":[{\"title\":{\"path\":\"/data/calendar/events/0/title\"},\"time\":{\"path\":\"/data/calendar/events/0/dtStart\"}},{\"title\":{\"path\":\"/data/calendar/events/1/title\"},\"time\":{\"path\":\"/data/calendar/events/1/dtStart\"}}],\"density\":\"compact\"}]\n\n[\"/data/calendar/events/0/title\",\"产品立项会\"]\n\n[\"/data/calendar/events/0/dtStart\",\"09:00\"]\n\n[\"/data/calendar/events/1/title\",\"客户交流会\"]\n\n[\"/data/calendar/events/1/dtStart\",\"15:00\"]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q006.json",
+      "taskspec": {
+        "userQuery": "明天上午九点有产品立项会，下午三点有客户交流会，帮我做个卡片，分别看两场会议的标题和开始时间。",
+        "size": "2x2",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [],
+        "dataModelSchema": {
+          "data": {
+            "calendar": {
+              "events": [
+                {
+                  "title": {
+                    "type": "string",
+                    "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+                    "sampleValue": "项目例会"
+                  },
+                  "dtStart": {
+                    "type": "string",
+                    "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                    "sampleValue": "14:00"
+                  }
+                },
+                {
+                  "title": {
+                    "type": "string",
+                    "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+                    "sampleValue": "项目例会"
+                  },
+                  "dtStart": {
+                    "type": "string",
+                    "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                    "sampleValue": "14:00"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.calendar_fill",
+            "src": "resources/base/media/calendar_fill.svg",
+            "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"
+          },
+          {
+            "id": "asset.icon_schedule",
+            "src": "resources/base/media/icon_schedule.svg",
+            "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。"
+          },
+          {
+            "id": "asset.icon_meeting",
+            "src": "resources/base/media/icon_meeting.svg",
+            "description": "样式：默认白色的单色线面结合会议演示板图标，画板内有两条横线，原始尺寸为 14×14，支持通过 fillColor 与卡片配色统一；适用：会议、汇报、演示、议程。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123144_7486efcd-Q012",
+      "sampleId": "Q012",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+      "title": "睡眠分析",
+      "size": "2x2",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0012.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q012.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-dual-content\"},[\"header\",\"sleep_total\",\"sleep_detail\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"睡眠分析\",\"icon\":\"resources/base/media/moon_z_fill_1.svg\",\"fontSize\":12}]\n\n[\"sleep_total\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/nightSleepDurationText\"},\"secondaryText\":\"昨晚总睡眠\",\"fontSize\":18}]\n\n[\"sleep_detail\",\"SecondaryBody\",{\"items\":[{\"label\":\"记录类型\",\"value\":{\"path\":\"/data/healthSport/sleepTypeDesc\"}},{\"label\":\"深睡\",\"value\":{\"path\":\"/data/healthSport/deepSleepDurationText\"}}],\"columns\":1,\"fontSize\":12}]\n\n[\"/data/healthSport/nightSleepDurationText\",\"7小时1分\"]\n\n[\"/data/healthSport/sleepTypeDesc\",\"科学睡眠\"]\n\n[\"/data/healthSport/deepSleepDurationText\",\"2小时15分\"]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q012.json",
+      "taskspec": {
+        "userQuery": "帮我做个睡眠分析卡片，看昨晚总睡眠时长，再看睡眠记录类型和深睡时长。",
+        "size": "2x2",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [],
+        "dataModelSchema": {
+          "data": {
+            "healthSport": {
+              "sleepTypeDesc": {
+                "type": "string",
+                "description": "睡眠记录方式或类型的描述，例如“科学睡眠”、“普通睡眠”、“手动输入睡眠”、“手机记录睡眠”。",
+                "sampleValue": "科学睡眠"
+              },
+              "nightSleepDurationText": {
+                "type": "string",
+                "description": "可直接显示的夜间正式睡眠总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“7小时1分”。",
+                "sampleValue": "7小时1分"
+              },
+              "deepSleepDurationText": {
+                "type": "string",
+                "description": "可直接显示的夜间正式睡眠深睡总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“2小时15分”。",
+                "sampleValue": "2小时15分"
+              }
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.moon_z_fill_1",
+            "src": "resources/base/media/moon_z_fill_1.svg",
+            "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。"
+          },
+          {
+            "id": "asset.emoji_time",
+            "src": "resources/base/media/emoji_time.png",
+            "description": "样式：蓝色圆形外框与浅蓝表盘组成的写实 3D 时钟，白色指针和刻度清晰，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：当前时间、计时或时长统计相关卡片。不适用：只含时间字段的日程或会议卡片。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123144_7486efcd-Q021",
+      "sampleId": "Q021",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+      "title": "作息提醒",
+      "size": "2x2",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0021.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q021.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-primary-secondary-action\"},[\"header\",\"nap\",\"sleep_detail\",\"action\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"昨日作息\",\"icon\":\"resources/base/media/moon_z_fill_1.svg\",\"fontSize\":12}]\n\n[\"nap\",\"EmphasisText\",{\"mainText\":\"{{ '白天小睡 ' + ${/data/healthSport/totalNapDurationText} }}\",\"fontSize\":18}]\n\n[\"sleep_detail\",\"SecondaryBody\",{\"items\":[{\"label\":\"入睡 \",\"value\":{\"path\":\"/data/healthSport/fallAsleepTimeText\"}},{\"label\":\"醒来 \",\"value\":{\"path\":\"/data/healthSport/wakeupTimeText\"}}],\"separator\":\" | \",\"fontSize\":14}]\n\n[\"action\",\"PillButton\",{\"label\":\"打开闹钟\",\"icon\":\"resources/base/media/alarm_fill_1.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Clock\",\"bundleName\":\"com.huawei.hmos.clock\",\"abilityName\":\"com.huawei.hmos.clock.phone\",\"uri\":\"\"}}]}]\n\n[\"/data/healthSport/totalNapDurationText\",\"0分\"]\n\n[\"/data/healthSport/fallAsleepTimeText\",\"23:15\"]\n\n[\"/data/healthSport/wakeupTimeText\",\"07:30\"]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q021.json",
+      "taskspec": {
+        "userQuery": "帮我做个作息卡片，看昨天白天小睡多久、晚上几点睡着和早上几点醒，点一下打开闹钟应用。",
+        "size": "2x2",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [
+          {
+            "id": "event.open.clock.alarm",
+            "description": "打开闹钟应用首页",
+            "call": "clickToDeeplink",
+            "args": {
+              "intentName": "Clock",
+              "bundleName": "com.huawei.hmos.clock",
+              "abilityName": "com.huawei.hmos.clock.phone",
+              "uri": ""
+            }
+          }
+        ],
+        "dataModelSchema": {
+          "data": {
+            "healthSport": {
+              "totalNapDurationText": {
+                "type": "string",
+                "description": "可直接显示的白天零星小睡累计总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“45分”或“0分”。",
+                "sampleValue": "0分"
+              },
+              "fallAsleepTimeText": {
+                "type": "string",
+                "description": "格式化后的确切入睡时刻短文本（HH:mm），例如“23:15”。",
+                "sampleValue": "23:15"
+              },
+              "wakeupTimeText": {
+                "type": "string",
+                "description": "格式化后的确切醒来时刻短文本（HH:mm），例如“07:30”。",
+                "sampleValue": "07:30"
+              }
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.moon_z_fill_1",
+            "src": "resources/base/media/moon_z_fill_1.svg",
+            "description": "样式：月亮加Z睡眠实心图标，默认黑色，图形为月牙旁附带字母Z表示入睡；适用：睡眠模式开启、休息提醒、晚安场景。"
+          },
+          {
+            "id": "asset.alarm_fill_1",
+            "src": "resources/base/media/alarm_fill_1.svg",
+            "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123144_7486efcd-Q039",
+      "sampleId": "Q039",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+      "title": "今日锻炼",
+      "size": "2x2",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0039.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q039.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-anchor\"},[\"header\",\"type_name\",\"duration\",\"open_sport\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"最近运动\",\"icon\":\"resources/base/media/stopwatch_fill.svg\",\"fontSize\":12}]\n\n[\"type_name\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/exerciseTypeName\"},\"secondaryText\":\"最近一次\",\"fontSize\":18}]\n\n[\"duration\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/exerciseDurationText\"},\"secondaryText\":\"运动时长\",\"fontSize\":18}]\n\n[\"open_sport\",\"CircleButton\",{\"icon\":\"resources/base/media/figure_run.svg\",\"accessibility\":{\"label\":\"打开运动健康的锻炼页\"},\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Health\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"huaweischeme://healthapp/home/sport?sportType=2\"}}]}]\n\n[\"/data/healthSport/exerciseTypeName\",\"户外跑步\"]\n\n[\"/data/healthSport/exerciseDurationText\",\"40分\"]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q039.json",
+      "taskspec": {
+        "userQuery": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+        "size": "2x2",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [
+          {
+            "id": "event.open.health.sport",
+            "description": "打开运动健康应用的锻炼Tab页",
+            "call": "clickToDeeplink",
+            "args": {
+              "intentName": "Health",
+              "bundleName": "",
+              "abilityName": "",
+              "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+            }
+          }
+        ],
+        "dataModelSchema": {
+          "data": {
+            "healthSport": {
+              "exerciseTypeName": {
+                "type": "string",
+                "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+                "sampleValue": "户外跑步"
+              },
+              "exerciseDurationText": {
+                "type": "string",
+                "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+                "sampleValue": "40分"
+              }
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.figure_run",
+            "src": "resources/base/media/figure_run.svg",
+            "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+          },
+          {
+            "id": "asset.stopwatch_fill",
+            "src": "resources/base/media/stopwatch_fill.svg",
+            "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123144_7486efcd-Q044",
+      "sampleId": "Q044",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "帮我做个卡片，查看剩余电量，点击打开省电模式，并且可以直接导航回家。",
+      "title": "低电量导航",
+      "size": "2x2",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0044.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q044.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-content-dual-action\"},[\"battery_summary\",\"cta_power\",\"cta_nav\"]]\n\n[\"battery_summary\",\"TableText\",{\"items\":[{\"label\":\"剩余电量\",\"value\":\"{{ ${/data/phoneBattery/batterySOC} + '%' }}\"},{\"label\":\"状态\",\"value\":{\"path\":\"/data/phoneBattery/chargingStatusDesc\"}}],\"fontSize\":12}]\n\n[\"cta_power\",\"PillButton\",{\"label\":\"省电模式\",\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"SetSettingSwitch\",\"params\":{\"appBundleName\":\"com.huawei.hmos.settings\",\"itemName\":\"battery_saving_mode\",\"switchFlag\":0}}}]}]\n\n[\"cta_nav\",\"PillButton\",{\"label\":\"导航回家\",\"icon\":\"resources/base/media/house_fill.svg\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"StartNavigate\",\"params\":{\"dstLocation\":{\"location\":\"home\",\"latitude\":\"\",\"longitude\":\"\"}}}}]}]\n\n[\"/data/phoneBattery/batterySOC\",68]\n\n[\"/data/phoneBattery/chargingStatusDesc\",\"未充电\"]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q044.json",
+      "taskspec": {
+        "userQuery": "帮我做个卡片，查看剩余电量，点击打开省电模式，并且可以直接导航回家。",
+        "size": "2x2",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [
+          {
+            "id": "event.setPowerSavingMode",
+            "description": "点击一键开启/关闭省电模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
+            "call": "clickToIntent",
+            "args": {
+              "intentName": "SetSettingSwitch",
+              "params": {
+                "appBundleName": "com.huawei.hmos.settings",
+                "itemName": "battery_saving_mode",
+                "switchFlag": 0
+              }
+            }
+          },
+          {
+            "id": "event.startNavigate",
+            "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
+            "call": "clickToIntent",
+            "args": {
+              "intentName": "StartNavigate",
+              "params": {
+                "dstLocation": {
+                  "location": "home",
+                  "latitude": "",
+                  "longitude": ""
+                }
+              }
+            }
+          }
+        ],
+        "dataModelSchema": {
+          "data": {
+            "phoneBattery": {
+              "batterySOC": {
+                "type": "integer",
+                "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+                "sampleValue": 68
+              },
+              "chargingStatusDesc": {
+                "type": "string",
+                "description": "当前设备电池的充电状态文本描述。",
+                "sampleValue": "未充电"
+              }
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.battery_leaf_fill",
+            "src": "resources/base/media/battery_leaf_fill.svg",
+            "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+          },
+          {
+            "id": "asset.location_north_up_right_fill",
+            "src": "resources/base/media/location_north_up_right_fill.svg",
+            "description": "样式：方向导航实心图标，默认黑色，图形为指向右上方的导航箭头；适用：地图导航、方向指引、路线规划。"
+          },
+          {
+            "id": "asset.house_fill",
+            "src": "resources/base/media/house_fill.svg",
+            "description": "样式：默认黑色的单色房屋实心图标，内部通过镂空表现门洞，支持通过 fillColor 与卡片配色统一；适用：首页导航、智能家居入口、回家提醒。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123144_7486efcd-Q070",
+      "sampleId": "Q070",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "帮我做个运动卡片，刚完成一次训练，看看今天走了多少步，还有最近一次训练练了什么、消耗多少热量、练了多久和平均心率。",
+      "title": "训练概览",
+      "size": "2x4",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0070.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q070.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"W-split-panels\"},[\"steps_panel\",\"exercise_panel\"]]\n\n[\"steps_panel\",\"Region\",{\"variant\":\"title-content\"},[\"steps_title\",\"steps_value\"]]\n\n[\"steps_title\",\"SingleLineTitle\",{\"title\":\"今日步数\",\"icon\":\"resources/base/media/figure_run.svg\",\"fontSize\":12}]\n\n[\"steps_value\",\"EmphasizedData\",{\"value\":{\"path\":\"/data/healthSport/dailySteps\"},\"unit\":\"步\",\"fontSize\":30}]\n\n[\"exercise_panel\",\"Region\",{\"variant\":\"title-content\"},[\"exercise_title\",\"exercise_detail\"]]\n\n[\"exercise_title\",\"SingleLineTitle\",{\"title\":{\"path\":\"/data/healthSport/exerciseTypeName\"},\"fontSize\":12}]\n\n[\"exercise_detail\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"热量\",\"value\":{\"path\":\"/data/healthSport/exerciseCalorieText\"}},{\"label\":\"时长\",\"value\":{\"path\":\"/data/healthSport/exerciseDurationText\"}},{\"label\":\"平均心率\",\"value\":\"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}\"}],\"fontSize\":12}]\n\n[\"/data/healthSport/dailySteps\",6200]\n\n[\"/data/healthSport/exerciseTypeName\",\"户外跑步\"]\n\n[\"/data/healthSport/exerciseCalorieText\",\"260 千卡\"]\n\n[\"/data/healthSport/exerciseDurationText\",\"40分\"]\n\n[\"/data/healthSport/exerciseHeartRateAvg\",135]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q070.json",
+      "taskspec": {
+        "userQuery": "帮我做个运动卡片，刚完成一次训练，看看今天走了多少步，还有最近一次训练练了什么、消耗多少热量、练了多久和平均心率。",
+        "size": "2x4",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [],
+        "dataModelSchema": {
+          "data": {
+            "healthSport": {
+              "dailySteps": {
+                "type": "integer",
+                "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+                "sampleValue": 6200
+              },
+              "exerciseCalorieText": {
+                "type": "string",
+                "description": "可直接显示的单次专业运动净热量消耗文本，已换算并包含“千卡”单位；展示时不得再次追加热量单位。例如“98 千卡”。",
+                "sampleValue": "260 千卡"
+              },
+              "exerciseTypeName": {
+                "type": "string",
+                "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+                "sampleValue": "户外跑步"
+              },
+              "exerciseDurationText": {
+                "type": "string",
+                "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+                "sampleValue": "40分"
+              },
+              "exerciseHeartRateAvg": {
+                "type": "integer",
+                "description": "专业运动期间平均心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+                "sampleValue": 135
+              }
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.figure_run",
+            "src": "resources/base/media/figure_run.svg",
+            "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+          },
+          {
+            "id": "asset.flame_fill",
+            "src": "resources/base/media/flame_fill.svg",
+            "description": "样式：默认黑色的单色实心火焰图标；适用：运动热量消耗、燃烧、火焰或加热状态。"
+          },
+          {
+            "id": "asset.heart_fill",
+            "src": "resources/base/media/heart_fill.svg",
+            "description": "样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"
+          },
+          {
+            "id": "asset.stopwatch_fill",
+            "src": "resources/base/media/stopwatch_fill.svg",
+            "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123144_7486efcd-Q071",
+      "sampleId": "Q071",
+      "runId": "batch_20261019_123144_7486efcd",
+      "query": "帮我做个训练记录卡片，展示运动日期、运动类型、运动时长、开始时间、结束时间、平均心率和最高心率，点击打开运动健康的锻炼页。",
+      "title": "训练记录",
+      "size": "2x4",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123144_7486efcd/screenshot/0071.png",
+      "screenshotCapturedBy": "exec_d7cfe7d55885/browser-capture",
+      "compactDslPath": "batch_20261019_123144_7486efcd/dsl/Q071.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"W-split-panels\"},[\"left\",\"right\"]]\n\n[\"left\",\"Region\",{\"variant\":\"title-hero-support\"},[\"left_title\",\"type_text\",\"time_body\"]]\n\n[\"left_title\",\"SingleLineTitle\",{\"title\":{\"path\":\"/data/healthSport/targetDateText\"},\"icon\":\"resources/base/media/calendar_fill.svg\",\"fontSize\":12}]\n\n[\"type_text\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/healthSport/exerciseTypeName\"},\"secondaryText\":\"{{ '时长 ' + ${/data/healthSport/exerciseDurationText} }}\",\"fontSize\":18}]\n\n[\"time_body\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"开始\",\"value\":{\"path\":\"/data/healthSport/exerciseStartTimeText\"}},{\"label\":\"结束\",\"value\":{\"path\":\"/data/healthSport/exerciseEndTimeText\"}}],\"fontSize\":12}]\n\n[\"right\",\"Region\",{\"variant\":\"title-content-action\"},[\"heart_title\",\"heart_body\",\"open_sport\"]]\n\n[\"heart_title\",\"SingleLineTitle\",{\"title\":\"心率\",\"icon\":\"resources/base/media/heart_fill.svg\",\"fontSize\":12}]\n\n[\"heart_body\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"平均心率\",\"value\":\"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}\"},{\"label\":\"最高心率\",\"value\":\"{{ ${/data/healthSport/exerciseHeartRateMax} + '次/分钟' }}\"}],\"fontSize\":12}]\n\n[\"open_sport\",\"PillButton\",{\"label\":\"打开锻炼\",\"icon\":\"resources/base/media/figure_run.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Health\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"huaweischeme://healthapp/home/sport?sportType=2\"}}]}]\n\n[\"/data/healthSport/targetDateText\",\"2026-08-06\"]\n\n[\"/data/healthSport/exerciseTypeName\",\"户外跑步\"]\n\n[\"/data/healthSport/exerciseDurationText\",\"40分\"]\n\n[\"/data/healthSport/exerciseStartTimeText\",\"18:30\"]\n\n[\"/data/healthSport/exerciseEndTimeText\",\"19:10\"]\n\n[\"/data/healthSport/exerciseHeartRateAvg\",135]\n\n[\"/data/healthSport/exerciseHeartRateMax\",168]",
+      "taskspecPath": "batch_20261019_123144_7486efcd/taskspec/Q071.json",
+      "taskspec": {
+        "userQuery": "帮我做个训练记录卡片，展示运动日期、运动类型、运动时长、开始时间、结束时间、平均心率和最高心率，点击打开运动健康的锻炼页。",
+        "size": "2x4",
+        "appVersion": "11.9.9.342",
+        "eventCandidates": [
+          {
+            "id": "event.open.health.sport",
+            "description": "打开运动健康应用的锻炼Tab页",
+            "call": "clickToDeeplink",
+            "args": {
+              "intentName": "Health",
+              "bundleName": "",
+              "abilityName": "",
+              "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+            }
+          }
+        ],
+        "dataModelSchema": {
+          "data": {
+            "healthSport": {
+              "exerciseHeartRateAvg": {
+                "type": "integer",
+                "description": "专业运动期间平均心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+                "sampleValue": 135
+              },
+              "exerciseHeartRateMax": {
+                "type": "integer",
+                "description": "专业运动期间最大心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+                "sampleValue": 168
+              },
+              "targetDateText": {
+                "type": "string",
+                "description": "该组健康与运动数据所归属的确切日期文本，格式为 YYYY-MM-DD，例如 '2026-07-06'。用于明确展示当前查阅的是哪一天的数据。",
+                "sampleValue": "2026-08-06"
+              },
+              "exerciseTypeName": {
+                "type": "string",
+                "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+                "sampleValue": "户外跑步"
+              },
+              "exerciseDurationText": {
+                "type": "string",
+                "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+                "sampleValue": "40分"
+              },
+              "exerciseStartTimeText": {
+                "type": "string",
+                "description": "专业运动开始的确切时刻文本（HH:mm），例如“18:30”。",
+                "sampleValue": "18:30"
+              },
+              "exerciseEndTimeText": {
+                "type": "string",
+                "description": "专业运动结束的确切时刻文本（HH:mm），例如“19:50”。",
+                "sampleValue": "19:10"
+              }
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.heart_fill",
+            "src": "resources/base/media/heart_fill.svg",
+            "description": "样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"
+          },
+          {
+            "id": "asset.figure_run",
+            "src": "resources/base/media/figure_run.svg",
+            "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+          },
+          {
+            "id": "asset.stopwatch_fill",
+            "src": "resources/base/media/stopwatch_fill.svg",
+            "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。"
+          },
+          {
+            "id": "asset.calendar_fill",
+            "src": "resources/base/media/calendar_fill.svg",
+            "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch_20261019_123219_e3720ab5-Q003",
+      "sampleId": "Q003",
+      "runId": "batch_20261019_123219_e3720ab5",
+      "query": "显示电池电量和状态",
+      "title": "手机电量",
+      "size": "2x2",
+      "batchStatus": "success",
+      "attempt": 0,
+      "screenshotPath": "batch_20261019_123219_e3720ab5/screenshot/Q003.png",
+      "screenshotCapturedBy": "exec_a2b966541175/device-capture",
+      "compactDslPath": "batch_20261019_123219_e3720ab5/dsl/Q003.txt",
+      "compactDsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-content-action\"},[\"header\",\"battery\",\"action\"]]\n\n[\"header\",\"SingleLineTitle\",{\"title\":\"手机电池\",\"fontSize\":12}]\n\n[\"battery\",\"ProgressCircleSingle\",{\"value\":{\"path\":\"/data/phoneBattery/batterySOCText\"},\"total\":100,\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"displayValue\":{\"path\":\"/data/phoneBattery/batterySOCText\"},\"label\":\"剩余电量\",\"secondaryLabel\":{\"path\":\"/data/phoneBattery/chargingStatusDesc\"}}]\n\n[\"action\",\"PillButton\",{\"label\":\"电池设置\",\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Settings\",\"bundleName\":\"com.huawei.hmos.settings\",\"abilityName\":\"com.huawei.hmos.settings.MainAbility\",\"uri\":\"battery\"}}]}]\n\n[\"/data/phoneBattery/batterySOCText\",\"68%\"]\n\n[\"/data/phoneBattery/chargingStatusDesc\",\"未充电\"]",
+      "taskspecPath": "batch_20261019_123219_e3720ab5/taskspec/Q003.json",
+      "taskspec": {
+        "userQuery": "显示电池电量和状态",
+        "size": "2x2",
+        "appVersion": "11.7.7.351",
+        "eventCandidates": [
+          {
+            "id": "event.open.settings.battery",
+            "description": "打开系统设置中的电池页",
+            "call": "clickToDeeplink",
+            "args": {
+              "abilityName": "com.huawei.hmos.settings.MainAbility",
+              "bundleName": "com.huawei.hmos.settings",
+              "intentName": "Settings",
+              "uri": "battery"
+            }
+          }
+        ],
+        "dataModelSchema": {
+          "data": {
+            "phoneBattery": {
+              "batteryCapacityLevelDesc": {
+                "type": "string",
+                "description": "设备电池电量等级的语义化文本描述。",
+                "sampleValue": "正常电量"
+              },
+              "batterySOCText": {
+                "type": "string",
+                "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
+                "sampleValue": "68%"
+              },
+              "batteryTemperatureText": {
+                "type": "string",
+                "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+                "sampleValue": "29.0 ℃"
+              },
+              "chargingStatusDesc": {
+                "type": "string",
+                "description": "当前设备电池的充电状态文本描述。",
+                "sampleValue": "未充电"
+              },
+              "healthStatusDesc": {
+                "type": "string",
+                "description": "当前设备电池的物理健康状态文本描述。",
+                "sampleValue": "正常"
+              },
+              "pluggedTypeDesc": {
+                "type": "string",
+                "description": "当前设备连接的充电器类型文本描述。",
+                "sampleValue": "未连接充电器"
+              }
+            }
+          }
+        },
+        "assetCandidates": [
+          {
+            "id": "asset.battery_leaf_fill",
+            "src": "resources/base/media/battery_leaf_fill.svg",
+            "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+          }
+        ]
+      }
+    }
+  ],
+  "warnings": []
+}

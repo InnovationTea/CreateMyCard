@@ -1,0 +1,31 @@
+["root","Layout",{"layout":"W-split-panels"},["left","right"]]
+
+["left","Region",{"variant":"title-hero-support"},["left_title","type_text","time_body"]]
+
+["left_title","SingleLineTitle",{"title":{"path":"/data/healthSport/targetDateText"},"icon":"resources/base/media/calendar_fill.svg","fontSize":12}]
+
+["type_text","EmphasisText",{"mainText":{"path":"/data/healthSport/exerciseTypeName"},"secondaryText":"{{ '时长 ' + ${/data/healthSport/exerciseDurationText} }}","fontSize":18}]
+
+["time_body","SecondaryBody",{"columns":1,"items":[{"label":"开始","value":{"path":"/data/healthSport/exerciseStartTimeText"}},{"label":"结束","value":{"path":"/data/healthSport/exerciseEndTimeText"}}],"fontSize":12}]
+
+["right","Region",{"variant":"title-content-action"},["heart_title","heart_body","open_sport"]]
+
+["heart_title","SingleLineTitle",{"title":"心率","icon":"resources/base/media/heart_fill.svg","fontSize":12}]
+
+["heart_body","SecondaryBody",{"columns":1,"items":[{"label":"平均心率","value":"{{ ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}"},{"label":"最高心率","value":"{{ ${/data/healthSport/exerciseHeartRateMax} + '次/分钟' }}"}],"fontSize":12}]
+
+["open_sport","PillButton",{"label":"打开锻炼","icon":"resources/base/media/figure_run.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}]}]
+
+["/data/healthSport/targetDateText","2026-08-06"]
+
+["/data/healthSport/exerciseTypeName","户外跑步"]
+
+["/data/healthSport/exerciseDurationText","40分"]
+
+["/data/healthSport/exerciseStartTimeText","18:30"]
+
+["/data/healthSport/exerciseEndTimeText","19:10"]
+
+["/data/healthSport/exerciseHeartRateAvg",135]
+
+["/data/healthSport/exerciseHeartRateMax",168]
