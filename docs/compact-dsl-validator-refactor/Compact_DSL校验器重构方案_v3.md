@@ -486,14 +486,12 @@ BASE-02 至 BASE-04 不阻止纯等价拆分，但不能把已知冲突的旧建
 该约束必须同时出现在新诊断与模型说明中，不能因旧文案退出模型请求而丢失。
 本期 warning 继续通过 `CompactDslValidationResult.warnings` 返回字符串，并沿用流水线已有的
 `COMPACT_DSL_VALIDATION_WARNING` 及日志路径；不增加成功返回结果上的诊断字段，不将警告转成待修复错误。
-当前业务策略按溢出量与可压缩来源共同决定纵向高度超限的严重程度。校验器按
-`requiredHeight - availableHeight` 计算溢出量；不超过 `35vp` 且属于根 Column、直接父节点为 Column 的
-正数 `layoutWeight` Column，或溢出可完全由当前 Column 的有效 `itemMargin` 间距总量吸收时，诊断降为
-warning，交由端侧灵动布局处理。`layoutWeight` 只有在父 Column 中才代表纵向分配，父 Row 中的横向
-权重不能作为高度降级依据。warning 文本保留 `COMPACT_LAYOUT_HEIGHT_OVERFLOW` 规则标识、实际占用、
-可用高度、超限值及降级原因，沿用上述结果及日志出口，不进入结构化 error、`qualityErrors` 或模型
-repair。同一张卡不同层级的诊断分别判断和记录。其它固定局部 Column、溢出量超过 `35vp` 及高度
-无法闭合仍保持阻断；本节的 error 诊断示例继续代表这些严格场景。
+纵向高度门禁按 `requiredHeight - availableHeight` 计算溢出量。2×2 仅保留方案已登记的整树
+`2vp` 数值容差，2×4 不设高度容差。超过容差且最小占用及可用高度已可确定时，
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` 始终为 error，进入 `qualityErrors` 和模型 repair。根 Column、正数
+`layoutWeight` Column、可压缩 `itemMargin`、`clip`、`flexShrink` 或分布对齐都不能作为高度
+降级依据；这些属性不能消除已证明的内容最小高度。同一张卡不同层级的诊断仍分别记录，
+修复模型根据占用明细重新组合内容或选择容量足够的合法布局。
 
 ## 5. 修复建议解耦与简单配置接口
 
