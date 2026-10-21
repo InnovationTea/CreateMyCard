@@ -43,6 +43,13 @@ mode=layout，targetSize=2x2，dimensions 包含 layout、必要 spacing，targe
 静态标题改为较长文案时登记准确 textChanges，适度调整必要承载与换行，不直接截断新文案。
 列表只调整原模板节点样式，children 模板对象及循环变量保持，不把当前数据展开成几个静态 Text。
 
+## 修改对象中的静态字段
+
+若原 title.styles.shadow 为 {radius:4,color:原动态表达式}，用户只调整阴影半径，
+在获准 shape 范围内提交整个 shadow 对象，radius 使用新合法值，color 保持原表达式和位置。
+不将 color 换成首帧色值，也不为消除检查错误删除动态字段。需要新增包装容器时，
+将原节点移动到新容器并由原父引用新容器，每个节点仍只挂载一次，不保留重复引用或孤立新容器。
+
 ## 已满足、澄清或不支持
 
 标题已为 20、用户要求设为 20且没有其它变化：可 unchanged，并保留该 equal 目标供程序复核。

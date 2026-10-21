@@ -10,6 +10,9 @@ mode=patch：
 before 必须精确复制原字段，原字段缺失为 {"exists":false}；remove 不提供 value。
 只支持完整单个样式属性（styles.fontSize），不使用 styles.padding.top 等嵌套补丁；
 修改对象属性时复制原对象保留无关子字段后，替换整个 styles.padding 或 styles.linearGradient。
+原样保留原对象中的动态子字段及其位置，只修改获准的静态兄弟字段；不把原绑定换成静态样例。
+编辑值须符合 editContract.editableStyleValueRules，不能提交 CSS 阴影字符串、非法布尔值、
+负边距、错误分边/分角键或不完整的尺寸约束对象。
 
 mode=layout：{"sourceDigest":"照抄输入","genui":[完整的三条标准 A2UI 消息对象]}。
 保留 createSurface、updateDataModel、root 和 updateComponents 的其它头字段。

@@ -19,8 +19,10 @@ from test_tool_dispatch_routes import (
     _receive_frames_until_final,
     _request_id,
     _tool_payload,
+    _valid_model_output,
     app,
 )
+from utils.upload_file_obs import UploadFileOSMS
 from ws_response_parser import parse_legacy_stream_content
 
 _OPERATION = "generateWidgetCardCompactDsl"
@@ -287,43 +289,33 @@ def test_other_generation_routes_do_not_use_interface_retry(monkeypatch, operati
 
 @pytest.mark.parametrize("failure_kind", ["model", "validation", "upload"])
 def test_real_generation_pipeline_retries_to_valid_artifact(monkeypatch, tmp_path, failure_kind):
-    monkeypatch.setattr(get_settings(), "WORKSPACE_ROOT", tmp_path)
-    monkeypatch.setattr(get_settings(), "enable_model_failure_retry", False)
-    monkeypatch.setattr(get_settings(), "enable_validation_failure_retry", False)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
+    monkeypatch.setattr(settings, "enable_model_failure_retry", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_design_compact_runtime_prompt_context", False)
+    monkeypatch.setattr(settings, "enable_card_template", False)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_jsx_generation", lambda _self: False)
+    monkeypatch.setattr(artifact_store, "file_obs", UploadFileOSMS(
+        base_url="https://artifact.test", mock_storage_dir=tmp_path / "mock_obs",
+    ))
     calls = []
     uploads = []
     upload_calls = []
     original_save = ArtifactStore.save
     original_upload = artifact_store.file_obs.upload_file
-    token_rows = [
-        [
-            "root",
-            "Column",
-            {
-                "width": "matchParent",
-                "height": "matchParent",
-                "padding": 12,
-                "borderRadius": 20,
-                "clip": True,
-                "alignItems": "center",
-                "justifyContent": "center",
-                "backgroundColor": "#FFFFFFFF",
-            },
-            ["title"],
-        ],
-        ["title", "Text", {"content": "天气", "fontSize": 16, "fontColor": "#FF000000"}],
-        ["/ui/state", "ready"],
-    ]
-    token = "\n".join(json.dumps(row, ensure_ascii=False) for row in token_rows)
-
-    async def generate(_client, _prompt, profile, **_kwargs):
-        calls.append(profile.get("format"))
-        if len(calls) == 1:
+    async def generate(_client, prompt, profile, **_kwargs):
+        profile_id = profile.get("id")
+        calls.append(profile_id)
+        first_dsl = profile_id == "design-compact-dsl" and calls.count(profile_id) == 1
+        if first_dsl:
             if failure_kind == "model":
                 raise A2UIModelGenerationError("model unavailable")
             if failure_kind == "validation":
                 return "invalid model output"
-        return token
+        return _valid_model_output(_client, prompt, profile)
 
     async def save(store, artifact):
         uploads.append(artifact)
@@ -339,11 +331,18 @@ def test_real_generation_pipeline_retries_to_valid_artifact(monkeypatch, tmp_pat
     monkeypatch.setattr(ArtifactStore, "save", save)
     monkeypatch.setattr(artifact_store.file_obs, "upload_file", upload)
     with TestClient(app).websocket_connect(_PATH) as websocket:
-        websocket.send_json(_tool_payload(_CONTENT, "pipeline"))
+        content = {**_CONTENT, "userQuery": "生成标题为天气、正文为静态卡片的卡片"}
+        websocket.send_json(_tool_payload(content, "pipeline"))
         frames = _receive_frames_until_final(websocket, _request_id("pipeline"))
 
     assert_single_directive_pair(frames, succeeded=True)
-    assert calls == ["compact-dsl", "compact-dsl"]
+    if failure_kind == "upload":
+        assert calls == ["compact-info-plan", "design-compact-dsl", "post-layout-theme"] * 2
+    else:
+        assert calls == [
+            "compact-info-plan", "design-compact-dsl", "compact-info-plan",
+            "design-compact-dsl", "post-layout-theme",
+        ]
     expected_saves = 2 if failure_kind == "upload" else 1
     assert len(uploads) == expected_saves
     assert len(upload_calls) == expected_saves

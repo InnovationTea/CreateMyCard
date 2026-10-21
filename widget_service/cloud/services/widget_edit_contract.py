@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import json
 import math
-from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -13,6 +12,15 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from models.generation import WidgetSize
+from services.card_validation.edit_validation.structure import (
+    validate_edit_reachability,
+    validate_edit_structure,
+)
+from services.card_validation.edit_validation.styles import (
+    edit_style_value_rules,
+    preserve_dynamic_styles,
+    validate_edit_style_value,
+)
 from services.single_step_edit import _components, _load_json, _messages, _same, source_digest
 
 EditDimension = Literal["palette", "typography", "spacing", "shape", "layout", "text"]
@@ -84,6 +92,14 @@ def _tree(source: str) -> tuple[list[dict], dict[str, dict]]:
         if not isinstance(row.get(key), dict):
             raise ValueError(f"标准 A2UI 消息缺少 {key}")
     return rows, _components(rows)
+
+
+def validate_edit_source_structure(source: str) -> None:
+    rows, nodes = _tree(source)
+    root = rows[1].get("updateComponents", {}).get("root")
+    if not isinstance(root, str):
+        raise ValueError("原卡缺少根节点")
+    validate_edit_structure(nodes, root)
 
 
 def descendants(nodes: dict[str, dict], roots: list[str]) -> set[str]:
@@ -190,6 +206,7 @@ def _allowed_styles(intent: EditIntent) -> set[str]:
 def edit_contract() -> dict[str, Any]:
     """提示词与执行校验共用规则源；完整协议不自动扩展编辑权限。"""
     rules = json.loads(_STYLE_PATH.read_text(encoding="utf-8"))
+    rules["editableStyleValueRules"] = copy.deepcopy(edit_style_value_rules())
     dimensions = {}
     for name, fields in _STYLE_GROUPS.items():
         dimensions[name] = sorted(fields)
@@ -272,7 +289,8 @@ def _validate_expectation_operation(expected: EditExpectation, current: EditProp
     if expected.operator == "equal":
         if "value" not in expected.model_fields_set or expected.value is None:
             raise ValueError("精确编辑目标必须提供非空 value，删除字段使用 remove")
-        _style_value(expected.value)
+        preserve_dynamic_styles({"value": current.value}, {"value": expected.value})
+        _style_value(expected.value, allow_preserved_dynamic=True)
     elif expected.value is not None:
         raise ValueError("相对、保持和移除目标不应附带 value")
     if expected.operator != "equal" and not current.exists:
@@ -282,21 +300,21 @@ def _validate_expectation_operation(expected: EditExpectation, current: EditProp
             raise ValueError("相对增减目标必须引用静态数值")
         if not math.isfinite(current.value):
             raise ValueError("相对增减目标数值必须有限")
-    if expected.operator != "preserve" and _dynamic(current.value):
+    if expected.operator not in {"preserve", "equal"} and _dynamic(current.value):
         raise ValueError("编辑目标不能覆盖原有动态样式或表达式")
 
 
-def _style_value(value: Any) -> None:
+def _style_value(value: Any, *, allow_preserved_dynamic: bool = False) -> None:
     if isinstance(value, float) and not math.isfinite(value):
         raise ValueError("样式数值必须有限")
-    if _dynamic(value):
+    if not allow_preserved_dynamic and _dynamic(value):
         raise ValueError("视觉编辑不能引入新的动态样式或资源引用")
     if isinstance(value, dict):
         for child in value.values():
-            _style_value(child)
+            _style_value(child, allow_preserved_dynamic=allow_preserved_dynamic)
     elif isinstance(value, list):
         for child in value:
-            _style_value(child)
+            _style_value(child, allow_preserved_dynamic=allow_preserved_dynamic)
 
 
 def _apply_patch(original: str, patch: dict, intent: EditIntent) -> str:
@@ -365,10 +383,6 @@ def apply_edit_output(original: str, raw: str, intent: EditIntent) -> str:
     return result
 
 
-def _reachable(nodes: dict[str, dict], root: str) -> set[str]:
-    return descendants(nodes, [root])
-
-
 def _node_changes(before: dict, after: dict) -> set[str]:
     changed: set[str] = set()
     for key in set(before) | set(after):
@@ -393,9 +407,7 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
     root = before_update.get("root")
     if not isinstance(root, str):
         raise ValueError("原卡缺少根节点")
-    reachable = _reachable(after_nodes, root)
-    _check_tree(after_nodes, root)
-    source_reachable = _reachable(before_nodes, root)
+    validate_edit_reachability(before_nodes, after_nodes, root)
     allowed = scope_ids(intent, before_nodes)
     style_fields = _allowed_styles(intent)
     texts = {change.componentId: change for change in intent.textChanges}
@@ -404,6 +416,7 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
         after = after_nodes.get(identity)
         if after is None:
             if identity in intent.backgroundTargets and before.get("component") == "Image":
+                preserve_dynamic_styles(before.get("styles", {}), {})
                 continue
             raise ValueError(f"编辑不得删除原有内容或组件：{identity}")
         changes = _node_changes(before, after)
@@ -411,8 +424,6 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
             raise ValueError(f"修改超出已接受目标范围：{identity}")
         _validate_node(identity, before, after, changes, intent, texts)
         _validate_styles(identity, before, after, style_fields, intent, style_rules)
-        if identity in source_reachable and identity not in reachable:
-            raise ValueError(f"原卡展示内容不能移到不可达区域：{identity}")
     for identity, node in after_nodes.items():
         if identity in before_nodes:
             continue
@@ -421,7 +432,6 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
         if set(node) - {"id", "component", "styles", "children"}:
             raise ValueError("新增容器不能承载额外数据或动作")
         _validate_styles(identity, {}, node, style_fields, intent, style_rules)
-    _preserve_occurrences(before_nodes, after_nodes)
 
 
 def _validate_node(identity: str, before: dict, after: dict, changes: set[str],
@@ -465,6 +475,7 @@ def _validate_styles(identity: str, before: dict, after: dict, allowed: set[str]
     old_styles, new_styles = before.get("styles", {}), after.get("styles", {})
     if not isinstance(old_styles, dict) or not isinstance(new_styles, dict):
         raise ValueError("原卡及编辑样式必须为对象")
+    preserve_dynamic_styles(old_styles, new_styles)
     legal = set(rules.get("commonStyleFields", []))
     legal.update(rules.get("componentStyleFields", {}).get(after.get("component"), []))
     for key in _node_changes(old_styles, new_styles):
@@ -474,128 +485,8 @@ def _validate_styles(identity: str, before: dict, after: dict, allowed: set[str]
         if key not in allowed or key not in legal:
             raise ValueError(f"样式不在已接受维度或协议范围：{identity}.{key}")
         value = new_styles.get(key)
-        _style_value(value)
         if key in new_styles:
-            _validate_style_type(key, value, after.get("component"), rules)
-        if key in {"width", "height", "fontSize"} and isinstance(value, (int, float)):
-            if isinstance(value, bool) or value <= 0:
-                raise ValueError("字号与固定宽高必须为正数")
-
-
-def _validate_style_type(key: str, value: Any, kind: str, rules: dict) -> None:
-    numeric_fields = {"fontSize", "fontWeight", "minFontSize", "maxFontSize", "maxLines",
-                      "layoutWeight", "flexShrink", "borderWidth", "strokeWidth", "aspectRatio"}
-    if key in numeric_fields:
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise ValueError(f"{key} 必须为有限数值")
-        if value < 0:
-            raise ValueError(f"{key} 不得为负数")
-    color_fields = {"fontColor", "fillColor", "color", "backgroundColor", "borderColor",
-                    "selectedColor"}
-    if key in color_fields:
-        if not isinstance(value, str) or not value.startswith("#"):
-            raise ValueError(f"{key} 必须为 #RRGGBB 或 #AARRGGBB")
-        if len(value) not in {7, 9}:
-            raise ValueError(f"{key} 色值长度非法")
-        digits = value.removeprefix("#")
-        if any(character not in "0123456789abcdefABCDEF" for character in digits):
-            raise ValueError(f"{key} 必须只包含十六进制颜色字符")
-        if key == "fontColor" and len(value) == 9 and int(value[1:3], 16) == 0:
-            raise ValueError("不能通过透明文字隐藏原卡事实")
-    enum_values = rules.get("enumValues", {})
-    allowed = enum_values.get(f"{kind}.{key}", enum_values.get(key))
-    if allowed is not None and value not in allowed:
-        raise ValueError(f"{kind}.{key} 必须使用端侧协议枚举")
-    if key in {"width", "height"}:
-        _validate_dimension(value)
-    if key == "linearGradient":
-        _validate_gradient(value, kind, rules)
-    if key in {"padding", "margin", "borderRadius"}:
-        _validate_edges(value)
-
-
-def _validate_edges(value: Any) -> None:
-    if isinstance(value, bool):
-        raise ValueError("边距和圆角必须使用数值")
-    if isinstance(value, (int, float)):
-        return
-    values: list[Any] = []
-    if isinstance(value, dict):
-        values = list(value.values())
-    elif isinstance(value, list):
-        values = value
-    if not values:
-        raise ValueError("边距和圆角必须使用数值或非空数值集合")
-    for item in values:
-        if isinstance(item, bool) or not isinstance(item, (int, float)):
-            raise ValueError("边距和圆角集合必须只包含数值")
-
-
-def _validate_gradient(value: Any, kind: str, rules: dict) -> None:
-    if not isinstance(value, dict):
-        raise ValueError("渐变必须为协议对象")
-    colors = value.get("colors")
-    if not isinstance(colors, list) or len(colors) < 2:
-        raise ValueError("渐变至少需要两个颜色位置")
-    previous = -1.0
-    for stop in colors:
-        if not isinstance(stop, list) or len(stop) != 2:
-            raise ValueError("渐变颜色位置必须为 [色值, 位置]")
-        color, offset = stop
-        _validate_style_type("backgroundColor", color, kind, rules)
-        if isinstance(offset, bool) or not isinstance(offset, (int, float)):
-            raise ValueError("渐变位置必须为数值")
-        if not 0 <= offset <= 1 or offset < previous:
-            raise ValueError("渐变位置必须在 0..1 中递增")
-        previous = float(offset)
-
-
-def _validate_dimension(value: Any) -> None:
-    if isinstance(value, bool):
-        raise ValueError("宽高不能是布尔值")
-    if isinstance(value, (int, float)):
-        if value <= 0:
-            raise ValueError("宽高必须为正数")
-        return
-    if isinstance(value, str):
-        if value == "matchParent":
-            return
-        if value.endswith("%"):
-            number = float(value.removesuffix("%"))
-            if math.isfinite(number) and number > 0:
-                return
-    raise ValueError("宽高必须是正数、正百分比或 matchParent")
-
-
-def _check_tree(nodes: dict[str, dict], root: str) -> None:
-    """拒绝可达树中的环；共享叶节点另由挂载次数保护。"""
-    visiting: set[str] = set()
-    visited: set[str] = set()
-    pending = [(root, False)]
-    while pending:
-        identity, leaving = pending.pop()
-        if leaving:
-            visiting.remove(identity)
-            visited.add(identity)
-            continue
-        if identity in visiting:
-            raise ValueError("组件树不能形成循环引用")
-        if identity in visited:
-            continue
-        node = nodes.get(identity)
-        if node is None:
-            raise ValueError("组件树引用了不存在的目标")
-        visiting.add(identity)
-        pending.append((identity, True))
-        children = node.get("children", [])
-        if isinstance(children, dict):
-            children = [children.get("componentId")]
-        if not isinstance(children, list):
-            raise ValueError("children 必须为引用数组或合法模板引用")
-        for child in reversed(children):
-            if not isinstance(child, str):
-                raise ValueError("children 只能引用组件 ID")
-            pending.append((child, False))
+            validate_edit_style_value(key, value, after.get("component"), rules)
 
 
 def has_layout_change(original: str, candidate: str) -> bool:
@@ -614,19 +505,3 @@ def has_layout_change(original: str, candidate: str) -> bool:
             if not _same(old_styles.get(key), new_styles.get(key)):
                 changed = True
     return changed
-
-
-def _preserve_occurrences(before: dict[str, dict], after: dict[str, dict]) -> None:
-    """不允许把同一业务组件挂载多次来改变事实/动作次数。"""
-    old_count: Counter[str] = Counter()
-    new_count: Counter[str] = Counter()
-    for nodes, counts in ((before, old_count), (after, new_count)):
-        for node in nodes.values():
-            children = node.get("children")
-            if isinstance(children, list):
-                counts.update(children)
-    for identity, node in before.items():
-        if node.get("component") in _CONTAINERS:
-            continue
-        if identity in after and old_count.get(identity, 0) != new_count.get(identity, 0):
-            raise ValueError(f"不能改变业务组件的挂载次数：{identity}")

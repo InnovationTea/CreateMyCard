@@ -15,8 +15,8 @@ from custom.a2ui_model_client import A2UIModelClient
 from services import widget_edit_contract, widget_edit_prompt, widget_edit_service
 from services.artifact_store import ArtifactStore, ArtifactUploadError
 from services.card_validation import ValidationOptions, validate_card
-from services.card_validation import edit_validator as edit_validation_module
 from services.card_validation.context import ValidationContext
+from services.card_validation.edit_validation import artifact as edit_validation_module
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
 from services.single_step_edit import source_digest
 from services.source_artifact_repository import SourceArtifactLoadResult, SourceArtifactRepository
@@ -580,7 +580,7 @@ def test_execution_cannot_change_dynamic_paths_or_action_parameters(source):
 
 
 def test_severe_fixed_text_clipping_is_blocked(edit_run):
-    from services.card_validation.edit_validator import validate_edit_artifact
+    from services.card_validation.edit_validation.artifact import validate_edit_artifact
 
     original = edit_run.source
     candidate = original.model_copy(deep=True)
@@ -603,7 +603,7 @@ def test_severe_fixed_text_clipping_is_blocked(edit_run):
 def test_fixed_parent_checks_changed_text_and_preserves_historical_deficit(
     old_font, new_font, parent_height, min_font, blocked,
 ):
-    from services.card_validation.edit_validator import (
+    from services.card_validation.edit_validation.artifact import (
         EditValidationResult,
         _fixed_container_errors,
     )

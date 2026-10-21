@@ -18,7 +18,10 @@ from models.artifact import WidgetArtifact
 from models.generation import WidgetSize
 from models.preflight import GenerationPreflightError, GenerationPreflightResult
 from services.artifact_store import ArtifactStore, ArtifactUploadError
-from services.card_validation.edit_validator import edit_expectation_errors, validate_edit_artifact
+from services.card_validation.edit_validation.artifact import (
+    edit_expectation_errors,
+    validate_edit_artifact,
+)
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import GenerationRoutePolicy
 from services.generation_preflight import GenerationPreflight
@@ -30,6 +33,7 @@ from services.widget_edit_contract import (
     EditIntent,
     apply_edit_output,
     has_layout_change,
+    validate_edit_source_structure,
     validate_intent,
 )
 from services.widget_edit_prompt import execution_prompt, intent_prompt, repair_feedback
@@ -62,6 +66,13 @@ class WidgetEditService:
             return self._response(request, GenerationStatus.FAILED,
                                   "上一版卡片无法安全读取，原卡片不受影响。", exc.error_code)
         original = loaded.artifact.model_copy(deep=True)
+        try:
+            validate_edit_source_structure(original.genui)
+        except (ValueError, TypeError, RecursionError) as exc:
+            trace_record("edit.source.structure.failed", stage="edit.source", status="failed",
+                         details={"reason": str(exc)})
+            return self._response(request, GenerationStatus.FAILED,
+                                  "来源卡片结构无效。", ErrorCode.SOURCE_ARTIFACT_INVALID)
         source_size = original.cardSpec.get("suggestSize")
         if source_size not in {"2x2", "2x4"}:
             return self._response(request, GenerationStatus.FAILED,
