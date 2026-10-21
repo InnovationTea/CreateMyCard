@@ -1,5 +1,14 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-21：编辑目标履约属于标准 A2UI 的语义／编辑目标一致性，判定位于
+`card_validation/edit_validation/artifact.py`；模型意图形状、字段权限及可比较性属于
+`widget_edit_contract.py`。提示词加载与修复格式化位于 `widget_edit_prompt.py`，编排仍在
+`widget_edit_service.py`。复用现有样式合同，不新增或搬迁 Compact 检查，不影响创建入口。
+
+2026-10-21：标准 A2UI 编辑的固定高度与子文字最小字号矛盾归入
+`card_validation/edit_validation/artifact.py`（语义／布局与可读性）。比较父子组合的新旧不足差额，
+父容器未变化而子字号增大仍检查；不复制 Compact 几何规则，不改变首次生成校验。
+
 2026-10-21：`W-top-bottom.details` 允许的直属组件增加 `EventCard`，归属语义／布局合同，
 唯一判定落点仍为 `services/compact_semantic_layout.py`。该变更只放宽已登记父布局的 details 角色；
 EventCard 的 Props、事件顺序与总高继续由共享组件和容量校验负责，不在语义编译器重复实现，

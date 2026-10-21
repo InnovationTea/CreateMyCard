@@ -144,7 +144,7 @@ def test_retrieval_switch_and_total_switch_are_independent(monkeypatch) -> None:
     assert PromptBuilder._compact_few_shot_context(task, _plan(), component_source="") == ""
 
 
-def test_default_configuration_enables_retrieval() -> None:
+def test_default_configuration_disables_retrieval() -> None:
     from config.config import Settings
 
-    assert Settings.model_fields.get("enable_design_compact_few_shot_selection").default is True
+    assert Settings.model_fields.get("enable_design_compact_few_shot_selection").default is False

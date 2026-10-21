@@ -47,6 +47,7 @@ class ValidationOptions:
     rules_dir: Path | None = None
     capabilities_dir: Path | None = None
     asset_src_url_mapping: dict[str, str] = field(default_factory=dict)
+    edit_mode: bool = False
 
 
 def validate_card(
@@ -71,6 +72,7 @@ def validate_card(
         resolved_dsl, resolved_cardspec = extract_combined(artifact)
 
     context = SourceParser().parse(resolved_dsl, resolved_cardspec, reporter)
+    context.edit_mode = opts.edit_mode
     attach_effective_capabilities(
         context,
         effective_value,

@@ -43,8 +43,8 @@ compact_dsl_argument_repair_max_attempts: 2
 enable_compact_dsl_interface_retry: true
 # 是否在 Design Compact 的 DSL 生成阶段加载同尺寸 Few-shot；Plan 阶段始终不加载。
 enable_design_compact_few_shots: true
-# 默认在Plan之后按布局、信息密度、必要动作和组件候选检索最多4例；关闭时提供全部同尺寸案例。
-enable_design_compact_few_shot_selection: true
+# 默认关闭；开启后在 Plan 之后按布局、信息密度、必要动作和组件候选检索最多 4 例。
+enable_design_compact_few_shot_selection: false
 # 是否向 Plan 与 DSL 模型提示词追加由布局合同和视觉 Recipe 生成的运行时容量摘要。
 enable_design_compact_runtime_prompt_context: false
 # 2x4 校验失败后先尝试无损确定性紧凑候选，再沿用模型修复。

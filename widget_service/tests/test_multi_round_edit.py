@@ -98,6 +98,8 @@ def _replace_design_token(storage: Path, artifact_url: str, design_token: str) -
 @pytest.fixture
 def editable_artifact_storage(tmp_path, monkeypatch):
     settings = get_settings()
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)
+    monkeypatch.setattr(settings, "enable_semantic_widget_edit", False)
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "artifact_base_url", "https://obs.test/widget")
     monkeypatch.setattr(settings, "enable_widget_edit", True)
@@ -301,6 +303,7 @@ async def test_source_format_edit_rejects_oversized_design_token(
 @pytest.mark.asyncio
 async def test_design_edit_repair_saves_final_design_token(
     editable_artifact_storage,
+    isolated_theme_stage,
     monkeypatch,
 ):
     settings = get_settings()
@@ -339,12 +342,16 @@ async def test_design_edit_repair_saves_final_design_token(
     assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
     assert len(prompts) == 2
     assert updated.design_token.replace("\r", "") == source.design_token.replace("\r", "")
-    original_input = json.loads(prompts[1][1]["content"])
-    assert original_input["previousDesignToken"]["content"] == source.design_token
+    original_input = json.loads(prompts[1][1].get("content"))
+    previous_token = original_input.get("previousDesignToken")
+    assert isinstance(previous_token, dict)
+    assert previous_token.get("content") == source.design_token
     assert {"role": "assistant", "content": "invalid-design-token"} in prompts[1]
-    repair_payload = json.loads(prompts[1][-1]["content"])
+    repair_payload = json.loads(prompts[1][-1].get("content"))
     assert "invalidSourceDsl" not in repair_payload
-    assert repair_payload["qualityErrors"][0]["stage"] == "validation"
+    quality_errors = repair_payload.get("qualityErrors")
+    assert isinstance(quality_errors, list) and quality_errors
+    assert quality_errors[0].get("stage") == "validation"
 
 
 @pytest.mark.asyncio
@@ -470,29 +477,34 @@ async def test_edit_feature_switch_does_not_fall_back_to_create(
     assert response.artifactUrl == ""
 
 
-def test_edit_prompt_contains_previous_genui_but_not_source_url():
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_edit_prompt_contains_previous_genui_but_not_source_url(size):
     previous_genui = '{"version":"v0.9"}\n{}\n{}'
-    prompt = PromptBuilder().build(
-        TaskSpec(
-            userQuery="改成蓝色",
-            size="2x4",
-            dataModelSchema={"data": {}},
-        ),
-        previous_genui=previous_genui,
+    task_spec = TaskSpec(
+        userQuery="改成蓝色",
+        size=size,
+        dataModelSchema={"data": {}},
     )
+    builder = PromptBuilder()
+    create_prompt = builder.build(task_spec)
+    prompt = builder.build(task_spec, previous_genui=previous_genui)
 
-    edit_context = json.loads(prompt[1]["content"])
-    system_prompt = prompt[0]["content"]
-    assert "# 本轮路由摘要（高优先级）" in system_prompt
-    assert "## 9.2 2x4 固定骨架" in system_prompt
-    assert "## 9.1 2x2 固定骨架" not in system_prompt
-    assert "### `W8-quad-cells`" not in system_prompt
-    assert "### `W9-dual-backboards`" not in system_prompt
-    assert "### `W10-triple-backboards`" not in system_prompt
+    edit_context = json.loads(prompt[1].get("content"))
+    system_prompt = prompt[0].get("content")
+    assert isinstance(system_prompt, str)
+    create_system_prompt = create_prompt[0].get("content")
+    assert isinstance(create_system_prompt, str)
+    # 沿用当前同规格协议提示词，不再绑定已退出的固定骨架章节标题。
+    assert create_system_prompt in system_prompt
     assert "编辑模式附加规则" in system_prompt
-    assert edit_context["previousGenui"] == previous_genui
-    assert edit_context["editInstruction"] == "改成蓝色"
-    assert "appVersion" not in edit_context["newTaskSpec"]
+    assert edit_context.get("mode") == "edit"
+    assert edit_context.get("targetSize") == size
+    assert edit_context.get("previousGenui") == previous_genui
+    assert edit_context.get("editInstruction") == "改成蓝色"
+    new_task_spec = edit_context.get("newTaskSpec")
+    assert isinstance(new_task_spec, dict)
+    assert new_task_spec.get("size") == size
+    assert "appVersion" not in new_task_spec
     assert "sourceArtifactUrl" not in str(prompt)
 
 

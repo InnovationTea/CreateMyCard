@@ -218,7 +218,7 @@ Column(
         #if props.sourceIcon
           Image(
               props.sourceIcon,
-              {"fillColor": $theme('supportContentColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+              {"_wideHeaderIcon": true, "fillColor": $theme('supportContentColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
           )
         #endif
     )
@@ -260,7 +260,7 @@ Column(
         #if props.sourceIcon
           Image(
               props.sourceIcon,
-              {"fillColor": $theme('supportContentColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+              {"_wideHeaderIcon": true, "fillColor": $theme('supportContentColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
           )
         #endif
     ),
@@ -620,7 +620,7 @@ Column(
         #if props.sourceIcon
             Image(
                 props.sourceIcon,
-                {"fillColor": $theme('supportContentColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                {"_wideHeaderIcon": true, "fillColor": $theme('supportContentColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
             )
         #endif
     ),

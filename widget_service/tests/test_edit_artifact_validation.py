@@ -151,12 +151,16 @@ class GenerationProbe:
     prompts: list[list[dict]] = field(default_factory=list)
     metrics: list[dict] = field(default_factory=list)
     evaluations: list[dict] = field(default_factory=list)
+    plan_calls: int = 0
 
 
 @pytest.fixture
 def generation_probe(tmp_path, monkeypatch):
     probe = GenerationProbe()
     settings = get_settings()
+    monkeypatch.setattr(settings, "enable_semantic_widget_edit", False)
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
+    monkeypatch.setattr(settings, "enable_design_compact_runtime_prompt_context", False)
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "enable_widget_edit", True)
     # 原有整卡编辑与 Compact 修复的契约仍单独验证，不把整卡 mock 当字段补丁。
@@ -180,6 +184,15 @@ def generation_probe(tmp_path, monkeypatch):
 
     def generate(_client, prompt, _profile=None, **_kwargs):
         probe.prompts.append(copy.deepcopy(prompt))
+        if (_profile or {}).get("id") == "compact-info-plan":
+            probe.plan_calls += 1
+            return json.dumps({
+                "name": "submit_card_plan",
+                "arguments": {"info_required": [{
+                    "requirement": "天气展示", "text": "天气", "priority": "must",
+                    "componentHints": ["EmphasisText"],
+                }]},
+            }, ensure_ascii=False)
         assert probe.outputs, "发生非预期模型调用"
         return probe.outputs.pop(0)
 
@@ -403,6 +416,7 @@ async def test_strict_compact_edit_blocks_or_repairs_with_structured_diagnostic(
         _request(sourceArtifactUrl=created.artifactUrl, candidateDataBindings=[]),
     )
     assert not probe.outputs
+    assert probe.plan_calls == 2
     assert len(probe.evaluations) == (3 if repair else 2)
     result = _evaluation_result(probe.evaluations[1])
     errors = result.get("errors")

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "仅用于语义编辑的字段值合同；组件字段及枚举仍取 style.json 的交集。原位置原样保留的动态叶值由差异保护确认，不按静态类型误拒绝。",
+  "$defs": {
+    "nonnegative": {"type": "number", "minimum": 0},
+    "positive": {"type": "number", "exclusiveMinimum": 0},
+    "color": {"type": "string", "pattern": "^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"},
+    "dimension": {
+      "anyOf": [
+        {"$ref": "#/$defs/nonnegative"},
+        {"type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?(?:vp|fp|%)$"}
+      ]
+    },
+    "editableDimension": {
+      "anyOf": [
+        {"$ref": "#/$defs/positive"},
+        {"type": "string", "enum": ["matchParent"]},
+        {"type": "string", "pattern": "^(?:[0-9]*[1-9][0-9]*(?:\\.[0-9]+)?|0?\\.[0-9]*[1-9][0-9]*)%$"}
+      ]
+    },
+    "edges": {
+      "anyOf": [
+        {"$ref": "#/$defs/nonnegative"},
+        {
+          "type": "object", "minProperties": 1, "additionalProperties": false,
+          "properties": {
+            "top": {"$ref": "#/$defs/nonnegative"},
+            "right": {"$ref": "#/$defs/nonnegative"},
+            "bottom": {"$ref": "#/$defs/nonnegative"},
+            "left": {"$ref": "#/$defs/nonnegative"}
+          }
+        }
+      ]
+    },
+    "corners": {
+      "anyOf": [
+        {"$ref": "#/$defs/nonnegative"},
+        {
+          "type": "object", "minProperties": 1, "additionalProperties": false,
+          "properties": {
+            "topLeft": {"$ref": "#/$defs/nonnegative"},
+            "topRight": {"$ref": "#/$defs/nonnegative"},
+            "bottomLeft": {"$ref": "#/$defs/nonnegative"},
+            "bottomRight": {"$ref": "#/$defs/nonnegative"}
+          }
+        }
+      ]
+    },
+    "shadow": {
+      "anyOf": [
+        {"type": "string", "enum": ["outerDefaultXS", "outerDefaultSM", "outerDefaultMD", "outerDefaultLG", "outerFloatingSM", "outerFloatingMD"]},
+        {
+          "type": "object", "required": ["radius"], "additionalProperties": false,
+          "properties": {
+            "radius": {"$ref": "#/$defs/nonnegative"},
+            "offsetX": {"type": "number"}, "offsetY": {"type": "number"},
+            "color": {"$ref": "#/$defs/color"}, "fill": {"type": "boolean"},
+            "type": {"type": "string", "enum": ["color", "blur"]}
+          }
+        }
+      ]
+    },
+    "constraints": {
+      "type": "object", "additionalProperties": false,
+      "required": ["minWidth", "maxWidth", "minHeight", "maxHeight"],
+      "properties": {
+        "minWidth": {"$ref": "#/$defs/dimension"},
+        "maxWidth": {"$ref": "#/$defs/dimension"},
+        "minHeight": {"$ref": "#/$defs/dimension"},
+        "maxHeight": {"$ref": "#/$defs/dimension"}
+      }
+    },
+    "gradient": {
+      "type": "object", "required": ["colors"], "additionalProperties": false,
+      "properties": {
+        "angle": {"type": "number"},
+        "direction": {"type": "string", "enum": ["Left", "Top", "Right", "Bottom", "LeftTop", "LeftBottom", "RightTop", "RightBottom", "None"]},
+        "repeating": {"type": "boolean"},
+        "colors": {
+          "type": "array", "minItems": 2,
+          "items": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "prefixItems": [{"$ref": "#/$defs/color"}, {"type": "number", "minimum": 0, "maximum": 1}]
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "fontColor": {"$ref": "#/$defs/color"}, "fillColor": {"$ref": "#/$defs/color"},
+    "color": {"$ref": "#/$defs/color"}, "backgroundColor": {"$ref": "#/$defs/color"},
+    "borderColor": {"$ref": "#/$defs/color"}, "selectedColor": {"$ref": "#/$defs/color"},
+    "linearGradient": {"$ref": "#/$defs/gradient"},
+    "fontSize": {"$ref": "#/$defs/positive"},
+    "fontWeight": {"type": "integer", "enum": [100, 200, 300, 400, 500, 600, 700, 800, 900]},
+    "minFontSize": {"$ref": "#/$defs/nonnegative"},
+    "maxFontSize": {"$ref": "#/$defs/nonnegative"},
+    "maxLines": {"type": "integer", "minimum": 0},
+    "textAlign": {"type": "string"}, "textOverflow": {"type": "string"},
+    "margin": {"$ref": "#/$defs/edges"}, "padding": {"$ref": "#/$defs/edges"},
+    "itemMargin": {"$ref": "#/$defs/nonnegative"}, "space": {"$ref": "#/$defs/nonnegative"},
+    "justifyContent": {"type": "string"}, "alignItems": {"type": "string"},
+    "alignContent": {"type": "string"}, "alignSelf": {"type": "string"},
+    "borderRadius": {"$ref": "#/$defs/corners"},
+    "borderWidth": {"$ref": "#/$defs/nonnegative"},
+    "strokeWidth": {"$ref": "#/$defs/nonnegative"},
+    "shadow": {"$ref": "#/$defs/shadow"}, "clip": {"type": "boolean"},
+    "type": {"type": "string"},
+    "width": {"$ref": "#/$defs/editableDimension"},
+    "height": {"$ref": "#/$defs/editableDimension"},
+    "aspectRatio": {"$ref": "#/$defs/positive"},
+    "constraintSize": {"$ref": "#/$defs/constraints"},
+    "layoutWeight": {"$ref": "#/$defs/nonnegative"},
+    "flexShrink": {"type": "number", "minimum": 0, "maximum": 1},
+    "wrap": {"type": "string"}, "listDirection": {"type": "string"}
+  },
+  "additionalProperties": false
+}

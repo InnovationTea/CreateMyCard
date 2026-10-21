@@ -240,6 +240,10 @@ class Settings(BaseSettings):
     )
     enable_validation_failure_retry: bool = CONFIG.get("enable_validation_failure_retry") == "true"
     enable_widget_edit: bool = CONFIG.get("enable_widget_edit", "true") == "true"
+    enable_semantic_widget_edit: bool = CONFIG.get("enable_semantic_widget_edit", "true") == "true"
+    widget_edit_max_repair_attempts: int = Field(
+        default=CONFIG.get("widget_edit_max_repair_attempts", 2), ge=0, le=5,
+    )
     enable_single_step_generation_fallback: bool = (
         CONFIG.get("enable_single_step_generation_fallback", "false") == "true"
     )
@@ -271,7 +275,7 @@ class Settings(BaseSettings):
         CONFIG.get("enable_design_compact_few_shots", "true") == "true"
     )
     enable_design_compact_few_shot_selection: bool = (
-        CONFIG.get("enable_design_compact_few_shot_selection", "true") == "true"
+        CONFIG.get("enable_design_compact_few_shot_selection", "false") == "true"
     )
     enable_design_compact_runtime_prompt_context: bool = (
         CONFIG.get("enable_design_compact_runtime_prompt_context", "false") == "true"

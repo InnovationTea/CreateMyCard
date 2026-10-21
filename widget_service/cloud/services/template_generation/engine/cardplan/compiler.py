@@ -1055,6 +1055,7 @@ def _expand_call(
             binding_values,
             registry.theme_reference_values(contract.theme_profile_id),
             spread_children=expanded_children,
+            card_size=task_spec.size,
         )
     budget_root = root
     if definition.provider_id == _ACTION_PROVIDER_ID:
@@ -4713,6 +4714,7 @@ def _instantiate_blueprint(
     theme_values: dict[str, object] | None = None,
     *,
     spread_children: tuple[Nested2Node, ...] = (),
+    card_size: str = "2x2",
 ) -> Nested2Node:
     binding_values = bindings or {}
     resolved_theme_values = theme_values or {}
@@ -4735,6 +4737,10 @@ def _instantiate_blueprint(
         _template_value(item, params, binding_values, resolved_theme_values)
         for item in node.values
     ]
+    # 仅由受信模板源声明；此标记不进入端侧样式或模型开放参数。
+    for value in values:
+        if isinstance(value, dict):
+            value.pop("_wideHeaderIcon", None)
     normalized = _normalize_blueprint_values(node.component, values)
     return Nested2Node(
         component_type=node.component,
@@ -4746,6 +4752,7 @@ def _instantiate_blueprint(
                 binding_values,
                 resolved_theme_values,
                 spread_children=spread_children,
+                card_size=card_size,
             ),
             *(spread_children if node.spread_children else ()),
         ),
@@ -4759,9 +4766,12 @@ def _instantiate_blueprint_children(
     theme_values: dict[str, object],
     *,
     spread_children: tuple[Nested2Node, ...] = (),
+    card_size: str = "2x2",
 ) -> tuple[Nested2Node, ...]:
     instantiated: list[Nested2Node] = []
     for child in children:
+        if card_size == "2x4" and _is_wide_header_icon(child):
+            continue
         child_slot_index = _template_child_slot_index(child)
         if child_slot_index is not None:
             if child_slot_index >= len(spread_children):
@@ -4780,6 +4790,7 @@ def _instantiate_blueprint_children(
                         bindings,
                         theme_values,
                         spread_children=spread_children,
+                        card_size=card_size,
                     )
                 )
             continue
@@ -4789,6 +4800,7 @@ def _instantiate_blueprint_children(
             bindings,
             theme_values,
             spread_children=spread_children,
+            card_size=card_size,
         )
         if (
             child.component in _CONTAINERS
@@ -4802,6 +4814,17 @@ def _instantiate_blueprint_children(
             continue
         instantiated.append(instantiated_child)
     return tuple(instantiated)
+
+
+def _is_wide_header_icon(node: TemplateNode) -> bool:
+    """只隐藏模板明确标记的 Image，避免误删正文、环内及动作图标。"""
+    if node.component != "Image":
+        return False
+    for value in node.values:
+        marker = value.properties.get("_wideHeaderIcon")
+        if marker is not None and marker.kind == "literal" and marker.value is True:
+            return True
+    return False
 
 
 def _template_condition_should_render(
@@ -4955,8 +4978,6 @@ def _expand_health_metric_generic_template(
     if not selected:
         raise TerselConversionError("Generic health metric requires at least one data path.")
     icon = params.get("sourceIcon")
-    support_background = theme_values["supportContentStyle.backgroundColor"]
-    support_radius = theme_values["supportContentStyle.borderRadius"]
     primary_color = theme_values["primaryColor"]
     support_color = theme_values["supportContentColor"]
     if wire_id == "GenericMetricOverviewCompact@1":
@@ -5003,9 +5024,6 @@ def _expand_health_metric_generic_template(
                 {
                     "width": "matchParent",
                     "height": "matchParent",
-                    "padding": {"left": 12, "top": 0, "right": 16, "bottom": 0},
-                    "backgroundColor": support_background,
-                    "borderRadius": support_radius,
                     "justifyContent": "spaceBetween",
                     "alignItems": "center",
                     "constraintSize": {"minWidth": 0, "minHeight": 0},
@@ -5094,9 +5112,6 @@ def _expand_health_metric_generic_template(
             {
                 "width": "matchParent",
                 "height": "matchParent",
-                "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
-                "backgroundColor": support_background,
-                "borderRadius": support_radius,
                 "itemMargin": 2,
                 "justifyContent": "center",
                 "alignItems": "start",
