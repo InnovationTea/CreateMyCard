@@ -3,6 +3,7 @@ import { util } from '@kit.ArkTS';
 import { fileIo } from '@kit.CoreFileKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { executeDesktopCommand } from '../runner/DesktopBridge';
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, isSafeSampleFile, normalizeDimension, RenderRequest } from '../runner/A2UIProtocol';
 
 const DOMAIN = 0x0000;
@@ -50,6 +51,11 @@ export default class EntryAbility extends UIAbility {
       return;
     }
 
+    if (parameters?.['desktopOperation'] === true) {
+      void executeDesktopCommand(this.context, providedSampleFile);
+      return;
+    }
+
     this.publishRenderRequest(runId, providedSampleFile, rawWidth, rawHeight);
   }
 
@@ -87,7 +93,8 @@ export default class EntryAbility extends UIAbility {
     this.sampleChunks.delete(runId);
     try {
       const encoded: string = chunks.join('');
-      if (encoded.length > 3_000_000) {
+      const limit: number = parameters?.['desktopOperation'] === true ? 6_144_000 : 3_000_000;
+      if (encoded.length > limit) {
         throw new Error('sample payload is too large');
       }
       const decoded: Uint8Array = new util.Base64Helper().decodeSync(encoded, util.Type.BASIC);
@@ -106,7 +113,11 @@ export default class EntryAbility extends UIAbility {
       this.logFailed(runId, sampleFile, 'SAMPLE_TRANSFER_FAILED', (err as Error).message);
       return;
     }
-    this.publishRenderRequest(runId, sampleFile, rawWidth, rawHeight);
+    if (parameters?.['desktopOperation'] === true) {
+      void executeDesktopCommand(this.context, sampleFile);
+    } else {
+      this.publishRenderRequest(runId, sampleFile, rawWidth, rawHeight);
+    }
   }
 
   private publishRenderRequest(runId: string, providedSampleFile: string, rawWidth: number | undefined,

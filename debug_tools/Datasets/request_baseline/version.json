@@ -1,0 +1,72 @@
+{
+  "current_version": "v4",
+  "update_date": "2026-10-16",
+  "history_versions": [
+    {
+      "update_date": "2026-10-10",
+      "commits": [
+        "669eefaa0532cd55b40251565b0e370f50cf61f7"
+      ],
+      "changes": [
+        "引入原始 request_dataset 请求样本与组件召回标注。"
+      ],
+      "version": "v1"
+    },
+    {
+      "update_date": "2026-10-13",
+      "commits": [
+        "8fa0f9da41f6e282159c7a7facb0ab794a8a7bc7"
+      ],
+      "changes": [
+        "对齐 Q008、Q014、Q020、Q026、Q038、Q045、Q047、Q054、Q056、Q060、Q062 的素材 ID。",
+        "Q008、Q026、Q056、Q062：移除 asset.ic_weather_monochrome；新增 asset.sun_max",
+        "Q014、Q020、Q038、Q045、Q047、Q054、Q060：移除 asset.icon_phone；新增 asset.phone_fill"
+      ],
+      "version": "v2"
+    },
+    {
+      "update_date": "2026-10-14",
+      "commits": [
+        "b84c26dfc5700683bd41ad3a2ba9a372772b73d4"
+      ],
+      "changes": [
+        "派生去除更新时间要求的请求数据集，保留业务诉求。"
+      ],
+      "version": "v3"
+    },
+    {
+      "update_date": "2026-10-16",
+      "commits": [
+        "fd8ce689be8b6b757ea21637e969d3d7e4493420"
+      ],
+      "changes": [
+        "归并为 88 条基线，替换旧图标并移除重复历史目录。",
+        "Q003、Q068：移除 asset.icon_timing, asset.clock_fill；新增 asset.stopwatch_fill, asset.icon_schedule",
+        "Q004：移除 asset.clock；新增 asset.ic_warning_monochrome",
+        "Q006、Q007、Q013、Q018、Q030、Q035、Q056、Q057、Q077：移除 asset.clock_fill；新增 asset.icon_schedule",
+        "Q008：移除 asset.airplane_departure, asset.icon_timing；新增 asset.airplane_fill_1, asset.stopwatch_fill",
+        "Q011：移除 asset.heat_generation, asset.clock；新增 asset.emoji_temperature_orange, asset.battery_leaf_fill",
+        "Q012、Q036、Q038、Q063、Q081：移除 asset.clock_fill；新增 asset.emoji_time",
+        "Q015：移除 asset.clock；新增 asset.emoji_heartRate",
+        "Q016、Q051、Q078：移除 asset.cold；新增 asset.ic_weather_monochrome",
+        "Q023、Q041：移除 asset.clock_fill；新增 asset.worldclock_fill_2",
+        "Q024：移除 asset.clock；新增 asset.alarm_fill_1",
+        "Q025：移除 asset.clock；新增 asset.ic_weather_monochrome",
+        "Q026：移除 asset.airplane_departure；新增 asset.airplane_fill_1",
+        "Q029：移除 asset.icon_weather_thermometer, asset.clock_fill；新增 asset.icon_weather_thermometer_medium, asset.icon_schedule",
+        "Q034、Q065：移除 asset.icon_weather_thermometer；新增 asset.icon_weather_thermometer_medium",
+        "Q042、Q072：移除 asset.icon_weather_thermometer, asset.icon_timing；新增 asset.icon_weather_thermometer_medium, asset.stopwatch_fill",
+        "Q045：移除 asset.icon_weather_thermometer, asset.heat_generation；新增 asset.icon_weather_thermometer_medium, asset.emoji_temperature_orange",
+        "Q049：移除 asset.heat_generation, asset.clock；新增 asset.emoji_temperature_orange, asset.gearshape_fill",
+        "Q050：移除 asset.icon_timing；新增 asset.stopwatch_fill",
+        "Q055：移除 asset.clock；新增 asset.ic_sportsHealth_bule",
+        "Q059：移除 asset.clock；新增 asset.ic_Bluetooth",
+        "Q061、Q075、Q080、Q086：移除 asset.heat_generation；新增 asset.emoji_temperature_orange",
+        "Q074：移除 asset.icon_weather_thermometer, asset.cold；新增 asset.icon_weather_thermometer_medium, asset.ic_weather_monochrome",
+        "Q076：移除 asset.sun_min, asset.heat_generation；新增 asset.sun_max, asset.emoji_temperature_orange",
+        "Q088：移除 asset.icon_timing, asset.icon_weather_thermometer；新增 asset.stopwatch_fill, asset.icon_weather_thermometer_medium"
+      ],
+      "version": "v4"
+    }
+  ]
+}

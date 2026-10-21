@@ -1,0 +1,91 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "创建一张通勤助手小卡片，支持一键导航到公司",
+    "candidateDataBindings": [],
+    "title": "通勤助手",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.startNavigate",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "location": "company",
+                "latitude": "",
+                "longitude": ""
+              }
+            }
+          }
+        }
+      }
+    ],
+    "description": "支持一键导航到公司。",
+    "candidateAssetIds": [
+      "asset.icon_car",
+      "asset.location_north_up_right_fill",
+      "asset.local_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.301",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "059",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "创建一张通勤助手小卡片，支持一键导航到公司",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "创建一张通勤助手小卡片，支持一键导航到公司",
+  "candidateDataBindings": [],
+  "title": "通勤助手",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.startNavigate",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "location": "company",
+              "latitude": "",
+              "longitude": ""
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "支持一键导航到公司。",
+  "candidateAssetIds": [
+    "asset.icon_car",
+    "asset.location_north_up_right_fill",
+    "asset.local_fill"
+  ]
+}

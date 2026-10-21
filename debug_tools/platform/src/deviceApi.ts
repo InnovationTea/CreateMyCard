@@ -9,6 +9,10 @@ export type Operation = {
   targetId?: string | null; serial?: string | null;
 };
 export type DeviceRun = {
+  prepareOnly?: boolean;
+  captureMode?: 'preview' | 'desktop';
+  formId?: string;
+  adapterId?: string;
   id: string; targetId: string; device: string;
   status: string; stage: string; error: string | null; installed: boolean;
   terminal: 'READY' | 'READY_WITH_WARNINGS' | 'FAILED' | null;

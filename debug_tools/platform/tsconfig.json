@@ -23,5 +23,5 @@
     "jsx": "react-jsx",
     "types": []
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "../tests/frontend/platform", "vite.config.ts"]
 }

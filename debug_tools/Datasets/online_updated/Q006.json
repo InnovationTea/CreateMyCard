@@ -1,0 +1,137 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "提醒按时睡觉，监测每天睡眠状况，显示睡眠时长，快速设置闹钟提醒",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/fallAsleepTimeText",
+          "/nightSleepDurationText",
+          "/sleepScore",
+          "/sleepStatus",
+          "/wakeupTimeText"
+        ]
+      }
+    ],
+    "title": "睡眠助手",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          }
+        }
+      },
+      {
+        "capabilityId": "event.open.health.sleep",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          }
+        }
+      }
+    ],
+    "description": "监测睡眠状况，显示睡眠时长并快速设置闹钟提醒。",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.alarm_fill_1",
+      "asset.emoji_z"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.340",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "006",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "提醒按时睡觉，监测每天睡眠状况，显示睡眠时长，快速设置闹钟提醒",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "提醒按时睡觉，监测每天睡眠状况，显示睡眠时长，快速设置闹钟提醒",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/fallAsleepTimeText",
+        "/nightSleepDurationText",
+        "/sleepScore",
+        "/sleepStatus",
+        "/wakeupTimeText"
+      ]
+    }
+  ],
+  "title": "睡眠助手",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.clock.alarm",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "bundleName": "com.huawei.hmos.clock",
+          "intentName": "Clock",
+          "uri": ""
+        }
+      }
+    },
+    {
+      "capabilityId": "event.open.health.sleep",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        }
+      }
+    }
+  ],
+  "description": "监测睡眠状况，显示睡眠时长并快速设置闹钟提醒。",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1",
+    "asset.alarm_fill_1",
+    "asset.emoji_z"
+  ]
+}

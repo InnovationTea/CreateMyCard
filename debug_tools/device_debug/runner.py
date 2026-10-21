@@ -6,6 +6,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import os
 import re
 import time
 import uuid
@@ -16,10 +17,12 @@ from typing import Any
 
 from PIL import Image
 
+from debug_tools.postprocess_plugins._io import atomic_write_json
+
 from .commands import DeviceError, command, executable_command, install_ohpm_dependencies
 from .config import Config, Project
 from .devices import Devices, Target
-from .locks import build_lock, device_lock
+from .locks import DeviceProcessLock, build_lock, device_lock
 
 LogCallback = Callable[[str], Awaitable[None] | None]
 TERMINAL_STATES = {"READY", "READY_WITH_WARNINGS", "FAILED"}
@@ -89,9 +92,7 @@ def parse_terminal_events(text: str, run_id: str) -> list[TerminalEvent]:
             continue
         warnings_value = payload.get("warnings", [])
         warnings = (
-            [str(value) for value in warnings_value]
-            if isinstance(warnings_value, list)
-            else []
+            [str(value) for value in warnings_value] if isinstance(warnings_value, list) else []
         )
         crop_value = payload.get("cropPx")
         crop = _parse_crop(crop_value) if crop_value is not None else None
@@ -139,13 +140,19 @@ class RenderProject:
         self.config = config
         self.path = config.project.resolve()
         self.info = Project.read(self.path)
+        self.built_fingerprint: str | None = None
 
     def _fingerprint(self) -> str:
         digest = hashlib.sha256()
         excluded = {"build", ".hvigor", ".preview", "oh_modules", "node_modules", "test-output"}
-        for path in sorted(self.path.rglob("*")):
-            relative_parts = path.relative_to(self.path).parts
-            if not path.is_file() or any(part in excluded for part in relative_parts):
+        sources = []
+        for directory, folders, filenames in os.walk(self.path):
+            folders[:] = [name for name in folders if name not in excluded]
+            for name in filenames:
+                if name not in excluded:
+                    sources.append(Path(directory) / name)
+        for path in sorted(sources):
+            if not path.is_file():
                 continue
             relative = path.relative_to(self.path).as_posix()
             if relative in {"local.properties", ".gitignore"}:
@@ -161,6 +168,7 @@ class RenderProject:
             fingerprint = await asyncio.to_thread(self._fingerprint)
             cached = self._cached_hap(target_kind, fingerprint)
             if cached is not None:
+                self.built_fingerprint = fingerprint
                 return cached
             dependency = self.path / "oh_modules/@arkui-genius/genui_form/Index.d.ets"
             if not dependency.is_file():
@@ -174,6 +182,7 @@ class RenderProject:
                 )
             if not self.config.hvigor.is_file():
                 raise DeviceError(f"配置的 Hvigor 可执行文件不存在：{self.config.hvigor}")
+            fingerprint = await asyncio.to_thread(self._fingerprint)
             await command(
                 [
                     *executable_command(self.config.hvigor, self.config.node),
@@ -193,6 +202,8 @@ class RenderProject:
                 timeout=self.config.build_timeout,
                 log=log,
             )
+            if await asyncio.to_thread(self._fingerprint) != fingerprint:
+                raise DeviceError("构建期间工程内容发生变化，请重新编译")
             hap = self._select_hap(target_kind)
             marker = self.path / ".hvigor/debug-tools-build.json"
             marker.parent.mkdir(parents=True, exist_ok=True)
@@ -200,6 +211,7 @@ class RenderProject:
                 json.dumps({"fingerprint": fingerprint, "hap": str(hap)}, ensure_ascii=False),
                 encoding="utf-8",
             )
+            self.built_fingerprint = fingerprint
             return hap
 
     def _cached_hap(self, target_kind: str, fingerprint: str) -> Path | None:
@@ -257,16 +269,19 @@ class RenderSession:
         self._prepared = False
         self._sandbox_transport = False
         self._remote_files: set[str] = set()
+        self._process_lock = DeviceProcessLock(config.output, target.serial)
 
     async def __aenter__(self) -> RenderSession:
         self._lock = device_lock(self.target.serial)
         await self._lock.acquire()
         try:
+            await self._process_lock.acquire()
             current = await self.devices.target(self.target.id)
             if current.kind != self.target.kind:
                 raise DeviceError("设备类型已经变化，请刷新后重新选择")
             await self._say("构建内置 A2UI_Render 工程")
             hap = await self.project.build(current.kind, self.log)
+            fingerprint = self.project.built_fingerprint
             await self._say(f"安装 {hap.name}")
             await self.devices.hdc(
                 current.serial,
@@ -279,6 +294,20 @@ class RenderSession:
             # Ability launch. This also avoids racing HDC's debug-bundle lookup.
             await asyncio.sleep(0.8)
             self._sandbox_transport = await self._prepare_sandbox(current.serial)
+            if (
+                fingerprint is None
+                or await asyncio.to_thread(self.project._fingerprint) != fingerprint
+            ):
+                raise DeviceError("安装期间工程内容发生变化，请重新编译")
+            prepared_path = self.config.output / "prepared" / f"{self.target.id}.json"
+            prepared_path.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(
+                prepared_path,
+                {
+                    "fingerprint": fingerprint,
+                    "targetId": self.target.id,
+                },
+            )
             self._prepared = True
             return self
         except BaseException:
@@ -293,6 +322,7 @@ class RenderSession:
             self._release()
 
     def _release(self) -> None:
+        self._process_lock.release()
         if self._lock is not None and self._lock.locked():
             self._lock.release()
         self._lock = None
@@ -424,10 +454,10 @@ class RenderSession:
 
     async def _send_sample_chunks(self, source: Path, parameters: list[str]) -> None:
         encoded = base64.b64encode(await asyncio.to_thread(source.read_bytes)).decode("ascii")
-        chunks = [
-            encoded[offset:offset + SAMPLE_CHUNK_SIZE]
-            for offset in range(0, len(encoded), SAMPLE_CHUNK_SIZE)
-        ]
+        chunks = []
+        for offset in range(0, len(encoded), SAMPLE_CHUNK_SIZE):
+            stop = offset + SAMPLE_CHUNK_SIZE
+            chunks.append(encoded[offset:stop])
         if not chunks:
             raise DeviceError("A2UI 样本为空，无法推送到应用")
         for index, chunk in enumerate(chunks):
@@ -495,7 +525,11 @@ class RenderSession:
         return False
 
     async def _capture(
-        self, run_id: str, parameters: list[str], full_path: Path, *,
+        self,
+        run_id: str,
+        parameters: list[str],
+        full_path: Path,
+        *,
         capture_delay_seconds: float = 0.0,
     ) -> None:
         full_path.parent.mkdir(parents=True, exist_ok=True)
@@ -554,15 +588,18 @@ class RenderSession:
             image.crop((crop.left, crop.top, right, bottom)).save(destination, format="PNG")
 
     async def _cleanup_remote(self) -> None:
-        for remote in list(self._remote_files):
+        pending = list(self._remote_files)
+        for offset in range(0, len(pending), 32):
+            stop = offset + 32
+            batch = pending[offset:stop]
             try:
                 await self.devices.hdc(
                     self.target.serial,
-                    ["shell", "-b", self.project.info.bundle, "rm", "-f", remote],
+                    ["shell", "-b", self.project.info.bundle, "rm", "-f", *batch],
                 )
             except DeviceError as exc:
                 await self._say(f"清理应用沙箱样本失败：{type(exc).__name__}: {exc}")
-            self._remote_files.discard(remote)
+            self._remote_files.difference_update(batch)
 
     async def _say(self, message: str) -> None:
         if self.notify is None:
@@ -582,6 +619,14 @@ class DeviceRenderer:
         target_id: str,
         log: Path,
         notify: LogCallback | None = None,
+        *,
+        capture_mode: str = "preview",
     ) -> RenderSession:
         target = await self.devices.target(target_id)
+        if capture_mode == "desktop":
+            from .desktop import DesktopRenderSession
+
+            return DesktopRenderSession(self.config, self.devices, target, log, notify)
+        if capture_mode != "preview":
+            raise DeviceError("不支持的截图模式")
         return RenderSession(self.config, self.devices, target, log, notify)

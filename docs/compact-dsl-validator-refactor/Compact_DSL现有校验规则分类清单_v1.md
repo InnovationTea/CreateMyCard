@@ -183,6 +183,12 @@ item 使用 `layoutWeight:1`、`flexShrink:1` 和 `constraintSize.minWidth:0` �
 不得继续凭更高层祖先权重降级；间距完全吸收仍独立判断。阈值只表示经验容忍，不证明端侧必然消除
 溢出。本项仍归 `semantic/layout/horizontal.py`，配置解析归同目录 `overflow_tolerances.py`。
 
+2026-10-20：收紧纵向高度策略，从上述配置删除高度容忍规则，取消根 Column、正数
+`layoutWeight` Column 和可压缩 `itemMargin` 的 warning 豁免。2×2 仅保留整树 `2vp` 数值容差，
+2×4 不设高度容差；超过容差且最小占用及可用高度已可确定时，统一产生
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` error 并进入布局容量修复。横向 warning 策略保持不变；纵向规则
+仍归 `semantic/layout/geometry.py`。
+
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
 高度专用约束不阻止横向检查。TextBlock item 另读取 Recipe 的参考容量下限，避免渲染约束改为
 可收缩后绕过窄分区门禁。最小宽度参与子树需求；参考分配尚未计算上下限重分配，

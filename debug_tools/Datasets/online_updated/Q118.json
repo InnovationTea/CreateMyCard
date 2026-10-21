@@ -1,0 +1,89 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个总结我每天日程的卡片，展示今日日程安排，包含日程时间、日程内容，支持点击日程查看详情",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 1
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/entityId",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/eventLocation",
+          "/events/0/title"
+        ]
+      }
+    ],
+    "title": "今日日程",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "总结每日日程，展示时间与内容，点击查看详情。",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_schedule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "118",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个总结我每天日程的卡片，展示今日日程安排，包含日程时间、日程内容，支持点击日程查看详情",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个总结我每天日程的卡片，展示今日日程安排，包含日程时间、日程内容，支持点击日程查看详情",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 1
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/entityId",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/eventLocation",
+        "/events/0/title"
+      ]
+    }
+  ],
+  "title": "今日日程",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "总结每日日程，展示时间与内容，点击查看详情。",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_schedule"
+  ]
+}

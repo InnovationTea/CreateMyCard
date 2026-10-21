@@ -1,0 +1,121 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个桌面天气卡片，包括今天的日程，展示上海青浦区的天气信息和今日日程安排",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "青浦区",
+          "prefectureName": "上海市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday"
+        ]
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 1
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/countdownDays",
+          "/events/0/dtEnd",
+          "/events/0/dtStart",
+          "/events/0/eventLocation",
+          "/events/0/startDate",
+          "/events/0/title"
+        ]
+      }
+    ],
+    "title": "青浦天气·日程",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "展示上海青浦区天气信息和今日日程安排。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "099",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个桌面天气卡片，包括今天的日程，展示上海青浦区的天气信息和今日日程安排",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个桌面天气卡片，包括今天的日程，展示上海青浦区的天气信息和今日日程安排",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "青浦区",
+        "prefectureName": "上海市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/condition",
+        "/current/temperatureText",
+        "/daily/0/condition",
+        "/daily/0/date",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/weekday"
+      ]
+    },
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 1
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/countdownDays",
+        "/events/0/dtEnd",
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/0/startDate",
+        "/events/0/title"
+      ]
+    }
+  ],
+  "title": "青浦天气·日程",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "展示上海青浦区天气信息和今日日程安排。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.calendar_fill"
+  ]
+}

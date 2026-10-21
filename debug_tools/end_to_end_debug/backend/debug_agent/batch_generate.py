@@ -140,7 +140,10 @@ async def _run(args: argparse.Namespace) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     roots = tuple(path.resolve() for path in args.artifact_root)
     summary: list[dict[str, Any]] = []
-    input_paths = sorted(input_dir.glob("*.json"))
+    input_paths = []
+    for input_path in sorted(input_dir.glob("*.json")):
+        if input_path.name != "version.json":
+            input_paths.append(input_path)
     if not input_paths:
         (output_dir / "summary.json").write_text("[]\n", encoding="utf-8")
         return 1

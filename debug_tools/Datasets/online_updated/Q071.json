@@ -1,0 +1,109 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "在桌面生成一个日程卡片，包括当天的主要日程和事物，并能查看天气",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 1
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/entityId",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/eventLocation",
+          "/events/0/title"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/temperatureText"
+        ]
+      }
+    ],
+    "title": "日程·天气",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "包含当天主要日程，并可查看天气。",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.ic_weather_color"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "071",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "在桌面生成一个日程卡片，包括当天的主要日程和事物，并能查看天气",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "在桌面生成一个日程卡片，包括当天的主要日程和事物，并能查看天气",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 1
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/entityId",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/eventLocation",
+        "/events/0/title"
+      ]
+    },
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/condition",
+        "/current/temperatureText"
+      ]
+    }
+  ],
+  "title": "日程·天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "包含当天主要日程，并可查看天气。",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.ic_weather_color"
+  ]
+}

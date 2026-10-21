@@ -40,6 +40,12 @@
     ],
     "extensionAbilities": [
       {
+        "name": "DebugFormAbility",
+        "srcEntry": "./ets/desktopform/DebugFormAbility.ets",
+        "type": "form",
+        "metadata": [{ "name": "ohos.extension.form", "resource": "$profile:desktop_form_config" }]
+      },
+      {
         "name": "EntryBackupAbility",
         "srcEntry": "./ets/entrybackupability/EntryBackupAbility.ets",
         "type": "backup",

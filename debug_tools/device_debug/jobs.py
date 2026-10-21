@@ -61,20 +61,34 @@ class Jobs:
         state.update(values, updatedAt=datetime.now(UTC).isoformat())
         atomic_write_json(self.config.output / job_id / "state.json", state)
 
-    async def submit(self, target_id: str, source: str, input_format: str, size: str) -> dict:
+    async def submit(
+        self,
+        target_id: str,
+        source: str,
+        input_format: str,
+        size: str,
+        *,
+        capture_mode: str = "preview",
+        prepare_only: bool = False,
+    ) -> dict:
         target = await self.devices.target(target_id)
-        converted = await asyncio.to_thread(convert, source, input_format, size)
+        converted = None
+        if not prepare_only:
+            converted = await asyncio.to_thread(convert, source, input_format, size)
         job_id = uuid.uuid4().hex
         directory = self.config.output / job_id
         directory.mkdir(parents=True)
         (directory / "input.txt").write_text(source, encoding="utf-8")
-        (directory / "a2ui.jsonl").write_text(converted.text, encoding="utf-8")
+        if converted is not None:
+            (directory / "a2ui.jsonl").write_text(converted.text, encoding="utf-8")
         state = {
             "id": job_id,
             "targetId": target.id,
             "device": target.name,
             "size": size,
-            "format": converted.format,
+            "format": converted.format if converted is not None else "a2ui",
+            "prepareOnly": prepare_only,
+            "captureMode": capture_mode,
             "status": "queued",
             "stage": "排队",
             "error": None,
@@ -97,13 +111,27 @@ class Jobs:
             self.update(job_id, status="running", stage=stage)
 
         try:
+            options = {}
+            if self.get(job_id).get("captureMode", "preview") == "desktop":
+                options["capture_mode"] = "desktop"
             session = await self.renderer.session(
                 str(self.get(job_id).get("targetId")),
                 directory / "build.log",
                 notify,
+                **options,
             )
             async with session:
                 self.update(job_id, installed=True, stage="渲染与截图")
+                if self.get(job_id).get("prepareOnly"):
+                    self.update(
+                        job_id,
+                        status="success",
+                        stage=(
+                            "编译安装完成，请添加 2x2、2x4 卡片，"
+                            "并将两张卡片与应用入口放在同一桌面页"
+                        ),
+                    )
+                    return
                 result = await session.render(
                     directory / "a2ui.jsonl",
                     str(self.get(job_id).get("size")),

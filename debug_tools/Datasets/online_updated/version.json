@@ -1,0 +1,97 @@
+{
+  "current_version": "v3",
+  "update_date": "2026-10-21",
+  "history_versions": [
+    {
+      "update_date": "2026-10-17",
+      "commits": [
+        "2c5f8a62126a6929b44bdb62ce726c2d422136b7"
+      ],
+      "changes": [
+        "新增 119 条现网更新请求，保留原样本编号与请求结构。"
+      ],
+      "version": "v1"
+    },
+    {
+      "update_date": "2026-10-21",
+      "commits": [
+        "50519e572ce60142d8bb83fca762b810d4e0d104",
+        "2ac18c452ebd306444049800de1a69c22817f965",
+        "9f17f759b2915d58e684b5b58f324a266dc0e8e3",
+        "77e3bed646cfc44c41f129456ec5d3d2ce6520e8"
+      ],
+      "changes": [
+        "跟进 50519e57、2ac18c45 的图标下架与 9f17f759、77e3bed6 的共享素材/主题更新。",
+        "识图核对：气球用于节日倒计时改为时间、生日改为蛋糕；头戴耳机改为蓝牙入耳耳机；其余保留日历、睡眠、电池叶片、蓝牙、音乐和排行语义。",
+        "抖音品牌图标已下架，保留原使用时长诉求，采用已有沙漏，避免通用图标冒充品牌；候选素材按首次出现顺序去重。",
+        "Q002: asset.icon_tiktok → asset.hourglass_fill",
+        "Q004: asset.emoji_calendar → asset.calendar_fill",
+        "Q005: asset.emoji_activity → asset.emoji_time",
+        "Q006: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q007: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q008: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q011: asset.emoji_activity → asset.emoji_time",
+        "Q015: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q017: asset.ic_blue_teeth_color → asset.ic_Bluetooth",
+        "Q017: asset.emoji_music_2 → asset.music_fill",
+        "Q020: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q021: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q023: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q025: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q028: asset.emoji_calendar → asset.calendar_fill",
+        "Q029: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q031: asset.emoji_calendar → asset.calendar_fill",
+        "Q033: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q037: asset.emoji_earphone → asset.icon_earphone",
+        "Q038: asset.emoji_earphone → asset.icon_earphone",
+        "Q053: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q058: asset.ic_ranking2 → asset.ic_ranking",
+        "Q061: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q062: asset.ic_blue_teeth_color → asset.ic_Bluetooth",
+        "Q062: asset.emoji_music_2 → asset.music_fill",
+        "Q068: asset.emoji_earphone → asset.icon_earphone",
+        "Q073: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q075: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q077: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q078: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q079: asset.ic_battery_leaf_color → asset.battery_leaf_fill",
+        "Q096: asset.ic_blue_teeth_color → asset.ic_Bluetooth",
+        "Q096: asset.emoji_music_2 → asset.music_fill",
+        "Q103: asset.emoji_sleep → asset.moon_z_fill_1",
+        "Q119: asset.emoji_activity → asset.cake_fill"
+      ],
+      "version": "v2"
+    },
+    {
+      "version": "v3",
+      "update_date": "2026-10-21",
+      "commits": [],
+      "changes": [
+        "删除 Q036、Q112、Q113、Q115、Q117，样本总数从 119 调整为 114。",
+        "同步数据来源、参数和展示字段，共 42 条：Q006、Q007、Q008、Q009、Q010、Q013、Q020、Q021、Q022、Q027、Q032、Q034、Q037、Q038、Q039、Q040、Q041、Q042、Q043、Q044、Q047、Q048、Q055、Q057、Q071、Q072、Q073、Q075、Q076、Q080、Q081、Q082、Q089、Q093、Q095、Q098、Q099、Q103、Q110、Q118、Q121、Q124",
+        "图标并集新增候选，共 20 条：Q004、Q005、Q006、Q007、Q008、Q011、Q017、Q020、Q021、Q028、Q031、Q037、Q038、Q062、Q068、Q073、Q075、Q096、Q103、Q119",
+        "同步外层同名字段，共 94 条；包括素材、数据、事件及 Q049 用户需求，原始 utterance 记录保留。",
+        "Q004：候选素材并集新增 asset.emoji_calendar2",
+        "Q005：候选素材并集新增 asset.cake_fill",
+        "Q006：候选素材并集新增 asset.emoji_z",
+        "Q007：候选素材并集新增 asset.emoji_z",
+        "Q008：候选素材并集新增 asset.emoji_z",
+        "Q011：候选素材并集新增 asset.cake_fill",
+        "Q017：候选素材并集新增 asset.emoji_music",
+        "Q020：候选素材并集新增 asset.emoji_z",
+        "Q021：候选素材并集新增 asset.emoji_z",
+        "Q028：候选素材并集新增 asset.emoji_calendar2",
+        "Q031：候选素材并集新增 asset.emoji_calendar2",
+        "Q037：候选素材并集新增 asset.emoji_earbud_case_black",
+        "Q038：候选素材并集新增 asset.emoji_earbud_case_black",
+        "Q062：候选素材并集新增 asset.emoji_music",
+        "Q068：候选素材并集新增 asset.emoji_bluetooth_earbuds_black",
+        "Q073：候选素材并集新增 asset.emoji_z",
+        "Q075：候选素材并集新增 asset.emoji_z",
+        "Q096：候选素材并集新增 asset.emoji_music",
+        "Q103：候选素材并集新增 asset.emoji_z",
+        "Q119：候选素材并集新增 asset.ic_calender"
+      ]
+    }
+  ]
+}
