@@ -55,7 +55,7 @@ RUNTIME_OWNED_PROPS = {
         "width",
     },
     "CircleButton": {"actionSurface", "actionInk"},
-    "CardButton": {"backgroundColor"},
+    "CardButton": {"backgroundColor", "fillColor"},
     "SummaryList": {"backgroundColor"},
     "TextBlock": {"backgroundColor"},
 }
