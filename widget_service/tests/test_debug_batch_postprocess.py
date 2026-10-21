@@ -8,6 +8,59 @@ import pytest
 from debug_tools.batch_testing.postprocess import PostprocessManager
 
 
+def test_checkpoint_only_rewrites_changed_or_missing_sample_files(tmp_path, monkeypatch):
+    import debug_tools.batch_testing.postprocess as module
+
+    manager = PostprocessManager(tmp_path, tmp_path / "plugins")
+    _write_run(tmp_path, "run")
+    plugin_dir = tmp_path / "output"
+    manifest = {"id": "test", "outputs": []}
+    sample = {"sampleId": "Q001", "status": "success", "facts": {"value": 1}, "artifacts": []}
+    stage = {"sampleResults": [sample], "datasetResult": {"status": "success", "artifacts": []}}
+    snapshots = {}
+    writes = []
+    original = module.atomic_write_json
+
+    def write(path, value):
+        if path.parent.parent.name == "samples":
+            writes.append(path.parent.name)
+        original(path, value)
+
+    monkeypatch.setattr(module, "atomic_write_json", write)
+    for _repeat in range(3):
+        manager._persist_stage(
+            "run", "exec", plugin_dir, manifest, stage, sample_snapshots=snapshots
+        )
+    assert writes == ["Q001"]
+    sample["facts"] = {"value": 2}
+    manager._persist_stage("run", "exec", plugin_dir, manifest, stage, sample_snapshots=snapshots)
+    assert writes == ["Q001", "Q001"]
+    (plugin_dir / "samples/Q001/result.json").unlink()
+    manager._persist_stage("run", "exec", plugin_dir, manifest, stage, sample_snapshots=snapshots)
+    assert writes == ["Q001", "Q001", "Q001"]
+    assert json.loads((plugin_dir / "samples/Q001/result.json").read_text()).get("facts") == {
+        "value": 2
+    }
+
+
+def test_failed_checkpoint_write_does_not_cache_success(tmp_path, monkeypatch):
+    import debug_tools.batch_testing.postprocess as module
+
+    manager = PostprocessManager(tmp_path, tmp_path / "plugins")
+    stage = {"sampleResults": [{"sampleId": "Q001", "status": "success"}]}
+    snapshots = {}
+
+    def fail(*_args):
+        raise OSError("disk unavailable")
+
+    monkeypatch.setattr(module, "atomic_write_json", fail)
+    with pytest.raises(OSError):
+        manager._persist_stage(
+            "run", "exec", tmp_path, {"id": "test"}, stage, sample_snapshots=snapshots
+        )
+    assert snapshots == {}
+
+
 def _write_json(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")

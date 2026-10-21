@@ -41,6 +41,34 @@ describe('PostprocessPanel', () => {
     vi.unstubAllGlobals();
   });
 
+  it.each(['desktop', 'preview'])('submits %s mode and explains manual preparation', async (mode) => {
+    const original = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      if (input === '/debug/batch/postprocess/plugins') return response({ items: [{
+        id: 'device-capture', name: '真机截图', configSchema: { type: 'object', properties: {
+          captureMode: { type: 'string', default: 'desktop', enum: ['desktop', 'preview'] },
+        } },
+      }] });
+      return original(input, init);
+    });
+    const onStarted = vi.fn(async () => undefined);
+    render(<PostprocessPanel runId="run_1" runStatus="completed" selectedSampleId=""
+      executions={[]} onStarted={onStarted} />);
+    fireEvent.click(screen.getByRole('button', { name: '后处理插件' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: '真机截图' }));
+    expect(screen.getByLabelText('真机截图模式')).toHaveValue('desktop');
+    expect(screen.getByText(/必须将应用入口和两张卡片放在同一个桌面页面/)).toBeInTheDocument();
+    expect(screen.getByText(/流程不会自动翻页/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('真机截图模式'), { target: { value: mode } });
+    fireEvent.change(screen.getByLabelText('真机截图在线设备'), { target: { value: 'device_one' } });
+    fireEvent.click(screen.getByRole('button', { name: '开始后处理' }));
+    await waitFor(() => expect(onStarted).toHaveBeenCalled());
+    const request = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === 'POST');
+    expect(JSON.parse(String(request?.[1]?.body)).configs['device-capture']).toEqual({
+      targetId: 'device_one', captureMode: mode,
+    });
+  });
+
   it('opens on demand and submits selected plugins for parallel execution', async () => {
     const onStarted = vi.fn(async () => undefined);
     render(<PostprocessPanel

@@ -141,6 +141,52 @@ describe('设备渲染', () => {
     expect(JSON.parse(requests.at(-1)?.[1].body)).toMatchObject({ source: 'legacy input', format: 'auto' });
   });
 
+  it.each(['desktop', 'preview'])('submits the explicit %s capture mode', async (mode) => {
+    const original = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith('/runs')) return { ok: true, json: async () => ({
+        id: 'mode-run', status: 'success', device: '测试设备', stage: '完成', captureMode: mode,
+      }) };
+      return original(url);
+    });
+    render(<DeviceRenderRoute />);
+    await screen.findByText(/测试设备 · USB123/);
+    fireEvent.change(screen.getByLabelText('截图模式'), { target: { value: mode } });
+    fireEvent.change(screen.getByLabelText('Compact DSL 代码'), { target: { value: '{}' } });
+    fireEvent.change(screen.getByLabelText('在线设备'), { target: { value: 'device-a' } });
+    const label = mode === 'desktop' ? '更新桌面卡片并截图' : '编译并运行';
+    await waitFor(() => expect(screen.getByRole('button', { name: label })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: label }));
+    await waitFor(() => {
+      const request = fetchMock.mock.calls.find(([url]) => url.endsWith('/runs'));
+      expect(JSON.parse(request?.[1].body)).toMatchObject({ captureMode: mode });
+    });
+  });
+
+  it('compiles and installs without DSL input before manual desktop setup', async () => {
+    const original = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith('/prepare') || url.endsWith('/runs/prepared')) return {
+        ok: true, json: async () => ({ id: 'prepared', status: 'success', prepareOnly: true,
+          device: '测试设备', stage: '编译安装完成，请手动添加 2x2 和 2x4 桌面卡片' }),
+      };
+      if (url.endsWith('/runs/prepared/logs?offset=0')) return { ok: true, json: async () => ({ text: '' }) };
+      return original(url);
+    });
+    render(<DeviceRenderRoute />);
+    await screen.findByText(/测试设备 · USB123/);
+    expect(screen.getByRole('button', { name: '编译并安装项目' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('在线设备'), { target: { value: 'device-a' } });
+    fireEvent.click(screen.getByRole('button', { name: '编译并安装项目' }));
+    await waitFor(() => {
+      const request = fetchMock.mock.calls.find(([url]) => url.endsWith('/prepare'));
+      expect(JSON.parse(request?.[1].body)).toEqual({ targetId: 'device-a' });
+    });
+    expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/convert') || url.endsWith('/runs'))).toBe(false);
+    expect(await screen.findByText(/任务 · 测试设备 · 编译安装完成/)).toBeInTheDocument();
+    expect(screen.getByText(/必须将应用入口和两张卡片放在同一个桌面页面/)).toBeInTheDocument();
+  });
+
   it('displays conversion failure and permits retry', async () => {
     fetchMock.mockImplementation(async (url: string) => ({
       ok: !url.endsWith('/convert'),

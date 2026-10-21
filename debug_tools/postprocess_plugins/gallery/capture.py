@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from .._io import atomic_write_json
+from ..export_names import run_summary, sample_stem
 from .plugin import BatchGalleryManager
 
 
@@ -19,6 +21,7 @@ async def run_capture(
     output_dir.mkdir(parents=True, exist_ok=True)
     capture_url = f"{manager.capture_base_url}/batch/runs/{quote(run_id, safe='')}/gallery-capture"
     captured = await manager.capture(capture_url, output_dir)
+    summary = run_summary(run_dir)
     samples = []
     for item in captured.get("items") or []:
         if not isinstance(item, dict):
@@ -30,6 +33,12 @@ async def run_capture(
         if isinstance(file_name, str) and file_name:
             path = (output_dir / file_name).resolve()
             if path.is_relative_to(output_dir.resolve()) and path.is_file():
+                target = output_dir / f"{sample_stem(sample_id, summary)}.png"
+                if path != target.resolve():
+                    path.replace(target)
+                path = target.resolve()
+                file_name = target.name
+                item["file"] = file_name
                 success = True
                 artifacts.append(
                     {"key": "browser-capture", "path": file_name, "alt": f"{sample_id} 浏览器截图"}
@@ -39,6 +48,7 @@ async def run_capture(
             quality = dict(quality)
             if success:
                 quality["imageRunPath"] = path.relative_to(run_dir).as_posix()
+            item["quality"] = quality
             artifacts.append({"key": "web-quality-evidence", "data": quality})
         samples.append(
             {
@@ -55,6 +65,7 @@ async def run_capture(
                 "artifacts": artifacts,
             }
         )
+    atomic_write_json(output_dir / "capture.json", captured)
     succeeded = sum(item.get("status") == "success" for item in samples)
     # 即使全部样本无法截图，也让画廊消费失败证据并展示原因占位。
     status = "success" if succeeded == len(samples) else "partial"

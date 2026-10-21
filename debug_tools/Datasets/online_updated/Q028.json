@@ -1,0 +1,113 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成日程卡片，显示我最近的日程安排，包含日程标题、日期、时间、倒计时等信息，点击日程可查看详情",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {},
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/countdownDays",
+          "/events/0/dtStart",
+          "/events/0/entityId",
+          "/events/0/eventLocation",
+          "/events/0/startDate",
+          "/events/0/title"
+        ]
+      }
+    ],
+    "title": "日程",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "description": "展示最近日程的标题、日期、时间与倒计时，点击可查看详情。",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_schedule",
+      "asset.emoji_calendar2"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.323",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "028",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成日程卡片，显示我最近的日程安排，包含日程标题、日期、时间、倒计时等信息，点击日程可查看详情",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成日程卡片，显示我最近的日程安排，包含日程标题、日期、时间、倒计时等信息，点击日程可查看详情",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {},
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/countdownDays",
+        "/events/0/dtStart",
+        "/events/0/entityId",
+        "/events/0/eventLocation",
+        "/events/0/startDate",
+        "/events/0/title"
+      ]
+    }
+  ],
+  "title": "日程",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "description": "展示最近日程的标题、日期、时间与倒计时，点击可查看详情。",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_schedule",
+    "asset.emoji_calendar2"
+  ]
+}

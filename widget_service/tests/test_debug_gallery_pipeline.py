@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from functools import partial
 from pathlib import Path
@@ -26,8 +27,10 @@ def _write(path: Path, value: object):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("kind", ["browser", "device"])
-async def test_gallery_consumes_direct_dependencies_and_reuses_history(tmp_path, kind):
+@pytest.mark.parametrize(
+    "kind,mode", [("browser", "preview"), ("device", "preview"), ("device", "desktop")]
+)
+async def test_gallery_consumes_direct_dependencies_and_reuses_history(tmp_path, kind, mode):
     run_dir = tmp_path / "run"
     _write(
         run_dir / "summary.json",
@@ -76,14 +79,28 @@ async def test_gallery_consumes_direct_dependencies_and_reuses_history(tmp_path,
         calls.append(kind)
         (output / "card").mkdir()
         (output / "card/Q001.png").write_bytes(b"unique screenshot")
+        metadata = {"captureMode": mode}
+        if mode == "desktop":
+            metadata.update(
+                sampleDigest=hashlib.sha256(b"{}").hexdigest(),
+                adapterVersion="2",
+                appVersion="1",
+                rendererDigest="renderer",
+                formId="42",
+                screen=[1000, 1000, 2.0, 0],
+                workspace={"formBounds": {"left": 0}},
+            )
+        artifacts = [{"key": f"{kind}-capture", "path": "card/Q001.png"}]
+        if kind == "device":
+            artifacts.append({"key": "device-capture-metadata", "data": metadata})
         return {
             "status": "partial",
             "sampleResults": [
                 {
                     "sampleId": "Q001",
                     "status": "success",
-                    "facts": {"size": "2x4"},
-                    "artifacts": [{"key": f"{kind}-capture", "path": "card/Q001.png"}],
+                    "facts": {"size": "2x4", "captureMode": mode},
+                    "artifacts": artifacts,
                 },
                 {"sampleId": "Q002", "status": "failed", "summary": "渲染失败", "artifacts": []},
             ],
@@ -106,7 +123,7 @@ async def test_gallery_consumes_direct_dependencies_and_reuses_history(tmp_path,
             f"{kind}-gallery": partial(run_gallery, Host(), kind),
         },
     )
-    configs = {"device-capture": {"targetId": "fake-device"}}
+    configs = {"device-capture": {"targetId": "fake-device", "captureMode": mode}}
     await manager.start()
     try:
         first = manager.enqueue("run", [f"{kind}-gallery"], configs)
@@ -127,7 +144,7 @@ async def test_gallery_consumes_direct_dependencies_and_reuses_history(tmp_path,
         original = document
         second = manager.enqueue("run", [f"{kind}-gallery"], configs, rerun=True)
         await manager.queue.join()
-        assert calls == [kind]
+        assert calls == ([kind, kind] if mode == "desktop" else [kind])
         assert path.read_text(encoding="utf-8") == original
         assert second.get("executionId") != execution_id
         host = object.__new__(BatchTaskManager)

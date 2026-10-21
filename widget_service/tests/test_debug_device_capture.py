@@ -50,6 +50,89 @@ def _config(tmp_path: Path) -> Config:
     )
 
 
+@pytest.mark.asyncio
+async def test_prepare_job_builds_without_reading_or_rendering_dsl(tmp_path: Path) -> None:
+    session = FakeSession()
+
+    async def target(_identity):
+        return Target("one", "USB", "设备", "physical")
+
+    async def create_session(_target, _log, _notify, **_options):
+        return session
+
+    jobs = Jobs(
+        _config(tmp_path),
+        SimpleNamespace(target=target),
+        renderer=SimpleNamespace(session=create_session),
+    )
+    state = await jobs.submit("one", "", "a2ui", "2x2", prepare_only=True)
+    job_id = state.get("id")
+    assert isinstance(job_id, str)
+    task = jobs.tasks.get(job_id)
+    assert task is not None
+    await task
+    assert jobs.get(job_id).get("status") == "success"
+    assert jobs.get(job_id).get("installed") is True
+    assert jobs.get(job_id).get("cardImageUrl") is None
+    assert session.rendered == []
+    assert not (jobs.config.output / job_id / "a2ui.jsonl").exists()
+
+
+def test_prepare_api_accepts_only_device_selection(tmp_path: Path, monkeypatch) -> None:
+    app = FastAPI()
+    jobs = register_device_routes(app, _config(tmp_path))
+    assert jobs is not None
+    requests = []
+
+    async def submit(*arguments, **options):
+        requests.append((arguments, options))
+        return {"id": "prepared", "prepareOnly": True, "status": "queued"}
+
+    monkeypatch.setattr(jobs, "submit", submit)
+    with TestClient(app) as client:
+        response = client.post("/debug/device/prepare", json={"targetId": "one"})
+        assert response.status_code == 202
+        assert response.json().get("prepareOnly") is True
+        assert requests == [(("one", "", "a2ui", "2x2"), {"prepare_only": True})]
+        rejected = client.post("/debug/device/prepare", json={"targetId": "one", "source": "{}"})
+        assert rejected.status_code == 422
+
+
+@pytest.mark.parametrize("changed", [False, True])
+@pytest.mark.asyncio
+async def test_build_only_attests_the_sources_it_compiled(tmp_path: Path, monkeypatch, changed):
+    config = _config(tmp_path)
+    config.hvigor.touch()
+    project = object.__new__(RenderProject)
+    project.config = config
+    project.path = tmp_path / "project"
+    project.built_fingerprint = None
+    dependency = project.path / "oh_modules/@arkui-genius/genui_form/Index.d.ets"
+    dependency.parent.mkdir(parents=True)
+    dependency.write_text("renderer", encoding="utf-8")
+    source = project.path / "source.ets"
+    source.write_text("before", encoding="utf-8")
+
+    async def command(*_arguments, **_options):
+        if changed:
+            source.write_text("after", encoding="utf-8")
+        output = project.path / "entry/build/default/outputs/default/test-unsigned.hap"
+        output.parent.mkdir(parents=True)
+        output.write_bytes(b"hap")
+        return "success"
+
+    monkeypatch.setattr("debug_tools.device_debug.runner.command", command)
+    if changed:
+        with pytest.raises(DeviceError, match="构建期间"):
+            await project.build("emulator", tmp_path / "build.log")
+        assert project.built_fingerprint is None
+        assert not (project.path / ".hvigor/debug-tools-build.json").exists()
+    else:
+        hap = await project.build("emulator", tmp_path / "build.log")
+        assert hap.is_file()
+        assert project.built_fingerprint == project._fingerprint()
+
+
 def test_terminal_log_parser_keeps_warning_state_and_crop() -> None:
     text = "noise\nA2UI_RUN " + json.dumps(
         {
@@ -208,6 +291,7 @@ async def test_one_session_installs_once_and_renders_mixed_samples(
     hap.write_bytes(b"hap")
 
     async def build(_self: RenderProject, _kind: str, _log: Path) -> Path:
+        _self.built_fingerprint = _self._fingerprint()
         return hap
 
     monkeypatch.setattr(RenderProject, "build", build)
@@ -241,6 +325,7 @@ async def test_unsigned_emulator_falls_back_to_chunked_ability_transfer(
     hap.write_bytes(b"hap")
 
     async def build(_self: RenderProject, _kind: str, _log: Path) -> Path:
+        _self.built_fingerprint = _self._fingerprint()
         return hap
 
     monkeypatch.setattr(RenderProject, "build", build)
@@ -324,7 +409,12 @@ class FakeSession:
         return None
 
     async def render(
-        self, source: Path, size: str, card: Path, full: Path, *,
+        self,
+        source: Path,
+        size: str,
+        card: Path,
+        full: Path,
+        *,
         capture_delay_seconds: float = 0.0,
     ) -> FakeCapture:
         sample_id = source.parents[1].name
@@ -344,9 +434,48 @@ class FakeRenderer:
         self.value = session
         self.session_count = 0
 
-    async def session(self, _target_id: str, _log: Path) -> FakeSession:
+    async def session(self, _target_id: str, _log: Path, **_options: Any) -> FakeSession:
         self.session_count += 1
         return self.value
+
+
+@pytest.mark.asyncio
+async def test_plugin_records_startup_failure_for_all_samples(tmp_path: Path) -> None:
+    from debug_tools.device_debug.commands import DeviceError
+
+    class Unavailable(FakeSession):
+        async def __aenter__(self):
+            raise DeviceError("设备已离线")
+
+    run_id = "batch_startup"
+    _write_run(tmp_path, run_id)
+    session = Unavailable()
+    manager = DeviceCaptureManager(tmp_path, renderer=FakeRenderer(session))
+    checkpoints = []
+    result = await run_builtin(
+        manager, run_id, tmp_path / "captures", {"targetId": "one"}, checkpoints.append
+    )
+    assert result.get("status") == "failed"
+    results = result.get("sampleResults")
+    assert isinstance(results, list)
+    assert [item.get("status") for item in results] == ["failed", "skipped", "skipped"]
+    assert session.rendered == []
+    assert len(checkpoints) == 1
+
+
+@pytest.mark.asyncio
+async def test_original_generation_failure_skips_existing_dsl(tmp_path: Path) -> None:
+    run_id = "batch_failed"
+    _write_run(tmp_path, run_id)
+    result_path = tmp_path / run_id / "Q002/result.json"
+    result_path.write_text(json.dumps({"status": "failed", "finalAttempt": 0}), encoding="utf-8")
+    session = FakeSession()
+    manager = DeviceCaptureManager(tmp_path, renderer=FakeRenderer(session))
+    result = await run_builtin(manager, run_id, tmp_path / "captures", {"targetId": "one"})
+    assert session.rendered == [("Q001", "2x2"), ("Q003", "2x4")]
+    results = result.get("sampleResults")
+    assert isinstance(results, list)
+    assert [item.get("status") for item in results] == ["success", "skipped", "success"]
 
 
 def _write_run(output_root: Path, run_id: str) -> None:
@@ -411,7 +540,9 @@ async def test_plugin_passes_configured_delay_to_each_sample(tmp_path: Path, del
     manager = DeviceCaptureManager(tmp_path, renderer=FakeRenderer(session))
     manager.config = replace(_config(tmp_path), capture_delay_seconds=delay)
     result = await run_builtin(
-        manager, "run_delay", tmp_path / "capture",
+        manager,
+        "run_delay",
+        tmp_path / "capture",
         {"targetId": "target", "captureDelaySeconds": 2},
     )
     assert session.capture_delays == [delay, delay, delay]
@@ -431,9 +562,18 @@ async def test_config_rejects_invalid_delay_before_opening_device(
 ) -> None:
     config_path = tmp_path / "debug_tool.yaml"
 
-    config_path.write_text(yaml.safe_dump({"platform": {"device_capture": {
-        "capture_delay_seconds": delay,
-    }}}), encoding="utf-8")
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "platform": {
+                    "device_capture": {
+                        "capture_delay_seconds": delay,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
     with pytest.raises(DeviceError, match="0 到 30"):
         Config.load(config_path)
 
@@ -442,9 +582,15 @@ async def test_config_rejects_invalid_delay_before_opening_device(
 def test_config_loads_capture_delay_from_yaml(tmp_path: Path, monkeypatch, delay):
     paths = _config(tmp_path)
     toolchain = SimpleNamespace(
-        hdc=paths.hdc, sdk_home=paths.sdk, java_home=paths.java,
-        node_executable=paths.node, hvigor=paths.hvigor, ohpm=paths.ohpm,
-        emulator=paths.emulator, path_variables={}, node_source="configured",
+        hdc=paths.hdc,
+        sdk_home=paths.sdk,
+        java_home=paths.java,
+        node_executable=paths.node,
+        hvigor=paths.hvigor,
+        ohpm=paths.ohpm,
+        emulator=paths.emulator,
+        path_variables={},
+        node_source="configured",
     )
     monkeypatch.setattr("debug_tools.device_debug.config.load_toolchain", lambda _path: toolchain)
     values: dict[str, Any] = {
@@ -487,7 +633,8 @@ async def test_session_waits_after_ready_before_snapshot(
         source, "2x2", tmp_path / "card.png", tmp_path / "full.png", capture_delay_seconds=delay
     )
     snapshot_indices = [
-        index for index, args in enumerate(devices.calls)
+        index
+        for index, args in enumerate(devices.calls)
         if args[:2] == ["shell", "snapshot_display"]
     ]
     assert len(snapshot_indices) == (2 if retry_capture else 1)
@@ -521,7 +668,23 @@ async def test_cancel_during_capture_delay_does_not_take_snapshot(tmp_path: Path
 
 
 @pytest.mark.asyncio
-async def test_capture_metadata_passes_checkpoint_and_final_host_validation(tmp_path: Path) -> None:
+@pytest.mark.parametrize("capture_mode", ["preview", "desktop"])
+async def test_capture_metadata_passes_checkpoint_and_final_host_validation(
+    tmp_path: Path, monkeypatch, capture_mode: str
+) -> None:
+    original_public = FakeCapture.public
+
+    def public(capture):
+        metadata = original_public(capture)
+        if capture_mode == "desktop":
+            metadata.update(
+                captureMode="desktop",
+                workspace={"formBounds": {"left": 0, "top": 0, "width": 10, "height": 10}},
+                screen=(1000, 1000, 2.0, 0),
+            )
+        return metadata
+
+    monkeypatch.setattr(FakeCapture, "public", public)
     run_id = "batch_20261013_000000_deadbeef"
     _write_run(tmp_path, run_id)
     manager = DeviceCaptureManager(tmp_path, renderer=FakeRenderer(FakeSession()))
@@ -546,7 +709,7 @@ async def test_capture_metadata_passes_checkpoint_and_final_host_validation(tmp_
         manager,
         run_id,
         output_dir,
-        {"targetId": "target-one"},
+        {"targetId": "target-one", "captureMode": capture_mode},
         checkpoint,
     )
     normalized = PostprocessManager._normalize_stage(
@@ -562,6 +725,8 @@ async def test_capture_metadata_passes_checkpoint_and_final_host_validation(tmp_
     facts = samples[0].get("facts")
     assert isinstance(facts, dict)
     assert "cropPx" not in facts
+    assert "workspace" not in facts
+    assert "screen" not in facts
     assert facts.get("terminal") == "READY_WITH_WARNINGS"
     assert facts.get("warnings") == ["warning"]
     artifacts = samples[0].get("artifacts")
@@ -571,6 +736,10 @@ async def test_capture_metadata_passes_checkpoint_and_final_host_validation(tmp_
     data = metadata.get("data")
     assert isinstance(data, dict)
     assert data.get("cropPx") == {"left": 0, "top": 0, "width": 10, "height": 10}
+    if capture_mode == "desktop":
+        assert data.get("workspace") == {
+            "formBounds": {"left": 0, "top": 0, "width": 10, "height": 10}
+        }
     assert not (output_dir / "gallery.html").exists()
 
 

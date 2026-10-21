@@ -1,5 +1,7 @@
 {
   "string": [
+    { "name": "desktop_card_name", "value": "AI卡片调试" },
+    { "name": "desktop_card_description", "value": "复用手动添加的两种规格桌面卡片进行批量截图" },
     {
       "name": "module_desc",
       "value": "module description"
@@ -10,7 +12,7 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "AI卡片调试"
     }
   ]
 }

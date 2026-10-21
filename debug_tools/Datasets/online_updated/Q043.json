@@ -1,0 +1,171 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "去黑龙江漠河拍摄，查看漠河当前天气、体感温度、风力、天气预警和感冒风险，查看手机剩余电量、充电状态、电池温度和充电器类型，点击可查看漠河天气详情，点击可打开电池设置，卡片规格为2x4",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "漠河市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/alertLevel",
+          "/current/coldLevel",
+          "/current/condition",
+          "/current/feelsLikeC",
+          "/current/temperatureText",
+          "/current/windLevel",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday",
+          "/location/cityCode"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batteryCapacityLevelDesc",
+          "/batterySOCText",
+          "/batteryTemperatureText",
+          "/chargingStatusDesc",
+          "/pluggedTypeDesc"
+        ]
+      }
+    ],
+    "title": "漠河天气·电量",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.open.settings.battery",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          }
+        }
+      }
+    ],
+    "description": "漠河当前天气与手机电量、充电状态等信息（2x4）。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "043",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "去黑龙江漠河拍摄，查看漠河当前天气、体感温度、风力、天气预警和感冒风险，查看手机剩余电量、充电状态、电池温度和充电器类型，点击可查看漠河天气详情，点击可打开电池设置，卡片规格为2x4",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "去黑龙江漠河拍摄，查看漠河当前天气、体感温度、风力、天气预警和感冒风险，查看手机剩余电量、充电状态、电池温度和充电器类型，点击可查看漠河天气详情，点击可打开电池设置，卡片规格为2x4",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "漠河市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/alertLevel",
+        "/current/coldLevel",
+        "/current/condition",
+        "/current/feelsLikeC",
+        "/current/temperatureText",
+        "/current/windLevel",
+        "/daily/0/condition",
+        "/daily/0/date",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/weekday",
+        "/location/cityCode"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batteryCapacityLevelDesc",
+        "/batterySOCText",
+        "/batteryTemperatureText",
+        "/chargingStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    }
+  ],
+  "title": "漠河天气·电量",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    },
+    {
+      "capabilityId": "event.open.settings.battery",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "battery"
+        }
+      }
+    }
+  ],
+  "description": "漠河当前天气与手机电量、充电状态等信息（2x4）。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.battery_leaf_fill"
+  ]
+}

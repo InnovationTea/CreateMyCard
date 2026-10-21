@@ -1,0 +1,14 @@
+{
+  "forms": [{
+    "name": "DebugCard",
+    "displayName": "$string:desktop_card_name",
+    "description": "$string:desktop_card_description",
+    "src": "./ets/desktopform/DebugFormCard.ets",
+    "uiSyntax": "arkts",
+    "isDefault": true,
+    "isDynamic": true,
+    "updateEnabled": false,
+    "defaultDimension": "2*4",
+    "supportDimensions": ["2*2", "2*4"]
+  }]
+}

@@ -1,0 +1,103 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个天气卡片，实时显示温度和空气质量，还能一键打电话",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/temperatureText",
+          "/location/districtName"
+        ]
+      }
+    ],
+    "title": "天气·拨号",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          }
+        }
+      }
+    ],
+    "description": "实时显示温度和空气质量，可一键拨打电话。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.phone_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.320",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "088",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个天气卡片，实时显示温度和空气质量，还能一键打电话",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个天气卡片，实时显示温度和空气质量，还能一键打电话",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/temperatureText",
+        "/location/districtName"
+      ]
+    }
+  ],
+  "title": "天气·拨号",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": ""
+          }
+        }
+      }
+    }
+  ],
+  "description": "实时显示温度和空气质量，可一键拨打电话。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.phone_fill"
+  ]
+}

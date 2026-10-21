@@ -16,6 +16,8 @@ from urllib.parse import quote
 from debug_tools.runtime_environment import Toolchain, load_optional_toolchain, load_toolchain
 from debug_tools.subprocesses import run_node_script
 
+from ..export_names import dataset_name, run_summary, sample_stem
+
 GalleryCapture = Callable[[str, Path], Awaitable[dict[str, Any]]]
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 _ERROR_CODE_BY_ARTIFACT = {
@@ -364,7 +366,8 @@ class ValidationFailureGalleryManager:
         with tempfile.TemporaryDirectory(prefix="validation-gallery-", dir=plugin_dir) as name:
             temporary_dir = Path(name)
             capture_result = await self.capture(capture_url, temporary_dir)
-            captures = self._persist_captures(plugin_dir, capture_result, temporary_dir)
+            summary = run_summary(self._safe_run_dir(run_id))
+            captures = self._persist_captures(plugin_dir, capture_result, temporary_dir, summary)
         return self._plugin_result(run_id, plugin_dir, items, captures)
 
     @staticmethod
@@ -372,6 +375,7 @@ class ValidationFailureGalleryManager:
         plugin_dir: Path,
         capture_result: dict[str, Any],
         temporary_dir: Path,
+        summary: dict[str, Any] | None = None,
     ) -> dict[str, dict[str, str]]:
         captures: dict[str, dict[str, str]] = {}
         for item in list(capture_result.get("items") or []):
@@ -387,8 +391,10 @@ class ValidationFailureGalleryManager:
                 if source.is_relative_to(temporary_dir.resolve()) and source.is_file():
                     target_dir = plugin_dir / "samples" / sample_id
                     target_dir.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(source, target_dir / "render.png")
-                    result = {"status": "success", "error": ""}
+                    stem = sample_stem(sample_id, summary or {})
+                    file_name = f"{stem}.png" if dataset_name(summary or {}) else "render.png"
+                    shutil.copy2(source, target_dir / file_name)
+                    result = {"status": "success", "error": "", "file": file_name}
             captures[sample_id] = result
         return captures
 
@@ -431,7 +437,8 @@ class ValidationFailureGalleryManager:
                 url = (
                     f"/debug/batch/runs/{quote(run_id, safe='')}/postprocess/"
                     f"{quote(execution_id, safe='')}/assets/validation-failure-gallery/"
-                    f"samples/{quote(sample_id, safe='')}/render.png"
+                    f"samples/{quote(sample_id, safe='')}/"
+                    f"{quote(capture.get('file', 'render.png'), safe='')}"
                 )
                 artifacts.append(
                     {
