@@ -169,7 +169,7 @@ def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch
     assert "gradient-blue-added" not in {theme.get("id") for theme in registry.registered_themes()}
     entries.remove(extra)
     use_config(monkeypatch, config)
-    assert len(registry.registered_themes()) == 37
+    assert len(registry.registered_themes()) == 36
 
 
 @pytest.mark.parametrize("identity", [

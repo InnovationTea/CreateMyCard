@@ -943,11 +943,11 @@
     },
     {
       "id": "photo-ux-galaxy-sleep-square",
-      "enabled": true,
+      "enabled": false,
       "kind": "photo",
       "pool": "photos",
       "name": "银河睡眠",
-      "description": "银河睡眠。业务类别：sleep。2x2同一业务，正文最多3行且整体居左。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "暂不启用，保留素材和OBS配置。银河睡眠。业务类别：sleep。2x2同一业务，正文最多3行且整体居左。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x2"
       ],

@@ -255,8 +255,11 @@ def test_unknown_and_mixed_content_fail_closed(failure):
     assert rejection(saved, PURPLE)
 
 
-@pytest.mark.parametrize("selected", ["photo-ux-sleep-square", "photo-ux-galaxy-sleep-square"])
-@pytest.mark.parametrize("model_response", ["{}", '{"themeId":"photo-ux-sleep-square"}', "invalid"])
+@pytest.mark.parametrize("selected", ["photo-ux-sleep-square"])
+@pytest.mark.parametrize("model_response", [
+    "{}", '{"themeId":"photo-ux-sleep-square"}',
+    '{"themeId":"photo-ux-galaxy-sleep-square"}', "invalid",
+])
 def test_subject_priority_and_uniform_choice_ignore_model_preference(
     monkeypatch, selected, model_response,
 ):
@@ -271,7 +274,7 @@ def test_subject_priority_and_uniform_choice_ignore_model_preference(
     result, audit = choose(saved, monkeypatch, model_response)
     assert audit.get("themeId") == selected
     assert len(calls) == 1
-    assert set(calls[0]) == {"photo-ux-sleep-square", "photo-ux-galaxy-sleep-square"}
+    assert set(calls[0]) == {"photo-ux-sleep-square"}
     assert set(audit.get("candidates", [])) == set(calls[0])
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
