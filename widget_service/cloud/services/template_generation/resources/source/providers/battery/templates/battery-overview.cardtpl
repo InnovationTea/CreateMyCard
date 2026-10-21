@@ -1901,7 +1901,7 @@ Column(
             ),
             #if props.temperatureIcon
             Image(props.temperatureIcon,
-                {
+                {"_wideHeaderIcon": true,
                     "fillColor": $theme('supportContentColor'),
                     "width": 20,
                     "height": 20,
@@ -2015,7 +2015,7 @@ Column(
             }
         ),
         Image(props.batteryIcon,
-            {
+            {"_wideHeaderIcon": true,
                 "width": 20,
                 "height": 20,
                 "objectFit": "contain",
