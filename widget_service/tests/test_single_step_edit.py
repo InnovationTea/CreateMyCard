@@ -103,10 +103,10 @@ def test_font_then_background_preserves_previous_edit_and_structure(source):
 
 @pytest.mark.parametrize("property_name,value", [
     ("children", []), ("styles.height", 20), ("styles.layoutWeight", 1),
-    ("styles.fontSize", 12), ("styles.backgroundColor", "#FF9C27B0"),
-    ("onClick", []), ("value", 50), ("styles.color", "#FFFF0000"),
+    ("styles.fontSize", 12), ("styles.fontColor", "#FF9C27B0"),
+    ("onClick", []), ("value", 50),
 ])
-def test_reject_unrequested_field_or_color(source, property_name, value):
+def test_reject_unsupported_field_or_component_type(source, property_name, value):
     query = "仅把ring进度完成色改成#FF9C27B0"
     payload = _patch(source, "ring", property_name, value, query)
     _, result = _process(source, payload, query)
@@ -136,17 +136,16 @@ def test_reject_invalid_or_stale_patch(source, mutation):
     assert result.errors
 
 
-def test_quote_cannot_hide_target_or_authorize_protected_text(source):
+def test_quote_is_optional_audit_and_does_not_gate_preservation_phrase(source):
     query = "仅把title字号改为18fp；其它文字字号保持不变"
     payload = _patch(source, "title", "styles.fontSize", 18, "字号改为18fp")
     _, result = _process(source, payload, query)
     assert not result.errors
     changes = payload.get("changes")
     assert isinstance(changes, list)
-    changes[0]["componentId"] = "value"
-    changes[0]["before"] = {"exists": True, "value": 30}
+    changes[0].pop("requestQuote")
     _, result = _process(source, payload, query)
-    assert result.errors
+    assert not result.errors
 
 
 def test_dynamic_text_cannot_be_replaced_with_literal(source):
@@ -183,18 +182,20 @@ def test_static_text_edit_preserves_all_other_fields(source):
     assert not processor.preservation_errors(result.standard_dsl)
 
 
-@pytest.mark.parametrize("old", [None, 42, False, [], {}, {"path": "/data/value"}, "{{ value }}"])
+@pytest.mark.parametrize("old", [
+    None, 42, False, [], {}, {"path": "/data/value"}, "{{ value }}", "${/data/value}",
+])
 def test_static_text_guard_rejects_invalid_original_without_changing_error(old):
     node = {"component": "Text", "content": old}
     with pytest.raises(ValueError, match="^cannot replace dynamic bindings with static text$"):
-        _validate_value("content", "天气", "把文字改为天气", node)
+        _validate_value("content", "天气", node)
 
 
 @pytest.mark.parametrize("value", ["{{ value }}", "${/data/value}"])
 def test_static_text_guard_rejects_binding_in_new_value(value):
     node = {"component": "Text", "content": "天气"}
     with pytest.raises(ValueError, match="^cannot replace dynamic bindings with static text$"):
-        _validate_value("content", value, f"把文字改为{value}", node)
+        _validate_value("content", value, node)
 
 
 def test_repair_reuses_immutable_source_and_detects_downstream_layout_change(source):
@@ -214,3 +215,78 @@ def test_repair_reuses_immutable_source_and_detects_downstream_layout_change(sou
     corrupted = _rows(repaired.standard_dsl)
     _node(corrupted, "root").get("styles")["height"] = 120
     assert processor.preservation_errors("\n".join(json.dumps(row) for row in corrupted))
+
+
+@pytest.mark.parametrize("query", [
+    "标题调大一点", "让标题醒目一些", "标题再大些并保持其它不变",
+    "标题调整得更适合阅读", "Increase the title a little, keep everything else",
+])
+def test_natural_language_font_edits_do_not_require_numbers_or_keywords(source, query):
+    payload = _patch(source, "title", "styles.fontSize", 18, "审计说明无需匹配原话")
+    _, result = _process(source, payload, query)
+    assert not result.errors
+    assert _node(_rows(result.standard_dsl), "title").get("styles", {}).get("fontSize") == 18
+    assert _node(_rows(result.standard_dsl), "value") == _node(_rows(source), "value")
+
+
+@pytest.mark.parametrize("query,color", [
+    ("背景换成蒂芙尼蓝", "#FF81D8D0"), ("背景来点橙色", "#FFFFA500"),
+    ("底色柔和一些", "#FFE8F0FE"),
+])
+def test_named_colors_and_relative_palette_have_no_query_whitelist(source, query, color):
+    payload = _patch(source, "root", "styles.backgroundColor", color, query)
+    _, result = _process(source, payload, query)
+    assert not result.errors
+    styles = _node(_rows(result.standard_dsl), "root").get("styles", {})
+    assert styles.get("backgroundColor") == color
+
+
+def test_whole_card_palette_allows_multiple_targets_without_fixed_scope_words(source):
+    query = "这张卡片整体换成蒂芙尼蓝风格"
+    payload = _patch(source, "root", "styles.backgroundColor", "#FF81D8D0", query)
+    changes = payload.get("changes")
+    extra = _patch(source, "title", "styles.fontColor", "#FF123333", query).get("changes")
+    assert isinstance(changes, list) and isinstance(extra, list)
+    changes.extend(extra)
+    _, result = _process(source, payload, query)
+    assert not result.errors
+    rows = _rows(result.standard_dsl)
+    assert _node(rows, "root").get("styles", {}).get("backgroundColor") == "#FF81D8D0"
+    assert _node(rows, "title").get("styles", {}).get("fontColor") == "#FF123333"
+
+
+def test_static_text_can_be_semantically_shortened_without_verbatim_new_text(source):
+    query = "标题改得简洁一点"
+    payload = _patch(source, "title", "content", "今日天气", query)
+    _, result = _process(source, payload, query)
+    assert not result.errors
+    assert _node(_rows(result.standard_dsl), "title").get("content") == "今日天气"
+
+
+@pytest.mark.parametrize("value", [0, -1, True, float("inf"), float("nan"), "18"])
+def test_font_output_keeps_type_and_finite_positive_guards(source, value):
+    query = "标题大一点"
+    payload = _patch(source, "title", "styles.fontSize", value, query)
+    _, result = _process(source, payload, query)
+    assert result.errors
+
+
+@pytest.mark.parametrize("value", ["蒂芙尼蓝", "#GG0000", "#FFF", {"path": "/data/color"}])
+def test_color_output_keeps_literal_protocol_validation(source, value):
+    query = "背景柔和些"
+    payload = _patch(source, "root", "styles.backgroundColor", value, query)
+    _, result = _process(source, payload, query)
+    assert result.errors
+
+
+def test_regex_calls_are_limited_to_model_output_format_and_color_literals():
+    tree = ast.parse(inspect.getsource(single_step_edit))
+    for function in ast.walk(tree):
+        if not isinstance(function, ast.FunctionDef):
+            continue
+        for node in ast.walk(function):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            owner = node.func.value
+            if isinstance(owner, ast.Name) and owner.id == "re":
+                assert function.name in {"_normalized_color", "extract_edit_patch"}

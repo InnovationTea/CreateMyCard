@@ -73,7 +73,6 @@ EXPECTED_PROPS = {
         "separator"
     ],
     "DataDisplay": [
-        "fontSize",
         "icon",
         "label",
         "supportingText",

@@ -2,7 +2,15 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from core.errors import GenerationStatus
 from models.capability import (
@@ -283,3 +291,12 @@ class GenerateWidgetCardResponse(BaseModel):
     removedCapabilities: list[RemovedCapability] = Field(default_factory=list)
     errorCode: str = ""
     effectiveCapabilities: dict[str, list[Any]] = Field(default_factory=dict)
+    editFeedback: str | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_result(self, handler: SerializerFunctionWrapHandler):
+        """只在编辑正常业务结论时输出说明，保持首次生成响应结构。"""
+        payload = handler(self)
+        if self.editFeedback is None:
+            payload.pop("editFeedback", None)
+        return payload
