@@ -20,6 +20,7 @@ from services.task_spec_builder import TaskSpecBuilder
 SRC = "resources/base/media/drop_1.svg"
 LOCAL = "resources/base/media/air_fill.svg"
 URL = "https://hagres-drcn.dbankcdn.com/assets/drop_1.svg?version=1"
+FALLBACK = "resources/base/media/ic_fallback_light.svg"
 
 
 def standard_dsl(src=SRC):
@@ -157,7 +158,7 @@ def test_mapping_covers_expanded_action_icon():
         assert item.get("src") == URL
 
 
-def test_effective_sources_accept_only_declared_mapping_targets():
+def test_effective_sources_include_declared_mapping_targets_and_builtin_fallback():
     context = SimpleNamespace()
     attach_effective_capabilities(
         context,
@@ -166,10 +167,19 @@ def test_effective_sources_accept_only_declared_mapping_targets():
         None,
         {SRC: URL, LOCAL: "https://other"},
     )
-    assert context.effective_asset_sources == {SRC, URL}
+    assert context.effective_asset_sources == {SRC, URL, FALLBACK}
 
 
-@pytest.mark.parametrize("src,allowed", [(SRC, True), (URL, True), (URL + "-other", False)])
+def test_effective_sources_include_internal_fallback_icon():
+    context = SimpleNamespace()
+    attach_effective_capabilities(context, {"asset": []}, {}, None)
+    assert context.effective_asset_sources == {FALLBACK}
+
+
+@pytest.mark.parametrize(
+    "src,allowed",
+    [(SRC, True), (URL, True), (FALLBACK, True), (URL + "-other", False)],
+)
 def test_final_validator_recognizes_exact_mapped_asset(src, allowed):
     token = "\n".join(
         json.dumps(row)

@@ -46,7 +46,7 @@ _FACT_KEYS = frozenset(
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
 _FACT_PRIORITIES = frozenset({"must", "should"})
-_MAX_MUST_FACTS_BY_SIZE = {"2x2": 8, "2x4": 12}
+_MAX_MUST_FACTS_BY_SIZE = {"2x2": 6, "2x4": 12}
 _FRESHNESS_METADATA_NAMES = frozenset(
     {
         "lastrefreshedat",
@@ -191,7 +191,10 @@ def build_compact_plan_tool(
         },
         "componentHints": {
             "type": "array",
-            "items": {"type": "string", "enum": list(_component_hints(size))},
+            "items": {
+                "type": "string",
+                "enum": list(_component_hints(size)),
+            },
             "minItems": 1,
             "maxItems": 3,
             "uniqueItems": True,
@@ -204,6 +207,9 @@ def build_compact_plan_tool(
                 "普通字符串、布尔值、静态正文和操作不推荐进度组件。"
                 "SingleLineTitle 承担单行标题；DoubleLineTitle 承担标题加紧密相关的次信息。"
                 "标题事实不得同时推荐正文或其它标题替代组件。"
+                "CardButton 的图标可选：有语义匹配素材时优先使用真实图标；"
+                "没有素材或没有准确匹配时仍可推荐 CardButton，并省略业务 icon；"
+                "转换器会使用固定回退图标，不生成额外占位视觉。"
             ),
         },
     }
@@ -337,7 +343,12 @@ def build_compact_plan_tool(
                         "additionalProperties": False,
                     },
                     "maxItems": len(action_ids),
-                    "description": "按 info_required 中的动作顺序逐项决定按钮图标。",
+                    "description": (
+                        "按 info_required 中的动作顺序逐项决定按钮图标。"
+                        "先根据动作对象和完整操作语义，从 description 中选最匹配且"
+                        "尚未使用的素材。没有准确匹配时 assetId 可以为 null；"
+                        "CardButton 省略业务 icon，由转换器使用固定回退图标。"
+                    ),
                 },
                 "title": {
                     "type": "object",
@@ -388,7 +399,10 @@ def _composition_tool_schema(
     group = {
         "type": "object",
         "properties": {
-            "component": {"type": "string", "enum": list(_component_hints(size))},
+            "component": {
+                "type": "string",
+                "enum": list(_component_hints(size)),
+            },
             "factIndexes": {"type": "array", "items": integer, "minItems": 0,
                             "maxItems": 24,
                             "description": (
@@ -447,7 +461,10 @@ def _finite_extent(value: Any) -> bool:
 
 
 def _normalize_composition(
-    value: Any, raw_facts: Any, facts: list[dict[str, Any]], size: Any,
+    value: Any,
+    raw_facts: Any,
+    facts: list[dict[str, Any]],
+    size: Any,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """标准化实现方案；调用方根据运行模式决定是否阻断。"""
     if value is None:
@@ -692,15 +709,19 @@ def _composition_region_shape(value: Any, schema: dict[str, Any]) -> bool:
 
 
 def _composition_group(
-    value: Any, schema: dict[str, Any], index_map: dict[int, int],
-    facts: list[dict[str, Any]], size: Any,
+    value: Any,
+    schema: dict[str, Any],
+    index_map: dict[int, int],
+    facts: list[dict[str, Any]],
+    size: Any,
 ) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
     if set(value) - set(schema.get("properties")) or not set(schema.get("required")) <= set(value):
         return None
     component = value.get("component")
-    if component not in _component_hints(size) or not _finite_extent(value.get("referenceHeight")):
+    allowed_components = _component_hints(size)
+    if component not in allowed_components or not _finite_extent(value.get("referenceHeight")):
         return None
     indexes, placements = value.get("factIndexes"), value.get("placements")
     if not isinstance(indexes, list) or not isinstance(placements, list):
@@ -1085,8 +1106,10 @@ def compact_plan_context(
         asset_instruction = (
             "assetAssignments 冻结素材消费顺序与结果：先按 actionId 将分配落实到对应"
             "动作组件，再将 title 中的非空素材落实到主 SingleLineTitle.icon；"
-            "assetId 为 null 时保持无图标。不得复用、互换或跳过已分配素材，也不得用"
-            "未分配素材覆盖明确的空分配。"
+            "assetId 为 null 时省略业务图标，由转换器使用固定回退图标。"
+            "不得复用、互换或跳过已分配素材，也不得用"
+            "未分配素材覆盖明确的空分配。动作 assetId 为 null 时仍可使用 CardButton，"
+            "其原始 DSL 必须省略 icon。"
         )
         if whole_card_instruction:
             asset_instruction = (
@@ -1239,6 +1262,7 @@ class _CompactVisibleState:
     paths: frozenset[str]
     path_occurrences: tuple[_CompactVisiblePathOccurrence, ...]
     literals: tuple[str, ...]
+    item_literals: tuple[str, ...]
     handlers: tuple[dict[str, Any], ...]
 
 
@@ -1270,6 +1294,7 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
     visible_paths: set[str] = set()
     path_occurrences: list[_CompactVisiblePathOccurrence] = []
     visible_literals: list[str] = []
+    item_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
     for component in components:
         visible_props = {
@@ -1284,6 +1309,7 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         if has_separate_progress_readout:
             visible_props.pop("value", None)
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
+        _collect_structured_item_literals(component, item_literals)
         for property_name, value in visible_props.items():
             _collect_visible_path_occurrences(
                 value,
@@ -1299,8 +1325,31 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         paths=frozenset(visible_paths),
         path_occurrences=tuple(path_occurrences),
         literals=tuple(_normalize_text(value) for value in visible_literals),
+        item_literals=tuple(_normalize_text(value) for value in item_literals),
         handlers=tuple(handlers),
     )
+
+
+def _collect_structured_item_literals(
+    component: ComponentRow,
+    literals: list[str],
+) -> None:
+    """补充同一结构化条目内按视觉顺序连续呈现的静态文本。"""
+    if component.component_type not in {"SecondaryBody", "TextBlock"}:
+        return
+    items = component.props.get("items")
+    if not isinstance(items, list):
+        return
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        label = item.get("label")
+        value = item.get("value")
+        if not isinstance(label, str) or not isinstance(value, str):
+            continue
+        if _BINDING_PATH.search(label) or _BINDING_PATH.search(value):
+            continue
+        literals.append(f"{label}{value}")
 
 
 def _compact_fact_coverage_result(
@@ -1359,7 +1408,8 @@ def _compact_fact_coverage_result(
     text = fact.get("text")
     if isinstance(text, str):
         expected_text = _normalize_text(text)
-        if not expected_text or not any(expected_text in actual for actual in state.literals):
+        literal_candidates = (*state.literals, *state.item_literals)
+        if not expected_text or not any(expected_text in actual for actual in literal_candidates):
             return CompactPlanCoverageResult(
                 errors=(f"Plan static text is not fully visible in DSL: {label}.",),
                 warnings=(),
@@ -1737,7 +1787,7 @@ def _normalize_asset_assignments(
     if not isinstance(actions, list):
         raise CompactPlanValidationError(["assetAssignments.actions must be an array."])
     normalized_actions: dict[str, dict[str, Any]] = {}
-    used_assets: set[str] = set()
+    action_assets: set[str] = set()
     errors: list[str] = []
     for index, assignment in enumerate(actions):
         location = f"assetAssignments.actions[{index}]"
@@ -1763,9 +1813,12 @@ def _normalize_asset_assignments(
                 assignment,
                 asset_ids,
                 location=location,
-                used_assets=used_assets,
+                used_assets=set(),
                 errors=errors,
             )
+            assigned_asset_id = normalized.get("assetId")
+            if isinstance(assigned_asset_id, str):
+                action_assets.add(assigned_asset_id)
         normalized["actionId"] = action_id
         normalized_actions[action_id] = normalized
     missing_actions = [
@@ -1796,7 +1849,7 @@ def _normalize_asset_assignments(
                 title,
                 asset_ids,
                 location="assetAssignments.title",
-                used_assets=used_assets,
+                used_assets=action_assets,
                 errors=errors,
             )
     if errors:

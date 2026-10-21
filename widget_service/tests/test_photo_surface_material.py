@@ -66,7 +66,8 @@ def test_actual_wide_infoblock_and_cardbutton_surfaces():
         ["header", "SingleLineTitle", {"title": "睡眠"}],
         ["reading", "EmphasisText", {"mainText": "7小时1分"}],
         ["upper", "InfoBlock", {"variant": "slot", "primaryText": "82", "secondaryText": "分"}],
-        ["lower", "CardButton", {"label": "设置闹钟", "onClick": [
+        ["lower", "CardButton", {"label": "设置闹钟",
+         "icon": "resources/base/media/alarm_fill_1.svg", "onClick": [
             {"call": "clickToDeeplink", "args": {"intentName": "Clock", "uri": "",
                                                  "bundleName": "", "abilityName": ""}},
         ]}],

@@ -29,9 +29,11 @@ def verify(folder: Path, validator) -> str | None:
     task = json.loads((folder / "sample_task_spec.json").read_text(encoding="utf-8"))
     card = json.loads((folder / "sample_card_spec.json").read_text(encoding="utf-8"))
     errors = []
+    warnings = []
     exception_type = None
     try:
-        validator.validate_compact_dsl(dsl, task_spec=task, card_spec=card)
+        result = validator.validate_compact_dsl(dsl, task_spec=task, card_spec=card)
+        warnings = list(result.warnings)
     except validator.CompactDslValidationError as exc:
         errors = list(exc.errors)
         exception_type = type(exc).__name__
@@ -42,6 +44,8 @@ def verify(folder: Path, validator) -> str | None:
         return f"错误列表不一致，实际：{errors}"
     if exception_type != expected.get("exceptionType"):
         return f"异常类型不一致，实际：{exception_type}"
+    if "expectedWarnings" in expected and warnings != expected.get("expectedWarnings"):
+        return f"警告列表不一致，实际：{warnings}"
     return None
 
 

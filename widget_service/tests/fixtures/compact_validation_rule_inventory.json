@@ -72,13 +72,6 @@
       "category": "display"
     },
     {
-      "module": "semantic/display.py",
-      "function": "_collect_ambiguous_metric_text_errors",
-      "code": "COMPACT_DISPLAY_AMBIGUOUS_METRIC",
-      "class": "semantic",
-      "category": "display"
-    },
-    {
       "module": "semantic/effective.py",
       "function": "_collect_asset_reference_error",
       "code": "COMPACT_ASSET_NOT_ALLOWED",

@@ -234,10 +234,10 @@
         "main": {
           "component": "Text",
           "styles": {
-            "height": 24,
+            "height": 18,
             "fontSize": 18,
             "fontWeight": 700,
-            "lineHeight": 1.3333333333333333,
+            "lineHeight": 1,
             "maxLines": 1,
             "flexShrink": 1,
             "width": "matchParent"
@@ -277,7 +277,7 @@
           "component": "Row",
           "styles": {
             "width": "matchParent",
-            "height": 19,
+            "height": 14,
             "itemMargin": 0,
             "alignItems": "center",
             "flexShrink": 0
@@ -286,7 +286,7 @@
         "item": {
           "component": "Row",
           "styles": {
-            "height": 19,
+            "height": 14,
             "itemMargin": 0,
             "alignItems": "center",
             "flexShrink": 1,
@@ -298,23 +298,23 @@
         "text": {
           "component": "Text",
           "styles": {
-            "height": 19,
+            "height": 14,
             "fontSize": 14,
             "fontWeight": 400,
             "maxLines": 1,
             "flexShrink": 1,
-            "lineHeight": 1.3571428571428572
+            "lineHeight": 1
           }
         },
         "separator": {
           "component": "Text",
           "styles": {
-            "height": 19,
+            "height": 14,
             "fontSize": 14,
             "fontWeight": 400,
             "maxLines": 1,
             "flexShrink": 0,
-            "lineHeight": 1.3571428571428572
+            "lineHeight": 1
           }
         }
       },
@@ -323,26 +323,26 @@
           "parts": {
             "row": {
               "styles": {
-                "height": 16
+                "height": 12
               }
             },
             "item": {
               "styles": {
-                "height": 16
+                "height": 12
               }
             },
             "text": {
               "styles": {
-                "height": 16,
+                "height": 12,
                 "fontSize": 12,
-                "lineHeight": 1.3333333333333333
+                "lineHeight": 1
               }
             },
             "separator": {
               "styles": {
-                "height": 16,
+                "height": 12,
                 "fontSize": 12,
-                "lineHeight": 1.3333333333333333
+                "lineHeight": 1
               }
             }
           }
@@ -1074,7 +1074,8 @@
       "alignment": "aligned",
       "metrics": {
         "minimumItems": 2,
-        "maximumItems": 4
+        "maximumItems": 4,
+        "minimumItemWidth": 64
       },
       "parts": {
         "root": {
@@ -1108,7 +1109,7 @@
             "layoutWeight": 1,
             "flexShrink": 1,
             "constraintSize": {
-              "minWidth": 64,
+              "minWidth": 0,
               "minHeight": 0
             }
           }
@@ -1218,17 +1219,6 @@
             "width": 24,
             "height": 24,
             "objectFit": "contain",
-            "flexShrink": 0
-          }
-        },
-        "placeholder": {
-          "component": "Divider",
-          "styles": {
-            "width": 24,
-            "height": 24,
-            "borderRadius": 12,
-            "strokeWidth": 0,
-            "color": "#00FFFFFF",
             "flexShrink": 0
           }
         }

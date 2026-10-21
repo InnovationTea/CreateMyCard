@@ -317,6 +317,8 @@ def _minimum_outer_height(
         is_container and (height_weighted or measure_content_overflow)
     ):
         return max(minimum_height, explicit_height)
+    if component.component_type == "Text":
+        return max(minimum_height, _text_intrinsic_minimum_height(component))
     if component.component_type not in _NON_EMPTY_CONTAINER_TYPES:
         return minimum_height
     if component.component_id in visiting:
@@ -350,6 +352,24 @@ def _minimum_outer_height(
     return max(
         minimum_height, reserved_height or 0, _vertical_padding(component.props) + content_height
     )
+
+
+def _text_intrinsic_minimum_height(component: ComponentRow) -> float:
+    """估算端侧自然测量文本的最小高度，避免预测多行时漏算容量。"""
+    font_size = _non_negative_number(component.props.get("fontSize"))
+    line_height = _non_negative_number(component.props.get("lineHeight"))
+    max_lines = component.props.get("maxLines")
+    valid_max_lines = isinstance(max_lines, int) and not isinstance(max_lines, bool)
+    if font_size is None or font_size <= 0:
+        return 0.0
+    if line_height is None or line_height <= 0:
+        return 0.0
+    if not valid_max_lines or max_lines <= 0:
+        return 0.0
+    resolved_line_height = line_height
+    if line_height <= 4:
+        resolved_line_height *= font_size
+    return resolved_line_height * max_lines
 
 
 def _vertical_gap(component: ComponentRow, child_count: int) -> float:

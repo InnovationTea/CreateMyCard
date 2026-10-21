@@ -266,7 +266,7 @@ def composition_recovery_context(
             "最终前缀、标签和单位也必须在原字号下占预算，不能越过 additionalTextWidth。"
             "若必要上下文放不下，可移入已预留且没有硬标题绑定的标题位，"
             "或换完整合法组合；不删必要语义，不替换必需标题。"
-            "SecondaryBody 按最终行布局使用单行14/19或多行12/16，核心组件字号保持原 Recipe。"
+            "SecondaryBody 按最终行布局使用单行14/14或多行12/12，核心组件字号保持原 Recipe。"
         ),
     }
     if candidates:

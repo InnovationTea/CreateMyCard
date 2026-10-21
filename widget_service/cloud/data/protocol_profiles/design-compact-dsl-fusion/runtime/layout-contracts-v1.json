@@ -223,8 +223,8 @@
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
             {"path": [0], "types": ["SingleLineTitle"]},
-            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 8}, "childCount": 2},
-            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "height": 40, "itemMargin": 8}, "childCount": 2},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 2}, "childCount": 2},
+            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "constraintSize": {"minHeight": 40}, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1, 1], "types": ["Stack"], "props": {"width": 40, "height": 40, "alignContent": "center"}, "childCount": 1},
             {"path": [1, 1, 1, 0], "types": ["CircleButton"], "eventPolicy": "require"}
           ]
@@ -233,8 +233,8 @@
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
             {"path": [0], "types": ["SingleLineTitle"]},
-            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 8}, "childCount": 2},
-            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "height": 56, "itemMargin": 8}, "childCount": 2},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 2}, "childCount": 2},
+            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "constraintSize": {"minHeight": 40}, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1, 0], "types": ["NumericRatioStack"], "props": {"width": 78, "height": 56}},
             {"path": [1, 1, 1], "types": ["Stack"], "props": {"width": 40, "height": 40, "alignContent": "center"}, "childCount": 1},
             {"path": [1, 1, 1, 0], "types": ["CircleButton"], "eventPolicy": "require"}

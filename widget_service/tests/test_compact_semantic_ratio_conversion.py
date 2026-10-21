@@ -21,7 +21,9 @@ def _source(variant: str, *, header: str = "plain", action: bool = False) -> str
         ["root", "Layout", {"layout": "W-content-side-slots"}, ["content", "info", "open"]],
         ["info", "InfoBlock", {"variant": "slot", "primaryText": "在线",
                               "secondaryText": "设备状态", "backgroundColor": "#99FFFFFF"}],
-        ["open", "CardButton", {"label": "设备设置", "onClick": [{"call": "open", "args": {}}]}],
+        ["open", "CardButton", {"label": "设备设置",
+                                "icon": "resources/base/media/gearshape_fill.svg",
+                                "onClick": [{"call": "open", "args": {}}]}],
     ]
     if count == 2:
         children.insert(0, "header")
