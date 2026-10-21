@@ -30,9 +30,12 @@ class ValidationContext:
     expression_locations: list[tuple[str, str, Any, str | None]] = field(default_factory=list)
     template_context_by_component: dict[str, dict[str, Any]] = field(default_factory=dict)
     quality_score: int | None = None
+    edit_mode: bool = False
 
     def has_fusion_template_root(self) -> bool:
         """兼容既有调用名，仅按模板根标记判断整卡质量豁免。"""
+        if self.edit_mode:
+            return False
         if self.root_id != "root" or self.duplicate_component_ids:
             return False
         root = self.root_component

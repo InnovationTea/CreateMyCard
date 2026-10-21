@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 
 from api.schemas import GenerateWidgetCardRequest, GenerateWidgetCardResponse
 from app.logger import logger
+from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelGenerationError
 from models.generation import CompactDslRetryContext
@@ -41,9 +42,13 @@ async def run_compact_dsl_with_retry(
     retry_count 是首次执行之外的额外次数。每轮复制原始请求，包括模型私有上下文，
     防止生成/编辑归一化修改请求后污染下一轮；取消及非白名单异常保持原样向外抛出。
     """
+    semantic_edit = "sourceArtifactUrl" in request.model_fields_set
+    if semantic_edit and get_settings().enable_semantic_widget_edit:
+        # 编辑质量预算在独立编排内闭合；存储失败也不重新调用编辑模型。
+        enabled = False
     if enabled and retry_count < 0:
         raise ValueError("retry_count must be non-negative")
-    snapshot = request.model_copy(deep=True) if enabled else request
+    snapshot = request.model_copy(deep=True) if enabled or semantic_edit else request
     max_attempts = retry_count + 1 if enabled else 1
     attempt = 0
     retry_context: CompactDslRetryContext | None = None
@@ -77,7 +82,7 @@ async def run_compact_dsl_with_retry(
                 details={"maxAttempts": max_attempts, "requestId": request_id},
             )
             try:
-                attempt_request = snapshot.model_copy(deep=True) if enabled else request
+                attempt_request = snapshot.model_copy(deep=True) if enabled else snapshot
                 attempt_request._compact_dsl_retry_context = retry_context
                 result = await operation(attempt_request)
             except (

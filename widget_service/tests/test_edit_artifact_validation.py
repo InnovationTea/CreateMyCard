@@ -157,6 +157,7 @@ class GenerationProbe:
 def generation_probe(tmp_path, monkeypatch):
     probe = GenerationProbe()
     settings = get_settings()
+    monkeypatch.setattr(settings, "enable_semantic_widget_edit", False)
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "enable_widget_edit", True)
     # 原有整卡编辑与 Compact 修复的契约仍单独验证，不把整卡 mock 当字段补丁。

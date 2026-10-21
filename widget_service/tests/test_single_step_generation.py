@@ -143,6 +143,8 @@ def _edit_patch_response(messages, desired):
 @pytest.fixture
 def single_step_run(monkeypatch):
     settings = get_settings()
+    # 本组保留旧字段补丁回滚路线；默认语义编辑由独立专项验证。
+    monkeypatch.setattr(settings, "enable_semantic_widget_edit", False)
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
