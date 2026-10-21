@@ -34,6 +34,7 @@ async def request_template_source_dsl(
     enable_fusion_ball: bool,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_layout_ids: tuple[str, ...] = (),
     trusted_template_sample_overrides: dict[str, Any] | None = None,
 ) -> str:
     """请求模板引擎并返回当前 Processor 可直接消费的源 DSL。"""
@@ -44,6 +45,8 @@ async def request_template_source_dsl(
     engine_options: dict[str, Any] = {"enable_fusion_ball": enable_fusion_ball}
     if trusted_template_candidate_ids:
         engine_options["trusted_template_candidate_ids"] = trusted_template_candidate_ids
+    if trusted_template_layout_ids:
+        engine_options["trusted_template_layout_ids"] = trusted_template_layout_ids
     if trusted_template_action_ids:
         engine_options["trusted_template_action_ids"] = trusted_template_action_ids
     if trusted_template_sample_overrides:

@@ -94,6 +94,7 @@ def plan_template_candidates(
     *,
     candidate_bindings: tuple[CandidateDataBinding, ...] = (),
     allow_battery_no_action_plan: bool = False,
+    allowed_layout_ids: tuple[str, ...] = (),
 ) -> tuple[TemplatePlan, ...]:
     """Build at most three complete, atomic UI plans from Search candidates."""
     if search_result.card_size != task_spec.size:
@@ -108,6 +109,8 @@ def plan_template_candidates(
     group_options = tuple(groups_by_capability[item] for item in requested_capabilities)
     if task_spec.size == "2x4":
         for composition in wide_plan_compositions(intent, search_result, task_spec, registry):
+            if allowed_layout_ids and composition.layout_template_id not in allowed_layout_ids:
+                continue
             plan = _make_plan(
                 composition.layout_template_id,
                 composition.slots,
@@ -148,6 +151,8 @@ def plan_template_candidates(
         else:
             new_drafts = ()
         for plan, score in new_drafts:
+            if allowed_layout_ids and plan.layout_template_id not in allowed_layout_ids:
+                continue
             drafts.append(_PlanDraft(plan=plan, score=score, sequence=sequence))
             sequence += 1
     if not drafts:
@@ -207,7 +212,8 @@ def plan_template_candidates(
         if allow_battery_no_action_plan and actions != top_actions:
             continue
         same_theme.append(item)
-    selected = list(same_theme[:_MAX_PLANS])
+    plan_limit = 1 if allowed_layout_ids else _MAX_PLANS
+    selected = list(same_theme[:plan_limit])
     _verify_plans_cover_request(selected, intent)
     return tuple(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})
@@ -683,6 +689,8 @@ def _resolve_theme(
         return registry.require_layout_theme(layout_id, capability_ids)
     owner = slots[1] if layout_id == "HeroTitleContentActionLayout" else slots[0]
     theme_ids = registry.first_layer_theme_ids((owner.business_id,))
+    if not theme_ids and owner.business_id in _PAIRING_ONLY_BUSINESS_IDS:
+        theme_ids = _partner_theme_ids(layout_id, slots, registry)
     definitions = tuple(registry.require_template(slot.template_id) for slot in slots)
     compatible_theme_ids: list[str] = []
     for theme_id in theme_ids:
@@ -703,6 +711,24 @@ def _resolve_theme(
             registry,
         ),
     )
+
+
+def _partner_theme_ids(
+    layout_id: str,
+    slots: tuple[TemplatePlanBusinessSlot, ...],
+    registry: CardPlanRegistry,
+) -> tuple[str, ...]:
+    """配对专用业务没有独立主题；仅向已有宽卡伙伴借用主题候选。"""
+    if not layout_id.startswith("Wide") or len(slots) < 2:
+        return ()
+    themes: list[str] = []
+    for slot in slots:
+        if slot.business_id in _PAIRING_ONLY_BUSINESS_IDS:
+            continue
+        for theme_id in registry.first_layer_theme_ids((slot.business_id,)):
+            if theme_id not in themes:
+                themes.append(theme_id)
+    return tuple(themes)
 
 
 def _theme_business_score(

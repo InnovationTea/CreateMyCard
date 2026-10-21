@@ -110,7 +110,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudsPhoneWideFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机与手机宽版摘要，展示连接状态和名称，可选盒与左右耳电量。",
+      "description": "耳机宽版摘要，展示连接状态和名称，可选盒与左右耳电量。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/isConnected",
@@ -431,7 +431,7 @@
       "templateId": "BluetoothDeviceOverviewCompletePhoneWideFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机与手机完整宽版摘要，展示连接状态、名称、盒与左右耳电量。",
+      "description": "耳机完整宽版摘要，展示连接状态、名称、盒与左右耳电量。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/isConnected",

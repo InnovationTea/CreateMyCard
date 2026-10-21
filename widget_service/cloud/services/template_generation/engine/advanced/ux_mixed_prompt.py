@@ -58,7 +58,7 @@ _WEATHER_BUILTIN_ASSETS = (
     "resources/base/media/cold.svg",
 )
 _COUNTDOWN_TITLE_SUFFIXES = ("倒计时", "倒数日", "倒数")
-_MAX_UX_MIXED_PROMPT_CHARS = 24_000
+_MAX_UX_MIXED_PROMPT_CHARS = 64_000
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _COMPACT_ACTION_TEMPLATE_ID = "CompactAction@1"
 _COMPACT_SUBTITLE_ACTION_TEMPLATE_ID = "CompactSubtitleAction@1"
@@ -580,7 +580,8 @@ def build_ux_mixed_prompt(
         }
     )
     provider_second_layer_rules = registry.provider_second_layer_guidance(
-        scope.advanced_component_ids
+        scope.advanced_component_ids,
+        selected_template_ids=allowed_template_ids if template_plans else (),
     )
     selected_actions = _selected_action_candidates(contract)
     asset_candidates = _asset_prompt_candidates(task_spec, contract)
@@ -689,8 +690,14 @@ def build_ux_mixed_prompt(
         {"role": "system", "content": UX_MIXED_SYSTEM_PROMPT_KERNEL},
         {"role": "user", "content": user},
     ]
-    if sum(len(item["content"]) for item in messages) > _MAX_UX_MIXED_PROMPT_CHARS:
-        raise ValueError("UX Mixed Prompt exceeds the service input budget")
+    prompt_chars = sum(len(item["content"]) for item in messages)
+    if prompt_chars > _MAX_UX_MIXED_PROMPT_CHARS:
+        rules_chars = len(json.dumps(provider_second_layer_rules, ensure_ascii=False))
+        raise ValueError(
+            "UX Mixed Prompt exceeds the service input budget: "
+            f"total={prompt_chars}, limit={_MAX_UX_MIXED_PROMPT_CHARS}, "
+            f"provider_rules={rules_chars}, plans={len(template_plans)}"
+        )
     return UxMixedPromptProjection(
         messages=messages,
         contract=contract,
