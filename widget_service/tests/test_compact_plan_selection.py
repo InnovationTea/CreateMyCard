@@ -4,6 +4,7 @@ import copy
 import json
 
 import pytest
+
 from services.compact_plan import (
     build_compact_plan_tool,
     compact_plan_context,

@@ -4,6 +4,7 @@ import copy
 import json
 
 import pytest
+
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,

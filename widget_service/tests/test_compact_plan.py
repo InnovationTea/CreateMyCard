@@ -3,6 +3,7 @@
 import json
 
 import pytest
+
 from services.compact_dsl_a2ui_converter import MODEL_COMPACT_INPUT_COMPONENT_TYPES
 from services.compact_plan import (
     CompactPlanValidationError,

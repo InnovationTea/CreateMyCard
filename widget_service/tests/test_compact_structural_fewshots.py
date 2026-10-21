@@ -6,6 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+
 from config.config import get_settings
 from models.generation import TaskSpec
 from services.compact_prompt_loader import assemble_prompts
