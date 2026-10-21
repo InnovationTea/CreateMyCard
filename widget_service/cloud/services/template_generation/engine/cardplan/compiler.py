@@ -2275,9 +2275,6 @@ def _sleep_schedule_support(
             {
                 "width": "matchParent",
                 "height": "matchParent",
-                "padding": 8,
-                "borderRadius": 8,
-                "backgroundColor": "#24FFFFFF",
                 "itemMargin": 8,
                 "justifyContent": "center",
                 "alignItems": "start",
@@ -3117,9 +3114,6 @@ def _bluetooth_device_support_overview(
                 "_advancedComponent": "BluetoothDeviceOverview",
                 "width": "matchParent",
                 "height": "matchParent",
-                "padding": 0 if compact else {"left": 8, "top": 6, "right": 8, "bottom": 6},
-                "borderRadius": 0 if compact else 8,
-                "backgroundColor": "#00000000" if compact else "#1A64BB5C",
                 "itemMargin": 2 if compact else registry.ux_tokens["denseInnerGap"],
                 "justifyContent": "center" if compact else "start",
                 "alignItems": "center" if compact else "start",
@@ -3430,9 +3424,6 @@ def _expand_app_usage_overview_call(
                 "compact",
                 {
                     "layoutWeight": 2,
-                    "padding": 8,
-                    "borderRadius": 12,
-                    "backgroundColor": "#0D000000",
                     "justifyContent": "center",
                     "alignItems": "start",
                     "clip": True,
@@ -9378,7 +9369,7 @@ def _lower_action_template_tree(
     # CompactAction is rendered inside a layout-owned support slot.  The slot
     # supplies the shared surface, radius, and padding; adding an action
     # background here would create a second nested panel inside that slot.
-    if node.component_type == "CompactAction":
+    if node.component_type in {"CompactAction", "CompactSubtitleAction"}:
         return styled
     return _merge_node_options(styled, {"backgroundColor": background})
 
