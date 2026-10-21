@@ -1807,7 +1807,7 @@ def _normalize_asset_assignments(
     if not isinstance(actions, list):
         raise CompactPlanValidationError(["assetAssignments.actions must be an array."])
     normalized_actions: dict[str, dict[str, Any]] = {}
-    used_assets: set[str] = set()
+    action_assets: set[str] = set()
     errors: list[str] = []
     for index, assignment in enumerate(actions):
         location = f"assetAssignments.actions[{index}]"
@@ -1833,9 +1833,12 @@ def _normalize_asset_assignments(
                 assignment,
                 asset_ids,
                 location=location,
-                used_assets=used_assets,
+                used_assets=set(),
                 errors=errors,
             )
+            assigned_asset_id = normalized.get("assetId")
+            if isinstance(assigned_asset_id, str):
+                action_assets.add(assigned_asset_id)
         normalized["actionId"] = action_id
         normalized_actions[action_id] = normalized
     missing_actions = [
@@ -1866,7 +1869,7 @@ def _normalize_asset_assignments(
                 title,
                 asset_ids,
                 location="assetAssignments.title",
-                used_assets=used_assets,
+                used_assets=action_assets,
                 errors=errors,
             )
     if errors:

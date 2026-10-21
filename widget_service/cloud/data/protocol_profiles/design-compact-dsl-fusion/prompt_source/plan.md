@@ -87,7 +87,7 @@ dataId/text 不推荐按钮，actionId 仅推荐合法动作组件。标题按�
 S-content-dual-action 的 actions-only 变体，直接放两个 PillButton，不补内容槽或占位正文。
 若有任何 dataId/text 展示事实，使用带内容的标准变体并按完整内容核算容量。
 
-actions 按 info_required 动作顺序逐项分配：先结合动作对象、完整操作语义和候选 description，选择语义最匹配且尚未使用的 assetId；无任何准确匹配才填 null 及具体 reason。CardButton 的 icon 可选：assetId 非空时必须使用对应真实素材；assetId 为 null 或本轮没有素材候选时仍可把 CardButton 放入 componentHints 或 composition，但最终只生成文字和点击能力，省略 icon，不规划圆形、分隔线或其它右侧占位。之后 title 从未用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。一个素材只分配一次，不牺牲准确按钮图标为标题腾素材。SingleLineTitle 无图标按12vp、带图标按20vp计入容量。
+actions 按 info_required 动作顺序逐项分配：先结合动作对象、完整操作语义和候选 description，选择语义最匹配的 assetId；不同动作允许复用同一准确素材。无任何准确匹配才填 null 及具体 reason。CardButton 的 icon 可选：assetId 非空时必须使用对应真实素材；assetId 为 null 或本轮没有素材候选时仍可把 CardButton 放入 componentHints 或 composition，但最终只生成文字和点击能力，省略 icon，不规划圆形、分隔线或其它右侧占位。之后 title 只能从未被卡片其它内容使用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。不得为标题牺牲准确的内容图标。SingleLineTitle 无图标按12vp、带图标按20vp计入容量。
 整卡详情例外不需要按钮图标：保留动作的分配项并填 null，reason 说明整卡承载；该素材未被按钮消费，仍可按语义分配给标题。最终以服务端接受结果为准，不因此给其它动作省略图标。
 
 ## 4. 实例安排（仅 Schema 含 composition 时）
