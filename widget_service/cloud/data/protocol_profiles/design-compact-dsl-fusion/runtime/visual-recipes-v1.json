@@ -1160,6 +1160,15 @@
     },
     "CardButton": {
       "alignment": "aligned",
+      "sizes": {
+        "2x2": {
+          "parts": {
+            "root": {"styles": {"height": 36, "padding": {"top": 8, "bottom": 8}, "constraintSize": {"minHeight": 36, "maxHeight": 64}}},
+            "icon": {"styles": {"width": 20, "height": 20}},
+            "placeholder": {"styles": {"width": 20, "height": 20}}
+          }
+        }
+      },
       "variants": {
         "multilineLabel": {
           "parts": {

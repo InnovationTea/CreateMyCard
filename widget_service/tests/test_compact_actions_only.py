@@ -4,7 +4,6 @@ import copy
 import json
 
 import pytest
-
 from services.card_validation import CompactDslValidationError, validate_card, validate_compact_dsl
 from services.compact_composition_planner import feasible_composition_candidates
 from services.compact_dsl_a2ui_converter import (
@@ -67,8 +66,9 @@ def _rows(task: dict, variant: str | None = "actions-only") -> list:
         params = args.get("params")
         assert isinstance(params, dict)
         params["switchFlag"] = 1
-        rows.append([name, "PillButton", {
+        rows.append([name, "CardButton", {
             "label": name, "icon": f"resources/base/media/{name}.svg",
+            "fillColor": "#FF1F4799",
             "onClick": [{"call": candidate.get("call"), "args": args}],
         }])
     return rows

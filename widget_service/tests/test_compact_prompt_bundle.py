@@ -5,7 +5,6 @@ import shutil
 from pathlib import Path
 
 import pytest
-
 from config.config import get_settings
 from models.generation import TaskSpec
 from services.compact_layout_runtime import layout_ids_for_size
@@ -357,7 +356,7 @@ def test_size_component_rules_separate_shared_and_dedicated_components() -> None
     for name in ("DataDisplay", "CircleButton"):
         assert f" `{name}`\n" in common
         assert f" `{name}`\n" not in wide
-    for name in ("TextBlock", "CardButton", "TopTextBottomValue", "ProgressLine2", "SummaryList"):
+    for name in ("TextBlock", "TopTextBottomValue", "ProgressLine2", "SummaryList"):
         assert f" `{name}`\n" in wide
         assert f" `{name}`\n" not in common
     assert "只允许进入 `W-top-bottom` 的 details" in wide
@@ -509,7 +508,7 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     if size == "2x2":
         expected.extend(
             f"example-v{index:02d}"
-            for index in (1, 9, 10, 12, 4, 11, 13, 5, 6, 2, 8, 14, 3, 7)
+            for index in (1, 9, 10, 15, 16, 12, 4, 11, 13, 5, 6, 2, 8, 14, 3, 17, 18, 7)
         )
     else:
         expected.extend(f"example-v{index:02d}" for index in (3, 16, 28, 9, 8, 10, 23, 6, 19, 38))

@@ -3,7 +3,6 @@
 import json
 
 import pytest
-
 from services.compact_dsl_a2ui_converter import MODEL_COMPACT_INPUT_COMPONENT_TYPES
 from services.compact_plan import (
     CompactPlanValidationError,
@@ -583,7 +582,7 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
     assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
     assert "Button" not in fact_properties["componentHints"]["items"]["enum"]
-    assert "CardButton" not in fact_properties["componentHints"]["items"]["enum"]
+    assert "CardButton" in fact_properties["componentHints"]["items"]["enum"]
     assert "S-title-content-action" in properties["layoutHints"]["items"]["enum"]
     assert properties["info_required"]["items"]["properties"]["priority"]["enum"] == [
         "must",
@@ -692,8 +691,8 @@ def test_dual_action_plan_preserves_content_hints_and_normalizes_buttons() -> No
     assert isinstance(facts, list)
     assert facts[0].get("componentHints") == ["ProgressCircleSingle", "EmphasizedData"]
     assert facts[1].get("componentHints") == ["SecondaryBody", "TableText"]
-    assert facts[2].get("componentHints") == ["PillButton"]
-    assert facts[3].get("componentHints") == ["PillButton"]
+    assert facts[2].get("componentHints") == ["CardButton"]
+    assert facts[3].get("componentHints") == ["CardButton"]
 
 
 def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
@@ -896,8 +895,9 @@ def test_plan_parser_requires_composition_in_runtime_mode() -> None:
                 "PillButton",
                 "DataDisplay",
                 "CircleButton",
+                "CardButton",
             ),
-            {"PillButton", "CircleButton"},
+            {"PillButton", "CircleButton", "CardButton"},
         ),
         (
             "2x4",

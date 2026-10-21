@@ -7,10 +7,9 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
+from config.config_helper import ConfigHelper
 from pydantic import AliasChoices, AliasGenerator, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from config.config_helper import ConfigHelper
 
 
 def get_container_ip():
@@ -251,7 +250,7 @@ class Settings(BaseSettings):
         CONFIG.get("enable_design_compact_few_shots", "true") == "true"
     )
     enable_design_compact_few_shot_selection: bool = (
-        CONFIG.get("enable_design_compact_few_shot_selection", "false") == "true"
+        CONFIG.get("enable_design_compact_few_shot_selection", "true") == "true"
     )
     enable_design_compact_runtime_prompt_context: bool = (
         CONFIG.get("enable_design_compact_runtime_prompt_context", "false") == "true"

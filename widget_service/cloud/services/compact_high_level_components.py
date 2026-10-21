@@ -2311,8 +2311,8 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
 
 
 def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow]:
-    if size != "2x4":
-        raise CompactDslConversionError("CardButton requires a 2x4 card.")
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("CardButton requires a 2x2 or 2x4 card.")
     allowed = {
         "label",
         "labelLines",
@@ -2337,6 +2337,12 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
         raise CompactDslConversionError(
             f"{component.component_id}: CardButton.labelLines must be 1 or 2."
         )
+    if size == "2x2" and label_lines == 2:
+        slot_height = component.props.get("height", 36)
+        if not _is_positive_number(slot_height) or slot_height < 56:
+            raise CompactDslConversionError(
+                f"{component.component_id}: 2x2 CardButton 两行标签只能用于57vp纯动作槽。"
+            )
     variant = "multilineLabel" if label_lines == 2 else None
 
     label_id = f"{component.component_id}_label"

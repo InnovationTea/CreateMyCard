@@ -32,12 +32,12 @@ def collect_actions_only_plan_errors(
         if root.props.get("layout") != "S-content-dual-action":
             return
         actions_only = root.props.get("variant") == "actions-only" or len(root.children) == 2
-    elif root.component_type == "Column" and isinstance(compact_plan, dict):
+    elif root.component_type == "Column":
         by_id = {row.component_id: row for row in source_components}
         buttons = []
         for child_id in root.children:
             child = by_id.get(child_id)
-            if child is not None and child.component_type == "PillButton":
+            if child is not None and child.component_type == "CardButton":
                 buttons.append(child)
         actions_only = len(root.children) == 2 and len(buttons) == 2
     if not actions_only:

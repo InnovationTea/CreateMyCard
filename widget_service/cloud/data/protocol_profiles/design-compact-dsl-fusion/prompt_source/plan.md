@@ -48,12 +48,12 @@ priority：用户明确要求、核心及不可缺少的事实为 must；仅未�
 先判断事实在同组中是主值、标签、单位、补充还是事件要素，再推荐组件。多个事实推荐同名组件可表示同一实例的多个属性，不表示逐字段创建组件；不同对象也不因同名混组。语义、类型、容量都成立时落实首选，不成立可改选，候选不冻结数量、区域或几何。
 dataId/text 不推荐按钮，actionId 仅推荐合法动作组件。标题按标题合同，事件要素合到一个 EventCard item，多事件合一实例；不向 location 塞状态。比例、多段时长、完整单焦点、正文辅助等选择执行组件合同，不用大数值组件承载普通长文本。
 2x4 含 actionId 时不推荐无合法动作槽的 W-top-bottom。2x2 图标操作只有满足 CircleButton 的全部条件才首选 S-title-anchor，缺独立支撑事实时排除它；不能为偏好某布局增造事实。
-2x2 两个入选 Action 使用 S-content-dual-action，两个按钮均为 PillButton。先扣除动作与固定间距，再核算完整内容组合；不因非 Action 事实至少两项就推荐 TableText。表格仍须满足等权语义，按实际条数、行数与 Recipe 高度核算；有明确核心时按核心与补充关系选型。不得把三个事实机械变成三行表格，不用 SecondaryBody 独自承担整卡核心，也不为纯动作需求补造展示事实。
+2x2 两个入选 Action 使用 S-content-dual-action，两个按钮均为 CardButton。先扣除动作与固定间距，再核算完整内容组合；不因非 Action 事实至少两项就推荐 TableText。表格仍须满足等权语义，按实际条数、行数与 Recipe 高度核算；有明确核心时按核心与补充关系选型。不得把三个事实机械变成三行表格，不用 SecondaryBody 独自承担整卡核心，也不为纯动作需求补造展示事实。
 
 ## 3. 素材分配（仅 Schema 含 assetAssignments 时）
 
 纯双动作需求可以只提交两个 actionId，不添加展示事实；DSL 使用
-S-content-dual-action 的 actions-only 变体，直接放两个 PillButton，不补内容槽或占位正文。
+S-content-dual-action 的 actions-only 变体，直接放两个 CardButton，不补内容槽或占位正文。
 若有任何 dataId/text 展示事实，使用带内容的标准变体并按完整内容核算容量。
 
 actions 按 info_required 动作顺序逐项选择匹配 assetId；无匹配填 null 及具体 reason。之后 title 从未用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。一个素材只分配一次，不牺牲准确按钮图标为标题腾素材。容量计入所选标题是否带图标的实际高度。
