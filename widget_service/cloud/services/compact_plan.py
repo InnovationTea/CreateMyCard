@@ -208,8 +208,8 @@ def build_compact_plan_tool(
                 "SingleLineTitle 承担单行标题；DoubleLineTitle 承担标题加紧密相关的次信息。"
                 "标题事实不得同时推荐正文或其它标题替代组件。"
                 "CardButton 的图标可选：有语义匹配素材时优先使用真实图标；"
-                "没有素材或没有准确匹配时仍可推荐 CardButton，但必须省略 icon，"
-                "不得生成圆形、分隔线或其它占位视觉。"
+                "没有素材或没有准确匹配时仍可推荐 CardButton，并省略业务 icon；"
+                "转换器会使用固定回退图标，不生成额外占位视觉。"
             ),
         },
     }
@@ -347,7 +347,7 @@ def build_compact_plan_tool(
                         "按 info_required 中的动作顺序逐项决定按钮图标。"
                         "先根据动作对象和完整操作语义，从 description 中选最匹配且"
                         "尚未使用的素材。没有准确匹配时 assetId 可以为 null；"
-                        "CardButton 此时只保留文字与点击能力，并省略右侧图标槽。"
+                        "CardButton 省略业务 icon，由转换器使用固定回退图标。"
                     ),
                 },
                 "title": {
@@ -1106,9 +1106,10 @@ def compact_plan_context(
         asset_instruction = (
             "assetAssignments 冻结素材消费顺序与结果：先按 actionId 将分配落实到对应"
             "动作组件，再将 title 中的非空素材落实到主 SingleLineTitle.icon；"
-            "assetId 为 null 时保持无图标。不得复用、互换或跳过已分配素材，也不得用"
+            "assetId 为 null 时省略业务图标，由转换器使用固定回退图标。"
+            "不得复用、互换或跳过已分配素材，也不得用"
             "未分配素材覆盖明确的空分配。动作 assetId 为 null 时仍可使用 CardButton，"
-            "但必须省略 icon，且不生成圆形、分隔线或其它右侧占位视觉。"
+            "其原始 DSL 必须省略 icon。"
         )
         if whole_card_instruction:
             asset_instruction = (

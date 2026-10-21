@@ -2622,6 +2622,37 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "resources/base/media/icon_details.svg",
         )
 
+    def test_card_button_without_business_icon_uses_fallback_icon(self) -> None:
+        handler = {"call": "openDetails", "args": {}}
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": "matchParent"}, ["action"]],
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": "查看详情",
+                        "onClick": [handler],
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["action"]["children"], ["action_label", "action_visual"])
+        self.assertEqual(
+            components["action_visual"]["src"],
+            "resources/base/media/ic_fallback_light.svg",
+        )
+
     def test_rejects_invalid_high_level_component_contracts(self) -> None:
         cases = (
             (
@@ -2768,7 +2799,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         protocol_profile=self.profile,
                     )
 
-    def test_card_button_without_icon_has_no_visual_placeholder(self) -> None:
+    def test_card_button_without_icon_uses_fallback_icon(self) -> None:
         compact_dsl = _serialize(
             [
                 ["root", "Column", {}, ["action"]],
@@ -2792,8 +2823,11 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         update = json.loads(result.splitlines()[1])["updateComponents"]
         components = {item["id"]: item for item in update["components"]}
 
-        self.assertEqual(components["action"]["children"], ["action_label"])
-        self.assertNotIn("action_visual", components)
+        self.assertEqual(components["action"]["children"], ["action_label", "action_visual"])
+        self.assertEqual(
+            components["action_visual"]["src"],
+            "resources/base/media/ic_fallback_light.svg",
+        )
 
     def test_icon_pill_button_uses_palette_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
