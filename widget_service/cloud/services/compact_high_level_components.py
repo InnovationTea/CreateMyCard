@@ -56,6 +56,7 @@ CompactRow = ComponentRow | DataRow
 _PLACEMENT_PROPS = frozenset({"width", "height", "layoutWeight", "flexShrink", "margin"})
 _TWO_BY_FOUR_FIXED_SLOT_TYPES = frozenset({"InfoBlock", "CardButton"})
 _EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR = " | "
+_CARD_BUTTON_FALLBACK_ICON = "resources/base/media/ic_fallback_light.svg"
 _SYSTEM_FONT_ROLE_BY_COMPONENT = {
     "SingleLineTitle": "secondary",
     "DoubleLineTitle": "primary",
@@ -2365,9 +2366,10 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
     label_id = f"{component.component_id}_label"
     visual_id = f"{component.component_id}_visual"
     icon = component.props.get("icon")
+    if not isinstance(icon, str):
+        icon = _CARD_BUTTON_FALLBACK_ICON
     children = [label_id]
-    if isinstance(icon, str):
-        children.append(visual_id)
+    children.append(visual_id)
     container_props: dict[str, Any] = {
         "onClick": copy.deepcopy(component.props["onClick"]),
     }
@@ -2392,19 +2394,18 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
             },
         ),
     ]
-    if isinstance(icon, str):
-        image_props: dict[str, Any] = {"src": icon}
-        if "fillColor" in component.props:
-            image_props["fillColor"] = component.props["fillColor"]
-        rows.append(
-            _visual_row(
-                visual_id,
-                "CardButton",
-                "icon",
-                size=size,
-                props=image_props,
-            )
+    image_props: dict[str, Any] = {"src": icon}
+    if "fillColor" in component.props:
+        image_props["fillColor"] = component.props["fillColor"]
+    rows.append(
+        _visual_row(
+            visual_id,
+            "CardButton",
+            "icon",
+            size=size,
+            props=image_props,
         )
+    )
     return rows
 
 

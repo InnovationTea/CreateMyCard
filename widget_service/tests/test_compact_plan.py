@@ -875,6 +875,52 @@ def test_plan_parser_rejects_asset_reuse_between_button_and_title() -> None:
         parse_compact_plan_call(json.dumps(payload), asset_task_spec())
 
 
+def test_plan_parser_accepts_asset_reuse_between_actions() -> None:
+    spec = dual_action_task_spec()
+    spec["assetCandidates"] = [
+        {
+            "id": "asset.settings",
+            "src": "resources/base/media/gearshape_fill.svg",
+            "description": "设置操作图标",
+        }
+    ]
+    payload = {
+        "name": "submit_card_plan",
+        "arguments": {
+            "info_required": [
+                {
+                    "requirement": "打开省电模式",
+                    "priority": "must",
+                    "actionId": "event.setPowerSavingMode",
+                    "componentHints": ["PillButton"],
+                },
+                {
+                    "requirement": "导航回家",
+                    "priority": "must",
+                    "actionId": "event.startNavigate",
+                    "componentHints": ["PillButton"],
+                },
+            ],
+            "layoutHints": ["S-content-dual-action"],
+            "assetAssignments": {
+                "actions": [
+                    {"actionId": "event.setPowerSavingMode", "assetId": "asset.settings"},
+                    {"actionId": "event.startNavigate", "assetId": "asset.settings"},
+                ],
+                "title": {"assetId": None, "reason": "双动作布局没有标题槽"},
+            },
+        },
+    }
+
+    result = parse_compact_plan_call(json.dumps(payload), spec)
+
+    assignments = result.plan["assetAssignments"]["actions"]
+    assert [assignment["assetId"] for assignment in assignments] == [
+        "asset.settings",
+        "asset.settings",
+    ]
+
+
 def test_plan_parser_requires_reason_for_unassigned_icon() -> None:
     payload = json.loads(asset_plan_call())
     payload["arguments"]["assetAssignments"]["title"] = {"assetId": None}
