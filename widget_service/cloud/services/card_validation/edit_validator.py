@@ -12,7 +12,14 @@ from services.card_validation import ValidationOptions, validate_card
 from services.card_validation.diagnostics import Diagnostic
 from services.card_validation.theme_phase_validator import theme_phase_errors
 from services.single_step_edit import _components, _messages, _same
-from services.widget_edit_contract import EditIntent, validate_edit_diff
+from services.widget_edit_contract import (
+    EditExpectation,
+    EditIntent,
+    EditPropertyValue,
+    read_edit_property,
+    same_edit_value,
+    validate_edit_diff,
+)
 
 
 @dataclass
@@ -33,6 +40,7 @@ def validate_edit_artifact(
     try:
         validate_edit_diff(original.genui, candidate.genui, intent)
         _visibility_errors(original.genui, candidate.genui, result)
+        result.errors.extend(edit_expectation_errors(original.genui, candidate.genui, intent))
     except (ValueError, TypeError, RecursionError) as exc:
         result.errors.append(f"EDIT_SCOPE_INVALID: {exc}")
         return result
@@ -65,6 +73,44 @@ def validate_edit_artifact(
         else:
             result.warnings.append(message)
     return result
+
+
+def edit_expectation_errors(original: str, candidate: str, intent: EditIntent) -> list[str]:
+    """检查已接受的属性目标；不以自然语言词法代替意图理解。"""
+    before_nodes = _components(_messages(original))
+    after_nodes = _components(_messages(candidate))
+    errors = []
+    for expected in intent.expectations:
+        before = read_edit_property(before_nodes.get(expected.componentId, {}), expected.property)
+        after = read_edit_property(after_nodes.get(expected.componentId, {}), expected.property)
+        if not _expectation_matches(expected, before, after):
+            errors.append(
+                f"EDIT_EXPECTATION_UNMET: {expected.componentId}.{expected.property} "
+                f"要求 {expected.operator} {expected.value!r}，"
+                f"实际存在={after.exists} 值={after.value!r}",
+            )
+    return errors
+
+
+def _expectation_matches(
+    expected: EditExpectation, before: EditPropertyValue, after: EditPropertyValue,
+) -> bool:
+    matched = False
+    if expected.operator == "remove":
+        matched = not after.exists
+    elif expected.operator == "preserve":
+        matched = before.exists == after.exists
+        matched = matched and same_edit_value(expected.property, before.value, after.value)
+    elif expected.operator == "equal":
+        matched = after.exists and same_edit_value(expected.property, expected.value, after.value)
+    else:
+        old_number, new_number = _number(before.value), _number(after.value)
+        if old_number is not None and new_number is not None:
+            if expected.operator == "increase":
+                matched = new_number > old_number
+            elif expected.operator == "decrease":
+                matched = new_number < old_number
+    return matched
 
 
 def _number(value: Any) -> float | None:

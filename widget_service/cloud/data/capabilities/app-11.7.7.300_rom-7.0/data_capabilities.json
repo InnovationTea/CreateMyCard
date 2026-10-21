@@ -262,7 +262,7 @@
               },
               "title": {
                 "type": "string",
-                "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航“项目进展会”。",
+                "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或“项目进展会”。",
                 "sampleValue": "项目例会"
               },
               "eventLocation": {

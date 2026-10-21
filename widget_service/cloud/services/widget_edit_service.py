@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import inspect
-import json
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
@@ -19,7 +18,7 @@ from models.artifact import WidgetArtifact
 from models.generation import WidgetSize
 from models.preflight import GenerationPreflightError, GenerationPreflightResult
 from services.artifact_store import ArtifactStore, ArtifactUploadError
-from services.card_validation.edit_validator import validate_edit_artifact
+from services.card_validation.edit_validator import edit_expectation_errors, validate_edit_artifact
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import GenerationRoutePolicy
 from services.generation_preflight import GenerationPreflight
@@ -33,7 +32,7 @@ from services.widget_edit_contract import (
     has_layout_change,
     validate_intent,
 )
-from services.widget_edit_prompt import execution_prompt, intent_prompt
+from services.widget_edit_prompt import execution_prompt, intent_prompt, repair_feedback
 
 if TYPE_CHECKING:
     from services.widget_generation_service import WidgetGenerationService
@@ -163,8 +162,12 @@ class WidgetEditService:
             try:
                 intent = EditIntent.model_validate(_load_json(output))
                 validate_intent(intent, original, source_size, explicit_size)
+                if intent.outcome == "unchanged":
+                    unmet = edit_expectation_errors(original, original, intent)
+                    if unmet:
+                        raise ValueError("; ".join(unmet))
             except (ValueError, TypeError, RecursionError) as exc:
-                self._feedback(messages, output, [str(exc)], "仅修正编辑意图，不输出卡片或扩大范围")
+                messages.extend(repair_feedback(output, [str(exc)], "intent"))
                 if attempt == budget:
                     raise ValueError("编辑意图合同修复次数耗尽") from exc
                 continue
@@ -198,8 +201,7 @@ class WidgetEditService:
             if not errors:
                 return current
             logger.warning(f"[Widget Edit] validation_failed attempt={attempt} errors={errors}")
-            self._feedback(messages, output, errors,
-                           "基于同一原卡修正执行结果，不叠加失败结果，不删业务内容或扩大范围")
+            messages.extend(repair_feedback(output, errors, "execute"))
         raise ValueError("编辑执行修复次数耗尽")
 
     @staticmethod
@@ -208,15 +210,6 @@ class WidgetEditService:
         if inspect.isawaitable(output):
             output = await output
         return output
-
-    @staticmethod
-    def _feedback(messages: list[dict], output: str, errors: list[str], instruction: str) -> None:
-        messages.extend([
-            {"role": "assistant", "content": output},
-            {"role": "user", "content": json.dumps({"errors": errors,
-                                                       "instruction": instruction},
-                                                      ensure_ascii=False)},
-        ])
 
     def _candidate(self, original: WidgetArtifact, request: GenerateWidgetCardRequest,
                    preflight: GenerationPreflightResult, policy: GenerationRoutePolicy,

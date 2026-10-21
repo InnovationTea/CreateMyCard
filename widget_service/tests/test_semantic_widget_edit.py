@@ -668,3 +668,154 @@ async def test_runtime_metadata_update_is_not_lost_when_visuals_are_unchanged(ed
     assert len(edit_run.calls) == 1
     assert edit_run.saved[0].cardSpec.get("title") == "新的睡眠卡片"
     assert edit_run.saved[0].genui == edit_run.source.genui
+
+
+@pytest.mark.parametrize("stage", ["intent", "execute"])
+def test_edit_prompts_are_file_backed_and_stage_specific(source, stage):
+    if stage == "intent":
+        messages = widget_edit_prompt.intent_prompt(source, "大一点", "2x4", None)
+    else:
+        messages = widget_edit_prompt.execution_prompt(source, "大一点", _intent())
+    system = messages[0].get("content", "")
+    for filename in (f"{stage}.md", "protocol.md", "design.md", "examples.md"):
+        fragment = (widget_edit_prompt.PROMPT_DIR / filename).read_text(encoding="utf-8").strip()
+        assert fragment in system
+    assert "{{CREATE_SYSTEM_PROMPT}}" not in system
+    assert "previousGenui" in system
+    payload = json.loads(messages[1].get("content", "{}"))
+    assert payload.get("previousGenui") == source
+    assert payload.get("editContract") == widget_edit_contract.edit_contract()
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_missing_or_empty_edit_resource_never_falls_back_to_creation(
+    tmp_path, monkeypatch, missing,
+):
+    monkeypatch.setattr(widget_edit_prompt, "PROMPT_DIR", tmp_path)
+    if not missing:
+        (tmp_path / "intent.md").write_text("  \n", encoding="utf-8")
+    with pytest.raises(ValueError, match="编辑提示词"):
+        widget_edit_prompt.intent_prompt("original", "edit", "2x4", None)
+
+
+def test_edit_prompt_styles_use_the_same_component_and_dimension_intersection():
+    rules = widget_edit_contract.edit_contract()
+    matrix = rules.get("editableStylesByComponent", {})
+    common = set(rules.get("commonStyleFields", []))
+    for kind, fields in rules.get("componentStyleFields", {}).items():
+        actual = matrix.get(kind, {})
+        for dimension, permitted in rules.get("editableDimensions", {}).items():
+            assert set(actual.get(dimension, [])) == (common | set(fields)) & set(permitted)
+    assert "fontSize" not in matrix.get("Column", {}).get("typography", [])
+
+
+@pytest.mark.parametrize("operator,value,updated,blocked", [
+    ("equal", 20, 20, False),
+    ("equal", 20, 18, True),
+    ("increase", None, 18, False),
+    ("increase", None, 12, True),
+    ("increase", None, 14, True),
+    ("decrease", None, 12, False),
+    ("decrease", None, 18, True),
+    ("preserve", None, 14, False),
+    ("preserve", None, 18, True),
+    ("remove", None, None, False),
+    ("remove", None, 14, True),
+])
+def test_final_edit_checks_explicit_and_relative_property_goals(
+    source, operator, value, updated, blocked,
+):
+    goal = {"componentId": "title", "property": "styles.fontSize", "operator": operator}
+    if value is not None:
+        goal["value"] = value
+    intent = _intent(expectations=[goal])
+    validate_intent(intent, source, "2x4", None)
+    rows = _rows(source)
+    styles = _nodes(rows)[1].get("styles")
+    assert styles is not None
+    if updated is None:
+        styles.pop("fontSize")
+    else:
+        styles["fontSize"] = updated
+    errors = edit_validation_module.edit_expectation_errors(source, dump_rows(rows), intent)
+    assert bool(errors) is blocked
+
+
+@pytest.mark.parametrize("goal", [
+    {"componentId": "title", "property": "styles.fontSize", "operator": "equal"},
+    {"componentId": "title", "property": "styles.fontSize", "operator": "increase", "value": 20},
+    {"componentId": "title", "property": "content", "operator": "increase"},
+    {"componentId": "title", "property": "onClick", "operator": "equal", "value": []},
+    {"componentId": "title", "property": "styles.padding.top", "operator": "equal", "value": 8},
+    {"componentId": "missing", "property": "styles.fontSize", "operator": "equal", "value": 20},
+    {"componentId": "value", "property": "styles.fontSize", "operator": "equal", "value": 20},
+])
+def test_invalid_or_unauthorized_edit_goals_are_rejected(source, goal):
+    with pytest.raises(ValueError):
+        validate_intent(_intent(expectations=[goal]), source, "2x4", None)
+
+
+def test_duplicate_or_dynamic_goals_cannot_bypass_edit_contract(source):
+    goal = {"componentId": "title", "property": "styles.fontSize", "operator": "increase"}
+    with pytest.raises(ValueError, match="重复"):
+        validate_intent(_intent(expectations=[goal, goal]), source, "2x4", None)
+    rows = _rows(source)
+    _nodes(rows)[1].get("styles")["fontSize"] = "{{ $__dataModel.fontSize }}"
+    with pytest.raises(ValueError, match="静态数值"):
+        validate_intent(_intent(expectations=[goal]), dump_rows(rows), "2x4", None)
+
+
+def test_exact_color_goals_accept_equivalent_opaque_hex(source):
+    goal = {"componentId": "title", "property": "styles.fontColor",
+            "operator": "equal", "value": "#111111"}
+    intent = _intent(dimensions=["palette"], expectations=[goal])
+    validate_intent(intent, source, "2x4", None)
+    assert not edit_validation_module.edit_expectation_errors(source, source, intent)
+
+
+@pytest.mark.asyncio
+async def test_unmet_exact_goal_repairs_without_losing_the_accepted_target(edit_run, source):
+    edit_run.intent = _intent(expectations=[{
+        "componentId": "title", "property": "styles.fontSize", "operator": "equal", "value": 20,
+    }])
+    edit_run.outputs = [json.dumps(_patch(source, value=18)), json.dumps(_patch(source, value=20))]
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        _request(userQuery="标题字号改为20"),
+    )
+    assert response.status == GenerationStatus.SUCCESS
+    executions = [messages for phase, messages in edit_run.calls if phase == "edit_execute"]
+    assert len(executions) == 2
+    feedback = json.loads(executions[1][-1].get("content", "{}"))
+    assert "EDIT_EXPECTATION_UNMET" in str(feedback.get("errors"))
+    assert feedback.get("repairStage") == "execute"
+    assert (widget_edit_prompt.PROMPT_DIR / "repair.md").read_text(encoding="utf-8").strip() == (
+        feedback.get("instruction")
+    )
+    final_nodes = _nodes(_rows(edit_run.saved[0].genui))
+    assert final_nodes[1].get("styles", {}).get("fontSize") == 20
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("target,expected_status,call_count", [
+    (14, GenerationStatus.UNCHANGED, 1), (20, GenerationStatus.FAILED, 3),
+])
+async def test_unchanged_must_satisfy_declared_goals(edit_run, target, expected_status, call_count):
+    edit_run.intent = _intent(outcome="unchanged", expectations=[{
+        "componentId": "title", "property": "styles.fontSize", "operator": "equal", "value": target,
+    }])
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert response.status == expected_status
+    assert len(edit_run.calls) == call_count
+    assert not edit_run.saved
+
+
+@pytest.mark.asyncio
+async def test_unmet_relative_goal_never_saves_or_calls_creation(edit_run, source):
+    edit_run.intent = _intent(expectations=[{
+        "componentId": "title", "property": "styles.fontSize", "operator": "increase",
+    }])
+    edit_run.outputs = [json.dumps(_patch(source, value=12))]
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert response.errorCode == ErrorCode.WIDGET_EDIT_INVALID.value
+    assert len(edit_run.calls) == 4
+    assert not edit_run.saved

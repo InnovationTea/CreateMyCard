@@ -6,6 +6,7 @@ import copy
 import json
 import math
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
@@ -39,6 +40,21 @@ class TextChange(BaseModel):
     after: str = Field(min_length=1)
 
 
+class EditExpectation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    componentId: str
+    property: str
+    operator: Literal["equal", "increase", "decrease", "preserve", "remove"]
+    value: Any = None
+
+
+@dataclass(frozen=True)
+class EditPropertyValue:
+    exists: bool
+    value: Any = None
+
+
 class EditIntent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -52,6 +68,7 @@ class EditIntent(BaseModel):
     protectedTargets: list[str] = Field(default_factory=list)
     backgroundTargets: list[str] = Field(default_factory=list)
     textChanges: list[TextChange] = Field(default_factory=list)
+    expectations: list[EditExpectation] = Field(default_factory=list, max_length=64)
 
 
 def dump_rows(rows: list[dict]) -> str:
@@ -115,6 +132,8 @@ def validate_intent(
     intent: EditIntent, original: str, source_size: str, explicit_size: str | None,
 ) -> None:
     _, nodes = _tree(original)
+    if intent.outcome in {"ready", "unchanged"}:
+        _validate_expectations(intent, nodes)
     if intent.outcome != "ready":
         if intent.outcome == "unchanged" and explicit_size is not None:
             if explicit_size != source_size:
@@ -166,6 +185,105 @@ def _allowed_styles(intent: EditIntent) -> set[str]:
         allowed.update(_STYLE_GROUPS.get("spacing", set()))
         allowed.update(_STYLE_GROUPS.get("layout", set()))
     return allowed
+
+
+def edit_contract() -> dict[str, Any]:
+    """提示词与执行校验共用规则源；完整协议不自动扩展编辑权限。"""
+    rules = json.loads(_STYLE_PATH.read_text(encoding="utf-8"))
+    dimensions = {}
+    for name, fields in _STYLE_GROUPS.items():
+        dimensions[name] = sorted(fields)
+    rules["editableDimensions"] = dimensions
+    by_component = {}
+    common = set(rules.get("commonStyleFields", []))
+    for kind, fields in rules.get("componentStyleFields", {}).items():
+        legal = common | set(fields)
+        by_dimension = {}
+        for name, permitted in _STYLE_GROUPS.items():
+            by_dimension[name] = sorted(legal & permitted)
+        by_component[kind] = by_dimension
+    rules["editableStylesByComponent"] = by_component
+    rules["layoutModeExtraDimensions"] = ["spacing", "layout"]
+    rules["editableTopLevelProperties"] = {
+        "Row": ["itemMargin", "wrap"], "Column": ["itemMargin"], "List": ["space"],
+    }
+    return rules
+
+
+def read_edit_property(node: dict, prop: str) -> EditPropertyValue:
+    target, key = node, prop
+    if prop.startswith("styles."):
+        target = node.get("styles", {})
+        key = prop.removeprefix("styles.")
+    if not isinstance(target, dict):
+        raise ValueError("编辑属性的承载对象无效")
+    if key in target:
+        return EditPropertyValue(True, target.get(key))
+    return EditPropertyValue(False)
+
+
+def same_edit_value(prop: str, left: Any, right: Any) -> bool:
+    if prop.removeprefix("styles.") in _STYLE_GROUPS.get("palette", set()):
+        if isinstance(left, str) and isinstance(right, str):
+            left = _normalized_color(left)
+            right = _normalized_color(right)
+    return _same(left, right)
+
+
+def _normalized_color(value: str) -> str:
+    color = value.lower()
+    if color.startswith("#") and len(color) == 7:
+        color = "#ff" + color.removeprefix("#")
+    return color
+
+
+def _validate_expectations(intent: EditIntent, nodes: dict) -> None:
+    seen: set[tuple[str, str]] = set()
+    allowed = scope_ids(intent, nodes)
+    style_fields = _allowed_styles(intent)
+    for expected in intent.expectations:
+        node = nodes.get(expected.componentId)
+        identity = (expected.componentId, expected.property)
+        if node is None or identity in seen:
+            raise ValueError("编辑目标属性不存在或存在重复冲突约束")
+        seen.add(identity)
+        prop = expected.property
+        if prop != "content" and prop not in _TOP_LAYOUT_FIELDS:
+            if not prop.startswith("styles.") or prop.count(".") != 1:
+                raise ValueError("编辑目标只能约束单个样式、间距或静态文案属性")
+        current = read_edit_property(node, prop)
+        _validate_expectation_operation(expected, current)
+        if intent.outcome != "ready" or expected.operator == "preserve":
+            continue
+        if expected.componentId not in allowed:
+            raise ValueError("编辑目标约束超出已接受范围")
+        if prop.startswith("styles.") and prop.removeprefix("styles.") not in style_fields:
+            raise ValueError("编辑目标属性未获得对应维度授权")
+        if prop == "content":
+            matching = False
+            for change in intent.textChanges:
+                if change.componentId == expected.componentId:
+                    matching = same_edit_value(prop, change.after, expected.value)
+            if not matching or expected.operator != "equal":
+                raise ValueError("文案目标只能对应已登记的静态文字替换")
+
+
+def _validate_expectation_operation(expected: EditExpectation, current: EditPropertyValue) -> None:
+    if expected.operator == "equal":
+        if "value" not in expected.model_fields_set or expected.value is None:
+            raise ValueError("精确编辑目标必须提供非空 value，删除字段使用 remove")
+        _style_value(expected.value)
+    elif expected.value is not None:
+        raise ValueError("相对、保持和移除目标不应附带 value")
+    if expected.operator != "equal" and not current.exists:
+        raise ValueError("相对、保持和移除目标必须引用原有属性")
+    if expected.operator in {"increase", "decrease"}:
+        if isinstance(current.value, bool) or not isinstance(current.value, (int, float)):
+            raise ValueError("相对增减目标必须引用静态数值")
+        if not math.isfinite(current.value):
+            raise ValueError("相对增减目标数值必须有限")
+    if expected.operator != "preserve" and _dynamic(current.value):
+        raise ValueError("编辑目标不能覆盖原有动态样式或表达式")
 
 
 def _style_value(value: Any) -> None:
