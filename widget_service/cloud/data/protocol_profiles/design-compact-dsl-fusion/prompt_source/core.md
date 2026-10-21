@@ -28,6 +28,7 @@ description: 输入输出、绑定、事件授权、素材来源及主题阶段�
 {"userQuery":"用户需求","size":"2x2 | 2x4","eventCandidates":[],"dataModelSchema":{},"assetCandidates":[]}
 ```
 `userQuery` 提供需求、明确的静态事实及视觉偏好，不补造用户事实；严格保持输入 size。
+用户的问句、生成指令和语气包装只用于理解任务，不直接作为卡面正文。除非已接受 Plan 明确包含用户要求展示的 `text` 原文，不在 `SecondaryBody.items[].value`、`EmphasisText.secondaryText` 或其它业务内容属性中自行生成推理、建议、因果说明、问答文案或适宜性判断。概括性装饰标题和真实动作标签可按已有合同组织，但不得宣称新的业务事实。
 <!-- /prompt:taskspec -->
 
 <!-- prompt:input-candidates -->
@@ -72,10 +73,19 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 ["root","Layout",{"layout":"S-title-content"},["title","content"]]
 ["title","SingleLineTitle",{"title":"卡片标题","fontSize":12}]
 ["content","Group",{"variant":"hero-support"},["content_primary","content_support"]]
-["content_primary","EmphasisText",{"mainText":"主要内容","fontSize":18}]
-["content_support","SecondaryBody",{"items":[{"value":"补充说明"}],"fontSize":14}]
-["/state/ready",true]
+["content_primary","EmphasisText",{"mainText":{"path":"/data/example/value"},"fontSize":18}]
+["content_support","SecondaryBody",{"items":[{"label":"状态 ","value":{"path":"/data/example/status"}}],"fontSize":14}]
+["/data/example/value","示例值"]
+["/data/example/status","正常"]
 ```
+
+上例的支撑内容来自真实绑定，不是为了补齐 `hero-support` 而自拟的句子。没有已接受 Plan 事实可放入 support 时，改用只需一个正文组件的合法结构，不创建空支撑槽或占位文案。
+
+**反例：**
+```genui
+["content_support","SecondaryBody",{"items":[{"value":"今天适合跑步吗？天气舒适，适合跑步"}],"fontSize":12}]
+```
+前半句是任务问句，后半句是未由数据或已接受 Plan 静态事实支持的模型结论。不要生成、改写或用同义文案替换它；删去该内容后同步选择不需要 support 角色的合法组件或布局结构。
 <!-- /prompt:output -->
 
 <!-- prompt:jsonl -->

@@ -265,6 +265,12 @@ def test_other_quality_issues_and_old_records_remain_unchanged() -> None:
             "节点 action：组件被多个父节点同时引用",
         ),
         (
+            "layout does not match semantic contract: details: details slot requires "
+            "TextBlock/TopTextBottomValue/SummaryList/EventCard. Choose a registered "
+            "Layout/Region/Group variant; do not edit expanded geometry.",
+            "details 槽必须使用 TextBlock、TopTextBottomValue、SummaryList 或 EventCard",
+        ),
+        (
             "component body: invalid semantic props: business geometry is template-owned: "
             "width, height. Fix only the reported properties; preserve the current layout, "
             "facts and Actions.",

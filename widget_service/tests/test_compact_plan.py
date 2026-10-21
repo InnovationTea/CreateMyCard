@@ -594,7 +594,7 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert tool["function"]["parameters"]["required"] == ["info_required"]
 
 
-@pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 6), ("2x4", 12)])
+@pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 6), ("2x4", 10)])
 def test_plan_tool_explains_must_fact_guidance_by_card_size(
     size: str,
     max_must_facts: int,
@@ -608,7 +608,7 @@ def test_plan_tool_explains_must_fact_guidance_by_card_size(
     assert f"最多可提交 {max_must_facts} 条 must 信息" in priority["description"]
 
 
-def _must_fact_limit_payload(fact_count: int) -> tuple[dict, dict]:
+def _must_fact_limit_payload(fact_count: int, *, size: str) -> tuple[dict, dict]:
     schema_fields = {}
     facts = []
     for index in range(fact_count):
@@ -628,7 +628,7 @@ def _must_fact_limit_payload(fact_count: int) -> tuple[dict, dict]:
         )
     spec = {
         "userQuery": "展示全部指标",
-        "size": "2x2",
+        "size": size,
         "dataModelSchema": {"data": {"metrics": schema_fields}},
         "eventCandidates": [],
     }
@@ -639,12 +639,13 @@ def _must_fact_limit_payload(fact_count: int) -> tuple[dict, dict]:
     return spec, payload
 
 
-def test_two_by_two_plan_must_fact_limit_is_guidance_only() -> None:
-    spec, payload = _must_fact_limit_payload(7)
+@pytest.mark.parametrize(("size", "fact_count"), [("2x2", 7), ("2x4", 11)])
+def test_plan_must_fact_limit_is_guidance_only(size: str, fact_count: int) -> None:
+    spec, payload = _must_fact_limit_payload(fact_count, size=size)
 
     result = parse_compact_plan_call(json.dumps(payload), spec)
 
-    assert len(result.plan["info_required"]) == 7
+    assert len(result.plan["info_required"]) == fact_count
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -1382,6 +1383,86 @@ def test_static_plan_fact_cannot_span_different_structured_items() -> None:
             '["details","SecondaryBody",{"items":['
             '{"label":"Day1 09:00-11:30 ","value":"其他景点"},'
             '{"label":"Day1 13:30-16:30 ","value":"灵隐寺祈福"}]}}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == (
+        "Plan static text is not fully visible in DSL: Day1 09:00-11:30 灵隐寺祈福.",
+    )
+
+
+@pytest.mark.parametrize(
+    "plan_text",
+    ["09:00-11:30 灵隐寺祈福", "灵隐寺祈福 09:00-11:30"],
+)
+def test_static_plan_fact_can_span_event_card_time_and_title_in_same_item(
+    plan_text: str,
+) -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": plan_text,
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["events"]]',
+            '["events","EventCard",{"items":['
+            '{"title":"灵隐寺祈福","time":"09:00-11:30"}]}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == ()
+
+
+def test_static_plan_fact_cannot_span_different_event_card_items() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": "09:00-11:30 灵隐寺祈福",
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["events"]]',
+            '["events","EventCard",{"items":['
+            '{"title":"其他景点","time":"09:00-11:30"},'
+            '{"title":"灵隐寺祈福","time":"13:30-16:30"}]}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == (
+        "Plan static text is not fully visible in DSL: Day1 09:00-11:30 灵隐寺祈福.",
+    )
+
+
+def test_static_plan_fact_requires_complete_event_card_item_text() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": "09:00-11:30 灵隐寺祈福",
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["events"]]',
+            '["events","EventCard",{"items":['
+            '{"title":"灵隐寺祈福","time":"09:00"}]}]',
         ]
     )
 

@@ -1,5 +1,10 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-21：`W-top-bottom.details` 允许的直属组件增加 `EventCard`，归属语义／布局合同，
+唯一判定落点仍为 `services/compact_semantic_layout.py`。该变更只放宽已登记父布局的 details 角色；
+EventCard 的 Props、事件顺序与总高继续由共享组件和容量校验负责，不在语义编译器重复实现，
+不新增错误码，不改变 `InfoBlock` 与 `CardButton` 在该槽位中的禁止边界。
+
 2026-10-20：2×2外层重组结构整理归生成修复编排，落点仍为
 `services/compact_outer_recomposition.py`。候选生成与有限搜索分离，32个实际候选使用显式预算；
 候选顺序、首个合格即采用及原稿回退语义保持不变。Compact规则判定仍委托公共校验入口，
