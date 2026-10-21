@@ -1783,7 +1783,7 @@ class WidgetGenerationService:
             )
             if is_blocking_compact_failure:
                 quality_error_payloads = [
-                    issue.to_prompt_payload() for issue in latest_processing_result.errors
+                    issue.to_diagnostic_payload() for issue in latest_processing_result.issues
                 ]
                 issue_category = compact_capacity_recovery_failure_category(
                     quality_error_payloads,

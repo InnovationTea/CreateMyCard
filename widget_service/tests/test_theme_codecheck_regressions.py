@@ -89,11 +89,12 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
     photo = {"id": "test-photo", "kind": "photo", "src": "test-background.jpg"}
     audit = {"theme": photo, "outputSize": "2x2"}
     monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=("photo-result", audit)))
-    monkeypatch.setattr(themes, "trace_step", Mock())
+    monkeypatch.setattr(themes, "trace_record", Mock())
     artifact = SimpleNamespace(
         genui=source, meta=SimpleNamespace(generationMode="create"),
         model_copy=Mock(side_effect=lambda **kwargs: SimpleNamespace(
             genui=source, taskSpec={}, cardSpec={"suggestSize": "2x2"}, effectiveCapabilities={},
+            model_dump=Mock(return_value={}),
         )),
     )
     validator = SimpleNamespace(validate=Mock(side_effect=[[error], []]))

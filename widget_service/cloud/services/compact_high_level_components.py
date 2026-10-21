@@ -70,7 +70,7 @@ _SYSTEM_FONT_ROLE_BY_COMPONENT = {
     "ProgressCircle": "primary",
     "ProgressLine2": "primary",
     "ProgressCircleSingle": "primary",
-    "H_BarChart": "secondary",
+    "H_BarChart": "primary",
     "NumericRatioStack": "secondary",
     "EventCard": "primary",
     "TopTextBottomValue": "primary",
@@ -837,7 +837,7 @@ def _expand_secondary_body(
                         variant=variant,
                         props={
                             "content": label,
-                            "fontColor": component.props["fontColor"],
+                            "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                             "flexShrink": 0,
                         },
                     )
@@ -852,7 +852,10 @@ def _expand_secondary_body(
                 variant=variant,
                 props={
                     "content": value,
-                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    "fontColor": (
+                        component.props["fontColor"] if item.get("label") is not None
+                        else _color_with_alpha(component.props["fontColor"], 0.6)
+                    ),
                     "height": item_height,
                     "maxLines": max_lines,
                     "layoutWeight": 1,
@@ -1004,7 +1007,10 @@ def _expand_h_bar_chart(component: ComponentRow, size: str) -> list[ComponentRow
                     "label",
                     size=size,
                     variant=variant,
-                    props={"content": item["label"], "fontColor": component.props["fontColor"]},
+                    props={
+                        "content": item["label"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    },
                 ),
                 _visual_row(
                     value_id,
@@ -2301,7 +2307,7 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
                     size=size,
                     props={
                         "content": copy.deepcopy(item["label"]),
-                        "fontColor": component.props["fontColor"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                     },
                 ),
                 _visual_row(
@@ -2537,7 +2543,7 @@ def _expand_progress_circle_single(
             variant=variant,
             props={
                 "content": copy.deepcopy(component.props["label"]),
-                "fontColor": component.props["fontColor"],
+                "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
             },
         ),
         _visual_row(
@@ -2548,7 +2554,7 @@ def _expand_progress_circle_single(
             variant=variant,
             props={
                 "content": copy.deepcopy(component.props["displayValue"]),
-                "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                "fontColor": component.props["fontColor"],
             },
         ),
     ]
@@ -3073,7 +3079,7 @@ def _expand_top_text_bottom_value(
                     size=size,
                     props={
                         "content": item["label"],
-                        "fontColor": component.props["fontColor"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                     },
                 ),
                 _visual_row(

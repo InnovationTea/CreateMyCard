@@ -89,7 +89,7 @@ def test_protected_photo_is_rejected_even_if_model_selects_it(monkeypatch):
     result, audit = asyncio.run(themes.select_theme(
         source, {"size": "2x2", "userQuery": "天气"}, client))
     assert audit.get("themeId") == "gradient-blue"
-    assert "真实卡片宽高未知" in audit.get("rejected", {}).get("test-protected-weather", "")
+    assert "图片缺少统一准入配置" in audit.get("rejected", {}).get("test-protected-weather", "")
     assert themes.foreground_signature(result) == themes.foreground_signature(source)
     payload = json.loads(client.generate.call_args.args[0][1].get("content"))
     assert payload.get("eligiblePhotos") == []

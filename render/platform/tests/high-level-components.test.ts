@@ -487,6 +487,59 @@ test("SecondaryBody 保留绑定、按行布局切换字号并忽略历史角色
   assert.equal(multilineStyles.maxLines, 2);
 });
 
+for (const color of ["#FFFFFFFF", "#FF000000", "#FF1F4799", "#FF8C4B1C"]) {
+  for (const size of ["2x2", "2x4"] as const) {
+    test(`SecondaryBody 标签弱化、值强调：${color}/${size}`, () => {
+      const source = [
+        ["root", "Column", {}, ["details", "note"]],
+        ["details", "SecondaryBody", {
+          fontColor: color, columns: 1,
+          items: [{ label: "天气 ", value: { path: "/condition" } }],
+        }],
+        ["note", "SecondaryBody", { fontColor: color, items: [{ value: "辅助说明" }] }],
+        ["/condition", "多云"],
+      ].map(row => JSON.stringify(row)).join("\n");
+      const result = compileMiniDsl(source, { size });
+      const nodes = result.graph.getAllNodes();
+      const label = nodes.get("details_item0_label")?.props.styles as Record<string, unknown>;
+      const value = nodes.get("details_item0_value")?.props.styles as Record<string, unknown>;
+      const note = nodes.get("note_item0_value")?.props.styles as Record<string, unknown>;
+      assert.equal(label.fontColor, `#99${color.slice(3)}`);
+      assert.equal(value.fontColor, color);
+      assert.equal(note.fontColor, `#99${color.slice(3)}`);
+    });
+  }
+}
+
+const pairedTextParts: Record<string, [string, string]> = {
+  SecondaryBody: ["_item0_label", "_item0_value"],
+  TableText: ["_row0_label", "_row0_value"],
+  TextBlock: ["_item0_label", "_item0_value"],
+  H_BarChart: ["_item0_label", "_item0_value"],
+  ProgressCircleSingle: ["_label", "_display"],
+  DataDisplay: ["_label", "_value"],
+  TopTextBottomValue: ["_item0_label", "_item0_value"],
+};
+
+for (const [type, [labelSuffix, valueSuffix]] of Object.entries(pairedTextParts)) {
+  test(`所有标签值组件使用统一强调层级：${type}`, () => {
+    const example = fixtures.examples.find(item => item.source.split("\n")
+      .some(line => (JSON.parse(line) as unknown[])[1] === type));
+    assert.ok(example, `缺少组件用例：${type}`);
+    const component = example.source.split("\n").map(line => JSON.parse(line) as unknown[])
+      .find(row => row[1] === type);
+    assert.ok(component);
+    const result = compileMiniDsl(example.source, { size: example.size as "2x2" | "2x4" });
+    const label = result.graph.getNode(`${component[0]}${labelSuffix}`)?.props
+      .styles as Record<string, unknown>;
+    const value = result.graph.getNode(`${component[0]}${valueSuffix}`)?.props
+      .styles as Record<string, unknown>;
+    assert.equal(typeof value.fontColor, "string");
+    assert.equal(label.fontColor, `#99${String(value.fontColor).slice(3)}`);
+    assert.ok(String(value.fontColor).startsWith("#FF"));
+  });
+}
+
 test("SecondaryBody 支持 1–6 项，保留全部绑定并拒绝超过上限", () => {
   for (const size of ["2x2", "2x4"] as const) {
     for (const columns of [1, 2]) {

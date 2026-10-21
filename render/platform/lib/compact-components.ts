@@ -42,7 +42,7 @@ const SYSTEM_FONT_ROLE_BY_COMPONENT: Record<string, string> = {
   ProgressCircle: "primary",
   ProgressLine2: "primary",
   ProgressCircleSingle: "primary",
-  H_BarChart: "secondary",
+  H_BarChart: "primary",
   NumericRatioStack: "secondary",
   EventCard: "primary",
   TopTextBottomValue: "primary",
@@ -807,7 +807,7 @@ function expandHighLevel(
           itemChildren.push(labelId);
           rows.push(row(labelId, type, "text", size, {
             content: item.label,
-            fontColor: p.fontColor,
+            fontColor: colorWithAlpha(p.fontColor as string, 0.6),
             flexShrink: 0,
           }, [], variant));
         }
@@ -815,7 +815,8 @@ function expandHighLevel(
         itemChildren.push(valueId);
         rows.push(row(valueId, type, "text", size, {
           content: prefixValue ? secondaryPrefixedValue(String(item.label), item.value) : item.value,
-          fontColor: colorWithAlpha(p.fontColor as string, 0.6),
+          fontColor: item.label !== undefined
+            ? p.fontColor : colorWithAlpha(p.fontColor as string, 0.6),
           height: itemHeight, maxLines, layoutWeight: 1,
         }, [], variant));
         const itemLayout: RecordValue = { layoutWeight: 1, height: itemHeight, alignItems: "start" };
@@ -864,7 +865,9 @@ function expandHighLevel(
       rows.push(
         row(itemId, type, "item", size, {}, [metaId, barId], variant),
         row(metaId, type, "meta", size, {}, [labelId, valueId], variant),
-        row(labelId, type, "label", size, { content: item.label, fontColor: p.fontColor }, [], variant),
+        row(labelId, type, "label", size, {
+          content: item.label, fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+        }, [], variant),
         row(valueId, type, "value", size, { content: item.valueUnit, fontColor: p.fontColor }, [], variant),
         row(barId, type, "bar", size, {
           type: "linear", value: item.percent, total: 100,
@@ -1377,7 +1380,7 @@ function expandHighLevel(
         size,
         {
           content: item.label,
-          fontColor: isTable ? colorWithAlpha(String(p.fontColor), 0.6) : p.fontColor,
+          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
         },
         [],
         variant,
@@ -1514,7 +1517,9 @@ function expandHighLevel(
         variant,
       ),
       row(labels, type, "labels", size, {}, labelChildren, variant),
-      row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }, [], variant),
+      row(label, type, "label", size, {
+        content: p.label, fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+      }, [], variant),
       row(
         display,
         type,
@@ -1522,7 +1527,7 @@ function expandHighLevel(
         size,
         {
           content: p.displayValue,
-          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+          fontColor: p.fontColor,
         },
         [],
         variant,
@@ -1777,7 +1782,7 @@ function expandHighLevel(
         type,
         "label",
         size,
-        { content: item.label, fontColor: p.fontColor },
+        { content: item.label, fontColor: colorWithAlpha(String(p.fontColor), 0.6) },
       ));
       rows.push(row(
         value,

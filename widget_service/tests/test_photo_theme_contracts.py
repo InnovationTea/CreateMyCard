@@ -50,9 +50,10 @@ def test_photo_gates_do_not_cross_size_pools(enabled, size, gate):
     assert gate(task_for(size)).get("eligible") is False
 
 
-def test_only_fourteen_ux_assets_are_active_and_present():
+def test_current_subject_and_texture_assets_are_active_and_present():
     root = Path(__file__).resolve().parents[2]
-    expected = {"photos": 14, "subjectlessWidePhotos": 0, "squareExpansions": 0}
+    expected = {"photos": 12, "texturePhotos": 15,
+                "subjectlessWidePhotos": 0, "squareExpansions": 0}
     for key, count in expected.items():
         entries = themes.registered_themes(key)
         assert isinstance(entries, list) and len(entries) == count
@@ -63,6 +64,7 @@ def test_only_fourteen_ux_assets_are_active_and_present():
     assert all(p.get("id", "").startswith("photo-ux-")
                for p in themes.registered_themes("photos"))
     photos = themes.registered_themes("photos", include_disabled=True)
+    photos.extend(themes.registered_themes("texturePhotos", include_disabled=True))
     expected_paths = {root / entry.get("src") for entry in photos}
     assert set((root / "resources/base/media").glob("bg_*")) == expected_paths
 

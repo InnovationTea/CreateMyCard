@@ -582,22 +582,31 @@ def compact_capacity_recovery_failure_category(
     layout_failure_seen: bool,
 ) -> str | None:
     """判断接口重试是否应按前序布局失败进入容量恢复。"""
-    category = _issue_category(quality_errors)
-    if category in {"layout_capacity", "layout_structure"}:
-        return category
-    if not layout_failure_seen:
-        return None
-    for issue in quality_errors:
-        code = str(issue.get("code") or "")
-        if code == "COMPACT_PLAN_FACT_OMITTED":
-            return "layout_capacity"
-        message = str(issue.get("message") or "").lower()
-        if (
-            category == "plan_coverage"
-            and message.startswith("plan fact is missing from visible dsl:")
-        ):
-            return "layout_capacity"
-    return None
+    errors = [issue for issue in quality_errors if issue.get("severity") != "warning"]
+    category = _issue_category(errors)
+    protected_failure = _has_duplicate_plan_facts(errors)
+    for issue in errors:
+        message = str(issue.get("message") or "").strip().lower()
+        if message.startswith("plan action is missing from visible dsl:"):
+            protected_failure = True
+            break
+    result: str | None = None
+    if errors and not protected_failure:
+        if category in {"layout_capacity", "layout_structure"}:
+            result = category
+        elif layout_failure_seen:
+            for issue in quality_errors:
+                code = str(issue.get("code") or "")
+                message = str(issue.get("message") or "").strip().lower()
+                if code == "COMPACT_PLAN_FACT_OMITTED":
+                    result = "layout_capacity"
+                    break
+                if category == "plan_coverage" and message.startswith(
+                    "plan fact is missing from visible dsl:",
+                ):
+                    result = "layout_capacity"
+                    break
+    return result
 
 
 def _joint_repair_relevant(category: str, quality_errors: list[dict[str, Any]]) -> bool:

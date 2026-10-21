@@ -327,6 +327,11 @@ def test_design_processor_copies_task_spec_app_version_into_profile(
         {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
     )
     processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
+    source_rows = [json.loads(line) for line in _fusion_source().splitlines()]
+    title_row = next(row for row in source_rows if row[0] == "title")
+    title_row[1] = "SingleLineTitle"
+    title_row[2] = {"title": "今日安排"}
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in source_rows)
     results: dict[str, str] = {}
     for app_version in ("11.7.5.205", "11.7.5.206"):
         task_spec = TaskSpec(
@@ -348,7 +353,7 @@ def test_design_processor_copies_task_spec_app_version_into_profile(
             design_profile_id="design-compact-dsl",
         )
 
-        result = processor.process(_fusion_source(), context)
+        result = processor.process(source, context)
 
         assert not result.errors
         results[app_version] = result.standard_dsl
