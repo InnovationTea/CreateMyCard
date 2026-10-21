@@ -89,14 +89,16 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
     photo = {"id": "test-photo", "kind": "photo", "src": "test-background.jpg"}
     audit = {"theme": photo, "outputSize": "2x2"}
     monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=("photo-result", audit)))
-    monkeypatch.setattr(themes, "trace_step", Mock())
     artifact = SimpleNamespace(
         genui=source, meta=SimpleNamespace(generationMode="create"),
         model_copy=Mock(side_effect=lambda **kwargs: SimpleNamespace(
             genui=source, taskSpec={}, cardSpec={"suggestSize": "2x2"}, effectiveCapabilities={},
+            model_dump=lambda **_kwargs: {},
         )),
     )
-    validator = SimpleNamespace(validate=Mock(side_effect=[[error], []]))
+    validator = SimpleNamespace(
+        validate=Mock(side_effect=[[error], []]),
+    )
     result = asyncio.run(themes.theme_artifact(
         artifact, {"size": "2x2", "userQuery": "天气"}, Mock(), validator, {},
     ))
@@ -104,6 +106,24 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
     assert audit.get("themeId") == "gradient-blue"
     assert audit.get("rejectedTheme") == photo
     assert validator.validate.call_count == 2
+    validation_contexts = []
+    for call in validator.validate.call_args_list:
+        context = call.kwargs.get("execution_context")
+        assert context is not None
+        validation_contexts.append(context)
+    assert [context.purpose for context in validation_contexts] == [
+        "theme_candidate",
+        "theme_fallback",
+    ]
+    assert {
+        (
+            context.operation,
+            context.generation_mode,
+            context.phase,
+            context.attempt,
+        )
+        for context in validation_contexts
+    } == {("standalone", "standalone", "theme", 1)}
     assert "linearGradient" in result.genui
     assert result.taskSpec == {}
     assert themes.foreground_signature(result.genui) == themes.foreground_signature(source)

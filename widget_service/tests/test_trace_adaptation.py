@@ -95,7 +95,9 @@ async def test_theme_records_real_validation_and_failed_fallback(tmp_path, monke
     monkeypatch.setattr(post_layout_theme, "select_theme", select)
     monkeypatch.setattr(post_layout_theme, "apply_theme", lambda *args: "fallback")
     monkeypatch.setattr(post_layout_theme, "fallback_theme", lambda *args: {"id": "fallback"})
-    validator = SimpleNamespace(validate=lambda *args: ["invalid"] if fail_final else [])
+    validator = SimpleNamespace(
+        validate=lambda *args, **kwargs: ["invalid"] if fail_final else [],
+    )
     recorder, token = _start(tmp_path)
     try:
         if fail_final:

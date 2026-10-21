@@ -3755,7 +3755,7 @@ async def test_repair_model_failure_does_not_validate_or_save_second_result(monk
             return "invalid-but-nonempty-dsl"
         return ""
 
-    def validate_once(_validator, artifact, _profile):
+    def validate_once(_validator, artifact, _profile, *, execution_context=None):
         validation_calls.append(artifact.genui)
         return ["DSL_REQUIRED_FIELD [genui:1 /createSurface]"]
 
@@ -3791,7 +3791,7 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
         model_calls += 1
         return next(generated_values)
 
-    def validate_until_third(_validator, artifact, _profile):
+    def validate_until_third(_validator, artifact, _profile, *, execution_context=None):
         validation_calls.append(artifact.genui)
         if artifact.genui == "dsl-third":
             return []
@@ -3835,7 +3835,7 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
         model_prompts.append(copy.deepcopy(prompt))
         return design_dsl
 
-    def validate_standard(_validator, artifact, _profile):
+    def validate_standard(_validator, artifact, _profile, *, execution_context=None):
         validated_genui.append(artifact.genui)
         return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
 
@@ -3947,7 +3947,7 @@ async def test_design_compact_skips_layout_validator_when_validation_is_disabled
     settings = get_settings()
     validation_calls: list[str] = []
 
-    def validate_design(_validator, artifact, _profile):
+    def validate_design(_validator, artifact, _profile, *, execution_context=None):
         validation_calls.append(artifact.genui)
         return []
 
@@ -3976,7 +3976,7 @@ async def test_design_compact_skips_layout_validator_when_validation_is_disabled
 async def test_design_compact_validation_error_without_repair_fails(monkeypatch):
     settings = get_settings()
 
-    def validation_error(_validator, _artifact, _profile):
+    def validation_error(_validator, _artifact, _profile, *, execution_context=None):
         return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
 
     def unexpected_save(*_args, **_kwargs):
@@ -4072,7 +4072,7 @@ async def test_source_format_validation_error_repairs_original_source_dsl(
         model_prompts.append(copy.deepcopy(prompt))
         return valid_source
 
-    def validate_then_succeed(_validator, _artifact, _profile):
+    def validate_then_succeed(_validator, _artifact, _profile, *, execution_context=None):
         nonlocal validation_calls
         validation_calls += 1
         if validation_calls == 1:
@@ -4135,7 +4135,7 @@ async def test_quality_repair_distinguishes_source_and_artifact_validation(
         model_prompts.append(copy.deepcopy(prompt))
         return next(outputs)
 
-    def validate_then_succeed(_validator, _artifact, _profile):
+    def validate_then_succeed(_validator, _artifact, _profile, *, execution_context=None):
         nonlocal validation_calls
         validation_calls += 1
         if validation_calls == 1:
@@ -4215,7 +4215,7 @@ async def test_source_format_validation_repair_stops_at_configured_maximum(
         model_prompts.append(copy.deepcopy(prompt))
         return valid_source
 
-    def always_reject(_validator, _artifact, _profile):
+    def always_reject(_validator, _artifact, _profile, *, execution_context=None):
         nonlocal validation_calls
         validation_calls += 1
         return ["persistent validator error"]
@@ -4286,7 +4286,7 @@ async def test_unknown_validator_exception_does_not_trigger_model_repair(monkeyp
         model_calls += 1
         return valid_source
 
-    def raise_internal_error(_validator, _artifact, _profile):
+    def raise_internal_error(_validator, _artifact, _profile, *, execution_context=None):
         raise RuntimeError("validator implementation failed")
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
@@ -4317,6 +4317,7 @@ async def test_source_format_warning_does_not_trigger_repair(
 ):
     settings = get_settings()
     model_calls = 0
+    validation_contexts = []
     processor = get_dsl_processor(processor_kind)
     # 产物现在保存已解析的Compact源；本测试仍只隔离非阻断warning，不使用伪DSL。
     valid_source = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
@@ -4329,6 +4330,7 @@ async def test_source_format_warning_does_not_trigger_repair(
         return valid_source
 
     def process_with_warning(source_dsl, _context):
+        validation_contexts.append(_context.validation_execution_context)
         issue = QualityIssue(
             stage="conversion",
             code="SOURCE_FORMAT_WARNING",
@@ -4359,6 +4361,14 @@ async def test_source_format_warning_does_not_trigger_repair(
 
     assert response.status == GenerationStatus.SUCCESS
     assert model_calls == 1
+    assert len(validation_contexts) == 1
+    validation_context = validation_contexts[0]
+    assert validation_context is not None
+    assert validation_context.operation == "generateWidgetCardCompactDsl"
+    assert validation_context.generation_mode == "create"
+    assert validation_context.phase == "initial"
+    assert validation_context.attempt == 1
+    assert validation_context.purpose == "delivery_candidate"
 
 
 @pytest.mark.parametrize(

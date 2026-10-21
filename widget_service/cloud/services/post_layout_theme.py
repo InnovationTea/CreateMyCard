@@ -40,6 +40,7 @@ from services.theme_layout_summary import (
 from services.theme_photo_eligibility import photo_content_reason
 from services.theme_selection_policy import default_palette_family, fusion_candidate_gate
 from services.theme_style_roles import COLOR_FIELDS, ROLE_PATTERN, is_role, resolve_role
+from services.validation_execution import ValidationExecutionContext
 
 PREFIX = "__post_theme_"
 FUSION_FOREGROUND_ID = build_fusion_ball_content_id("root")
@@ -688,12 +689,24 @@ def same_visible_geometry(before: dict, after: dict) -> bool:
     return True
 
 
-def _validate_theme(artifact: Any, validator: Any, profile: dict, *, fallback: bool) -> list[str]:
+def _validate_theme(
+    artifact: Any,
+    validator: Any,
+    profile: dict,
+    *,
+    fallback: bool,
+    execution_context: ValidationExecutionContext,
+) -> list[str]:
     with trace_span("theme.validation", stage="theme.validation") as span:
         span.details["fallback"] = fallback
         span.json_artifacts["theme_validation_input"] = artifact.model_dump(mode="json")
         span.artifact_roles["theme_validation_input"] = "input"
-        errors = validator.validate(artifact, profile)
+        purpose = "theme_fallback" if fallback else "theme_candidate"
+        errors = validator.validate(
+            artifact,
+            profile,
+            execution_context=execution_context.with_purpose(purpose),
+        )
         span.json_artifacts["theme_validation_errors"] = errors
         span.artifact_roles["theme_validation_errors"] = "diagnostic"
         span.outcome("failed" if errors else "success", errorCount=len(errors))
@@ -704,6 +717,7 @@ def _validate_theme(artifact: Any, validator: Any, profile: dict, *, fallback: b
 async def theme_artifact(
     artifact: Any, task: dict, client: Any, validator: Any, profile: dict,
     *, allow_expansion: bool = True, final_layout: str | None = None,
+    validation_execution_context: ValidationExecutionContext | None = None,
 ) -> Any:
     source = artifact.genui
     with trace_span("theme.selection", stage="theme.selection") as span:
@@ -731,7 +745,17 @@ async def theme_artifact(
         asset = {"id": theme.get("id"), "src": address, "description": "主题背景"}
         themed.taskSpec.setdefault("assetCandidates", []).append(asset)
         themed.effectiveCapabilities.setdefault("asset", []).append(asset.get("id"))
-    errors = _validate_theme(themed, validator, profile, fallback=False)
+    execution_context = validation_execution_context or ValidationExecutionContext(
+        phase="theme",
+        purpose="theme_candidate",
+    )
+    errors = _validate_theme(
+        themed,
+        validator,
+        profile,
+        fallback=False,
+        execution_context=execution_context,
+    )
     if audit.get("userColors"):
         audit["userColorContrastWarnings"] = [e for e in errors if e.startswith("VISUAL.CONTRAST")]
         errors = [e for e in errors if not e.startswith("VISUAL.CONTRAST")]
@@ -745,7 +769,13 @@ async def theme_artifact(
         themed = artifact.model_copy(deep=True)
         fallback = fallback_theme(default_palette_family(task))
         themed.genui = apply_theme(source, fallback, task, audit.get("userColors", {}))
-        fallback_errors = _validate_theme(themed, validator, profile, fallback=True)
+        fallback_errors = _validate_theme(
+            themed,
+            validator,
+            profile,
+            fallback=True,
+            execution_context=execution_context,
+        )
         if fallback_errors:
             raise ValueError("Final gradient validation failed: " + str(fallback_errors))
         audit["themeId"] = fallback.get("id")
