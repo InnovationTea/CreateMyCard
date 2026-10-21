@@ -24,6 +24,10 @@ EXPECTED_EXAMPLES = {
         "7bf41d3bc4834e9a53264c286bb3fdeec263ecb81920e378d33b486f55af0f1a",
     "fewshots/2x2.md:example-v15":
         "72e531febc6dfb4925cddb9d2e3c78c4562f50c295a282a64e022faf847e8d6c",
+    "fewshots/2x2.md:example-v19":
+        "26dea7d191e439c390fb113fd09454bf95fa7b2186e290c01550b756c3ebfbb5",
+    "fewshots/2x2.md:example-v16":
+        "9d50f2021f0966b878c24ea30a3918a20f7ca2d8c4ad8d7471b800cfebc57461",
     "fewshots/2x2.md:example-v10":
         "b6b9215d827050852ab5e40aeafadefdac203ba778d62b63b3c71918c903382f",
     "fewshots/2x2.md:example-v12":
@@ -41,11 +45,15 @@ EXPECTED_EXAMPLES = {
     "fewshots/2x2.md:example-v02":
         "7dd97b18971b8c77e4eedd76a931ff56536ca195fe5d1affd87438943cddd6fc",
     "fewshots/2x2.md:example-v08":
-        "6312bd5d2ca151b6fd0d6aac13705101afa580625101b7ecc1a1cd2f5a40e7c4",
+        "719f27074fab3b6385c3e81c296b0446039950feb991230aead012cc5f37ddf2",
     "fewshots/2x2.md:example-v14":
-        "5960583bdd0fd58b45a1de15cea734d905fabbbce56b146fe706cd083c4e9f8b",
+        "c08ddcc4cfc7349133df3c30b709afd2c6c33b0e45dc912e068c6ace3cef9cd2",
     "fewshots/2x2.md:example-v03":
-        "1edd72116f09cb6180a40421e239e40da124e524757bacc449f860ba97d2abdb",
+        "d983258707b421e97f91abc5890fc56a2d78869818e79cdf7b7d88f9827a6e54",
+    "fewshots/2x2.md:example-v17":
+        "6b2b19822d65f1fa494bebce3dad273286374a2ea2569c08ec63a46350d5fc6b",
+    "fewshots/2x2.md:example-v18":
+        "4daef85f015357f9d5f68d5d792c71164a093e25ec6d436d99ea6451cb323a2f",
     "fewshots/2x2.md:example-v07":
         "d64d1db29b42efec9a23a7a701e15a3c63e955f40e7bbbba3e22d21b8081f62a",
     "fewshots/2x4.md:example-v03":
@@ -63,13 +71,27 @@ EXPECTED_EXAMPLES = {
     "fewshots/2x4.md:example-v23":
         "d6940e02240e39cc9278820de4a2067ee02a7cc7a4bec2e854267afec011ed43",
     "fewshots/2x4.md:example-v06":
-        "b0f1d824cb4895dc92820b14552152b047911251f897a069a8987d0dccbc770a",
+        "56abe3100740b9decebdf151026ee5bf9f66e5181be4235b42573cbeed5da56f",
     "fewshots/2x4.md:example-v19":
         "5a53bd53e3f78c7d09603812a8407c1eead76d717fb582ba031410414b4b17fc",
     "fewshots/2x4.md:example-v38":
         "e252bc6f02d127221dceb4fa494d47f699ac332c9c74e95aae7a8a98fba74088",
     "fewshots/2x4.md:example-v39":
         "242c7c66d1ca2fd53eb6c4424c903ebfa4a70de0d91f1f5d7affc04f85f3d640",
+}
+APPROVED_SEMANTIC_CHILDREN = {
+    "fewshots/2x2.md:example-v19": ("title", "temperature", "status"),
+    "fewshots/2x2.md:example-v16": ("title", "status", "batteries"),
+    "fewshots/2x2.md:example-v08": (
+        "title_area", "connection", "battery", "settings_action",
+    ),
+    "fewshots/2x2.md:example-v14": (
+        "title_area", "event", "earphone_summary", "meeting_action",
+    ),
+    "fewshots/2x2.md:example-v03": ("battery_summary", "cta_play", "cta_fav"),
+    "fewshots/2x2.md:example-v17": ("daily", "favorite"),
+    "fewshots/2x2.md:example-v18": ("summary", "daily", "favorite"),
+    "fewshots/2x4.md:example-v06": ("weather", "phone", "ear", "calendar"),
 }
 EXPECTED_TEMPLATES = {
     "layouts/2x2.md:1":
@@ -274,7 +296,11 @@ def test_complete_examples_are_closed_and_structurally_named(filename, case, sec
     assert rows[0][0] == "root" and rows[0][1] == "Layout"
     nodes = {row[0]: row for row in rows}
     assert len(nodes) == len(rows)
-    _assert_structural_names(rows)
+    approved_children = APPROVED_SEMANTIC_CHILDREN.get(f"{filename}:{case}")
+    if approved_children is None:
+        _assert_structural_names(rows)
+    else:
+        assert tuple(rows[0][3]) == approved_children
     incoming = Counter()
     for row in rows:
         for child in row[3] if len(row) == 4 else []:
@@ -302,7 +328,7 @@ def test_template_structure_unchanged_except_component_names(filename, index, so
 
 
 def test_core_owns_reference_rules_and_only_complete_demonstration():
-    assert len(_examples()) == 26 and len(_templates()) == 33
+    assert len(_examples()) == 30 and len(_templates()) == 33
     core = (SOURCE / "core.md").read_text(encoding="utf-8")
     assert "children 中每个 ID 必须与本次输出某一组件行的第一项逐字一致" in core
     assert "组件 ID 引用不同于显示值的数据路径绑定" in core

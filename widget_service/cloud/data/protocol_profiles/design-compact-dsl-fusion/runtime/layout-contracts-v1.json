@@ -259,15 +259,15 @@
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 8}, "childCount": 3},
             {"path": [0], "types": ["Column", "Row"], "props": {"width": 126, "height": 38}},
-            {"path": [1], "types": ["PillButton"], "eventPolicy": "require"},
-            {"path": [2], "types": ["PillButton"], "eventPolicy": "require"}
+            {"path": [1], "types": ["CardButton"], "slotSize": {"width": 126, "height": 36}, "eventPolicy": "require"},
+            {"path": [2], "types": ["CardButton"], "slotSize": {"width": 126, "height": 36}, "eventPolicy": "require"}
           ]
         },
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 8, "justifyContent": "center"}, "childCount": 2},
-            {"path": [0], "types": ["PillButton"], "eventPolicy": "require"},
-            {"path": [1], "types": ["PillButton"], "eventPolicy": "require"}
+            {"path": [0], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"},
+            {"path": [1], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"}
           ]
         }
       ]

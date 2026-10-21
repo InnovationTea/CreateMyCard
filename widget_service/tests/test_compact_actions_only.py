@@ -67,8 +67,9 @@ def _rows(task: dict, variant: str | None = "actions-only") -> list:
         params = args.get("params")
         assert isinstance(params, dict)
         params["switchFlag"] = 1
-        rows.append([name, "PillButton", {
+        rows.append([name, "CardButton", {
             "label": name, "icon": f"resources/base/media/{name}.svg",
+            "fillColor": "#FF1F4799",
             "onClick": [{"call": candidate.get("call"), "args": args}],
         }])
     return rows

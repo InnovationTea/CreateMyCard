@@ -11,6 +11,12 @@ EventCard 的 Props、事件顺序与总高继续由共享组件和容量校验�
 Plan事实动作覆盖仍委托`compact_plan_coverage_errors`；不新增或迁移语法／语义检查项。
 重组仅返回结果，现有Trace仍由`generation_pipeline.py`记录，本次不调整日志打点。
 
+2026-10-21：经用户确认，2×2双必要动作由PillButton改为CardButton。
+组件尺寸可用性和单行/两行槽预算委托共享Recipe及高阶组件转换；
+固定角色与36/57vp槽位归共享语义布局编译和布局合同；
+actions-only恰好两个不同动作且无正文的授权仍归semantic/plan_contracts.py。
+Plan候选标准化只改动作组件，不删除事实或改变事件/素材授权；不新增错误码或放宽溢出校验。
+
 2026-10-17：纯双动作布局与开关事件比较补充：
 
 | 检查项 | 分类与实际落点 | 归属理由及边界 |

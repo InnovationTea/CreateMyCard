@@ -1,5 +1,6 @@
 """将正式 Few-shot 作为真实生成输入，防止示例与转换协议漂移。"""
 
+import copy
 import json
 import re
 from pathlib import Path
@@ -75,6 +76,8 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x2-V09",
         "2x2-V15",
         "2x2-V10",
+        "2x2-V19",
+        "2x2-V16",
         "2x2-V12",
         "2x2-V04",
         "2x2-V11",
@@ -85,6 +88,8 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x2-V08",
         "2x2-V14",
         "2x2-V03",
+        "2x2-V17",
+        "2x2-V18",
         "2x2-V07",
     ),
     "2x4": (
@@ -116,6 +121,10 @@ EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x2-V08": "S-title-anchor",
     "2x2-V14": "S-title-anchor",
     "2x2-V03": "S-content-dual-action",
+    "2x2-V19": "S-title-dual-content",
+    "2x2-V16": "S-title-dual-content",
+    "2x2-V17": "S-content-dual-action",
+    "2x2-V18": "S-content-dual-action",
     "2x2-V07": "S-dual-info",
     "2x4-V03": "W-top-bottom",
     "2x4-V16": "W-top-bottom",
@@ -207,11 +216,21 @@ def test_few_shot_validates_and_converts(
     size = task.get("size")
     assert size in {"2x2", "2x4"}, identifier
 
+    compact_plan = None
+    if identifier == "2x2-V17":
+        task = copy.deepcopy(task)
+        facts = []
+        for index, event in enumerate(task.get("eventCandidates", [])):
+            event["id"] = f"example.action.{index}"
+            facts.append({"actionId": event["id"], "priority": "must", "requirement": "操作"})
+        compact_plan = {"info_required": facts, "layoutHints": ["S-content-dual-action"]}
+
     result = validate_compact_dsl(
         source,
         task_spec=task,
         card_spec={"suggestSize": size},
         enforce_model_component_types=True,
+        compact_plan=compact_plan,
     )
     assert not result.warnings, identifier
 
@@ -244,7 +263,8 @@ def test_few_shot_validates_and_converts(
     "identifier, component_id", [("2x4-V10", "upper"), ("2x4-V38", "top_left")]
 )
 def test_double_quoted_expression_strings_remain_rejected(
-    identifier: str, component_id: str,
+    identifier: str,
+    component_id: str,
 ) -> None:
     task, source = _example(identifier)
     rows = _rows(source)
@@ -295,7 +315,7 @@ def test_few_shot_sources_follow_layout_order_and_mark_missing_skeletons() -> No
         assert actual == list(expected)
 
     two_by_two = (PROMPT_SOURCE / "fewshots/2x2.md").read_text(encoding="utf-8")
-    for layout in ("S-title-dual-content", "S-title-dual-column-action"):
+    for layout in ("S-title-dual-column-action",):
         group = two_by_two.split(f"**布局骨架：`{layout}`**", maxsplit=1)[1]
         assert "待补充 Few-shot" in group.split("---", maxsplit=1)[0]
 
@@ -329,6 +349,7 @@ def test_two_by_two_examples_cover_expected_layouts() -> None:
     expected = {
         "S-center",
         "S-title-content",
+        "S-title-dual-content",
         "S-quad-content",
         "S-title-content-action",
         "S-title-primary-secondary-action",
@@ -407,11 +428,50 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
     _, source = _example("2x2-V14")
     rows = {row[0]: row for row in _rows(source)}
 
-    title_row = rows.get("title")
-    action_row = rows.get("action")
+    title_row = rows.get("title_area")
+    action_row = rows.get("meeting_action")
     assert title_row is not None and action_row is not None
     assert title_row[2].get("icon") == "resources/base/media/calendar_fill.svg"
     assert action_row[2].get("icon") == "resources/base/media/icon_meeting.svg"
+
+
+@pytest.mark.parametrize(
+    "identifier,node_id", [("2x2-V08", "battery"), ("2x2-V14", "earphone_summary")]
+)
+def test_anchor_auxiliary_information_uses_secondary_body(identifier: str, node_id: str) -> None:
+    _, source = _example(identifier)
+    rows = {row[0]: row for row in _rows(source)}
+    node = rows.get(node_id)
+    assert node is not None
+    assert node[1] == "SecondaryBody"
+    assert node[2].get("columns") == 1
+    expected_items = 1 if identifier == "2x2-V08" else 2
+    assert len(node[2].get("items", [])) == expected_items
+
+
+def test_four_info_example_uses_declared_existing_icons() -> None:
+    task, source = _example("2x4-V06")
+    expected = {asset.get("src") for asset in task.get("assetCandidates", [])}
+    count = 0
+    for row in _rows(source):
+        if len(row) < 3 or row[1] != "InfoBlock":
+            continue
+        icon = row[2].get("icon")
+        assert icon in expected
+        assert (PROMPT_SOURCE.parents[5] / icon).is_file()
+        count += 1
+    assert count == 4
+
+
+def test_bluetooth_legacy_asset_name_preserves_existing_input_reference() -> None:
+    task, source = _example("2x2-V08")
+    alias = "resources/base/media/bluetooth_fill.svg"
+    assert task.get("assetCandidates", [])[0].get("src") == alias
+    assert alias in source
+    root = PROMPT_SOURCE.parents[5]
+    assert (root / alias).read_text(encoding="utf-8") == (
+        root / "resources/base/media/ic_Bluetooth.svg"
+    ).read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -420,7 +480,7 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
         ("2x2-V01", {"DataDisplay"}),
         ("2x2-V15", {"DataDisplay"}),
         ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
-        ("2x2-V03", {"TableText", "PillButton"}),
+        ("2x2-V03", {"TableText", "CardButton"}),
         ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
         ("2x2-V05", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
         ("2x2-V06", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
@@ -433,7 +493,7 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
         ("2x2-V13", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
         (
             "2x2-V14",
-            {"SingleLineTitle", "EventCard", "TableText", "CircleButton"},
+            {"SingleLineTitle", "EventCard", "SecondaryBody", "CircleButton"},
         ),
         ("2x4-V03", {"EmphasizedData", "TextBlock"}),
         ("2x4-V39", {"SingleLineTitle", "SummaryList"}),
@@ -496,7 +556,7 @@ def test_text_component_examples_follow_runtime_font_ownership(
         if component_type == "SecondaryBody":
             role = props.get("role")
             items = props.get("items", [])
-            expected = 12 if role == "metadata" or len(items) > 2 else 14
+            expected = 12 if role == "metadata" or len(items) > props.get("columns", 2) else 14
         elif component_type == "TableText":
             expected = 10 if len(props.get("items", [])) == 3 else 12
         if expected is not None:

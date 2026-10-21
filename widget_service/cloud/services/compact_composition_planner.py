@@ -1079,12 +1079,17 @@ def _close_regions(
                        for sample in samples):
                     return None
             if group.get("actionId") and not group.get("component"):
-                group["component"] = "PillButton"
-                group["requiredHeight"] = _part(size, "PillButton", "root").get("height")
+                action_component = _action_component_for_zone(zone, group)
+                if action_component is None:
+                    return None
+                group["component"] = action_component
+                group["requiredHeight"] = _part(size, action_component, "root").get("height")
                 group["minimumWidth"] = 0
             if group.get("actionId"):
                 name = group.get("component")
                 root = _part(size, name, "root")
+                if name == "CardButton" and zone.rule.get("eventPolicy") == "require":
+                    group["requiredHeight"] = zone.height
                 if name == "CircleButton":
                     group["accessibilityLabel"] = group.get("labelMeaning")
                     group["requiresAccurateIcon"] = True
