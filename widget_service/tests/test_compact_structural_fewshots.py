@@ -138,13 +138,13 @@ def test_retrieval_switch_and_total_switch_are_independent(monkeypatch) -> None:
     assert _identifiers(selected) == {"2x2-V03", "2x2-V17", "2x2-V18"}
     monkeypatch.setattr(settings, "enable_design_compact_few_shot_selection", False)
     full = PromptBuilder._compact_few_shot_context(task, _plan(), component_source="")
-    assert len(_identifiers(full)) == 18
+    assert len(_identifiers(full)) == 19
     assert "2x4-V" not in full
     monkeypatch.setattr(settings, "enable_design_compact_few_shots", False)
     assert PromptBuilder._compact_few_shot_context(task, _plan(), component_source="") == ""
 
 
-def test_default_configuration_enables_retrieval() -> None:
+def test_default_configuration_disables_retrieval() -> None:
     from config.config import Settings
 
-    assert Settings.model_fields.get("enable_design_compact_few_shot_selection").default is True
+    assert Settings.model_fields.get("enable_design_compact_few_shot_selection").default is False

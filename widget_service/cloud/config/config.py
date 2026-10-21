@@ -271,7 +271,7 @@ class Settings(BaseSettings):
         CONFIG.get("enable_design_compact_few_shots", "true") == "true"
     )
     enable_design_compact_few_shot_selection: bool = (
-        CONFIG.get("enable_design_compact_few_shot_selection", "true") == "true"
+        CONFIG.get("enable_design_compact_few_shot_selection", "false") == "true"
     )
     enable_design_compact_runtime_prompt_context: bool = (
         CONFIG.get("enable_design_compact_runtime_prompt_context", "false") == "true"
