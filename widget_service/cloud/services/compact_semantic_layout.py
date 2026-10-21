@@ -776,22 +776,21 @@ class _SmallCompiler(_Compiler):
                 children = (children[0], metrics)
         elif layout == "S-title-anchor":
             support = self.node(children[2])
-            height = 40
             if support.component_type == "NumericRatioStack":
                 if support.props.get("direction", "column") == "column":
-                    height = 56
                     self.geometry(children[2], {"height": 56})
             self.geometry(children[2], {"width": 78})
             action_slot = self.generated("root", "action_slot")
             self.add(action_slot, "Stack", {"width": 40, "height": 40,
                                             "alignContent": "center"}, (children[-1],), "root")
             bottom = self.generated("root", "bottom")
-            self.add(bottom, "Row", {"width": "matchParent", "height": height, "flexShrink": 0,
-                                     "itemMargin": 8, "alignItems": "bottom",
-                                     "justifyContent": "spaceBetween"},
+            self.add(bottom, "Row", {"width": "matchParent", "flexShrink": 0,
+                                     "constraintSize": {"minHeight": 40}, "itemMargin": 8,
+                                     "alignItems": "bottom", "justifyContent": "spaceBetween"},
                      (children[2], action_slot), "root")
-            primary = self.wrap("root", "primary", children[1], {"layoutWeight": 1})
-            body = self.body("root", (primary, bottom), 8, {})
+            primary = self.wrap("root", "primary", children[1],
+                                {"layoutWeight": 1, "flexShrink": 0})
+            body = self.body("root", (primary, bottom), 2, {})
             children = (children[0], body)
         elif layout == "S-content-dual-action":
             if not actions_only:

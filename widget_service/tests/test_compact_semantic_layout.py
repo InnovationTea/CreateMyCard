@@ -303,7 +303,7 @@ def test_height_gap_relaxation_only_changes_mapped_generated_wide_columns(
     assert row.props.get("itemMargin") == gap
 
 
-@pytest.mark.parametrize("item_count", [4, 5])
+@pytest.mark.parametrize("item_count", [5, 6])
 def test_wide_height_budget_ignores_layout_gaps_but_keeps_content_minimums(item_count: int) -> None:
     rows = [
         ["root", "Layout", {"layout": "W-content-side-slots"}, ["main", "upper", "lower"]],
@@ -318,7 +318,7 @@ def test_wide_height_budget_ignores_layout_gaps_but_keeps_content_minimums(item_
     source = _source(rows)
     task = {"size": "2x4", "dataModelSchema": {"data": {}},
             "assetCandidates": [{"src": "test.svg", "description": "多色，保留原色"}]}
-    if item_count == 4:
+    if item_count == 5:
         validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x4"})
     else:
         with pytest.raises(CompactDslValidationError) as caught:

@@ -374,7 +374,7 @@ def _group_choices(
                 alternatives.append([_nested_group("Column", wrapped, gap)])
         ordinary = [item for item in items if item.get("component") == "SecondaryBody"]
         if len(ordinary) >= 2:
-            # 两项同行保留14fp；两项分行按12fp/16vp核算。
+            # 两项同行保留14fp；两项分行按12fp/12vp核算。
             for pair in itertools.combinations(ordinary, 2):
                 for columns in (1, 2):
                     packed = _ordinary_pair(size, pair, columns)

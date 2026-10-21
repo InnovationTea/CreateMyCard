@@ -286,9 +286,11 @@ def test_secondary_body_visual_recipe_uses_single_and_multiple_line_styles() -> 
     assert base["metrics"] == {"minimumItems": 1, "maximumItems": 6}
     assert base["parts"]["text"]["styles"]["fontSize"] == 14
     assert base["parts"]["text"]["styles"]["fontWeight"] == 400
-    assert base["parts"]["text"]["styles"]["height"] == 19
+    assert base["parts"]["text"]["styles"]["height"] == 14
+    assert base["parts"]["text"]["styles"]["lineHeight"] == 1
     assert multiline["parts"]["text"]["styles"]["fontSize"] == 12
-    assert multiline["parts"]["text"]["styles"]["height"] == 16
+    assert multiline["parts"]["text"]["styles"]["height"] == 12
+    assert multiline["parts"]["text"]["styles"]["lineHeight"] == 1
 
 
 
