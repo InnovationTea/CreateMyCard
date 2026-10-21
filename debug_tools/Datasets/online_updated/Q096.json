@@ -1,0 +1,143 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个连接蓝牙模块快速听歌的卡片，能实时显示耳机电量和状态，还可以播放本地音乐的每日推荐和收藏歌单",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/chargingStatusDesc",
+          "/earphoneName",
+          "/isConnected",
+          "/leftBatteryLevel",
+          "/leftChargingStatusDesc",
+          "/rightBatteryLevel",
+          "/rightChargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "蓝牙听歌",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.music.daily",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.open.music.favorite",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+          }
+        }
+      }
+    ],
+    "description": "连接蓝牙快速听歌，显示耳机电量与状态并播放本地音乐歌单。",
+    "candidateAssetIds": [
+      "asset.icon_earphone",
+      "asset.ic_Bluetooth",
+      "asset.icon_music",
+      "asset.music_fill",
+      "asset.emoji_music"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "096",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个连接蓝牙模块快速听歌的卡片，能实时显示耳机电量和状态，还可以播放本地音乐的每日推荐和收藏歌单",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个连接蓝牙模块快速听歌的卡片，能实时显示耳机电量和状态，还可以播放本地音乐的每日推荐和收藏歌单",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/earphoneName",
+        "/isConnected",
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "蓝牙听歌",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.music.daily",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        }
+      }
+    },
+    {
+      "capabilityId": "event.open.music.favorite",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        }
+      }
+    }
+  ],
+  "description": "连接蓝牙快速听歌，显示耳机电量与状态并播放本地音乐歌单。",
+  "candidateAssetIds": [
+    "asset.icon_earphone",
+    "asset.ic_Bluetooth",
+    "asset.icon_music",
+    "asset.music_fill",
+    "asset.emoji_music"
+  ]
+}

@@ -20,6 +20,8 @@ from debug_tools.runtime_environment import Toolchain, load_optional_toolchain, 
 from debug_tools.subprocesses import run_node_script
 
 from .._io import atomic_write_json
+from ..export_names import gallery_name, run_summary, sample_stem
+from ..export_names import gallery_title as export_gallery_title
 
 GalleryCapture = Callable[[str, Path], Awaitable[dict[str, Any]]]
 _TERMINAL_SAMPLE_STATUSES = {"success", "degraded", "failed", "unsupported", "cancelled"}
@@ -98,7 +100,10 @@ class BatchGalleryManager:
         run_dir = self._safe_run_dir(run_id)
         if self.status(run_id).get("status") != "ready":
             raise KeyError(run_id)
-        path = (run_dir / "gallery.html").resolve()
+        file_name = gallery_name(run_summary(run_dir), "browser")
+        path = (run_dir / file_name).resolve()
+        if not path.is_file():
+            path = (run_dir / "gallery.html").resolve()
         if not path.is_relative_to(run_dir) or not path.is_file():
             raise KeyError(run_id)
         return path
@@ -110,8 +115,12 @@ class BatchGalleryManager:
     def capture_path(self, run_id: str, sample_id: str) -> Path:
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", sample_id):
             raise KeyError(sample_id)
-        root = (self._safe_run_dir(run_id) / "gallery_captures").resolve()
-        path = (root / f"{sample_id}.png").resolve()
+        run_dir = self._safe_run_dir(run_id)
+        root = (run_dir / "gallery_captures").resolve()
+        stem = sample_stem(sample_id, run_summary(run_dir))
+        path = (root / f"{stem}.png").resolve()
+        if not path.is_file():
+            path = (root / f"{sample_id}.png").resolve()
         if not path.is_relative_to(root) or not path.is_file():
             raise KeyError(sample_id)
         return path
@@ -136,9 +145,10 @@ class BatchGalleryManager:
                 capture_result = await self.capture(capture_url, temporary_dir)
                 document = self.build_html(summary, capture_result, temporary_dir)
                 capture_items = self._persist_captures(run_dir, capture_result, temporary_dir)
-            temporary_html = run_dir / "gallery.html.tmp"
+            file_name = gallery_name(summary, "browser")
+            temporary_html = run_dir / f"{file_name}.tmp"
             temporary_html.write_text(document, encoding="utf-8")
-            os.replace(temporary_html, run_dir / "gallery.html")
+            os.replace(temporary_html, run_dir / file_name)
             atomic_write_json(
                 status_path,
                 {
@@ -182,7 +192,8 @@ class BatchGalleryManager:
                 source = (temporary_dir / file_name).resolve()
                 inside_root = source.is_relative_to(temporary_dir.resolve())
                 if inside_root and source.is_file():
-                    shutil.copy2(source, target_root / f"{sample_id}.png")
+                    stem = sample_stem(sample_id, run_summary(run_dir))
+                    shutil.copy2(source, target_root / f"{stem}.png")
                     result.append(
                         {
                             "sampleId": sample_id,
@@ -259,7 +270,7 @@ class BatchGalleryManager:
             )
         replacements = {
             "{{RUN_ID}}": html.escape(str(summary.get("runId") or "")),
-            "{{GALLERY_TITLE}}": html.escape(gallery_title),
+            "{{GALLERY_TITLE}}": html.escape(export_gallery_title(gallery_title, summary)),
             "{{GALLERY_SUBTITLE}}": html.escape(gallery_subtitle),
             "{{GENERATED_AT}}": html.escape(_utc_now()),
             "{{CARDS}}": "\n".join(cards),
@@ -433,7 +444,8 @@ async def run_builtin(
         quality = item.get("quality")
         if sample_status == "success":
             # 新执行的图片必须留在独立历史目录，后续重跑画廊不能替换旧评分配图。
-            image_target = _output_dir / f"{sample_id}.png"
+            summary = run_summary(manager.output_root / run_id)
+            image_target = _output_dir / f"{sample_stem(sample_id, summary)}.png"
             image_target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(manager.capture_path(run_id, sample_id), image_target)
             execution_id = _output_dir.parent.parent.name

@@ -154,7 +154,9 @@ class PostprocessManager:
         requested_ids = set(plugin_ids)
         executed_plugin_ids = self._executed_plugin_ids(run_id)
         history = self._latest_plugin_history(run_id) if rerun else {}
-        retry_ids = self._retry_plugin_ids(plugin_ids, available, history) if rerun else set()
+        retry_ids = (
+            self._retry_plugin_ids(plugin_ids, available, history, configs) if rerun else set()
+        )
         selected: list[dict[str, Any]] = []
         for plugin_id in expanded_ids:
             already_completed = plugin_id in executed_plugin_ids
@@ -472,6 +474,7 @@ class PostprocessManager:
                 raise ValueError(f"后处理插件不存在: {plugin_id}")
             plugin_dir = execution_dir / "plugins" / plugin_id
             plugin_dir.mkdir(parents=True, exist_ok=True)
+            sample_snapshots: dict[str, str] = {}
             asset_base_url = (
                 f"/debug/batch/runs/{quote(run_id, safe='')}/postprocess/"
                 f"{quote(execution_id, safe='')}/assets/{quote(plugin_id, safe='')}"
@@ -499,6 +502,7 @@ class PostprocessManager:
                     plugin_dir,
                     manifest,
                     persisted_stage,
+                    sample_snapshots=sample_snapshots,
                 )
                 async with state_lock:
                     for index, plugin_state in enumerate(state["plugins"]):
@@ -586,6 +590,7 @@ class PostprocessManager:
                 plugin_dir,
                 manifest,
                 normalized,
+                sample_snapshots=sample_snapshots,
             )
             async with state_lock:
                 for index, plugin_state in enumerate(state["plugins"]):
@@ -1150,6 +1155,7 @@ class PostprocessManager:
         plugin_ids: list[str],
         manifests: dict[str, dict[str, Any]],
         history: dict[str, dict[str, Any]],
+        configs: dict[str, Any] | None = None,
     ) -> set[str]:
         """只展开本次真正需要执行的依赖分支；已可复用的结果是分支边界。"""
         required: set[str] = set()
@@ -1165,6 +1171,18 @@ class PostprocessManager:
             for dependency_id in manifest.get("dependence") or []:
                 previous = history.get(dependency_id, {})
                 reusable = previous.get("status") in {"success", "partial", "skipped"}
+                if dependency_id == "device-capture":
+                    prior = previous.get("config") or {}
+                    desired = (configs or {}).get(dependency_id) or {}
+                    if isinstance(prior, dict) and isinstance(desired, dict):
+                        prior_mode = prior.get("captureMode", "preview")
+                        mode = desired.get("captureMode", prior_mode)
+                        target = desired.get("targetId", prior.get("targetId"))
+                        same_target = target == prior.get("targetId")
+                        # 桌面环境可能已改变，画廊重跑必须重新取证，不能离线猜测其仍一致。
+                        reusable = reusable and same_target and mode == prior_mode
+                        if mode == "desktop":
+                            reusable = False
                 if dependency_id in requested or not reusable:
                     visit(dependency_id)
 
@@ -1544,6 +1562,8 @@ class PostprocessManager:
         plugin_dir: Path,
         manifest: dict[str, Any],
         stage: dict[str, Any],
+        *,
+        sample_snapshots: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         sample_results = [
             item for item in list(stage.get("sampleResults") or []) if isinstance(item, dict)
@@ -1556,7 +1576,15 @@ class PostprocessManager:
                 counts[sample_status] += 1
             sample_id = str(item.get("sampleId") or "")
             if _SAFE_ID.fullmatch(sample_id):
-                atomic_write_json(plugin_dir / "samples" / sample_id / "result.json", item)
+                path = plugin_dir / "samples" / sample_id / "result.json"
+                content = json.dumps(item, ensure_ascii=False, indent=2) + "\n"
+                unchanged = (
+                    sample_snapshots is not None and sample_snapshots.get(sample_id) == content
+                )
+                if not unchanged or not path.is_file():
+                    atomic_write_json(path, item)
+                    if sample_snapshots is not None:
+                        sample_snapshots[sample_id] = content
         atomic_write_json(plugin_dir / "dataset" / "result.json", dataset_result)
         summary = {
             "id": str(stage.get("id") or manifest.get("id") or ""),

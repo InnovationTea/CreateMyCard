@@ -30,6 +30,7 @@ export function DeviceRenderRoute() {
   const [editor, setEditor] = useState(restore);
   const [inputTab, setInputTab] = useState<InputTab>(() => editor.format === 'compact' ? 'compact' : 'a2ui');
   const [previewZoom, setPreviewZoom] = useState(160);
+  const [captureMode, setCaptureMode] = useState<'desktop' | 'preview'>('preview');
   const [showBrowser, setShowBrowser] = useState(true);
   const [showDevice, setShowDevice] = useState(true);
   const [targets, setTargets] = useState<Target[]>([]);
@@ -139,8 +140,14 @@ export function DeviceRenderRoute() {
   async function deploy() {
     if (!selected || !converted) return;
     const value = await deviceRequest<DeviceRun>('/runs', {
-      targetId: selected, source: converted, format: 'a2ui', size: editor.size,
+      targetId: selected, source: converted, format: 'a2ui', size: editor.size, captureMode,
     });
+    localStorage.setItem(LAST_RUN, value.id);
+    setRun(value); setRunVersion((current) => current + 1);
+  }
+
+  async function prepareProject() {
+    const value = await deviceRequest<DeviceRun>('/prepare', { targetId: selected });
     localStorage.setItem(LAST_RUN, value.id);
     setRun(value); setRunVersion((current) => current + 1);
   }
@@ -152,7 +159,7 @@ export function DeviceRenderRoute() {
   }
 
   return <div className="device-workspace">
-    <header className="device-header"><div><h2>设备渲染</h2><p>内置 A2UI_Render、动态推送与自动裁切</p></div>
+    <header className="device-header"><div><h2>设备渲染</h2><p>编译安装后，通过“卡片”菜单各添加一张 2x2 和 2x4 卡片。必须将应用入口和两张卡片放在同一个桌面页面，停留该页并关闭菜单后再截图；流程不会自动翻页。</p></div>
       <button disabled={busy} onClick={() => void action(refresh)}>刷新设备与环境</button></header>
     {error && <div className="device-error" role="alert">{error}</div>}
     <aside className="device-status-widget" aria-label="设备环境状态"><div className="backend-status-items">{statusItems.map((item) => <div key={item.id}
@@ -167,8 +174,14 @@ export function DeviceRenderRoute() {
       {emulators.map((emulator) => <button key={emulator.id} disabled={!emulator.ready || busy}
         onClick={() => void action(() => startEmulator(emulator.id))}>启动 {emulator.name}</button>)}
       {operation && <span>{operation.message}{operation.serial ? ` · ${operation.serial}` : ''}</span>}</section>
+    <div className="device-actions"><button disabled={!selected || busy || Boolean(run && !terminal.has(run.status))}
+      onClick={() => void action(prepareProject)}>编译并安装项目</button></div>
     <div className="device-columns">
       <section className="device-editor"><div className="device-toolbar"><strong>输入与部署</strong>
+        <select aria-label="截图模式" value={captureMode}
+          onChange={(event) => setCaptureMode(event.target.value as 'desktop' | 'preview')}>
+          <option value="desktop">桌面卡片</option><option value="preview">应用预览</option>
+        </select>
         <select aria-label="卡片尺寸" value={editor.size} onChange={(event) => setEditor((value) => ({
           ...value, size: event.target.value as '2x2' | '2x4',
         }))}><option value="2x2">2x2</option><option value="2x4">2x4</option></select></div>
@@ -189,7 +202,7 @@ export function DeviceRenderRoute() {
             }} placeholder={inputTab === 'compact' ? '粘贴 Compact DSL，转换结果显示在 A2UI 页签' : '粘贴或编辑 A2UI JSON/JSONL'} />
         </div>
         <div className="device-actions"><span>{convertMessage}</span><button disabled={!selected || !converted || busy}
-          onClick={() => void action(deploy)}>编译并运行</button></div>
+          onClick={() => void action(deploy)}>{captureMode === 'desktop' ? '更新桌面卡片并截图' : '编译并运行'}</button></div>
       </section>
       <section className="device-render-preview" aria-label="渲染预览">
         <div className="device-toolbar"><strong>渲染预览</strong>
@@ -204,7 +217,8 @@ export function DeviceRenderRoute() {
               initialValue={converted} assetBaseUrl={DEFAULT_ASSET_BASE_URL} cardSize={editor.size}
               previewOnly zoom={previewZoom} onZoomChange={setPreviewZoom} /></section>}
           {showDevice && <section className="device-card-preview" aria-label="真机截图">
-            <h3>真机截图</h3><div className="device-card-canvas">{run?.cardImageUrl
+            <h3>{run?.captureMode === 'desktop' ? '桌面卡片截图' : '应用预览截图'}</h3>
+            <div className="device-card-canvas">{run?.cardImageUrl
               ? <img src={run.cardImageUrl} alt="本次运行的卡片截图" />
               : <p>编译并运行后显示设备卡片截图</p>}</div>
           </section>}
@@ -217,7 +231,8 @@ export function DeviceRenderRoute() {
         setRun(await deviceRequest<DeviceRun>(`/runs/${run.id}/cancel`, {}));
       })}>取消任务</button>}</div>
       {run.error && <p role="alert">{run.error}</p>}
-      {run.cropPx && <p>App 自动裁切：{run.cropPx.left}, {run.cropPx.top} · {run.cropPx.width} × {run.cropPx.height}px</p>}
+      {!run.prepareOnly && <p>截图模式：{run.captureMode === 'desktop' ? '桌面卡片' : '应用预览'}</p>}
+      {run.cropPx && <p>实际裁切：{run.cropPx.left}, {run.cropPx.top} · {run.cropPx.width} × {run.cropPx.height}px</p>}
       {run.warnings?.map((warning) => <p key={warning}>警告：{warning}</p>)}
       {logs && <details><summary>运行日志</summary><pre>{logs}</pre></details>}</section>}
   </div>;

@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -13,28 +12,20 @@ from services import post_layout_theme as themes
 from services.post_layout_theme_registry import registered_themes
 from services.theme_style_roles import role
 
-TEMPLATE_THEMES = (
-    Path(__file__).parents[1] / "cloud/services/template_generation/resources/source/themes"
-)
-TEMPLATE_PAIRS = {
-    "fusion-ball-schedule-blue": "fusion-weather-blue",
-    "fusion-ball-battery-teal": "fusion-battery-teal",
-    "fusion-ball-sleep-violet": "fusion-sleep-violet",
-    "fusion-ball-sport-orange": "fusion-sport-orange",
+# The approved cb5904d2 palette is copied, not a live dependency on template changes.
+APPROVED_BACKGROUNDS = {
+    "fusion-ball-schedule-blue": ("#FF1F1F99", "#FF2B65D9", "#FF57AED9"),
+    "fusion-ball-battery-teal": ("#FF1F9985", "#FF24B3B3", "#FF5AB38E"),
+    "fusion-ball-sleep-violet": ("#FF493D99", "#FF5536B3", "#FF7D6B99"),
+    "fusion-ball-sport-orange": ("#FFF24131", "#FFFF8833", "#FFE68073"),
 }
 
 
-@pytest.mark.parametrize("identity,template_id", TEMPLATE_PAIRS.items())
-def test_four_fusion_backgrounds_match_template_colors(identity, template_id):
+@pytest.mark.parametrize("identity,colors", APPROVED_BACKGROUNDS.items())
+def test_four_fusion_backgrounds_keep_approved_snapshot_colors(identity, colors):
     theme = next(item for item in registered_themes() if item.get("id") == identity)
-    template_path = TEMPLATE_THEMES / template_id / "theme.json"
-    template = json.loads(template_path.read_text(encoding="utf-8"))
-    template_colors = template.get("fusionBallStyle", {})
-    expected = {}
-    for ball in ("large", "medium", "small"):
-        color = template_colors.get(ball + "Color")
-        assert color
-        expected[ball] = color
+    large, medium, small = colors
+    expected = {"large": large, "medium": medium, "small": small}
     background = theme.get("background", {})
     assert background.get("ballColors") == expected
     assert background.get("glassColor") == "#0DFFFFFF"
@@ -47,7 +38,7 @@ def test_four_fusion_backgrounds_match_template_colors(identity, template_id):
 def test_only_four_fusion_themes_are_available():
     identities = {theme.get("id") for theme in registered_themes("standard")
                   if theme.get("kind") == "fusion"}
-    assert identities == set(TEMPLATE_PAIRS)
+    assert identities == set(APPROVED_BACKGROUNDS)
     rules = themes.original_selection_rules()
     assert "fusion-ball-schedule-cool" not in rules
     assert "fusion-ball-schedule-warm" not in rules

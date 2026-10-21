@@ -113,18 +113,18 @@ Web 证据绑定 DSL、渲染上下文和截图哈希。外部截图由用户配
 
 ## 验证
 
-在 widget_service 下运行：
+在仓库根目录运行：
 
 ```shell
-python -m pytest tests/test_debug_quality_import.py tests/test_debug_quality_workflow.py tests/test_debug_quality_score.py tests/test_debug_batch_gallery.py tests/test_debug_batch_postprocess.py -q
+python -m pytest debug_tools/tests/python/test_debug_quality_import.py debug_tools/tests/python/test_debug_quality_workflow.py debug_tools/tests/python/test_debug_quality_score.py debug_tools/tests/python/test_debug_batch_gallery.py debug_tools/tests/python/test_debug_batch_postprocess.py -q
 ```
 
 在 debug_tools 下运行：
 
 ```shell
-node scripts/web_quality.test.mjs
-node scripts/quality_smoke.test.mjs
-node scripts/quality_inputs.test.mjs
+node tests/browser/web_quality.test.mjs
+node tests/browser/quality_smoke.test.mjs
+node tests/browser/quality_inputs.test.mjs
 npm --workspace @widget-debug/platform run typecheck
 npm run build
 ```
@@ -158,11 +158,11 @@ npm run build
 | `postprocess_plugins/quality-score/README.md` | 使用、文件清单和验证方式 |
 | `postprocess_plugins/quality-score/score_model.py` | 精简拨号信息项文案，扣分逻辑不变 |
 | `platform/src/routes/QualityEvaluationRoute.tsx` | 精简当前方案与历史快照说明 |
-| `platform/src/routes/QualityEvaluationRoute.test.tsx` | 当前方案与历史快照说明回归 |
-| `widget_service/tests/test_debug_quality_score.py`（仓库根目录） | 摘要与质量状态一致性回归 |
-| `platform/src/routes/QualityImportRoute.test.tsx` | 导入页面和清单回归 |
-| `platform/src/routes/QualityCompareRoute.test.tsx` | 单条与整批切换回归 |
-| `widget_service/tests/test_debug_quality_import.py`（仓库根目录） | 导入、安全边界、评分宿主、单条配对回归 |
-| `scripts/quality_inputs.test.mjs` | 真实浏览器上传、无自动评分、图片加载和左右布局回归；API 使用测试夹具 |
-| `scripts/quality_smoke.test.mjs` | 使用当前 A2UI 输入验证 Web 渲染与测量链路 |
+| `tests/frontend/platform/routes/QualityEvaluationRoute.test.tsx` | 当前方案与历史快照说明回归 |
+| `debug_tools/tests/python/test_debug_quality_score.py`（仓库根目录） | 摘要与质量状态一致性回归 |
+| `tests/frontend/platform/routes/QualityImportRoute.test.tsx` | 导入页面和清单回归 |
+| `tests/frontend/platform/routes/QualityCompareRoute.test.tsx` | 单条与整批切换回归 |
+| `debug_tools/tests/python/test_debug_quality_import.py`（仓库根目录） | 导入、安全边界、评分宿主、单条配对回归 |
+| `tests/browser/quality_inputs.test.mjs` | 真实浏览器上传、无自动评分、图片加载和左右布局回归；API 使用测试夹具 |
+| `tests/browser/quality_smoke.test.mjs` | 使用当前 A2UI 输入验证 Web 渲染与测量链路 |
 | `dist/` | 从源码重新生成的前端构建产物 |

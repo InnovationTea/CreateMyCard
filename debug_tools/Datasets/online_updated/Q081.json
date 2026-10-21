@@ -1,0 +1,117 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成杭州天气卡片，展示当前天气和未来天气预报",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "杭州市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday",
+          "/location/cityCode"
+        ]
+      }
+    ],
+    "title": "杭州天气",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "展示当前天气和未来天气预报。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_uv_color",
+      "asset.ic_purification"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.320",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "081",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成杭州天气卡片，展示当前天气和未来天气预报",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成杭州天气卡片，展示当前天气和未来天气预报",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "杭州市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/condition",
+        "/current/temperatureText",
+        "/daily/0/condition",
+        "/daily/0/date",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/weekday",
+        "/location/cityCode"
+      ]
+    }
+  ],
+  "title": "杭州天气",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "展示当前天气和未来天气预报。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.ic_uv_color",
+    "asset.ic_purification"
+  ]
+}

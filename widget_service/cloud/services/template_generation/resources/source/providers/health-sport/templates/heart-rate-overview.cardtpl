@@ -259,7 +259,7 @@ Column(
           ),
       Image(
             props.sourceIcon,
-            {"width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
+            {"_wideHeaderIcon": true, "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
           )
     ),
   Row(
@@ -291,7 +291,7 @@ Column(
           ),
       Image(
             props.sourceIcon,
-            {"width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
+            {"_wideHeaderIcon": true, "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
           )
     ),
   Row(
@@ -385,7 +385,7 @@ Column(
           ),
       Image(
             props.sourceIcon,
-            {"width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
+            {"_wideHeaderIcon": true, "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
           )
     ),
   Row(

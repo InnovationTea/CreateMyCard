@@ -1,0 +1,77 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一个倒计时卡片，倒计时到明天提醒上楼",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-08-29"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "倒计时到明天提醒上楼。",
+    "candidateAssetIds": [
+      "asset.ic_calender",
+      "asset.stopwatch_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.330",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "069",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一个倒计时卡片，倒计时到明天提醒上楼",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一个倒计时卡片，倒计时到明天提醒上楼",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-08-29"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "倒计时到明天提醒上楼。",
+  "candidateAssetIds": [
+    "asset.ic_calender",
+    "asset.stopwatch_fill"
+  ]
+}

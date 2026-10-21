@@ -1,0 +1,111 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "创建一个桌面卡片，显示临汾市尧都区的天气和手机电池电量信息",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "尧都区",
+          "prefectureName": "临汾市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/condition",
+          "/current/temperatureText",
+          "/daily/0/condition",
+          "/daily/0/date",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/weekday",
+          "/location/cityCode"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/batteryCapacityLevelDesc",
+          "/chargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "临汾天气·电量",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "显示临汾市尧都区的天气和手机电池电量。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.7.347",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "044",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "创建一个桌面卡片，显示临汾市尧都区的天气和手机电池电量信息",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "创建一个桌面卡片，显示临汾市尧都区的天气和手机电池电量信息",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "尧都区",
+        "prefectureName": "临汾市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/condition",
+        "/current/temperatureText",
+        "/daily/0/condition",
+        "/daily/0/date",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/weekday",
+        "/location/cityCode"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/batteryCapacityLevelDesc",
+        "/chargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "临汾天气·电量",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "显示临汾市尧都区的天气和手机电池电量。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.battery_leaf_fill"
+  ]
+}

@@ -54,7 +54,7 @@ Column(
         #endif
         #if props.calendarIcon
         Image(props.calendarIcon,
-            {
+            {"_wideHeaderIcon": true,
                 "width": 20,
                 "height": 20,
                 "objectFit": "contain",
@@ -760,7 +760,7 @@ Column(
             #endif
             #if props.calendarIcon
             Image(props.calendarIcon,
-                {
+                {"_wideHeaderIcon": true,
                     "width": 20,
                     "height": 20,
                     "objectFit": "contain",
@@ -1657,7 +1657,7 @@ Column(
         #endif
         #if props.calendarIcon
         Image(props.calendarIcon,
-            {
+            {"_wideHeaderIcon": true,
                 "width": 20,
                 "height": 20,
                 "objectFit": "contain",
@@ -1778,7 +1778,7 @@ Column(
         #endif
         #if props.calendarIcon
         Image(props.calendarIcon,
-            {
+            {"_wideHeaderIcon": true,
                 "width": 20,
                 "height": 20,
                 "objectFit": "contain",
@@ -2066,7 +2066,7 @@ Column(
         #endif
         #if props.calendarIcon
         Image(props.calendarIcon,
-            {
+            {"_wideHeaderIcon": true,
                 "width": 20,
                 "height": 20,
                 "objectFit": "contain",
@@ -2249,7 +2249,7 @@ Column(
         #endif
         #if props.calendarIcon
         Image(props.calendarIcon,
-            {
+            {"_wideHeaderIcon": true,
                 "width": 20,
                 "height": 20,
                 "objectFit": "contain",
@@ -3136,7 +3136,7 @@ Column(
             #endif
             #if props.calendarIcon
             Image(props.calendarIcon,
-                {
+                {"_wideHeaderIcon": true,
                     "width": 20,
                     "height": 20,
                     "objectFit": "contain",
@@ -4161,7 +4161,7 @@ Column(
     #if props.calendarIcon
       Image(
         props.calendarIcon,
-        {"width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0}
+        {"_wideHeaderIcon": true, "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0}
       )
     #endif
     Stack(

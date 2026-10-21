@@ -255,6 +255,18 @@ export function PostprocessPanel({ runId, runStatus, selectedSampleId, execution
                 <span><b>{plugin.name}</b><small>{plugin.description ?? plugin.id}</small>
                   {dependencies.length > 0 && <em>依赖：{dependencies.map((id) => pluginById.get(id)?.name ?? id).join(' → ')}</em>}
                   {plugin.id === 'device-capture' && checked && <span className="postprocess-device-profile">
+                    <select aria-label="真机截图模式" value={String(configs[plugin.id]?.captureMode ?? 'preview')}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => {
+                        event.stopPropagation();
+                        setConfigs((current) => ({ ...current,
+                          [plugin.id]: { ...current[plugin.id], captureMode: event.target.value },
+                        }));
+                      }}>
+                      <option value="desktop">桌面卡片（复用已加桌卡片）</option>
+                      <option value="preview">应用预览</option>
+                    </select>
+                    {configs[plugin.id]?.captureMode === 'desktop' && <small>请先编译安装并各添加一张 2x2、2x4 卡片。必须将应用入口和两张卡片放在同一个桌面页面，停留该页并关闭菜单后再截图；流程不会自动翻页。</small>}
                     {deviceTargets.length ? <select aria-label="真机截图在线设备"
                       value={String(configs[plugin.id]?.targetId ?? '')}
                       onClick={(event) => event.stopPropagation()}

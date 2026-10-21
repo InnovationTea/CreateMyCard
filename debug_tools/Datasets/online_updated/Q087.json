@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "使用桌面生成卡片功能，做一个卡片显示电量百分比",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOCText"
+        ]
+      }
+    ],
+    "title": "电量",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "卡片显示电量百分比。",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "087",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "使用桌面生成卡片功能，做一个卡片显示电量百分比",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "使用桌面生成卡片功能，做一个卡片显示电量百分比",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOCText"
+      ]
+    }
+  ],
+  "title": "电量",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "卡片显示电量百分比。",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill"
+  ]
+}

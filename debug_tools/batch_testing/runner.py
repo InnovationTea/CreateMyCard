@@ -21,6 +21,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import websockets
 
+from debug_tools.dataset_metadata import read_version
 from debug_tools.end_to_end_debug.backend.debug_agent.upstream_ws_client import (
     UpstreamToolError,
     parse_legacy_stream_content,
@@ -171,6 +172,8 @@ def discover_datasets(dataset_root: Path) -> list[DatasetItem]:
     if not dataset_root.is_dir():
         return items
     for path in sorted(dataset_root.glob("*.json"), key=lambda item: item.name.lower()):
+        if path.name == "version.json":
+            continue
         sample_id = path.stem
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
@@ -308,6 +311,7 @@ class BatchRunState:
     output_dir: Path
     task_id: str = ""
     dataset_id: str = ""
+    dataset_version: dict[str, Any] = field(default_factory=dict)
     backend_mode: str = "deployed"
     service_status: str = "external"
     request_overrides: dict[str, Any] = field(default_factory=dict)
@@ -346,6 +350,7 @@ class BatchRunState:
             "timeoutSeconds": self.timeout_seconds,
             "taskId": self.task_id,
             "datasetId": self.dataset_id,
+            "datasetVersion": self.dataset_version,
             "backendMode": self.backend_mode,
             "serviceStatus": self.service_status,
             "interrupted": self.status == "interrupted",
@@ -461,12 +466,15 @@ class BatchRunManager:
             output_dir=self.output_root / run_id,
             task_id=task_id,
             dataset_id=dataset_id,
+            dataset_version=read_version(resolved_dataset_root),
             backend_mode=backend_mode,
             service_status=service_status,
             request_overrides=dict(request_overrides or {}),
         )
         self.runs[run_id] = state
         self._persist_state(state)
+        if state.dataset_version:
+            atomic_write_json(state.output_dir / "dataset_version.json", state.dataset_version)
         self._snapshot_evaluation(resolved_dataset_root, state.output_dir)
         self.tasks[run_id] = asyncio.create_task(self._execute_run(state, available))
         return state.public_dict()
@@ -512,6 +520,7 @@ class BatchRunManager:
             output_dir=self.output_root / run_id,
             task_id=str(summary.get("taskId") or ""),
             dataset_id=str(summary.get("datasetId") or ""),
+            dataset_version=dict(summary.get("datasetVersion") or {}),
             backend_mode=str(summary.get("backendMode") or "deployed"),
             service_status=service_status,
             request_overrides=dict(request_overrides),

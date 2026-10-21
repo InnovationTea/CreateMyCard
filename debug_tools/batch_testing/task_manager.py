@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 import shutil
 import uuid
@@ -11,6 +12,8 @@ from datetime import datetime
 from functools import partial
 from pathlib import Path
 from typing import Any
+
+from debug_tools.dataset_metadata import LEGACY_DATASETS, read_version
 
 from ..postprocess_plugins.device_capture import DeviceCaptureManager
 from ..postprocess_plugins.device_capture import run_builtin as run_device_capture_plugin
@@ -142,15 +145,25 @@ class BatchTaskManager:
             if not path.is_dir() or not _IDENTIFIER_PATTERN.fullmatch(path.name):
                 continue
             samples = discover_datasets(path)
-            items.append(
-                {
-                    "id": path.name,
-                    "name": path.name,
-                    "sampleCount": len(samples),
-                    "validSampleCount": sum(1 for sample in samples if sample.valid),
-                    "invalidSampleCount": sum(1 for sample in samples if not sample.valid),
-                }
-            )
+            item: dict[str, Any] = {
+                "id": path.name,
+                "name": path.name,
+                "sampleCount": len(samples),
+                "validSampleCount": sum(1 for sample in samples if sample.valid),
+                "invalidSampleCount": sum(1 for sample in samples if not sample.valid),
+            }
+            try:
+                version = read_version(path)
+            except (OSError, ValueError) as exc:
+                item["versionError"] = str(exc)
+                logging.getLogger(__name__).warning(
+                    "数据集 %s 版本信息不可用，保留样本与历史任务访问：%s: %s",
+                    path.name, type(exc).__name__, exc,
+                )
+            else:
+                if version:
+                    item["version"] = version
+            items.append(item)
         return items
 
     def dataset_samples(self, dataset_id: str) -> list[dict[str, Any]]:
@@ -803,7 +816,8 @@ class BatchTaskManager:
     def _dataset_path(self, dataset_id: str) -> Path:
         if not _IDENTIFIER_PATTERN.fullmatch(dataset_id):
             raise KeyError(dataset_id)
-        path = (self.datasets_root / dataset_id).resolve()
+        dataset_name = LEGACY_DATASETS.get(dataset_id, dataset_id)
+        path = (self.datasets_root / dataset_name).resolve()
         try:
             path.relative_to(self.datasets_root)
         except ValueError as exc:

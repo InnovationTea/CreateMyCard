@@ -1,0 +1,79 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "添加一个简单明了清晰的小日历卡片",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/currentTime",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "日历",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "简洁清晰的日历卡片。",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_schedule",
+      "asset.emoji_calendar2"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.990",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "004",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "添加一个简单明了清晰的小日历卡片",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "添加一个简单明了清晰的小日历卡片",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/currentTime",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "日历",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "简洁清晰的日历卡片。",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_schedule",
+    "asset.emoji_calendar2"
+  ]
+}

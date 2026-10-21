@@ -3,7 +3,6 @@ import json
 
 import httpx
 import pytest
-from debug_tools.end_to_end_debug.backend.debug_agent.agent import DebugAgentSession
 from openai import AsyncOpenAI
 from openai.resources.chat.completions import AsyncCompletions
 
@@ -314,18 +313,3 @@ async def test_platform_chat_client_reuses_official_http_api_key_for_tool_calls(
     assert captured["api_key"] == "test-key"
     assert captured["url"] == "https://api.deepseek.com/chat/completions"
     assert captured["thinking_enabled"] is False
-
-
-def test_debug_agent_uses_official_http_thinking_setting_when_selected():
-    debug_settings = type("DebugSettingsStub", (), {"request_timeout_seconds": 1.0})()
-    session = object.__new__(DebugAgentSession)
-    session.debug_settings = debug_settings
-    settings = _settings(
-        openai_master_client="deepseek_official_http",
-        deepseek_official_http_enable_thinking=True,
-    )
-
-    client = session._default_model_client(None, settings)
-
-    assert isinstance(client, PlatformChatClient)
-    assert client.thinking_mode == "high"

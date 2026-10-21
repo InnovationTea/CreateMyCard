@@ -1,0 +1,97 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "创建一个桌面卡片，显示当前天气和时间信息",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/temperatureText"
+        ]
+      },
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/currentTime",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "天气·时间",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "显示当前天气和时间信息。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.emoji_time"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.337",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "116",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "创建一个桌面卡片，显示当前天气和时间信息",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "创建一个桌面卡片，显示当前天气和时间信息",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/condition",
+        "/current/temperatureText"
+      ]
+    },
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/currentTime",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "天气·时间",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "显示当前天气和时间信息。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.emoji_time"
+  ]
+}
