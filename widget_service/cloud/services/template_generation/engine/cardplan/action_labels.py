@@ -13,15 +13,6 @@ from .models import ActionBinding
 LABEL_ACTION_TEMPLATES = frozenset({
     "PillAction@1", "CompactAction@1", "CompactSubtitleAction@1", "PlaylistCompactAction@1",
 })
-_SWITCH_LABELS = {
-    "event.setMobileData": ("开启移动数据", "关闭移动数据"),
-    "event.setNearLinkMode": ("开启星闪", "关闭星闪"),
-    "event.setBluetoothMode": ("开启蓝牙", "关闭蓝牙"),
-    "event.setWifiMode": ("开启Wi-Fi", "关闭Wi-Fi"),
-    "event.setLocationSwitch": ("开启定位", "关闭定位"),
-    "event.setScreenUseTimeManageSwitch": ("开启屏幕时长管控", "关闭屏幕时长管控"),
-    "event.setMicPermissionSwitch": ("开启麦克风权限", "关闭麦克风权限"),
-}
 _SOUND_LABELS = {"Vibrate": "设为振动", "Sound": "设为响铃", "Silent": "设为静音"}
 _CAMERA_LABELS = {
     "Photo": "拍照模式",
@@ -43,12 +34,7 @@ def parameter_action_label(event_id: str, args: Any) -> str | None:
     label: str | None = None
     params = args.get("params") if isinstance(args, dict) else None
     if isinstance(params, dict):
-        switch_labels = _SWITCH_LABELS.get(event_id)
-        if switch_labels is not None:
-            switch_flag = params.get("switchFlag")
-            if type(switch_flag) is int and switch_flag in (0, 1):
-                label = switch_labels[switch_flag]
-        elif event_id == "event.setSoundMode":
+        if event_id == "event.setSoundMode":
             option = params.get("optionValue")
             if isinstance(option, str):
                 label = _SOUND_LABELS.get(option)

@@ -422,7 +422,7 @@ class A2UIModelClient:
         """
         text = text.strip()
         if text.startswith("```genui"):
-            content = text[len("```genui") :].strip()
+            content = text.removeprefix("```genui").strip()
             if content.endswith("```"):
                 content = content[:-3].strip()
             return content

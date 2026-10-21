@@ -52,6 +52,7 @@ from services.compact_high_level_components import (
     validate_single_line_title_layout as validate_single_line_title_layout,
 )
 from services.compact_region_layout import adapt_region_layout
+from services.event_matching import event_handlers_match, is_optional_switch_event
 from services.fusion_ball_expander import (
     FusionBallExpansionError,
     expand_fusion_ball_components,
@@ -2387,6 +2388,8 @@ def _event_handler_replacements(
             key = _stable_json(handler)
             if key in allowed_keys:
                 continue
+            if any(event_handlers_match(handler, candidate) for candidate in allowed_handlers):
+                continue
             matched = _matching_event_handler(handler, allowed_handlers)
             if matched is not None:
                 replacements[key] = copy.deepcopy(matched)
@@ -2405,6 +2408,8 @@ def _matching_event_handler(
         candidate for candidate in allowed_handlers if candidate.get("call") == call
     ]
     for candidate in same_call_handlers:
+        if is_optional_switch_event(handler) or is_optional_switch_event(candidate):
+            continue
         candidate_args = candidate.get("args")
         if isinstance(candidate_args, dict) and _event_args_match(args, candidate_args):
             return candidate

@@ -128,8 +128,6 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 ```
 恰好一个 handler，完整保留候选中的静态值、Expression 或 PathBinding，无 condition、as、$context 或动作链。动作文字简洁保留真实行为与必要目标；不生成无事件按钮，不重复入口。
 
-设置开关例外：本轮已登记的 clickToIntent / SetSettingSwitch 动作，switchFlag 可填整数 0 或 1，
-两值效果相同；保留目标应用、配置项及其它全部参数，不能将该例外用于其它动作、布尔值或字符串。
 <!-- /prompt:binding-events -->
 
 <!-- prompt:typography -->
