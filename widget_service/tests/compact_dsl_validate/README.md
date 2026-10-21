@@ -1,6 +1,7 @@
 # validate_compact_dsl 校验数据
 
-范围按 Compact 校验器中 152 个现存报错源码位置统计。这些位置由 validate_compact_dsl 及其检查函数执行；不把解析器异常和双动作校验的内部原因重复计数。
+范围按 Compact 校验器中 151 个现存报错位置和 1 个非阻断 warning 位置统计。
+这些位置由 validate_compact_dsl 及其检查函数执行；不把解析器异常和双动作校验的内部原因重复计数。
 
 148 个位置有单错误样例；3 个位置因校验条件存在逻辑包含关系而必然伴随其他错误；1 个位置不可从公开入口触发。
 
@@ -150,7 +151,7 @@ D:\ProgramFiles\anaconda3\envs\CreateMyCard\python.exe widget_service\tests\comp
 | `_collect_semantic_text_errors` | 4153 | [_collect_semantic_text_errors/03](_collect_semantic_text_errors/03/expected.json) | 单错误 | 1 |
 | `_collect_semantic_text_errors` | 4163 | [_collect_semantic_text_errors/04](_collect_semantic_text_errors/04/expected.json) | 单错误 | 1 |
 | `_collect_unbound_action_hint_errors` | 4207 | [_collect_unbound_action_hint_errors/01](_collect_unbound_action_hint_errors/01/expected.json) | 单错误 | 1 |
-| `_collect_ambiguous_metric_text_errors` | 4285 | [_collect_ambiguous_metric_text_errors/01](_collect_ambiguous_metric_text_errors/01/expected.json) | 单错误 | 1 |
+| `_collect_ambiguous_metric_text_errors` | 4285 | [_collect_ambiguous_metric_text_errors/01](_collect_ambiguous_metric_text_errors/01/expected.json) | 非阻断 warning | 0 |
 | `_collect_component_contract_errors` | 4302 | [_collect_component_contract_errors/01](_collect_component_contract_errors/01/expected.json) | 单错误 | 1 |
 | `_collect_component_contract_errors` | 4306 | [_collect_component_contract_errors/02](_collect_component_contract_errors/02/expected.json) | 单错误 | 1 |
 | `_collect_component_parent_errors` | 4324 | [_collect_component_parent_errors/02](_collect_component_parent_errors/02/expected.json) | 入口不可触发：解析器去重 | 0 |

@@ -80,18 +80,14 @@ def text_block_width_contract(size: str = "2x4") -> TextBlockWidthContract:
         raise CompactComponentRuntimeError("TextBlock visual recipe has invalid metrics.")
     minimum = metrics.get("minimumItems")
     maximum = metrics.get("maximumItems")
+    width = metrics.get("minimumItemWidth")
     if isinstance(minimum, bool) or isinstance(maximum, bool):
         raise CompactComponentRuntimeError("TextBlock visual recipe has invalid capacity.")
     if not isinstance(minimum, int) or not isinstance(maximum, int):
         raise CompactComponentRuntimeError("TextBlock visual recipe has invalid capacity.")
     if minimum < 1 or maximum < minimum:
         raise CompactComponentRuntimeError("TextBlock visual recipe has invalid capacity.")
-    _, item = visual_recipe_part("TextBlock", "item", size=size)
     _, root = visual_recipe_part("TextBlock", "root", size=size)
-    constraint = item.get("constraintSize")
-    if not isinstance(constraint, dict):
-        raise CompactComponentRuntimeError("TextBlock visual recipe has invalid item constraints.")
-    width = constraint.get("minWidth")
     gap = root.get("itemMargin")
     for value in (width, gap):
         if isinstance(value, bool) or not isinstance(value, (int, float)):

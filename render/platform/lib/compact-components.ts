@@ -1421,21 +1421,26 @@ function expandHighLevel(
     const variant = labelLines === 2 ? "multilineLabel" : undefined;
     const label = `${id}_label`;
     const visual = `${id}_visual`;
-    const visualProps = p.icon
-      ? { src: p.icon, ...(p.fillColor ? { fillColor: p.fillColor } : {}) }
-      : { backgroundColor: colorWithAlpha(String(p.fontColor), 0.2) };
-    return [
+    const children = [label];
+    const rows = [
       row(
         id,
         type,
         "root",
         size,
         { onClick: p.onClick },
-        [label, visual],
+        children,
       ),
       row(label, type, "label", size, { content: p.label, fontColor: p.fontColor }, [], variant),
-      row(visual, type, p.icon ? "icon" : "placeholder", size, visualProps),
     ];
+    if (typeof p.icon === "string") {
+      children.push(visual);
+      rows.push(row(visual, type, "icon", size, {
+        src: p.icon,
+        ...(p.fillColor ? { fillColor: p.fillColor } : {}),
+      }));
+    }
+    return rows;
   }
 
   if (type === "ProgressCircleSingle") {

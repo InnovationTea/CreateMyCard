@@ -992,8 +992,8 @@
   {
     "function": "_collect_ambiguous_metric_text_errors",
     "line": 4285,
-    "expectedErrors": [
-      "component value: value /data/health/coldIndex has ambiguous meaning (感冒指数等级); add a nearby metric label such as 感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone."
+    "expectedWarnings": [
+      "COMPACT_DISPLAY_AMBIGUOUS_METRIC: component value: value /data/health/coldIndex has ambiguous meaning (感冒指数等级); add a nearby metric label such as 感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone."
     ],
     "directory": "_collect_ambiguous_metric_text_errors\\01"
   },

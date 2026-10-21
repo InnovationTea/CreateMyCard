@@ -1047,7 +1047,7 @@ def test_accepts_adjacent_semantic_metric_label(label_component: str) -> None:
     )
 
 
-def test_rejects_ambiguous_index_value_without_metric_label() -> None:
+def test_warns_ambiguous_index_value_without_metric_label() -> None:
     dsl = "\n".join(
         [
             '["root","Column",{"width":"matchParent","height":"matchParent"},'
@@ -1057,30 +1057,30 @@ def test_rejects_ambiguous_index_value_without_metric_label() -> None:
             '["/data/health/coldIndex","中等"]',
         ]
     )
-    with pytest.raises(
-        CompactDslValidationError,
-        match="add a nearby metric label such as 感冒指数",
-    ):
-        validate_compact_dsl(
-            dsl,
-            task_spec={
-                "size": "2x2",
-                "eventCandidates": [],
-                "dataModelSchema": {
-                    "data": {
-                        "health": {
-                            "coldIndex": {
-                                "type": "string",
-                                "description": "感冒指数等级",
-                                "sampleValue": "中等",
-                            }
+    result = validate_compact_dsl(
+        dsl,
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [],
+            "dataModelSchema": {
+                "data": {
+                    "health": {
+                        "coldIndex": {
+                            "type": "string",
+                            "description": "感冒指数等级",
+                            "sampleValue": "中等",
                         }
                     }
                 },
-                "assetCandidates": [],
             },
-            card_spec={"suggestSize": "2x2", "dataBindings": []},
-        )
+            "assetCandidates": [],
+        },
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+    assert len(result.warnings) == 1
+    assert result.warnings[0].startswith("COMPACT_DISPLAY_AMBIGUOUS_METRIC:")
+    assert "add a nearby metric label such as 感冒指数" in result.warnings[0]
 
 
 def test_accepts_metric_label_embedded_in_expression() -> None:
@@ -1126,7 +1126,7 @@ def test_accepts_metric_label_embedded_in_expression() -> None:
     assert not result.warnings
 
 
-def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
+def test_warns_unit_only_expression_for_ambiguous_metric() -> None:
     dsl = "\n".join(
         [
             '["root","Column",{"width":"matchParent","height":"matchParent",'
@@ -1136,31 +1136,30 @@ def test_rejects_unit_only_expression_for_ambiguous_metric() -> None:
             '["/data/weather/windLevel",2]',
         ]
     )
-    with pytest.raises(
-        CompactDslValidationError,
-        match="add a nearby metric label such as 感冒指数",
-    ) as exc_info:
-        validate_compact_dsl(
-            dsl,
-            task_spec={
-                "size": "2x2",
-                "eventCandidates": [],
-                "dataModelSchema": {
-                    "data": {
-                        "weather": {
-                            "windLevel": {
-                                "type": "integer",
-                                "description": "当前风力等级的纯整数。",
-                                "sampleValue": 2,
-                            }
+    result = validate_compact_dsl(
+        dsl,
+        task_spec={
+            "size": "2x2",
+            "eventCandidates": [],
+            "dataModelSchema": {
+                "data": {
+                    "weather": {
+                        "windLevel": {
+                            "type": "integer",
+                            "description": "当前风力等级的纯整数。",
+                            "sampleValue": 2,
                         }
                     }
                 },
-                "assetCandidates": [],
             },
-            card_spec={"suggestSize": "2x2"},
-        )
-    assert all("windLevel must include" not in error for error in exc_info.value.errors)
+            "assetCandidates": [],
+        },
+        card_spec={"suggestSize": "2x2"},
+    )
+
+    assert len(result.warnings) == 1
+    assert result.warnings[0].startswith("COMPACT_DISPLAY_AMBIGUOUS_METRIC:")
+    assert "windLevel must include" not in result.warnings[0]
 
 
 def test_design_prompt_contains_no_empty_container_examples() -> None:
@@ -1177,11 +1176,9 @@ def test_design_prompt_contains_no_empty_container_examples() -> None:
 def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
     prompt = _DESIGN_PROMPT
 
-    assert "## 3.1 一级高度算账硬门禁" in prompt
-    assert "63 + 8 + 63 = 134vp" in prompt
-    assert "59 + 40 + 36 + 8 × 2 = 151vp" in prompt
+    assert "完整文字、换行、Recipe占高及模板间距能放下" in prompt
+    assert "超预算改组件组合、密度或语义布局" in prompt
     assert "itemMargin 不生效" not in prompt
-    assert "两种尺寸固定几何均由语义模板决定" in prompt
 
 
 def _centered_single_value_hero_task_spec(sample_value: int) -> dict:
@@ -1251,9 +1248,9 @@ def _centered_single_value_hero_dsl(
 def test_design_prompt_routes_single_core_value_to_center_layout() -> None:
     prompt = _DESIGN_PROMPT
 
-    assert "## 11.5 2x2 组合落地" in prompt
-    assert "| `S-center` | 单一核心内容 |" in prompt
-    assert "只承载一个无需标题即可理解的 `DataDisplay`" in prompt
+    assert "## `S-center`：唯一核心居中" in prompt
+    assert "唯一无需标题即可理解的DataDisplay" in prompt
+    assert "content使用一个完整DataDisplay" in prompt
     assert "2x2 单数值 Hero 安全盒前置约束" not in prompt
 
 

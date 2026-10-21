@@ -241,7 +241,7 @@ def test_closed_sleep_card_rejects_height_even_when_item_margin_matches_overflow
     diagnostic = errors.records[0]
     assert not isinstance(diagnostic, str)
     assert diagnostic.code == "COMPACT_LAYOUT_HEIGHT_OVERFLOW"
-    assert diagnostic.actual.get("overflow") == 8.0
+    assert diagnostic.actual.get("overflow") == 2.0
 
 
 @pytest.mark.parametrize("component_id", ["root", "weighted"])

@@ -40,6 +40,8 @@ def _leaf(identifier: str, kind: str = "EmphasisText") -> list:
                  "fontColor": "#FF1F4799", "variant": "slot"}
     elif kind in {"PillButton", "CardButton"}:
         props = {"label": "查看设备", "onClick": [{"call": "open", "args": {"id": identifier}}]}
+        if kind == "CardButton":
+            props["icon"] = "resources/base/media/gearshape_fill.svg"
     elif kind == "ProgressCircle":
         props = {"value": 20, "total": 100, "externalText": "20%",
                  "label": identifier, "icon": "test.svg", "fillColor": "#FF000000"}
@@ -159,6 +161,7 @@ def test_reversed_mixed_fixed_slots_compile_with_warning() -> None:
             "CardButton",
             {
                 "label": "查看设备",
+                "icon": "resources/base/media/gearshape_fill.svg",
                 "onClick": [{"call": "open", "args": {"id": "device"}}],
             },
         ],
@@ -181,7 +184,9 @@ def test_reversed_mixed_fixed_slots_compile_with_warning() -> None:
         task_spec={
             "size": "2x4",
             "dataModelSchema": {"data": {}},
-            "assetCandidates": [],
+            "assetCandidates": [
+                {"src": "resources/base/media/gearshape_fill.svg"},
+            ],
             "eventCandidates": [{"call": "open", "args": {"id": "device"}}],
         },
         card_spec={"suggestSize": "2x4"},
@@ -485,14 +490,14 @@ def test_metric_label_crosses_only_compiler_wrappers_not_neighbor_region(own_tit
         "type": "integer", "description": "睡眠综合得分，取值范围0-100。", "sampleValue": 82,
     }}}}}
     if own_title:
-        validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
-                             layout_scope="W-plan-guided")
+        result = validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
+                                      layout_scope="W-plan-guided")
+        assert result.warnings == ()
     else:
-        with pytest.raises(CompactDslValidationError) as caught:
-            validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
-                                 layout_scope="W-plan-guided")
-        assert any(item.code == "COMPACT_DISPLAY_AMBIGUOUS_METRIC"
-                   for item in caught.value.diagnostics)
+        result = validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
+                                      layout_scope="W-plan-guided")
+        assert len(result.warnings) == 1
+        assert result.warnings[0].startswith("COMPACT_DISPLAY_AMBIGUOUS_METRIC:")
 
 
 @pytest.mark.parametrize("title_kind", ["title-count", "DoubleLineTitle"])

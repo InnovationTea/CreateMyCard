@@ -132,7 +132,7 @@ test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   const detailStyles = progress.getNode("details_item0")?.props.styles as Record<string, unknown>;
   const detailConstraint = detailStyles.constraintSize as Record<string, unknown>;
   assert.equal(detailStyles.height, "matchParent");
-  assert.equal(detailConstraint.minWidth, 64);
+  assert.equal(detailConstraint.minWidth, 0);
 
   const circle = compileMiniDsl(fixtures.examples[7].source, { size: "2x4" }).graph;
   assert.equal((circle.getNode("progress_ring")?.props.styles as Record<string, unknown>).width, 44);
@@ -241,12 +241,14 @@ test("EventCard 允许三项并按全部相邻间距计算总高", () => {
   assert.equal(styles.itemMargin, 4);
 });
 
-test("EmphasisText 使用与 claw-widget 一致的行盒与文本间距", () => {
+test("EmphasisText 主文本使用 18fp 的紧凑行盒", () => {
   const root = visualRecipePart("EmphasisText", "root", "2x2").styles;
   const main = visualRecipePart("EmphasisText", "main", "2x2").styles;
   const secondary = visualRecipePart("EmphasisText", "secondary", "2x2").styles;
   assert.equal(root.itemMargin, 2);
-  assert.equal(Number(main.fontSize) * Number(main.lineHeight), main.height);
+  assert.equal(main.fontSize, 18);
+  assert.equal(main.height, 18);
+  assert.equal(main.lineHeight, 1);
   assert.equal(Number(secondary.fontSize) * Number(secondary.lineHeight), secondary.height);
 });
 
@@ -260,7 +262,11 @@ test("EmphasisText 次文本将多个有序绑定编译为响应式分隔表达�
     '["/data/weather/district","青浦区"]',
   ].join("\n");
   const { graph } = compileMiniDsl(source, { size: "2x2" });
+  const mainStyles = graph.getNode("weather_main")?.props.styles as Record<string, unknown>;
 
+  assert.equal(mainStyles.fontSize, 18);
+  assert.equal(mainStyles.height, 18);
+  assert.equal(mainStyles.lineHeight, 1);
   assert.equal(
     graph.getNode("weather_secondary")?.props.content,
     "{{ ${/data/weather/city} + ' | ' + ${/data/weather/district} }}",
@@ -295,7 +301,7 @@ test("2x4 纵向固定槽中的 InfoBlock 与 CardButton 保持等高", () => {
   const source = [
     '["root","Column",{"width":132,"height":126,"itemMargin":12},["status","settings"]]',
     '["status","InfoBlock",{"variant":"slot","primaryText":"连接状态","secondaryText":"连接正常","fontColor":"#FF1F4799","backgroundColor":"#99FFFFFF","width":"matchParent","layoutWeight":1}]',
-    '["settings","CardButton",{"label":"设备设置","fontColor":"#FF1F4799","onClick":[{"call":"openSettings","args":{}}],"width":"matchParent","layoutWeight":1}]',
+    '["settings","CardButton",{"label":"设备设置","icon":"resources/base/media/gearshape_fill.svg","fontColor":"#FF1F4799","onClick":[{"call":"openSettings","args":{}}],"width":"matchParent","layoutWeight":1}]',
   ].join("\n");
   const { graph } = compileMiniDsl(source, { size: "2x4" });
 
@@ -311,6 +317,28 @@ test("2x4 纵向固定槽中的 InfoBlock 与 CardButton 保持等高", () => {
   assert.equal(primary.fontSize, 14);
   assert.equal(action.backgroundColor, "#99FFFFFF");
   assert.equal(label.fontSize, 14);
+});
+
+test("CardButton 无图标时只生成文字，有图标时生成真实 Image", () => {
+  const missingIcon = [
+    '["root","Column",{},["settings"]]',
+    '["settings","CardButton",{"label":"设备设置","fontColor":"#FF1F4799","onClick":[{"call":"openSettings","args":{}}]}]',
+  ].join("\n");
+  const withoutIcon = compileMiniDsl(missingIcon, { size: "2x4" }).graph;
+  assert.deepEqual(withoutIcon.getNode("settings")?.children, ["settings_label"]);
+  assert.equal(withoutIcon.getNode("settings_visual"), null);
+
+  const withIcon = [
+    '["root","Column",{},["settings"]]',
+    '["settings","CardButton",{"label":"设备设置","icon":"resources/base/media/gearshape_fill.svg","fontColor":"#FF1F4799","onClick":[{"call":"openSettings","args":{}}]}]',
+  ].join("\n");
+  const graph = compileMiniDsl(withIcon, { size: "2x4" }).graph;
+
+  assert.equal(graph.getNode("settings_visual")?.type, "Extended.Image");
+  assert.equal(
+    graph.getNode("settings_visual")?.props.src,
+    "resources/base/media/gearshape_fill.svg",
+  );
 });
 
 test("高阶组件拒绝错误尺寸、未知 Props、children 和生成 ID 冲突", () => {
@@ -463,10 +491,10 @@ test("SecondaryBody 保留绑定、按行布局切换字号并忽略历史角色
   const metadata = graph.getNode("metadata_item0_value")?.props.styles as Record<string, unknown>;
   assert.equal(body.fontSize, 12);
   assert.equal(body.fontWeight, 400);
-  assert.equal(body.height, 32);
+  assert.equal(body.height, 24);
   assert.equal(body.maxLines, 2);
   assert.equal(metadata.fontSize, 14);
-  assert.equal(metadata.height, 19);
+  assert.equal(metadata.height, 14);
   const supportingLabel = graph.getNode("supporting_item0_label")?.props.styles as Record<string, unknown>;
   const supportingValue = graph.getNode("supporting_item0_value")?.props.styles as Record<string, unknown>;
   assert.equal(supportingLabel.flexShrink, 0);
@@ -477,13 +505,13 @@ test("SecondaryBody 保留绑定、按行布局切换字号并忽略历史角色
   );
   const singleStyles = single.graph.getNode("root_item0_value")?.props.styles as Record<string, unknown>;
   assert.equal(singleStyles.fontSize, 14);
-  assert.equal(singleStyles.height, 19);
+  assert.equal(singleStyles.height, 14);
   const multilineMetadata = compileMiniDsl(
     '["root","SecondaryBody",{"role":"metadata","items":[{"value":"更新时间","maxLines":2}]}]',
   );
   const multilineStyles = multilineMetadata.graph.getNode("root_item0_value")?.props
     .styles as Record<string, unknown>;
-  assert.equal(multilineStyles.height, 32);
+  assert.equal(multilineStyles.height, 24);
   assert.equal(multilineStyles.maxLines, 2);
 });
 
@@ -508,7 +536,7 @@ test("SecondaryBody 支持 1–6 项，保留全部绑定并拒绝超过上限",
           assert.deepEqual(props?.content, item.value);
           const styles = props?.styles as Record<string, unknown>;
           assert.equal(styles.fontSize, count === 1 ? 14 : 12);
-          assert.equal(styles.height, count === 1 ? 19 : 16);
+          assert.equal(styles.height, count === 1 ? 14 : 12);
         }
       }
     }
@@ -532,7 +560,7 @@ test("SecondaryBody 按完整日期与星期自动分行，宽槽保留自然占
   const smallValue = small.getNode("meta_item0_value")?.props;
   assert.deepEqual(smallValue?.content, { path: "/date" });
   assert.equal((smallValue?.styles as Record<string, unknown>).fontSize, 12);
-  assert.equal((smallValue?.styles as Record<string, unknown>).height, 16);
+  assert.equal((smallValue?.styles as Record<string, unknown>).height, 12);
   assert.equal(small.getNode("meta_row0_separator"), null);
   const wide = compileMiniDsl(source, { size: "2x4" }).graph;
   assert.deepEqual(wide.getNode("meta")?.children, ["meta_row0"]);
@@ -589,7 +617,9 @@ test("TextBlock 接受 2–4 项并拒绝超出容量", () => {
     });
     assert.ok(graph.getNode(`root_item${count - 1}`));
     assert.equal(itemStyles.layoutWeight, 1);
+    assert.equal(itemStyles.flexShrink, 1);
     assert.equal(itemStyles.height, "matchParent");
+    assert.deepEqual(itemStyles.constraintSize, { minWidth: 0, minHeight: 0 });
     assert.equal(itemStyles.backgroundColor, "#99FFFFFF");
     assert.deepEqual(graph.getNode("root_item0")?.children, [
       "root_item0_label_slot",

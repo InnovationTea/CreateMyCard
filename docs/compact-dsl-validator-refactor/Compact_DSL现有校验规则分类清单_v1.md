@@ -111,6 +111,8 @@ warning；共享 Runtime 继续确定性展开原顺序，版本化物理布局�
 |---|---|---|
 | 模型素材候选范围 | `semantic/effective.py`，语义／有效能力，`COMPACT_ASSET_NOT_ALLOWED` | 展开前登记 icon、visual.icon、items[].icon；保留展开后背景检查。兼容引用提取不重新开放 Image 等内部组件 |
 | 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
+| CardButton 图标字段合法性 | 共享高阶组件合同，语法／组件 | `CardButton.icon` 可省略；存在时必须是非空静态字符串。省略时只展开文字与点击能力，不生成右侧占位节点 |
+| CardButton 与 Plan 素材分配一致性 | `semantic/plan_contracts.py`，语义／跨文件一致性 | Plan 为动作分配非空素材时，DSL 继续使用该 ID 的原始 `src`；Plan 为空或没有素材候选时允许无图标 CardButton，但不得伪造素材或占位视觉 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -151,6 +153,12 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 `compact_component_runtime.py`，Plan/生成容量说明复用；校验入口仅透传展开前组件。
 不调整渲染 Recipe、窄分区、其它 Row、动作或高度规则，不新增诊断码。
 
+2026-10-21：TextBlock 将容量评估下限与渲染最小宽拆分。`minimumItemWidth:64` 继续由
+`compact_component_runtime.py` 提供给 Plan、组合与 `semantic/layout/horizontal.py`；展开后的
+item 使用 `layoutWeight:1`、`flexShrink:1` 和 `constraintSize.minWidth:0` 等权适配实际父槽。
+本项不改变检查项分类、四项280vp参考预算、窄分区拦截或8vp间距，只修复合法满宽四项在端侧
+突破安全边距的问题。
+
 | 检查项 | 分类与实际文件 | 归属理由及边界 |
 |---|---|---|
 | `COMPACT_LAYOUT_WIDTH_OVERFLOW` | 语义／布局与视觉约束，`semantic/layout/horizontal.py` | 判断展开后 Row 的固定内容、嵌套后代、margin 和间距能否放入当前参考分区；属于空间预算，不属于语法或绑定 |
@@ -176,7 +184,8 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 溢出。本项仍归 `semantic/layout/horizontal.py`，配置解析归同目录 `overflow_tolerances.py`。
 
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
-高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
+高度专用约束不阻止横向检查。TextBlock item 另读取 Recipe 的参考容量下限，避免渲染约束改为
+可收缩后绕过窄分区门禁。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
 受约束影响的后代槽位继续按未知处理，避免把分配前宽度当作实际宽度。
 该补充仍归 horizontal.py，不增加诊断码；原始 3:1 分区案例记录于 text-block-input.jsonl。
 
@@ -557,6 +566,8 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 - **OBS-L4285**：`_collect_ambiguous_metric_text_errors`，主脚本第 4285 行。
 
   原始诊断：component {component.component_id}: value {path} has ambiguous meaning ({detail}); add a nearby metric label such as 感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone.
+  2026-10-21 调整为非阻断 warning；继续保留 `COMPACT_DISPLAY_AMBIGUOUS_METRIC`、组件、路径与字段描述，
+  但不再加入 `CompactDslValidationError` 或单独触发 Repair。归属仍为 `semantic/display.py` 的展示语义检查。
 
 ### 5.7 语义／布局与视觉约束
 

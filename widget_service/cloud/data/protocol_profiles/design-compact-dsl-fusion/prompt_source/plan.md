@@ -46,7 +46,7 @@ text 不重排、不改写；概括性装饰标题由 DSL 按需生成，不加�
 
 priority：用户明确要求、核心及不可缺少的事实为 must；仅未明确要求且省略不改变卡片主要用途的补充为 should。所有入选 Action 都为 must，不能以 should 表达隐式入口。正常生成和无损修复仍保留全部 must/should；已提交事实的删除只由后续修复反馈明确授权，接受阶段不自动删减。Action 始终不可删除。
 
-`must` 信息（含 Action）在 2x2 最多 8 条、在 2x4 最多 12 条；`should` 不占该额度。提交前完成主次取舍，不能把超额的核心或显式内容静默改为 should。
+`must` 信息（含 Action）在 2x2 最多 6 条、在 2x4 最多 12 条；`should` 不占该额度。提交前完成主次取舍，不能把超额的核心或显式内容静默改为 should。该数量用于引导 Plan 取舍，服务端不以该条数单独拒绝 Plan。
 
 ## 2. 实现偏好
 
@@ -70,7 +70,7 @@ dataId/text 不推荐按钮，actionId 仅推荐合法动作组件。标题按�
 S-content-dual-action 的 actions-only 变体，直接放两个 PillButton，不补内容槽或占位正文。
 若有任何 dataId/text 展示事实，使用带内容的标准变体并按完整内容核算容量。
 
-actions 按 info_required 动作顺序逐项选择匹配 assetId；无匹配填 null 及具体 reason。之后 title 从未用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。一个素材只分配一次，不牺牲准确按钮图标为标题腾素材。SingleLineTitle 无图标按12vp、带图标按20vp计入容量。
+actions 按 info_required 动作顺序逐项分配：先结合动作对象、完整操作语义和候选 description，选择语义最匹配且尚未使用的 assetId；无任何准确匹配才填 null 及具体 reason。CardButton 的 icon 可选：assetId 非空时必须使用对应真实素材；assetId 为 null 或本轮没有素材候选时仍可把 CardButton 放入 componentHints 或 composition，但最终只生成文字和点击能力，省略 icon，不规划圆形、分隔线或其它右侧占位。之后 title 从未用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。一个素材只分配一次，不牺牲准确按钮图标为标题腾素材。SingleLineTitle 无图标按12vp、带图标按20vp计入容量。
 整卡详情例外不需要按钮图标：保留动作的分配项并填 null，reason 说明整卡承载；该素材未被按钮消费，仍可按语义分配给标题。最终以服务端接受结果为准，不因此给其它动作省略图标。
 
 ## 4. 实例安排（仅 Schema 含 composition 时）

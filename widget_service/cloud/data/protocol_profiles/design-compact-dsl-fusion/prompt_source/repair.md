@@ -85,6 +85,7 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 | TextBlock 项目被拆散或超出槽宽 | 恢复全部分配的事实并按当前容量合同重组选型；不强塞四项，不留下单项占位，不删项或丢失绑定 |
 | EventCard 缺 title / 地点超宽 | 无真实事件标题则普通属性合组，不伪造名称；长地点用普通密度或更宽合法内容区，同组多事件仍一实例 |
 | CardButton 标签过长 | labelLines:2，保留原字号、槽位和完整动作目标；仍不够换合法动作组合 |
+| CardButton 图标不一致 | accepted Plan 已为动作分配素材时，恢复对应原始 src；Plan 为 null 或没有素材候选时保留 CardButton 也合法，但必须省略 icon，不使用圆形、分隔线或其它占位 |
 
 InfoBlock.secondaryText、TextBlock 的 label/value、CardButton.label 允许其合同的单行省略并只产生 warning；其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
 2x4 强调读数组合确实放不下、整卡其它地方已有核心组件且用户未要求大号强调/进度/事件形式时，可把该读数与同对象短补充无损合为一个 SecondaryBody.items。保留全部值、标签、单位和绑定，采用该组件合法单/多行规格，不补造核心组件；纯绑定/Props 错误不启用此容量例外。

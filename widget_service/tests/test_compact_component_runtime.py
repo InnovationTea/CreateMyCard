@@ -189,14 +189,15 @@ def test_emphasized_data_visual_recipe_aligns_value_and_unit_baselines() -> None
     assert "margin" not in unit
 
 
-def test_emphasis_text_visual_recipe_matches_claw_line_boxes() -> None:
+def test_emphasis_text_visual_recipe_uses_compact_main_line_box() -> None:
     recipe = component_visual_recipe("EmphasisText", size="2x2")
 
     root = recipe["parts"]["root"]["styles"]
     main = recipe["parts"]["main"]["styles"]
     secondary = recipe["parts"]["secondary"]["styles"]
     assert root["itemMargin"] == 2
-    assert main["height"] == main["fontSize"] * main["lineHeight"] == 24
+    assert main["fontSize"] == main["height"] == 18
+    assert main["lineHeight"] == 1
     assert secondary["height"] == secondary["fontSize"] * secondary["lineHeight"] == 16
 
 
@@ -236,6 +237,7 @@ def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
     assert recipe["metrics"] == {
         "minimumItems": 2,
         "maximumItems": 4,
+        "minimumItemWidth": 64,
     }
     root = recipe["parts"]["root"]["styles"]
     assert root["height"] == "matchParent"
@@ -246,7 +248,7 @@ def test_text_block_visual_recipe_declares_two_to_four_item_capacity() -> None:
     assert recipe["parts"]["item"]["styles"]["height"] == "matchParent"
     assert recipe["parts"]["item"]["styles"]["backgroundColor"] == "#99FFFFFF"
     assert recipe["parts"]["item"]["styles"]["layoutWeight"] == 1
-    assert recipe["parts"]["item"]["styles"]["constraintSize"]["minWidth"] == 64
+    assert recipe["parts"]["item"]["styles"]["constraintSize"]["minWidth"] == 0
     assert recipe["parts"]["labelSlot"]["styles"] == {
         "width": "matchParent",
         "height": 18,
@@ -312,8 +314,7 @@ def test_visual_recipe_contract_uses_consistent_icon_and_overflow_rules() -> Non
     }
     assert components["CardButton"]["parts"]["icon"]["styles"]["width"] == 24
     assert components["CardButton"]["parts"]["icon"]["styles"]["height"] == 24
-    assert components["CardButton"]["parts"]["placeholder"]["styles"]["width"] == 24
-    assert components["CardButton"]["parts"]["placeholder"]["styles"]["height"] == 24
+    assert "placeholder" not in components["CardButton"]["parts"]
     assert components["CardButton"]["parts"]["label"]["styles"]["textOverflow"] == "ellipsis"
     assert components["CircleButton"]["parts"]["root"]["styles"]["width"] == 40
     assert components["CircleButton"]["parts"]["root"]["styles"]["height"] == 40
