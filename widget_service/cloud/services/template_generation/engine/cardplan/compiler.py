@@ -4943,8 +4943,6 @@ def _expand_health_metric_generic_template(
     if not selected:
         raise TerselConversionError("Generic health metric requires at least one data path.")
     icon = params.get("sourceIcon")
-    support_background = theme_values["supportContentStyle.backgroundColor"]
-    support_radius = theme_values["supportContentStyle.borderRadius"]
     primary_color = theme_values["primaryColor"]
     support_color = theme_values["supportContentColor"]
     if wire_id == "GenericMetricOverviewCompact@1":
@@ -4991,9 +4989,6 @@ def _expand_health_metric_generic_template(
                 {
                     "width": "matchParent",
                     "height": "matchParent",
-                    "padding": {"left": 12, "top": 0, "right": 16, "bottom": 0},
-                    "backgroundColor": support_background,
-                    "borderRadius": support_radius,
                     "justifyContent": "spaceBetween",
                     "alignItems": "center",
                     "constraintSize": {"minWidth": 0, "minHeight": 0},
@@ -5082,9 +5077,6 @@ def _expand_health_metric_generic_template(
             {
                 "width": "matchParent",
                 "height": "matchParent",
-                "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
-                "backgroundColor": support_background,
-                "borderRadius": support_radius,
                 "itemMargin": 2,
                 "justifyContent": "center",
                 "alignItems": "start",
