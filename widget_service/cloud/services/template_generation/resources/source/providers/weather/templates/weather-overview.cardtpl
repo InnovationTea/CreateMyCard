@@ -2258,12 +2258,14 @@ Column(
       "width": "matchParent",
       "height": 20,
       "justifyContent": "spaceBetween",
-      "alignItems": "top"
+      "alignItems": "center"
     },
     Text(
       #Expr(data.city ? data.city : "当前城市"),
       {
         "width": "matchParent",
+        "layoutWeight": 1,
+        "flexShrink": 1,
         "fontSize": 12,
         "fontWeight": 400,
         "fontColor": $theme('supportContentColor'),
@@ -2348,12 +2350,14 @@ Column(
       "width": "matchParent",
       "height": 20,
       "justifyContent": "spaceBetween",
-      "alignItems": "top"
+      "alignItems": "center"
     },
     Text(
       #Expr(data.city ? data.city : "当前城市"),
       {
         "width": "matchParent",
+        "layoutWeight": 1,
+        "flexShrink": 1,
         "fontSize": 12,
         "fontWeight": 400,
         "fontColor": $theme('supportContentColor'),
@@ -2379,9 +2383,9 @@ Column(
     {"width": "matchParent", "height": 48, "layoutWeight": 1, "itemMargin": 0, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Row(
       {"width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text("风力 ", {"fontSize": 12, "fontColor": $theme('supportContentColor'), "maxLines": 1}),
-      Text(data.windLevel, {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
-      Text("级", {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1})
+      Text("风力 ", {"height": 24, "fontSize": 12, "fontColor": $theme('supportContentColor'), "maxLines": 1}),
+      Text(data.windLevel, {"height": 24, "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}),
+      Text("级", {"height": 24, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1})
     ),
     Row(
       {"width": "matchParent", "height": 20, "justifyContent": "start", "alignItems": "center", "itemMargin": 0},
