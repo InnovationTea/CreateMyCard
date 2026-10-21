@@ -486,3 +486,26 @@ Support延续左右图标齐全才显示图标的规则。
 部分字段缺省时继续整组省略第三行并使用两行居中。Compact 的盒电量缺省时按双列居中，0% 仍显示。
 是否有图标不影响对齐规则；整组素材齐全才显示图标，否则沿用圆底 L/R/E。
 顶部整机充电状态不作为下方第三行判断依据；已居中的 RingFull 保持原样。
+
+### 2026-10 小卡标题区图标在宽卡中的显示规则
+
+模板源在指定的右上角 Image 样式中声明内部标记 `_wideHeaderIcon: true`。
+编译器将请求尺寸传递到蓝图展开：2x4 省略标记的 Image，2x2 保留；所有尺寸的输出均移除该内部标记。
+沿用既有空条件容器清理规则，不保留图标占位。素材参数校验不变，不放宽必选素材契约。
+此规则覆盖所有组合骨架中的相应模板，不依赖模型省略素材，不根据屏幕像素位置推测。
+正文指标图标、环内图标、左右耳/耳机盒标识、按钮和原生宽卡图标不标记，保持原规则。
+同一素材参数若用于其它节点，也只隐藏被标记的 Image；不修改数据、事件或素材参数本身。
+
+当前清单共 48 个，以下名称均为 `@1`：
+
+| 模板源 | 适用模板 |
+| --- | --- |
+| battery/battery-overview | BatteryOverviewTemperatureFull、BatteryOverviewStatusHero |
+| calendar/schedule-detail-full | ScheduleOverviewTimezoneTimeFull、ScheduleOverviewDateLocationFull、ScheduleOverviewReminderDetailsFull、ScheduleOverviewDateLocationTimeFull、ScheduleOverviewTitleTimeFull、ScheduleOverviewReminderFull |
+| calendar/schedule-overview | ScheduleOverviewNextEventHero、ScheduleOverviewLocationDescriptionEndFull、ScheduleOverviewLocationHero、ScheduleOverviewTitleHero、ScheduleOverviewTimezoneDateEndFull、ScheduleOverviewTimezoneAllDayFull、ScheduleOverviewNextEventLocationFull、ScheduleOverviewEventCountDatedLocationFull |
+| earphone/bluetooth-device-overview | BluetoothDeviceOverviewStatusHero |
+| health-sport/activity-overview | ActivityOverviewHero、ActivityOverviewFull |
+| health-sport/heart-rate-overview | HeartRateOverviewIconCompact、HeartRateOverviewIconHero、HeartRateOverviewUpdatedIconHero |
+| health-sport/sleep-overview | SleepOverviewHero、SleepOverviewCompact、SleepOverviewNapFull、SleepOverviewNapHero |
+| health-sport/workout-overview | WorkoutOverviewCompact、WorkoutOverviewHero、WorkoutOverviewTrainingRecordHero |
+| weather/weather-overview | WeatherOverviewCompact、WeatherOverviewUvCompact、WeatherOverviewHero、WeatherOverviewDailyDateFull、WeatherOverviewDailyRainFull、WeatherOverviewDailyHealthFull、WeatherOverviewNextDayHealthFull、WeatherOverviewTargetDayHealthFull、WeatherOverviewCareAlertFull、WeatherOverviewAlertFull、WeatherOverviewWindHero、WeatherOverviewWindFull、WeatherOverviewConditionHero、WeatherOverviewFull、WeatherOverviewAlertInfoFull、WeatherOverviewFeelsLikeAlertFull、WeatherOverviewHumidityWindFull、WeatherOverviewUvColdFull、WeatherOverviewConditionFeelsLikeAlertFull |
