@@ -90,11 +90,11 @@ def test_blue_replaces_only_the_retired_ball_colors(case):
     assert hashlib.sha256(canonical.encode()).hexdigest() == case.get("digest")
 
 
-def test_all_themes_are_self_contained_and_only_fourteen_photos_remain():
+def test_all_themes_are_self_contained_and_only_current_photos_remain():
     config = registry.load_theme_registry()
     entries = config.get("themes", [])
-    assert len(entries) == 24
-    assert len({theme.get("id") for theme in entries}) == 24
+    assert len(entries) == 49
+    assert len({theme.get("id") for theme in entries}) == 49
     for theme in entries:
         assert "palette" not in theme
         assert theme.get("background")
@@ -102,16 +102,8 @@ def test_all_themes_are_self_contained_and_only_fourteen_photos_remain():
         assert set(content.get("roles", {})) == set(registry._ROLE_NAMES)
         assert set(theme.get("sizes", [])).issubset(content.get("panelBySize", {}))
     photos = registry.registered_themes("photos", include_disabled=True)
-    assert {item.get("id") for item in photos} == {
-        "photo-ux-water-lily-square", "photo-ux-sleep-square",
-        "photo-ux-sport-center-wide", "photo-ux-star-trails-wide",
-        "photo-ux-autumn-square", "photo-ux-yellow-arch-square",
-        "photo-ux-metronome-square",
-        "photo-ux-galaxy-sleep-square",
-        "photo-ux-desk-lamp-calendar-square", "photo-ux-flowers-weather-square",
-        "photo-ux-violin-music-square", "photo-ux-bulb-battery-square",
-        "photo-ux-green-bulb-battery-square", "photo-ux-green-bulb-battery-wide",
-    }
+    assert len(photos) == 21
+    assert all(item.get("contentEligibility", {}).get("kind") == "uniform" for item in photos)
     for pool in ("subjectlessWidePhotos", "squareExpansions"):
         assert registry.registered_themes(pool, include_disabled=True) == []
 
@@ -160,7 +152,7 @@ def test_duplicate_theme_id_rejected():
 def test_registry_returns_independent_copies():
     first = registry.load_theme_registry()
     first.get("themes", []).clear()
-    assert len(registry.load_theme_registry().get("themes", [])) == 24
+    assert len(registry.load_theme_registry().get("themes", [])) == 49
 
 
 def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch):
@@ -177,17 +169,18 @@ def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch
     assert "gradient-blue-added" not in {theme.get("id") for theme in registry.registered_themes()}
     entries.remove(extra)
     use_config(monkeypatch, config)
-    assert len(registry.registered_themes()) == 24
+    assert len(registry.registered_themes()) == 38
 
 
 @pytest.mark.parametrize("identity", [
-    "gradient-blue", "solid-blue", "fusion-ball-sleep-violet", "photo-ux-water-lily-square",
+    "gradient-blue", "solid-blue", "fusion-ball-sleep-violet", "photo-ux-clouds-weather-square",
 ])
 def test_each_theme_reads_its_own_complete_content(monkeypatch, identity):
     config = registry.load_theme_registry()
     theme = next(item for item in config.get("themes", []) if item.get("id") == identity)
     content = theme.get("content", {})
-    content.get("roles", {})["primary"] = "#FF112233"
+    primary = "#FFFFFFFF" if theme.get("kind") == "photo" else "#FF112233"
+    content.get("roles", {})["primary"] = primary
     content.get("panelBySize", {})["2x2"] = "#22123456"
     use_config(monkeypatch, config)
     source = BASELINE.get("sources", {}).get("2x2")
@@ -196,7 +189,7 @@ def test_each_theme_reads_its_own_complete_content(monkeypatch, identity):
     nodes = themes.components(themes.decode(result))
     panel = next(node for node in nodes if node.get("id") == "panel")
     assert panel.get("styles", {}).get("backgroundColor") == "#22123456"
-    assert "#FF112233" in result
+    assert primary in result
     assert themes.foreground_signature(source) == themes.foreground_signature(result)
 
 

@@ -25,6 +25,7 @@ from services.compact_composition_planner import (
 )
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
+from services.display_text import concatenated_display_text
 from services.event_matching import event_handlers_match
 
 _GEOMETRY_KEYS = frozenset({
@@ -587,31 +588,9 @@ def small_card_display_text(value: Any, task: dict[str, Any]) -> str | None:
         except (SyntaxError, ValueError):
             return None
         return max(branches, key=lambda text: _text_width(text, 1))
-    token = re.compile(rf"(?P<path>\$\{{(/[^{{}}]+)\}})|(?P<literal>{literal})")
-    body = expression.group(1).strip()
-    parts: list[str] = []
-    string_mode = False
-    offset = 0
-    for match in token.finditer(body):
-        if body[offset:match.start()].strip() != ("+" if parts else ""):
-            return None
-        if match.group("path") is not None:
-            path = match.group("path")[2:-1]
-            sample = _schema_value(task, path).get("sampleValue")
-            if isinstance(sample, bool) or not isinstance(sample, (str, int, float)):
-                return None
-            if parts and not string_mode and not isinstance(sample, str):
-                return None  # 两个数值的加法不是字符串连接，不猜运算结果。
-            string_mode = string_mode or isinstance(sample, str)
-            parts.append(str(sample))
-        else:
-            try:
-                parts.append(ast.literal_eval(match.group("literal")))
-                string_mode = True
-            except (SyntaxError, ValueError):
-                return None
-        offset = match.end()
-    return "".join(parts) if parts and not body[offset:].strip() else None
+    return concatenated_display_text(
+        value, lambda path: _schema_value(task, path).get("sampleValue"),
+    )
 
 
 def compact_plan_capacity_context(size: str) -> str:

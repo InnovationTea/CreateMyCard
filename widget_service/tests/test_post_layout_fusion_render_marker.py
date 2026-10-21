@@ -9,6 +9,7 @@ from services import post_layout_theme as themes
 from services.fusion_ball_expander import build_fusion_ball_content_id
 from services.square_photo_expansion import expand_square
 from services.theme_style_roles import role
+from theme_photo_samples import expansion_photo
 
 FOREGROUND_ID = build_fusion_ball_content_id("root")
 TASK = {"size": "2x2", "appVersion": "99.0.0", "userQuery": "Sleep"}
@@ -139,9 +140,16 @@ def test_normal_themes_do_not_add_renderer_marker(kind):
 
 @pytest.mark.parametrize("pool", ["photos", "subjectlessWidePhotos", "squareExpansions"])
 def test_photo_wrappers_remain_unchanged(pool):
-    entries = themes.registered_themes(pool, include_disabled=True)
-    assert entries
-    theme = {**copy.deepcopy(entries[0]), "kind": "photo"}
+    if pool == "photos":
+        entries = themes.registered_themes(pool, include_disabled=True)
+        assert entries
+        theme = copy.deepcopy(entries[0])
+    else:
+        assert not themes.registered_themes(pool, include_disabled=True)
+        theme = expansion_photo()
+        if pool == "subjectlessWidePhotos":
+            theme.update(pool=pool, composition="native", subjectless=True)
+    theme["kind"] = "photo"
     source = layout_source()
     if pool == "squareExpansions":
         result = expand_square(source, theme, TASK)

@@ -118,10 +118,14 @@ def _component_dsl(components: list[dict[str, Any]]) -> str:
 
 
 @pytest.mark.parametrize("opaque", [False, True])
-def test_post_layout_photo_contrast_requires_pixels_unless_opaque(opaque: bool) -> None:
+@pytest.mark.parametrize("fallback", [None, "#FF8FADCC", "#FFFFFFFF"])
+def test_post_layout_photo_contrast_requires_pixels_unless_opaque(
+    opaque: bool, fallback: str | None,
+) -> None:
     components = [
         {"id": "root", "component": "Stack",
-         "children": ["__post_theme_background", "__post_theme_foreground"]},
+         "children": ["__post_theme_background", "__post_theme_foreground"],
+         "styles": {"backgroundColor": fallback} if fallback else {}},
         {"id": "__post_theme_background", "component": "Stack",
          "children": ["__post_theme_base"]},
         {"id": "__post_theme_base", "component": "Image", "src": "background.jpg",
@@ -139,14 +143,16 @@ def test_post_layout_photo_contrast_requires_pixels_unless_opaque(opaque: bool) 
         assert contrast[0].actual == {"scene": "photo", "requiresRenderReview": True}
 
 
-def test_post_layout_photo_name_without_full_background_is_not_exempt() -> None:
+@pytest.mark.parametrize("fallback", ["#FFFFFFFF", "#FF8FADCC"])
+def test_post_layout_photo_name_without_full_background_is_not_exempt(fallback: str) -> None:
     components = [
         {"id": "root", "component": "Stack",
-         "children": ["__post_theme_background", "__post_theme_foreground"]},
+         "children": ["__post_theme_background", "__post_theme_foreground"],
+         "styles": {"backgroundColor": fallback}},
         {"id": "__post_theme_background", "component": "Stack", "children": []},
         {"id": "__post_theme_foreground", "component": "Column", "children": ["label"]},
         {"id": "label", "component": "Text", "content": "白底白字",
-         "styles": {"fontColor": "#FFFFFFFF"}},
+         "styles": {"fontColor": "#99FFFFFF"}},
     ]
     reporter = validate_card(dsl_text=_component_dsl(components))
     contrast = [item for item in reporter.diagnostics if item.code == "VISUAL.CONTRAST"]

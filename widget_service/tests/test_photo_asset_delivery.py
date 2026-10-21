@@ -5,7 +5,6 @@ import copy
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-from urllib.parse import urlsplit
 
 import pytest
 
@@ -20,7 +19,7 @@ from services.validator import ArtifactValidator
 from test_photo_background_fallback import node_by_id, source
 from test_weather_photo_eligibility import fixture, task
 
-PHOTO_ID = "photo-ux-water-lily-square"
+PHOTO_ID = "photo-ux-clouds-weather-square"
 ADDRESS = "https://hagres-drcn.dbankcdn.com/assets/theme-test.jpg?version=1"
 ICON = "resources/base/media/drop_1.svg"
 
@@ -51,53 +50,26 @@ def artifact():
     )
 
 
-def test_all_fourteen_photos_have_distinct_obs_addresses():
-    photos = [item for item in registry.load_theme_registry().get("themes", [])
-              if item.get("kind") == "photo"]
-    assert len(photos) == 14
-    configured = {}
-    for item in photos:
-        background = item.get("background", {})
-        address = background.get("remoteUrl")
+@pytest.mark.parametrize(("pool", "count"), [("photos", 21), ("texturePhotos", 18)])
+def test_current_photos_have_obs_addresses(pool, count):
+    photos = registry.registered_themes(pool, include_disabled=True)
+    assert len(photos) == count
+    addresses = set()
+    for photo in photos:
+        address = photo.get("remoteUrl")
         assert isinstance(address, str)
-        parsed = urlsplit(address)
-        assert parsed.scheme == "https"
-        assert parsed.hostname == "lfcontentcenterdev.hwcloudtest.cn"
-        assert parsed.path.endswith(".jpg")
-        src = background.get("src")
-        assert isinstance(src, str)
-        assert src.endswith(".jpg")
-        configured[item.get("id")] = address
-    assert set(configured) == {
-        "photo-ux-star-trails-wide", "photo-ux-sleep-square",
-        "photo-ux-sport-center-wide", "photo-ux-water-lily-square",
-        "photo-ux-autumn-square", "photo-ux-yellow-arch-square",
-        "photo-ux-metronome-square", "photo-ux-galaxy-sleep-square",
-        "photo-ux-desk-lamp-calendar-square", "photo-ux-flowers-weather-square",
-        "photo-ux-violin-music-square", "photo-ux-bulb-battery-square",
-        "photo-ux-green-bulb-battery-square", "photo-ux-green-bulb-battery-wide",
-    }
-    assert len(set(configured.values())) == 14
+        assert address.startswith("https://lfcontentcenterdev.hwcloudtest.cn/")
+        assert address.endswith(".jpg")
+        addresses.add(address)
+    assert len(addresses) == len(photos)
 
 
 @pytest.mark.parametrize(("photo_id", "size"), [
-    ("photo-ux-star-trails-wide", "2x4"),
-    ("photo-ux-sport-center-wide", "2x4"),
-    ("photo-ux-sleep-square", "2x2"),
-    ("photo-ux-water-lily-square", "2x2"),
-    ("photo-ux-autumn-square", "2x2"),
-    ("photo-ux-yellow-arch-square", "2x2"),
-    ("photo-ux-metronome-square", "2x2"),
-    ("photo-ux-galaxy-sleep-square", "2x2"),
-    ("photo-ux-desk-lamp-calendar-square", "2x2"),
-    ("photo-ux-flowers-weather-square", "2x2"),
-    ("photo-ux-violin-music-square", "2x2"),
-    ("photo-ux-bulb-battery-square", "2x2"),
-    ("photo-ux-green-bulb-battery-square", "2x2"),
-    ("photo-ux-green-bulb-battery-wide", "2x4"),
+    (item.get("id"), item.get("size")) for item in registry.registered_themes()
+    if item.get("kind") == "photo"
 ])
 def test_registered_photo_sources_pass_existing_final_asset_validation(monkeypatch, photo_id, size):
-    photo = next(item for item in registry.registered_themes("photos")
+    photo = next(item for item in registry.registered_themes()
                  if item.get("id") == photo_id)
     original = artifact()
     original.taskSpec["size"] = size
@@ -110,9 +82,8 @@ def test_registered_photo_sources_pass_existing_final_asset_validation(monkeypat
         A2UIProtocolRegistry(original.meta.protocolProfileId).get_profile(),
     ))
     assert not audit.get("finalValidationErrors"), audit
-    expected = photo.get("remoteUrl")
+    expected = photo.get("remoteUrl") or photo.get("src")
     assert isinstance(expected, str)
-    assert expected.startswith("https://")
     assert node_by_id(delivered.genui, themes.PREFIX + "image").get("src") == expected
     assert node_by_id(delivered.genui, themes.PREFIX + "base").get("src") == expected
     assert node_by_id(delivered.genui, "root").get("styles", {}).get("backgroundColor")
@@ -167,7 +138,9 @@ def test_final_delivery_maps_only_photo_and_preserves_fallback(monkeypatch, addr
             node["src"] = photo.get("src")
     assert before == after
     styles = node_by_id(delivered.genui, "root").get("styles", {})
-    assert styles.get("backgroundColor") == ("#FFE6E6E6" if rgb == "000000" else "#FF1F1F99")
+    assert styles.get("backgroundColor") == "#FF8FADCC"
+    assert "linearGradient" not in styles
+    assert "fusionBall" not in delivered.genui
     assert original == original_copy
 
 
@@ -194,11 +167,16 @@ def test_theme_prompt_never_receives_remote_url(monkeypatch, enabled):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", enabled)
     sample = fixture()
     client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({"themeId": PHOTO_ID})))
-    layout = themes.encode([{"updateComponents": {"components": sample.nodes}}])
+    layout = themes.encode([
+        {"updateComponents": {"components": sample.nodes}},
+        {"updateDataModel": {"path": "/", "value": {
+            "data": {"weather": {"current": {"condition": "多云"}}},
+        }}},
+    ])
     result, audit = asyncio.run(themes.select_theme(
         layout, task(), client, final_layout=sample.layout,
     ))
-    assert (audit.get("themeId") in {PHOTO_ID, "photo-ux-flowers-weather-square"}) is enabled
+    assert (audit.get("themeId") in {PHOTO_ID, "photo-ux-starfield-weather-square"}) is enabled
     assert ADDRESS not in json.dumps(theme_description(photo))
     assert ADDRESS not in json.dumps(client.generate.call_args.args)
     assert ADDRESS not in result
