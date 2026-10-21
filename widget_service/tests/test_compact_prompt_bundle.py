@@ -110,6 +110,22 @@ def test_single_line_title_icon_uses_semantic_match_and_button_priority() -> Non
     assert "同类对象" in rules
     assert "可选图标无匹配时省略" in rules
 
+
+def test_card_button_icon_color_is_runtime_owned() -> None:
+    common = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+    two_by_four = (DEFAULT_SOURCE / "components/2x4.md").read_text(encoding="utf-8")
+    rule = "不输出；单色 SVG 由运行时按按钮前景色自动染色，位图保留原色"
+
+    assert rule in common
+    assert rule in two_by_four
+    assert '"CardButton",{"label":"蓝牙设置","icon":' in two_by_four
+    explicit_color = (
+        '"CardButton",{"label":"蓝牙设置",'
+        '"icon":"resources/base/media/bluetooth_fill.svg","fillColor"'
+    )
+    assert explicit_color not in two_by_four
+
+
 def test_anchor_layout_requires_main_and_nonempty_support_information() -> None:
     create = read_prompt(DEFAULT_SOURCE, "create", size="2x2")
     plan = read_prompt(DEFAULT_SOURCE, "plan", size="2x2")

@@ -540,7 +540,7 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 | `label` | string | 仅静态 | 必填；完整动作与目标文案 |
 | `labelLines` | 1 / 2 | 仅静态 | 可选，缺省1；两行占高40，必须满足所属槽位容量 |
 | `icon` | string | 仅静态 | 可选；逐字使用当前素材候选路径 |
-| `fillColor` | `#AARRGGBB` | 仅静态 | icon 使用 SVG 时必填；无 icon 或位图不填写 |
+| `fillColor` | — | — | 不输出；单色 SVG 由运行时按按钮前景色自动染色，位图保留原色 |
 | `onClick` | EventHandler[] | 事件参数按事件 schema | 必填；恰好一个当前事件候选中的 handler |
 
 背板与几何由Recipe和所属槽提供，不输出backgroundColor、宽高、padding或字号。
