@@ -115,6 +115,15 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
         "theme_candidate",
         "theme_fallback",
     ]
+    assert {
+        (
+            context.operation,
+            context.generation_mode,
+            context.phase,
+            context.attempt,
+        )
+        for context in validation_contexts
+    } == {("standalone", "standalone", "theme", 1)}
     assert "linearGradient" in result.genui
     assert result.taskSpec == {}
     assert themes.foreground_signature(result.genui) == themes.foreground_signature(source)

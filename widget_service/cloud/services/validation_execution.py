@@ -18,6 +18,31 @@ class ValidationExecutionContext:
     purpose: str = "standalone"
     candidate_index: int | None = None
 
+    @classmethod
+    def for_request(
+        cls,
+        *,
+        operation: str,
+        generation_mode: str,
+    ) -> ValidationExecutionContext:
+        """创建请求级身份；具体校验必须继续派生阶段和用途。"""
+
+        return cls(
+            operation=operation,
+            generation_mode=generation_mode,
+            purpose="request",
+        )
+
+    def for_phase(
+        self,
+        phase: str,
+        *,
+        attempt: int,
+    ) -> ValidationExecutionContext:
+        """保留请求身份，派生阶段自己的尝试次数。"""
+
+        return replace(self, phase=phase, attempt=attempt)
+
     def with_purpose(
         self,
         purpose: str,
@@ -33,15 +58,8 @@ class ValidationExecutionContext:
         )
 
     def log_fields(self) -> str:
-        """返回供标准日志复用的稳定键值字段。"""
+        """兼容现有调用；标准字段格式由观测辅助模块统一维护。"""
 
-        fields = (
-            f"operation={self.operation} "
-            f"generation_mode={self.generation_mode} "
-            f"phase={self.phase} "
-            f"attempt={self.attempt} "
-            f"purpose={self.purpose}"
-        )
-        if self.candidate_index is not None:
-            fields += f" candidate_index={self.candidate_index}"
-        return fields
+        from services.validation_observability import format_validation_execution_fields
+
+        return format_validation_execution_fields(self)

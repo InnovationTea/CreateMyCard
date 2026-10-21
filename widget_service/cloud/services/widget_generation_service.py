@@ -99,6 +99,7 @@ from services.source_artifact_repository import (
 )
 from services.template_generation import TemplateSourceGenerator
 from services.validation_execution import ValidationExecutionContext
+from services.validation_observability import log_validation_event
 from services.validator import ArtifactValidator
 from services.widget_edit_protocol.resources import MODEL_FORMAT as SINGLE_STEP_MODEL_FORMAT
 from services.widget_edit_protocol.resources import UPSTREAM_COMMIT as SINGLE_STEP_UPSTREAM_COMMIT
@@ -325,6 +326,10 @@ class WidgetGenerationService:
         request_body = self._request_body_for_artifact(request)
         asset_mapping = dict(settings.asset_src_url_mapping)
         generation_mode = "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
+        request_validation_context = ValidationExecutionContext.for_request(
+            operation=policy.operation,
+            generation_mode=generation_mode,
+        )
         is_fusion_generation = (
             policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
             and policy.operation == "generateWidgetCardCompactDsl"
@@ -1352,16 +1357,13 @@ class WidgetGenerationService:
                     processing_context.task_spec,
                 )
             evaluation_attempt = quality_repair_attempt_count + 1
-            validation_execution_context = ValidationExecutionContext(
-                operation=policy.operation,
-                generation_mode=generation_mode,
-                phase=model_call_phase,
+            validation_execution_context = request_validation_context.for_phase(
+                model_call_phase,
                 attempt=evaluation_attempt,
-                purpose=(
-                    "template_candidate"
-                    if source_generated_by_template
-                    else "delivery_candidate"
-                ),
+            ).with_purpose(
+                "template_candidate"
+                if source_generated_by_template
+                else "delivery_candidate"
             )
             trace_increment_attempt("validationEvaluations")
             validation_attempts = {"validation": evaluation_attempt}
@@ -1369,10 +1371,12 @@ class WidgetGenerationService:
                 validation_attempts["qualityRepair"] = quality_repair_attempt_count
             # JSX 路径：agent 内部已有编译、验证和重试；仅映射交付资源，跳过工程质量流程。
             if source_generated_by_jsx:
-                logger.info(
-                    f"{_MODULE} artifact_validation_skipped "
-                    f"{validation_execution_context.log_fields()} "
-                    "reason=jsx_internal_validation"
+                log_validation_event(
+                    logger,
+                    component=_MODULE,
+                    event="artifact_validation_skipped",
+                    execution_context=validation_execution_context,
+                    details={"reason": "jsx_internal_validation"},
                 )
                 latest_processing_result = DslProcessingResult(
                     source_dsl=source_dsl,
@@ -1473,18 +1477,24 @@ class WidgetGenerationService:
                 if item.severity == "warning"
             ]
             if warnings:
-                logger.warning(
-                    f"{_MODULE} dsl_processing_warnings "
-                    f"{validation_execution_context.log_fields()} "
-                    f"warnings={json_for_log(warnings)}"
+                log_validation_event(
+                    logger,
+                    component=_MODULE,
+                    event="dsl_processing_warnings",
+                    execution_context=validation_execution_context,
+                    level="warning",
+                    details={"warnings": warnings},
                 )
             conversion_errors = [item.repair_message() for item in processing_result.errors]
             if conversion_errors:
                 report_ops_metrics(body={"validationScenarioFailure": 1})
-                logger.error(
-                    f"{_MODULE} dsl_conversion_failed "
-                    f"{validation_execution_context.log_fields()} "
-                    f"errors={json_for_log(conversion_errors)}"
+                log_validation_event(
+                    logger,
+                    component=_MODULE,
+                    event="dsl_conversion_failed",
+                    execution_context=validation_execution_context,
+                    level="error",
+                    details={"errors": conversion_errors},
                 )
                 self._append_repair_record(
                     repair_records,
@@ -1885,13 +1895,10 @@ class WidgetGenerationService:
             if colorless_source() or single_step_theme:
                 from services.post_layout_theme import theme_artifact
 
-                theme_validation_context = ValidationExecutionContext(
-                    operation=policy.operation,
-                    generation_mode=generation_mode,
-                    phase="theme",
+                theme_validation_context = request_validation_context.for_phase(
+                    "theme",
                     attempt=1,
-                    purpose="theme_candidate",
-                )
+                ).with_purpose("theme_candidate")
                 artifact = await theme_artifact(
                     artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
                     ArtifactValidator(asset_mapper.mapping), protocol_profile,

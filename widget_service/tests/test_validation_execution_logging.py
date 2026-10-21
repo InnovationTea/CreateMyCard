@@ -12,6 +12,7 @@ from services.card_validation.compact_validation.diagnostics import (
 )
 from services.card_validation.diagnostics import Diagnostic
 from services.validation_execution import ValidationExecutionContext
+from services.validation_observability import ValidationObserver
 from services.validator import ArtifactValidator
 
 
@@ -55,6 +56,93 @@ def test_validation_execution_context_marks_candidate_without_losing_attempt() -
         "operation=generateWidgetCardCompactDsl generation_mode=create "
         "phase=repair attempt=2 purpose=recomposition_candidate candidate_index=3"
     )
+
+
+def test_request_context_derives_repair_template_artifact_and_theme_identities() -> None:
+    request_context = ValidationExecutionContext.for_request(
+        operation="generateWidgetCardCompactDsl",
+        generation_mode="create",
+    )
+    repair = request_context.for_phase("repair", attempt=2).with_purpose(
+        "delivery_candidate"
+    )
+    artifact = repair.with_purpose("artifact_candidate")
+    template = request_context.for_phase("initial", attempt=1).with_purpose(
+        "template_candidate"
+    )
+    theme = request_context.for_phase("theme", attempt=1).with_purpose(
+        "theme_candidate"
+    )
+
+    assert (repair.operation, repair.generation_mode, repair.phase, repair.attempt) == (
+        "generateWidgetCardCompactDsl",
+        "create",
+        "repair",
+        2,
+    )
+    assert artifact.purpose == "artifact_candidate"
+    assert template.purpose == "template_candidate"
+    assert (theme.phase, theme.attempt, theme.purpose) == ("theme", 1, "theme_candidate")
+
+
+def test_validation_observer_preserves_exception_and_call_count() -> None:
+    captured = _CapturedLogger()
+    observer = ValidationObserver(
+        captured,
+        component="[Test Validation]",
+        event_prefix="validation",
+        execution_context=_execution_context(),
+    )
+    calls = 0
+    failure = RuntimeError("observer must not replace this exception")
+
+    def validate() -> None:
+        nonlocal calls
+        calls += 1
+        raise failure
+
+    observer.started()
+    with pytest.raises(RuntimeError) as caught:
+        try:
+            validate()
+        except Exception as exc:
+            observer.crashed(exc)
+            raise
+
+    assert caught.value is failure
+    assert calls == 1
+    assert len(captured.info_messages) == 1
+    assert len(captured.error_messages) == 1
+    assert "validation_crashed" in captured.error_messages[0]
+    assert "phase=repair attempt=2 purpose=delivery_candidate" in captured.error_messages[0]
+    assert "Traceback" in captured.error_messages[0]
+
+
+def test_validation_observer_keeps_return_value_and_single_call() -> None:
+    captured = _CapturedLogger()
+    observer = ValidationObserver(
+        captured,
+        component="[Test Validation]",
+        event_prefix="validation",
+        execution_context=_execution_context(),
+    )
+    calls = 0
+    expected = object()
+
+    def validate() -> object:
+        nonlocal calls
+        calls += 1
+        return expected
+
+    observer.started()
+    result = validate()
+    observer.completed(warning_count=0)
+
+    assert result is expected
+    assert calls == 1
+    assert len(captured.info_messages) == 2
+    assert captured.warning_messages == []
+    assert captured.error_messages == []
 
 
 @pytest.fixture

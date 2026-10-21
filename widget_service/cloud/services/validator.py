@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-import traceback
 from typing import Any
 
-from app.logger import json_for_log, logger
+from app.logger import logger
 from config.config import get_settings
 from models.artifact import WidgetArtifact
 from services.card_validation import ValidationOptions, validate_card
@@ -11,6 +10,7 @@ from services.card_validation.diagnostics import Diagnostic
 from services.card_validation.theme_phase_validator import theme_phase_errors
 from services.theme_style_roles import in_layout_phase
 from services.validation_execution import ValidationExecutionContext
+from services.validation_observability import ValidationObserver
 
 _MODULE = "[Validator]"
 
@@ -60,19 +60,25 @@ class ArtifactValidator:
         # 校验入口接收完整 artifact；标准 A2UI 通过服务内 Python API 调用最新校验流水线。
         validator_name = "services.card_validation.validate_card"
         identity = execution_context or ValidationExecutionContext()
-        log_fields = identity.log_fields()
-        logger.info(
-            f"{_MODULE} artifact_validation_started protocol_profile_id={protocol_profile['id']} "
-            f"validator_module={validator_name} {log_fields}"
+        observer = ValidationObserver(
+            logger,
+            component=_MODULE,
+            event_prefix="artifact_validation",
+            execution_context=identity,
+        )
+        observer.started(
+            protocol_profile_id=protocol_profile["id"],
+            validator_module=validator_name,
         )
         self.error_categories = []
         self.error_prompt_contexts = []
         phase_errors = theme_phase_errors(artifact.genui, layout=in_layout_phase())
         if phase_errors:
             self.error_categories = ["THEME_PHASE"]
-            logger.warning(
-                f"{_MODULE} artifact_validation_failed {log_fields} "
-                f"error_count={len(phase_errors)} category=THEME_PHASE"
+            observer.failed(
+                level="warning",
+                error_count=len(phase_errors),
+                category="THEME_PHASE",
             )
             return phase_errors
         try:
@@ -100,27 +106,17 @@ class ArtifactValidator:
             # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
             errors = [f"validator execution failed: {exc}"]
             self.error_categories = ["VALIDATOR"]
-            logger.error(
-                f"{_MODULE} artifact_validation_failed {log_fields} "
-                f"errors={json_for_log(errors)} "
-                f"validator_module={validator_name} "
-                f"exception_type={type(exc).__name__} exception={exc!r} "
-                f"traceback={traceback.format_exc()}"
+            observer.failed(
+                errors=errors,
+                validator_module=validator_name,
+                exception=exc,
             )
             return errors
 
         if errors:
-            logger.error(
-                f"{_MODULE} artifact_validation_failed {log_fields} "
-                f"errors={json_for_log(errors)} "
-                f"warnings={json_for_log(warnings)}"
-            )
+            observer.failed(errors=errors, warnings=warnings)
         else:
-            logger.info(
-                f"{_MODULE} artifact_validation_completed {log_fields} "
-                f"warning_count={len(warnings)} "
-                f"warnings={json_for_log(warnings)}"
-            )
+            observer.completed(warning_count=len(warnings), warnings=warnings)
         return errors
 
     def _normalize_diagnostics(

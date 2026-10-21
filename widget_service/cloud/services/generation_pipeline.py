@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import time
-import traceback
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any, Literal, Protocol
 
-from app.logger import json_for_log, logger
+from app.logger import logger
 from config.config import get_settings
 from custom.model_transport import ModelBackend
 from services.card_validation import (
@@ -33,6 +32,7 @@ from services.compact_wide_recomposition import recompose_wide_card
 from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
 from services.validation_execution import ValidationExecutionContext
+from services.validation_observability import ValidationObserver, log_validation_event
 from utils.ops_metrics import report_ops_metrics
 
 IssueStage = Literal["conversion", "validation"]
@@ -235,7 +235,6 @@ class DesignCompactProcessor:
     ) -> DslProcessingResult:
         binding_repair_started_at = time.perf_counter()
         identity = context.validation_execution_context or ValidationExecutionContext()
-        log_fields = identity.log_fields()
         from services.layout_theme_contract import strip_source_colors
         from services.theme_style_roles import in_layout_phase
 
@@ -308,17 +307,27 @@ class DesignCompactProcessor:
                     compact_plan=context.compact_plan,
                 )
             except Exception as exc:
-                logger.error(
-                    f"[Compact Validation] outer_recomposition_crashed {log_fields} "
-                    f"exception_type={type(exc).__name__} traceback={traceback.format_exc()}"
+                log_validation_event(
+                    logger,
+                    component="[Compact Validation]",
+                    event="outer_recomposition_crashed",
+                    execution_context=identity,
+                    level="error",
+                    exception=exc,
                 )
                 raise
             source_dsl = outer_result.source_dsl
             outer_applied = outer_result.applied
-            logger.info(
-                f"[Compact Validation] outer_recomposition_completed {log_fields} "
-                f"applied={outer_applied} candidate_count={outer_result.candidate_count} "
-                f"reasons={json_for_log(outer_result.reasons)}"
+            log_validation_event(
+                logger,
+                component="[Compact Validation]",
+                event="outer_recomposition_completed",
+                execution_context=identity,
+                details={
+                    "applied": outer_applied,
+                    "candidate_count": outer_result.candidate_count,
+                    "reasons": outer_result.reasons,
+                },
             )
             trace_step(
                 "dsl.outer_recomposition.completed",
@@ -410,7 +419,13 @@ class DesignCompactProcessor:
 
         if not context.skip_compact_dsl_validation:
             compact_validation_started_at = time.perf_counter()
-            logger.info(f"[Compact Validation] validation_started {log_fields}")
+            observer = ValidationObserver(
+                logger,
+                component="[Compact Validation]",
+                event_prefix="validation",
+                execution_context=identity,
+            )
+            observer.started()
             try:
                 validation_result = validate_compact_dsl(
                     source_dsl,
@@ -424,10 +439,7 @@ class DesignCompactProcessor:
                     repair_context=context.repair_context,
                 )
             except CompactDslValidationError as exc:
-                logger.error(
-                    f"[Compact Validation] validation_failed {log_fields} "
-                    f"error_count={len(exc.errors)} errors={json_for_log(exc.errors)}"
-                )
+                observer.failed(error_count=len(exc.errors), errors=exc.errors)
                 trace_step(
                     "dsl.compact_validation.completed",
                     stage="dsl.compactValidation",
@@ -466,20 +478,13 @@ class DesignCompactProcessor:
                     ),
                 )
             except Exception as exc:
-                logger.error(
-                    f"[Compact Validation] validation_crashed {log_fields} "
-                    f"exception_type={type(exc).__name__} traceback={traceback.format_exc()}"
-                )
+                observer.crashed(exc)
                 raise
-            logger.info(
-                f"[Compact Validation] validation_completed {log_fields} "
-                f"warning_count={len(validation_result.warnings)}"
-            )
+            observer.completed(warning_count=len(validation_result.warnings))
             if validation_result.warnings:
-                logger.warning(
-                    f"[Compact Validation] validation_warnings {log_fields} "
-                    f"warning_count={len(validation_result.warnings)} "
-                    f"warnings={json_for_log(validation_result.warnings)}"
+                observer.warnings(
+                    warning_count=len(validation_result.warnings),
+                    warnings=validation_result.warnings,
                 )
             trace_step(
                 "dsl.compact_validation.completed",

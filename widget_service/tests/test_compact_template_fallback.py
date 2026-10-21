@@ -20,6 +20,7 @@ from services.generation_pipeline import DslProcessingResult, QualityIssue
 from services.template_generation import TemplateSourceGenerator
 from services.template_generation.engine.pipeline import TemplateRouteNotApplicable
 from services.template_generation.model_client import TemplateModelClient
+from services.validation_execution import ValidationExecutionContext
 from services.widget_generation_service import WidgetGenerationService
 
 
@@ -42,6 +43,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     notifications: list[str] = []
     fallback_events: list[dict] = []
     body_attempts: list[list[dict[str, str]]] = []
+    theme_validation_contexts: list[ValidationExecutionContext | None] = []
     settings = get_settings().model_copy(update={
         "enable_a2ui_model_mock": False,
         "enable_artifact_validation": True,
@@ -113,9 +115,15 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
 
     def process(source, context):
         processed.append((source, context.skip_compact_dsl_validation))
+        validation_context = context.validation_execution_context
+        assert validation_context is not None
+        assert validation_context.operation == "generateWidgetCardCompactDsl"
+        assert validation_context.generation_mode == "create"
         assert context.colorless_layout == (source != "template-source")
         assert context.card_spec.get("title") == "静态卡片"
         if source == "template-source":
+            assert validation_context.purpose == "template_candidate"
+            assert (validation_context.phase, validation_context.attempt) == ("initial", 1)
             assert context.compact_plan is None
             if failure == "processor_exception":
                 raise ValueError("template processing failed")
@@ -125,6 +133,13 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
                 ))
         else:
             assert source in {"fusion-source", "fusion-repaired-source"}
+            assert validation_context.purpose == "delivery_candidate"
+            expected_phase = "repair" if source == "fusion-repaired-source" else "initial"
+            expected_attempt = 2 if source == "fusion-repaired-source" else 1
+            assert (validation_context.phase, validation_context.attempt) == (
+                expected_phase,
+                expected_attempt,
+            )
             assert context.compact_plan is not None
             fusion_invalid = failure == "fusion_exhausted"
             needs_first_repair = failure == "fusion_repair" and source == "fusion-source"
@@ -149,6 +164,7 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
 
     async def theme(artifact, *_args, **_kwargs):
         themed.append(artifact.genui)
+        theme_validation_contexts.append(_kwargs.get("validation_execution_context"))
         return artifact
 
     async def save(store, artifact):
@@ -220,6 +236,23 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
         assert saved == ([] if terminal_failure else [final_source])
         assert themed == ([] if terminal_failure else [final_source])
         assert len(fallback_events) == 1
+    if themed:
+        assert len(theme_validation_contexts) == 1
+        theme_context = theme_validation_contexts[0]
+        assert theme_context is not None
+        assert (
+            theme_context.operation,
+            theme_context.generation_mode,
+            theme_context.phase,
+            theme_context.attempt,
+            theme_context.purpose,
+        ) == (
+            "generateWidgetCardCompactDsl",
+            "create",
+            "theme",
+            1,
+            "theme_candidate",
+        )
 
 
 @pytest.mark.asyncio
