@@ -24,6 +24,7 @@ description: 共用单组件的语义、Props、容量和示例；尺寸差异�
 | 占比摘要 | `NumericRatioStack` | 三组图标 + 数值 + 单位 | 三个同级对象的紧凑占比 | 必须恰好三项且图标可区分 |
 | 日程 | `EventCard` | 时间线 + 一个或多个事件 | 两种尺寸的连续日程内容 | 默认同组合并一个实例；W-top-bottom可在primary/details有序分段，按实际总高验算容量 |
 | 操作 | `PillButton` | 操作文案 + 可选图标 | 两种尺寸内容区内的直属操作 | 一个实例绑定一个真实动作 |
+| 操作 | `CardButton` | 卡片背板 + 动作文案 + 视觉位 | 尺寸文件限定的固定动作槽 | 一个真实动作，不承载动态正文 |
 
 符合专用语义、类型及容量时优先相应组件；不为用组件补造字段。单一核心与真实同级关系不能混淆。
 2x2 无动作且整卡只有一个核心读数或1–8字短文本结论及其紧密支撑时，优先使用尺寸专属的
@@ -529,4 +530,27 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 一个实例只绑定一个动作，同一动作只保留一个入口。不输出宽度、动作色、字号或字重；有 icon 时由 Recipe
 生成图标与文字，不手写相同按钮皮肤；
 完整标签放不下时更换布局，不裁切、不缩小 Recipe，也不回退为基础 `Button`。
+### 14. `CardButton`
+
+只进入尺寸文件登记的固定动作槽，一个实例承载一个真实动作，不用按钮label替代动态正文。
+左侧缺省单行文案，右侧为固定视觉位；有准确图标时使用候选素材。事件必须逐字复用当前候选。
+
+| Prop | 类型 | 绑定能力 | 要求 |
+|---|---|---|---|
+| `label` | string | 仅静态 | 必填；完整动作与目标文案 |
+| `labelLines` | 1 / 2 | 仅静态 | 可选，缺省1；两行占高40，必须满足所属槽位容量 |
+| `icon` | string | 仅静态 | 可选；逐字使用当前素材候选路径 |
+| `fillColor` | `#AARRGGBB` | 仅静态 | icon 使用 SVG 时必填；无 icon 或位图不填写 |
+| `onClick` | EventHandler[] | 事件参数按事件 schema | 必填；恰好一个当前事件候选中的 handler |
+
+背板与几何由Recipe和所属槽提供，不输出backgroundColor、宽高、padding或字号。
+缺省单行超出文字区时由 Recipe 在尾部显示省略号并产生 warning，不因此拒绝整张卡；原始完整 label
+和事件保持不变。需两行时先核对尺寸合同的实际槽高；
+字号、槽位高度、图标、padding均不改变。两个字以内的短值不能作为任意长标签的容量依据。
+两行仍不能容纳必要目标时，改选其它合法动作组件及父布局，保留动作与完整目标；不创建低阶可点击容器，不改内部规格，也不重复入口。
+
+```genui
+["settings","CardButton",{"label":"蓝牙设置","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+```
+
 <!-- /prompt:catalog -->

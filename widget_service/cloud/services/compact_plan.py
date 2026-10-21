@@ -1099,7 +1099,7 @@ def compact_plan_context(
         if len(facts) == 2 and all("actionId" in fact for fact in facts):
             pure_action_instruction = (
                 "本轮只有两个必要动作、没有展示事实，使用 S-content-dual-action 的 "
-                "actions-only 变体，children 仅为两个 PillButton；"
+                "actions-only 变体，children 仅为两个 CardButton；"
                 "不生成内容槽、标题、占位正文、空容器或伪造状态。"
             )
     if "assetAssignments" in context_plan:
@@ -2153,10 +2153,10 @@ def _normalize_dual_action_plan(
         if "actionId" not in fact:
             continue
         hints = fact.get("componentHints")
-        if hints != ["PillButton"]:
-            fact["componentHints"] = ["PillButton"]
+        if hints != ["CardButton"]:
+            fact["componentHints"] = ["CardButton"]
             warnings.append(
-                "A 2x2 dual-action fact uses PillButton in S-content-dual-action."
+                "A 2x2 dual-action fact uses CardButton in S-content-dual-action."
             )
     return normalized_layouts, warnings
 

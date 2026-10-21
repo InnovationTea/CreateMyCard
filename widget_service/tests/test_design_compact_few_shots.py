@@ -1,12 +1,12 @@
 """将正式 Few-shot 作为真实生成输入，防止示例与转换协议漂移。"""
 
+import copy
 import json
 import re
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from config.config import get_settings
 from services.card_validation import ValidationOptions, validate_card, validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
@@ -75,6 +75,8 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x2-V09",
         "2x2-V15",
         "2x2-V10",
+        "2x2-V15",
+        "2x2-V16",
         "2x2-V12",
         "2x2-V04",
         "2x2-V11",
@@ -85,6 +87,8 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x2-V08",
         "2x2-V14",
         "2x2-V03",
+        "2x2-V17",
+        "2x2-V18",
         "2x2-V07",
     ),
     "2x4": (
@@ -116,6 +120,10 @@ EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x2-V08": "S-title-anchor",
     "2x2-V14": "S-title-anchor",
     "2x2-V03": "S-content-dual-action",
+    "2x2-V15": "S-title-dual-content",
+    "2x2-V16": "S-title-dual-content",
+    "2x2-V17": "S-content-dual-action",
+    "2x2-V18": "S-content-dual-action",
     "2x2-V07": "S-dual-info",
     "2x4-V03": "W-top-bottom",
     "2x4-V16": "W-top-bottom",
@@ -207,11 +215,21 @@ def test_few_shot_validates_and_converts(
     size = task.get("size")
     assert size in {"2x2", "2x4"}, identifier
 
+    compact_plan = None
+    if identifier == "2x2-V17":
+        task = copy.deepcopy(task)
+        facts = []
+        for index, event in enumerate(task.get("eventCandidates", [])):
+            event["id"] = f"example.action.{index}"
+            facts.append({"actionId": event["id"], "priority": "must", "requirement": "操作"})
+        compact_plan = {"info_required": facts, "layoutHints": ["S-content-dual-action"]}
+
     result = validate_compact_dsl(
         source,
         task_spec=task,
         card_spec={"suggestSize": size},
         enforce_model_component_types=True,
+        compact_plan=compact_plan,
     )
     assert not result.warnings, identifier
 
@@ -295,7 +313,7 @@ def test_few_shot_sources_follow_layout_order_and_mark_missing_skeletons() -> No
         assert actual == list(expected)
 
     two_by_two = (PROMPT_SOURCE / "fewshots/2x2.md").read_text(encoding="utf-8")
-    for layout in ("S-title-dual-content", "S-title-dual-column-action"):
+    for layout in ("S-title-dual-column-action",):
         group = two_by_two.split(f"**布局骨架：`{layout}`**", maxsplit=1)[1]
         assert "待补充 Few-shot" in group.split("---", maxsplit=1)[0]
 
@@ -329,6 +347,7 @@ def test_two_by_two_examples_cover_expected_layouts() -> None:
     expected = {
         "S-center",
         "S-title-content",
+        "S-title-dual-content",
         "S-quad-content",
         "S-title-content-action",
         "S-title-primary-secondary-action",
@@ -420,7 +439,7 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
         ("2x2-V01", {"DataDisplay"}),
         ("2x2-V15", {"DataDisplay"}),
         ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
-        ("2x2-V03", {"TableText", "PillButton"}),
+        ("2x2-V03", {"TableText", "CardButton"}),
         ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
         ("2x2-V05", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
         ("2x2-V06", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
@@ -496,7 +515,7 @@ def test_text_component_examples_follow_runtime_font_ownership(
         if component_type == "SecondaryBody":
             role = props.get("role")
             items = props.get("items", [])
-            expected = 12 if role == "metadata" or len(items) > 2 else 14
+            expected = 12 if role == "metadata" or len(items) > props.get("columns", 2) else 14
         elif component_type == "TableText":
             expected = 10 if len(props.get("items", [])) == 3 else 12
         if expected is not None:

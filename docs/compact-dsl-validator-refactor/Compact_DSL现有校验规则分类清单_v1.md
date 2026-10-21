@@ -11,6 +11,12 @@ EventCard 的 Props、事件顺序与总高继续由共享组件和容量校验�
 Plan事实动作覆盖仍委托`compact_plan_coverage_errors`；不新增或迁移语法／语义检查项。
 重组仅返回结果，现有Trace仍由`generation_pipeline.py`记录，本次不调整日志打点。
 
+2026-10-21：经用户确认，2×2双必要动作由PillButton改为CardButton。
+组件尺寸可用性和单行/两行槽预算委托共享Recipe及高阶组件转换；
+固定角色与36/57vp槽位归共享语义布局编译和布局合同；
+actions-only恰好两个不同动作且无正文的授权仍归semantic/plan_contracts.py。
+Plan候选标准化只改动作组件，不删除事实或改变事件/素材授权；不新增错误码或放宽溢出校验。
+
 2026-10-17：纯双动作布局与开关事件比较补充：
 
 | 检查项 | 分类与实际落点 | 归属理由及边界 |
@@ -187,6 +193,12 @@ item 使用 `layoutWeight:1`、`flexShrink:1` 和 `constraintSize.minWidth:0` �
 场景，并在加载时校验。横向权重区域向上查找遇到数值宽度且 `flexShrink:0` 的固定宽度边界即停止，
 不得继续凭更高层祖先权重降级；间距完全吸收仍独立判断。阈值只表示经验容忍，不证明端侧必然消除
 溢出。本项仍归 `semantic/layout/horizontal.py`，配置解析归同目录 `overflow_tolerances.py`。
+
+2026-10-20：收紧纵向高度策略，从上述配置删除高度容忍规则，取消根 Column、正数
+`layoutWeight` Column 和可压缩 `itemMargin` 的 warning 豁免。2×2 仅保留整树 `2vp` 数值容差，
+2×4 不设高度容差；超过容差且最小占用及可用高度已可确定时，统一产生
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` error 并进入布局容量修复。横向 warning 策略保持不变；纵向规则
+仍归 `semantic/layout/geometry.py`。
 
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
 高度专用约束不阻止横向检查。TextBlock item 另读取 Recipe 的参考容量下限，避免渲染约束改为

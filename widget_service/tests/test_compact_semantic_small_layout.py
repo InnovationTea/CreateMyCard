@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 
 import pytest
-
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
@@ -47,9 +46,9 @@ def _leaf(identifier: str, kind: str) -> list:
         props = {"externalText": 68, "icon": "resources/base/media/phone_fill.svg",
                  "fillColor": "#991F4799", "color": "#FF1F4799",
                  "backgroundColor": "#331F4799", "accessibility": {"label": identifier}}
-    elif kind in {"PillButton", "CircleButton"}:
+    elif kind in {"PillButton", "CircleButton", "CardButton"}:
         props = {"onClick": [{"call": "open", "args": {}}]}
-        if kind == "PillButton":
+        if kind in {"PillButton", "CardButton"}:
             props["label"] = "查看"
         else:
             props.update(icon="resources/base/media/bluetooth_fill.svg",
@@ -69,14 +68,14 @@ def _layout_source(layout: str, variant: str = "standard", action: bool = False)
         ],
         "S-title-dual-column-action": ["SingleLineTitle", "ProgressCircle", "ProgressCircle"],
         "S-title-anchor": ["SingleLineTitle", "EmphasisText", "EmphasisText", "CircleButton"],
-        "S-content-dual-action": ["EmphasisText", "PillButton", "PillButton"],
+        "S-content-dual-action": ["EmphasisText", "CardButton", "CardButton"],
         "S-dual-info": ["InfoBlock", "InfoBlock"],
     }.get(layout)
     assert kinds is not None
     if variant == "stacked-info":
         kinds = ["SingleLineTitle", "InfoBlock", "InfoBlock"]
     if layout == "S-content-dual-action" and variant == "actions-only":
-        kinds = ["PillButton", "PillButton"]
+        kinds = ["CardButton", "CardButton"]
     if action:
         kinds.append("PillButton")
     leaves = []
