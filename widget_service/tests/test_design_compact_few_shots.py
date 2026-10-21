@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
 from config.config import get_settings
 from services.card_validation import ValidationOptions, validate_card, validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
@@ -75,7 +76,7 @@ EXPECTED_EXAMPLE_ORDER = {
         "2x2-V09",
         "2x2-V15",
         "2x2-V10",
-        "2x2-V15",
+        "2x2-V19",
         "2x2-V16",
         "2x2-V12",
         "2x2-V04",
@@ -120,7 +121,7 @@ EXPECTED_LAYOUT_BY_EXAMPLE = {
     "2x2-V08": "S-title-anchor",
     "2x2-V14": "S-title-anchor",
     "2x2-V03": "S-content-dual-action",
-    "2x2-V15": "S-title-dual-content",
+    "2x2-V19": "S-title-dual-content",
     "2x2-V16": "S-title-dual-content",
     "2x2-V17": "S-content-dual-action",
     "2x2-V18": "S-content-dual-action",
@@ -262,7 +263,8 @@ def test_few_shot_validates_and_converts(
     "identifier, component_id", [("2x4-V10", "upper"), ("2x4-V38", "top_left")]
 )
 def test_double_quoted_expression_strings_remain_rejected(
-    identifier: str, component_id: str,
+    identifier: str,
+    component_id: str,
 ) -> None:
     task, source = _example(identifier)
     rows = _rows(source)
@@ -426,11 +428,50 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
     _, source = _example("2x2-V14")
     rows = {row[0]: row for row in _rows(source)}
 
-    title_row = rows.get("title")
-    action_row = rows.get("action")
+    title_row = rows.get("title_area")
+    action_row = rows.get("meeting_action")
     assert title_row is not None and action_row is not None
     assert title_row[2].get("icon") == "resources/base/media/calendar_fill.svg"
     assert action_row[2].get("icon") == "resources/base/media/icon_meeting.svg"
+
+
+@pytest.mark.parametrize(
+    "identifier,node_id", [("2x2-V08", "battery"), ("2x2-V14", "earphone_summary")]
+)
+def test_anchor_auxiliary_information_uses_secondary_body(identifier: str, node_id: str) -> None:
+    _, source = _example(identifier)
+    rows = {row[0]: row for row in _rows(source)}
+    node = rows.get(node_id)
+    assert node is not None
+    assert node[1] == "SecondaryBody"
+    assert node[2].get("columns") == 1
+    expected_items = 1 if identifier == "2x2-V08" else 2
+    assert len(node[2].get("items", [])) == expected_items
+
+
+def test_four_info_example_uses_declared_existing_icons() -> None:
+    task, source = _example("2x4-V06")
+    expected = {asset.get("src") for asset in task.get("assetCandidates", [])}
+    count = 0
+    for row in _rows(source):
+        if len(row) < 3 or row[1] != "InfoBlock":
+            continue
+        icon = row[2].get("icon")
+        assert icon in expected
+        assert (PROMPT_SOURCE.parents[5] / icon).is_file()
+        count += 1
+    assert count == 4
+
+
+def test_bluetooth_legacy_asset_name_preserves_existing_input_reference() -> None:
+    task, source = _example("2x2-V08")
+    alias = "resources/base/media/bluetooth_fill.svg"
+    assert task.get("assetCandidates", [])[0].get("src") == alias
+    assert alias in source
+    root = PROMPT_SOURCE.parents[5]
+    assert (root / alias).read_text(encoding="utf-8") == (
+        root / "resources/base/media/ic_Bluetooth.svg"
+    ).read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -452,7 +493,7 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
         ("2x2-V13", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
         (
             "2x2-V14",
-            {"SingleLineTitle", "EventCard", "TableText", "CircleButton"},
+            {"SingleLineTitle", "EventCard", "SecondaryBody", "CircleButton"},
         ),
         ("2x4-V03", {"EmphasizedData", "TextBlock"}),
         ("2x4-V39", {"SingleLineTitle", "SummaryList"}),
