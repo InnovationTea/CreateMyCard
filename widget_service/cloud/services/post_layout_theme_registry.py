@@ -38,7 +38,8 @@ _CONTENT_ELIGIBILITY = {
     "properties": {
         "kind": {"const": "uniform"},
         "maxTextLines": {"type": "integer", "minimum": 1, "maximum": 3},
-        "placement": {"enum": ["top-left-empty-bottom", "bottom-left", "center", "not-center"]},
+        "placement": {"enum": ["top-left-empty-bottom", "bottom-left", "not-bottom-left",
+                               "center", "not-center"]},
         "businesses": {"type": "array", "minItems": 1, "uniqueItems": True,
                        "items": {"enum": ["calendar", "battery", "earphone", "weather",
                                           "sleep", "music", "sport", "countdown", "holiday",
@@ -124,21 +125,9 @@ _BACKGROUNDS = {
     }},
 }
 _PHOTO_FALLBACKS = {
-    "type": "object", "additionalProperties": False, "required": ["darkText", "lightText"],
+    "type": "object", "additionalProperties": False, "required": ["color"],
     "properties": {
-        "darkText": {
-            "type": "object", "additionalProperties": False,
-            "required": ["colors", "direction"],
-            "properties": {
-                "colors": {"type": "array", "minItems": 2, "maxItems": 2,
-                           "items": {"type": "string", "pattern": r"^#FF[0-9A-Fa-f]{6}$"}},
-                "direction": {"enum": ["LeftBottom", "RightBottom", "LeftTop", "RightTop"]},
-            },
-        },
-        "lightText": {
-            "type": "object", "additionalProperties": False, "required": ["themeId"],
-            "properties": {"themeId": _TEXT},
-        },
+        "color": {"type": "string", "pattern": r"^#FF[0-9A-Fa-f]{6}$"},
     },
 }
 
@@ -207,7 +196,7 @@ def _validate_content_eligibility(theme: dict) -> None:
             raise ValueError("Top-only content requires a square subject photo")
         if policy.get("maxTextLines") != 2:
             raise ValueError("Top-only content requires the approved two-line limit")
-    elif placement == "bottom-left":
+    elif placement in {"bottom-left", "not-bottom-left"}:
         if is_texture or theme.get("sizes") != ["2x4"]:
             raise ValueError("Bottom-left content requires a wide subject photo")
     elif placement in {"center", "not-center"}:
@@ -217,14 +206,17 @@ def _validate_content_eligibility(theme: dict) -> None:
 
 def _validate_photo(theme: dict) -> None:
     roles = theme.get("content", {}).get("roles", {})
+    rgb = "FFFFFF"
+    if theme.get("pool") == "photos" and roles.get("primary") == "#FF000000":
+        rgb = "000000"
     expected = {
-        "primary": "#FFFFFFFF", "secondary": "#CCFFFFFF", "tertiary": "#99FFFFFF",
-        "graphicPrimary": "#FFFFFFFF", "graphicSecondary": "#CCFFFFFF",
-        "graphicTertiary": "#99FFFFFF",
+        "primary": "#FF" + rgb, "secondary": "#CC" + rgb, "tertiary": "#99" + rgb,
+        "graphicPrimary": "#FF" + rgb, "graphicSecondary": "#CC" + rgb,
+        "graphicTertiary": "#99" + rgb,
     }
     for name, color in expected.items():
         if roles.get(name) != color:
-            raise ValueError("Photo themes require the existing white foreground palette")
+            raise ValueError("Photo foreground requires one black or white palette at 100/80/60%")
     _validate_photo_url(theme.get("background", {}).get("remoteUrl", ""))
     if "measurementPolicy" in theme:
         raise ValueError("Runtime photo matching must not depend on device measurements")
@@ -305,13 +297,6 @@ def validate_registry(payload: dict) -> None:
     }, "photoSurfaceStyle")
     photo_fallbacks = payload.get("photoFallbacks")
     _check(photo_fallbacks, _PHOTO_FALLBACKS, "photoFallbacks")
-    identity = photo_fallbacks.get("lightText", {}).get("themeId")
-    target = by_id.get(identity, {})
-    if target.get("kind") != "fusion" or not target.get("enabled"):
-        raise ValueError("Photo fallback must reference an enabled fusion theme")
-    large_color = target.get("background", {}).get("ballColors", {}).get("large", "")
-    if not large_color.upper().startswith("#FF"):
-        raise ValueError("Photo fallback requires an opaque fusion base color")
     _check(payload.get("matching"), {
         "type": "object", "additionalProperties": False,
         "required": ["mode", "unknownGeometryPolicy"],
@@ -408,23 +393,9 @@ def fallback_theme(family: str | None) -> dict:
     raise ValueError("No configured fallback theme")
 
 
-def photo_fallback(primary: str) -> dict:
-    """按最终字色选择兜底，只取背景，不改变图片前景或正常主题候选。"""
-    config = load_theme_registry()
-    fallbacks = config.get("photoFallbacks", {})
-    black, white = (0, 0, 0), (255, 255, 255)
-    on_light = _composited_rgb(primary, backdrop=white)
-    on_dark = _composited_rgb(primary, backdrop=black)
-    result = {"kind": "gradient", "background": fallbacks.get("darkText", {})}
-    if _contrast_ratio(on_dark, black) > _contrast_ratio(on_light, white):
-        identity = fallbacks.get("lightText", {}).get("themeId")
-        target = next(
-            (item for item in config.get("themes", []) if item.get("id") == identity), None,
-        )
-        if target is None:
-            raise ValueError("Missing photo fallback theme")
-        result = {"kind": "fusion", "background": target.get("background", {})}
-    return result
+def photo_fallback() -> dict:
+    """图片统一使用UX指定的不透明底色，与字色及普通主题选择无关。"""
+    return load_theme_registry().get("photoFallbacks", {})
 
 
 def selection_rules() -> str:

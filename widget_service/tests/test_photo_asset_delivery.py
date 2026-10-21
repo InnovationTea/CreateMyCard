@@ -50,7 +50,7 @@ def artifact():
     )
 
 
-@pytest.mark.parametrize(("pool", "count"), [("photos", 19), ("texturePhotos", 18)])
+@pytest.mark.parametrize(("pool", "count"), [("photos", 21), ("texturePhotos", 18)])
 def test_current_photos_have_obs_addresses(pool, count):
     photos = registry.registered_themes(pool, include_disabled=True)
     assert len(photos) == count
@@ -138,7 +138,9 @@ def test_final_delivery_maps_only_photo_and_preserves_fallback(monkeypatch, addr
             node["src"] = photo.get("src")
     assert before == after
     styles = node_by_id(delivered.genui, "root").get("styles", {})
-    assert styles.get("backgroundColor") == ("#FFE6E6E6" if rgb == "000000" else "#FF1F1F99")
+    assert styles.get("backgroundColor") == "#FF8FADCC"
+    assert "linearGradient" not in styles
+    assert "fusionBall" not in delivered.genui
     assert original == original_copy
 
 

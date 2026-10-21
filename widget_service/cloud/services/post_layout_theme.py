@@ -294,27 +294,9 @@ def fusion_background(theme: dict, task: dict) -> list[dict]:
     return result
 
 
-def apply_photo_fallback(
-    shell: dict, foreground: dict, layers: list[dict], task: dict, primary: str,
-) -> None:
-    fallback = photo_fallback(primary)
-    background = fallback.get("background", {})
+def apply_photo_fallback(shell: dict) -> None:
     styles = shell.setdefault("styles", {})
-    if fallback.get("kind") == "gradient":
-        colors = background.get("colors", [])
-        styles["backgroundColor"] = colors[-1]
-        styles["linearGradient"] = {
-            "direction": background.get("direction"),
-            "colors": [[colors[0], 0], [colors[1], 1]],
-        }
-    else:
-        styles["backgroundColor"] = background.get("ballColors", {}).get("large")
-        if fusion_ball_enabled(task.get("appVersion")):
-            # 融球在图片后面；前景仍需端侧防溢出标记，避免球体参与内容尺寸适配。
-            foreground["id"] = FUSION_FOREGROUND_ID
-            shell["children"] = [PREFIX + "background", FUSION_FOREGROUND_ID]
-            layers[0].get("children", []).insert(0, "fusionBallBackground")
-            layers.extend(fusion_background(fallback, task))
+    styles["backgroundColor"] = photo_fallback().get("color")
 
 
 def _has_content_surface(node: dict, legacy_panels: list[str]) -> bool:
@@ -430,7 +412,7 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
         if kind == "fusion":
             shell["styles"]["backgroundColor"] = background_config.get("shellColor")
         elif kind == "photo":
-            apply_photo_fallback(shell, root, layers, task, primary)
+            apply_photo_fallback(shell)
         nodes[:0] = [shell, *layers]
     result = encode(records)
     if foreground_signature(source) != foreground_signature(result):

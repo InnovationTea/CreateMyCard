@@ -40,10 +40,13 @@ def _placement_reason(policy: dict, scope: ComponentRow, rows: list[ComponentRow
     if placement in {"center", "not-center"}:
         if _fully_centered(scope, rows) != (placement == "center"):
             reason = "2x2全居中只用同心圆，其余布局只用菱形或斜纹"
-    elif placement == "bottom-left":
+    elif placement in {"bottom-left", "not-bottom-left"}:
         bottom = scope.component_type == "Region" and scope.props.get("variant") == "title-content"
-        if not bottom or flow.get("leftAligned") is not True:
+        bottom_left = bottom and flow.get("leftAligned") is True
+        if placement == "bottom-left" and not bottom_left:
             reason = "此会议图片要求左侧主区正文全部居左贴底"
+        elif placement == "not-bottom-left" and bottom_left:
+            reason = "居左贴底会议使用A19，不匹配会议室横图"
     return reason
 
 

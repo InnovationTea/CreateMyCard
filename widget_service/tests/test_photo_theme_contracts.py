@@ -52,7 +52,7 @@ def test_photo_gates_do_not_cross_size_pools(enabled, size, gate):
 
 def test_current_subject_and_texture_assets_are_active_and_present():
     root = Path(__file__).resolve().parents[2]
-    expected = {"photos": 11, "texturePhotos": 15,
+    expected = {"photos": 13, "texturePhotos": 15,
                 "subjectlessWidePhotos": 0, "squareExpansions": 0}
     for key, count in expected.items():
         entries = themes.registered_themes(key)
@@ -69,8 +69,10 @@ def test_current_subject_and_texture_assets_are_active_and_present():
     assert set((root / "resources/base/media").glob("bg_*")) == expected_paths
 
 
-@pytest.mark.parametrize("entry", themes.registered_themes("photos"),
-                         ids=lambda entry: entry.get("id"))
+@pytest.mark.parametrize("entry", [
+    *themes.registered_themes("photos", include_disabled=True),
+    *themes.registered_themes("texturePhotos", include_disabled=True),
+], ids=lambda entry: entry.get("id"))
 def test_photo_assets_match_delivery_hash_and_preserve_source_record(entry):
     src = entry.get("src")
     assert isinstance(src, str)
@@ -78,6 +80,7 @@ def test_photo_assets_match_delivery_hash_and_preserve_source_record(entry):
     assert payload.startswith(b"\xff\xd8\xff")
     metadata = entry.get("source", {})
     assert hashlib.sha256(payload).hexdigest() == metadata.get("assetSha256")
+    assert len(payload) == metadata.get("assetBytes")
     original_hash = metadata.get("sourceSha256")
     assert isinstance(original_hash, str)
     assert len(original_hash) == 64

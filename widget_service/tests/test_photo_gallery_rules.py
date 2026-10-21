@@ -9,6 +9,8 @@ from test_uniform_photo_eligibility import PATHS, choose, evidence, rejection, s
 
 BIRDS = "photo-ux-birds-countdown-square"
 WAVE = "photo-ux-digital-wave-wide"
+MEETING_SQUARE = "photo-ux-meeting-room-square"
+MEETING_WIDE = "photo-ux-meeting-room-wide"
 DISABLED = {
     "galaxy-sleep-square",
     "track-runner-square", "sunrise-runner-square", "track-sprint-square", "running-pair-wide",
@@ -21,7 +23,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 11
+    assert len(registry.registered_themes("photos")) == 13
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -102,6 +104,79 @@ def test_a19_rejects_top_primary_bottom_support_and_old_information_business():
     assert rejection(sample(PATHS.get("information"), 1, wide=True, button=False), WAVE)
 
 
+@pytest.mark.parametrize("button,lines", [(False, 1), (True, 1), (True, 3)])
+def test_meeting_square_uses_uniform_left_aligned_calendar_body(button, lines):
+    saved = sample(PATHS.get("calendar"), lines, button=button)
+    assert rejection(saved, MEETING_SQUARE) is None
+
+
+@pytest.mark.parametrize("business,lines,align", [
+    ("calendar", 4, "start"), ("calendar", 1, "center"), ("calendar", 1, "end"),
+    ("sleep", 1, "start"), ("countdown", 1, "start"),
+])
+def test_meeting_square_rejects_wrong_business_alignment_or_line_count(business, lines, align):
+    saved = sample(PATHS.get(business), lines, align=align)
+    assert rejection(saved, MEETING_SQUARE)
+
+
+@pytest.mark.parametrize("button,expected", [(False, WAVE), (True, MEETING_WIDE)])
+def test_meeting_wide_and_a19_partition_bottom_left_layout(monkeypatch, button, expected):
+    saved = sample(PATHS.get("calendar"), 3, wide=True, button=button)
+    result, audit = choose(saved, monkeypatch)
+    assert audit.get("candidates") == [expected]
+    assert audit.get("themeId") == expected
+    assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
+
+
+def test_meeting_wide_accepts_top_primary_with_bottom_support_without_action():
+    saved = sample(PATHS.get("calendar"), 2, wide=True, button=False)
+    rows = themes.decode(saved.compact)
+    main = next(row for row in rows if row[0] == "main")
+    main[2]["variant"] = "title-hero-support"
+    main[3].append("details")
+    rows.append(["details", "Text", {"content": "会议室"}])
+    saved = expanded(rows, saved.task)
+    assert rejection(saved, MEETING_WIDE) is None
+    assert rejection(saved, WAVE)
+
+
+def test_meeting_wide_keeps_business_line_count_and_wide_layout_gate():
+    assert rejection(sample(PATHS.get("calendar"), 4, wide=True), MEETING_WIDE)
+    assert rejection(sample(PATHS.get("sleep"), 1, wide=True), MEETING_WIDE)
+    saved = sample(PATHS.get("calendar"), 1, wide=True)
+    rows = themes.decode(saved.compact)
+    rows[0][2]["orientation"] = "content-right"
+    assert rejection(expanded(rows, saved.task), MEETING_WIDE)
+
+
+def test_only_new_meeting_photos_use_black_foreground():
+    for photo in registry.registered_themes(include_disabled=True):
+        if photo.get("kind") != "photo":
+            continue
+        rgb = "000000" if photo.get("id") in {MEETING_SQUARE, MEETING_WIDE} else "FFFFFF"
+        roles = photo.get("content", {}).get("roles", {})
+        assert roles.get("primary") == "#FF" + rgb
+        assert roles.get("secondary") == "#CC" + rgb
+        assert roles.get("tertiary") == "#99" + rgb
+
+
+@pytest.mark.parametrize("pool", ["photos", "texturePhotos"])
+def test_black_foreground_is_only_accepted_in_subject_pool(pool):
+    config = registry.load_theme_registry()
+    photo = next(item for item in config.get("themes", []) if item.get("pool") == pool)
+    roles = photo.get("content", {}).get("roles", {})
+    for name in ("primary", "secondary", "tertiary",
+                 "graphicPrimary", "graphicSecondary", "graphicTertiary"):
+        color = roles.get(name)
+        assert isinstance(color, str)
+        roles[name] = color[:3] + "000000"
+    if pool == "photos":
+        registry.validate_registry(config)
+    else:
+        with pytest.raises(ValueError, match="foreground"):
+            registry.validate_registry(config)
+
+
 def centered_sample(business, primitive=False):
     path = PATHS.get(business)
     root = ["root", "Layout", {"layout": "S-center"}, ["reading"]]
@@ -138,7 +213,7 @@ def test_other_layouts_choose_between_two_equal_candidates(monkeypatch, wide, sh
         return selected
 
     monkeypatch.setattr(themes.secrets, "choice", choice)
-    saved = sample(PATHS.get("calendar"), 1, wide=wide, align="center")
+    saved = sample(PATHS.get("weather"), 1, wide=wide, align="center")
     result, audit = choose(saved, monkeypatch, '{"themeId":"gradient-blue"}')
     assert len(calls) == 1
     assert audit.get("themeId") == selected
@@ -149,6 +224,7 @@ def test_other_layouts_choose_between_two_equal_candidates(monkeypatch, wide, sh
 @pytest.mark.parametrize("placement,pool,size", [
     ("center", "photos", "2x2"), ("not-center", "texturePhotos", "2x4"),
     ("bottom-left", "texturePhotos", "2x4"), ("bottom-left", "photos", "2x2"),
+    ("not-bottom-left", "texturePhotos", "2x4"), ("not-bottom-left", "photos", "2x2"),
 ])
 def test_registry_rejects_placement_in_wrong_pool_or_size(placement, pool, size):
     config = registry.load_theme_registry()

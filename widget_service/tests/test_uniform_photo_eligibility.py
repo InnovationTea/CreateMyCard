@@ -34,6 +34,7 @@ SUBJECT_FILES = {
     "sleep_square", "sleep_wide", "sport_center_wide", "sunrise_runner_square",
     "starfield_weather_square", "starry_sky_square", "starry_sky_wide",
     "track_runner_square", "track_sprint_square", "violin_stage_square", "sand_arch_square",
+    "meeting_room_square", "meeting_room_wide",
 }
 PATHS = {
     "travel": "/data/travel/flightNumber", "countdown": "/data/countdown/first/countdownDays",
@@ -97,7 +98,7 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 19
+    assert len(subjects) == 21
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
     actual = {Path(item.get("src", "")).name for item in subjects}
     assert actual == expected
@@ -305,19 +306,23 @@ def test_explicit_preferences_and_disabled_switch_override_photos(monkeypatch, q
 
 
 @pytest.mark.parametrize("item", PHOTOS, ids=lambda item: item.get("id"))
-def test_all_photos_use_existing_white_roles_and_dark_fallback(item):
+def test_all_photos_preserve_role_opacity_and_use_solid_fallback(item):
     roles = item.get("content", {}).get("roles", {})
+    rgb = "FFFFFF"
+    if item.get("id") in {"photo-ux-meeting-room-square", "photo-ux-meeting-room-wide"}:
+        rgb = "000000"
     assert (roles.get("primary"), roles.get("secondary"), roles.get("tertiary")) == (
-        "#FFFFFFFF", "#CCFFFFFF", "#99FFFFFF",
+        "#FF" + rgb, "#CC" + rgb, "#99" + rgb,
     )
     original = artifact()
     task = {**original.taskSpec, "size": item.get("size"), "appVersion": "99.0.0"}
     result = themes.apply_theme(original.genui, item, task, {})
     for identity, color in (
-        ("primary", "#FFFFFFFF"), ("secondary", "#CCFFFFFF"), ("tertiary", "#99FFFFFF"),
+        ("primary", "#FF" + rgb), ("secondary", "#CC" + rgb), ("tertiary", "#99" + rgb),
     ):
         assert node_by_id(result, identity).get("styles", {}).get("fontColor") == color
     assert not node_by_id(result, "root").get("styles", {}).get("linearGradient")
+    assert node_by_id(result, "root").get("styles", {}).get("backgroundColor") == "#FF8FADCC"
     assert node_by_id(result, "panel").get("styles", {}).get("backdropBlur") == {"radius": 20}
     assert themes.foreground_signature(result) == themes.foreground_signature(original.genui)
 

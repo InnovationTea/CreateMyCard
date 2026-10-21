@@ -10,16 +10,7 @@
     }
   },
   "photoFallbacks": {
-    "darkText": {
-      "colors": [
-        "#FFFFFFFF",
-        "#FFE6E6E6"
-      ],
-      "direction": "LeftBottom"
-    },
-    "lightText": {
-      "themeId": "fusion-ball-schedule-blue"
-    }
+    "color": "#FF8FADCC"
   },
   "selection": {
     "rules": "1. 用户明确的颜色、纯色、深色、渐变或背景素材要求优先；自定义时必须检查文字、图标和按钮相对直接背景的可读性。\n2. 未指定时，简单 2x2 单业务且实际展示独立事实不超过 3 项、仅一个内容组、显式动作不超过 1 个，可使用对应融球；运行时允许且业务匹配时优先融球。单会议时间线使用暖色微渐变。列表、双分区、多组指标及 2x4 使用浅色微渐变，不为使用融球删掉用户必需内容。\n3. 事实按语义计数，同一组件中承载的不同事实仍分别计数；纯主题标题和 CTA 不计入事实数。运行时禁止融球时，直接使用对应微渐变，不能模拟球体。\n4. 色板由核心业务确定，不按 few-shot 的主题机械复制。天气、耳机、电量、设备、未知业务默认蓝色；睡眠、专注、一般运动和健康概览默认紫色；日程、会议、倒计时和纪念日默认暖色。心率主读数使用紫色 root，只在合法图表、图标或已由动态数据证明的局部状态中使用粉红；不随预览值擅自切换告警色。多业务以用户明确的主业务为准，无主次或未覆盖时用蓝色。",
@@ -555,7 +546,7 @@
         "sourceSha256": "bef1e69ffc6f93deac2c6fe43c5d5a6279943c932cbedcae29a3c10b14b20c84",
         "assetSha256": "bef1e69ffc6f93deac2c6fe43c5d5a6279943c932cbedcae29a3c10b14b20c84",
         "assetBytes": 354271,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1200,
           600
@@ -623,7 +614,7 @@
         "sourceSha256": "46c74e66a3a8e379504464cdaae6fe5f938967c1770b6fc955c00b2eb9227398",
         "assetSha256": "46c74e66a3a8e379504464cdaae6fe5f938967c1770b6fc955c00b2eb9227398",
         "assetBytes": 232229,
-        "processing": "按UX修改图集逐字节复制，不裁切或重编码",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -691,7 +682,7 @@
         "sourceSha256": "91f3ac19584fb1520c99b8221837d4c9575a45a9f24938b13aba987804860e08",
         "assetSha256": "91f3ac19584fb1520c99b8221837d4c9575a45a9f24938b13aba987804860e08",
         "assetBytes": 374305,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1200,
           600
@@ -761,7 +752,7 @@
         "sourceSha256": "55861617bfbea33279768c55125265485a87d8c1c54d08b819ed02c2f7d9a5d0",
         "assetSha256": "55861617bfbea33279768c55125265485a87d8c1c54d08b819ed02c2f7d9a5d0",
         "assetBytes": 230056,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -830,7 +821,7 @@
         "sourceSha256": "7c72b015c3ca08000be74c99825c3fdb3e8073d59bb60c3961e9925d0a8f2be1",
         "assetSha256": "7c72b015c3ca08000be74c99825c3fdb3e8073d59bb60c3961e9925d0a8f2be1",
         "assetBytes": 425693,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1200,
           600
@@ -899,7 +890,7 @@
         "sourceSha256": "7695393dc0f1edf241800a994b10eccf77a19b16aa62fe911f34ca5a7b4697ec",
         "assetSha256": "7695393dc0f1edf241800a994b10eccf77a19b16aa62fe911f34ca5a7b4697ec",
         "assetBytes": 398835,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1200,
           600
@@ -965,9 +956,9 @@
         "provider": "UX",
         "file": "photos_named_20261021/named/bg_ux_galaxy_sleep_square.jpg",
         "sourceSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
-        "assetSha256": "a2cf25d90b38460721d7f90ad230b5e93364ebd381c33dbf07ed35748c391c0b",
-        "assetBytes": 2479524,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "assetSha256": "52b5b55c6dd2ca40f07442e216b07aefb883ede01055f4eefd1f73cb1f4c5ce2",
+        "assetBytes": 490905,
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           2969,
           2969
@@ -1035,7 +1026,7 @@
         "sourceSha256": "621dbb73b7350b32423e6f2a8e4df2fcb7e41b32ed3b098253c58e0e41006825",
         "assetSha256": "621dbb73b7350b32423e6f2a8e4df2fcb7e41b32ed3b098253c58e0e41006825",
         "assetBytes": 316382,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1200,
           600
@@ -1103,7 +1094,7 @@
         "sourceSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00",
         "assetSha256": "6e692ee8e9f8de9303aca98b291d176bbc5892d22cbfd42db256d8d6fd93cd00",
         "assetBytes": 143737,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -1171,7 +1162,7 @@
         "sourceSha256": "dd136bbedba5042b12d3fed9cf5e714fceeb3c7bb34e180f7a54209a5a09db5d",
         "assetSha256": "dd136bbedba5042b12d3fed9cf5e714fceeb3c7bb34e180f7a54209a5a09db5d",
         "assetBytes": 239751,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1200,
           600
@@ -1239,7 +1230,7 @@
         "sourceSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d",
         "assetSha256": "7f337f875ea6bbaaa3b67032a7d3ae5f4a6184c4b74900eb96e09c8317a8571d",
         "assetBytes": 393328,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1200,
           600
@@ -1307,7 +1298,7 @@
         "sourceSha256": "fdb6777de824e936cd2dee8829c86dae06be2fe5ecae3e1f67641a9607a38e22",
         "assetSha256": "fdb6777de824e936cd2dee8829c86dae06be2fe5ecae3e1f67641a9607a38e22",
         "assetBytes": 200165,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -1375,7 +1366,7 @@
         "sourceSha256": "c7cd9fe4f97dfe170ddb35201e93c956f49d3151bf746628a11b316ae19450b6",
         "assetSha256": "c7cd9fe4f97dfe170ddb35201e93c956f49d3151bf746628a11b316ae19450b6",
         "assetBytes": 322029,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -1443,7 +1434,7 @@
         "sourceSha256": "b27995982b4037fd7b273d2b09d2ba6de066a03886a5c097b76ff56f182f9ba3",
         "assetSha256": "b27995982b4037fd7b273d2b09d2ba6de066a03886a5c097b76ff56f182f9ba3",
         "assetBytes": 302046,
-        "processing": "按最新named图集逐字节复制；OBS地址待配置",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -1512,7 +1503,7 @@
         "sourceSha256": "75442a3ae222dca2c8c5d05f8051b0f51ec17f25c3423d8e142c53c875dfbfe9",
         "assetSha256": "75442a3ae222dca2c8c5d05f8051b0f51ec17f25c3423d8e142c53c875dfbfe9",
         "assetBytes": 180020,
-        "processing": "按UX修改图集逐字节复制，不裁切或重编码",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -1580,7 +1571,7 @@
         "sourceSha256": "2a4d3267fb001651a29678c1d55d5e7b332fd0b316ae0c9eae1aa6a8a11b5ce3",
         "assetSha256": "2a4d3267fb001651a29678c1d55d5e7b332fd0b316ae0c9eae1aa6a8a11b5ce3",
         "assetBytes": 187551,
-        "processing": "按UX修改图集逐字节复制，不裁切或重编码",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -1648,7 +1639,7 @@
         "sourceSha256": "a42c5799e2fcf80a9d6485a621ae178fb9886a60cebf0c0aab91451d9e569166",
         "assetSha256": "a42c5799e2fcf80a9d6485a621ae178fb9886a60cebf0c0aab91451d9e569166",
         "assetBytes": 458664,
-        "processing": "按UX修改图集逐字节复制，不裁切或重编码",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           600,
           600
@@ -1716,7 +1707,7 @@
         "sourceSha256": "4340e139680ff9324de108418171148cda0f55a82d024891a49a6f126f51c9d0",
         "assetSha256": "4340e139680ff9324de108418171148cda0f55a82d024891a49a6f126f51c9d0",
         "assetBytes": 232538,
-        "processing": "从用户提供的OBS下载，逐字节保存，不裁切或重编码",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           1688,
           1688
@@ -1784,7 +1775,7 @@
         "sourceSha256": "31d96e2f0259defe7db2815f6db3ddb09dc33999ff99706cfa398cb0addd973b",
         "assetSha256": "31d96e2f0259defe7db2815f6db3ddb09dc33999ff99706cfa398cb0addd973b",
         "assetBytes": 363121,
-        "processing": "从用户提供的OBS下载，逐字节保存，不裁切或重编码",
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
         "originalSize": [
           3000,
           1500
@@ -1816,6 +1807,143 @@
           "graphicTertiary": "#99FFFFFF",
           "componentSecondary": "#33FFFFFF",
           "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "白色水滴会议方图",
+      "description": "白色水滴会议背景，采用黑字100%/80%/60%。2x2会议单业务，正文整体居左且最多3行。允许图标和按钮，标题与按钮文案不计行数。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "resources/base/media/bg_ux_meeting_room_square.jpg",
+        "sourceSha256": "8f9a2d73f00099fffbf69ab03466dcab8d0b6c19b2772caada5255bb3e47873e",
+        "assetSha256": "8f9a2d73f00099fffbf69ab03466dcab8d0b6c19b2772caada5255bb3e47873e",
+        "assetBytes": 471576,
+        "processing": "用户提供OBS为本次来源，从background.remoteUrl下载原始字节，未裁切或重新编码",
+        "originalSize": [
+          3906,
+          3906
+        ],
+        "assetSize": [
+          3906,
+          3906
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/a2b6b6ad10194434a6b8b906b93dc325/0de433c1be9a41a8b04ed023d74c9818.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#33000000",
+          "componentTertiary": "#1A000000"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "白色水滴会议横图",
+      "description": "白色水滴会议背景，采用黑字100%/80%/60%。2x4左主焦点会议加右侧上下两个背板，主区正文最多3行。居左贴底布局使用A19，本图只匹配其余合格主焦点布局。允许图标和按钮，标题与按钮文案不计行数。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ],
+        "placement": "not-bottom-left"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "resources/base/media/bg_ux_meeting_room_wide.jpg",
+        "sourceSha256": "f1e78d69f63325e7fb8ccdcc334a0c21bc56601d3078e8419770360ff2cf2f52",
+        "assetSha256": "f1e78d69f63325e7fb8ccdcc334a0c21bc56601d3078e8419770360ff2cf2f52",
+        "assetBytes": 504415,
+        "processing": "用户提供OBS为本次来源，从background.remoteUrl下载原始字节，未裁切或重新编码",
+        "originalSize": [
+          5575,
+          2788
+        ],
+        "assetSize": [
+          5575,
+          2788
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/b9bdaf8a83d14faba0600dec46c57ab2/12f75ef935354940bb7ae52085da68a4.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#33000000",
+          "componentTertiary": "#1A000000"
         },
         "panelBySize": {
           "2x4": "#33FFFFFF"
@@ -1862,7 +1990,8 @@
         ],
         "sourceSha256": "0e1a81a419f0868f8b6d68ce2effb3143bf8b41794301c35e0737445b73b4aeb",
         "assetSha256": "0e1a81a419f0868f8b6d68ce2effb3143bf8b41794301c35e0737445b73b4aeb",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 72600
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_orange_diamond_square.jpg",
@@ -1932,7 +2061,8 @@
         ],
         "sourceSha256": "61ad856af088fa86ca845a23643d27036c47c0fff490e0c9d6e0e0393b881bed",
         "assetSha256": "61ad856af088fa86ca845a23643d27036c47c0fff490e0c9d6e0e0393b881bed",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 109267
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_orange_diagonal_square.jpg",
@@ -2002,7 +2132,8 @@
         ],
         "sourceSha256": "2d38995828f1163d89652549daac24646e1a2c9cd40bade80f2ae0a842b93ad3",
         "assetSha256": "2d38995828f1163d89652549daac24646e1a2c9cd40bade80f2ae0a842b93ad3",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 110224
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_orange_circles_square.jpg",
@@ -2073,7 +2204,8 @@
         ],
         "sourceSha256": "359d62d7c4d3bc2aa42a267b92966b8aa8819ade9556cd0dd0686301e75821d4",
         "assetSha256": "359d62d7c4d3bc2aa42a267b92966b8aa8819ade9556cd0dd0686301e75821d4",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 84058
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_purple_diamond_square.jpg",
@@ -2144,7 +2276,8 @@
         ],
         "sourceSha256": "6ccde9561d5582c9c713a33b2e0a8482919e8673469facd14f17b3e39337d980",
         "assetSha256": "6ccde9561d5582c9c713a33b2e0a8482919e8673469facd14f17b3e39337d980",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 118077
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_purple_diagonal_square.jpg",
@@ -2215,7 +2348,8 @@
         ],
         "sourceSha256": "bc16d89a0e42a0b5a2ec2fb25bd0945fa5d87316538ef207562ec8864816fd26",
         "assetSha256": "bc16d89a0e42a0b5a2ec2fb25bd0945fa5d87316538ef207562ec8864816fd26",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 110891
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_purple_circles_square.jpg",
@@ -2285,7 +2419,8 @@
         ],
         "sourceSha256": "93b8496931f19665cc8d18e95bafca7563e6643799453088f4cb004217a66f02",
         "assetSha256": "93b8496931f19665cc8d18e95bafca7563e6643799453088f4cb004217a66f02",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 94704
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_blue_diamond_square.jpg",
@@ -2355,7 +2490,8 @@
         ],
         "sourceSha256": "7ba7f03abe6353aa63db9b0564d0d721a1b9bce1d423b88e082d07b6551edd01",
         "assetSha256": "7ba7f03abe6353aa63db9b0564d0d721a1b9bce1d423b88e082d07b6551edd01",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 124686
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_blue_diagonal_square.jpg",
@@ -2425,7 +2561,8 @@
         ],
         "sourceSha256": "3eb265079a86afb94aef8ae781fc7b9b7eafc1aaf8589c1de0c2334bae80c519",
         "assetSha256": "3eb265079a86afb94aef8ae781fc7b9b7eafc1aaf8589c1de0c2334bae80c519",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 117167
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_blue_circles_square.jpg",
@@ -2494,7 +2631,8 @@
         ],
         "sourceSha256": "f761604504eaf995d6ba708e9c6b2f5d0db0e4144fa3650a7a683043596dc6a0",
         "assetSha256": "f761604504eaf995d6ba708e9c6b2f5d0db0e4144fa3650a7a683043596dc6a0",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 130695
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_orange_diamond_wide.jpg",
@@ -2563,7 +2701,8 @@
         ],
         "sourceSha256": "a9d9c5256007514bd3b036f5e00f2e7f3f33a7c89c2bdadee6bbe66bfa850987",
         "assetSha256": "a9d9c5256007514bd3b036f5e00f2e7f3f33a7c89c2bdadee6bbe66bfa850987",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 205629
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_orange_diagonal_wide.jpg",
@@ -2632,7 +2771,8 @@
         ],
         "sourceSha256": "628504d1ca771fd65bdacba0fa2d8006bed0987b71681a7ede126e2abf60dfcc",
         "assetSha256": "628504d1ca771fd65bdacba0fa2d8006bed0987b71681a7ede126e2abf60dfcc",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 189387
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_orange_circles_wide.jpg",
@@ -2702,7 +2842,8 @@
         ],
         "sourceSha256": "65c3dd87e80417935807a3b5db4e7c06eb867212de890b1c704b72c39d41eacd",
         "assetSha256": "65c3dd87e80417935807a3b5db4e7c06eb867212de890b1c704b72c39d41eacd",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 151517
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_purple_diamond_wide.jpg",
@@ -2772,7 +2913,8 @@
         ],
         "sourceSha256": "daa9ffb695b29cd9d915e1a62285ed99bf94259623548d986a48a9aefb481165",
         "assetSha256": "daa9ffb695b29cd9d915e1a62285ed99bf94259623548d986a48a9aefb481165",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 231108
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_purple_diagonal_wide.jpg",
@@ -2842,7 +2984,8 @@
         ],
         "sourceSha256": "73e1a218a6042eeb4f8cfada8d46b88c1ab95457cb9899fdcc0819b844bc746e",
         "assetSha256": "73e1a218a6042eeb4f8cfada8d46b88c1ab95457cb9899fdcc0819b844bc746e",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 187379
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_purple_circles_wide.jpg",
@@ -2911,7 +3054,8 @@
         ],
         "sourceSha256": "4937e9fff52b24159bfa9e06696ac8560cf5856c69fea0ea910fc9a9ad3988b5",
         "assetSha256": "4937e9fff52b24159bfa9e06696ac8560cf5856c69fea0ea910fc9a9ad3988b5",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 167257
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_blue_diamond_wide.jpg",
@@ -2980,7 +3124,8 @@
         ],
         "sourceSha256": "22dcb8e37ce341817ca5f27377df5fa998fa8c9182664d419adeff939ba4795b",
         "assetSha256": "22dcb8e37ce341817ca5f27377df5fa998fa8c9182664d419adeff939ba4795b",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 231589
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_blue_diagonal_wide.jpg",
@@ -3049,7 +3194,8 @@
         ],
         "sourceSha256": "672a564f293a4ee1a4939a67117f321e1488b160802e0737e0ca69456eeaa9e9",
         "assetSha256": "672a564f293a4ee1a4939a67117f321e1488b160802e0737e0ca69456eeaa9e9",
-        "processing": "原图逐字节复制，未裁切、压缩或重绘；OBS地址待配置"
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "assetBytes": 192666
       },
       "background": {
         "src": "resources/base/media/bg_ux_texture_blue_circles_wide.jpg",

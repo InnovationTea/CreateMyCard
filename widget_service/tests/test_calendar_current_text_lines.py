@@ -1,4 +1,4 @@
-"""会议抽象图准入按当前正文计数，不计按钮文案或maxLines预算。"""
+"""会议图片准入按当前正文计数，不计按钮文案或maxLines预算。"""
 
 import asyncio
 import copy
@@ -18,7 +18,7 @@ from test_uniform_photo_eligibility import rejection
 
 CALENDAR_ID = "photo-ux-texture-blue-diamond-square"
 CALENDAR_IDS = {
-    "photo-ux-texture-blue-diagonal-square", CALENDAR_ID,
+    "photo-ux-meeting-room-square",
 }
 
 

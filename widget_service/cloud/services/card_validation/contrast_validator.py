@@ -191,7 +191,9 @@ class ContrastValidator(BaseValidator):
             )
             if background[3] >= _OPAQUE_ALPHA:
                 is_gradient = False
-                is_photo_scene = False
+                # 根兜底位于全幅兄弟图片下面，只有前景背板能覆盖图片。
+                if component.get("id") != context.root_id:
+                    is_photo_scene = False
         except ValueError:
             pass
         gradient = styles.get("linearGradient") or styles.get("radialGradient")

@@ -202,12 +202,12 @@ def test_unmatched_clouds_can_use_starfield_without_relayout(monkeypatch):
 
 @pytest.mark.parametrize("identity", [CLOUDS, "photo-ux-sand-arch-square", BLUE])
 @pytest.mark.parametrize("color_role", ["primary", "secondary", "tertiary", "graphicPrimary"])
-def test_registry_rejects_black_foreground_for_every_photo_pool(identity, color_role):
+def test_registry_rejects_mixed_foreground_palettes_for_every_photo_pool(identity, color_role):
     config = registry.load_theme_registry()
     entry = next(item for item in config.get("themes", []) if item.get("id") == identity)
     roles = entry.get("content", {}).get("roles", {})
     roles[color_role] = roles.get(color_role, "")[:3] + "000000"
-    with pytest.raises(ValueError, match="white foreground"):
+    with pytest.raises(ValueError, match="foreground"):
         registry.validate_registry(config)
 
 

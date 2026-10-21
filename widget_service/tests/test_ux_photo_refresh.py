@@ -86,6 +86,9 @@ def test_calendar_no_longer_uses_arch_and_can_fall_back_to_abstract(monkeypatch)
     saved = sample(PATHS.get("calendar"), 2)
     assert rejection(saved, ARCH)
     _, audit = choose(saved, monkeypatch)
+    assert audit.get("candidates") == ["photo-ux-meeting-room-square"]
+    saved = sample(PATHS.get("calendar"), 2, align="center")
+    _, audit = choose(saved, monkeypatch)
     candidates = audit.get("candidates", [])
     assert len(candidates) == 2
     assert all(item.startswith("photo-ux-texture-blue-") for item in candidates)

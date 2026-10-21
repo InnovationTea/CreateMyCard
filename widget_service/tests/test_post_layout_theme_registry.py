@@ -93,8 +93,8 @@ def test_blue_replaces_only_the_retired_ball_colors(case):
 def test_all_themes_are_self_contained_and_only_current_photos_remain():
     config = registry.load_theme_registry()
     entries = config.get("themes", [])
-    assert len(entries) == 47
-    assert len({theme.get("id") for theme in entries}) == 47
+    assert len(entries) == 49
+    assert len({theme.get("id") for theme in entries}) == 49
     for theme in entries:
         assert "palette" not in theme
         assert theme.get("background")
@@ -102,7 +102,7 @@ def test_all_themes_are_self_contained_and_only_current_photos_remain():
         assert set(content.get("roles", {})) == set(registry._ROLE_NAMES)
         assert set(theme.get("sizes", [])).issubset(content.get("panelBySize", {}))
     photos = registry.registered_themes("photos", include_disabled=True)
-    assert len(photos) == 19
+    assert len(photos) == 21
     assert all(item.get("contentEligibility", {}).get("kind") == "uniform" for item in photos)
     for pool in ("subjectlessWidePhotos", "squareExpansions"):
         assert registry.registered_themes(pool, include_disabled=True) == []
@@ -152,7 +152,7 @@ def test_duplicate_theme_id_rejected():
 def test_registry_returns_independent_copies():
     first = registry.load_theme_registry()
     first.get("themes", []).clear()
-    assert len(registry.load_theme_registry().get("themes", [])) == 47
+    assert len(registry.load_theme_registry().get("themes", [])) == 49
 
 
 def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch):
@@ -169,7 +169,7 @@ def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch
     assert "gradient-blue-added" not in {theme.get("id") for theme in registry.registered_themes()}
     entries.remove(extra)
     use_config(monkeypatch, config)
-    assert len(registry.registered_themes()) == 36
+    assert len(registry.registered_themes()) == 38
 
 
 @pytest.mark.parametrize("identity", [
