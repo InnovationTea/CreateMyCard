@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
 from config.config import get_settings
 from services.card_validation import ValidationOptions, validate_card, validate_compact_dsl
 from services.card_validation.contrast_validator import _composite, _contrast, _rgba
@@ -257,7 +258,8 @@ def test_few_shot_validates_and_converts(
     "identifier, component_id", [("2x4-V10", "phone"), ("2x4-V38", "top_left")]
 )
 def test_double_quoted_expression_strings_remain_rejected(
-    identifier: str, component_id: str,
+    identifier: str,
+    component_id: str,
 ) -> None:
     task, source = _example(identifier)
     rows = _rows(source)
@@ -427,6 +429,45 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
 
 
 @pytest.mark.parametrize(
+    "identifier,node_id", [("2x2-V08", "battery"), ("2x2-V14", "earphone_summary")]
+)
+def test_anchor_auxiliary_information_uses_secondary_body(identifier: str, node_id: str) -> None:
+    _, source = _example(identifier)
+    rows = {row[0]: row for row in _rows(source)}
+    node = rows.get(node_id)
+    assert node is not None
+    assert node[1] == "SecondaryBody"
+    assert node[2].get("columns") == 1
+    expected_items = 1 if identifier == "2x2-V08" else 2
+    assert len(node[2].get("items", [])) == expected_items
+
+
+def test_four_info_example_uses_declared_existing_icons() -> None:
+    task, source = _example("2x4-V06")
+    expected = {asset.get("src") for asset in task.get("assetCandidates", [])}
+    count = 0
+    for row in _rows(source):
+        if len(row) < 3 or row[1] != "InfoBlock":
+            continue
+        icon = row[2].get("icon")
+        assert icon in expected
+        assert (PROMPT_SOURCE.parents[5] / icon).is_file()
+        count += 1
+    assert count == 4
+
+
+def test_bluetooth_legacy_asset_name_preserves_existing_input_reference() -> None:
+    task, source = _example("2x2-V08")
+    alias = "resources/base/media/bluetooth_fill.svg"
+    assert task.get("assetCandidates", [])[0].get("src") == alias
+    assert alias in source
+    root = PROMPT_SOURCE.parents[5]
+    assert (root / alias).read_text(encoding="utf-8") == (
+        root / "resources/base/media/ic_Bluetooth.svg"
+    ).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
     ("identifier", "required"),
     (
         ("2x2-V01", {"DataDisplay"}),
@@ -444,7 +485,7 @@ def test_meeting_example_keeps_title_icon_aligned_with_primary_information() -> 
         ("2x2-V13", {"SingleLineTitle", "ProgressCircleSingle", "PillButton"}),
         (
             "2x2-V14",
-            {"SingleLineTitle", "EventCard", "TableText", "CircleButton"},
+            {"SingleLineTitle", "EventCard", "SecondaryBody", "CircleButton"},
         ),
         ("2x4-V03", {"EmphasizedData", "TextBlock"}),
     ),

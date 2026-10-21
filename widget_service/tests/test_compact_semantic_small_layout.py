@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 import pytest
+
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
@@ -174,13 +175,23 @@ def test_small_fewshot_migration_preserves_input_business_and_processor(legacy: 
     original = legacy.get("dsl")
     assert source is not None and original is not None
     assert blocks.get("json") == legacy.get("input")
+    # 人工审阅的辅助节点只调整UI；其绑定与其它节点保持原迁移要求。
+    reviewed_nodes = {
+        "example-v08": {"battery"},
+        "example-v14": {"earphone_summary"},
+    }.get(fragment, set())
+    reviewed_bindings = []
     business = []
     for dsl in (original, source):
         facts = {}
+        bindings = set()
         for row in parse_compact_dsl_rows(dsl, expand_layouts=False):
             if not isinstance(row, ComponentRow):
                 continue
             if row.component_type in {"Row", "Column", "Stack", "Layout", "Group"}:
+                continue
+            if row.component_id in reviewed_nodes:
+                bindings.update(re.findall(r"/data/[A-Za-z0-9_~/-]+", json.dumps(row.props)))
                 continue
             props = {}
             for key, value in row.props.items():
@@ -188,6 +199,8 @@ def test_small_fewshot_migration_preserves_input_business_and_processor(legacy: 
                     props[key] = value
             facts[row.component_id] = (row.component_type, props)
         business.append(facts)
+        reviewed_bindings.append(bindings)
+    assert reviewed_bindings[0] == reviewed_bindings[1]
     assert business[0] == business[1]
     old_nodes, old_boxes = _business_nodes(original, set(business[0]))
     new_nodes, new_boxes = _business_nodes(source, set(business[1]))
