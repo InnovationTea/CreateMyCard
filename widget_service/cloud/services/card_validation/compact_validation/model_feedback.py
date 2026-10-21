@@ -9,6 +9,9 @@ from typing import Any
 
 from app.logger import logger
 
+_TOP_BOTTOM_DETAILS_TRANSLATION = (
+    "details 槽必须使用 TextBlock、TopTextBottomValue、SummaryList 或 EventCard"
+)
 _SEMANTIC_DETAIL_TRANSLATIONS = {
     "cyclic component reference": "组件引用形成循环",
     "component has multiple parents": "组件被多个父节点同时引用",
@@ -49,7 +52,10 @@ _SEMANTIC_DETAIL_TRANSLATIONS = {
     "unknown W-top-bottom variant": "W-top-bottom.variant 未登记",
     "W-top-bottom does not have shared button roles": "W-top-bottom 不提供共享按钮角色",
     "details slot requires TextBlock/TopTextBottomValue/SummaryList": (
-        "details 槽必须使用 TextBlock、TopTextBottomValue 或 SummaryList"
+        _TOP_BOTTOM_DETAILS_TRANSLATION
+    ),
+    "details slot requires TextBlock/TopTextBottomValue/SummaryList/EventCard": (
+        _TOP_BOTTOM_DETAILS_TRANSLATION
     ),
     "fixed slot requires InfoBlock/CardButton or registered slot Group": (
         "固定槽必须使用 InfoBlock、CardButton 或已登记的槽位 Group"

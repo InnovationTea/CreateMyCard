@@ -31,6 +31,12 @@ GEOMETRY_PROPS = frozenset({
 })
 GENERATED_PREFIX = "__layout__"
 _BACKGROUND_PROPS = frozenset({"linearGradient", "backgroundColor", "backgroundImage"})
+_TOP_BOTTOM_DETAILS_TYPES = frozenset({
+    "TextBlock",
+    "TopTextBottomValue",
+    "SummaryList",
+    "EventCard",
+})
 MIXED_FIXED_SLOT_ORDER_WARNING = (
     "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；"
     "当前顺序仍允许转换。"
@@ -461,8 +467,11 @@ class _Compiler:
         if self.contains_type(children, "PillButton") or self.contains_type(children, "CardButton"):
             _fail("root", "W-top-bottom 不提供共享按钮角色")
         details_type = self.node(details).component_type
-        if details_type not in {"TextBlock", "TopTextBottomValue", "SummaryList"}:
-            _fail(details, "details 槽必须使用 TextBlock、TopTextBottomValue 或 SummaryList")
+        if details_type not in _TOP_BOTTOM_DETAILS_TYPES:
+            _fail(
+                details,
+                "details 槽必须使用 TextBlock、TopTextBottomValue、SummaryList 或 EventCard",
+            )
         primary_props = {"flexShrink": 0} if variant == "continuous" else {"layoutWeight": 1}
         details_props = {"flexShrink": 0} if variant == "bottom-details" else {"layoutWeight": 1}
         primary_id = self.wrap("root", "primary", primary, primary_props)
@@ -727,9 +736,14 @@ class _SmallCompiler(_Compiler):
             else:
                 if self.contains_type(children[1:], "InfoBlock"):
                     _fail("root", "两个 InfoBlock 必须使用 stacked-info 变体")
-                primary = self.wrap("root", "primary", children[1], {"layoutWeight": 1})
-                support = self.wrap("root", "support", children[2],
-                                    {"layoutWeight": 1, "justifyContent": "end"})
+                primary = self.wrap(
+                    "root", "primary", children[1],
+                    {"layoutWeight": 1, "flexShrink": 0},
+                )
+                support = self.wrap(
+                    "root", "support", children[2],
+                    {"flexShrink": 0},
+                )
                 body = self.body("root", (primary, support), 8, {})
             children = (children[0], body)
         elif layout == "S-quad-content":

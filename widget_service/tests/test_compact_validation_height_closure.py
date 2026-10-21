@@ -45,7 +45,7 @@ SLEEP = '\n'.join([
     '"abilityName":"com.huawei.hmos.settings.MainAbility","uri":"parent_control"}}]}]',
 ])
 
-WEATHER_SUPPORT_OVERFLOW = '\n'.join([
+WEATHER_SUPPORT_NATURAL = '\n'.join([
     '["root","Layout",{"layout":"S-title-dual-content"},'
     '["title","primary","support"]]',
     '["title","SingleLineTitle",'
@@ -65,6 +65,12 @@ WEATHER_SUPPORT_OVERFLOW = '\n'.join([
     '["/data/weather/current/humidityPercent",68]',
     '["/data/weather/current/windLevel",2]',
 ])
+
+WEATHER_SUPPORT_OVERFLOW = WEATHER_SUPPORT_NATURAL.replace(
+    '{"label":"风力 ","value":"{{ ${/data/weather/current/windLevel} + \'级\' }}"}',
+    '{"label":"风力 ","value":"{{ ${/data/weather/current/windLevel} + \'级\' }}"},'
+    '{"label":"体感 ","value":"31℃"},{"label":"降雨 ","value":"20%"}',
+).replace('"columns":2', '"columns":1')
 
 ANCHOR_MULTILINE_SUPPORT = '\n'.join([
     '["root","Layout",{"layout":"S-title-anchor"},["title","primary","support","action"]]',
@@ -185,6 +191,16 @@ def test_public_validator_reports_height_closure_with_source_location() -> None:
     assert diagnostic.component_id == "details"
     assert diagnostic.source_line == 7
     assert diagnostic.fix_hint is not None
+
+
+def test_weather_support_natural_height_uses_available_bottom_space() -> None:
+    result = validate_compact_dsl(
+        WEATHER_SUPPORT_NATURAL,
+        task_spec=WEATHER_TASK_SPEC,
+        card_spec={"suggestSize": "2x2"},
+    )
+
+    assert result.warnings == ()
 
 
 def test_weather_support_height_overflow_is_blocking_layout_capacity_error() -> None:

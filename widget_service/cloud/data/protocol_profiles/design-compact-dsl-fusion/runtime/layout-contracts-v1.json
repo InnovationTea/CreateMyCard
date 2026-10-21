@@ -98,6 +98,15 @@
         },
         {
           "rules": [
+            {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
+            {"path": [0], "types": ["SingleLineTitle"]},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "itemMargin": 8}, "childCount": 2},
+            {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "layoutWeight": 1, "flexShrink": 0}, "childCount": 1},
+            {"path": [1, 1], "types": ["Column"], "props": {"width": 126, "flexShrink": 0}, "childCount": 1}
+          ]
+        },
+        {
+          "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12}, "childCount": 2},
             {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126}, "childCountMin": 1, "childCountMax": 2}

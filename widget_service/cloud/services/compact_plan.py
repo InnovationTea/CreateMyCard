@@ -46,7 +46,7 @@ _FACT_KEYS = frozenset(
 )
 _TARGET_KEYS = ("dataId", "actionId", "text")
 _FACT_PRIORITIES = frozenset({"must", "should"})
-_MAX_MUST_FACTS_BY_SIZE = {"2x2": 6, "2x4": 12}
+_MAX_MUST_FACTS_BY_SIZE = {"2x2": 6, "2x4": 10}
 _FRESHNESS_METADATA_NAMES = frozenset(
     {
         "lastrefreshedat",
@@ -1333,11 +1333,14 @@ def _collect_structured_item_literals(
     component: ComponentRow,
     literals: list[str],
 ) -> None:
-    """补充同一结构化条目内按视觉顺序连续呈现的静态文本。"""
-    if component.component_type not in {"SecondaryBody", "TextBlock"}:
-        return
+    """补充同一结构化条目内共同呈现的静态文本。"""
     items = component.props.get("items")
     if not isinstance(items, list):
+        return
+    if component.component_type == "EventCard":
+        _collect_event_card_item_literals(items, literals)
+        return
+    if component.component_type not in {"SecondaryBody", "TextBlock"}:
         return
     for item in items:
         if not isinstance(item, dict):
@@ -1349,6 +1352,24 @@ def _collect_structured_item_literals(
         if _BINDING_PATH.search(label) or _BINDING_PATH.search(value):
             continue
         literals.append(f"{label}{value}")
+
+
+def _collect_event_card_item_literals(
+    items: list[Any],
+    literals: list[str],
+) -> None:
+    """保留同一事件内标题与时间共同表达的静态事实，不跨事件拼接。"""
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        title = item.get("title")
+        time = item.get("time")
+        if not isinstance(title, str) or not isinstance(time, str):
+            continue
+        if _BINDING_PATH.search(title) or _BINDING_PATH.search(time):
+            continue
+        literals.append(f"{time}{title}")
+        literals.append(f"{title}{time}")
 
 
 def _compact_fact_coverage_result(
