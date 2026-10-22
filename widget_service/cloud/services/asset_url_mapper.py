@@ -8,12 +8,18 @@ from typing import Any
 
 from services.compact_dsl_a2ui_converter import DataRow, parse_compact_dsl_rows
 
+SYSTEM_INTERNAL_ASSET_SOURCES = frozenset({
+    "resources/base/media/ic_fallback_light.svg",
+})
+
 
 class AssetUrlMapper:
     def __init__(self, mapping: dict[str, str], allowed_sources: set[str]) -> None:
         self.mapping: dict[str, str] = {}
         self._originals: dict[str, set[str]] = {}
-        for src in allowed_sources:
+        delivery_sources = set(allowed_sources)
+        delivery_sources.update(SYSTEM_INTERNAL_ASSET_SOURCES)
+        for src in delivery_sources:
             target = mapping.get(src, src)
             if not isinstance(target, str) or not target:
                 raise ValueError(f"invalid asset URL mapping for {src}")

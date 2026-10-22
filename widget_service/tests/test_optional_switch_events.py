@@ -150,7 +150,10 @@ def _pipeline_inputs(expected: dict, actual: dict, size: str) -> _PipelineInputs
     task = {
         "size": size, "appVersion": "99.0", "userQuery": "开关操作和拨号",
         "dataModelSchema": {"data": {}}, "eventCandidates": events,
-        "assetCandidates": [{"id": "switch-icon", "src": "resources/base/media/ic_switch.svg"}],
+        "assetCandidates": [
+            {"id": "switch-icon", "src": "resources/base/media/ic_switch.svg"},
+            {"id": "phone-icon", "src": "resources/base/media/phone_fill.svg"},
+        ],
     }
     facts = []
     for event in events:
@@ -159,7 +162,7 @@ def _pipeline_inputs(expected: dict, actual: dict, size: str) -> _PipelineInputs
         "info_required": facts, "layoutHints": [layout],
         "assetAssignments": {
             "actions": [{"actionId": "switch", "assetId": "switch-icon"},
-                        {"actionId": "phone", "assetId": None, "reason": "无拨号素材"}],
+                        {"actionId": "phone", "assetId": "phone-icon"}],
             "title": {"assetId": None, "reason": "动作布局无标题"},
         },
     }}), task).plan
@@ -177,9 +180,11 @@ def _pipeline_inputs(expected: dict, actual: dict, size: str) -> _PipelineInputs
     rows.extend([
         ["switch", action_type, {"label": "开关", "icon": "resources/base/media/ic_switch.svg",
                                  "onClick": [actual]}],
-        ["phone", action_type, {"label": "拨号", "onClick": [
-            {"call": "clickToCallPhone", "args": {"phoneNumber": "10086"}},
-        ]}],
+        ["phone", action_type, {"label": "拨号", "icon": "resources/base/media/phone_fill.svg",
+                                 "onClick": [{
+                                     "call": "clickToCallPhone",
+                                     "args": {"phoneNumber": "10086"},
+                                 }]}],
     ])
     source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
     return _PipelineInputs(task=task, plan=plan, source=source)

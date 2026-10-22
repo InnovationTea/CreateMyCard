@@ -46,10 +46,10 @@ def _few_shots() -> list[tuple[str, str, str, str]]:
     return examples
 
 
-def _components(source: str) -> list[ComponentRow]:
+def _components(source: str, *, size: str | None = None) -> list[ComponentRow]:
     return [
         row
-        for row in parse_compact_dsl_rows(source)
+        for row in parse_compact_dsl_rows(source, size=size)
         if isinstance(row, ComponentRow)
     ]
 
@@ -91,17 +91,40 @@ def _mutate_rows(source: str, mutator) -> str:
 
 def _task_spec_for_source(source: str, *, size: str) -> dict:
     event_candidates: list[dict] = []
+    asset_candidates: list[dict] = []
+    data_model_schema: dict = {}
     for line in source.splitlines():
         row = json.loads(line)
+        if len(row) == 2 and isinstance(row[0], str) and row[0].startswith("/data/"):
+            parts = row[0].removeprefix("/").split("/")
+            current = data_model_schema
+            for part in parts[:-1]:
+                child = current.setdefault(part, {})
+                assert isinstance(child, dict)
+                current = child
+            sample_value = row[1]
+            if isinstance(sample_value, bool):
+                value_type = "boolean"
+            elif isinstance(sample_value, int):
+                value_type = "integer"
+            elif isinstance(sample_value, float):
+                value_type = "number"
+            else:
+                value_type = "string"
+            current[parts[-1]] = {"type": value_type, "sampleValue": sample_value}
+            continue
         if len(row) < 3:
             continue
         event_candidates.extend(row[2].get("onClick", []))
+        icon = row[2].get("icon")
+        if isinstance(icon, str):
+            asset_candidates.append({"src": icon})
     return {
         "userQuery": "布局契约测试",
         "size": size,
         "eventCandidates": event_candidates,
-        "assetCandidates": [],
-        "dataModelSchema": {"data": {}},
+        "assetCandidates": asset_candidates,
+        "dataModelSchema": data_model_schema,
     }
 
 
@@ -610,9 +633,9 @@ def test_s_dual_info_rejects_non_contract_slot_heights() -> None:
     )
 
     def mutate(row: list) -> None:
-        if row[0] == "shanghai":
+        if row[0] == "first":
             row[2]["height"] = 55
-        if row[0] == "beijing":
+        if row[0] == "second":
             row[2]["height"] = 71
 
     with pytest.raises(CompactLayoutRuntimeError, match="height"):
@@ -627,9 +650,9 @@ def test_w_content_side_slots_rejects_non_contract_slot_heights() -> None:
     source = _layout_fixture("W-content-side-slots")
 
     def mutate(row: list) -> None:
-        if row[0] == "connection":
+        if row[0] == "upper":
             row[2]["height"] = 50
-        if row[0] == "settings":
+        if row[0] == "lower":
             row[2]["height"] = 64
 
     invalid_source = _mutate_rows(source, mutate)
@@ -647,7 +670,7 @@ def test_w_content_side_slots_warns_for_action_then_information(orientation: str
     def reverse_mixed_slots(row: list) -> None:
         if row[0] == "root":
             row[2]["orientation"] = orientation
-            row[3] = ["main", "settings", "connection"]
+            row[3] = ["content", "lower", "upper"]
 
     source = _mutate_rows(
         _layout_fixture("W-content-side-slots"),
@@ -659,7 +682,7 @@ def test_w_content_side_slots_warns_for_action_then_information(orientation: str
         size="2x4",
     )
     result = match_compact_layout(
-        _components(source),
+        _components(source, size="2x4"),
         size="2x4",
         layout_scope="W-content-side-slots",
     )
@@ -676,13 +699,13 @@ def test_w_content_side_slots_rejects_event_on_information_slot() -> None:
     action: list[dict] = []
     for line in source.splitlines():
         row = json.loads(line)
-        if row[0] == "settings":
+        if row[0] == "lower":
             action = row[2]["onClick"]
 
     def mutate(row: list) -> None:
-        if row[0] == "connection":
+        if row[0] == "upper":
             row[2]["onClick"] = action
-        if row[0] == "settings":
+        if row[0] == "lower":
             row[2].pop("onClick", None)
 
     invalid_source = _mutate_rows(source, mutate)

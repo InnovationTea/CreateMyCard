@@ -70,7 +70,9 @@ def wide_battery_sample(layout):
         ["reading", "EmphasisText", {"mainText": {"path": BATTERY_PATH}}],
         ["upper", "InfoBlock", {"variant": "slot", "primaryText": "正常",
                                 "secondaryText": "电池状态"}],
-        ["lower", "CardButton", {"label": "设置", "onClick": ACTION}],
+        ["lower", "CardButton", {"label": "设置",
+                                 "icon": "resources/base/media/gearshape_fill.svg",
+                                 "onClick": ACTION}],
         [BATTERY_PATH, 68],
     ]
     if layout == "W-split-panels":

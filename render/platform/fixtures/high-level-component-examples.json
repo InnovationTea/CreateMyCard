@@ -69,8 +69,8 @@
       "size": "2x4",
       "width": 300,
       "height": 150,
-      "note": "同时覆盖图标视觉位和无图标占位视觉。",
-      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFFFF7F2\",\"itemMargin\":12},[\"header\",\"actions\"]]\n[\"header\",\"SingleLineTitle\",{\"title\":\"快捷操作\"}]\n[\"actions\",\"Row\",{\"width\":276,\"height\":57,\"itemMargin\":12},[\"calendar\",\"focus\"]]\n[\"calendar\",\"CardButton\",{\"label\":\"查看日程\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"fillColor\":\"#FF8C4B1C\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"Calendar\"}}]}]\n[\"focus\",\"CardButton\",{\"label\":\"专注模式\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"focus\"}}]}]"
+      "note": "覆盖两个均使用准确语义图标的固定动作槽。",
+      "source": "[\"root\",\"Column\",{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"backgroundColor\":\"#FFFFF7F2\",\"itemMargin\":12},[\"header\",\"actions\"]]\n[\"header\",\"SingleLineTitle\",{\"title\":\"快捷操作\"}]\n[\"actions\",\"Row\",{\"width\":276,\"height\":57,\"itemMargin\":12},[\"calendar\",\"focus\"]]\n[\"calendar\",\"CardButton\",{\"label\":\"查看日程\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"fillColor\":\"#FF8C4B1C\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"Calendar\"}}]}]\n[\"focus\",\"CardButton\",{\"label\":\"专注模式\",\"icon\":\"resources/base/media/icon_focus.svg\",\"fillColor\":\"#FF8C4B1C\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"uri\":\"focus\"}}]}]"
     },
     {
       "name": "Runtime · TopTextBottomValue",

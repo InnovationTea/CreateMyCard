@@ -31,6 +31,12 @@ GEOMETRY_PROPS = frozenset({
 })
 GENERATED_PREFIX = "__layout__"
 _BACKGROUND_PROPS = frozenset({"linearGradient", "backgroundColor", "backgroundImage"})
+_TOP_BOTTOM_DETAILS_TYPES = frozenset({
+    "TextBlock",
+    "TopTextBottomValue",
+    "SummaryList",
+    "EventCard",
+})
 MIXED_FIXED_SLOT_ORDER_WARNING = (
     "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；"
     "当前顺序仍允许转换。"
@@ -44,7 +50,7 @@ SMALL_CHILD_ROLES = {
     "S-title-primary-secondary-action": (4, "[title, primary, support, PillButton]"),
     "S-title-dual-column-action": (3, "[title, ProgressCircle, ProgressCircle, PillButton?]"),
     "S-title-anchor": (4, "[title, primary, support, CircleButton]"),
-    "S-content-dual-action": (3, "[content, PillButton, PillButton]"),
+    "S-content-dual-action": (3, "[content, CardButton, CardButton]"),
     "S-dual-info": (2, "[InfoBlock, InfoBlock]"),
 }
 
@@ -461,8 +467,11 @@ class _Compiler:
         if self.contains_type(children, "PillButton") or self.contains_type(children, "CardButton"):
             _fail("root", "W-top-bottom 不提供共享按钮角色")
         details_type = self.node(details).component_type
-        if details_type not in {"TextBlock", "TopTextBottomValue", "SummaryList"}:
-            _fail(details, "details 槽必须使用 TextBlock、TopTextBottomValue 或 SummaryList")
+        if details_type not in _TOP_BOTTOM_DETAILS_TYPES:
+            _fail(
+                details,
+                "details 槽必须使用 TextBlock、TopTextBottomValue、SummaryList 或 EventCard",
+            )
         primary_props = {"flexShrink": 0} if variant == "continuous" else {"layoutWeight": 1}
         details_props = {"flexShrink": 0} if variant == "bottom-details" else {"layoutWeight": 1}
         primary_id = self.wrap("root", "primary", primary, primary_props)
@@ -650,7 +659,7 @@ class _SmallCompiler(_Compiler):
         counts = {count, count + 1} if layout == "S-title-dual-column-action" else {count}
         if actions_only:
             counts = {2}
-            description = "[PillButton, PillButton]"
+            description = "[CardButton, CardButton]"
         if len(root.children) not in counts:
             _fail(
                 "root",
@@ -695,7 +704,7 @@ class _SmallCompiler(_Compiler):
         if layout == "S-content-dual-action":
             action_children = children if actions_only else children[1:]
             for child in action_children:
-                self.action(child)
+                self.action(child, "CardButton")
                 expected_actions.add(child)
         if layout == "S-title-dual-column-action" and len(children) == 4:
             self.action(children[-1])
@@ -704,6 +713,8 @@ class _SmallCompiler(_Compiler):
             _fail("root", "Action 必须放在所选小卡布局的动作角色中")
         for child in children:
             self.content(child, compact=True)
+        if self.contains_type(children, "CardButton") and layout != "S-content-dual-action":
+            _fail("root", "2x2 CardButton 只能放在 S-content-dual-action 的两个动作槽")
         if self.contains_type(children, "InfoBlock"):
             if layout not in {"S-dual-info", "S-title-dual-content"}:
                 _fail("root", "InfoBlock 必须放在已登记的小卡固定槽")
@@ -727,9 +738,14 @@ class _SmallCompiler(_Compiler):
             else:
                 if self.contains_type(children[1:], "InfoBlock"):
                     _fail("root", "两个 InfoBlock 必须使用 stacked-info 变体")
-                primary = self.wrap("root", "primary", children[1], {"layoutWeight": 1})
-                support = self.wrap("root", "support", children[2],
-                                    {"layoutWeight": 1, "justifyContent": "end"})
+                primary = self.wrap(
+                    "root", "primary", children[1],
+                    {"layoutWeight": 1, "flexShrink": 0},
+                )
+                support = self.wrap(
+                    "root", "support", children[2],
+                    {"flexShrink": 0},
+                )
                 body = self.body("root", (primary, support), 8, {})
             children = (children[0], body)
         elif layout == "S-quad-content":
@@ -776,24 +792,29 @@ class _SmallCompiler(_Compiler):
                 children = (children[0], metrics)
         elif layout == "S-title-anchor":
             support = self.node(children[2])
-            height = 40
             if support.component_type == "NumericRatioStack":
                 if support.props.get("direction", "column") == "column":
-                    height = 56
                     self.geometry(children[2], {"height": 56})
             self.geometry(children[2], {"width": 78})
             action_slot = self.generated("root", "action_slot")
             self.add(action_slot, "Stack", {"width": 40, "height": 40,
                                             "alignContent": "center"}, (children[-1],), "root")
             bottom = self.generated("root", "bottom")
-            self.add(bottom, "Row", {"width": "matchParent", "height": height, "flexShrink": 0,
-                                     "itemMargin": 8, "alignItems": "bottom",
-                                     "justifyContent": "spaceBetween"},
+            self.add(bottom, "Row", {"width": "matchParent", "flexShrink": 0,
+                                     "constraintSize": {"minHeight": 40}, "itemMargin": 8,
+                                     "alignItems": "bottom", "justifyContent": "spaceBetween"},
                      (children[2], action_slot), "root")
-            primary = self.wrap("root", "primary", children[1], {"layoutWeight": 1})
-            body = self.body("root", (primary, bottom), 8, {})
+            primary = self.wrap("root", "primary", children[1],
+                                {"layoutWeight": 1, "flexShrink": 0})
+            body = self.body("root", (primary, bottom), 2, {})
             children = (children[0], body)
         elif layout == "S-content-dual-action":
+            for child in children if actions_only else children[1:]:
+                row = self.node(child)
+                if not actions_only and row.props.get("labelLines", 1) != 1:
+                    _fail(child, "带正文的双动作槽只支持 CardButton 单行标签")
+                self.geometry(child, {"width": "matchParent", "height": 57 if actions_only else 36,
+                                      "flexShrink": 0})
             if not actions_only:
                 content = self.wrap("root", "content", children[0],
                                     {"layoutWeight": 1, "flexShrink": 0})

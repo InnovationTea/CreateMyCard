@@ -54,7 +54,14 @@ def feasible_composition_candidates(
     )
     if unresolved:
         return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
-    actions = _action_groups(size, facts, task, unresolved, action_labels=action_labels)
+    actions = _action_groups(
+        size,
+        facts,
+        task,
+        plan,
+        unresolved,
+        action_labels=action_labels,
+    )
     if unresolved:
         return {"status": "unresolved", "unresolved": unresolved, "candidates": []}
     layouts = load_layout_contract().get("layouts", {})
@@ -374,7 +381,7 @@ def _group_choices(
                 alternatives.append([_nested_group("Column", wrapped, gap)])
         ordinary = [item for item in items if item.get("component") == "SecondaryBody"]
         if len(ordinary) >= 2:
-            # 两项同行保留14fp；两项分行按12fp/16vp核算。
+            # 两项同行保留14fp；两项分行按12fp/12vp核算。
             for pair in itertools.combinations(ordinary, 2):
                 for columns in (1, 2):
                     packed = _ordinary_pair(size, pair, columns)
@@ -764,10 +771,22 @@ def _action_groups(
     size: str,
     facts: list[dict[str, Any]],
     task: dict[str, Any],
+    plan: dict[str, Any],
     unresolved: list[str],
     *, action_labels: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     candidates = {item.get("id"): item for item in task.get("eventCandidates", [])}
+    assigned_assets: dict[str, Any] = {}
+    assignments = plan.get("assetAssignments")
+    if isinstance(assignments, dict):
+        actions = assignments.get("actions")
+        if isinstance(actions, list):
+            for action in actions:
+                if not isinstance(action, dict):
+                    continue
+                action_id = action.get("actionId")
+                if isinstance(action_id, str):
+                    assigned_assets[action_id] = action.get("assetId")
     output: list[dict[str, Any]] = []
     for index, fact in enumerate(facts):
         identifier = fact.get("actionId")
@@ -788,6 +807,7 @@ def _action_groups(
                 "ownerRoots": _action_owners(event),
                 "pressureLabelOnly": (action_labels or {}).get(identifier),
                 "componentCandidates": list(fact.get("componentHints", [])),
+                "hasAssignedIcon": isinstance(assigned_assets.get(identifier), str),
             }
         )
     return output
@@ -1059,20 +1079,26 @@ def _close_regions(
                        for sample in samples):
                     return None
             if group.get("actionId") and not group.get("component"):
-                group["component"] = "PillButton"
-                group["requiredHeight"] = _part(size, "PillButton", "root").get("height")
+                action_component = _action_component_for_zone(zone, group)
+                if action_component is None:
+                    return None
+                group["component"] = action_component
+                group["requiredHeight"] = _part(size, action_component, "root").get("height")
                 group["minimumWidth"] = 0
             if group.get("actionId"):
                 name = group.get("component")
                 root = _part(size, name, "root")
+                if name == "CardButton" and zone.rule.get("eventPolicy") == "require":
+                    group["requiredHeight"] = zone.height
                 if name == "CircleButton":
                     group["accessibilityLabel"] = group.get("labelMeaning")
                     group["requiresAccurateIcon"] = True
                     continue
                 label_width = zone.width - _extent(root.get("padding"), "width")
                 if name == "CardButton":
-                    label_width -= _part(size, name, "placeholder").get("width", 0)
-                    label_width -= root.get("itemMargin", 0)
+                    if group.get("hasAssignedIcon"):
+                        label_width -= _part(size, name, "icon").get("width", 0)
+                        label_width -= root.get("itemMargin", 0)
                 else:
                     label_width = min(label_width, _part(size, name, "label").get("maxWidth"))
                 group["labelWidthBudget"] = label_width

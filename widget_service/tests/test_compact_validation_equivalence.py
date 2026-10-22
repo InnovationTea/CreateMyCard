@@ -40,13 +40,8 @@ OLD_COMPACT_EVENT_HEIGHT_ERROR = (
     "Occupancy: events=112vp+margin(0vp), gaps=0vp."
 )
 
-SECONDARY_BODY_OLD_HEIGHT_CASES = {
-    76: "condition",
-    108: "condition",
-}
-
 SECONDARY_BODY_WIDTH_CASES = {77, 109}
-RETIRED_WIND_LABEL_CASE = 24
+AMBIGUOUS_METRIC_WARNING_CASES = {22, 24}
 
 
 def _secondary_body_width_error() -> dict:
@@ -64,34 +59,12 @@ def _secondary_body_width_error() -> dict:
     }
 
 
-def _secondary_body_height_error(component_id: str) -> dict:
-    message = (
-        f"component {component_id}: vertical layout requires at least 19vp within 18vp; "
-        "it overflows by 1vp. Regroup facts or choose a layout with enough body space; "
-        "preserve required text, actions, font sizes and fixed design heights. Weight, "
-        "clipping, flex shrink and distributed alignment cannot eliminate content height. "
-        f"Occupancy: {component_id}_row0=19vp+margin(0vp), gaps=0vp."
-    )
-    return {
-        "exception": "CompactDslValidationError",
-        "message": f"Compact DSL validation failed:\n- {message}",
-        "errors": [message],
-    }
-
-
 def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
-    if case_index == RETIRED_WIND_LABEL_CASE:
-        remaining_error = expected.get("errors", [])[0]
-        return {
-            "exception": "CompactDslValidationError",
-            "message": f"Compact DSL validation failed:\n- {remaining_error}",
-            "errors": [remaining_error],
-        }
+    if case_index in AMBIGUOUS_METRIC_WARNING_CASES:
+        message = expected.get("errors", [])[0]
+        return {"warnings": [f"COMPACT_DISPLAY_AMBIGUOUS_METRIC: {message}"]}
     if case_index in SECONDARY_BODY_WIDTH_CASES:
         return _secondary_body_width_error()
-    height_component_id = SECONDARY_BODY_OLD_HEIGHT_CASES.get(case_index)
-    if height_component_id is not None:
-        return _secondary_body_height_error(height_component_id)
     secondary_body_id = SECONDARY_BODY_ONLY_CASES.get(case_index)
     if secondary_body_id is not None:
         message = (

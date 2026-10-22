@@ -13,12 +13,13 @@ capabilities from three sources, with priority (higher wins):
 Populates the fields on ``ValidationContext`` that BindingValidator /
 EffectiveCapabilityValidator read.
 """
-
 from __future__ import annotations
 
 import json
 from pathlib import Path
 from typing import Any
+
+from services.asset_url_mapper import SYSTEM_INTERNAL_ASSET_SOURCES
 
 
 def attach_effective_capabilities(
@@ -125,6 +126,7 @@ def _resolve_effective_asset_sources(
             sources.add(src)
             resolved_ids.add(item_id)
 
+    sources.update(SYSTEM_INTERNAL_ASSET_SOURCES)
     return sources, ids - resolved_ids
 
 

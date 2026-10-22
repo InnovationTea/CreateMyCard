@@ -178,7 +178,7 @@ def validate_compact_dsl(
     _collect_asset_source_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
     _collect_ambiguous_metric_text_errors(
-        components, task_spec, errors, layout_origins=context.layout_origins,
+        components, task_spec, warnings, layout_origins=context.layout_origins,
     )
     _collect_semantic_text_errors(components, task_spec, errors)
     _collect_raw_boolean_text_errors(components, task_spec, errors)

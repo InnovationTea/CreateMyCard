@@ -86,7 +86,7 @@ def test_dual_actions_never_select_content_by_fact_count(
     assert plan.get("layoutHints") == ["S-content-dual-action"]
     assert task == original_task
     for fact in accepted[content_count:]:
-        assert fact.get("componentHints") == ["PillButton"]
+        assert fact.get("componentHints") == ["CardButton"]
     context = compact_plan_context(plan)
     assert "不按事实数量强制表格" in context
     assert "保留全部事实、两个动作及其完整参数" in context
