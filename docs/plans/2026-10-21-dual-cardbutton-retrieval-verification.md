@@ -4,19 +4,22 @@
 
 基于main `cffe6094`，分支 `codex/2x2-dual-cardbutton-fewshots-20261021`。
 2×2双动作改为两个CardButton，组件Props、语义槽位、Plan归一化、容量和校验同步；单动作不改。
-2×4案例及其A2UI产物逐例对比10/10不变，但默认检索开启后只加载结构匹配的最多4例。
+2×4案例及其A2UI产物逐例对比10/10不变；本次历史实验显式开启结构检索后，只加载结构匹配的最多4例。
 未更改测试输入、必要事实/动作校验、warning降级政策、修复次数或模型提供方。
 
 ## 开关
 
 ```bash
-# 默认开启：Plan后按结构检索最多4例
+# 历史实验配置：显式开启后，Plan 后按结构检索最多 4 例
 WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOT_SELECTION=true
-# 关闭检索：加载本尺寸全部案例（当前2×2为18例，2×4为10例）
+# 当前交付默认配置：关闭检索，加载本尺寸全部案例（当前2×2为18例，2×4为10例）
 WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOT_SELECTION=false
 # 独立总开关：false时完全不加载案例
 WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOTS=false
 ```
+
+当前交付配置与 `Settings` 回退值均为关闭；只有显式设置
+`WIDGET_SERVICE_ENABLE_DESIGN_COMPACT_FEW_SHOT_SELECTION=true` 时，才执行本记录验证的结构检索。
 
 Plan阶段不加载案例。检索按同尺寸和运行时动作容量过滤，再按密度35%、动作30%、布局20%、组件15%
 评分；缺失候选维度重归一化，匿名结构去重。少于4个合法结构时不以错误布局补足。无关键词、无测试标签。
@@ -73,13 +76,13 @@ Plan阶段不加载案例。检索按同尺寸和运行时动作容量过滤，�
 
 | 文件 | 用途 |
 |---|---|
-| docs/云侧方案设计.md | 双动作组件合同、默认结构检索与开关，清理相反旧描述 |
+| docs/云侧方案设计.md | 双动作组件合同、结构检索与开关，清理相反旧描述 |
 | docs/compact-dsl-validator-refactor/Compact_DSL现有校验规则分类清单_v1.md | 登记槽位和纯动作校验归属 |
 | docs/plans/2026-10-21-small-dual-cardbutton.md | 双CardButton实施范围及验收 |
 | docs/plans/2026-10-21-structural-fewshot-selection.md | 结构检索接入与验证计划 |
 | docs/plans/2026-10-21-dual-cardbutton-retrieval-verification.md | 本验证记录及全部文件清单 |
-| widget_service/cloud/config/config.py | 检索默认开启；等价导入排序 |
-| widget_service/cloud/config/default_config.yaml | 默认开关及用途说明 |
+| widget_service/cloud/config/config.py | 结构检索开关读取及关闭时的回退值；等价导入排序 |
+| widget_service/cloud/config/default_config.yaml | 当前交付默认关闭及显式开启后的用途说明 |
 | P/components/common.md | 共享CardButton Props与边界 |
 | P/components/2x2.md | 小卡双槽可用性和单/双行容量 |
 | P/components/2x4.md | CardButton通用细则迁往Common，保留宽卡差异 |
