@@ -21,6 +21,7 @@ SRC = "resources/base/media/drop_1.svg"
 LOCAL = "resources/base/media/air_fill.svg"
 URL = "https://hagres-drcn.dbankcdn.com/assets/drop_1.svg?version=1"
 FALLBACK = "resources/base/media/ic_fallback_light.svg"
+FALLBACK_URL = "https://hagres-drcn.dbankcdn.com/assets/ic_fallback_light.svg?version=1"
 
 
 def standard_dsl(src=SRC):
@@ -158,6 +159,29 @@ def test_mapping_covers_expanded_action_icon():
         assert item.get("src") == URL
 
 
+def test_mapping_covers_system_fallback_icon_without_asset_candidate():
+    token = "\n".join(
+        json.dumps(row)
+        for row in [
+            ["root", "Column", {"width": 300, "height": 150}, ["action"]],
+            [
+                "action",
+                "CardButton",
+                {
+                    "label": "查看",
+                    "onClick": [{"call": "test", "args": {}}],
+                    "fontColor": "#FF1F4799",
+                },
+            ],
+        ]
+    )
+    dsl = convert_compact_dsl_to_a2ui(token, size="2x4")
+    result = AssetUrlMapper({FALLBACK: FALLBACK_URL}, set()).rewrite_standard(dsl)
+    images = [item for item in components(result) if item.get("component") == "Image"]
+    assert len(images) == 1
+    assert images[0].get("src") == FALLBACK_URL
+
+
 def test_effective_sources_include_declared_mapping_targets_and_builtin_fallback():
     context = SimpleNamespace()
     attach_effective_capabilities(
@@ -172,8 +196,14 @@ def test_effective_sources_include_declared_mapping_targets_and_builtin_fallback
 
 def test_effective_sources_include_internal_fallback_icon():
     context = SimpleNamespace()
-    attach_effective_capabilities(context, {"asset": []}, {}, None)
-    assert context.effective_asset_sources == {FALLBACK}
+    attach_effective_capabilities(
+        context,
+        {"asset": []},
+        {},
+        None,
+        {FALLBACK: FALLBACK_URL},
+    )
+    assert context.effective_asset_sources == {FALLBACK, FALLBACK_URL}
 
 
 @pytest.mark.parametrize(
