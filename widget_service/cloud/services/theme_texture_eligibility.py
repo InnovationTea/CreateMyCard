@@ -5,6 +5,7 @@ import re
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_plan import _VISIBLE_PROP_NAMES, _compact_visible_state
 from services.display_text import concatenated_display_text
+from services.event_matching import is_optional_switch_event
 from services.square_photo_expansion import SLEEP_FIELDS
 
 _SPORT_FIELD = re.compile(
@@ -31,19 +32,55 @@ def subtree(identity: str, by_id: dict) -> list[ComponentRow]:
     return result
 
 
-def _only_music_actions(rows: list[ComponentRow]) -> bool:
-    found = False
+def _settings_action(action: dict, call: str, intent: str, arguments: dict) -> bool:
+    if is_optional_switch_event(action):
+        return True
+    if call == "clickToDeeplink" and intent == "Settings":
+        return arguments.get("bundleName") == "com.huawei.hmos.settings"
+    if call != "clickToIntent":
+        return False
+    if intent in {"OpenFlashlight", "CloseFlashlight"}:
+        return True
+    parameters = arguments.get("params")
+    if not isinstance(parameters, dict):
+        return False
+    return (intent in {"EnterSettingPage", "SetSettingOption"}
+            and parameters.get("appBundleName") == "com.huawei.hmos.settings")
+
+
+def _action_business(action: object) -> str | None:
+    result: str | None = None
+    if not isinstance(action, dict):
+        return result
+    arguments = action.get("args")
+    if not isinstance(arguments, dict):
+        return result
+    call = action.get("call")
+    intent = arguments.get("intentName")
+    if not isinstance(call, str) or not isinstance(intent, str):
+        return result
+    if (call, intent) == ("clickToDeeplink", "Music"):
+        result = "music"
+    elif (call, intent) == ("clickToIntent", "StartNavigate"):
+        result = "navigation"
+    elif _settings_action(action, call, intent, arguments):
+        result = "settings"
+    return result
+
+
+def _only_action_business(rows: list[ComponentRow]) -> str | None:
+    businesses: set[str | None] = set()
     for row in rows:
-        for action in row.props.get("onClick", []):
-            if not isinstance(action, dict):
-                return False
-            arguments = action.get("args", {})
-            if not isinstance(arguments, dict) or action.get("call") != "clickToDeeplink":
-                return False
-            if arguments.get("intentName") != "Music":
-                return False
-            found = True
-    return found
+        actions = row.props.get("onClick", [])
+        if not isinstance(actions, list):
+            businesses.add(None)
+            continue
+        for action in actions:
+            businesses.add(_action_business(action))
+    result: str | None = None
+    if len(businesses) == 1:
+        result = next(iter(businesses))
+    return result
 
 
 def _path_business(path: str) -> str | None:
@@ -83,7 +120,7 @@ def visible_business(rows: list[ComponentRow]) -> str | None:
     state = _compact_visible_state(rows)
     result: str | None = None
     if not state.paths:
-        result = "music" if _only_music_actions(rows) else None
+        result = _only_action_business(rows)
     businesses = set()
     unknown = False
     for path in state.paths:

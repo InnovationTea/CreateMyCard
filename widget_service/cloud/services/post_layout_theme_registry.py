@@ -43,7 +43,8 @@ _CONTENT_ELIGIBILITY = {
         "businesses": {"type": "array", "minItems": 1, "uniqueItems": True,
                        "items": {"enum": ["calendar", "battery", "earphone", "weather",
                                           "sleep", "music", "sport", "countdown", "holiday",
-                                          "travel", "information", "smart-home", "app-usage"]}},
+                                          "travel", "information", "smart-home", "app-usage",
+                                          "navigation", "settings"]}},
     },
 }
 _PHOTO_ELIGIBILITY = {

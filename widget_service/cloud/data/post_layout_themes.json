@@ -2529,7 +2529,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 菱格",
-      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather、navigation、settings。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2541,7 +2541,9 @@
         "kind": "uniform",
         "businesses": [
           "calendar",
-          "weather"
+          "weather",
+          "navigation",
+          "settings"
         ],
         "placement": "not-center"
       },
@@ -2600,7 +2602,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 斜纹",
-      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather、navigation、settings。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2612,7 +2614,9 @@
         "kind": "uniform",
         "businesses": [
           "calendar",
-          "weather"
+          "weather",
+          "navigation",
+          "settings"
         ],
         "placement": "not-center"
       },
@@ -2671,7 +2675,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 同心圆",
-      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather。2x2单业务，正文最多3行。标题和按钮文案不计行数；整卡全居中布局唯一可用形状。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather、navigation、settings。2x2单业务，正文最多3行。标题和按钮文案不计行数；整卡全居中布局唯一可用形状。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2683,7 +2687,9 @@
         "kind": "uniform",
         "businesses": [
           "calendar",
-          "weather"
+          "weather",
+          "navigation",
+          "settings"
         ],
         "placement": "center"
       },
@@ -3168,7 +3174,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 菱格",
-      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather、navigation、settings。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3180,7 +3186,9 @@
         "kind": "uniform",
         "businesses": [
           "calendar",
-          "weather"
+          "weather",
+          "navigation",
+          "settings"
         ]
       },
       "matchingPolicy": "layout-only",
@@ -3238,7 +3246,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 斜纹",
-      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather、navigation、settings。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3250,7 +3258,9 @@
         "kind": "uniform",
         "businesses": [
           "calendar",
-          "weather"
+          "weather",
+          "navigation",
+          "settings"
         ]
       },
       "matchingPolicy": "layout-only",
@@ -3308,7 +3318,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 同心圆",
-      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather、navigation、settings。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3320,7 +3330,9 @@
         "kind": "uniform",
         "businesses": [
           "calendar",
-          "weather"
+          "weather",
+          "navigation",
+          "settings"
         ]
       },
       "matchingPolicy": "layout-only",
