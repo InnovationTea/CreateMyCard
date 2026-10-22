@@ -2652,6 +2652,10 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["action_visual"]["src"],
             "resources/base/media/ic_fallback_light.svg",
         )
+        self.assertEqual(
+            components["action_visual"]["styles"]["fillColor"],
+            "#FF1F4799",
+        )
 
     def test_rejects_invalid_high_level_component_contracts(self) -> None:
         cases = (
@@ -2827,6 +2831,10 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(
             components["action_visual"]["src"],
             "resources/base/media/ic_fallback_light.svg",
+        )
+        self.assertEqual(
+            components["action_visual"]["styles"]["fillColor"],
+            "#FF1F4799",
         )
 
     def test_icon_pill_button_uses_palette_colors_on_known_gradient(self) -> None:

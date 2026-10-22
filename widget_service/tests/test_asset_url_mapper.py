@@ -180,6 +180,7 @@ def test_mapping_covers_system_fallback_icon_without_asset_candidate():
     images = [item for item in components(result) if item.get("component") == "Image"]
     assert len(images) == 1
     assert images[0].get("src") == FALLBACK_URL
+    assert images[0].get("styles", {}).get("fillColor") == "#FF1F4799"
 
 
 def test_effective_sources_include_declared_mapping_targets_and_builtin_fallback():

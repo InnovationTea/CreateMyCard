@@ -103,6 +103,8 @@ def apply_system_component_colors(
             resolved.append(component)
             continue
         props = copy.deepcopy(component.props)
+        if component.component_type == "CardButton" and "icon" not in props:
+            props["icon"] = _CARD_BUTTON_FALLBACK_ICON
         if font_role is not None:
             font_color = _system_palette_color(palette, font_role)
             # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
