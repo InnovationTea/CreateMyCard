@@ -19,9 +19,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-_INTERNAL_ASSET_SOURCES = {
-    "resources/base/media/ic_fallback_light.svg",
-}
+from services.asset_url_mapper import SYSTEM_INTERNAL_ASSET_SOURCES
 
 
 def attach_effective_capabilities(
@@ -128,7 +126,7 @@ def _resolve_effective_asset_sources(
             sources.add(src)
             resolved_ids.add(item_id)
 
-    sources.update(_INTERNAL_ASSET_SOURCES)
+    sources.update(SYSTEM_INTERNAL_ASSET_SOURCES)
     return sources, ids - resolved_ids
 
 
