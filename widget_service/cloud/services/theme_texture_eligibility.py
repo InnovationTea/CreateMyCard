@@ -11,6 +11,9 @@ _SPORT_FIELD = re.compile(
     r"^(?:exercise|run|daily(?:Steps|Distance|TotalCalories)|steps|stepCount|activity|active|"
     r"calories|distance|heartRate|calorie|stand|move|workout|floors)", re.I,
 )
+_APP_USAGE_FIELD = re.compile(
+    r"/data/(?:[^/]+/)+mostUsedApps/[0-9]+/(?:appName|totalDuration)",
+)
 
 
 def subtree(identity: str, by_id: dict) -> list[ComponentRow]:
@@ -45,6 +48,13 @@ def _only_music_actions(rows: list[ComponentRow]) -> bool:
 
 def _path_business(path: str) -> str | None:
     result: str | None = None
+    date_paths = {
+        "/data/currentTime/currentDate",
+        "/data/currentTime/dayOfWeek",
+        "/data/currentTime/lunarDate",
+    }
+    if path in date_paths:
+        result = "calendar"
     prefixes = {
         "/data/calendar/": "calendar", "/data/phoneBattery/": "battery",
         "/data/earphone/": "earphone", "/data/weather/": "weather",
@@ -63,6 +73,9 @@ def _path_business(path: str) -> str | None:
             result = "sleep"
         elif _SPORT_FIELD.match(field_name):
             result = "sport"
+    # GetDailyMostUsage的写入根由请求指定，按其输出叶子识别，不依赖dailyUsage别名。
+    if _APP_USAGE_FIELD.fullmatch(path):
+        result = "app-usage"
     return result
 
 

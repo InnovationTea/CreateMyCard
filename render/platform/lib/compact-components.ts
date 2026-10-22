@@ -246,6 +246,13 @@ function isDisplayValue(value: unknown) {
     || (record(value) && Object.keys(value).length === 1 && typeof value.path === "string");
 }
 
+function isSecondaryValue(value: unknown): boolean {
+  if (typeof value === "number") return Number.isFinite(value);
+  if (record(value)) return Object.keys(value).length === 1 && typeof value.path === "string";
+  if (typeof value !== "string" || !value.trim().startsWith("{{")) return false;
+  return value.trim().endsWith("}}") && /\$\{\/[^{}]+\}/.test(value);
+}
+
 function requireDisplay(id: string, type: string, props: RecordValue, name: string) {
   if (!isDisplayValue(props[name])) throw new Error(`${id}: ${type}.${name} 必须是可显示文本。`);
 }
@@ -815,7 +822,7 @@ function expandHighLevel(
         itemChildren.push(valueId);
         rows.push(row(valueId, type, "text", size, {
           content: prefixValue ? secondaryPrefixedValue(String(item.label), item.value) : item.value,
-          fontColor: item.label !== undefined
+          fontColor: item.label !== undefined || isSecondaryValue(item.value)
             ? p.fontColor : colorWithAlpha(p.fontColor as string, 0.6),
           height: itemHeight, maxLines, layoutWeight: 1,
         }, [], variant));
