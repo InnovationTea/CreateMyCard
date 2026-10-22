@@ -64,10 +64,10 @@ def test_disabled_clouds_do_not_override_the_shared_weather_draw(monkeypatch):
 
 
 @pytest.mark.parametrize("identity,wide", [(SQUARE, False), (WIDE, True)])
-@pytest.mark.parametrize("lines,allowed", [(1, True), (2, True), (3, True), (4, False)])
-def test_wave_body_limit_excludes_title_and_button(identity, wide, lines, allowed):
+@pytest.mark.parametrize("lines", [1, 2, 3, 4, 5])
+def test_wave_body_limit_excludes_title_and_button(identity, wide, lines):
     saved = sample(PATHS.get("weather"), lines, wide=wide)
-    assert (rejection(saved, identity) is None) is allowed
+    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 3))
 
 
 @pytest.mark.parametrize("business", ["sleep", "sport", "calendar", "earphone", "battery"])
@@ -95,11 +95,11 @@ def test_wide_weather_depends_on_main_region_not_right_slot(monkeypatch, main_we
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 
-def test_wide_weather_rejects_right_main_and_unrecognized_layouts():
+def test_wide_weather_accepts_right_main_but_rejects_unrecognized_layouts():
     saved = sample(PATHS.get("weather"), 2, wide=True)
     rows = themes.decode(saved.compact)
     rows[0][2]["orientation"] = "content-right"
-    assert rejection(expanded(rows, saved.task), WIDE)
+    assert rejection(expanded(rows, saved.task), WIDE) is None
     saved = sample(PATHS.get("weather"), 2)
     saved.task["size"] = "2x4"
     assert rejection(saved, WIDE)

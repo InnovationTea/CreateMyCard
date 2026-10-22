@@ -526,7 +526,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "停机坪飞机",
-      "description": "暂不启用，保留素材和OBS配置。停机坪飞机。业务类别：travel。2x4左主焦点加右侧上下两个背板，左侧主内容区最多3行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "暂不启用，保留素材和OBS配置。停机坪飞机。业务类别：travel。2x4左主焦点加右侧上下两个背板，左侧主内容区最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -662,7 +662,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "暖光床头灯",
-      "description": "暂不启用，保留素材和OBS配置。暖光床头灯。业务类别：smart-home。2x4左主焦点加右侧上下两个背板，左侧主内容区最多3行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "暂不启用，保留素材和OBS配置。暖光床头灯。业务类别：smart-home。2x4左主焦点加右侧上下两个背板，左侧主内容区最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -801,7 +801,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "蓝光演唱会舞台",
-      "description": "蓝光演唱会舞台。业务类别：music、earphone。2x4左主焦点加右侧上下两个背板，左侧主内容区最多3行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "蓝光演唱会舞台。业务类别：music、earphone。2x4左主焦点加右侧上下两个背板，左侧主内容区最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -870,7 +870,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "蓝紫数字波浪",
-      "description": "蓝紫数字波浪。日程会议业务，2x4左主焦点加右侧上下两个背板；左侧主区正文全部居左贴底，最多3行。标题和按钮文案不计行数。",
+      "description": "蓝紫数字波浪。日程会议业务，2x4明确主焦点，支持上下及左右主次布局，不限居左贴底。主区正文最多4行，标题和按钮文案不计行数；双大背板和无主焦点布局不匹配。",
       "sizes": [
         "2x4"
       ],
@@ -882,7 +882,7 @@
         "businesses": [
           "calendar"
         ],
-        "placement": "bottom-left"
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -1007,7 +1007,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "双人户外跑步",
-      "description": "暂不启用，保留素材和OBS配置。双人户外跑步。业务类别：sport。2x4左主焦点加右侧上下两个背板，左侧主内容区最多3行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "暂不启用，保留素材和OBS配置。双人户外跑步。业务类别：sport。2x4左主焦点加右侧上下两个背板，左侧主内容区最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -1143,7 +1143,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "暗夜床头宽景",
-      "description": "暗夜床头宽景。业务类别：sleep。2x4左主焦点加右侧上下两个背板，左侧主内容区最多3行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "暗夜床头宽景。业务类别：sleep。2x4左主焦点加右侧上下两个背板，左侧主内容区最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -1211,7 +1211,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "逆光跑步背影",
-      "description": "逆光跑步背影。业务类别：sport。2x4左主焦点加右侧上下两个背板，左侧主内容区最多3行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "逆光跑步背影。业务类别：sport。2x4左主焦点加右侧上下两个背板，左侧主内容区最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -1756,7 +1756,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "星空电量横版",
-      "description": "暂不启用，保留素材和OBS配置。星空电量横版。业务类别：battery。2x4左主焦点加右侧上下两个背板，左主焦点为同一业务且正文最多3行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "暂不启用，保留素材和OBS配置。星空电量横版。业务类别：battery。2x4左主焦点加右侧上下两个背板，左主焦点为同一业务且正文最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -1892,7 +1892,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "白色水滴会议横图",
-      "description": "白色水滴会议背景，采用黑字100%/80%/60%。2x4左主焦点会议加右侧上下两个背板，主区正文最多3行。居左贴底布局使用A19，本图只匹配其余合格主焦点布局。允许图标和按钮，标题与按钮文案不计行数。",
+      "description": "白色水滴会议背景，采用黑字100%/80%/60%。2x4左主焦点会议加右侧上下两个背板，主区正文最多4行。居左贴底布局使用A19，本图只匹配其余合格主焦点布局。允许图标和按钮，标题与按钮文案不计行数。",
       "sizes": [
         "2x4"
       ],
@@ -2029,7 +2029,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "蓝色波浪天气宽景",
-      "description": "蓝色波浪天气宽景。业务类别：weather。2x4左主焦点加右侧上下两个背板，左侧主内容区为天气且最多3行。顶部标题和按钮文案不计行数；右侧允许其它业务。允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "蓝色波浪天气宽景。业务类别：weather。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。顶部标题和按钮文案不计行数；辅助区允许其它业务。不限制图标和按钮；双大背板和无主焦点布局不匹配。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -2040,7 +2040,8 @@
         "kind": "uniform",
         "businesses": [
           "weather"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -2748,7 +2749,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 菱格",
-      "description": "橙色无主体纹理 · 菱格。业务类别：sport、countdown。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 菱格。业务类别：sport、countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -2761,7 +2762,8 @@
         "businesses": [
           "sport",
           "countdown"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -2818,7 +2820,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 斜纹",
-      "description": "橙色无主体纹理 · 斜纹。业务类别：sport、countdown。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 斜纹。业务类别：sport、countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -2831,7 +2833,8 @@
         "businesses": [
           "sport",
           "countdown"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -2888,7 +2891,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 同心圆",
-      "description": "橙色无主体纹理 · 同心圆。业务类别：sport、countdown。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 同心圆。业务类别：sport、countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -2901,7 +2904,8 @@
         "businesses": [
           "sport",
           "countdown"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -2958,7 +2962,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 菱格",
-      "description": "紫色无主体纹理 · 菱格。业务类别：sleep、earphone、music、app-usage。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 菱格。业务类别：sleep、earphone、music、app-usage。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -2973,7 +2977,8 @@
           "earphone",
           "music",
           "app-usage"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3030,7 +3035,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 斜纹",
-      "description": "紫色无主体纹理 · 斜纹。业务类别：sleep、earphone、music、app-usage。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 斜纹。业务类别：sleep、earphone、music、app-usage。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3045,7 +3050,8 @@
           "earphone",
           "music",
           "app-usage"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3102,7 +3108,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 同心圆",
-      "description": "紫色无主体纹理 · 同心圆。业务类别：sleep、earphone、music、app-usage。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 同心圆。业务类别：sleep、earphone、music、app-usage。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3117,7 +3123,8 @@
           "earphone",
           "music",
           "app-usage"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3174,7 +3181,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 菱格",
-      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather、navigation、settings。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather、navigation、settings。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3189,7 +3196,8 @@
           "weather",
           "navigation",
           "settings"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3246,7 +3254,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 斜纹",
-      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather、navigation、settings。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather、navigation、settings。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3261,7 +3269,8 @@
           "weather",
           "navigation",
           "settings"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3318,7 +3327,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 同心圆",
-      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather、navigation、settings。2x4左主焦点加右侧上下背板，左侧正文最多3行。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather、navigation、settings。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3333,7 +3342,8 @@
           "weather",
           "navigation",
           "settings"
-        ]
+        ],
+        "wideLayout": "main-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3387,6 +3397,7 @@
   ],
   "photoEligibility": {
     "maxTextLines": 3,
+    "wideMaxTextLines": 4,
     "includeTitle": false,
     "includeButtons": false,
     "squareSingleBusiness": true,

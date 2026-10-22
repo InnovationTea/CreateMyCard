@@ -27,7 +27,10 @@ def test_split_panels_are_excluded_for_every_photo_business(identity):
     evidence = photo_layout_evidence(sample.nodes)
     assert evidence.get("sideBySidePanels") is True
     reason = themes.photo_reason(theme, sample.task, evidence, final_layout=sample.compact)
-    assert reason == "2x4图片需要左主焦点和右侧上下两个背板"
+    if theme.get("contentEligibility", {}).get("wideLayout") == "main-focus":
+        assert reason == "2x4图片需要明确主焦点，不支持双大背板或无主次布局"
+    else:
+        assert reason == "2x4图片需要左主焦点和右侧上下两个背板"
 
 
 @pytest.mark.parametrize("semantic", [False, True])

@@ -111,8 +111,8 @@ def conditional_wide(condition, extra_lines):
 
 
 @pytest.mark.parametrize("condition", [True, False])
-@pytest.mark.parametrize("extra_lines,allowed", [(2, True), (3, False), (4, False)])
-def test_wide_conditional_body_counts_current_branch_without_relaxing_limit(
+@pytest.mark.parametrize("extra_lines,allowed", [(2, True), (3, True), (4, False)])
+def test_wide_conditional_body_counts_current_branch_with_four_line_limit(
     condition, extra_lines, allowed,
 ):
     saved = conditional_wide(condition, extra_lines)

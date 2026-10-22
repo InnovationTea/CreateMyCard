@@ -38,6 +38,7 @@ _CONTENT_ELIGIBILITY = {
     "properties": {
         "kind": {"const": "uniform"},
         "maxTextLines": {"type": "integer", "minimum": 1, "maximum": 3},
+        "wideLayout": {"const": "main-focus"},
         "placement": {"enum": ["top-left-empty-bottom", "bottom-left", "not-bottom-left",
                                "center", "not-center"]},
         "businesses": {"type": "array", "minItems": 1, "uniqueItems": True,
@@ -49,10 +50,11 @@ _CONTENT_ELIGIBILITY = {
 }
 _PHOTO_ELIGIBILITY = {
     "type": "object", "additionalProperties": False,
-    "required": ["maxTextLines", "includeTitle", "includeButtons", "squareSingleBusiness",
-                 "squareSubjectAlignment", "wideLayout"],
+    "required": ["maxTextLines", "wideMaxTextLines", "includeTitle", "includeButtons",
+                 "squareSingleBusiness", "squareSubjectAlignment", "wideLayout"],
     "properties": {
-        "maxTextLines": {"const": 3}, "includeTitle": {"const": False},
+        "maxTextLines": {"const": 3}, "wideMaxTextLines": {"const": 4},
+        "includeTitle": {"const": False},
         "includeButtons": {"const": False}, "squareSingleBusiness": {"const": True},
         "squareSubjectAlignment": {"const": "left"},
         "wideLayout": {
@@ -194,6 +196,8 @@ def _validate_content_eligibility(theme: dict) -> None:
     if theme.get("subjectless") is not is_texture:
         raise ValueError("Only the abstract texture pool uses subjectless policy")
     policy = theme.get("contentEligibility", {})
+    if policy.get("wideLayout") is not None and theme.get("sizes") != ["2x4"]:
+        raise ValueError("Main-focus layout requires a wide photo")
     placement = policy.get("placement")
     if placement == "top-left-empty-bottom":
         if is_texture or theme.get("sizes") != ["2x2"]:

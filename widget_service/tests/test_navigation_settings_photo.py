@@ -162,13 +162,15 @@ def test_selection_is_uniform_blue_and_preserves_foreground(monkeypatch, event_i
 
 @pytest.mark.parametrize("event_id", [NAVIGATION, SETTINGS])
 @pytest.mark.parametrize("wide", [False, True])
-@pytest.mark.parametrize("lines,allowed", [(1, True), (3, True), (4, False)])
-def test_existing_body_line_gate_is_not_relaxed(event_id, wide, lines, allowed):
+@pytest.mark.parametrize("lines", [1, 3, 4, 5])
+def test_body_line_gate_uses_square_three_and_wide_four(event_id, wide, lines):
     saved = entry_sample(event_id, lines, wide)
     reason = rejection(saved, BLUE + "diamond-" + ("wide" if wide else "square"))
+    limit = 4 if wide else 3
+    allowed = lines <= limit
     assert (reason is None) is allowed
     if not allowed:
-        assert "超过3行" in reason
+        assert f"超过{limit}行" in reason
 
 
 @pytest.mark.parametrize("event_id", [NAVIGATION, SETTINGS])
@@ -184,12 +186,12 @@ def test_fully_centered_entry_only_uses_circles(monkeypatch, event_id):
     assert audit.get("candidates") == [BLUE + "circles-square"]
 
 
-def test_wide_main_only_and_existing_layout_gate():
+def test_wide_main_business_works_in_left_right_and_top_layouts():
     saved = entry_sample(NAVIGATION, wide=True)
     assert rejection(saved, BLUE + "diamond-wide") is None
     rows = themes.decode(saved.compact)
     rows[0][2]["orientation"] = "content-right"
-    assert "左主焦点" in rejection(expanded(rows, saved.task), BLUE + "diamond-wide")
+    assert rejection(expanded(rows, saved.task), BLUE + "diamond-wide") is None
     rows = [
         ["root", "Layout", {"layout": "W-top-bottom"}, ["title", "main", "details"]],
         ["title", "SingleLineTitle", {"title": "导航"}],
@@ -198,7 +200,7 @@ def test_wide_main_only_and_existing_layout_gate():
             {"label": "目的地", "value": "公司"}, {"label": "出行", "value": "驾车"},
         ]}],
     ]
-    assert "左主焦点" in rejection(expanded(rows, saved.task), BLUE + "diamond-wide")
+    assert rejection(expanded(rows, saved.task), BLUE + "diamond-wide") is None
 
 
 def test_unshown_actions_and_query_do_not_create_a_business():

@@ -119,11 +119,12 @@ def test_fully_centered_usage_only_uses_circles(monkeypatch, lines, allowed):
 
 
 @pytest.mark.parametrize("wide", [False, True])
-def test_four_body_lines_reject_usage_photos(wide):
-    saved = sample(USAGE, 4, wide=wide)
+def test_over_limit_body_lines_reject_usage_photos(wide):
+    limit = 4 if wide else 3
+    saved = sample(USAGE, limit + 1, wide=wide)
     suffix = "wide" if wide else "square"
     for shape in ("diamond", "diagonal"):
-        assert "超过3行" in rejection(saved, PURPLE + shape + "-" + suffix)
+        assert f"超过{limit}行" in rejection(saved, PURPLE + shape + "-" + suffix)
 
 
 def test_square_sleep_plus_usage_stays_mixed_even_with_same_purple_family():
@@ -146,10 +147,10 @@ def test_wide_classifies_only_main_content_and_keeps_layout_gate():
     saved = expanded(rows, saved.task)
     assert rejection(saved, PURPLE + "diamond-wide") is None
     rows[0][2]["orientation"] = "content-right"
-    assert "左主焦点" in rejection(expanded(rows, saved.task), PURPLE + "diamond-wide")
+    assert rejection(expanded(rows, saved.task), PURPLE + "diamond-wide") is None
     saved = sample(USAGE, 2)
     saved.task["size"] = "2x4"
-    assert "左主焦点" in rejection(saved, PURPLE + "diamond-wide")
+    assert "主焦点" in rejection(saved, PURPLE + "diamond-wide")
 
 
 def test_query_and_unshown_usage_cannot_override_actual_weather():

@@ -1,4 +1,4 @@
-"""统一图集、三行正文、主体居左与按池等概率选图的回归。"""
+"""统一图集、方卡三行/宽卡四行、主体居左与按池等概率选图的回归。"""
 
 import asyncio
 import copy
@@ -116,6 +116,8 @@ def test_only_current_subject_and_abstract_assets_remain():
             expected_keys.update({"maxTextLines", "placement"})
         elif item.get("contentEligibility", {}).get("placement"):
             expected_keys.add("placement")
+        if item.get("contentEligibility", {}).get("wideLayout"):
+            expected_keys.add("wideLayout")
         assert set(item.get("contentEligibility", {})) == expected_keys
         assert "https://" not in json.dumps(theme_description(item))
 
@@ -129,7 +131,9 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
         path = PATHS.get("countdown")
     assert path
     clouds = item.get("id") == "photo-ux-clouds-weather-square"
-    limit = 2 if clouds else 3
+    limit = 4 if item.get("size") == "2x4" else 3
+    if clouds:
+        limit = 2
     for count in (limit, limit + 1):
         placement = item.get("contentEligibility", {}).get("placement")
         button = not clouds and placement != "bottom-left"

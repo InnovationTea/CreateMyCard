@@ -39,11 +39,11 @@ def test_new_photos_only_match_assigned_business(identity, businesses, wide, bus
 
 
 @pytest.mark.parametrize("identity,businesses,wide", CASES)
-@pytest.mark.parametrize("lines,allowed", [(1, True), (3, True), (4, False)])
-def test_new_photos_keep_shared_line_limit_with_buttons(identity, businesses, wide, lines, allowed):
+@pytest.mark.parametrize("lines", [1, 3, 4, 5])
+def test_new_photos_keep_shared_line_limit_with_buttons(identity, businesses, wide, lines):
     business = "countdown" if businesses[0] == "holiday" else businesses[0]
     saved = sample(PATHS.get(business), lines, wide=wide, button=True, title="假期")
-    assert (rejection(saved, identity) is None) is allowed
+    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 3))
 
 
 @pytest.mark.parametrize("identity,businesses,wide", CASES)
