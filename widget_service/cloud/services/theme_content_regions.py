@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from services.card_validation.base import read_pointer
-from services.display_text import concatenated_display_text
+from services.display_text import current_display_text
 from services.theme_style_roles import ROLE_PATTERN, is_role
 
 
@@ -272,7 +272,7 @@ def _current_text_lines(node: dict, data_model: dict) -> int | None:
     content = node.get("content")
     if type(content) in {int, float}:
         content = str(content)
-    text = concatenated_display_text(content, lookup)
+    text = current_display_text(content, lookup)
     result: int | None = None
     if text is not None:
         result = len(text.replace("\r\n", "\n").replace("\r", "\n").split("\n")) if text else 0
@@ -334,11 +334,30 @@ def text_flow_evidence(nodes: list[dict], *, current_data: dict | None = None,
             child_flows = [visit(child, ancestors | {identity}) for child in children]
             flow = _container_text_flow(kind, styles, child_flows,
                                         current_text=current_data is not None)
+            if kind == "Row":
+                child_nodes = [by_id.get(child, {}) for child in children]
+                if _row_distributes_text(child_nodes, child_flows):
+                    flow["leftAligned"] = False
         flows[identity] = flow
         return flow
 
     visit("root", set())
     return flows
+
+
+def _row_distributes_text(nodes: list[dict], flows: list[dict]) -> bool:
+    """Local start alignment does not make weighted or fixed-width columns globally left."""
+    reserved = False
+    for node, flow in zip(nodes, flows, strict=True):
+        has_text = bool(flow.get("maxLines"))
+        if has_text and reserved:
+            return True
+        styles = node.get("styles", {})
+        weight = styles.get("layoutWeight")
+        stretched = type(weight) in {int, float} and weight > 0
+        column_width = has_text and styles.get("width") not in {None, "wrapContent"}
+        reserved = reserved or stretched or column_width
+    return False
 
 
 def _container_text_flow(kind: str, styles: dict, children: list[dict],

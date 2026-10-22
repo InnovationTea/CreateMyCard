@@ -76,6 +76,7 @@ _THEME = {
         "sourceSize": {"enum": ["2x2"]},
         "businessDescription": _TEXT,
         "matchingPolicy": {"const": "layout-only"},
+        "selectionPriority": {"type": "integer", "minimum": 0},
         "contentEligibility": _CONTENT_ELIGIBILITY,
         "subjectless": {"type": "boolean"},
         "subjectlessLayout": {
@@ -142,6 +143,8 @@ def _check(value: object, schema: dict, label: str) -> None:
 def _validate_theme(theme: dict) -> None:
     _check(theme, _THEME, "theme")
     kind = theme.get("kind")
+    if "selectionPriority" in theme and kind != "photo":
+        raise ValueError("Selection priority only applies to photos")
     background_schema = _BACKGROUNDS.get(kind)
     if background_schema is None:
         raise ValueError("Unknown theme background kind")

@@ -222,44 +222,16 @@ def presets(task: dict) -> list[dict]:
 
 
 def photo_background(photo: dict) -> list[dict]:
-    frame = photo.get("frame", {})
     fit = "fill" if photo.get("objectFit") == "fill" else "cover"
-
-    def percent(key: str) -> str:
-        return f"{frame.get(key, 1) * 100:g}%"
-
     return [
         {
             "id": PREFIX + "background",
             "component": "Stack",
-            "children": [PREFIX + "base", PREFIX + "slot"],
+            "children": [PREFIX + "base"],
             "styles": {"width": "matchParent", "height": "matchParent", "alignContent": "topStart"},
         },
         {
             "id": PREFIX + "base",
-            "component": "Image",
-            "src": photo.get("src"),
-            "styles": {"width": "matchParent", "height": "matchParent", "objectFit": fit},
-        },
-        {
-            "id": PREFIX + "slot",
-            "component": "Stack",
-            "children": [PREFIX + "imageBox"],
-            "styles": {
-                "width": percent("slotWidth"),
-                "height": percent("slotHeight"),
-                "alignContent": frame.get("align", "topStart"),
-            },
-        },
-        {
-            "id": PREFIX + "imageBox",
-            "component": "Column",
-            "children": [PREFIX + "image"],
-            "itemMargin": 0,
-            "styles": {"width": percent("imageWidth"), "height": percent("imageHeight")},
-        },
-        {
-            "id": PREFIX + "image",
             "component": "Image",
             "src": photo.get("src"),
             "styles": {"width": "matchParent", "height": "matchParent", "objectFit": fit},
@@ -515,7 +487,13 @@ async def select_theme(
     fusion_candidates = [item for item in candidates if item.get("kind") == "fusion"]
     ordinary_requested = bool(re.search(r"纯色|渐变", task.get("userQuery", "")))
     if photos:
-        candidates = photos
+        priority = max(item.get("selectionPriority", 0) for item in photos)
+        candidates = []
+        for photo in photos:
+            if photo.get("selectionPriority", 0) == priority:
+                candidates.append(photo)
+            else:
+                rejected[photo.get("id")] = "已有更高优先级的合格图片"
     elif fusion_candidates and not ordinary_requested:
         candidates = fusion_candidates
     allowed = {item.get("id"): item for item in candidates}

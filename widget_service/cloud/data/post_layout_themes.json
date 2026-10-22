@@ -727,10 +727,11 @@
     {
       "id": "photo-ux-clouds-weather-square",
       "enabled": true,
+      "selectionPriority": 1,
       "kind": "photo",
       "pool": "photos",
       "name": "蓝天白云",
-      "description": "蓝天白云天气图。仅2x2天气单业务，正文1至2行且集中居左居上，下方完全留空。标题和按钮文案不计正文行数；下方不得有文字、图标、按钮、进度条或背板，顶部标题图标和正文同行元素可保留。不移动或删减内容。统一白字；同级合格图片等概率选择。",
+      "description": "蓝天白云天气图。仅2x2天气单业务，正文1至2行且集中居左居上，下方完全留空。标题和按钮文案不计正文行数；下方不得有文字、图标、按钮、进度条或背板，顶部标题图标和正文同行元素可保留。不移动或删减内容。统一白字；满足专属准入时优先于其它天气主体图。",
       "sizes": [
         "2x2"
       ],
@@ -1944,6 +1945,142 @@
           "graphicTertiary": "#99000000",
           "componentSecondary": "#33000000",
           "componentTertiary": "#1A000000"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-wave-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "蓝色波浪天气",
+      "description": "蓝色波浪天气。业务类别：weather。2x2同一业务，正文最多3行且整体居左。顶部标题和按钮文案不计行数；允许图标和按钮。与星空天气同级合格时等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/ffc5bb6c5645479799414fff68e61126/0310344f325941988566cac9fa549cd4.jpg",
+        "sourceSha256": "e46d6f0dc502e2a4d2fa83d15dccb393b40ea90c7b816f711751c17253ddbc05",
+        "assetSha256": "e46d6f0dc502e2a4d2fa83d15dccb393b40ea90c7b816f711751c17253ddbc05",
+        "assetBytes": 507123,
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          2735,
+          2735
+        ],
+        "assetSize": [
+          2735,
+          2735
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_wave_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/ffc5bb6c5645479799414fff68e61126/0310344f325941988566cac9fa549cd4.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-wave-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "蓝色波浪天气宽景",
+      "description": "蓝色波浪天气宽景。业务类别：weather。2x4左主焦点加右侧上下两个背板，左侧主内容区为天气且最多3行。顶部标题和按钮文案不计行数；右侧允许其它业务。允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/4ec25a5217b542208ee46c3f9b1bc074/a568268450794ee89d573b41d0262ace.jpg",
+        "sourceSha256": "6dec441002fec4993251339430e7dd5f0ddfc706ab1a38fc05d579692ae20e2a",
+        "assetSha256": "6dec441002fec4993251339430e7dd5f0ddfc706ab1a38fc05d579692ae20e2a",
+        "assetBytes": 478612,
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          4442,
+          2221
+        ],
+        "assetSize": [
+          4442,
+          2221
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_wave_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/4ec25a5217b542208ee46c3f9b1bc074/a568268450794ee89d573b41d0262ace.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
         },
         "panelBySize": {
           "2x4": "#33FFFFFF"

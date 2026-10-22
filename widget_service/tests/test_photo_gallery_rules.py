@@ -23,7 +23,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 13
+    assert len(registry.registered_themes("photos")) == 15
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -202,6 +202,11 @@ def test_fully_centered_uses_only_circles(monkeypatch, business, family, primiti
 @pytest.mark.parametrize("wide", [False, True])
 @pytest.mark.parametrize("shape", ["diamond", "diagonal"])
 def test_other_layouts_choose_between_two_equal_candidates(monkeypatch, wide, shape):
+    config = registry.load_theme_registry()
+    for item in config.get("themes", []):
+        if item.get("pool") == "photos":
+            item["enabled"] = False
+    monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
     suffix = "wide" if wide else "square"
     expected = {f"photo-ux-texture-blue-{item}-{suffix}" for item in ("diamond", "diagonal")}
     selected = f"photo-ux-texture-blue-{shape}-{suffix}"

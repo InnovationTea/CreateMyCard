@@ -64,7 +64,7 @@ def test_replaced_photos_are_removed_from_registry_and_assets(identity):
     assert not (Path(__file__).parents[2] / "resources/base/media" / name).exists()
 
 
-@pytest.mark.parametrize("selected", [CLOUDS, WEATHER])
+@pytest.mark.parametrize("selected", ["photo-ux-wave-square", WEATHER])
 def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, selected):
     calls = []
 
@@ -73,10 +73,10 @@ def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, sele
         return selected
 
     monkeypatch.setattr(themes.secrets, "choice", choice)
-    saved = sample(PATHS.get("weather"), 1, button=False)
+    saved = sample(PATHS.get("weather"), 3, button=False)
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
-    assert set(calls[0]) == {CLOUDS, WEATHER}
+    assert set(calls[0]) == {"photo-ux-wave-square", WEATHER}
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)

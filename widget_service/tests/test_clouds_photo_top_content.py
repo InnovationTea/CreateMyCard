@@ -191,11 +191,13 @@ def test_local_inline_baseline_alignment_is_not_card_bottom_alignment(stretched,
     assert (rejection(expanded(rows, saved.task), CLOUDS) is None) is allowed
 
 
-def test_unmatched_clouds_can_use_starfield_without_relayout(monkeypatch):
+def test_unmatched_clouds_can_use_other_weather_photos_without_relayout(monkeypatch):
     saved = sample(PATHS.get("weather"), 3, button=True)
     result, audit = choose(saved, monkeypatch)
     assert CLOUDS not in audit.get("candidates", [])
-    assert audit.get("themeId") == "photo-ux-starfield-weather-square"
+    weather_photos = {"photo-ux-starfield-weather-square", "photo-ux-wave-square"}
+    assert set(audit.get("candidates", [])) == weather_photos
+    assert audit.get("themeId") in weather_photos
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
     assert rejection(saved, BLUE) is None
 
