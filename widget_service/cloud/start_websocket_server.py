@@ -12,7 +12,7 @@ from app.logger import logger
 from app.websocket_metrics import report_websocket_metrics, websocket_metrics
 from config.config import get_settings
 from custom.model_runtime import ModelExecutionRuntime
-from services.daily_usage_mysql import create_daily_usage_limiter
+from services.daily_usage_api import create_daily_usage_limiter
 
 _MODULE = "[Main]"
 

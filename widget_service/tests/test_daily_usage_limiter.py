@@ -63,7 +63,7 @@ async def test_daily_limit_boundaries_and_existing_request(count):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("uid,request_id", [("", "s&1"), (" ", "s&1"), ("u", None), ("u", " ")])
-async def test_missing_identity_never_touches_database(uid, request_id):
+async def test_missing_identity_never_calls_repository(uid, request_id):
     repository = AsyncMock()
     assert await make_limiter(repository).check(uid, request_id) is None
     repository.snapshot.assert_not_called()
@@ -113,7 +113,7 @@ async def test_read_failure_is_closed(exception):
 
 
 @pytest.mark.asyncio
-async def test_database_check_has_bounded_timeout():
+async def test_usage_api_check_has_bounded_timeout():
     repository = AsyncMock()
     repository.snapshot.side_effect = lambda _record: None
 

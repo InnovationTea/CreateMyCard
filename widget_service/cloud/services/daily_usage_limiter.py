@@ -88,7 +88,7 @@ class DailyUsageLimiter:
         except Exception as exc:
             logger.error(
                 f"[Daily Usage] check_failed uid_hash={record.uid_hash} "
-                f"exception_type={type(exc).__name__} reason=database_check_failed"
+                f"exception_type={type(exc).__name__} reason=usage_api_check_failed"
             )
             raise DailyUsageError(
                 ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE,
@@ -123,7 +123,7 @@ class DailyUsageLimiter:
                     f"[Daily Usage] record_failed uid_hash={record.uid_hash} "
                     f"request_id_hash={record.request_id_hash} date={record.usage_date} "
                     f"attempt={attempt} exception_type={type(exc).__name__} "
-                    "reason=database_write_failed"
+                    "reason=usage_api_record_failed"
                 )
             else:
                 logger.info(
@@ -133,7 +133,7 @@ class DailyUsageLimiter:
                 return
         logger.error(
             f"[Daily Usage] record_exhausted uid_hash={record.uid_hash} "
-            f"request_id_hash={record.request_id_hash} reason=delivered_but_not_confirmed_in_db"
+            f"request_id_hash={record.request_id_hash} reason=delivered_but_not_confirmed_by_api"
         )
 
     async def aclose(self) -> None:

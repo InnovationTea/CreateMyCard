@@ -1,4 +1,4 @@
--- 由部署人员在目标业务库执行，应用运行账号只需 SELECT、INSERT、UPDATE 权限。
+-- 仅供次数 API 服务端参考；Python 微服务不连接数据库，也不执行本脚本。
 -- 不以 usage_date 作为唯一键的一部分，确保同一 uid + requestId 跨天仍只计一次。
 CREATE TABLE IF NOT EXISTS t_genuiagent_daily_usage (
     id                VARCHAR(64) NOT NULL COMMENT '主键ID',

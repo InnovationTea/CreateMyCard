@@ -259,21 +259,18 @@ class Settings(BaseSettings):
     )
     enable_daily_usage_limit: bool = CONFIG.get("enable_daily_usage_limit", "false") == "true"
     daily_usage_limit: int = Field(default=CONFIG.get("daily_usage_limit", 20), gt=0)
-    daily_usage_mysql_host: str = CONFIG.get("daily_usage_mysql_host", "")
-    daily_usage_mysql_port: int = Field(
-        default=CONFIG.get("daily_usage_mysql_port", 3306), ge=1, le=65535
+    daily_usage_api_host: str = CONFIG.get("daily_usage_api_host", "")
+    daily_usage_api_port: int = Field(
+        default=CONFIG.get("daily_usage_api_port", 8080), ge=1, le=65535
     )
-    daily_usage_mysql_database: str = CONFIG.get("daily_usage_mysql_database", "")
-    daily_usage_mysql_user: str = CONFIG.get("daily_usage_mysql_user", "")
-    daily_usage_mysql_password_sts_config_key: str = CONFIG.get(
-        "daily_usage_mysql_password_sts_config_key", "genui.mysql.password"
+    daily_usage_api_snapshot_path: str = CONFIG.get(
+        "daily_usage_api_snapshot_path", "/genui-agent/v1/daily-usage/snapshot"
     )
-    daily_usage_mysql_ssl_ca: str = CONFIG.get("daily_usage_mysql_ssl_ca", "")
-    daily_usage_mysql_pool_size: int = Field(
-        default=CONFIG.get("daily_usage_mysql_pool_size", 10), gt=0
+    daily_usage_api_record_path: str = CONFIG.get(
+        "daily_usage_api_record_path", "/genui-agent/v1/daily-usage/record-success"
     )
-    daily_usage_mysql_timeout_seconds: float = Field(
-        default=CONFIG.get("daily_usage_mysql_timeout_seconds", 3.0), gt=0
+    daily_usage_api_timeout_seconds: float = Field(
+        default=CONFIG.get("daily_usage_api_timeout_seconds", 3.0), gt=0
     )
     enable_compact_dsl_argument_repair_fallback: bool = (
         CONFIG.get("enable_compact_dsl_argument_repair_fallback", "false") == "true"
@@ -358,7 +355,7 @@ class Settings(BaseSettings):
     ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
 
     @field_validator(
-        "daily_usage_limit", "daily_usage_mysql_port", "daily_usage_mysql_pool_size", mode="before"
+        "daily_usage_limit", "daily_usage_api_port", mode="before"
     )
     @classmethod
     def validate_daily_usage_integer(cls, value: object) -> object:

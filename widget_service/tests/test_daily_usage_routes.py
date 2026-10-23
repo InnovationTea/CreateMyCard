@@ -194,7 +194,7 @@ async def test_query_operations_skip_quota(setup_route, operation):
 
 
 @pytest.mark.asyncio
-async def test_database_unavailable_is_not_reported_as_parameter_error(monkeypatch, setup_route):
+async def test_usage_api_unavailable_is_not_reported_as_parameter_error(monkeypatch, setup_route):
     limiter = make_limiter()
     limiter.repository.snapshot = AsyncMock(side_effect=OSError("offline"))
     report = Mock()
@@ -294,7 +294,7 @@ async def test_edit_is_counted_like_create(monkeypatch, setup_route):
 
 
 @pytest.mark.asyncio
-async def test_enabled_without_initialized_pool_fails_closed(monkeypatch, setup_route):
+async def test_enabled_without_initialized_client_fails_closed(monkeypatch, setup_route):
     frames, calls = await run_route(monkeypatch, None)
     assert not calls
     assert final_message(frames).get("errorCode") == ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE
