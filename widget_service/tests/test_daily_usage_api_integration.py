@@ -105,7 +105,7 @@ def test_real_app_lifespan_websocket_and_http_adapter(monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_daily_usage_limit", True)
     monkeypatch.setattr(settings, "daily_usage_limit", 1)
-    monkeypatch.setattr(settings, "hag_slb_url", "https://usage.test:8443")
+    monkeypatch.setattr(settings, "daily_usage_slb", "https://usage.test:8443")
     monkeypatch.setattr(settings, "enable_widget_directive_commands", True)
     monkeypatch.setattr(settings, "enable_compact_dsl_interface_retry", False)
     monkeypatch.setattr(settings, "ai_widget_data_huashan_enable", False)

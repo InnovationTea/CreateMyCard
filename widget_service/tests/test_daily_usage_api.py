@@ -200,7 +200,7 @@ async def test_disabled_factory_never_creates_client_or_validates_url(monkeypatc
     monkeypatch.setattr(daily_usage_api, "_api_url", build_url)
     assert (
         await daily_usage_api.create_daily_usage_limiter(
-            Settings(enable_daily_usage_limit=False, hag_slb_url="")
+            Settings(enable_daily_usage_limit=False, daily_usage_slb="")
         )
         is None
     )
@@ -227,7 +227,8 @@ async def test_factory_address_timeout_and_no_startup_request(monkeypatch, confi
     limiter = await daily_usage_api.create_daily_usage_limiter(
         Settings(
             enable_daily_usage_limit=True,
-            hag_slb_url=configured,
+            daily_usage_slb=configured,
+            hag_slb_url="https://unrelated-hag.test:9443",
             daily_usage_api_snapshot_path="/custom/query",
             daily_usage_api_record_path="/custom/record",
             daily_usage_api_timeout_seconds=2.0,
@@ -268,7 +269,11 @@ async def test_invalid_slb_url_rejected_before_client_creation(monkeypatch, base
     monkeypatch.setattr(daily_usage_api.httpx, "AsyncClient", factory)
     with pytest.raises(ValueError):
         await daily_usage_api.create_daily_usage_limiter(
-            Settings(enable_daily_usage_limit=True, hag_slb_url=base_url)
+            Settings(
+                enable_daily_usage_limit=True,
+                daily_usage_slb=base_url,
+                hag_slb_url="https://unrelated-hag.test:9443",
+            )
         )
     factory.assert_not_called()
 
@@ -288,12 +293,14 @@ def test_invalid_configuration_rejected(option, value):
 
 
 def test_environment_overrides_and_mysql_settings_removed(monkeypatch):
-    monkeypatch.setenv("WIDGET_SERVICE_HAG_SLB_URL", "https://usage.test:8443")
+    monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_SLB", "https://usage.test:8443")
+    monkeypatch.setenv("WIDGET_SERVICE_HAG_SLB_URL", "https://unrelated-hag.test:9443")
     monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_API_HOST", "ignored.test")
     monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_API_PORT", "8091")
     monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_MYSQL_PASSWORD", "ignored-secret")
     settings = Settings()
-    assert settings.hag_slb_url == "https://usage.test:8443"
+    assert settings.daily_usage_slb == "https://usage.test:8443"
+    assert settings.hag_slb_url == "https://unrelated-hag.test:9443"
     assert "daily_usage_api_host" not in settings.model_dump()
     assert "daily_usage_api_port" not in settings.model_dump()
     assert "ignored-secret" not in repr(settings)

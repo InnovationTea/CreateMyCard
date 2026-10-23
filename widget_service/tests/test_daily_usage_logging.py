@@ -43,7 +43,7 @@ def route_settings(monkeypatch):
 async def test_initialization_logs_effective_switch(monkeypatch, usage_logs, enabled):
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_daily_usage_limit", enabled)
-    monkeypatch.setattr(settings, "hag_slb_url", "https://usage.test:8443")
+    monkeypatch.setattr(settings, "daily_usage_slb", "https://usage.test:8443")
     limiter = await daily_usage_api.create_daily_usage_limiter(settings)
     try:
         assert f"initializing enabled={enabled}" in usage_logs[0]

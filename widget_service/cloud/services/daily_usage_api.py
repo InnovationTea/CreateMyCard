@@ -93,10 +93,10 @@ def _api_url(base_url: str, path: str) -> httpx.URL:
         raise ValueError("daily usage API path must not contain query or fragment")
     base = httpx.URL(base_url.strip())
     if base.scheme not in ("http", "https") or not base.host:
-        raise ValueError("daily usage API requires an absolute HTTP(S) hag_slb_url")
+        raise ValueError("daily usage API requires an absolute HTTP(S) daily_usage_slb")
     if base.userinfo or base.query or base.fragment:
-        raise ValueError("hag_slb_url must not contain credentials, query or fragment")
-    # 接口路径从域名根目录开始，保留 hag_slb_url 的协议、主机和端口。
+        raise ValueError("daily_usage_slb must not contain credentials, query or fragment")
+    # 接口路径从域名根目录开始，保留 daily_usage_slb 的协议、主机和端口。
     return base.copy_with(path=path)
 
 
@@ -109,10 +109,10 @@ async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | 
     )
     if settings.enable_daily_usage_limit:
         snapshot_url = _api_url(
-            settings.hag_slb_url, settings.daily_usage_api_snapshot_path
+            settings.daily_usage_slb, settings.daily_usage_api_snapshot_path
         )
         record_url = _api_url(
-            settings.hag_slb_url, settings.daily_usage_api_record_path
+            settings.daily_usage_slb, settings.daily_usage_api_record_path
         )
         # 内部 HTTP(S) 调用，不走环境代理、不跟随重定向，不在启动时发送请求。
         client = httpx.AsyncClient(

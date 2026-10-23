@@ -4,7 +4,9 @@ ENVIRONMENT: local
 # 每日成功次数：通过内部 API 查询及记录；绿区 spec 未配置时同样默认关闭。
 enable_daily_usage_limit: false
 daily_usage_limit: 20
-# 协议、域名和端口统一取 hag_slb_url，以下路径从域名根目录开始。
+# 每日次数 API 独立地址，包含协议、域名及可选端口；开启前必须填写。
+daily_usage_slb: ""
+# 以下路径从域名根目录开始。
 daily_usage_api_snapshot_path: /genui-agent/v1/daily-usage/snapshot
 daily_usage_api_record_path: /genui-agent/v1/daily-usage/record-success
 daily_usage_api_timeout_seconds: 3.0
