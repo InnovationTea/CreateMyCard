@@ -38,24 +38,24 @@ class FakeUsageAPI:
         request_hash = body.get("requestIdHash")
         assert isinstance(uid_hash, str)
         assert isinstance(request_hash, str)
-        key = (uid_hash, request_hash)
+        key = (uid_hash, body.get("usageDate"))
+        requests = self.records.get(key, [])
         if request.url.path.endswith("snapshot"):
             self.queries.append(body)
-            count = 0
-            for saved in self.records.values():
-                if saved.get("uidHash") == uid_hash and saved.get("usageDate") == body.get(
-                    "usageDate"
-                ):
-                    count += 1
             return httpx.Response(
                 200,
                 json={
                     "success": True,
-                    "data": {"alreadyCounted": key in self.records, "usedCount": count},
+                    "data": {
+                        "alreadyCounted": request_hash in requests,
+                        "usedCount": len(requests),
+                    },
                 },
             )
         self.writes.append(body)
-        self.records.setdefault(key, body)
+        requests = self.records.setdefault(key, [])
+        if request_hash not in requests:
+            requests.append(request_hash)
         if self.lose_first_write_response and len(self.writes) == 1:
             raise httpx.ReadTimeout("committed but response lost", request=request)
         return httpx.Response(200, json={"success": True})
@@ -84,7 +84,7 @@ async def test_lost_record_response_retries_same_body_without_double_count():
 
 
 @pytest.mark.asyncio
-async def test_cross_day_uses_entry_date_and_old_request_stays_counted():
+async def test_cross_day_uses_entry_date_and_new_day_counts_same_request_again():
     api = FakeUsageAPI()
     limiter = DailyUsageLimiter(make_repository(api), 1, 1.0, clock=lambda: NOW)
     try:
@@ -93,10 +93,33 @@ async def test_cross_day_uses_entry_date_and_old_request_stays_counted():
         limiter.clock = lambda: NOW + timedelta(minutes=2)
         await limiter.record_success(record)
         assert api.writes[0].get("usageDate") == "2026-10-22"
-        assert await limiter.check("user", "s&1") is None
-        next_record = await limiter.check("user", "s&2")
+        next_record = await limiter.check("user", "s&1")
         assert next_record is not None
         assert str(next_record.usage_date) == "2026-10-23"
+        await limiter.record_success(next_record)
+        await limiter.record_success(record)
+        assert await limiter.check("user", "s&1") is None
+        assert len(api.records) == 2
+        assert all(len(requests) == 1 for requests in api.records.values())
+    finally:
+        await limiter.aclose()
+
+
+@pytest.mark.asyncio
+async def test_api_daily_row_appends_only_new_requests():
+    api = FakeUsageAPI()
+    limiter = DailyUsageLimiter(make_repository(api), 20, 1.0, clock=lambda: NOW)
+    try:
+        for request_id in ("s&1", "s&2", "s&3"):
+            record = await limiter.check("user", request_id)
+            assert record is not None
+            await limiter.record_success(record)
+            await limiter.record_success(record)
+            snapshot = await limiter.repository.snapshot(record)
+            assert snapshot.already_counted is True
+        assert snapshot.used_count == 3
+        assert len(api.records) == 1
+        assert len(next(iter(api.records.values()))) == 3
     finally:
         await limiter.aclose()
 

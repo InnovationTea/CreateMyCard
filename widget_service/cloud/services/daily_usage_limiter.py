@@ -1,4 +1,4 @@
-"""每日成功记录：按用户和 requestId 去重，不预占并发额度。"""
+"""每日成功记录：按用户、入口日期和 requestId 去重，不预占并发额度。"""
 
 import asyncio
 import hashlib
@@ -30,7 +30,7 @@ class DailyUsageRecord:
 
 class DailyUsageRepository(Protocol):
     async def snapshot(self, record: DailyUsageRecord) -> DailyUsageSnapshot:
-        """查询同轮成功记录及当天使用次数。"""
+        """查询指定入口日期的同轮成功记录及使用次数。"""
         ...
 
     async def insert_success(self, record: DailyUsageRecord) -> None:
@@ -100,22 +100,24 @@ class DailyUsageLimiter:
                 ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE,
                 "暂时无法检查今日卡片生成次数，请稍后重试。",
             ) from exc
+        remaining_count = max(self.limit - snapshot.used_count, 0)
         logger.info(
             f"[Daily Usage] checked record_id={record.record_id} uid_hash={record.uid_hash} "
             f"request_id_hash={record.request_id_hash} date={record.usage_date} "
             f"used_count={snapshot.used_count} limit={self.limit} "
-            f"already_counted={snapshot.already_counted}"
+            f"already_counted={snapshot.already_counted} remaining_count={remaining_count}"
         )
         if snapshot.already_counted:
             logger.info(
                 f"[Daily Usage] allowed record_id={record.record_id} "
-                "reason=already_counted record_required=False"
+                f"reason=already_counted record_required=False remaining_count={remaining_count}"
             )
             record = None
         elif snapshot.used_count >= self.limit:
             logger.warning(
                 f"[Daily Usage] rejected record_id={record.record_id} "
-                f"reason=limit_exceeded used_count={snapshot.used_count} limit={self.limit}"
+                f"reason=limit_exceeded used_count={snapshot.used_count} limit={self.limit} "
+                f"remaining_count={remaining_count}"
             )
             raise DailyUsageError(
                 ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED,
@@ -124,7 +126,7 @@ class DailyUsageLimiter:
         else:
             logger.info(
                 f"[Daily Usage] allowed record_id={record.record_id} "
-                "reason=within_limit record_required=True"
+                f"reason=within_limit record_required=True remaining_count={remaining_count}"
             )
         return record
 

@@ -101,6 +101,32 @@ async def test_quota_decisions_and_no_raw_identity(usage_logs):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "used_count,already_counted,remaining",
+    [(0, False, 20), (19, False, 1), (20, False, 0), (21, False, 0), (21, True, 0)],
+)
+async def test_remaining_count_logs_actual_snapshot(
+    usage_logs, used_count, already_counted, remaining
+):
+    repository = AsyncMock()
+    repository.snapshot.return_value = daily_usage_limiter.DailyUsageSnapshot(
+        already_counted, used_count
+    )
+    limiter = make_limiter(repository)
+    if used_count >= 20 and not already_counted:
+        with pytest.raises(DailyUsageError):
+            await limiter.check("user", "s&1")
+    else:
+        await limiter.check("user", "s&1")
+    checked = [message for message in usage_logs if "[Daily Usage] checked " in message]
+    assert len(checked) == 1
+    assert f"used_count={used_count} limit=20" in checked[0]
+    assert f"remaining_count={remaining}" in checked[0]
+    assert f"remaining_count={remaining}" in usage_logs[-1]
+    repository.insert_success.assert_not_called()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("failures", [1, 3])
 async def test_record_retry_logs_attempts_and_final_outcome(usage_logs, failures):
     limiter = make_limiter()

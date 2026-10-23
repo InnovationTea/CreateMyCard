@@ -22,15 +22,14 @@ class MemoryUsageRepository:
 
     async def snapshot(self, record):
         self.reads += 1
-        count = 0
-        for saved in self.records.values():
-            if saved.uid_hash == record.uid_hash and saved.usage_date == record.usage_date:
-                count += 1
-        return DailyUsageSnapshot((record.uid_hash, record.request_id_hash) in self.records, count)
+        requests = self.records.get((record.uid_hash, record.usage_date), [])
+        return DailyUsageSnapshot(record.request_id_hash in requests, len(requests))
 
     async def insert_success(self, record):
         self.writes += 1
-        self.records.setdefault((record.uid_hash, record.request_id_hash), record)
+        requests = self.records.setdefault((record.uid_hash, record.usage_date), [])
+        if record.request_id_hash not in requests:
+            requests.append(record.request_id_hash)
 
     async def aclose(self):
         self.closed = True
@@ -70,7 +69,7 @@ async def test_missing_identity_never_calls_repository(uid, request_id):
 
 
 @pytest.mark.asyncio
-async def test_cross_midnight_and_duplicate_request_keep_original_date():
+async def test_cross_midnight_keeps_entry_date_but_new_day_can_count_same_request():
     clock = NOW
     limiter = make_limiter(limit=1, clock=lambda: clock)
     record = await limiter.check("user", "s&1")
@@ -78,12 +77,16 @@ async def test_cross_midnight_and_duplicate_request_keep_original_date():
     assert str(record.usage_date) == "2026-10-22"
     clock += timedelta(minutes=2)
     await limiter.record_success(record)
-    assert await limiter.check("user", "s&1") is None
-    next_record = await limiter.check("user", "s&2")
+    next_record = await limiter.check("user", "s&1")
     assert next_record is not None
     assert str(next_record.usage_date) == "2026-10-23"
     await limiter.record_success(next_record)
     assert await limiter.check("user", "s&1") is None
+    await limiter.record_success(record)
+    assert len(limiter.repository.records) == 2
+    assert all(len(requests) == 1 for requests in limiter.repository.records.values())
+    with pytest.raises(DailyUsageError):
+        await limiter.check("user", "s&2")
 
 
 @pytest.mark.asyncio
@@ -100,6 +103,27 @@ async def test_duplicate_checks_and_writes_do_not_duplicate_success():
     assert first.uid_hash == hashlib.sha256(b"user").hexdigest()
     assert first.request_id_hash == hashlib.sha256(b"s&1").hexdigest()
     assert "user" not in repr(first)
+
+
+@pytest.mark.asyncio
+async def test_multiple_requests_share_daily_row_and_users_are_isolated():
+    limiter = make_limiter()
+    for request_id in ("s&1", "s&2", "s&3"):
+        saved = await limiter.check("user", request_id)
+        assert saved is not None
+        await limiter.record_success(saved)
+        await limiter.record_success(saved)
+    assert len(limiter.repository.records) == 1
+    requests = next(iter(limiter.repository.records.values()))
+    assert len(requests) == 3
+    assert len(set(requests)) == 3
+    other = await limiter.check("other-user", "s&1")
+    assert other is not None
+    await limiter.record_success(other)
+    assert len(limiter.repository.records) == 2
+    snapshot = await limiter.repository.snapshot(other)
+    assert snapshot.already_counted is True
+    assert snapshot.used_count == 1
 
 
 @pytest.mark.asyncio
