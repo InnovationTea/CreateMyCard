@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import inspect
 import json
 import logging
@@ -13,8 +14,10 @@ from typing import Any
 
 from ...device_debug.commands import DeviceError
 from ...device_debug.config import Config
+from ...device_debug.desktop_ui import DesktopEnvironmentError
 from ...device_debug.devices import Devices
-from ...device_debug.runner import DeviceRenderer, RenderFailure
+from ...device_debug.runner import DeviceRenderer, RenderFailure, RenderSession
+from ..export_names import run_summary, sample_stem
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 
@@ -167,9 +170,14 @@ async def run_builtin(
     target_id = config.get("targetId")
     if not isinstance(target_id, str) or not target_id:
         raise ValueError("真机截图必须选择当前在线设备")
+    capture_mode = config.get("captureMode", "preview")
+    if capture_mode not in {"preview", "desktop"}:
+        raise ValueError("不支持的真机截图模式")
     device_config = getattr(manager, "config", None)
     capture_delay = device_config.capture_delay_seconds if device_config is not None else 1.0
     if not hasattr(manager, "renderer"):
+        if capture_mode == "desktop":
+            raise DesktopEnvironmentError("旧截图宿主不支持桌面模式，请使用共享桌面会话")
         return await _run_legacy_host(manager, run_id)
     if manager.renderer is None:
         raise DeviceError(manager.configuration_error or "设备工具未配置", 503)
@@ -179,28 +187,82 @@ async def run_builtin(
     samples = [item for item in samples_value if isinstance(item, dict)]
     output_dir.mkdir(parents=True, exist_ok=True)
     log = output_dir / "device.log"
-    session = await manager.renderer.session(target_id, log)
+    options = {"capture_mode": "desktop"} if capture_mode == "desktop" else {}
+    session = await manager.renderer.session(target_id, log, **options)
     sample_results: list[dict[str, Any]] = []
     warning_count = 0
-    async with session:
-        for index, sample in enumerate(samples):
-            sample_id = str(sample.get("id") or "")
-            size = manager.resolve_size(run_dir, sample)
-            result = await _capture_sample(
-                session, run_dir, output_dir, sample_id, size, capture_delay
+    if isinstance(session, RenderSession):
+
+        async def report_stage(message: str) -> None:
+            if checkpoint is None:
+                return
+            stage = _checkpoint(sample_results, len(sample_results), len(samples), message=message)
+            value = checkpoint(stage)
+            if inspect.isawaitable(value):
+                await value
+
+        session.notify = report_stage
+    try:
+        async with session:
+            for index, sample in enumerate(samples):
+                sample_id = str(sample.get("id") or "")
+                size = manager.resolve_size(run_dir, sample)
+                try:
+                    result = await _capture_sample(
+                        session, run_dir, output_dir, sample_id, size, capture_delay
+                    )
+                except DesktopEnvironmentError as exc:
+                    sample_results.append(
+                        {
+                            "sampleId": sample_id,
+                            "status": "failed",
+                            "summary": str(exc),
+                            "facts": {"captureMode": "desktop", "captureStatus": "failed"},
+                            "artifacts": [],
+                        }
+                    )
+                    next_index = index + 1
+                    for pending in samples[next_index:]:
+                        sample_results.append(
+                            {
+                                "sampleId": str(pending.get("id") or ""),
+                                "status": "skipped",
+                                "summary": "桌面会话故障，已停止后续操作",
+                                "artifacts": [],
+                            }
+                        )
+                    break
+                sample_results.append(result)
+                warnings = result.get("facts", {}).get("warnings", [])
+                if isinstance(warnings, list) and warnings:
+                    warning_count += 1
+                if checkpoint is not None:
+                    stage = _checkpoint(sample_results, index + 1, len(samples))
+                    checkpoint_result = checkpoint(stage)
+                    if inspect.isawaitable(checkpoint_result):
+                        await checkpoint_result
+    except (DeviceError, OSError) as exc:
+        completed = len(sample_results)
+        for index, pending in enumerate(samples[completed:]):
+            sample_results.append(
+                {
+                    "sampleId": str(pending.get("id") or ""),
+                    "status": "failed" if index == 0 else "skipped",
+                    "summary": str(exc) if index == 0 else "设备会话故障，已停止后续操作",
+                    "facts": {"captureMode": capture_mode, "captureStatus": "failed"},
+                    "artifacts": [],
+                }
             )
-            sample_results.append(result)
-            warnings = result.get("facts", {}).get("warnings", [])
-            if isinstance(warnings, list) and warnings:
-                warning_count += 1
-            if checkpoint is not None:
-                checkpoint_result = checkpoint(_checkpoint(sample_results, index + 1, len(samples)))
-                if inspect.isawaitable(checkpoint_result):
-                    await checkpoint_result
+        if checkpoint is not None:
+            value = checkpoint(_checkpoint(sample_results, len(sample_results), len(samples)))
+            if inspect.isawaitable(value):
+                await value
     succeeded = sum(1 for item in sample_results if item.get("status") == "success")
     failed = sum(1 for item in sample_results if item.get("status") == "failed")
     skipped = len(sample_results) - succeeded - failed
     status = "success" if failed == 0 and skipped == 0 else "partial"
+    if failed and not succeeded:
+        status = "failed"
     return {
         "status": status,
         "sampleResults": sample_results,
@@ -214,6 +276,7 @@ async def run_builtin(
                 "warningSamples": warning_count,
                 "targetId": target_id,
                 "captureDelaySeconds": capture_delay,
+                "captureMode": capture_mode,
             },
             "artifacts": [
                 {
@@ -244,19 +307,24 @@ async def _capture_sample(
     if not result_path.is_file():
         return {"sampleId": sample_id, "status": "skipped", "summary": "样本没有最终结果"}
     result = DeviceCaptureManager._read_json(result_path)
+    if result.get("status") == "failed":
+        return {"sampleId": sample_id, "status": "skipped", "summary": "原始样本生成失败，跳过截图"}
     final_attempt = result.get("finalAttempt")
     if not isinstance(final_attempt, int):
         return {"sampleId": sample_id, "status": "skipped", "summary": "样本没有最终 attempt"}
     genui = run_dir / sample_id / f"attempt_{final_attempt:03d}" / "genui.jsonl"
     if not genui.is_file():
         return {"sampleId": sample_id, "status": "skipped", "summary": "样本没有可渲染的 GenUI"}
-    card = output_dir / "card" / f"{sample_id}.png"
-    full = output_dir / "full" / f"{sample_id}.png"
+    export_stem = sample_stem(sample_id, run_summary(run_dir))
+    card = output_dir / "card" / f"{export_stem}.png"
+    full = output_dir / "full" / f"{export_stem}.png"
     try:
         capture = await session.render(
             genui, size, card, full, capture_delay_seconds=capture_delay_seconds
         )
     except asyncio.CancelledError:
+        raise
+    except DesktopEnvironmentError:
         raise
     except RenderFailure as exc:
         return {
@@ -281,9 +349,17 @@ async def _capture_sample(
             "artifacts": [],
         }
     metadata = capture.public()
+    metadata.setdefault("captureMode", "preview")
+    metadata.setdefault(
+        "sampleDigest",
+        hashlib.sha256(genui.read_text(encoding="utf-8").encode("utf-8")).hexdigest(),
+    )
     metadata["captureDelaySeconds"] = capture_delay_seconds
     facts = dict(metadata)
     facts.pop("cropPx", None)
+    # 结构化环境证据保留在元数据产物中，插件 facts 只接受标量及标量列表。
+    facts.pop("workspace", None)
+    facts.pop("screen", None)
     facts.update(captureStatus="success", size=size)
     return {
         "sampleId": sample_id,
@@ -294,19 +370,21 @@ async def _capture_sample(
             {"key": "device-capture-metadata", "data": metadata},
             {
                 "key": "device-capture",
-                "path": f"card/{sample_id}.png",
+                "path": f"card/{export_stem}.png",
                 "alt": f"{sample_id} 真机截图",
             },
             {
                 "key": "device-full-capture",
-                "path": f"full/{sample_id}.png",
+                "path": f"full/{export_stem}.png",
                 "alt": f"{sample_id} 设备全屏原图",
             },
         ],
     }
 
 
-def _checkpoint(results: list[dict[str, Any]], completed: int, total: int) -> dict[str, Any]:
+def _checkpoint(
+    results: list[dict[str, Any]], completed: int, total: int, *, message: str | None = None
+) -> dict[str, Any]:
     return {
         "status": "partial",
         "sampleResults": results,
@@ -320,7 +398,7 @@ def _checkpoint(results: list[dict[str, Any]], completed: int, total: int) -> di
             "phase": "samples",
             "completed": completed,
             "total": total,
-            "message": f"正在截图 {completed}/{total}",
+            "message": message if message is not None else f"正在截图 {completed}/{total}",
         },
     }
 

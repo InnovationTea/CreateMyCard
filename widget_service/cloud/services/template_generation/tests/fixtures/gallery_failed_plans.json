@@ -1,0 +1,1824 @@
+[
+  {
+    "index": 4,
+    "case": {
+      "caseId": "wide-composition-battery-wide-four-compact-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.battery.cli",
+      "providerName": "设备电量",
+      "providerSlug": "battery",
+      "businessId": "BatteryOverview",
+      "businessName": "设备电量 + 倒计时 + 每日活动 + 蓝牙耳机",
+      "scenarioId": "wide-four-compact-layout",
+      "scenarioName": "骨架组合 · 设备电量 + 倒计时 + 每日活动 + 蓝牙耳机",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFourCompactLayout",
+      "expectedTemplateSuffix": "Compact",
+      "targetTemplateId": "BatteryOverviewPercentRingCompact@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "CountdownOverviewTargetCompact@1",
+      "requestFile": "wide/providers/battery/wide-compositions/wide-four-compact-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "BatteryOverviewPercentRingCompact@1",
+        "CountdownOverviewTargetCompact@1",
+        "ActivityOverviewCompact@1",
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 0,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：手机电量 Compact：左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内必选电量图标，不展示充电状态；底板与槽位间距由外层布局提供；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact；batteryIcon 必填。；带自适应蒙版的目标日倒计时 Compact，紧凑展示剩余天数与“距离目标日还有”，可选语义匹配的计时图标。；每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。；耳机仓 Compact，展示充电盒电量和充电状态文本，可选充电盒图标。。倒计时目标为2027年1月1日元旦。不显示操作按钮。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "phoneBattery": {
+            "batterySOC": {
+              "type": "integer",
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68
+            }
+          },
+          "countdown": {
+            "countdownDays": {
+              "type": "integer",
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30
+            }
+          },
+          "healthSport": {
+            "dailySteps": {
+              "type": "integer",
+              "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+              "sampleValue": 6200
+            }
+          },
+          "earphone": {
+            "batteryLevel": {
+              "type": "integer",
+              "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 80
+            },
+            "chargingStatusDesc": {
+              "type": "string",
+              "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+              "sampleValue": "未充电"
+            }
+          }
+        }
+      },
+      "assetCandidates": [
+        {
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+        }
+      ]
+    },
+    "card": {
+      "title": "设备电量组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetPhoneBatteryInfo",
+          "arguments": {},
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "capabilityId": "GetCountdownDays",
+          "arguments": {
+            "targetDate": "2027-01-01"
+          },
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        },
+        {
+          "capabilityId": "GetEarphoneInfo",
+          "arguments": {},
+          "writeResultTo": "/data/earphone"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/batterySOC"
+        ],
+        "GetCountdownDays": [
+          "/countdownDays"
+        ],
+        "GetHealthAndSportSummary": [
+          "/dailySteps"
+        ],
+        "GetEarphoneInfo": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ]
+      },
+      "primaryOutputFieldByCapability": {},
+      "action": [],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      },
+      {
+        "arguments": {
+          "targetDate": "2027-01-01"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ]
+  },
+  {
+    "index": 27,
+    "case": {
+      "caseId": "wide-composition-calendar-wide-four-compact-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.calendar.cli",
+      "providerName": "日历日程",
+      "providerSlug": "calendar",
+      "businessId": "CalendarOverview",
+      "businessName": "日历日程 + 设备电量 + 每日活动 + 倒计时",
+      "scenarioId": "wide-four-compact-layout",
+      "scenarioName": "骨架组合 · 日历日程 + 设备电量 + 每日活动 + 倒计时",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFourCompactLayout",
+      "expectedTemplateSuffix": "Compact",
+      "targetTemplateId": "ScheduleOverviewReminderCompact@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "BatteryOverviewPercentRingCompact@1",
+      "requestFile": "wide/providers/calendar/wide-compositions/wide-four-compact-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "ScheduleOverviewReminderCompact@1",
+        "BatteryOverviewPercentRingCompact@1",
+        "ActivityOverviewCompact@1",
+        "CountdownOverviewTargetCompact@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 0,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：日程提醒 Compact：展示首项日程的提前提醒分钟数，可选通知铃铛图标。组件形态：compact。；手机电量 Compact：左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内必选电量图标，不展示充电状态；底板与槽位间距由外层布局提供；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact；batteryIcon 必填。；每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。；带自适应蒙版的目标日倒计时 Compact，紧凑展示剩余天数与“距离目标日还有”，可选语义匹配的计时图标。。倒计时目标为2027年1月1日元旦。不显示操作按钮。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "events": [
+              {
+                "remindTime": [
+                  {
+                    "type": "string",
+                    "description": "提前提醒分钟数（字符串形式）。",
+                    "sampleValue": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          "phoneBattery": {
+            "batterySOC": {
+              "type": "integer",
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68
+            }
+          },
+          "healthSport": {
+            "dailySteps": {
+              "type": "integer",
+              "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+              "sampleValue": 6200
+            }
+          },
+          "countdown": {
+            "countdownDays": {
+              "type": "integer",
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30
+            }
+          }
+        }
+      },
+      "assetCandidates": [
+        {
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+        }
+      ]
+    },
+    "card": {
+      "title": "日历日程组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetCalendarEvents",
+          "arguments": {
+            "futureDays": 7
+          },
+          "writeResultTo": "/data/calendar"
+        },
+        {
+          "capabilityId": "GetPhoneBatteryInfo",
+          "arguments": {},
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        },
+        {
+          "capabilityId": "GetCountdownDays",
+          "arguments": {
+            "targetDate": "2027-01-01"
+          },
+          "writeResultTo": "/data/countdown"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetCalendarEvents": [
+          "/events/0/remindTime/0"
+        ],
+        "GetPhoneBatteryInfo": [
+          "/batterySOC"
+        ],
+        "GetHealthAndSportSummary": [
+          "/dailySteps"
+        ],
+        "GetCountdownDays": [
+          "/countdownDays"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetCalendarEvents": "/events/0/remindTime/0",
+        "GetPhoneBatteryInfo": "/batterySOC",
+        "GetHealthAndSportSummary": "/dailySteps",
+        "GetCountdownDays": "/countdownDays"
+      },
+      "action": [],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/events/0/remindTime/0"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      },
+      {
+        "arguments": {
+          "targetDate": "2027-01-01"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ]
+  },
+  {
+    "index": 28,
+    "case": {
+      "caseId": "wide-composition-countdown-wide-four-compact-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.countdown.cli",
+      "providerName": "倒计时",
+      "providerSlug": "countdown",
+      "businessId": "CountdownOverview",
+      "businessName": "倒计时 + 日历日程 + 设备电量 + 睡眠情况",
+      "scenarioId": "wide-four-compact-layout",
+      "scenarioName": "骨架组合 · 倒计时 + 日历日程 + 设备电量 + 睡眠情况",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFourCompactLayout",
+      "expectedTemplateSuffix": "Compact",
+      "targetTemplateId": "CountdownOverviewTargetCompact@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "ScheduleOverviewReminderCompact@1",
+      "requestFile": "wide/providers/countdown/wide-compositions/wide-four-compact-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "CountdownOverviewTargetCompact@1",
+        "ScheduleOverviewReminderCompact@1",
+        "BatteryOverviewPercentRingCompact@1",
+        "SleepOverviewCompact@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 0,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：带自适应蒙版的目标日倒计时 Compact，紧凑展示剩余天数与“距离目标日还有”，可选语义匹配的计时图标。；日程提醒 Compact：展示首项日程的提前提醒分钟数，可选通知铃铛图标。组件形态：compact。；手机电量 Compact：左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内必选电量图标，不展示充电状态；底板与槽位间距由外层布局提供；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact；batteryIcon 必填。；睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。。倒计时目标为2027年1月1日元旦。不显示操作按钮。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "countdown": {
+            "countdownDays": {
+              "type": "integer",
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30
+            }
+          },
+          "calendar": {
+            "events": [
+              {
+                "remindTime": [
+                  {
+                    "type": "string",
+                    "description": "提前提醒分钟数（字符串形式）。",
+                    "sampleValue": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          "phoneBattery": {
+            "batterySOC": {
+              "type": "integer",
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68
+            }
+          },
+          "healthSport": {
+            "nightSleepDurationText": {
+              "type": "string",
+              "description": "可直接显示的夜间正式睡眠总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“7小时1分”。",
+              "sampleValue": "7小时1分"
+            }
+          }
+        }
+      },
+      "assetCandidates": [
+        {
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+        }
+      ]
+    },
+    "card": {
+      "title": "倒计时组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetCountdownDays",
+          "arguments": {
+            "targetDate": "2027-01-01"
+          },
+          "writeResultTo": "/data/countdown"
+        },
+        {
+          "capabilityId": "GetCalendarEvents",
+          "arguments": {
+            "futureDays": 7
+          },
+          "writeResultTo": "/data/calendar"
+        },
+        {
+          "capabilityId": "GetPhoneBatteryInfo",
+          "arguments": {},
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetCountdownDays": [
+          "/countdownDays"
+        ],
+        "GetCalendarEvents": [
+          "/events/0/remindTime/0"
+        ],
+        "GetPhoneBatteryInfo": [
+          "/batterySOC"
+        ],
+        "GetHealthAndSportSummary": [
+          "/nightSleepDurationText"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetCountdownDays": "/countdownDays",
+        "GetCalendarEvents": "/events/0/remindTime/0",
+        "GetPhoneBatteryInfo": "/batterySOC",
+        "GetHealthAndSportSummary": "/nightSleepDurationText"
+      },
+      "action": [],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {
+          "targetDate": "2027-01-01"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      },
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/events/0/remindTime/0"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/nightSleepDurationText"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ]
+  },
+  {
+    "index": 31,
+    "case": {
+      "caseId": "wide-composition-current-time-wide-full-two-compact-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.current-time.cli",
+      "providerName": "当前时间",
+      "providerSlug": "current-time",
+      "businessId": "CurrentTimeOverview",
+      "businessName": "当前时间 + 每日活动",
+      "scenarioId": "wide-full-two-compact-layout",
+      "scenarioName": "骨架组合 · 当前时间 + 每日活动",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFullTwoCompactLayout",
+      "expectedTemplateSuffix": "Full",
+      "targetTemplateId": "CurrentTimeOverviewDateFull@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "ActivityOverviewSupport@1",
+      "requestFile": "wide/providers/current-time/wide-compositions/wide-full-two-compact-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "CurrentTimeOverviewDateFull@1",
+        "ActivityOverviewSupport@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 1,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：独立 2x2 日期 Full 摘要，大号居中展示当前公历日期，顶部可选展示星期，底部可选展示农历；无操作入口。 组件形态：full。；步数 Support：主行展示每日步数与单位，辅助行展示每日步数说明；可选 24vp 步数图标，根节点可绑定事件。。提供独立操作按钮：打开电池设置。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [
+        {
+          "id": "event.open.settings.battery",
+          "description": "打开系统设置中的电池页",
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          }
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "currentTime": {
+            "currentDate": {
+              "type": "string",
+              "description": "格式化的当前公历日期（年-月-日），例如 '2026-07-09'。",
+              "sampleValue": "示例"
+            }
+          },
+          "healthSport": {
+            "dailySteps": {
+              "type": "integer",
+              "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+              "sampleValue": 6200
+            }
+          }
+        }
+      },
+      "assetCandidates": [
+        {
+          "id": "asset.figure_run",
+          "src": "resources/base/media/figure_run.svg",
+          "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。"
+        },
+        {
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+        },
+        {
+          "id": "asset.music_fill",
+          "src": "resources/base/media/music_fill.svg",
+          "description": "样式：音乐音符实心图标，默认黑色，图形为双音符连接造型；适用：音乐播放卡片、音频功能入口、歌单展示。"
+        },
+        {
+          "id": "asset.alarm_fill_1",
+          "src": "resources/base/media/alarm_fill_1.svg",
+          "description": "样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。"
+        },
+        {
+          "id": "asset.heart_fill",
+          "src": "resources/base/media/heart_fill.svg",
+          "description": "样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"
+        }
+      ]
+    },
+    "card": {
+      "title": "当前时间组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetCurrentTime",
+          "arguments": {},
+          "writeResultTo": "/data/currentTime"
+        },
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetCurrentTime": [
+          "/currentDate"
+        ],
+        "GetHealthAndSportSummary": [
+          "/dailySteps"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetCurrentTime": "/currentDate",
+        "GetHealthAndSportSummary": "/dailySteps"
+      },
+      "action": [
+        "event.open.settings.battery"
+      ],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/currentTime"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ]
+  },
+  {
+    "index": 32,
+    "case": {
+      "caseId": "wide-composition-current-time-wide-full-hero-action-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.current-time.cli",
+      "providerName": "当前时间",
+      "providerSlug": "current-time",
+      "businessId": "CurrentTimeOverview",
+      "businessName": "当前时间 + 设备电量",
+      "scenarioId": "wide-full-hero-action-layout",
+      "scenarioName": "骨架组合 · 当前时间 + 设备电量",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFullHeroActionLayout",
+      "expectedTemplateSuffix": "Full",
+      "targetTemplateId": "CurrentTimeOverviewDateFull@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "BatteryOverviewTemperatureRingHero@1",
+      "requestFile": "wide/providers/current-time/wide-compositions/wide-full-hero-action-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "CurrentTimeOverviewDateFull@1",
+        "BatteryOverviewTemperatureRingHero@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 1,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：独立 2x2 日期 Full 摘要，大号居中展示当前公历日期，顶部可选展示星期，底部可选展示农历；无操作入口。 组件形态：full。；电池温度电量环 Hero：标题行展示电池温度，中部电量环在左、环内固定展示 16x16 电池图标、百分比与充电状态在右，用于横版左 Full 右 Hero 布局。。提供独立操作按钮：打开电池设置。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [
+        {
+          "id": "event.open.settings.battery",
+          "description": "打开系统设置中的电池页",
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          }
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "currentTime": {
+            "currentDate": {
+              "type": "string",
+              "description": "格式化的当前公历日期（年-月-日），例如 '2026-07-09'。",
+              "sampleValue": "示例"
+            }
+          },
+          "phoneBattery": {
+            "batterySOC": {
+              "type": "integer",
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68
+            },
+            "batteryTemperatureText": {
+              "type": "string",
+              "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+              "sampleValue": "29.0 ℃"
+            }
+          }
+        }
+      },
+      "assetCandidates": [
+        {
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+        }
+      ]
+    },
+    "card": {
+      "title": "当前时间组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetCurrentTime",
+          "arguments": {},
+          "writeResultTo": "/data/currentTime"
+        },
+        {
+          "capabilityId": "GetPhoneBatteryInfo",
+          "arguments": {},
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetCurrentTime": [
+          "/currentDate"
+        ],
+        "GetPhoneBatteryInfo": [
+          "/batteryTemperatureText",
+          "/batterySOC"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetCurrentTime": "/currentDate"
+      },
+      "action": [
+        "event.open.settings.battery"
+      ],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/currentTime"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/batteryTemperatureText"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ]
+  },
+  {
+    "index": 33,
+    "case": {
+      "caseId": "wide-composition-current-time-wide-hero-action-full-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.current-time.cli",
+      "providerName": "当前时间",
+      "providerSlug": "current-time",
+      "businessId": "CurrentTimeOverview",
+      "businessName": "当前时间 + 每日活动",
+      "scenarioId": "wide-hero-action-full-layout",
+      "scenarioName": "骨架组合 · 当前时间 + 每日活动",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideHeroActionFullLayout",
+      "expectedTemplateSuffix": "Full",
+      "targetTemplateId": "CurrentTimeOverviewDateFull@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "ActivityOverviewHero@1",
+      "requestFile": "wide/providers/current-time/wide-compositions/wide-hero-action-full-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "CurrentTimeOverviewDateFull@1",
+        "ActivityOverviewHero@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 1,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：独立 2x2 日期 Full 摘要，大号居中展示当前公历日期，顶部可选展示星期，底部可选展示农历；无操作入口。 组件形态：full。；今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 组件形态：hero。。提供独立操作按钮：打开锻炼。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [
+        {
+          "id": "event.open.health.sportsRecord",
+          "description": "打开运动健康应用的运动记录页",
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Health",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "huaweischeme://healthapp/router/openwith?address=com.huawei.health.h5.sports-record?h5pro=true&urlType=4&pName=com.huawei.health"
+          }
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "currentTime": {
+            "currentDate": {
+              "type": "string",
+              "description": "格式化的当前公历日期（年-月-日），例如 '2026-07-09'。",
+              "sampleValue": "示例"
+            }
+          },
+          "healthSport": {
+            "dailySteps": {
+              "type": "integer",
+              "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+              "sampleValue": 6200
+            }
+          }
+        }
+      },
+      "assetCandidates": []
+    },
+    "card": {
+      "title": "当前时间组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetCurrentTime",
+          "arguments": {},
+          "writeResultTo": "/data/currentTime"
+        },
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetCurrentTime": [
+          "/currentDate"
+        ],
+        "GetHealthAndSportSummary": [
+          "/dailySteps"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetCurrentTime": "/currentDate",
+        "GetHealthAndSportSummary": "/dailySteps"
+      },
+      "action": [
+        "event.open.health.sportsRecord"
+      ],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/currentTime"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ]
+  },
+  {
+    "index": 34,
+    "case": {
+      "caseId": "wide-composition-current-time-wide-full-hero-two-action-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.current-time.cli",
+      "providerName": "当前时间",
+      "providerSlug": "current-time",
+      "businessId": "CurrentTimeOverview",
+      "businessName": "当前时间 + 设备电量",
+      "scenarioId": "wide-full-hero-two-action-layout",
+      "scenarioName": "骨架组合 · 当前时间 + 设备电量",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFullHeroTwoActionLayout",
+      "expectedTemplateSuffix": "Full",
+      "targetTemplateId": "CurrentTimeOverviewDateFull@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "BatteryOverviewTemperatureRingHero@1",
+      "requestFile": "wide/providers/current-time/wide-compositions/wide-full-hero-two-action-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "CurrentTimeOverviewDateFull@1",
+        "BatteryOverviewTemperatureRingHero@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 2,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：独立 2x2 日期 Full 摘要，大号居中展示当前公历日期，顶部可选展示星期，底部可选展示农历；无操作入口。 组件形态：full。；电池温度电量环 Hero：标题行展示电池温度，中部电量环在左、环内固定展示 16x16 电池图标、百分比与充电状态在右，用于横版左 Full 右 Hero 布局。。提供独立操作按钮：打开电池设置、打开电池健康。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [
+        {
+          "id": "event.open.settings.battery",
+          "description": "打开系统设置中的电池页",
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          }
+        },
+        {
+          "id": "event.open.settings.batteryHealth",
+          "description": "打开系统设置中的电池健康页",
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "smart_charge_battery_health"
+          }
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "currentTime": {
+            "currentDate": {
+              "type": "string",
+              "description": "格式化的当前公历日期（年-月-日），例如 '2026-07-09'。",
+              "sampleValue": "示例"
+            }
+          },
+          "phoneBattery": {
+            "batterySOC": {
+              "type": "integer",
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68
+            },
+            "batteryTemperatureText": {
+              "type": "string",
+              "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+              "sampleValue": "29.0 ℃"
+            }
+          }
+        }
+      },
+      "assetCandidates": [
+        {
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+        }
+      ]
+    },
+    "card": {
+      "title": "当前时间组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetCurrentTime",
+          "arguments": {},
+          "writeResultTo": "/data/currentTime"
+        },
+        {
+          "capabilityId": "GetPhoneBatteryInfo",
+          "arguments": {},
+          "writeResultTo": "/data/phoneBattery"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetCurrentTime": [
+          "/currentDate"
+        ],
+        "GetPhoneBatteryInfo": [
+          "/batteryTemperatureText",
+          "/batterySOC"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetCurrentTime": "/currentDate"
+      },
+      "action": [
+        "event.open.settings.battery",
+        "event.open.settings.batteryHealth"
+      ],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/currentTime"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/batteryTemperatureText"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ]
+  },
+  {
+    "index": 43,
+    "case": {
+      "caseId": "wide-composition-earphone-wide-four-compact-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.earphone.cli",
+      "providerName": "蓝牙耳机",
+      "providerSlug": "earphone",
+      "businessId": "BluetoothDeviceOverview",
+      "businessName": "蓝牙耳机 + 日历日程 + 每日活动 + 倒计时",
+      "scenarioId": "wide-four-compact-layout",
+      "scenarioName": "骨架组合 · 蓝牙耳机 + 日历日程 + 每日活动 + 倒计时",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFourCompactLayout",
+      "expectedTemplateSuffix": "Compact",
+      "targetTemplateId": "BluetoothDeviceOverviewEarphoneCaseCompact@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "ScheduleOverviewReminderCompact@1",
+      "requestFile": "wide/providers/earphone/wide-compositions/wide-four-compact-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1",
+        "ScheduleOverviewReminderCompact@1",
+        "ActivityOverviewCompact@1",
+        "CountdownOverviewTargetCompact@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 0,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：耳机仓 Compact，展示充电盒电量和充电状态文本，可选充电盒图标。；日程提醒 Compact：展示首项日程的提前提醒分钟数，可选通知铃铛图标。组件形态：compact。；每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。；带自适应蒙版的目标日倒计时 Compact，紧凑展示剩余天数与“距离目标日还有”，可选语义匹配的计时图标。。倒计时目标为2027年1月1日元旦。不显示操作按钮。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "earphone": {
+            "batteryLevel": {
+              "type": "integer",
+              "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 80
+            },
+            "chargingStatusDesc": {
+              "type": "string",
+              "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+              "sampleValue": "未充电"
+            }
+          },
+          "calendar": {
+            "events": [
+              {
+                "remindTime": [
+                  {
+                    "type": "string",
+                    "description": "提前提醒分钟数（字符串形式）。",
+                    "sampleValue": "15"
+                  }
+                ]
+              }
+            ]
+          },
+          "healthSport": {
+            "dailySteps": {
+              "type": "integer",
+              "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+              "sampleValue": 6200
+            }
+          },
+          "countdown": {
+            "countdownDays": {
+              "type": "integer",
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30
+            }
+          }
+        }
+      },
+      "assetCandidates": []
+    },
+    "card": {
+      "title": "蓝牙耳机组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetEarphoneInfo",
+          "arguments": {},
+          "writeResultTo": "/data/earphone"
+        },
+        {
+          "capabilityId": "GetCalendarEvents",
+          "arguments": {
+            "futureDays": 7
+          },
+          "writeResultTo": "/data/calendar"
+        },
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        },
+        {
+          "capabilityId": "GetCountdownDays",
+          "arguments": {
+            "targetDate": "2027-01-01"
+          },
+          "writeResultTo": "/data/countdown"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetEarphoneInfo": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ],
+        "GetCalendarEvents": [
+          "/events/0/remindTime/0"
+        ],
+        "GetHealthAndSportSummary": [
+          "/dailySteps"
+        ],
+        "GetCountdownDays": [
+          "/countdownDays"
+        ]
+      },
+      "primaryOutputFieldByCapability": {},
+      "action": [],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      },
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/events/0/remindTime/0"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      },
+      {
+        "arguments": {
+          "targetDate": "2027-01-01"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ]
+  },
+  {
+    "index": 45,
+    "case": {
+      "caseId": "wide-composition-health-sport-wide-four-compact-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.health-sport.cli",
+      "providerName": "运动健康",
+      "providerSlug": "health-sport",
+      "businessId": "ActivityOverview",
+      "businessName": "每日活动 + 天气 + 设备电量 + 蓝牙耳机",
+      "scenarioId": "wide-four-compact-layout",
+      "scenarioName": "骨架组合 · 每日活动 + 天气 + 设备电量 + 蓝牙耳机",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFourCompactLayout",
+      "expectedTemplateSuffix": "Compact",
+      "targetTemplateId": "ActivityOverviewCompact@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "WeatherOverviewCompact@1",
+      "requestFile": "wide/providers/health-sport/wide-compositions/wide-four-compact-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "ActivityOverviewCompact@1",
+        "WeatherOverviewCompact@1",
+        "BatteryOverviewPercentRingCompact@1",
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 0,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。；天气 Compact，展示城市、温度、天气现象和感冒指数，可选天气图标。；手机电量 Compact：左侧 20vp 电量百分比大字与“手机电量”辅行，右侧 40vp 电量环、环内必选电量图标，不展示充电状态；底板与槽位间距由外层布局提供；用于宽版右列 2x1 组合槽位。 组件形态：percentRingCompact；batteryIcon 必填。；耳机仓 Compact，展示充电盒电量和充电状态文本，可选充电盒图标。。不显示操作按钮。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "healthSport": {
+            "dailySteps": {
+              "type": "integer",
+              "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+              "sampleValue": 6200
+            }
+          },
+          "weather": {
+            "current": {
+              "temperatureText": {
+                "type": "string",
+                "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                "sampleValue": "29℃"
+              },
+              "condition": {
+                "type": "string",
+                "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                "sampleValue": "多云"
+              }
+            }
+          },
+          "phoneBattery": {
+            "batterySOC": {
+              "type": "integer",
+              "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+              "sampleValue": 68
+            }
+          },
+          "earphone": {
+            "batteryLevel": {
+              "type": "integer",
+              "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 80
+            },
+            "chargingStatusDesc": {
+              "type": "string",
+              "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+              "sampleValue": "未充电"
+            }
+          }
+        }
+      },
+      "assetCandidates": [
+        {
+          "id": "asset.battery_leaf_fill",
+          "src": "resources/base/media/battery_leaf_fill.svg",
+          "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+        }
+      ]
+    },
+    "card": {
+      "title": "每日活动组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        },
+        {
+          "capabilityId": "ViewWeather",
+          "arguments": {
+            "districtName": "青浦区",
+            "forecastDays": 1,
+            "prefectureName": "上海市"
+          },
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "capabilityId": "GetPhoneBatteryInfo",
+          "arguments": {},
+          "writeResultTo": "/data/phoneBattery"
+        },
+        {
+          "capabilityId": "GetEarphoneInfo",
+          "arguments": {},
+          "writeResultTo": "/data/earphone"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "GetHealthAndSportSummary": [
+          "/dailySteps"
+        ],
+        "ViewWeather": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "GetPhoneBatteryInfo": [
+          "/batterySOC"
+        ],
+        "GetEarphoneInfo": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetHealthAndSportSummary": "/dailySteps",
+        "GetPhoneBatteryInfo": "/batterySOC"
+      },
+      "action": [],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      },
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ]
+  },
+  {
+    "index": 47,
+    "case": {
+      "caseId": "wide-composition-weather-wide-four-compact-layout",
+      "cardSize": "2x4",
+      "providerId": "com.huawei.weather.cli",
+      "providerName": "天气",
+      "providerSlug": "weather",
+      "businessId": "WeatherOverview",
+      "businessName": "天气 + 每日活动 + 蓝牙耳机 + 倒计时",
+      "scenarioId": "wide-four-compact-layout",
+      "scenarioName": "骨架组合 · 天气 + 每日活动 + 蓝牙耳机 + 倒计时",
+      "appearanceId": "fusion",
+      "appearanceName": "融球",
+      "prdVer": "11.7.7.330",
+      "appVersion": "11.7.7.330",
+      "expectsFusionBall": false,
+      "expectedLayout": "WideFourCompactLayout",
+      "expectedTemplateSuffix": "Compact",
+      "targetTemplateId": "WeatherOverviewCompact@1",
+      "targetTemplateDescription": "",
+      "partnerTemplateId": "ActivityOverviewCompact@1",
+      "requestFile": "wide/providers/weather/wide-compositions/wide-four-compact-layout.json",
+      "status": "failed",
+      "generationStatus": "failed",
+      "a2uiFile": "",
+      "artifactDigest": "",
+      "messageCount": 0,
+      "fusionBallRendered": false,
+      "errorCode": "A2UI_GENERATION_FAILED",
+      "errorMessage": "卡片创建过程遇到问题了，请稍后再试。",
+      "compositionTemplateIds": [
+        "WeatherOverviewCompact@1",
+        "ActivityOverviewCompact@1",
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1",
+        "CountdownOverviewTargetCompact@1"
+      ],
+      "constrainLayout": true,
+      "expectedActionCount": 0,
+      "actualTemplateIds": [],
+      "actualLayout": ""
+    },
+    "task": {
+      "userQuery": "生成一个2×4卡片，组合以下内容，每块内容独立显示：天气 Compact，展示城市、温度、天气现象和感冒指数，可选天气图标。；每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。；耳机仓 Compact，展示充电盒电量和充电状态文本，可选充电盒图标。；带自适应蒙版的目标日倒计时 Compact，紧凑展示剩余天数与“距离目标日还有”，可选语义匹配的计时图标。。倒计时目标为2027年1月1日元旦。不显示操作按钮。",
+      "size": "2x4",
+      "appVersion": "11.7.7.330",
+      "eventCandidates": [],
+      "dataModelSchema": {
+        "data": {
+          "weather": {
+            "current": {
+              "temperatureText": {
+                "type": "string",
+                "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                "sampleValue": "29℃"
+              },
+              "condition": {
+                "type": "string",
+                "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                "sampleValue": "多云"
+              }
+            }
+          },
+          "healthSport": {
+            "dailySteps": {
+              "type": "integer",
+              "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+              "sampleValue": 6200
+            }
+          },
+          "earphone": {
+            "batteryLevel": {
+              "type": "integer",
+              "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 80
+            },
+            "chargingStatusDesc": {
+              "type": "string",
+              "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+              "sampleValue": "未充电"
+            }
+          },
+          "countdown": {
+            "countdownDays": {
+              "type": "integer",
+              "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+              "sampleValue": 30
+            }
+          }
+        }
+      },
+      "assetCandidates": []
+    },
+    "card": {
+      "title": "天气组合",
+      "description": "2×4跨垂域骨架组合，演示数据",
+      "suggestSize": "2x4",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "ViewWeather",
+          "arguments": {
+            "districtName": "青浦区",
+            "forecastDays": 1,
+            "prefectureName": "上海市"
+          },
+          "writeResultTo": "/data/weather"
+        },
+        {
+          "capabilityId": "GetHealthAndSportSummary",
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "writeResultTo": "/data/healthSport"
+        },
+        {
+          "capabilityId": "GetEarphoneInfo",
+          "arguments": {},
+          "writeResultTo": "/data/earphone"
+        },
+        {
+          "capabilityId": "GetCountdownDays",
+          "arguments": {
+            "targetDate": "2027-01-01"
+          },
+          "writeResultTo": "/data/countdown"
+        }
+      ]
+    },
+    "decision": {
+      "requiredOutputFieldsByCapability": {
+        "ViewWeather": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "GetHealthAndSportSummary": [
+          "/dailySteps"
+        ],
+        "GetEarphoneInfo": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ],
+        "GetCountdownDays": [
+          "/countdownDays"
+        ]
+      },
+      "primaryOutputFieldByCapability": {
+        "GetHealthAndSportSummary": "/dailySteps",
+        "GetCountdownDays": "/countdownDays"
+      },
+      "action": [],
+      "excludedActionIds": [],
+      "allowEarphoneCandidateActions": true,
+      "allowCalendarViewFallback": false,
+      "allowBatterySettingsFallback": false
+    },
+    "bindings": [
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      },
+      {
+        "arguments": {
+          "targetDate": "2027-01-01"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ]
+  }
+]

@@ -1,0 +1,79 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "生成一张天气卡片，展示温度、天气和空气质量，方便参考天气安排户外运动",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/temperatureText"
+        ]
+      }
+    ],
+    "title": "天气",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "展示温度、天气和空气质量，方便安排户外运动。",
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_purification",
+      "asset.figure_run"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "016",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "生成一张天气卡片，展示温度、天气和空气质量，方便参考天气安排户外运动",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "生成一张天气卡片，展示温度、天气和空气质量，方便参考天气安排户外运动",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/condition",
+        "/current/temperatureText"
+      ]
+    }
+  ],
+  "title": "天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "展示温度、天气和空气质量，方便安排户外运动。",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.ic_purification",
+    "asset.figure_run"
+  ]
+}

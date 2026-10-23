@@ -539,7 +539,7 @@ Column(
     #if props.conditionIcon
       Image(
         props.conditionIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",
@@ -1133,7 +1133,7 @@ Column(
     #if props.conditionIcon
       Image(
         props.conditionIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",
@@ -1444,7 +1444,7 @@ Column(
     #if props.conditionIcon
       Image(
         props.conditionIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",
@@ -1590,7 +1590,7 @@ Column(
     {"width": "matchParent", "height": 20, "justifyContent": "spaceBetween", "alignItems": "top"},
     Text(#Expr(data.district ? data.district : "明日天气"), {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}),
     #if props.conditionIcon
-      Image(props.conditionIcon, {"width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0})
+      Image(props.conditionIcon, {"_wideHeaderIcon": true, "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0})
     #endif
   ),
   Column(
@@ -1635,7 +1635,7 @@ Column(
         { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       #if props.rainIcon
-      Image(props.rainIcon, { "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
+      Image(props.rainIcon, {"_wideHeaderIcon": true,  "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
       #endif
     ),
     Column(
@@ -1836,7 +1836,7 @@ Column(
       { "width": "matchParent", "height": 20, "justifyContent": "spaceBetween", "alignItems": "top" },
       Text("明日健康指数", { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
       #if props.uvIcon
-      Image(props.uvIcon, { "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
+      Image(props.uvIcon, {"_wideHeaderIcon": true,  "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
     #endif
     ),
     Column(
@@ -1884,7 +1884,7 @@ Column(
       { "width": "matchParent", "height": 20, "justifyContent": "spaceBetween", "alignItems": "top" },
       Text("今日健康指数", { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
       #if props.uvIcon
-      Image(props.uvIcon, { "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
+      Image(props.uvIcon, {"_wideHeaderIcon": true,  "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
     #endif
     ),
     Column(
@@ -1947,7 +1947,7 @@ Column(
         { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "textAlign": "left", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       #if props.uvIcon
-      Image(props.uvIcon, { "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
+      Image(props.uvIcon, {"_wideHeaderIcon": true,  "width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('supportContentColor'), "flexShrink": 0 })
     #endif
     ),
     Column(
@@ -2012,7 +2012,7 @@ Column(
       #if props.uvIcon
       Image(
         props.uvIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",
@@ -2166,7 +2166,7 @@ Column(
     #if props.alertIcon
       Image(
         props.alertIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",
@@ -2293,7 +2293,7 @@ Column(
     #if props.locationIcon
       Image(
         props.locationIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",
@@ -2356,7 +2356,7 @@ Column(
       #if props.locationIcon
         Image(
           props.locationIcon,
-          {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')}
+          {"_wideHeaderIcon": true, "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor')}
         )
       #endif
     ),
@@ -2433,7 +2433,7 @@ Column(
     #if props.conditionIcon
       Image(
         props.conditionIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",
@@ -2558,7 +2558,7 @@ Column(
       #if props.conditionIcon
         Image(
           props.conditionIcon,
-          {
+          {"_wideHeaderIcon": true,
             "width": 20,
             "height": 20,
             "objectFit": "contain",
@@ -3141,7 +3141,7 @@ Column(
       #if props.conditionIcon
         Image(
           props.conditionIcon,
-          {
+          {"_wideHeaderIcon": true,
             "width": 20,
             "height": 20,
             "objectFit": "contain",
@@ -3269,7 +3269,7 @@ Column(
       #if props.conditionIcon
         Image(
           props.conditionIcon,
-          {
+          {"_wideHeaderIcon": true,
             "width": 20,
             "height": 20,
             "objectFit": "contain",
@@ -3391,7 +3391,7 @@ Column(
       #if props.conditionIcon
         Image(
           props.conditionIcon,
-          {
+          {"_wideHeaderIcon": true,
             "width": 20,
             "height": 20,
             "objectFit": "contain",
@@ -3517,7 +3517,7 @@ Column(
       #if props.conditionIcon
         Image(
           props.conditionIcon,
-          {
+          {"_wideHeaderIcon": true,
             "width": 20,
             "height": 20,
             "objectFit": "contain",
@@ -4159,7 +4159,7 @@ Column(
     #if props.conditionIcon
       Image(
         props.conditionIcon,
-        {
+        {"_wideHeaderIcon": true,
           "width": 20,
           "height": 20,
           "objectFit": "contain",

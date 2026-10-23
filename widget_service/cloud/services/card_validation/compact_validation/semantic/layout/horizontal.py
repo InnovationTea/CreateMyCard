@@ -14,7 +14,11 @@ from services.card_validation.compact_validation.diagnostics import (
 from services.card_validation.compact_validation.semantic.layout.overflow_tolerances import (
     layout_overflow_tolerances,
 )
-from services.compact_component_runtime import text_block_full_width_budget
+from services.compact_component_runtime import (
+    VISUAL_RECIPE_VERSION,
+    text_block_full_width_budget,
+    text_block_width_contract,
+)
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_region_layout import reference_region_boxes
 
@@ -148,6 +152,10 @@ def _minimum_width(
         result = max(result, width)
     if result is not None:
         result = max(result, constraints.minimum)
+        marker = node.props.get("_visualRecipe")
+        text_block_item_marker = f"{VISUAL_RECIPE_VERSION}:TextBlock.item"
+        if marker == text_block_item_marker:
+            result = max(result, text_block_width_contract().item_minimum_width)
     return result
 
 

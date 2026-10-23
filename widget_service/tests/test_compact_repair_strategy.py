@@ -223,8 +223,8 @@ def test_secondary_body_font_size_error_gets_recipe_aware_repair(font_size: int)
     errors = [
         _issue(
             f"weather_line: SecondaryBody.fontSize must be the fixed Recipe value {font_size}. "
-            "SecondaryBody uses fontSize 14 / lineHeight 19 for a single row "
-            "and fontSize 12 / lineHeight 16 for multiple rows."
+            "SecondaryBody uses fontSize 14 / lineHeight 14 for a single row "
+            "and fontSize 12 / lineHeight 12 for multiple rows."
         )
     ]
 
@@ -233,9 +233,9 @@ def test_secondary_body_font_size_error_gets_recipe_aware_repair(font_size: int)
     assert directive.repair_strategy == "component_contract_repair"
     assert "只把 fontSize 改为错误信息给出的固定 Recipe 值" in directive.instruction
     assert "只有一行且各项 maxLines 都为 1（默认 1）" in directive.instruction
-    assert "固定为 14fp/19vp" in directive.instruction
+    assert "固定为 14fp/14vp" in directive.instruction
     assert "超过一行或任一项 maxLines 为 2" in directive.instruction
-    assert "整组固定为 12fp/16vp，行间距为 2vp" in directive.instruction
+    assert "整组固定为 12fp/12vp，行间距为 2vp" in directive.instruction
     assert "两项同行用 14；两项 columns:1 分行用 12" in directive.instruction
     assert "按最终行布局重新核算字号与高度" in directive.instruction
     assert "不得仅为缩小字号拆散信息组或删除事实" in directive.instruction

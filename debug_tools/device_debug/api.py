@@ -27,6 +27,12 @@ class ConvertRequest(BaseModel):
 
 class RunRequest(ConvertRequest):
     targetId: str = Field(min_length=1, max_length=64)
+    captureMode: Literal["preview", "desktop"] = "preview"
+
+
+class PrepareRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    targetId: str = Field(min_length=1, max_length=64)
 
 
 def register_device_routes(
@@ -124,10 +130,18 @@ def register_device_routes(
     async def submit(request: RunRequest) -> dict:
         try:
             return await require_jobs().submit(
-                request.targetId, request.source, request.format, request.size
+                request.targetId,
+                request.source,
+                request.format,
+                request.size,
+                capture_mode=request.captureMode,
             )
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
+
+    @app.post("/debug/device/prepare", status_code=202)
+    async def prepare(request: PrepareRequest) -> dict:
+        return await require_jobs().submit(request.targetId, "", "a2ui", "2x2", prepare_only=True)
 
     @app.get("/debug/device/runs/{job_id}")
     async def get_job(job_id: str) -> dict:

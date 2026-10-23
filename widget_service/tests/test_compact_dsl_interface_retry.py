@@ -168,7 +168,9 @@ async def test_non_retryable_exceptions_and_cancellation_propagate(error_type):
 
 
 @pytest.mark.asyncio
-async def test_each_attempt_preserves_original_request_fields_and_private_context():
+async def test_each_attempt_preserves_original_request_fields_and_private_context(monkeypatch):
+    # 旧编辑路由仍支持整轮重试；语义编辑的独立预算由新专项覆盖。
+    monkeypatch.setattr(get_settings(), "enable_semantic_widget_edit", False)
     request = make_request(sourceArtifactUrl="https://test.invalid/widget/source.md")
     request._raw_request_body = '{"content":{"title":"天气"}}'
     request.device._source_rom_version = "VYG-AL00 7.0.0.105"

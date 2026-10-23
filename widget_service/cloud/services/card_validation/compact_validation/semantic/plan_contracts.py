@@ -7,6 +7,9 @@ import re
 from typing import Any
 
 from services.card_validation.compact_validation.constants import _EXPRESSION_PATTERN
+from services.card_validation.compact_validation.semantic.asset_references import (
+    model_asset_references,
+)
 from services.card_validation.compact_validation.syntax.expressions import (
     _collect_binding_context,
 )
@@ -32,12 +35,12 @@ def collect_actions_only_plan_errors(
         if root.props.get("layout") != "S-content-dual-action":
             return
         actions_only = root.props.get("variant") == "actions-only" or len(root.children) == 2
-    elif root.component_type == "Column" and isinstance(compact_plan, dict):
+    elif root.component_type == "Column":
         by_id = {row.component_id: row for row in source_components}
         buttons = []
         for child_id in root.children:
             child = by_id.get(child_id)
-            if child is not None and child.component_type == "PillButton":
+            if child is not None and child.component_type == "CardButton":
                 buttons.append(child)
         actions_only = len(root.children) == 2 and len(buttons) == 2
     if not actions_only:
@@ -74,7 +77,7 @@ def collect_plan_contract_errors(
 ) -> None:
     """校验模型输出对 Plan 素材分配和语义分区的落实情况。"""
     _collect_title_icon_contract_errors(components, errors)
-    _collect_title_button_icon_conflict_errors(components, errors)
+    _collect_title_content_icon_conflict_errors(components, errors)
     _collect_whole_card_click_errors(components, task_spec, compact_plan, errors, size=size)
     _collect_plan_asset_assignment_errors(
         components,
@@ -162,31 +165,31 @@ def collect_secondary_body_context_errors(
             errors.append(_isolated_secondary_body_error(component.component_id))
 
 
-def _collect_title_button_icon_conflict_errors(
+def _collect_title_content_icon_conflict_errors(
     components: list[ComponentRow],
     errors: list[str],
 ) -> None:
-    """按钮与标题竞争同一素材时保留按钮，要求模型修复标题。"""
-    title_icons: dict[str, list[str]] = {}
-    button_icons: dict[str, list[str]] = {}
-    for component in components:
-        icon = component.props.get("icon")
-        if not isinstance(icon, str) or not icon.strip():
-            continue
-        if component.component_type == "SingleLineTitle":
-            title_icons.setdefault(icon, []).append(component.component_id)
-        elif component.component_type in _BUTTON_COMPONENT_TYPES:
-            button_icons.setdefault(icon, []).append(component.component_id)
-
-    for icon, title_ids in title_icons.items():
-        conflicting_button_ids = button_icons.get(icon)
-        if conflicting_button_ids is None:
+    """标题图标不得与同卡其它内容复用；动作之间允许复用。"""
+    references = model_asset_references(components)
+    title_icons = {
+        reference.source
+        for reference in references
+        if reference.component.component_type == "SingleLineTitle"
+    }
+    for icon in title_icons:
+        conflicting_content_ids = [
+            reference.component.component_id
+            for reference in references
+            if reference.source == icon
+            and reference.component.component_type != "SingleLineTitle"
+        ]
+        if not conflicting_content_ids:
             continue
         errors.append(
-            f"SingleLineTitle components {title_ids} and button components "
-            f"{conflicting_button_ids} reuse icon {icon!r}; keep the button icon and "
-            "replace the title icon with another unused matching asset; remove it only "
-            "when no alternative candidate exists."
+            f"SingleLineTitle reuses icon {icon!r} with card content components "
+            f"{conflicting_content_ids}; keep the content icon and replace the title icon "
+            "with another unused matching asset; remove it only when no alternative "
+            "candidate exists."
         )
 
 

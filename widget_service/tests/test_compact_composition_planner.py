@@ -1,6 +1,9 @@
 """Compact 有限组合搜索的动作布局回归。"""
 
 from services.compact_composition_planner import (
+    Region,
+    _action_component_for_zone,
+    _action_groups,
     composition_structure_blueprint,
     feasible_composition_candidates,
 )
@@ -83,3 +86,62 @@ def test_anchor_candidate_uses_circle_button_from_plan_preference() -> None:
         "accessibilityLabel": "打开免打扰设置",
         "requiresAccurateIcon": True,
     }
+
+
+def test_wide_card_button_candidate_allows_optional_plan_assigned_icon() -> None:
+    facts = [
+        {
+            "requirement": "打开设备设置",
+            "actionId": "event.open.settings",
+            "componentHints": ["CardButton", "PillButton"],
+        }
+    ]
+    task = {
+        "eventCandidates": [
+            {
+                "id": "event.open.settings",
+                "description": "打开设备设置",
+                "call": "openSettings",
+                "args": {},
+            }
+        ]
+    }
+    zone = Region(
+        path=(1, 0),
+        kind="fixed",
+        props={},
+        rule={"types": ["CardButton"]},
+    )
+
+    without_icon = {
+        "info_required": facts,
+        "assetAssignments": {
+            "actions": [
+                {
+                    "actionId": "event.open.settings",
+                    "assetId": None,
+                    "reason": "没有匹配素材",
+                }
+            ]
+        },
+    }
+    unresolved: list[str] = []
+    action = _action_groups("2x4", facts, task, without_icon, unresolved)[0]
+    assert not unresolved
+    assert action["hasAssignedIcon"] is False
+    assert _action_component_for_zone(zone, action) == "CardButton"
+
+    with_icon = {
+        "info_required": facts,
+        "assetAssignments": {
+            "actions": [
+                {
+                    "actionId": "event.open.settings",
+                    "assetId": "asset.settings",
+                }
+            ]
+        },
+    }
+    action = _action_groups("2x4", facts, task, with_icon, [])[0]
+    assert action["hasAssignedIcon"] is True
+    assert _action_component_for_zone(zone, action) == "CardButton"

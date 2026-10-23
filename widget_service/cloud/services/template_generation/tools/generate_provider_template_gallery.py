@@ -30,6 +30,10 @@ def parse_args() -> argparse.Namespace:
         help="只生成指定 Provider ID，可重复传入",
     )
     parser.add_argument("--concurrency", type=int, default=1)
+    parser.add_argument("--replay-results", type=Path, help="只重跑该目录清单中的失败项")
+    parser.add_argument("--source-input-root", type=Path, help="失败项对应的原始输入目录")
+    parser.add_argument("--include-wide-compositions", action="store_true")
+    parser.add_argument("--composition-seed", type=int, default=20261014)
     parser.add_argument(
         "--include-template-examples", action="store_true",
         help="追加模版场景示例页签的八个演示需求，不改变默认画廊矩阵",
@@ -69,6 +73,14 @@ async def run(args: argparse.Namespace) -> int:
             write_gallery_input_dataset,
         )
 
+        if args.replay_results:
+            from services.template_generation.test_support.gallery_replay import (
+                prepare_failed_replay,
+            )
+
+            if args.source_input_root is None or args.refresh_inputs:
+                raise ValueError("失败重跑需提供 --source-input-root，且不能同时刷新输入")
+            prepare_failed_replay(args.source_input_root, args.replay_results, input_root)
         if args.refresh_inputs or not (input_root / "manifest.json").is_file():
             manifest = write_gallery_input_dataset(input_root)
             case_count = sum(len(provider.cases) for provider in manifest.providers)
@@ -82,6 +94,12 @@ async def run(args: argparse.Namespace) -> int:
             )
 
             append_template_examples(input_root)
+        if args.include_wide_compositions:
+            from services.template_generation.test_support.wide_compositions import (
+                append_wide_compositions,
+            )
+
+            append_wide_compositions(input_root, args.composition_seed)
         provider_ids = set(args.provider) or None
         summary = await generate_provider_gallery(
             input_root,
@@ -95,7 +113,8 @@ async def run(args: argparse.Namespace) -> int:
             "Provider 画廊批跑完成："
             f"total={summary.total} success={summary.success} "
             f"failed={summary.failed} missing={summary.missing} "
-            f"not_generated={summary.not_generated} output={summary.manifest_path}"
+            f"not_generated={summary.not_generated} not_applicable={summary.not_applicable} "
+            f"output={summary.manifest_path}"
         )
         if args.strict and summary.failed > 0:
             return 1

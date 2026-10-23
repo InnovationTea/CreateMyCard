@@ -26,8 +26,10 @@ from .template_retrieval import (
 
 _EVENT = "/events/0/"
 _NEGATIVE_ACTION = re.compile(
-    r"(?:不要|无需|不需要|不提供|不带|不加|不显示|不允许|禁止)(?:任何)?"
-    r"(?:(?:查看(?:日程)?详情|打开(?:日历|日程))(?:按钮)?|按钮|操作|交互|点击|跳转)"
+    r"(?:不要|无需|不需要|不提供|不带|不加|不显示|不允许|禁止|无|不附带)"
+    r"(?:(?:标题|结束时间|开始时间|备注|地点)[、，或和及]){1,5}(?:操作按钮|按钮)|"
+    r"(?:不要|无需|无|不需要|不提供|不带|不加|不显示|不允许|禁止)(?:任何)?"
+    r"(?:(?:查看(?:日程)?详情|打开(?:日历|日程))(?:按钮)?|操作按钮|按钮|操作|交互|点击|跳转)"
 )
 _ACTION_QUERY = re.compile(
     r"按钮|点击|点按|点一下|轻触|点开(?!始|会)|单击|双击|长按|一键|跳转|直达|跳到|打开|"
@@ -100,6 +102,7 @@ def plan_calendar_no_action_fallback(
     enable_fusion_ball: bool = False,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_layout_ids: tuple[str, ...] = (),
 ) -> CalendarNoActionFallback | None:
     """仅重试一次；保留全部首层字段和动作，不合适时保留原失败。"""
     result: CalendarNoActionFallback | None = None
@@ -160,7 +163,10 @@ def plan_calendar_no_action_fallback(
             card_spec,
             preferred_template_ids=(target,),
         )
-        plans = plan_template_candidates(normalized, found, task_spec, fallback_registry)
+        plans = plan_template_candidates(
+            normalized, found, task_spec, fallback_registry,
+            allowed_layout_ids=trusted_template_layout_ids,
+        )
     except TemplateRetrievalMiss as exc:
         # 受控重试未能覆盖原意图，由调用方继续报告原 Search/Planner 失败。
         logger.info(

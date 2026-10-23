@@ -22,7 +22,6 @@ from services.compact_composition_planner import (
     composition_text_width_conflicts,
     feasible_composition_candidates,
 )
-from services.compact_fewshot_selection import select_plan_fewshots
 from services.compact_layout_runtime import allowed_layout_ids
 from services.compact_plan import (
     build_compact_plan_tool,
@@ -34,6 +33,7 @@ from services.compact_plan_output import (
     plan_output_format_feedback,
 )
 from services.compact_repair_context import joint_repair_contract
+from services.compact_structural_fewshots import select_structural_fewshots
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
 _MODULE = "[Prompt Builder]"
@@ -1171,7 +1171,8 @@ class PromptBuilder:
             if layout_scope == "S-content-dual-action":
                 return (
                     "# 本轮双动作预算\n\n"
-                    "使用 S-content-dual-action：正文38、间距8、按钮36、间距8、按钮36。"
+                    "使用 S-content-dual-action：正文38、间距8、CardButton36、间距8、CardButton36；"
+                    "不得改用PillButton。"
                     "不增加 SingleLineTitle 或独立标题，不使用融球；必要对象名并入正文短行。"
                     "正文不放30/38fp大值，两个动作完整、各自可点击，不允许正文侵入按钮。"
                 )
@@ -1515,25 +1516,18 @@ class PromptBuilder:
         )
         content = examples
         identifiers = tuple(dict.fromkeys(re.findall(r"\b2x[24]-V\d+\b", examples)))
-        if settings.enable_design_compact_few_shot_selection:
-            reference = PromptBuilder._select_few_shot(examples, task_spec)
-            content = ""
-            if "## " in reference:
-                selected = select_plan_fewshots(
-                    examples,
-                    plan,
-                    reference_source=reference,
-                    component_source=component_source,
-                )
-                content = selected.content
-                identifiers = selected.identifiers
+        if settings.enable_design_compact_few_shot_selection and plan is not None:
+            selected = select_structural_fewshots(
+                examples, plan, task_spec.model_dump(mode="json"),
+            )
+            content = selected.content
+            identifiers = selected.identifiers
         if not content:
             return ""
         return (
             f"{content}\n\n"
             f"本轮实现参考：{'、'.join(identifiers)}。"
-            "完整案例提供信息结构、字段语义与动作归属参考；局部用法仅说明组件。"
-            "两者都不冻结布局；"
+            "完整案例提供信息结构、字段语义与动作归属参考，不冻结布局；"
             "不复制业务值、路径、事件、素材或把示例信息量当成上限。"
         )
 
@@ -2248,9 +2242,9 @@ class PromptBuilder:
                     payload["instruction"] += (
                         "originalDisplayRoles是各路径首次可读输出的原规格，不是上轮失败输出的新规格，"
                         "也不是新组件清单；不能因为中途降字就把较小字号当成基准。"
-                        "SecondaryBody按最终行布局选字号：单行14fp/19vp，多行12fp/16vp，不区分role。"
+                        "SecondaryBody按最终行布局选字号：单行14fp/14vp，多行12fp/12vp，不区分role。"
                         "容量修复保留主值字号；普通正文可按合法单行或多行模式重新核算，先合并短辅助属性，"
-                        "长正文分行时按12fp/16vp预留行高，再换可承载的完整布局变体。"
+                        "长正文分行时按12fp/12vp预留行高，再换可承载的完整布局变体。"
                         "不要为缩字把正文伪装成TableText，也不要把30fp主读数"
                         "降为18fp EmphasisText以消除溢出；重复主值只去重，不删独有事实。"
                         "只固定合法文字规格，不照搬原错误布局、绑定或重复单位；类型/单位"

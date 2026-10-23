@@ -208,61 +208,33 @@ def test_websocket_send_disconnect_is_logged_and_not_raised(monkeypatch):
 
 def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
     """为路由集成测试返回对应 profile 的确定性合法模型输出。"""
+    if protocol_profile.get("id") == "compact-info-plan":
+        return json.dumps({
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {"requirement": "卡片标题", "text": "天气", "priority": "must",
+                     "componentHints": ["SingleLineTitle"]},
+                    {"requirement": "正文内容", "text": "静态卡片", "priority": "must",
+                     "componentHints": ["EmphasisText"]},
+                ],
+                "layoutHints": ["S-title-content"],
+            },
+        }, ensure_ascii=False)
+    if protocol_profile.get("id") == "post-layout-theme":
+        payload = json.loads(_prompt[-1].get("content", "{}"))
+        candidates = payload.get("candidates")
+        assert isinstance(candidates, list) and candidates
+        candidate = candidates[0]
+        assert isinstance(candidate, dict)
+        theme_id = candidate.get("themeId")
+        assert isinstance(theme_id, str) and theme_id
+        return json.dumps({"themeId": theme_id})
     if protocol_profile.get("format") == "compact-dsl":
         compact_rows = [
-            [
-                "root",
-                "Column",
-                {
-                    "width": 320,
-                    "height": 160,
-                    "padding": 12,
-                    "borderRadius": 22,
-                    "clip": True,
-                    "itemMargin": 6,
-                    "backgroundColor": "#FFFFFFFF",
-                },
-                ["header", "body", "footer"],
-            ],
-            [
-                "header",
-                "Text",
-                {
-                    "width": 276,
-                    "height": 20,
-                    "content": "Weather",
-                    "fontSize": 16,
-                    "fontWeight": 700,
-                    "fontColor": "#E5000000",
-                    "maxLines": 1,
-                },
-            ],
-            [
-                "body",
-                "Text",
-                {
-                    "width": 276,
-                    "height": 64,
-                    "content": "Static card",
-                    "fontSize": 18,
-                    "fontWeight": 700,
-                    "fontColor": "#E5000000",
-                    "maxLines": 1,
-                },
-            ],
-            [
-                "footer",
-                "Text",
-                {
-                    "width": 276,
-                    "height": 20,
-                    "content": "Ready",
-                    "fontSize": 12,
-                    "fontWeight": 400,
-                    "fontColor": "#99000000",
-                    "maxLines": 1,
-                },
-            ],
+            ["root", "Layout", {"layout": "S-title-content"}, ["header", "body"]],
+            ["header", "SingleLineTitle", {"title": "天气", "fontSize": 12}],
+            ["body", "EmphasisText", {"mainText": "静态卡片", "fontSize": 18}],
             ["/ui/state", "ready"],
         ]
         return "\n".join(
@@ -443,19 +415,28 @@ def test_overview_interface_filters_default_package_whitelist(monkeypatch):
             _request_id("overview-health"),
         )
 
-    data = message["data"]
-    assert "ViewWeather" in {item["id"] for item in data["dataCapabilities"]}
-    assert "GetCalendarEvents" not in {
-        item["id"] for item in data["dataCapabilities"]
-    }
-    assert "GetHealthAndSportSummary" not in {
-        item["id"] for item in data["dataCapabilities"]
-    }
-    assert set(data["unavailableCapabilities"]) == {
+    data = message.get("data")
+    assert isinstance(data, dict)
+    capabilities = data.get("dataCapabilities")
+    assert isinstance(capabilities, list)
+    capability_ids = set()
+    for item in capabilities:
+        identity = item.get("id")
+        assert isinstance(identity, str)
+        capability_ids.add(identity)
+    assert "ViewWeather" in capability_ids
+    assert "GetCalendarEvents" not in capability_ids
+    assert "GetHealthAndSportSummary" not in capability_ids
+    unavailable = data.get("unavailableCapabilities")
+    assert isinstance(unavailable, list)
+    assert set(unavailable) == {
         "GetCalendarEvents",
         "GetHealthAndSportSummary",
         "event.open.health.sport",
         "event.open.health.sleep",
+        "event.open.health.activityRecord",
+        "event.open.health.workoutDuration",
+        "event.open.health.sportsRecord",
     }
 
 
@@ -689,6 +670,11 @@ def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
 def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
     """同一 requestId 中间出现合法请求后，下一次异常重新从首次提醒计数。"""
     settings = get_settings()
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_design_compact_runtime_prompt_context", False)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: False)
+    monkeypatch.setattr(WidgetGenerationService, "_enable_jsx_generation", lambda _self: False)
     monkeypatch.setattr(
         settings,
         "enable_compact_dsl_argument_repair_fallback",
@@ -699,12 +685,12 @@ def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
         "compact_dsl_argument_repair_reminder_count",
         1,
     )
-    model_formats: list[str] = []
+    model_profiles: list[str] = []
 
     async def generate_without_repair(_self, prompt, protocol_profile, **_kwargs):
-        model_format = protocol_profile.get("format", "")
-        model_formats.append(model_format)
-        if model_format == "raw-json":
+        profile_id = protocol_profile.get("id", "")
+        model_profiles.append(profile_id)
+        if profile_id == "compact-dsl-argument-repair":
             raise AssertionError("a valid request must reset the malformed-input streak")
         return _valid_model_output(_self, prompt, protocol_profile)
 
@@ -719,7 +705,7 @@ def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
     interaction_id = "argument-streak-reset"
     request_id = _request_id(interaction_id)
     valid_content = {
-        "userQuery": "生成天气卡片",
+        "userQuery": "生成标题为天气、正文为静态卡片的卡片",
         "title": "天气",
         "description": "天气卡片",
         "size": "2x2",
@@ -759,7 +745,7 @@ def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
     )
     assert first_message["error"]["details"]["modelCalled"] is False
     assert third_message["error"]["details"]["modelCalled"] is False
-    assert model_formats == ["compact-dsl"]
+    assert model_profiles == ["compact-info-plan", "design-compact-dsl", "post-layout-theme"]
 
 
 def test_compact_route_keeps_transport_only_stringified_arguments_reminder(

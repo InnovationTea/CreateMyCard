@@ -1,0 +1,133 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "3天后回石家庄看妈妈，看离出发还有几天、当天温度范围、下雨概率和空气质量，妈妈的号码是1388888888，点一下打开拨号界面并带上这个号码",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-08-31"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "石家庄市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/airQuality",
+          "/current/condition",
+          "/current/temperatureText",
+          "/daily/0/rainProbabilityPercent",
+          "/daily/0/temperatureRangeText"
+        ]
+      }
+    ],
+    "title": "旅途倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "1388888888"
+            }
+          }
+        }
+      }
+    ],
+    "description": "回石家庄倒计时、当地天气与空气质量，一键拨号给妈妈。",
+    "candidateAssetIds": [
+      "asset.ic_calender",
+      "asset.ic_weather_color",
+      "asset.phone_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "041",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "3天后回石家庄看妈妈，看离出发还有几天、当天温度范围、下雨概率和空气质量，妈妈的号码是1388888888，点一下打开拨号界面并带上这个号码",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "3天后回石家庄看妈妈，看离出发还有几天、当天温度范围、下雨概率和空气质量，妈妈的号码是1388888888，点一下打开拨号界面并带上这个号码",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-08-31"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "石家庄市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/airQuality",
+        "/current/condition",
+        "/current/temperatureText",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/0/temperatureRangeText"
+      ]
+    }
+  ],
+  "title": "旅途倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "1388888888"
+          }
+        }
+      }
+    }
+  ],
+  "description": "回石家庄倒计时、当地天气与空气质量，一键拨号给妈妈。",
+  "candidateAssetIds": [
+    "asset.ic_calender",
+    "asset.ic_weather_color",
+    "asset.phone_fill"
+  ]
+}

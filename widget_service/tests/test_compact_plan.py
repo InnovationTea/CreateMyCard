@@ -583,7 +583,7 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
     assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
     assert "Button" not in fact_properties["componentHints"]["items"]["enum"]
-    assert "CardButton" not in fact_properties["componentHints"]["items"]["enum"]
+    assert "CardButton" in fact_properties["componentHints"]["items"]["enum"]
     assert "S-title-content-action" in properties["layoutHints"]["items"]["enum"]
     assert properties["info_required"]["items"]["properties"]["priority"]["enum"] == [
         "must",
@@ -594,7 +594,7 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert tool["function"]["parameters"]["required"] == ["info_required"]
 
 
-@pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 8), ("2x4", 12)])
+@pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 6), ("2x4", 10)])
 def test_plan_tool_explains_must_fact_guidance_by_card_size(
     size: str,
     max_must_facts: int,
@@ -606,6 +606,46 @@ def test_plan_tool_explains_must_fact_guidance_by_card_size(
     priority = tool["function"]["parameters"]["properties"]["info_required"]["items"]
     priority = priority["properties"]["priority"]
     assert f"最多可提交 {max_must_facts} 条 must 信息" in priority["description"]
+
+
+def _must_fact_limit_payload(fact_count: int, *, size: str) -> tuple[dict, dict]:
+    schema_fields = {}
+    facts = []
+    for index in range(fact_count):
+        field_name = f"metric{index}"
+        schema_fields[field_name] = {
+            "type": "string",
+            "description": f"指标 {index}",
+            "sampleValue": f"值 {index}",
+        }
+        facts.append(
+            {
+                "requirement": f"展示指标 {index}",
+                "priority": "must",
+                "dataId": f"/data/metrics/{field_name}",
+                "componentHints": ["SecondaryBody"],
+            }
+        )
+    spec = {
+        "userQuery": "展示全部指标",
+        "size": size,
+        "dataModelSchema": {"data": {"metrics": schema_fields}},
+        "eventCandidates": [],
+    }
+    payload = {
+        "name": "submit_card_plan",
+        "arguments": {"info_required": facts},
+    }
+    return spec, payload
+
+
+@pytest.mark.parametrize(("size", "fact_count"), [("2x2", 7), ("2x4", 11)])
+def test_plan_must_fact_limit_is_guidance_only(size: str, fact_count: int) -> None:
+    spec, payload = _must_fact_limit_payload(fact_count, size=size)
+
+    result = parse_compact_plan_call(json.dumps(payload), spec)
+
+    assert len(result.plan["info_required"]) == fact_count
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -706,8 +746,8 @@ def test_dual_action_plan_preserves_content_hints_and_normalizes_buttons() -> No
     assert isinstance(facts, list)
     assert facts[0].get("componentHints") == ["ProgressCircleSingle", "EmphasizedData"]
     assert facts[1].get("componentHints") == ["SecondaryBody", "TableText"]
-    assert facts[2].get("componentHints") == ["PillButton"]
-    assert facts[3].get("componentHints") == ["PillButton"]
+    assert facts[2].get("componentHints") == ["CardButton"]
+    assert facts[3].get("componentHints") == ["CardButton"]
 
 
 def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
@@ -835,6 +875,52 @@ def test_plan_parser_rejects_asset_reuse_between_button_and_title() -> None:
         parse_compact_plan_call(json.dumps(payload), asset_task_spec())
 
 
+def test_plan_parser_accepts_asset_reuse_between_actions() -> None:
+    spec = dual_action_task_spec()
+    spec["assetCandidates"] = [
+        {
+            "id": "asset.settings",
+            "src": "resources/base/media/gearshape_fill.svg",
+            "description": "设置操作图标",
+        }
+    ]
+    payload = {
+        "name": "submit_card_plan",
+        "arguments": {
+            "info_required": [
+                {
+                    "requirement": "打开省电模式",
+                    "priority": "must",
+                    "actionId": "event.setPowerSavingMode",
+                    "componentHints": ["PillButton"],
+                },
+                {
+                    "requirement": "导航回家",
+                    "priority": "must",
+                    "actionId": "event.startNavigate",
+                    "componentHints": ["PillButton"],
+                },
+            ],
+            "layoutHints": ["S-content-dual-action"],
+            "assetAssignments": {
+                "actions": [
+                    {"actionId": "event.setPowerSavingMode", "assetId": "asset.settings"},
+                    {"actionId": "event.startNavigate", "assetId": "asset.settings"},
+                ],
+                "title": {"assetId": None, "reason": "双动作布局没有标题槽"},
+            },
+        },
+    }
+
+    result = parse_compact_plan_call(json.dumps(payload), spec)
+
+    assignments = result.plan["assetAssignments"]["actions"]
+    assert [assignment["assetId"] for assignment in assignments] == [
+        "asset.settings",
+        "asset.settings",
+    ]
+
+
 def test_plan_parser_requires_reason_for_unassigned_icon() -> None:
     payload = json.loads(asset_plan_call())
     payload["arguments"]["assetAssignments"]["title"] = {"assetId": None}
@@ -843,12 +929,70 @@ def test_plan_parser_requires_reason_for_unassigned_icon() -> None:
         parse_compact_plan_call(json.dumps(payload), asset_task_spec())
 
 
+def test_plan_parser_accepts_card_button_without_an_assigned_action_icon() -> None:
+    spec = asset_task_spec()
+    spec["size"] = "2x4"
+    payload = json.loads(asset_plan_call())
+    action_fact = payload["arguments"]["info_required"][2]
+    action_fact["componentHints"] = ["CardButton"]
+    payload["arguments"]["assetAssignments"]["actions"] = [
+        {
+            "actionId": "event.open.calendar",
+            "assetId": None,
+            "reason": "没有语义匹配的候选素材",
+        }
+    ]
+
+    result = parse_compact_plan_call(json.dumps(payload), spec)
+
+    action_fact = result.plan["info_required"][2]
+    assert action_fact["componentHints"] == ["CardButton"]
+    assert result.plan["assetAssignments"]["actions"][0]["assetId"] is None
+
+
+def test_plan_parser_accepts_pill_button_when_action_icon_is_unassigned() -> None:
+    spec = asset_task_spec()
+    spec["size"] = "2x4"
+    payload = json.loads(asset_plan_call())
+    payload["arguments"]["assetAssignments"]["actions"] = [
+        {
+            "actionId": "event.open.calendar",
+            "assetId": None,
+            "reason": "没有语义匹配的候选素材",
+        }
+    ]
+
+    result = parse_compact_plan_call(json.dumps(payload), spec)
+
+    action_fact = result.plan["info_required"][2]
+    assert action_fact["componentHints"] == ["PillButton"]
+    assert result.plan["assetAssignments"]["actions"][0]["assetId"] is None
+
+
 def test_plan_tool_requires_composition_only_with_runtime_context() -> None:
     tool = build_compact_plan_tool(task_spec(), include_composition=True)
     parameters = tool["function"]["parameters"]
 
     assert "composition" in parameters["properties"]
     assert parameters["required"] == ["info_required", "composition"]
+    groups = parameters["properties"]["composition"]["properties"]["regions"]
+    component_enum = groups["items"]["properties"]["groups"]["items"]
+    component_enum = component_enum["properties"]["component"]["enum"]
+    assert "CardButton" in component_enum
+
+
+def test_two_by_four_plan_tool_offers_card_button_without_asset_candidates() -> None:
+    spec = task_spec()
+    spec["size"] = "2x4"
+
+    tool = build_compact_plan_tool(spec, include_composition=True)
+    parameters = tool["function"]["parameters"]
+    fact_properties = parameters["properties"]["info_required"]["items"]["properties"]
+    assert "CardButton" in fact_properties["componentHints"]["items"]["enum"]
+    groups = parameters["properties"]["composition"]["properties"]["regions"]
+    component_enum = groups["items"]["properties"]["groups"]["items"]
+    assert "CardButton" in component_enum["properties"]["component"]["enum"]
+    assert "assetAssignments" not in parameters["properties"]
 
 
 def test_plan_parser_rejects_composition_when_runtime_context_is_disabled() -> None:
@@ -910,8 +1054,9 @@ def test_plan_parser_requires_composition_in_runtime_mode() -> None:
                 "PillButton",
                 "DataDisplay",
                 "CircleButton",
+                "CardButton",
             ),
-            {"PillButton", "CircleButton"},
+            {"PillButton", "CircleButton", "CardButton"},
         ),
         (
             "2x4",
@@ -972,18 +1117,19 @@ def test_plan_normalization_removes_button_for_each_size(
 ) -> None:
     spec = task_spec()
     spec["size"] = size
+    arguments = {
+        "info_required": [
+            {
+                "requirement": "打开日历",
+                "actionId": "event.open.calendar",
+                "componentHints": ["Button", valid_action],
+            }
+        ]
+    }
     raw = json.dumps(
         {
             "name": "submit_card_plan",
-            "arguments": {
-                "info_required": [
-                    {
-                        "requirement": "打开日历",
-                        "actionId": "event.open.calendar",
-                        "componentHints": ["Button", valid_action],
-                    }
-                ]
-            },
+            "arguments": arguments,
         },
         ensure_ascii=False,
     )
@@ -1240,6 +1386,138 @@ def test_compact_dsl_must_cover_plan_data_and_action() -> None:
     errors = compact_plan_coverage_errors(incomplete, plan, task_spec())
     assert any("会议标题" in item for item in errors)
     assert any("打开日历" in item for item in errors)
+
+
+@pytest.mark.parametrize("component_type", ["SecondaryBody", "TextBlock"])
+def test_static_plan_fact_can_span_label_and_value_in_same_item(
+    component_type: str,
+) -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": "09:00-11:30 灵隐寺祈福",
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            f'["details","{component_type}",{{"items":['
+            '{"label":"Day1 09:00-11:30 ","value":"灵隐寺祈福"}]}}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == ()
+
+
+def test_static_plan_fact_cannot_span_different_structured_items() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": "09:00-11:30 灵隐寺祈福",
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["details","SecondaryBody",{"items":['
+            '{"label":"Day1 09:00-11:30 ","value":"其他景点"},'
+            '{"label":"Day1 13:30-16:30 ","value":"灵隐寺祈福"}]}}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == (
+        "Plan static text is not fully visible in DSL: Day1 09:00-11:30 灵隐寺祈福.",
+    )
+
+
+@pytest.mark.parametrize(
+    "plan_text",
+    ["09:00-11:30 灵隐寺祈福", "灵隐寺祈福 09:00-11:30"],
+)
+def test_static_plan_fact_can_span_event_card_time_and_title_in_same_item(
+    plan_text: str,
+) -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": plan_text,
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["events"]]',
+            '["events","EventCard",{"items":['
+            '{"title":"灵隐寺祈福","time":"09:00-11:30"}]}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == ()
+
+
+def test_static_plan_fact_cannot_span_different_event_card_items() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": "09:00-11:30 灵隐寺祈福",
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["events"]]',
+            '["events","EventCard",{"items":['
+            '{"title":"其他景点","time":"09:00-11:30"},'
+            '{"title":"灵隐寺祈福","time":"13:30-16:30"}]}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == (
+        "Plan static text is not fully visible in DSL: Day1 09:00-11:30 灵隐寺祈福.",
+    )
+
+
+def test_static_plan_fact_requires_complete_event_card_item_text() -> None:
+    plan = {
+        "info_required": [
+            {
+                "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+                "text": "09:00-11:30 灵隐寺祈福",
+                "priority": "must",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["events"]]',
+            '["events","EventCard",{"items":['
+            '{"title":"灵隐寺祈福","time":"09:00"}]}]',
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == (
+        "Plan static text is not fully visible in DSL: Day1 09:00-11:30 灵隐寺祈福.",
+    )
 
 
 def test_compact_dsl_rejects_duplicate_visible_plan_data() -> None:

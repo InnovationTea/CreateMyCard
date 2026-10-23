@@ -36,7 +36,7 @@ def test_textblock_keeps_fill_height_and_equal_width_with_protocol_alignment(cou
         assert item.props.get("height") == "matchParent"
         assert item.props.get("layoutWeight") == 1
         assert item.props.get("justifyContent") == "center"
-        assert item.props.get("constraintSize") == {"minWidth": 64, "minHeight": 0}
+        assert item.props.get("constraintSize") == {"minWidth": 0, "minHeight": 0}
 
 
 @pytest.mark.parametrize("alignment,valid", [("top", True), ("stretch", False)])

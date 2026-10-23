@@ -1,10 +1,30 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-21：编辑目标履约属于标准 A2UI 的语义／编辑目标一致性，判定位于
+`card_validation/edit_validation/artifact.py`；模型意图形状、字段权限及可比较性属于
+`widget_edit_contract.py`。提示词加载与修复格式化位于 `widget_edit_prompt.py`，编排仍在
+`widget_edit_service.py`。复用现有样式合同，不新增或搬迁 Compact 检查，不影响创建入口。
+
+2026-10-21：标准 A2UI 编辑的固定高度与子文字最小字号矛盾归入
+`card_validation/edit_validation/artifact.py`（语义／布局与可读性）。比较父子组合的新旧不足差额，
+父容器未变化而子字号增大仍检查；不复制 Compact 几何规则，不改变首次生成校验。
+
+2026-10-21：`W-top-bottom.details` 允许的直属组件增加 `EventCard`，归属语义／布局合同，
+唯一判定落点仍为 `services/compact_semantic_layout.py`。该变更只放宽已登记父布局的 details 角色；
+EventCard 的 Props、事件顺序与总高继续由共享组件和容量校验负责，不在语义编译器重复实现，
+不新增错误码，不改变 `InfoBlock` 与 `CardButton` 在该槽位中的禁止边界。
+
 2026-10-20：2×2外层重组结构整理归生成修复编排，落点仍为
 `services/compact_outer_recomposition.py`。候选生成与有限搜索分离，32个实际候选使用显式预算；
 候选顺序、首个合格即采用及原稿回退语义保持不变。Compact规则判定仍委托公共校验入口，
 Plan事实动作覆盖仍委托`compact_plan_coverage_errors`；不新增或迁移语法／语义检查项。
 重组仅返回结果，现有Trace仍由`generation_pipeline.py`记录，本次不调整日志打点。
+
+2026-10-21：经用户确认，2×2双必要动作由PillButton改为CardButton。
+组件尺寸可用性和单行/两行槽预算委托共享Recipe及高阶组件转换；
+固定角色与36/57vp槽位归共享语义布局编译和布局合同；
+actions-only恰好两个不同动作且无正文的授权仍归semantic/plan_contracts.py。
+Plan候选标准化只改动作组件，不删除事实或改变事件/素材授权；不新增错误码或放宽溢出校验。
 
 2026-10-17：纯双动作布局与开关事件比较补充：
 
@@ -13,7 +33,7 @@ Plan事实动作覆盖仍委托`compact_plan_coverage_errors`；不新增或迁�
 | actions-only 结构与几何 | 共享语义布局编译 `compact_semantic_layout.py`、布局合同 | 只增加同名布局的无内容变体，按钮尺寸与标准内容变体不变 |
 | actions-only 必要事实授权 | 语义／跨文件一致性，`semantic/plan_contracts.py` | 已接受 Plan 必须恰好两个不同动作且无展示事实，不豁免覆盖检查 |
 | 组件槽位角色与确定容量下界 | 生成侧共享 `compact_slot_compatibility.py`，组合候选复用 | 读取既有布局和 Recipe；未知不判可行，不新增发布错误码或复制几何校验 |
-| 设置开关整数标记等价 | 语义／有效能力，`semantic/effective.py`；共享比较 `event_matching.py` | 仅同一合法设置开关的 0/1 等价，Plan 覆盖、素材和最终产物共用，其他字段精确比较 |
+| 已登记开关历史标记兼容 | 语义／有效能力，`semantic/effective.py`；共享规范化与比较 `event_matching.py` | 2026-10-20 覆盖八类已登记开关；注册表不声明历史标记，预检仅在 schema 校验副本中处理，Plan、素材与最终产物共用省略和整数 0/1 等价规则；其它参数精确比较，非法显式值不通过转换修正放行 |
 
 
 > 2026-10-12 Fusion 融合修订：本文原有数量、源码位置和验证结果描述融合前版本。当前分支同步 main `69c153f5`；本次按用户要求将 PR 净差异压成单个提交，SVG 填色按用户要求保留 PR497 前规则，迁移去向与实际验证见 [Fusion 融合记录](Compact_DSL_Fusion融合记录.md)。旧规则不得因目录合并重新启用。
@@ -111,6 +131,8 @@ warning；共享 Runtime 继续确定性展开原顺序，版本化物理布局�
 |---|---|---|
 | 模型素材候选范围 | `semantic/effective.py`，语义／有效能力，`COMPACT_ASSET_NOT_ALLOWED` | 展开前登记 icon、visual.icon、items[].icon；保留展开后背景检查。兼容引用提取不重新开放 Image 等内部组件 |
 | 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
+| CardButton 图标字段合法性 | 共享高阶组件合同，语法／组件 | `CardButton.icon` 可省略；存在时必须是非空静态字符串。省略业务 icon 时，转换器注入固定回退图标 `resources/base/media/ic_fallback_light.svg`，保留图标槽及对应文字宽度预算；不生成额外圆形、分隔线等占位视觉 |
+| CardButton 与 Plan 素材分配一致性 | `semantic/plan_contracts.py`，语义／跨文件一致性 | Plan 为动作分配非空素材时，DSL 继续使用该 ID 的原始 `src`；Plan 为空或没有素材候选时允许 DSL 省略业务 icon，由转换器注入固定回退图标，不得伪造业务素材或额外占位视觉 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -151,6 +173,12 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 `compact_component_runtime.py`，Plan/生成容量说明复用；校验入口仅透传展开前组件。
 不调整渲染 Recipe、窄分区、其它 Row、动作或高度规则，不新增诊断码。
 
+2026-10-21：TextBlock 将容量评估下限与渲染最小宽拆分。`minimumItemWidth:64` 继续由
+`compact_component_runtime.py` 提供给 Plan、组合与 `semantic/layout/horizontal.py`；展开后的
+item 使用 `layoutWeight:1`、`flexShrink:1` 和 `constraintSize.minWidth:0` 等权适配实际父槽。
+本项不改变检查项分类、四项280vp参考预算、窄分区拦截或8vp间距，只修复合法满宽四项在端侧
+突破安全边距的问题。
+
 | 检查项 | 分类与实际文件 | 归属理由及边界 |
 |---|---|---|
 | `COMPACT_LAYOUT_WIDTH_OVERFLOW` | 语义／布局与视觉约束，`semantic/layout/horizontal.py` | 判断展开后 Row 的固定内容、嵌套后代、margin 和间距能否放入当前参考分区；属于空间预算，不属于语法或绑定 |
@@ -175,8 +203,15 @@ Plan 独立错误码、Occupancy、Alternatives、previousFailures、composition
 不得继续凭更高层祖先权重降级；间距完全吸收仍独立判断。阈值只表示经验容忍，不证明端侧必然消除
 溢出。本项仍归 `semantic/layout/horizontal.py`，配置解析归同目录 `overflow_tolerances.py`。
 
+2026-10-20：收紧纵向高度策略，从上述配置删除高度容忍规则，取消根 Column、正数
+`layoutWeight` Column 和可压缩 `itemMargin` 的 warning 豁免。2×2 仅保留整树 `2vp` 数值容差，
+2×4 不设高度容差；超过容差且最小占用及可用高度已可确定时，统一产生
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` error 并进入布局容量修复。横向 warning 策略保持不变；纵向规则
+仍归 `semantic/layout/geometry.py`。
+
 同日补充 TextBlock：本规则读取顶层及 constraintSize 内静态 minWidth/maxWidth，
-高度专用约束不阻止横向检查。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
+高度专用约束不阻止横向检查。TextBlock item 另读取 Recipe 的参考容量下限，避免渲染约束改为
+可收缩后绕过窄分区门禁。最小宽度参与子树需求；参考分配尚未计算上下限重分配，
 受约束影响的后代槽位继续按未知处理，避免把分配前宽度当作实际宽度。
 该补充仍归 horizontal.py，不增加诊断码；原始 3:1 分区案例记录于 text-block-input.jsonl。
 
@@ -557,6 +592,8 @@ Progress 绑定类型归数据绑定，必要动作保留和 W9 动作数量归�
 - **OBS-L4285**：`_collect_ambiguous_metric_text_errors`，主脚本第 4285 行。
 
   原始诊断：component {component.component_id}: value {path} has ambiguous meaning ({detail}); add a nearby metric label such as 感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone.
+  2026-10-21 调整为非阻断 warning；继续保留 `COMPACT_DISPLAY_AMBIGUOUS_METRIC`、组件、路径与字段描述，
+  但不再加入 `CompactDslValidationError` 或单独触发 Repair。归属仍为 `semantic/display.py` 的展示语义检查。
 
 ### 5.7 语义／布局与视觉约束
 
@@ -1177,4 +1214,6 @@ BASE-02 至 BASE-04 同样不在本次文档更新中修正规则。新反馈涉
 - `pipeline.py`：编排。内部布局推迟 quality 对比度检查；末尾主题使用完整发布校验。
 - `contrast_validator.py`：质量／视觉对比度。后置主题全幅图片兄弟层无法由祖先底色推导，
   记录渲染复核警告，不伪报默认白底1:1；显式不透明背板恢复确定底色检查。
+  2026-10-21：根包装的不透明兜底色位于图片下方，不清除图片场景；仅前景子树的不透明背板
+  恢复纯色判定。缺少完整图片包装仍不豁免，阈值与诊断码不变。
   仅识别固定后置图片包装，不改变模板方案及普通纯色/渐变检查，不属于 Compact 布局规则。

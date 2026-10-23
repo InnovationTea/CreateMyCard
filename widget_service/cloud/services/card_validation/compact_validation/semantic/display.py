@@ -403,9 +403,10 @@ def _has_nearby_metric_label(
 
 
 def _collect_ambiguous_metric_text_errors(
-    components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str],
+    components: list[ComponentRow], task_spec: dict[str, Any], warnings: list[str],
     *, layout_origins: dict[str, str] | None = None,
 ) -> None:
+    """记录缺少明确指标标签的展示风险，不阻断 Compact 转换。"""
     components_by_id = {component.component_id: component for component in components}
     parent_by_child: dict[str, str] = {}
     for parent in components:
@@ -430,24 +431,11 @@ def _collect_ambiguous_metric_text_errors(
                                             layout_origins)
             ):
                 detail = node.get("description") if isinstance(node, dict) else path
-                emit_error(
-                    errors,
-                    CompactDiagnostic(
-                        code="COMPACT_DISPLAY_AMBIGUOUS_METRIC",
-                        validation_class="semantic",
-                        category="display",
-                        message="该字段的值无法在缺少指标标签时准确表达含义。",
-                        expected={"nearbyMetricLabelRequired": True},
-                        actual={"path": path, "description": detail},
-                        component_id=component.component_id,
-                        property_path="/content",
-                        legacy_message=(
-                            f"component {component.component_id}: value {path} has "
-                            f"ambiguous meaning ({detail}); add a nearby metric label such "
-                            "as 感冒指数、紫外线指数 or 睡眠得分 "
-                            "instead of showing the value alone."
-                        ),
-                    ),
+                warnings.append(
+                    "COMPACT_DISPLAY_AMBIGUOUS_METRIC: "
+                    f"component {component.component_id}: value {path} has ambiguous "
+                    f"meaning ({detail}); add a nearby metric label such as "
+                    "感冒指数、紫外线指数 or 睡眠得分 instead of showing the value alone."
                 )
                 break
 

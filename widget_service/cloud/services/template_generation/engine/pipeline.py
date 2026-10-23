@@ -117,6 +117,7 @@ async def generate_template_a2ui(
     enable_fusion_ball: bool = False,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_layout_ids: tuple[str, ...] = (),
     trusted_template_sample_overrides: dict[str, Any] | None = None,
 ) -> TemplateEngineOutput:
     """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
@@ -261,6 +262,7 @@ async def generate_template_a2ui(
                     registry,
                     candidate_bindings=coverage_bindings,
                     allow_battery_no_action_plan=battery_action_is_optional,
+                    allowed_layout_ids=trusted_template_layout_ids,
                 )
             except TemplateRetrievalMiss:
                 fallback = plan_calendar_no_action_fallback(
@@ -272,6 +274,7 @@ async def generate_template_a2ui(
                     enable_fusion_ball=enable_fusion_ball,
                     trusted_template_candidate_ids=trusted_template_candidate_ids,
                     trusted_template_action_ids=trusted_template_action_ids,
+                    trusted_template_layout_ids=trusted_template_layout_ids,
                 )
                 if fallback is None:
                     fallback = plan_calendar_list_no_action_fallback(
@@ -283,6 +286,7 @@ async def generate_template_a2ui(
                         enable_fusion_ball=enable_fusion_ball,
                         trusted_template_candidate_ids=trusted_template_candidate_ids,
                         trusted_template_action_ids=trusted_template_action_ids,
+                        trusted_template_layout_ids=trusted_template_layout_ids,
                     )
                 if fallback is None:
                     fallback = plan_calendar_weather_no_action_fallback(
@@ -294,6 +298,7 @@ async def generate_template_a2ui(
                         enable_fusion_ball=enable_fusion_ball,
                         trusted_template_candidate_ids=trusted_template_candidate_ids,
                         trusted_template_action_ids=trusted_template_action_ids,
+                        trusted_template_layout_ids=trusted_template_layout_ids,
                     )
                 if fallback is None:
                     raise

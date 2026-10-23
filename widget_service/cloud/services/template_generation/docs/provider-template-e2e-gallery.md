@@ -145,7 +145,7 @@ Planner 对已选省电事件复用素材的 `power-saving` 语义标签，允�
 | 日程四种 Support | `calendar_fill.svg` / `icon_meeting.svg` | 24vp 日历或会议图标，按 Action 语义选择 |
 | 耳机充电 Support | `earphone_case_16644.svg` | 右侧 40vp 电量环内 16vp 盒图标，盒或整体电量，不冒充左右耳电量 |
 | 耳机连接 Support | `icon_earphone.svg` | 24vp 耳机图标，仅在该 Support 消费 Action 时显示 |
-| 天气基础温度 Support | `icon_weather_thermometer.svg` | 温度计表达气温；样例仍为多云，不用太阳冒充多云状态 |
+| 天气基础温度 Support | `icon_weather_thermometer_medium.svg` | 温度计表达气温；样例仍为多云，不用太阳冒充多云状态 |
 | 天气紫外线/感冒风险 Support | 无图标槽位 | 纯文本，不能传入已移除的 conditionIcon |
 
 电量 Support 必须提供数值电量，充电状态为可选辅行：存在时左侧双行文本、缺失时回退展示可选电池温度（充电状态优先），都缺失时只保留电量行，右侧展示 40vp 环；
@@ -299,7 +299,7 @@ HeroTitle + HeroContent 组合不受影响。
 逐字节一致，源 manifest 和 0/1/2 操作文件应保持不变。
 
 场景同步脚本只复制 A2UI，不复制 SVG 素材。构建前应核对每个 `Image.src` 均已注册，且存在于
-端侧 `entry/src/main/resources/base/media/`。双业务天气样例使用 `icon_weather_thermometer.svg`；
+端侧 `entry/src/main/resources/base/media/`。双业务天气样例使用 `icon_weather_thermometer_medium.svg`；
 单业务按实际状态选择素材，不能沿用温度计。端侧缺少素材时，从 CreateMyCard 的 `resources/base/media/` 原样同步，
 不得以相似名称的图标替代。构建后还应核对 HAP 内的画廊 JSON 与已同步文件逐字节一致。
 
@@ -344,3 +344,35 @@ cd widget_service
 PYTHONPATH=cloud .venv312/bin/pytest -q \
   cloud/services/template_generation/tests/test_provider_gallery_batch.py
 ```
+
+## 2×4 垂域骨架组合
+
+使用 `--include-wide-compositions --composition-seed 20261014` 将组合追加到原有垂域，
+不增加独立组合分组。主槽来自当前垂域，其余业务槽位从其他垂域的兼容代表模板中随机选择；
+同一次组合不重复垂域。输入清单保存完整模板列表和目标骨架，选择审计保存随机种子及不适用项。
+再次执行相同种子替换生成器管理的组合，原有用例及输入保持不变。
+
+骨架覆盖测试经内部 Python 参数限制合法计划，再通过真实两层模型与正式生成入口得到 A2UI。
+它验证指定骨架能否生成和渲染，不代表该骨架在默认不限制候选时一定成为首选。
+输出记录 `actualLayout` 和 `actualTemplateIds`；目标骨架不一致视为失败。测试约束不进入公开请求字段。
+数据使用演示样例；使用当前融球版本，只保留一份效果，无融球实现的组合按正式现有样式展示。
+不折叠模板、骨架或操作变体。
+
+
+## 原批次失败用例重跑
+
+使用 `--replay-results <原结果目录> --source-input-root <原输入目录>`，同时给出全新的
+`--input-root` 和独立 `--output-root`，可在原用例身份与分组上重建失败输入。此模式不得与
+`--refresh-inputs` 同用。旧主干的外部组合覆盖参数从原结果清单恢复，不重新随机采样。
+
+默认路由不可达的电量兜底和只含当前时间的卡片保留为 `not_applicable`，原因写入结果，
+计数使用 `notApplicable`，不调用模型、不删除条目。原批次缺失条目及已成功条目不进入失败重跑。
+日期标题日历与三日天气按模板声明进入2×4完整组合；每日活动使用已注册的活动记录操作，
+耳机充电宽卡保留必需的内嵌歌单，天气温度计引用当前清单已有素材。所有原操作变体独立保留。
+
+将成功重跑结果按用例 ID 替换到原批次，核对最终用例数量、每项尺寸、完整组合及产物摘要；
+旧截图仅沿用到未改变摘要的成功条目，重新生成成功项必须补应用内截图。表格区分失败、缺失与
+不适用，并记录保留截图与新增截图各自的代码版本和采集批次。素材能力清单保持不变。
+
+当前时间组合的测试值固定为2026-10-20和星期二；只为已声明字段补齐样例，显式样例优先。
+不得以“示例”替代公历日期，也不修改生产端时间能力或实时数据。

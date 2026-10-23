@@ -2,8 +2,8 @@
   "apiVersion": "batch-postprocess-v2",
   "id": "device-capture",
   "name": "真机截图",
-  "version": "3.0.0",
-  "description": "仅采集截图和渲染证据，供画廊及其它插件复用。",
+  "version": "5.0.0",
+  "description": "复用手动添加的 2x2、2x4 卡片批量截图；需先编译安装，并将应用入口和两张卡片放在同一桌面页，不自动翻页。",
   "entrypoint": "builtin",
   "dependence": [],
   "outputs": [
@@ -65,6 +65,12 @@
       "targetId"
     ],
     "properties": {
+      "captureMode": {
+        "type": "string",
+        "enum": ["desktop", "preview"],
+        "default": "desktop",
+        "title": "截图模式"
+      },
       "targetId": {
         "type": "string",
         "minLength": 1,

@@ -1,0 +1,99 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "国庆中秋节倒计时",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-09-25"
+        },
+        "writeResultTo": "/data/countdown/midAutumn",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-10-01"
+        },
+        "writeResultTo": "/data/countdown/national",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "国庆中秋倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "国庆、中秋节倒计时卡片。",
+    "candidateAssetIds": [
+      "asset.emoji_time",
+      "asset.ic_calender",
+      "asset.cake_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.8.340",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "005",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "国庆中秋节倒计时",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "国庆中秋节倒计时",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-09-25"
+      },
+      "writeResultTo": "/data/countdown/midAutumn",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-10-01"
+      },
+      "writeResultTo": "/data/countdown/national",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "国庆中秋倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "国庆、中秋节倒计时卡片。",
+  "candidateAssetIds": [
+    "asset.emoji_time",
+    "asset.ic_calender",
+    "asset.cake_fill"
+  ]
+}

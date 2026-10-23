@@ -24,7 +24,9 @@ def surface_source(size):
     if size == "2x4":
         rows[1][2]["variant"] = "slot"
         rows.extend([
-            ["card", "CardButton", {"label": "打开闹钟", "onClick": action}],
+            ["card", "CardButton", {"label": "打开闹钟",
+                                    "icon": "resources/base/media/alarm_fill_1.svg",
+                                    "onClick": action}],
             ["details", "TextBlock", {"items": [
                 {"label": "电量", "value": "68%"}, {"label": "状态", "value": "正常"},
             ]}],

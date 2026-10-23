@@ -24,6 +24,7 @@ from services.card_validation.base import (
     expression_references,
     is_single_wrapped_expression,
 )
+from services.event_matching import normalize_event_handler
 from services.task_spec_builder import TaskSpecBuilder
 
 _MODULE = "[Generation Preflight]"
@@ -303,13 +304,8 @@ class GenerationPreflight:
                         reference_source=_EVENT_SOURCE,
                     )
                 )
-            self._append_schema_issues(
-                action.args,
-                capability.parametersSchema,
-                f"{base_path}/action/args",
-                capability_id,
-                "EVENT_ARGUMENT_SCHEMA_INVALID",
-                issues,
+            self._append_event_schema_issues(
+                candidate, capability.parametersSchema, base_path, issues,
             )
             self._append_event_expression_issues(
                 action.args,
@@ -393,6 +389,37 @@ class GenerationPreflight:
                     )
                 )
         return effective_events
+
+    def _append_event_schema_issues(
+        self,
+        candidate: CandidateEventCandidate,
+        schema: dict[str, Any],
+        base_path: str,
+        issues: list[PreflightIssue],
+    ) -> None:
+        action = candidate.action
+        normalized = normalize_event_handler({"call": action.call, "args": action.args})
+        if normalized is None:
+            params = action.args.get("params")
+            flag = params.get("switchFlag") if isinstance(params, dict) else _MISSING
+            issues.append(self._invalid_issue(
+                "EVENT_ARGUMENT_SCHEMA_INVALID",
+                f"{base_path}/action/args/params/switchFlag",
+                "历史开关标记仅允许省略或整数 0、1。",
+                "省略或整数 0、1",
+                candidate.capabilityId,
+                actual_value=flag,
+                repair_instruction="删除历史开关标记，或填写整数 0、1；其它事件参数保持不变。",
+                reference_source="事件历史参数兼容校验",
+            ))
+            return
+        schema_args = normalized.get("args")
+        if not isinstance(schema_args, dict):
+            raise ValueError("Event action args must be an object")
+        self._append_schema_issues(
+            schema_args, schema, f"{base_path}/action/args", candidate.capabilityId,
+            "EVENT_ARGUMENT_SCHEMA_INVALID", issues,
+        )
 
     def _append_event_expression_issues(
         self,

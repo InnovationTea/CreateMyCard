@@ -69,15 +69,14 @@ def test_black_and_white_text_share_opacity_levels(monkeypatch, size, rgb, expli
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 @pytest.mark.parametrize("fusion_enabled", [False, True])
-def test_black_text_uses_opaque_ux_gradient(monkeypatch, size, fusion_enabled):
+@pytest.mark.parametrize("color", ["#FF000000", "#FFFFFFFF", "#CC000000", "#FFFF0000"])
+def test_all_text_colors_use_one_opaque_solid_fallback(monkeypatch, size, fusion_enabled, color):
     monkeypatch.setattr(themes, "fusion_ball_enabled", lambda version: fusion_enabled)
     result = themes.apply_theme(source(), photo_theme(size), {"size": size},
-                                {"text": {"color": "#FF000000"}})
+                                {"text": {"color": color}})
     styles = node_by_id(result, "root").get("styles", {})
-    assert styles.get("backgroundColor") == "#FFE6E6E6"
-    assert styles.get("linearGradient") == {
-        "direction": "LeftBottom", "colors": [["#FFFFFFFF", 0], ["#FFE6E6E6", 1]],
-    }
+    assert styles.get("backgroundColor") == "#FF8FADCC"
+    assert "linearGradient" not in styles
     assert styles.get("width") == styles.get("height") == "matchParent"
     assert "fusionBall" not in result
     assert node_by_id(result, themes.PREFIX + "base").get("src") == photo_theme(size).get("src")
@@ -85,25 +84,17 @@ def test_black_text_uses_opaque_ux_gradient(monkeypatch, size, fusion_enabled):
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 @pytest.mark.parametrize("fusion_enabled", [False, True])
-def test_white_text_uses_existing_blue_behind_images(monkeypatch, size, fusion_enabled):
+def test_photo_fallback_never_adds_fusion_layers_or_changes_foreground(
+    monkeypatch, size, fusion_enabled,
+):
     monkeypatch.setattr(themes, "fusion_ball_enabled", lambda version: fusion_enabled)
     result = themes.apply_theme(source(), photo_theme(size), {"size": size}, {})
     root = node_by_id(result, "root")
-    assert root.get("styles", {}).get("backgroundColor") == "#FF1F1F99"
+    assert root.get("styles", {}).get("backgroundColor") == "#FF8FADCC"
     background = node_by_id(result, themes.PREFIX + "background")
-    if fusion_enabled:
-        assert root.get("children") == [themes.PREFIX + "background", themes.FUSION_FOREGROUND_ID]
-        assert background.get("children") == [
-            "fusionBallBackground", themes.PREFIX + "base", themes.PREFIX + "slot",
-        ]
-        blue = next(item for item in registry.registered_themes("standard")
-                    if item.get("id") == "fusion-ball-schedule-blue")
-        expected = themes.fusion_background(blue, {"size": size})
-        for node in expected:
-            assert node_by_id(result, node.get("id")) == node
-    else:
-        assert "fusionBall" not in result
-        assert root.get("children")[-1] == themes.PREFIX + "foreground"
+    assert root.get("children") == [themes.PREFIX + "background", themes.PREFIX + "foreground"]
+    assert background.get("children") == [themes.PREFIX + "base", themes.PREFIX + "slot"]
+    assert "fusionBall" not in result
     assert themes.foreground_signature(source()) == themes.foreground_signature(result)
 
 
@@ -124,8 +115,9 @@ def test_expansion_keeps_background_and_correct_foreground_reference(monkeypatch
     theme = expansion_photo()
     result = expand_square(source(), theme, {"size": "2x2"})
     half = node_by_id(result, themes.PREFIX + "contentHalf")
-    assert half.get("children") == [themes.FUSION_FOREGROUND_ID]
-    assert node_by_id(result, "fusionBallBackground")
+    assert half.get("children") == [themes.PREFIX + "foreground"]
+    assert node_by_id(result, "root").get("styles", {}).get("backgroundColor") == "#FF8FADCC"
+    assert "fusionBall" not in result
     assert themes.foreground_signature(result) == themes.foreground_signature(source())
 
 
@@ -140,14 +132,12 @@ def test_explicit_background_bypasses_photo_and_its_fallback(monkeypatch):
 
 @pytest.mark.parametrize("replacement", [
     None,
-    {"darkText": {"colors": ["#00FFFFFF", "#FFE6E6E6"], "direction": "LeftBottom"},
-     "lightText": {"themeId": "fusion-ball-schedule-blue"}},
-    {"darkText": {"colors": ["#FFFFFFFF", "#FFE6E6E6"], "direction": "wrong"},
-     "lightText": {"themeId": "fusion-ball-schedule-blue"}},
-    {"darkText": {"colors": ["#FFFFFFFF", "#FFE6E6E6"], "direction": "LeftBottom"},
-     "lightText": {"themeId": "gradient-blue"}},
-    {"darkText": {"colors": ["#FFFFFFFF", "#FFE6E6E6"], "direction": "LeftBottom"},
-     "lightText": {"themeId": "missing"}},
+    {},
+    {"color": "#008FADCC"},
+    {"color": "#CC8FADCC"},
+    {"color": "#8FADCC"},
+    {"color": "invalid"},
+    {"color": "#FF8FADCC", "lightText": {"themeId": "fusion-ball-schedule-blue"}},
 ])
 def test_invalid_fallback_config_is_rejected(replacement):
     config = registry.load_theme_registry()
@@ -156,14 +146,8 @@ def test_invalid_fallback_config_is_rejected(replacement):
         registry.validate_registry(config)
 
 
-@pytest.mark.parametrize("key,value", [("enabled", False), ("opaque", False)])
-def test_blue_fallback_must_be_enabled_and_opaque(key, value):
+def test_solid_photo_fallback_does_not_depend_on_a_fusion_theme(monkeypatch):
     config = registry.load_theme_registry()
-    blue = next(item for item in config.get("themes", [])
-                if item.get("id") == "fusion-ball-schedule-blue")
-    if key == "enabled":
-        blue[key] = value
-    else:
-        blue.get("background", {}).get("ballColors", {})["large"] = "#001F1F99"
-    with pytest.raises(ValueError, match="Photo fallback"):
-        registry.validate_registry(config)
+    config["themes"] = []
+    monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
+    assert registry.photo_fallback() == {"color": "#FF8FADCC"}

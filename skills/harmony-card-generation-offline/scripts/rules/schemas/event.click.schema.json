@@ -35,6 +35,12 @@
         "EnterMeeting": {
           "params": {},
           "required": []
+        },
+        "SetMobileData": {
+          "params": {
+            "switchFlag": {"type": "integer", "enum": [0, 1]}
+          },
+          "required": []
         }
       }
     },
@@ -60,10 +66,28 @@
         "SetSettingSwitch": {
           "params": {
             "appBundleName": {"const": "com.huawei.hmos.settings"},
-            "itemName": {"const": "battery_saving_mode"},
-            "switchFlag": {"type": "number", "enum": [0, 1]}
+            "itemName": {"type": "string", "enum": ["battery_saving_mode", "near_link_setting", "bluetooth", "wlan"]},
+            "switchFlag": {"type": "integer", "enum": [0, 1]}
           },
-          "required": ["appBundleName", "itemName", "switchFlag"]
+          "required": ["appBundleName", "itemName"]
+        },
+        "SetLocationSettingSwicth": {
+          "params": {
+            "switchFlag": {"type": "integer", "enum": [0, 1]}
+          },
+          "required": []
+        },
+        "SetScreenUseTimeManageSwitch": {
+          "params": {
+            "switchFlag": {"type": "integer", "enum": [0, 1]}
+          },
+          "required": []
+        },
+        "SetMicSettingSwicth": {
+          "params": {
+            "switchFlag": {"type": "integer", "enum": [0, 1]}
+          },
+          "required": []
         }
       }
     }

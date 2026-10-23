@@ -98,6 +98,15 @@
         },
         {
           "rules": [
+            {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
+            {"path": [0], "types": ["SingleLineTitle"]},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "itemMargin": 8}, "childCount": 2},
+            {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "layoutWeight": 1, "flexShrink": 0}, "childCount": 1},
+            {"path": [1, 1], "types": ["Column"], "props": {"width": 126, "flexShrink": 0}, "childCount": 1}
+          ]
+        },
+        {
+          "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12}, "childCount": 2},
             {"path": [0], "types": ["SingleLineTitle"]},
             {"path": [1], "types": ["Column"], "props": {"width": 126}, "childCountMin": 1, "childCountMax": 2}
@@ -223,8 +232,8 @@
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
             {"path": [0], "types": ["SingleLineTitle"]},
-            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 8}, "childCount": 2},
-            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "height": 40, "itemMargin": 8}, "childCount": 2},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 2}, "childCount": 2},
+            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "constraintSize": {"minHeight": 40}, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1, 1], "types": ["Stack"], "props": {"width": 40, "height": 40, "alignContent": "center"}, "childCount": 1},
             {"path": [1, 1, 1, 0], "types": ["CircleButton"], "eventPolicy": "require"}
           ]
@@ -233,8 +242,8 @@
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
             {"path": [0], "types": ["SingleLineTitle"]},
-            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 8}, "childCount": 2},
-            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "height": 56, "itemMargin": 8}, "childCount": 2},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108, "itemMargin": 2}, "childCount": 2},
+            {"path": [1, 1], "types": ["Row"], "props": {"width": 126, "constraintSize": {"minHeight": 40}, "itemMargin": 8}, "childCount": 2},
             {"path": [1, 1, 0], "types": ["NumericRatioStack"], "props": {"width": 78, "height": 56}},
             {"path": [1, 1, 1], "types": ["Stack"], "props": {"width": 40, "height": 40, "alignContent": "center"}, "childCount": 1},
             {"path": [1, 1, 1, 0], "types": ["CircleButton"], "eventPolicy": "require"}
@@ -250,15 +259,15 @@
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 8}, "childCount": 3},
             {"path": [0], "types": ["Column", "Row"], "props": {"width": 126, "height": 38}},
-            {"path": [1], "types": ["PillButton"], "eventPolicy": "require"},
-            {"path": [2], "types": ["PillButton"], "eventPolicy": "require"}
+            {"path": [1], "types": ["CardButton"], "slotSize": {"width": 126, "height": 36}, "eventPolicy": "require"},
+            {"path": [2], "types": ["CardButton"], "slotSize": {"width": 126, "height": 36}, "eventPolicy": "require"}
           ]
         },
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 8, "justifyContent": "center"}, "childCount": 2},
-            {"path": [0], "types": ["PillButton"], "eventPolicy": "require"},
-            {"path": [1], "types": ["PillButton"], "eventPolicy": "require"}
+            {"path": [0], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"},
+            {"path": [1], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"}
           ]
         }
       ]

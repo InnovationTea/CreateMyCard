@@ -71,7 +71,7 @@ def test_gallery_output_declares_mixed_sizes_without_relabeling_cases(tmp_path: 
     )
     assert output.get("cardSize") == "mixed"
     assert output.get("counts") == {
-        "total": 2, "success": 1, "failed": 1, "missing": 0, "notGenerated": 0,
+        "total": 2, "success": 1, "failed": 1, "missing": 0, "notGenerated": 0, "notApplicable": 0,
     }
 
 _FUSION_CAPABILITY_IDS = {
@@ -268,10 +268,11 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
         if not case.missingReason:
-            # 当前时间业务未列入任何融球主题的 businessIds，同双业务段落一样不出融球。
-            assert case.expectsFusionBall is (
-                case.providerSlug not in {"two-support", "current-time"}
-            )
+            is_single_or_hero_pair = case.providerSlug not in {"two-support", "current-time"}
+            is_wide_pair = case.targetTemplateId in {
+                "WeatherOverviewThreeDayForecastFull@1", "ScheduleOverviewDateTitleFull@1",
+            }
+            assert case.expectsFusionBall is (is_single_or_hero_pair and not is_wide_pair)
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -518,7 +519,13 @@ def test_dual_city_gallery_does_not_change_single_city_inputs(tmp_path: Path) ->
 @pytest.mark.asyncio
 async def test_dual_city_gallery_runner_passes_both_bindings_to_service(tmp_path: Path) -> None:
     input_root = tmp_path / "inputs"
-    write_gallery_input_dataset(input_root)
+    manifest = write_gallery_input_dataset(input_root)
+    for provider in manifest.providers:
+        provider.cases = [
+            case for case in provider.cases
+            if case.targetTemplateId == "WeatherOverviewDualCityFull@1"
+        ]
+    (input_root / "manifest.json").write_text(manifest.model_dump_json(), encoding="utf-8")
     service = _GalleryService()
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"com.huawei.weather.cli"}
@@ -716,7 +723,8 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
     assert summary.total == 247
     assert summary.failed == 0
     assert summary.missing == 2
-    assert summary.not_generated == 245
+    assert summary.not_generated == 242
+    assert summary.not_applicable == 3
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
@@ -940,4 +948,4 @@ def test_weather_support_samples_stay_within_requested_fields(
     else:
         asset_ids = content.get("candidateAssetIds")
         assert isinstance(asset_ids, list)
-        assert "asset.icon_weather_thermometer" in asset_ids
+        assert "asset.icon_weather_thermometer_medium" in asset_ids

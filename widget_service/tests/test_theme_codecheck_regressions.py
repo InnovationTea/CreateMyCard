@@ -12,6 +12,7 @@ from config.config import get_settings
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services import square_photo_expansion as expansion
+from services import theme_photo_eligibility, theme_texture_eligibility
 from services.compact_high_level_components import (
     CompactDslConversionError,
     _system_palette_color,
@@ -19,8 +20,9 @@ from services.compact_high_level_components import (
 from services.theme_style_roles import layout_phase, role
 
 
-def test_registry_comprehension_clauses_stay_on_single_lines():
-    tree = ast.parse(inspect.getsource(registry))
+@pytest.mark.parametrize("module", [registry, theme_photo_eligibility, theme_texture_eligibility])
+def test_theme_comprehension_clauses_stay_on_single_lines(module):
+    tree = ast.parse(inspect.getsource(module))
     violations = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.comprehension):
@@ -30,6 +32,8 @@ def test_registry_comprehension_clauses_stay_on_single_lines():
         for condition in node.ifs:
             if condition.lineno != condition.end_lineno:
                 violations.append(f"multiline if clause at line {condition.lineno}")
+        if len(node.ifs) > 1:
+            violations.append(f"multiple if clauses at line {node.target.lineno}")
     assert not violations, violations
 
 
@@ -89,11 +93,12 @@ def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, err
     photo = {"id": "test-photo", "kind": "photo", "src": "test-background.jpg"}
     audit = {"theme": photo, "outputSize": "2x2"}
     monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=("photo-result", audit)))
-    monkeypatch.setattr(themes, "trace_step", Mock())
+    monkeypatch.setattr(themes, "trace_record", Mock())
     artifact = SimpleNamespace(
         genui=source, meta=SimpleNamespace(generationMode="create"),
         model_copy=Mock(side_effect=lambda **kwargs: SimpleNamespace(
             genui=source, taskSpec={}, cardSpec={"suggestSize": "2x2"}, effectiveCapabilities={},
+            model_dump=Mock(return_value={}),
         )),
     )
     validator = SimpleNamespace(validate=Mock(side_effect=[[error], []]))

@@ -307,11 +307,9 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(components["header_title"]["styles"]["fontColor"], "#CCFFFFFF")
         self.assertEqual(components["status_main"]["styles"]["fontColor"], "#FFFFFFFF")
-        self.assertEqual(components["status_main"]["styles"]["height"], 24)
-        self.assertEqual(
-            components["status_main"]["styles"]["lineHeight"],
-            1.3333333333333333,
-        )
+        self.assertEqual(components["status_main"]["styles"]["fontSize"], 18)
+        self.assertEqual(components["status_main"]["styles"]["height"], 18)
+        self.assertEqual(components["status_main"]["styles"]["lineHeight"], 1)
 
     def test_single_line_title_accepts_one_title_per_independent_panel(self) -> None:
         compact_dsl = _serialize(
@@ -1263,7 +1261,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["body_item0_value"]["styles"]["fontSize"], 12)
         self.assertEqual(components["body_item0_value"]["styles"]["fontWeight"], 400)
         self.assertEqual(components["body_item0_value"]["styles"]["maxLines"], 2)
-        self.assertEqual(components["body_item0_value"]["styles"]["height"], 32)
+        self.assertEqual(components["body_item0_value"]["styles"]["height"], 24)
         self.assertEqual(components["metadata_item0_value"]["styles"]["fontSize"], 14)
         self.assertEqual(components["metadata_item0_value"]["styles"]["fontWeight"], 400)
         self.assertEqual(components["metadata_item0_value"]["styles"]["maxLines"], 1)
@@ -1317,10 +1315,10 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                             styles = value_node.get("styles")
                             assert isinstance(styles, dict)
                             self.assertEqual(styles.get("fontSize"), 14 if count == 1 else 12)
-                            self.assertEqual(styles.get("height"), 19 if count == 1 else 16)
+                            self.assertEqual(styles.get("height"), 14 if count == 1 else 12)
 
     def test_secondary_body_styles_follow_rows_in_both_sizes(self) -> None:
-        cases = [(2, 14, 19, ["details_row0"]), (1, 12, 16, ["details_row0", "details_row1"])]
+        cases = [(2, 14, 14, ["details_row0"]), (1, 12, 12, ["details_row0", "details_row1"])]
         for size in ("2x2", "2x4"):
             for columns, font_size, line_height, children in cases:
                 with self.subTest(size=size, columns=columns):
@@ -1401,7 +1399,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 styles = value.get("styles")
                 assert isinstance(styles, dict)
                 self.assertEqual(styles.get("fontSize"), font)
-                self.assertEqual(styles.get("height"), 16 if font == 12 else 19)
+                self.assertEqual(styles.get("height"), font)
                 separator = by_id.get("meta_row0_separator")
                 if size == "2x2":
                     self.assertIsNone(separator)
@@ -1629,7 +1627,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         update = json.loads(result.splitlines()[1])["updateComponents"]
         components = {item["id"]: item for item in update["components"]}
 
-        self.assertEqual(components["metadata_item0_value"]["styles"]["height"], 32)
+        self.assertEqual(components["metadata_item0_value"]["styles"]["height"], 24)
         self.assertEqual(components["metadata_item0_value"]["styles"]["maxLines"], 2)
 
     def test_secondary_body_ignores_declared_font_size_and_uses_recipe(self) -> None:
@@ -1900,6 +1898,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "CardButton",
                     {
                         "label": "查看详情",
+                        "icon": "resources/base/media/icon_details.svg",
                         "onClick": [handler],
                         "fontColor": "#FF563D99",
                     },
@@ -1946,7 +1945,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["details_item0"]["styles"]["layoutWeight"], 1)
         self.assertEqual(
             components["details_item0"]["styles"]["constraintSize"]["minWidth"],
-            64,
+            0,
         )
         self.assertEqual(
             components["details_item0"]["children"],
@@ -1993,7 +1992,11 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ["action_label", "action_visual"],
         )
         self.assertEqual(components["action_label"]["styles"]["fontSize"], 14)
-        self.assertEqual(components["action_visual"]["component"], "Divider")
+        self.assertEqual(components["action_visual"]["component"], "Image")
+        self.assertEqual(
+            components["action_visual"]["src"],
+            "resources/base/media/icon_details.svg",
+        )
 
     def test_two_by_four_info_and_action_slots_keep_equal_fixed_height(self) -> None:
         action = {"call": "openSettings", "args": {}}
@@ -2023,6 +2026,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "CardButton",
                     {
                         "label": "设备设置",
+                        "icon": "resources/base/media/gearshape_fill.svg",
                         "fontColor": "#FF1F4799",
                         "onClick": [action],
                         "width": "matchParent",
@@ -2097,7 +2101,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             )
             self.assertEqual(
                 components[f"details_item{index}"]["styles"]["constraintSize"]["minWidth"],
-                64,
+                0,
             )
 
     def test_info_block_rejects_on_click(self) -> None:
@@ -2164,6 +2168,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "CardButton",
                     {
                         "label": "查看详情",
+                        "icon": "resources/base/media/icon_details.svg",
                         "onClick": [handler],
                         "fontColor": "#FF563D99",
                     },
@@ -2527,6 +2532,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "CardButton",
                     {
                         "label": "查看详情",
+                        "icon": "resources/base/media/icon_details.svg",
                         "onClick": [{"call": "openDetails", "args": {}}],
                         "fontColor": "#FF563D99",
                     },
@@ -2543,7 +2549,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 task_spec={
                     "size": "2x4",
                     "dataModelSchema": {},
-                    "assetCandidates": [],
+                    "assetCandidates": [
+                        {
+                            "id": "asset.details",
+                            "src": "resources/base/media/icon_details.svg",
+                            "description": "查看详情图标",
+                        }
+                    ],
                     "eventCandidates": [],
                 },
                 card_spec={"suggestSize": "2x4", "dataBindings": []},
@@ -2577,6 +2589,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "CardButton",
                     {
                         "label": "查看详情",
+                        "icon": "resources/base/media/icon_details.svg",
                         "onClick": [handler],
                         "fontColor": "#FF1F4799",
                     },
@@ -2603,7 +2616,42 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             components["action"]["children"],
             ["action_label", "action_visual"],
         )
-        self.assertEqual(components["action_visual"]["component"], "Divider")
+        self.assertEqual(components["action_visual"]["component"], "Image")
+        self.assertEqual(
+            components["action_visual"]["src"],
+            "resources/base/media/icon_details.svg",
+        )
+
+    def test_card_button_without_business_icon_uses_fallback_icon(self) -> None:
+        handler = {"call": "openDetails", "args": {}}
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": "matchParent"}, ["action"]],
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": "查看详情",
+                        "onClick": [handler],
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["action"]["children"], ["action_label", "action_visual"])
+        self.assertEqual(
+            components["action_visual"]["src"],
+            "resources/base/media/ic_fallback_light.svg",
+        )
 
     def test_rejects_invalid_high_level_component_contracts(self) -> None:
         cases = (
@@ -2713,6 +2761,20 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 ],
                 "CircleButton requires a 2x2 card",
             ),
+            (
+                "2x4",
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": "打开设置",
+                        "icon": None,
+                        "onClick": [{"call": "openSettings", "args": {}}],
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+                "CardButton.icon must be non-empty",
+            ),
         )
         for size, component, expected_error in cases:
             with self.subTest(size=size, expected_error=expected_error):
@@ -2736,6 +2798,36 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         size=size,
                         protocol_profile=self.profile,
                     )
+
+    def test_card_button_without_icon_uses_fallback_icon(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["action"]],
+                [
+                    "action",
+                    "CardButton",
+                    {
+                        "label": "打开设置",
+                        "onClick": [{"call": "openSettings", "args": {}}],
+                        "fontColor": "#FF1F4799",
+                    },
+                ],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(components["action"]["children"], ["action_label", "action_visual"])
+        self.assertEqual(
+            components["action_visual"]["src"],
+            "resources/base/media/ic_fallback_light.svg",
+        )
 
     def test_icon_pill_button_uses_palette_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
@@ -3034,6 +3126,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "CardButton",
                     {
                         "label": "设置",
+                        "icon": "resources/base/media/gearshape_fill.svg",
                         "onClick": handler,
                         "backgroundColor": "#99FFFFFF",
                     },
@@ -4167,7 +4260,14 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 ],
                 ["primary", "EmphasisText", {"mainText": "09:00", "fontSize": 18}],
                 ["upper", "InfoBlock", {"variant": "slot", "primaryText": "电量 68%"}],
-                ["lower", "CardButton", {"label": "打开日历"}],
+                [
+                    "lower",
+                    "CardButton",
+                    {
+                        "label": "打开日历",
+                        "icon": "resources/base/media/calendar_fill.svg",
+                    },
+                ],
             ]
         )
 

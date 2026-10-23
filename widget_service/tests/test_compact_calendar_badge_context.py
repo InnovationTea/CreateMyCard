@@ -85,15 +85,20 @@ def test_semantic_calendar_header_and_dual_actions_pass_processor() -> None:
         }]}],
         ["status", "SecondaryBody", {"fontSize": 14,
          "items": [{"value": "{{ ${/data/calendar/events/0/isAllDay} ? '全天' : '非全天' }}"}]}],
-        ["detail", "CardButton", {"label": "查看详情", "onClick": [actions[0]]}],
-        ["focus", "CardButton", {"label": "打开专注", "onClick": [actions[1]]}],
+        ["detail", "CardButton", {"label": "查看详情",
+         "icon": "resources/base/media/calendar_fill.svg", "onClick": [actions[0]]}],
+        ["focus", "CardButton", {"label": "打开专注",
+         "icon": "resources/base/media/icon_focus.svg", "onClick": [actions[1]]}],
         ["/data/calendar/eventCount", 4],
         ["/data/calendar/events/0/title", "读书交流"],
         ["/data/calendar/events/0/dtStart", "09:30"],
         ["/data/calendar/events/0/isAllDay", False],
     ]
     task = {
-        "size": "2x4", "appVersion": "12.0.0.1", "assetCandidates": [],
+        "size": "2x4", "appVersion": "12.0.0.1", "assetCandidates": [
+            {"src": "resources/base/media/calendar_fill.svg"},
+            {"src": "resources/base/media/icon_focus.svg"},
+        ],
         "eventCandidates": actions,
         "dataModelSchema": {"data": {"calendar": {
             "eventCount": {"type": "integer", "sampleValue": 4},

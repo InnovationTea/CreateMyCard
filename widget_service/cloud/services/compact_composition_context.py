@@ -25,6 +25,8 @@ from services.compact_composition_planner import (
 )
 from services.compact_layout_runtime import load_layout_contract
 from services.compact_reference_canvas import reference_dimension
+from services.display_text import concatenated_display_text
+from services.event_matching import event_handlers_match
 
 _GEOMETRY_KEYS = frozenset({
     "width", "height", "padding", "margin", "itemMargin", "fontSize", "fontWeight",
@@ -265,7 +267,7 @@ def composition_recovery_context(
             "最终前缀、标签和单位也必须在原字号下占预算，不能越过 additionalTextWidth。"
             "若必要上下文放不下，可移入已预留且没有硬标题绑定的标题位，"
             "或换完整合法组合；不删必要语义，不替换必需标题。"
-            "SecondaryBody 按最终行布局使用单行14/19或多行12/16，核心组件字号保持原 Recipe。"
+            "SecondaryBody 按最终行布局使用单行14/14或多行12/12，核心组件字号保持原 Recipe。"
         ),
     }
     if candidates:
@@ -488,9 +490,16 @@ def repair_action_labels(source: str, task: dict[str, Any]) -> dict[str, str]:
         for event in task.get("eventCandidates", []):
             if not isinstance(event, dict):
                 continue
-            handler = {key: event.get(key) for key in ("call", "args")}
-            if handler in handlers and isinstance(event.get("id"), str):
-                labels[event.get("id")] = label
+            event_id = event.get("id")
+            if not isinstance(event_id, str):
+                continue
+            handler = {"call": event.get("call"), "args": event.get("args")}
+            for actual in handlers:
+                if not isinstance(actual, dict):
+                    continue
+                if event_handlers_match(actual, handler):
+                    labels[event_id] = label
+                    break
     return labels
 
 
@@ -579,31 +588,9 @@ def small_card_display_text(value: Any, task: dict[str, Any]) -> str | None:
         except (SyntaxError, ValueError):
             return None
         return max(branches, key=lambda text: _text_width(text, 1))
-    token = re.compile(rf"(?P<path>\$\{{(/[^{{}}]+)\}})|(?P<literal>{literal})")
-    body = expression.group(1).strip()
-    parts: list[str] = []
-    string_mode = False
-    offset = 0
-    for match in token.finditer(body):
-        if body[offset:match.start()].strip() != ("+" if parts else ""):
-            return None
-        if match.group("path") is not None:
-            path = match.group("path")[2:-1]
-            sample = _schema_value(task, path).get("sampleValue")
-            if isinstance(sample, bool) or not isinstance(sample, (str, int, float)):
-                return None
-            if parts and not string_mode and not isinstance(sample, str):
-                return None  # 两个数值的加法不是字符串连接，不猜运算结果。
-            string_mode = string_mode or isinstance(sample, str)
-            parts.append(str(sample))
-        else:
-            try:
-                parts.append(ast.literal_eval(match.group("literal")))
-                string_mode = True
-            except (SyntaxError, ValueError):
-                return None
-        offset = match.end()
-    return "".join(parts) if parts and not body[offset:].strip() else None
+    return concatenated_display_text(
+        value, lambda path: _schema_value(task, path).get("sampleValue"),
+    )
 
 
 def compact_plan_capacity_context(size: str) -> str:

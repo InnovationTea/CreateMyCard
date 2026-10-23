@@ -56,6 +56,7 @@ CompactRow = ComponentRow | DataRow
 _PLACEMENT_PROPS = frozenset({"width", "height", "layoutWeight", "flexShrink", "margin"})
 _TWO_BY_FOUR_FIXED_SLOT_TYPES = frozenset({"InfoBlock", "CardButton"})
 _EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR = " | "
+_CARD_BUTTON_FALLBACK_ICON = "resources/base/media/ic_fallback_light.svg"
 _SYSTEM_FONT_ROLE_BY_COMPONENT = {
     "SingleLineTitle": "secondary",
     "DoubleLineTitle": "primary",
@@ -70,7 +71,7 @@ _SYSTEM_FONT_ROLE_BY_COMPONENT = {
     "ProgressCircle": "primary",
     "ProgressLine2": "primary",
     "ProgressCircleSingle": "primary",
-    "H_BarChart": "secondary",
+    "H_BarChart": "primary",
     "NumericRatioStack": "secondary",
     "EventCard": "primary",
     "TopTextBottomValue": "primary",
@@ -837,7 +838,7 @@ def _expand_secondary_body(
                         variant=variant,
                         props={
                             "content": label,
-                            "fontColor": component.props["fontColor"],
+                            "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                             "flexShrink": 0,
                         },
                     )
@@ -852,7 +853,10 @@ def _expand_secondary_body(
                 variant=variant,
                 props={
                     "content": value,
-                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    "fontColor": (
+                        component.props["fontColor"] if item.get("label") is not None
+                        else _color_with_alpha(component.props["fontColor"], 0.6)
+                    ),
                     "height": item_height,
                     "maxLines": max_lines,
                     "layoutWeight": 1,
@@ -1004,7 +1008,10 @@ def _expand_h_bar_chart(component: ComponentRow, size: str) -> list[ComponentRow
                     "label",
                     size=size,
                     variant=variant,
-                    props={"content": item["label"], "fontColor": component.props["fontColor"]},
+                    props={
+                        "content": item["label"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    },
                 ),
                 _visual_row(
                     value_id,
@@ -2301,7 +2308,7 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
                     size=size,
                     props={
                         "content": copy.deepcopy(item["label"]),
-                        "fontColor": component.props["fontColor"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                     },
                 ),
                 _visual_row(
@@ -2334,8 +2341,8 @@ def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]
 
 
 def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow]:
-    if size != "2x4":
-        raise CompactDslConversionError("CardButton requires a 2x4 card.")
+    if size not in {"2x2", "2x4"}:
+        raise CompactDslConversionError("CardButton requires a 2x2 or 2x4 card.")
     allowed = {
         "label",
         "labelLines",
@@ -2360,12 +2367,21 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
         raise CompactDslConversionError(
             f"{component.component_id}: CardButton.labelLines must be 1 or 2."
         )
+    if size == "2x2" and label_lines == 2:
+        slot_height = component.props.get("height", 36)
+        if not _is_positive_number(slot_height) or slot_height < 56:
+            raise CompactDslConversionError(
+                f"{component.component_id}: 2x2 CardButton 两行标签只能用于57vp纯动作槽。"
+            )
     variant = "multilineLabel" if label_lines == 2 else None
 
     label_id = f"{component.component_id}_label"
     visual_id = f"{component.component_id}_visual"
     icon = component.props.get("icon")
-    children = [label_id, visual_id]
+    if not isinstance(icon, str):
+        icon = _CARD_BUTTON_FALLBACK_ICON
+    children = [label_id]
+    children.append(visual_id)
     container_props: dict[str, Any] = {
         "onClick": copy.deepcopy(component.props["onClick"]),
     }
@@ -2390,33 +2406,18 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
             },
         ),
     ]
-    if icon:
-        image_props: dict[str, Any] = {
-            "src": icon,
-        }
-        if "fillColor" in component.props:
-            image_props["fillColor"] = component.props["fillColor"]
-        rows.append(
-            _visual_row(
-                visual_id,
-                "CardButton",
-                "icon",
-                size=size,
-                props=image_props,
-            )
+    image_props: dict[str, Any] = {"src": icon}
+    if "fillColor" in component.props:
+        image_props["fillColor"] = component.props["fillColor"]
+    rows.append(
+        _visual_row(
+            visual_id,
+            "CardButton",
+            "icon",
+            size=size,
+            props=image_props,
         )
-    else:
-        foreground = component.props["fontColor"]
-        placeholder_color = _color_with_alpha(foreground, 0.2)
-        rows.append(
-            _visual_row(
-                visual_id,
-                "CardButton",
-                "placeholder",
-                size=size,
-                props={"backgroundColor": placeholder_color},
-            )
-        )
+    )
     return rows
 
 
@@ -2537,7 +2538,7 @@ def _expand_progress_circle_single(
             variant=variant,
             props={
                 "content": copy.deepcopy(component.props["label"]),
-                "fontColor": component.props["fontColor"],
+                "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
             },
         ),
         _visual_row(
@@ -2548,7 +2549,7 @@ def _expand_progress_circle_single(
             variant=variant,
             props={
                 "content": copy.deepcopy(component.props["displayValue"]),
-                "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                "fontColor": component.props["fontColor"],
             },
         ),
     ]
@@ -3073,7 +3074,7 @@ def _expand_top_text_bottom_value(
                     size=size,
                     props={
                         "content": item["label"],
-                        "fontColor": component.props["fontColor"],
+                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
                     },
                 ),
                 _visual_row(
@@ -3334,7 +3335,9 @@ def _color_with_alpha(color: str, opacity: float) -> str:
 
 def _validate_optional_icon(component: ComponentRow) -> None:
     icon = component.props.get("icon")
-    if icon is not None and (not isinstance(icon, str) or not icon.strip()):
+    if "icon" in component.props and (
+        not isinstance(icon, str) or not icon.strip()
+    ):
         raise CompactDslConversionError(
             f"{component.component_id}: {component.component_type}.icon must be non-empty."
         )

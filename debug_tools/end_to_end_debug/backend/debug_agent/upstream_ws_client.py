@@ -40,20 +40,14 @@ _HEADER_PATTERN = re.compile(
 
 
 def parse_legacy_stream_content(stream_content: str) -> dict[str, Any]:
-    """解析标准 JSON 业务消息，同时兼容历史 Pydantic 字符串。"""
-    source = stream_content.strip()
-    if not source.startswith("{"):
-        _, separator, remainder = source.partition("：")
-        if separator and remainder.lstrip().startswith("{"):
-            source = remainder.lstrip()
-    if source.startswith("{"):
-        try:
-            payload = json.loads(source)
-        except json.JSONDecodeError as exc:
-            raise UpstreamToolError("final streamContent 含非法 JSON") from exc
-        if not isinstance(payload, dict):
-            raise UpstreamToolError("final streamContent 业务消息必须是对象")
-        return payload
+    """解析标准 JSON 业务消息，并兼容历史 Pydantic 消息字符串。"""
+    content = stream_content.strip()
+    if not content.startswith(("{", "[")):
+        _explanation, separator, remainder = content.partition("：")
+        if separator and remainder.lstrip().startswith(("{", "[")):
+            content = remainder.lstrip()
+    if content.startswith(("{", "[")):
+        return _parse_json_business_message(content)
     header_start = stream_content.find("type=")
     if header_start < 0:
         raise UpstreamToolError("final streamContent 缺少业务消息")
@@ -81,6 +75,31 @@ def parse_legacy_stream_content(stream_content: str) -> dict[str, Any]:
         }
     except (SyntaxError, ValueError, TypeError) as exc:
         raise UpstreamToolError("final streamContent 含非法字面量") from exc
+
+
+def _parse_json_business_message(content: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise UpstreamToolError("final streamContent 含非法 JSON") from exc
+    if not isinstance(payload, dict):
+        raise UpstreamToolError("final streamContent 业务消息必须为对象")
+    for name in ("type", "tool", "operation", "requestId", "data", "status", "errorCode", "error"):
+        if name not in payload:
+            raise UpstreamToolError(f"final streamContent 缺少业务字段: {name}")
+    for name in ("tool", "operation", "status", "errorCode"):
+        if not isinstance(payload.get(name), str):
+            raise UpstreamToolError(f"final streamContent 业务字段类型非法: {name}")
+    if payload.get("type") not in ("result", "error"):
+        raise UpstreamToolError("final streamContent 业务消息类型不受支持")
+    if payload.get("status") not in ("success", "degraded", "unsupported", "failed"):
+        raise UpstreamToolError("final streamContent 业务状态不受支持")
+    if not isinstance(payload.get("data"), dict) or not isinstance(payload.get("error"), dict):
+        raise UpstreamToolError("final streamContent data/error 必须为对象")
+    request_id = payload.get("requestId")
+    if request_id is not None and not isinstance(request_id, str):
+        raise UpstreamToolError("final streamContent requestId 类型非法")
+    return payload
 
 
 class UpstreamWebSocketClient:

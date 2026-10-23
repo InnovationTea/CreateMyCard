@@ -952,29 +952,18 @@
   {
     "id": "event.setPowerSavingMode",
     "type": "event",
-    "description": "点击一键开启/关闭省电模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
+    "description": "点击操作省电模式开关。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetSettingSwitch",
         "params": {
           "appBundleName": "com.huawei.hmos.settings",
-          "itemName": "battery_saving_mode",
-          "switchFlag": 0
+          "itemName": "battery_saving_mode"
         }
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetSettingSwitch",
     "parametersSchema": {
       "type": "object",
@@ -998,20 +987,11 @@
               "type": "string",
               "description": "固定填写省电模式配置项 battery_saving_mode。",
               "const": "battery_saving_mode"
-            },
-            "switchFlag": {
-              "type": "integer",
-              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-              "enum": [
-                0,
-                1
-              ]
             }
           },
           "required": [
             "appBundleName",
-            "itemName",
-            "switchFlag"
+            "itemName"
           ],
           "additionalProperties": false
         }
@@ -1029,27 +1009,15 @@
   {
     "id": "event.setMobileData",
     "type": "event",
-    "description": "点击一键开启/关闭移动数据。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "description": "点击操作移动数据开关。",
     "actionTemplate": {
       "call": "clickToApi",
       "args": {
         "intentName": "SetMobileData",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "开启移动数据填写 0，关闭移动数据填写 1。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetMobileData",
     "parametersSchema": {
       "type": "object",
@@ -1063,19 +1031,8 @@
         "params": {
           "type": "object",
           "description": "开关所需参数。",
-          "properties": {
-            "switchFlag": {
-              "type": "integer",
-              "description": "开启移动数据填写 0，关闭移动数据填写 1。",
-              "enum": [
-                0,
-                1
-              ]
-            }
-          },
-          "required": [
-            "switchFlag"
-          ],
+          "properties": {},
+          "required": [],
           "additionalProperties": false
         }
       },
@@ -2144,29 +2101,18 @@
   {
     "id": "event.setNearLinkMode",
     "type": "event",
-    "description": "点击一键开启/关闭星闪模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
+    "description": "点击操作星闪模式开关。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetSettingSwitch",
         "params": {
           "appBundleName": "com.huawei.hmos.settings",
-          "itemName": "near_link_setting",
-          "switchFlag": 0
+          "itemName": "near_link_setting"
         }
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetSettingSwitch",
     "parametersSchema": {
       "type": "object",
@@ -2190,20 +2136,11 @@
               "type": "string",
               "description": "固定填写配置项 near_link_setting。",
               "const": "near_link_setting"
-            },
-            "switchFlag": {
-              "type": "integer",
-              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-              "enum": [
-                0,
-                1
-              ]
             }
           },
           "required": [
             "appBundleName",
-            "itemName",
-            "switchFlag"
+            "itemName"
           ],
           "additionalProperties": false
         }
@@ -2222,29 +2159,18 @@
   {
     "id": "event.setBluetoothMode",
     "type": "event",
-    "description": "点击一键开启/关闭蓝牙模式。switchFlag 可填写整数 0 或 1，两值效果相同。",
+    "description": "点击操作蓝牙开关。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetSettingSwitch",
         "params": {
           "appBundleName": "com.huawei.hmos.settings",
-          "itemName": "bluetooth",
-          "switchFlag": 0
+          "itemName": "bluetooth"
         }
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetSettingSwitch",
     "parametersSchema": {
       "type": "object",
@@ -2268,20 +2194,11 @@
               "type": "string",
               "description": "固定填写配置项 bluetooth。",
               "const": "bluetooth"
-            },
-            "switchFlag": {
-              "type": "integer",
-              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-              "enum": [
-                0,
-                1
-              ]
             }
           },
           "required": [
             "appBundleName",
-            "itemName",
-            "switchFlag"
+            "itemName"
           ],
           "additionalProperties": false
         }
@@ -2300,29 +2217,18 @@
   {
     "id": "event.setWifiMode",
     "type": "event",
-    "description": "点击一键开启/关闭WIFI。switchFlag 可填写整数 0 或 1，两值效果相同。",
+    "description": "点击操作Wi-Fi开关。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetSettingSwitch",
         "params": {
           "appBundleName": "com.huawei.hmos.settings",
-          "itemName": "wlan",
-          "switchFlag": 0
+          "itemName": "wlan"
         }
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetSettingSwitch",
     "parametersSchema": {
       "type": "object",
@@ -2346,20 +2252,11 @@
               "type": "string",
               "description": "固定填写配置项 wlan。",
               "const": "wlan"
-            },
-            "switchFlag": {
-              "type": "integer",
-              "description": "switchFlag 可填写整数 0 或 1，两值效果相同，无需根据开启或关闭改写。",
-              "enum": [
-                0,
-                1
-              ]
             }
           },
           "required": [
             "appBundleName",
-            "itemName",
-            "switchFlag"
+            "itemName"
           ],
           "additionalProperties": false
         }
@@ -2378,27 +2275,15 @@
   {
     "id": "event.setLocationSwitch",
     "type": "event",
-    "description": "点击一键开启/关闭位置开关。大模型根据用户意图判断，用户说'开启位置开关'传0，'关闭位置开关'传1",
+    "description": "点击操作位置开关开关。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetLocationSettingSwicth",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "开启位置开关填写 0，关闭位置开关填写 1。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetLocationSettingSwicth",
     "parametersSchema": {
       "type": "object",
@@ -2412,19 +2297,8 @@
         "params": {
           "type": "object",
           "description": "开关参数。",
-          "properties": {
-            "switchFlag": {
-              "type": "integer",
-              "description": "开启位置开关填写 0，关闭位置开关填写 1。",
-              "enum": [
-                0,
-                1
-              ]
-            }
-          },
-          "required": [
-            "switchFlag"
-          ],
+          "properties": {},
+          "required": [],
           "additionalProperties": false
         }
       },
@@ -2442,27 +2316,15 @@
   {
     "id": "event.setScreenUseTimeManageSwitch",
     "type": "event",
-    "description": "点击一键开启/关闭屏幕使用时长管控。大模型根据用户意图判断，用户说'开启屏幕使用时长管控'传0，'关闭屏幕使用时长管控'传1",
+    "description": "点击操作屏幕使用时长管控开关。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetScreenUseTimeManageSwitch",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "开启屏幕使用时长管控填写 0，关闭屏幕使用时长管控填写 1。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetScreenUseTimeManageSwitch",
     "parametersSchema": {
       "type": "object",
@@ -2476,19 +2338,8 @@
         "params": {
           "type": "object",
           "description": "开关参数。",
-          "properties": {
-            "switchFlag": {
-              "type": "integer",
-              "description": "开启屏幕使用时长管控填写 0，关闭屏幕使用时长管控填写 1。",
-              "enum": [
-                0,
-                1
-              ]
-            }
-          },
-          "required": [
-            "switchFlag"
-          ],
+          "properties": {},
+          "required": [],
           "additionalProperties": false
         }
       },
@@ -2506,27 +2357,15 @@
   {
     "id": "event.setMicPermissionSwitch",
     "type": "event",
-    "description": "点击一键开启/关闭麦克风权限。大模型根据用户意图判断，用户说'开启麦克风权限'传0，'关闭麦克风权限'传1",
+    "description": "点击操作麦克风权限开关。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
         "intentName": "SetMicSettingSwicth",
-        "params": {
-          "switchFlag": 0
-        }
+        "params": {}
       }
     },
-    "dynamicArguments": [
-      {
-        "path": "/params/switchFlag",
-        "description": "开启麦克风权限填写 0，关闭麦克风权限填写 1。",
-        "type": "integer",
-        "enum": [
-          0,
-          1
-        ]
-      }
-    ],
+    "dynamicArguments": [],
     "targetScene": "SetMicSettingSwicth",
     "parametersSchema": {
       "type": "object",
@@ -2540,19 +2379,8 @@
         "params": {
           "type": "object",
           "description": "开关参数。",
-          "properties": {
-            "switchFlag": {
-              "type": "integer",
-              "description": "开启麦克风权限填写 0，关闭麦克风权限填写 1。",
-              "enum": [
-                0,
-                1
-              ]
-            }
-          },
-          "required": [
-            "switchFlag"
-          ],
+          "properties": {},
+          "required": [],
           "additionalProperties": false
         }
       },

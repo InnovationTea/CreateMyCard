@@ -97,8 +97,8 @@ _CAPACITY_TEXT_COMPACTION_INSTRUCTION = (
     "TextBlock等核心信息组件，且用户未明确要求大号强调、进度或事件形式时，"
     "可将该读数和同对象短补充合并为一个SecondaryBody.items。短字段名称放静态label，"
     "动态值和单位放value，完整保留全部标签、数值、单位、绑定和Action。"
-    "这是更换显示组件，不是缩小EmphasizedData的固定字号；新组件整组单行14fp/19vp，"
-    "多行或任一项maxLines:2时12fp/16vp，行间距2vp。更新父级引用并移除被替换的旧子树；"
+    "这是更换显示组件，不是缩小EmphasizedData的固定字号；新组件整组单行14fp/14vp，"
+    "多行或任一项maxLines:2时12fp/12vp，行间距2vp。更新父级引用并移除被替换的旧子树；"
     "不得补造核心组件、拆成多个单项SecondaryBody或删除事实来满足条件。"
 )
 
@@ -458,8 +458,8 @@ def _component_contract_instruction(quality_errors: list[dict[str, Any]]) -> str
         return (
             f"{base_instruction} SecondaryBody.fontSize 不是自由字号：保持当前合法的 items、"
             "columns、maxLines、绑定和事实不变，只把 fontSize 改为错误信息给出的固定 Recipe 值。"
-            "整组只有一行且各项 maxLines 都为 1（默认 1）时，固定为 14fp/19vp；"
-            "超过一行或任一项 maxLines 为 2 时，整组固定为 12fp/16vp，行间距为 2vp。"
+            "整组只有一行且各项 maxLines 都为 1（默认 1）时，固定为 14fp/14vp；"
+            "超过一行或任一项 maxLines 为 2 时，整组固定为 12fp/12vp，行间距为 2vp。"
             "两项同行用 14；两项 columns:1 分行用 12，不能只按项目数判断。"
             "若其它错误授权调整 items、columns 或 maxLines，合组完成后按最终行布局重新核算"
             "字号与高度；不得仅为缩小字号拆散信息组或删除事实。"
@@ -582,22 +582,31 @@ def compact_capacity_recovery_failure_category(
     layout_failure_seen: bool,
 ) -> str | None:
     """判断接口重试是否应按前序布局失败进入容量恢复。"""
-    category = _issue_category(quality_errors)
-    if category in {"layout_capacity", "layout_structure"}:
-        return category
-    if not layout_failure_seen:
-        return None
-    for issue in quality_errors:
-        code = str(issue.get("code") or "")
-        if code == "COMPACT_PLAN_FACT_OMITTED":
-            return "layout_capacity"
-        message = str(issue.get("message") or "").lower()
-        if (
-            category == "plan_coverage"
-            and message.startswith("plan fact is missing from visible dsl:")
-        ):
-            return "layout_capacity"
-    return None
+    errors = [issue for issue in quality_errors if issue.get("severity") != "warning"]
+    category = _issue_category(errors)
+    protected_failure = _has_duplicate_plan_facts(errors)
+    for issue in errors:
+        message = str(issue.get("message") or "").strip().lower()
+        if message.startswith("plan action is missing from visible dsl:"):
+            protected_failure = True
+            break
+    result: str | None = None
+    if errors and not protected_failure:
+        if category in {"layout_capacity", "layout_structure"}:
+            result = category
+        elif layout_failure_seen:
+            for issue in quality_errors:
+                code = str(issue.get("code") or "")
+                message = str(issue.get("message") or "").strip().lower()
+                if code == "COMPACT_PLAN_FACT_OMITTED":
+                    result = "layout_capacity"
+                    break
+                if category == "plan_coverage" and message.startswith(
+                    "plan fact is missing from visible dsl:",
+                ):
+                    result = "layout_capacity"
+                    break
+    return result
 
 
 def _joint_repair_relevant(category: str, quality_errors: list[dict[str, Any]]) -> bool:

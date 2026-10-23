@@ -16,9 +16,7 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
     Row({"width": "matchParent", "itemMargin": 12, "justifyContent": "spaceBetween"},
       Column({"layoutWeight": 1, "justifyContent": "start",
         "alignItems": "center", "itemMargin": 2},
-        Column({"width": 44, "height": 48, "padding": {"top": 4},
-          "justifyContent": "start", "alignItems": "center"},
-          Stack({"width": 44, "height": 44, "alignContent": "center"},
+        Stack({"width": 44, "height": 44, "margin": {"top": 4}, "alignContent": "center"},
           Progress({"value": data.left, "total": 100, "type": "ring",
             "width": 44, "height": 44, "strokeWidth": 6,
             "color": $theme('progressColor'), "backgroundColor": $theme('progressBackgroundColor')}),
@@ -54,7 +52,6 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
               "maxLines": 1})
           )
           #endif
-          )
         ),
         Text(Expr(data.left + '%'), {"width": "matchParent", "height": 22, "fontSize": 16,
           "padding": {"top": 6},
@@ -65,9 +62,7 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
       ),
       Column({"layoutWeight": 1, "justifyContent": "start",
         "alignItems": "center", "itemMargin": 2},
-        Column({"width": 44, "height": 48, "padding": {"top": 4},
-          "justifyContent": "start", "alignItems": "center"},
-          Stack({"width": 44, "height": 44, "alignContent": "center"},
+        Stack({"width": 44, "height": 44, "margin": {"top": 4}, "alignContent": "center"},
           Progress({"value": data.right, "total": 100, "type": "ring",
             "width": 44, "height": 44, "strokeWidth": 6,
             "color": $theme('progressColor'), "backgroundColor": $theme('progressBackgroundColor')}),
@@ -103,7 +98,6 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
               "maxLines": 1})
           )
           #endif
-          )
         ),
         Text(Expr(data.right + '%'), {"width": "matchParent", "height": 22, "fontSize": 16,
           "padding": {"top": 6},

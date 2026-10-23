@@ -1,0 +1,26 @@
+{
+  "current_version": "v2",
+  "update_date": "2026-10-21",
+  "history_versions": [
+    {
+      "update_date": "2026-10-15",
+      "commits": [
+        "81878a3e8987400cbf3ed6f17770d1715453cd17"
+      ],
+      "changes": [
+        "新增 55 条开放领域请求，覆盖静态内容及能力边界。"
+      ],
+      "version": "v1"
+    },
+    {
+      "update_date": "2026-10-19",
+      "commits": [
+        "7826799686997d0b92abc889a5088caff434bf2f"
+      ],
+      "changes": [
+        "补齐请求包名及 Q014、Q038、Q049 的请求上下文。"
+      ],
+      "version": "v2"
+    }
+  ]
+}

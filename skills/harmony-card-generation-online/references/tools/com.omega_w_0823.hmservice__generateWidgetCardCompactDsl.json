@@ -95,11 +95,15 @@
     "properties": {
       "status": {
         "type": "String",
-        "description": "业务状态：success、degraded、unsupported 或 failed。"
+        "description": "业务状态：success、degraded、unsupported、failed；编辑额外支持 needs_clarification、unchanged，均不更新来源。"
       },
       "artifactUrl": {
         "type": "String",
         "description": "成功生成的新 artifact 地址；无有效产物时为空或缺失。"
+      },
+      "editFeedback": {
+        "type": "String",
+        "description": "仅编辑的需澄清、无需修改或不支持结论提供必要业务说明；主 Agent 按回复规范组织，不直接透传内部内容。"
       },
       "artifactDigest": {
         "type": "String",

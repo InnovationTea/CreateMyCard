@@ -128,7 +128,7 @@ CodeCheck；本地没有企业扫描器时，明确报告已做的专项检查�
 - `widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/`：Fusion 提示词源文件与运行时布局合同，需与云侧方案和实现同步维护。
 - `widget_service/cloud/services/compact_*.py`：Compact 计划、组合、布局与修复实现；校验逻辑仍按专项方案归入校验模块。
 - `debug_tools/batch_testing/` 与 `debug_tools/platform/`：批跑后端与调试平台前端；架构和运行口径分别见调试平台技术方案与运行规范。
-- `debug_tools/Datasets/` 与 `widget_service/tests/`：批跑数据集与微服务回归测试，按改动影响选择验证范围。
+- `debug_tools/Datasets/`、`debug_tools/tests/` 与 `widget_service/tests/`：分别存放批跑数据集、调试工具测试和微服务回归测试，按改动影响选择验证范围。
 - `widget_service/cloud/data/capabilities/`：云侧版本化数据、事件与素材能力注册表及版本范围配置；在线链路以此作为能力配置来源。
 - `skills/harmony-card-generation-offline/reference/`：离线能力与设计参考资料，仅用于离线流程和历史参考。
 

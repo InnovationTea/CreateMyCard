@@ -101,6 +101,11 @@ Row 在 2x2/2x4 中分别不超过 24vp/52vp。判断顺序为间距、根布局
 加载时严格校验。横向权重祖先仅在向上路径没有数值宽度且 `flexShrink:0` 的固定宽度边界时用于降级；
 间距完全吸收规则独立保留。阈值是当前实测的经验容忍值，不保证端侧一定消除溢出。
 
+2026-10-20 收紧纵向高度策略：从上述配置删除高度容忍规则，取消根 Column、正数
+`layoutWeight` Column 和可压缩 `itemMargin` 的 warning 豁免。2×2 仅保留整树 `2vp` 数值容差，
+2×4 不设高度容差；超过容差且最小占用及可用高度已可确定时，统一产生
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` error 并进入布局容量修复。横向 warning 策略保持不变。
+
 ## 1. 重构目标与范围
 
 本次重构覆盖：
@@ -284,7 +289,7 @@ cloud/data/validator_rules/
 | `_collect_progress_value_errors` | 语义／数据绑定；`semantic/bindings.py` | Progress.value 绑定路径与字段类型 | 布尔值展示检查后；检查绑定源类型能否用于数值输入，保持原判定和执行位置 |
 | W9/W1 中必要动作保留检查（清单 OBS-L2009、OBS-L2609） | 语义／展示语义；`semantic/display.py` | 现有需求判断、候选数量、实际动作 | 对应 W9/W1 布局检查内部；属于需求完整性；保留既有识别方式，不因重分类强化或放宽要求 |
 | W9 可见动作数量上限检查（清单 OBS-L1981） | 语义／展示语义；`semantic/display.py` | 可见动作数、候选数量 | W9 内容检查内部；属于动作使用约束；即使各 handler 均合法也可能超量，不据此判为能力越界 |
-| `_collect_semantic_text_errors`、`_collect_ambiguous_metric_text_errors`、`_collect_unbound_action_hint_errors` | 语义／展示语义；`semantic/display.py` | 文本、相邻节点、字段描述、事件 | 入口各文本语义检查的原调用点；检查指标解释、文案与用途 |
+| `_collect_semantic_text_errors`、`_collect_ambiguous_metric_text_errors`、`_collect_unbound_action_hint_errors` | 语义／展示语义；`semantic/display.py` | 文本、相邻节点、字段描述、事件 | 入口各文本语义检查的原调用点；检查指标解释、文案与用途。其中歧义指标标签仅输出 warning，不进入模型修复错误列表 |
 | `_collect_adjacent_display_unit_errors` 中非数值附单位、值形态检查 | 语义／展示语义；`semantic/display.py` | 值与单位文本、字段类型 | 主数值检查内部；保留尺寸及字号适用条件 |
 | `_collect_adjacent_display_unit_errors` 中基线补偿、宽度、间距检查 | 语义／布局与视觉；`semantic/layout/typography.py` | 字号、padding、宽高及 Row 属性 | 主数值检查内部；与展示分支共用分析结果，保持原分支顺序 |
 | `_collect_two_by_four_detached_unit_errors` | 语义／布局与视觉；`semantic/layout/two_by_four.py` | 值与单位的父子关系、尺寸、对齐 | 2×4 布局检查内部；主要检查同 Row、相邻和对齐；不因涉及单位就整体归入展示语义 |

@@ -141,7 +141,9 @@ def test_recipe_changes_reach_capacity_planner_and_prompt(monkeypatch) -> None:
     assert isinstance(root_styles, dict)
     constraints = item_styles.get("constraintSize")
     assert isinstance(constraints, dict)
-    constraints["minWidth"] = 80
+    metrics = recipe.get("metrics")
+    assert isinstance(metrics, dict)
+    metrics["minimumItemWidth"] = 80
     root_styles["itemMargin"] = 12
     monkeypatch.setattr(component_runtime, "_load_contract", lambda: payload)
     contract = text_block_width_contract()

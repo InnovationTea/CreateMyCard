@@ -30,6 +30,7 @@ artifacts = [
     "!debug_tools/a2ui_render/local.properties",
 ]
 exclude = [
+    "debug_tools/tests/**",
     "debug_tools/a2ui_render/.hvigor/**",
     "debug_tools/a2ui_render/.preview/**",
     "debug_tools/a2ui_render/node_modules/**",
@@ -58,3 +59,7 @@ src = ["debug_tools"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["UP009"]
+
+[tool.pytest.ini_options]
+testpaths = ["debug_tools/tests/python", "widget_service/tests"]
+pythonpath = ["widget_service/cloud", "widget_service", "."]

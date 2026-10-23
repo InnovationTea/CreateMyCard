@@ -1,4 +1,4 @@
-"""冻结 A2UI 后选择主题；无主体图按布局匹配，未知几何不放行有主体图。"""
+"""冻结 A2UI 后按主体图、抽象图、融球、渐变顺序选择主题。"""
 
 from __future__ import annotations
 
@@ -34,7 +34,6 @@ from services.theme_content_regions import (
 )
 from services.theme_layout_summary import (
     layout_summary,
-    matches_subjectless_layout,
     theme_description,
 )
 from services.theme_photo_eligibility import photo_content_reason
@@ -102,61 +101,21 @@ def foreground_signature(source: str) -> str:
     return hashlib.sha256(serialized.encode()).hexdigest()
 
 
-def schema_field_names(value: Any) -> list[str]:
-    if not isinstance(value, dict):
-        return []
-    if "type" in value and "description" in value:
-        return []
-    result = []
-    for key, child in value.items():
-        result.append(key)
-        result.extend(schema_field_names(child))
-    return result
-
-
 def photo_reason(
     photo: dict, task: dict, evidence: dict, *, final_layout: str | None = None,
 ) -> str | None:
     if photo.get("size") != task.get("size"):
         return "尺寸不匹配"
-    layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
-    if layout_reason:
-        return layout_reason
     query = task.get("userQuery", "")
-    if re.search(r"纯色|渐变|[融绒]球|不要.*(?:图|背景)|不用.*(?:图|背景)|无图", query):
+    if re.search(r"纯色|渐变|[融绒]球|不要.*(?:图|背景)|不用.*(?:图|背景)|无(?:背景)?图", query):
         return "用户明确其它主题或不要图片"
-    schema = " ".join(schema_field_names(task.get("dataModelSchema", {})))
-    if re.search("预警|警报|台风|暴雨|暴雪|雷暴|weatherAlert", query + schema, re.I):
-        return "异常天气不使用正常天气图片"
-    business = photo.get("business")
-    patterns = {
-        "weather": "天气|气温|温度|weather",
-        "rain": "降雨|下雨|降水|precipitation",
-        "music": "音乐|听歌|歌单|耳机|headphone|earphone",
-        "countdown": r"倒计时|还有\s*(?:几|多少|\d+)\s*天|countdown",
-        "sleep": "睡眠|睡了|睡得|深睡|小睡|nightSleep|sleepScore",
-        "sport": "运动|跑步|训练|马拉松|步数|走了|exercise|steps",
-        "travel": "出行|航班|飞机|机场|flight|travel",
-        "information": "资讯|新闻|信息咨询|news",
-        "smart-home": "智慧家|智能家居|全屋|灯光|smartHome",
-        "calendar": "日程|会议|安排|calendar",
-        "battery": "电量|电池|充电|续航|phoneBattery",
-    }
-    if not re.search(patterns.get(business, r"(?!)"), query + "\n" + schema, re.I):
-        return "业务不适用"
-    if business == "weather" and re.search("降雨|降水|下雨", query):
-        return "降雨场景不使用正常天气图片"
-    required_layout = photo.get("subjectlessLayout")
-    if required_layout and not matches_subjectless_layout(final_layout, required_layout):
-        return "无主体图片需要左侧主内容、右侧上下双槽的定稿布局"
     reason = layout_evidence_reason(evidence)
     if reason:
         return reason
-    layout_authorized = photo.get("contentEligibility", {}).get("kind") in {
-        "weather-square", "calendar-square",
-    }
-    if photo.get("subjectless") is not True and not layout_authorized:
-        return "真实卡片宽高未知，无法确认主体与文字、完整按钮及图标避让"
+    if photo.get("pool") not in {"photos", "texturePhotos"}:
+        return "图片不在当前主体图或抽象图集"
+    if photo.get("contentEligibility", {}).get("kind") != "uniform":
+        return "图片缺少统一准入配置"
     return photo_content_reason(photo, task, evidence, final_layout)
 
 
@@ -335,27 +294,9 @@ def fusion_background(theme: dict, task: dict) -> list[dict]:
     return result
 
 
-def apply_photo_fallback(
-    shell: dict, foreground: dict, layers: list[dict], task: dict, primary: str,
-) -> None:
-    fallback = photo_fallback(primary)
-    background = fallback.get("background", {})
+def apply_photo_fallback(shell: dict) -> None:
     styles = shell.setdefault("styles", {})
-    if fallback.get("kind") == "gradient":
-        colors = background.get("colors", [])
-        styles["backgroundColor"] = colors[-1]
-        styles["linearGradient"] = {
-            "direction": background.get("direction"),
-            "colors": [[colors[0], 0], [colors[1], 1]],
-        }
-    else:
-        styles["backgroundColor"] = background.get("ballColors", {}).get("large")
-        if fusion_ball_enabled(task.get("appVersion")):
-            # 融球在图片后面；前景仍需端侧防溢出标记，避免球体参与内容尺寸适配。
-            foreground["id"] = FUSION_FOREGROUND_ID
-            shell["children"] = [PREFIX + "background", FUSION_FOREGROUND_ID]
-            layers[0].get("children", []).insert(0, "fusionBallBackground")
-            layers.extend(fusion_background(fallback, task))
+    styles["backgroundColor"] = photo_fallback().get("color")
 
 
 def _has_content_surface(node: dict, legacy_panels: list[str]) -> bool:
@@ -471,7 +412,7 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
         if kind == "fusion":
             shell["styles"]["backgroundColor"] = background_config.get("shellColor")
         elif kind == "photo":
-            apply_photo_fallback(shell, root, layers, task, primary)
+            apply_photo_fallback(shell)
         nodes[:0] = [shell, *layers]
     result = encode(records)
     if foreground_signature(source) != foreground_signature(result):
@@ -480,18 +421,11 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
 
 
 def select_equivalent_photo(selected: str, candidates: list[dict]) -> tuple[str, dict]:
+    available = [item.get("id") for item in candidates if item.get("kind") == "photo"]
     audit = {}
-    eligible = {item.get("id") for item in candidates if item.get("kind") == "photo"}
-    for group in load_theme_registry().get("photoSelectionGroups", []):
-        members = group.get("themeIds", [])
-        if selected not in members:
-            continue
-        available = [identity for identity in members if identity in eligible]
-        if len(available) > 1:
-            selected = secrets.choice(available)
-            audit = {"group": group.get("id"), "mode": "uniform",
-                     "eligible": available, "selected": selected}
-        break
+    if available:
+        selected = secrets.choice(available)
+        audit = {"mode": "uniform", "eligible": available, "selected": selected}
     return selected, audit
 
 
@@ -502,7 +436,13 @@ async def select_theme(
     evidence = {"basis": "layout-only", "complete": False, "deviceGeometryKnown": False,
                 "reason": "图片主题已关闭"}
     if get_settings().enable_photo_background_theme:
-        evidence = photo_layout_evidence(components(decode(source)))
+        records = decode(source)
+        data_model = None
+        for record in records:
+            update = record.get("updateDataModel", {})
+            if update.get("path") == "/" and isinstance(update.get("value"), dict):
+                data_model = update.get("value")
+        evidence = photo_layout_evidence(components(records), data_model, final_layout=final_layout)
     fusion_gate = fusion_candidate_gate(task, final_layout)
     candidates = [
         item for item in presets(task)
@@ -552,6 +492,17 @@ async def select_theme(
                 rejected[photo.get("id")] = reason
             else:
                 candidates.append(photo)
+    legacy_photos = [item for item in candidates if item.get("kind") == "photo"]
+    for photo in registered_themes("texturePhotos"):
+        reason = photo_reason(photo, task, evidence, final_layout=final_layout)
+        if overrides:
+            reason = "用户明确颜色优先，不使用纹理图片"
+        elif legacy_photos:
+            reason = "已有合格主体图片，优先使用主体图"
+        if reason:
+            rejected[photo.get("id")] = reason
+        else:
+            candidates.append({**photo, "kind": "photo"})
     layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
     if layout_reason:
         for candidate in candidates:
@@ -561,8 +512,12 @@ async def select_theme(
     if overrides:
         candidates = [item for item in candidates if item.get("kind") in {"gradient", "solid"}]
     photos = [item for item in candidates if item.get("kind") == "photo"]
+    fusion_candidates = [item for item in candidates if item.get("kind") == "fusion"]
+    ordinary_requested = bool(re.search(r"纯色|渐变", task.get("userQuery", "")))
     if photos:
         candidates = photos
+    elif fusion_candidates and not ordinary_requested:
+        candidates = fusion_candidates
     allowed = {item.get("id"): item for item in candidates}
     expansions = [item.get("id") for item in candidates if item.get("composition") == "square-left"]
     prompt = [
@@ -573,7 +528,7 @@ async def select_theme(
             "以下为本次最终主题选择合同，优先于上面原规则的默认推荐："
             "布局已定稿。只能从候选选择一个themeId，不输出色值、不改布局。"
             "选择顺序：用户明确要求的主题 > preferredExpansions > eligiblePhotos > 其它候选。"
-            "eligiblePhotos已通过业务、逻辑规格及无主体图片的布局条件，"
+            "eligiblePhotos已通过统一业务、布局及正文三行条件，组内由程序等概率选择。"
             "云侧不知道实际卡片宽高，不声称已通过真实像素避让。"
             "不要因业务同时属于其它类别而跳过。"
             "没有用户指定其它主题且eligiblePhotos非空时，从eligiblePhotos中选择；"
@@ -609,7 +564,8 @@ async def select_theme(
             ),
         },
     ]
-    selected = candidates[0].get("id") if photos else fallback_id
+    preferred = photos or (fusion_candidates and not ordinary_requested)
+    selected = candidates[0].get("id") if preferred else fallback_id
     choice_error = None
     try:
         raw = await client.generate(

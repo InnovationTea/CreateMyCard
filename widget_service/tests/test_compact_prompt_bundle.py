@@ -110,6 +110,22 @@ def test_single_line_title_icon_uses_semantic_match_and_button_priority() -> Non
     assert "同类对象" in rules
     assert "可选图标无匹配时省略" in rules
 
+
+def test_card_button_icon_color_is_runtime_owned() -> None:
+    common = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+    two_by_four = (DEFAULT_SOURCE / "components/2x4.md").read_text(encoding="utf-8")
+    rule = "不输出；单色 SVG 由运行时按按钮前景色自动染色，位图保留原色"
+
+    assert rule in common
+    assert rule in two_by_four
+    assert '"CardButton",{"label":"蓝牙设置","icon":' in two_by_four
+    explicit_color = (
+        '"CardButton",{"label":"蓝牙设置",'
+        '"icon":"resources/base/media/bluetooth_fill.svg","fillColor"'
+    )
+    assert explicit_color not in two_by_four
+
+
 def test_anchor_layout_requires_main_and_nonempty_support_information() -> None:
     create = read_prompt(DEFAULT_SOURCE, "create", size="2x2")
     plan = read_prompt(DEFAULT_SOURCE, "plan", size="2x2")
@@ -176,6 +192,40 @@ def test_plan_prompt_contains_only_incremental_contract(size: str) -> None:
     assert "## 1. 组件总表" not in plan_prompt
     assert "## 2x2 组件选型" not in plan_prompt
     assert "## 2x4 组件选型" not in plan_prompt
+
+
+def test_plan_prompt_allows_bounded_three_item_list_selection_without_runtime_cap() -> None:
+    plan_prompt = read_prompt(DEFAULT_SOURCE, "plan", size="2x4")
+
+    assert "2x4 有序列表的 Plan 容量例外" in plan_prompt
+    assert "只选入最多 3 个完整成员进入 `info_required`" in plan_prompt
+    assert "没有额外优先级时，按输入原始顺序保留前 3 个" in plan_prompt
+    assert "Action 及其完整参数不适用此例外" in plan_prompt
+    assert "不是 Runtime 对 `EventCard.items` 新增最多 3 项的硬上限" in plan_prompt
+
+
+def test_repair_prompt_suggests_lossless_event_card_to_summary_list_compaction() -> None:
+    repair_prompt = read_prompt(DEFAULT_SOURCE, "repair", size="2x4")
+
+    assert "EventCard 总高超出父槽" in repair_prompt
+    assert "accepted Plan 只保留 2–3 条同级短事件" in repair_prompt
+    assert "优先比较改用 `SummaryList`" in repair_prompt
+    assert "动态字段用 Expression 保留全部 PathBinding" in repair_prompt
+    assert "2项按64vp、3项按102vp重算高度" in repair_prompt
+    assert "超过3项、存在多行长地点" in repair_prompt
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_plan_and_create_prompts_forbid_invented_advice_copy(size: str) -> None:
+    create_prompt = read_prompt(DEFAULT_SOURCE, "create", size=size)
+    plan_prompt = read_prompt(DEFAULT_SOURCE, "plan", size=size)
+    invented_copy = "今天适合跑步吗？天气舒适，适合跑步"
+
+    assert invented_copy in plan_prompt
+    assert invented_copy in create_prompt
+    assert "不得为填充支撑区" in plan_prompt
+    assert "不在 `SecondaryBody.items[].value`" in create_prompt
+    assert '"value":"补充说明"' not in create_prompt
 
 
 def test_plan_manifest_only_registers_incremental_contract() -> None:
@@ -376,11 +426,14 @@ def test_size_component_rules_separate_shared_and_dedicated_components() -> None
     for name in ("DataDisplay", "CircleButton"):
         assert f" `{name}`\n" in common
         assert f" `{name}`\n" not in wide
-    for name in ("TextBlock", "CardButton", "TopTextBottomValue", "ProgressLine2", "SummaryList"):
+    for name in ("TextBlock", "TopTextBottomValue", "ProgressLine2", "SummaryList"):
         assert f" `{name}`\n" in wide
         assert f" `{name}`\n" not in common
     assert "只允许进入 `W-top-bottom` 的 details" in wide
     assert "整卡改选为 `W-top-bottom`" in wide
+    assert "明细可为TextBlock/TopTextBottomValue/SummaryList/EventCard" in wide
+    assert "可进入 W-top-bottom.primary/details" in wide
+    assert "仅在 `W-top-bottom` 的primary和details" in wide
     assert "合法可点击 Row/Column" not in wide
     assert "写 `height:50`" not in common
     assert "| `items[].label` | 显示值 |" in wide
@@ -528,7 +581,7 @@ def test_fewshot_source_is_one_document_per_size(size: str) -> None:
     if size == "2x2":
         expected.extend(
             f"example-v{index:02d}"
-                for index in (1, 9, 15, 10, 12, 4, 11, 13, 5, 6, 2, 8, 14, 3, 7)
+            for index in (1, 9, 15, 10, 19, 16, 12, 4, 11, 13, 5, 6, 2, 8, 14, 3, 17, 18, 7)
         )
     else:
         expected.extend(

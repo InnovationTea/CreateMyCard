@@ -40,9 +40,16 @@ def _leaf(identifier: str, kind: str = "EmphasisText") -> list:
                  "fontColor": "#FF1F4799", "variant": "slot"}
     elif kind in {"PillButton", "CardButton"}:
         props = {"label": "查看设备", "onClick": [{"call": "open", "args": {"id": identifier}}]}
+        if kind == "CardButton":
+            props["icon"] = "resources/base/media/gearshape_fill.svg"
     elif kind == "ProgressCircle":
         props = {"value": 20, "total": 100, "externalText": "20%",
                  "label": identifier, "icon": "test.svg", "fillColor": "#FF000000"}
+    elif kind == "EventCard":
+        props = {
+            "items": [{"title": f"{identifier}日程", "time": "09:00-10:00"}],
+            "density": "compact",
+        }
     return [identifier, kind, props]
 
 
@@ -159,6 +166,7 @@ def test_reversed_mixed_fixed_slots_compile_with_warning() -> None:
             "CardButton",
             {
                 "label": "查看设备",
+                "icon": "resources/base/media/gearshape_fill.svg",
                 "onClick": [{"call": "open", "args": {"id": "device"}}],
             },
         ],
@@ -181,7 +189,9 @@ def test_reversed_mixed_fixed_slots_compile_with_warning() -> None:
         task_spec={
             "size": "2x4",
             "dataModelSchema": {"data": {}},
-            "assetCandidates": [],
+            "assetCandidates": [
+                {"src": "resources/base/media/gearshape_fill.svg"},
+            ],
             "eventCandidates": [{"call": "open", "args": {"id": "device"}}],
         },
         card_spec={"suggestSize": "2x4"},
@@ -209,6 +219,40 @@ def test_top_bottom_variants_and_optional_title(variant: str, with_title: bool) 
     components = [row for row in parsed if isinstance(row, ComponentRow)]
     match = match_compact_layout(components, size="2x4", layout_scope="W-plan-guided")
     assert match.layout_id == "W-top-bottom"
+
+
+def test_top_bottom_accepts_event_card_in_primary_and_details() -> None:
+    rows = [
+        [
+            "root",
+            "Layout",
+            {"layout": "W-top-bottom", "variant": "equal"},
+            ["day_one", "day_two"],
+        ],
+        _leaf("day_one", "EventCard"),
+        _leaf("day_two", "EventCard"),
+    ]
+
+    parsed = parse_compact_dsl_rows(_source(rows), size="2x4")
+    components = [row for row in parsed if isinstance(row, ComponentRow)]
+
+    match = match_compact_layout(components, size="2x4", layout_scope="W-plan-guided")
+    assert match.layout_id == "W-top-bottom"
+    assert "updateComponents" in convert_compact_dsl_to_a2ui(_source(rows), size="2x4")
+
+
+def test_top_bottom_still_rejects_unregistered_details_component() -> None:
+    rows = [
+        ["root", "Layout", {"layout": "W-top-bottom"}, ["primary", "details"]],
+        _leaf("primary"),
+        _leaf("details", "InfoBlock"),
+    ]
+
+    with pytest.raises(
+        CompactDslConversionError,
+        match="details 槽必须使用 TextBlock、TopTextBottomValue、SummaryList 或 EventCard",
+    ):
+        parse_compact_dsl_rows(_source(rows), size="2x4")
 
 
 def test_four_slots_compiles_and_converts_using_existing_recipes() -> None:
@@ -241,6 +285,58 @@ def test_business_ids_bindings_events_and_data_rows_are_preserved() -> None:
         row for row in parsed if isinstance(row, DataRow)]
     assert origins.get("left") == "left"
     assert '"Layout"' in source
+
+
+def test_small_title_dual_content_uses_flexible_primary_and_natural_support() -> None:
+    source = _source([
+        ["root", "Layout", {"layout": "S-title-dual-content"},
+         ["title", "primary", "support"]],
+        ["title", "SingleLineTitle", {"title": "今日天气", "fontSize": 12}],
+        ["primary", "EmphasisText", {
+            "mainText": "29℃", "secondaryText": "多云", "fontSize": 18,
+        }],
+        ["support", "SecondaryBody", {
+            "items": [
+                {"label": "体感 ", "value": "31℃"},
+                {"label": "湿度 ", "value": "68%"},
+                {"label": "空气 ", "value": "良"},
+            ],
+            "columns": 1,
+            "fontSize": 12,
+        }],
+    ])
+    components = {
+        row.component_id: row
+        for row in parse_compact_dsl_rows(source, size="2x2")
+        if isinstance(row, ComponentRow)
+    }
+
+    primary = components.get("__layout__root__primary")
+    support = components.get("__layout__root__support")
+    body = components.get("__layout__root__body")
+    assert primary is not None
+    assert support is not None
+    assert body is not None
+    assert primary.props.get("layoutWeight") == 1
+    assert primary.props.get("flexShrink") == 0
+    assert "layoutWeight" not in support.props
+    assert support.props.get("flexShrink") == 0
+    assert body.props.get("itemMargin") == 8
+
+    matched = match_compact_layout(
+        list(components.values()),
+        size="2x2",
+        layout_scope="S-title-dual-content",
+    )
+    assert matched.layout_id == "S-title-dual-content"
+
+    converted = convert_compact_dsl_to_a2ui(source, size="2x2")
+    update = json.loads(converted.splitlines()[1])["updateComponents"]
+    expanded = {component["id"]: component for component in update["components"]}
+    assert expanded["__layout__root__primary"]["styles"]["layoutWeight"] == 1
+    assert expanded["__layout__root__primary"]["styles"]["flexShrink"] == 0
+    assert "layoutWeight" not in expanded["__layout__root__support"]["styles"]
+    assert expanded["__layout__root__support"]["styles"]["flexShrink"] == 0
 
 
 @pytest.mark.parametrize("property_name", ["height", "width", "padding", "itemMargin",
@@ -303,7 +399,7 @@ def test_height_gap_relaxation_only_changes_mapped_generated_wide_columns(
     assert row.props.get("itemMargin") == gap
 
 
-@pytest.mark.parametrize("item_count", [4, 5])
+@pytest.mark.parametrize("item_count", [5, 6])
 def test_wide_height_budget_ignores_layout_gaps_but_keeps_content_minimums(item_count: int) -> None:
     rows = [
         ["root", "Layout", {"layout": "W-content-side-slots"}, ["main", "upper", "lower"]],
@@ -318,7 +414,7 @@ def test_wide_height_budget_ignores_layout_gaps_but_keeps_content_minimums(item_
     source = _source(rows)
     task = {"size": "2x4", "dataModelSchema": {"data": {}},
             "assetCandidates": [{"src": "test.svg", "description": "多色，保留原色"}]}
-    if item_count == 4:
+    if item_count == 5:
         validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x4"})
     else:
         with pytest.raises(CompactDslValidationError) as caught:
@@ -485,14 +581,14 @@ def test_metric_label_crosses_only_compiler_wrappers_not_neighbor_region(own_tit
         "type": "integer", "description": "睡眠综合得分，取值范围0-100。", "sampleValue": 82,
     }}}}}
     if own_title:
-        validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
-                             layout_scope="W-plan-guided")
+        result = validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
+                                      layout_scope="W-plan-guided")
+        assert result.warnings == ()
     else:
-        with pytest.raises(CompactDslValidationError) as caught:
-            validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
-                                 layout_scope="W-plan-guided")
-        assert any(item.code == "COMPACT_DISPLAY_AMBIGUOUS_METRIC"
-                   for item in caught.value.diagnostics)
+        result = validate_compact_dsl(_source(rows), task_spec=task, card_spec={},
+                                      layout_scope="W-plan-guided")
+        assert len(result.warnings) == 1
+        assert result.warnings[0].startswith("COMPACT_DISPLAY_AMBIGUOUS_METRIC:")
 
 
 @pytest.mark.parametrize("title_kind", ["title-count", "DoubleLineTitle"])

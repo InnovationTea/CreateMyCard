@@ -41,7 +41,7 @@ def test_examples_preserve_requested_fields_samples_and_registered_actions(
     case = provider.cases[index]
     assert case.caseId == "template-example-" + example.id
     assert case.targetTemplateId == example.template_id
-    assert case.prdVer == "11.7.7.330"
+    assert case.prdVer == gallery.FUSION_PRD_VERSION
     payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
     request = gallery._request_from_envelope(payload)
     assert request.title == (example.card_title or example.title.split(" ", maxsplit=1)[-1])
@@ -110,7 +110,7 @@ def test_example_dates_and_enabled_power_mode_are_consistent(tmp_path: Path) -> 
     assert isinstance(args, dict)
     params = args.get("params")
     assert isinstance(params, dict)
-    assert params.get("switchFlag") == 0
+    assert "switchFlag" not in params
 
 
 def test_example_full_icon_action_uses_matching_layout_and_registered_asset(tmp_path: Path) -> None:
@@ -118,7 +118,8 @@ def test_example_full_icon_action_uses_matching_layout_and_registered_asset(tmp_
     case = append_template_examples(tmp_path).providers[-1].cases[6]
     assert case.expectedLayout == "FullIconActionLayout"
     assert case.scenarioId == "single-icon-action"
-    request = gallery._request_from_envelope(json.loads((tmp_path / case.requestFile).read_text()))
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    request = gallery._request_from_envelope(payload)
     assert "asset.battery_leaf_fill" in (request.candidateAssetIds or [])
 
 

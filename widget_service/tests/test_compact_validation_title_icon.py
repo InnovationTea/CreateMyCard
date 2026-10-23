@@ -6,7 +6,10 @@ from typing import Any
 import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
-from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
+from services.card_validation.compact_validation.semantic.plan_contracts import (
+    collect_plan_contract_errors,
+)
+from services.compact_dsl_a2ui_converter import ComponentRow, convert_compact_dsl_to_a2ui
 from services.generation_pipeline import DesignCompactProcessor
 from services.prompt_builder import PromptBuilder
 
@@ -177,3 +180,30 @@ def test_title_icon_keeps_component_contract_errors(props: dict[str, Any], messa
     candidate = icon if isinstance(icon, str) else SVG
     with pytest.raises(CompactDslValidationError, match=message):
         _validate(_source(props), _task("2x2", candidate))
+
+
+def test_title_icon_cannot_reuse_an_info_block_visual_icon() -> None:
+    components = [
+        ComponentRow("title", "SingleLineTitle", {"title": "天气", "icon": SVG}, ()),
+        ComponentRow(
+            "weather",
+            "InfoBlock",
+            {"visual": {"type": "icon", "icon": SVG}},
+            (),
+        ),
+    ]
+    errors: list[str] = []
+
+    collect_plan_contract_errors(
+        components,
+        {"assetCandidates": [{"src": SVG}]},
+        None,
+        errors,
+        size="2x4",
+    )
+
+    assert errors == [
+        "SingleLineTitle reuses icon 'resources/weather.svg' with card content components "
+        "['weather']; keep the content icon and replace the title icon with another unused "
+        "matching asset; remove it only when no alternative candidate exists."
+    ]

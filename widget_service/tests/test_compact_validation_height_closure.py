@@ -12,6 +12,8 @@ from services.card_validation.compact_validation.semantic.layout.geometry import
 )
 from services.compact_dsl_a2ui_converter import (
     ComponentRow,
+    DataRow,
+    build_compact_data_model,
     expand_high_level_component_rows,
     normalize_mixed_font_text_rows,
     parse_compact_dsl_rows,
@@ -43,7 +45,7 @@ SLEEP = '\n'.join([
     '"abilityName":"com.huawei.hmos.settings.MainAbility","uri":"parent_control"}}]}]',
 ])
 
-WEATHER_SUPPORT_OVERFLOW = '\n'.join([
+WEATHER_SUPPORT_NATURAL = '\n'.join([
     '["root","Layout",{"layout":"S-title-dual-content"},'
     '["title","primary","support"]]',
     '["title","SingleLineTitle",'
@@ -63,6 +65,40 @@ WEATHER_SUPPORT_OVERFLOW = '\n'.join([
     '["/data/weather/current/humidityPercent",68]',
     '["/data/weather/current/windLevel",2]',
 ])
+
+WEATHER_SUPPORT_OVERFLOW = WEATHER_SUPPORT_NATURAL.replace(
+    '{"label":"风力 ","value":"{{ ${/data/weather/current/windLevel} + \'级\' }}"}',
+    '{"label":"风力 ","value":"{{ ${/data/weather/current/windLevel} + \'级\' }}"},'
+    '{"label":"体感 ","value":"31℃"},{"label":"降雨 ","value":"20%"}',
+).replace('"columns":2', '"columns":1')
+
+ANCHOR_MULTILINE_SUPPORT = '\n'.join([
+    '["root","Layout",{"layout":"S-title-anchor"},["title","primary","support","action"]]',
+    '["title","SingleLineTitle",{"title":"电池体检",'
+    '"icon":"resources/base/media/battery_leaf_fill.svg","fontSize":12}]',
+    '["primary","EmphasisText",{"mainText":{"path":"/data/phoneBattery/batterySOCText"},'
+    '"fontSize":18}]',
+    '["support","SecondaryBody",{"items":['
+    '{"label":"电量等级 ","value":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"}},'
+    '{"label":"健康状态 ","value":{"path":"/data/phoneBattery/healthStatusDesc"}},'
+    '{"label":"实时温度 ","value":{"path":"/data/phoneBattery/batteryTemperatureText"}}'
+    '],"fontSize":12}]',
+    '["action","CircleButton",{"icon":"resources/base/media/gearshape_fill.svg",'
+    '"accessibility":{"label":"电池健康设置"},"onClick":[{"call":"clickToDeeplink",'
+    '"args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings",'
+    '"abilityName":"com.huawei.hmos.settings.MainAbility",'
+    '"uri":"smart_charge_battery_health"}}]}]',
+    '["/data/phoneBattery/batterySOCText","68%"]',
+    '["/data/phoneBattery/batteryCapacityLevelDesc","正常电量"]',
+    '["/data/phoneBattery/healthStatusDesc","正常"]',
+    '["/data/phoneBattery/batteryTemperatureText","29.0 ℃"]',
+])
+
+ANCHOR_MULTILINE_SUPPORT_OVERFLOW = ANCHOR_MULTILINE_SUPPORT.replace(
+    '{"label":"实时温度 ","value":{"path":"/data/phoneBattery/batteryTemperatureText"}}',
+    '{"label":"实时温度 ","value":{"path":"/data/phoneBattery/batteryTemperatureText"}},'
+    '{"label":"充电状态 ","value":{"path":"/data/phoneBattery/chargingStatus"}}',
+)
 
 WEATHER_TASK_SPEC = {
     "size": "2x2",
@@ -111,6 +147,16 @@ def _height_errors(
     return errors
 
 
+def _anchor_multiline_support_rows(*, overflow: bool = False) -> list[ComponentRow]:
+    source = ANCHOR_MULTILINE_SUPPORT_OVERFLOW if overflow else ANCHOR_MULTILINE_SUPPORT
+    rows = parse_compact_dsl_rows(source, size="2x2")
+    components = [row for row in rows if isinstance(row, ComponentRow)]
+    data_rows = [row for row in rows if isinstance(row, DataRow)]
+    data_model = build_compact_data_model(data_rows)
+    expanded = expand_high_level_component_rows(components, size="2x2", data_model=data_model)
+    return normalize_mixed_font_text_rows(expanded, data_model=data_model)
+
+
 def test_sleep_card_rejects_unbounded_text_block_column() -> None:
     errors = _height_errors(_sleep_rows())
     records = errors.records
@@ -147,6 +193,16 @@ def test_public_validator_reports_height_closure_with_source_location() -> None:
     assert diagnostic.fix_hint is not None
 
 
+def test_weather_support_natural_height_uses_available_bottom_space() -> None:
+    result = validate_compact_dsl(
+        WEATHER_SUPPORT_NATURAL,
+        task_spec=WEATHER_TASK_SPEC,
+        card_spec={"suggestSize": "2x2"},
+    )
+
+    assert result.warnings == ()
+
+
 def test_weather_support_height_overflow_is_blocking_layout_capacity_error() -> None:
     with pytest.raises(CompactDslValidationError) as captured:
         validate_compact_dsl(
@@ -166,6 +222,29 @@ def test_weather_support_height_overflow_is_blocking_layout_capacity_error() -> 
     assert any("Occupancy:" in item.legacy_message for item in diagnostics)
 
 
+def test_anchor_multiline_support_expands_from_the_bottom_without_overlap() -> None:
+    rows = _anchor_multiline_support_rows()
+    bottom = next(row for row in rows if row.component_id == "__layout__root__bottom")
+    body = next(row for row in rows if row.component_id == "__layout__root__body")
+
+    assert "height" not in bottom.props
+    assert bottom.props.get("constraintSize") == {"minHeight": 40}
+    assert bottom.props.get("flexShrink") == 0
+    assert body.props.get("itemMargin") == 2
+    assert not _height_errors(rows, size="2x2")
+
+
+def test_anchor_multiline_support_still_rejects_total_height_overflow() -> None:
+    errors = _height_errors(_anchor_multiline_support_rows(overflow=True), size="2x2")
+    diagnostics = [item for item in errors.records if not isinstance(item, str)]
+
+    assert any(
+        item.code == "COMPACT_LAYOUT_HEIGHT_OVERFLOW"
+        and item.component_id == "__layout__root__body"
+        for item in diagnostics
+    )
+
+
 def test_closed_sleep_card_rejects_height_even_when_item_margin_matches_overflow() -> None:
     rows = []
     for row in _sleep_rows(closed=True):
@@ -178,7 +257,7 @@ def test_closed_sleep_card_rejects_height_even_when_item_margin_matches_overflow
     diagnostic = errors.records[0]
     assert not isinstance(diagnostic, str)
     assert diagnostic.code == "COMPACT_LAYOUT_HEIGHT_OVERFLOW"
-    assert diagnostic.actual.get("overflow") == 8.0
+    assert diagnostic.actual.get("overflow") == 2.0
 
 
 @pytest.mark.parametrize("component_id", ["root", "weighted"])

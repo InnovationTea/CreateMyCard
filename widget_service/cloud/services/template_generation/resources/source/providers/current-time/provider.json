@@ -23,7 +23,7 @@
       "templateId": "CurrentTimeOverviewDateFull@1",
       "businessId": "CurrentTimeOverview",
       "capabilityId": "GetCurrentTime",
-      "description": "独立 2x2 日期 Full 摘要，大号居中展示当前公历日期，顶部可选展示星期，底部可选展示农历；无操作入口。 组件形态：full。",
+      "description": "配对组合使用的日期 Full 摘要，大号居中展示当前公历日期，顶部可选展示星期，底部可选展示农历；无操作入口。 组件形态：full。",
       "entry": "templates/current-time-overview.cardtpl",
       "primaryData": [
         "/currentDate"
@@ -38,7 +38,7 @@
       "templateId": "CurrentTimeOverviewUpdatedFull@1",
       "businessId": "CurrentTimeOverview",
       "capabilityId": "GetCurrentTime",
-      "description": "独立 2x2 更新时间 Full 摘要，大号展示端侧完成时间数据组装的更新时间戳，顶部可选展示公历日期，底部可选展示星期；updatedAt 是数据新鲜度时间戳，不代表事件发生时间；无操作入口。 组件形态：full。",
+      "description": "配对组合使用的更新时间 Full 摘要，大号展示端侧完成时间数据组装的更新时间戳，顶部可选展示公历日期，底部可选展示星期；updatedAt 是数据新鲜度时间戳，不代表事件发生时间；无操作入口。 组件形态：full。",
       "entry": "templates/current-time-overview.cardtpl",
       "primaryData": [
         "/updatedAt"

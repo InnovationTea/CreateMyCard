@@ -1783,7 +1783,7 @@ class WidgetGenerationService:
             )
             if is_blocking_compact_failure:
                 quality_error_payloads = [
-                    issue.to_prompt_payload() for issue in latest_processing_result.errors
+                    issue.to_diagnostic_payload() for issue in latest_processing_result.issues
                 ]
                 issue_category = compact_capacity_recovery_failure_category(
                     quality_error_payloads,
@@ -2072,6 +2072,10 @@ class WidgetGenerationService:
             model_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
             model_format="a2ui-form",
         )
+        if "sourceArtifactUrl" in request.model_fields_set:
+            return await self._generate_widget_card_with_policy(
+                request, policy, before_model_call=before_model_call,
+            )
         # JSX 开关独立于模板开关
         try_template = self._enable_card_template()
         try_jsx = self._enable_jsx_generation()
@@ -2165,16 +2169,18 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
         try:
             response = await self._generate_widget_card_with_policy(
                 request,
                 policy,
                 before_model_call=before_model_call,
-                try_jsx=self._enable_jsx_generation(),
+                try_jsx=False if is_edit else self._enable_jsx_generation(),
                 template_source_generator=(
-                    TemplateSourceGenerator() if self._enable_card_template() else None
+                    TemplateSourceGenerator()
+                    if not is_edit and self._enable_card_template() else None
                 ),
-                need_fallback=not self._enable_jsx_generation(),
+                need_fallback=is_edit or not self._enable_jsx_generation(),
             )
         except BaseException as exc:
             if trace_token is not None:
@@ -2210,6 +2216,7 @@ class WidgetGenerationService:
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_layout_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         """复用 Design Compact 原始生成链处理 Terse 模板入口。"""
@@ -2242,6 +2249,7 @@ class WidgetGenerationService:
         if (
             "sourceArtifactUrl" in request.model_fields_set
             and not get_settings().enable_single_step_widget_edit
+            and not get_settings().enable_semantic_widget_edit
         ):
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
@@ -2249,9 +2257,14 @@ class WidgetGenerationService:
                 message="模板路线暂不支持二次更新。",
                 errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
             )
+        if "sourceArtifactUrl" in request.model_fields_set:
+            return await self._generate_widget_card_with_policy(
+                request, policy, before_model_call=before_model_call,
+            )
         template_source_generator = TemplateSourceGenerator(
             trusted_template_candidate_ids=trusted_template_candidate_ids,
             trusted_template_action_ids=trusted_template_action_ids,
+            trusted_template_layout_ids=trusted_template_layout_ids,
             trusted_template_sample_overrides=dict(trusted_template_sample_overrides or {}),
         )
         return await self._generate_widget_card_with_policy(
@@ -2275,6 +2288,12 @@ class WidgetGenerationService:
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定路由对应的协议 profile。"""
         is_edit = "sourceArtifactUrl" in request.model_fields_set
+        if is_edit and get_settings().enable_semantic_widget_edit:
+            from services.widget_edit_service import WidgetEditService
+
+            return await WidgetEditService(self).generate(request, policy, before_model_call)
+        if is_edit:
+            try_jsx = False
         if is_edit and get_settings().enable_single_step_widget_edit:
             policy = self._single_step_policy(policy, is_edit=True)
             try_jsx = False

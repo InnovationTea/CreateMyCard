@@ -123,8 +123,8 @@ npm.cmd run build
 在仓库根目录运行 Python 路由回归：
 
 ```powershell
-uv run ruff check debug_tools/static_site.py debug_tools/end_to_end_debug/backend/server.py widget_service/tests/test_debug_batch_testing.py
-uv run pytest widget_service/tests/test_debug_batch_testing.py -q
+uv run ruff check debug_tools/static_site.py debug_tools/end_to_end_debug/backend/server.py debug_tools/tests/python/test_debug_batch_testing.py
+uv run pytest debug_tools/tests/python/test_debug_batch_testing.py -q
 ```
 
 最后在仓库根目录执行：
