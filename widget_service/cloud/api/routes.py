@@ -878,16 +878,23 @@ async def _check_daily_usage(
     limiter: DailyUsageLimiter | None,
 ) -> DailyUsageRecord | None:
     record: DailyUsageRecord | None = None
-    if operation not in GENERATION_OPERATIONS or not get_settings().enable_daily_usage_limit:
+    if operation not in GENERATION_OPERATIONS:
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=non_generation")
+        return record
+    if not get_settings().enable_daily_usage_limit:
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=disabled")
         return record
     uid = _trace_uid_from_raw_payload(payload)
-    if not uid.strip() or not request_id:
-        logger.info(f"{_MODULE} daily_usage_bypass operation={operation} reason=missing_identity")
+    if not uid.strip():
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=missing_uid")
         return record
-    if not request_id.strip():
-        logger.info(f"{_MODULE} daily_usage_bypass operation={operation} reason=missing_request_id")
+    if not request_id or not request_id.strip():
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=missing_request_id")
         return record
     if limiter is None:
+        logger.error(
+            f"[Daily Usage] check_failed operation={operation} reason=client_not_initialized"
+        )
         raise DailyUsageError(
             ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE,
             "暂时无法检查今日卡片生成次数，请稍后重试。",
@@ -1006,6 +1013,7 @@ async def _serve_operation_websocket(
             arguments: dict[str, Any] = {}
             heartbeat_task: asyncio.Task | None = None
             daily_usage_record: DailyUsageRecord | None = None
+            daily_usage_record_started = False
             streaming_text_id = request_id or uuid.uuid4().hex
             metrics.task_started()
             try:
@@ -1182,6 +1190,7 @@ async def _serve_operation_websocket(
                     )
                     if daily_usage_record is not None and countable:
                         assert daily_usage_limiter is not None
+                        daily_usage_record_started = True
                         await daily_usage_limiter.record_success(daily_usage_record)
                 plugin_response = _build_plugin_stream_response(
                     result_message,
@@ -1340,6 +1349,13 @@ async def _serve_operation_websocket(
                 ):
                     return
             finally:
+                if daily_usage_record is not None and not daily_usage_record_started:
+                    logger.info(
+                        f"[Daily Usage] record_skipped operation={operation} "
+                        f"record_id={daily_usage_record.record_id} "
+                        f"status={trace_status} directive_started={widget_directive_started} "
+                        "reason=success_delivery_not_confirmed"
+                    )
                 if operation == COMPACT_DSL_OPERATION:
                     service.trace_recorder.finalize(
                         status=trace_status,

@@ -1,10 +1,11 @@
 """每日次数 API 适配器；只负责 HTTP 契约，不连接数据库或读取数据库密码。"""
 
+from time import perf_counter
 from typing import Any
 
 import httpx
 
-from app.logger import task_logger
+from app.logger import logger, task_logger
 from config.config import Settings
 from services.daily_usage_limiter import DailyUsageLimiter, DailyUsageRecord, DailyUsageSnapshot
 
@@ -20,7 +21,9 @@ class APIDailyUsageRepository:
         self.snapshot_url = snapshot_url
         self.record_url = record_url
 
-    async def _post(self, url: httpx.URL, record: DailyUsageRecord) -> dict[str, Any]:
+    async def _post(
+        self, url: httpx.URL, record: DailyUsageRecord, operation: str
+    ) -> dict[str, Any]:
         # 参考 ops_metrics 的包络，但必须等待响应，不使用后台 fire-and-forget。
         payload = {
             "sessionId": task_logger.get_session_id() or record.record_id,
@@ -31,8 +34,25 @@ class APIDailyUsageRepository:
                 "usageDate": record.usage_date.isoformat(),
             },
         }
-        response = await self.client.post(
-            url, json=payload, headers={"Content-Type": "application/json"}
+        started_at = perf_counter()
+        logger.info(
+            f"[Daily Usage] api_started operation={operation} record_id={record.record_id}"
+        )
+        try:
+            response = await self.client.post(
+                url, json=payload, headers={"Content-Type": "application/json"}
+            )
+        except Exception as exc:
+            logger.error(
+                f"[Daily Usage] api_failed operation={operation} record_id={record.record_id} "
+                f"exception_type={type(exc).__name__} "
+                f"duration_ms={(perf_counter() - started_at) * 1000:.2f}"
+            )
+            raise
+        logger.info(
+            f"[Daily Usage] api_response operation={operation} record_id={record.record_id} "
+            f"http_status={response.status_code} "
+            f"duration_ms={(perf_counter() - started_at) * 1000:.2f}"
         )
         response.raise_for_status()
         if response.status_code != 200:
@@ -45,7 +65,7 @@ class APIDailyUsageRepository:
         return result
 
     async def snapshot(self, record: DailyUsageRecord) -> DailyUsageSnapshot:
-        result = await self._post(self.snapshot_url, record)
+        result = await self._post(self.snapshot_url, record, "snapshot")
         data = result.get("data")
         if not isinstance(data, dict):
             raise ValueError("daily usage API snapshot data must be an object")
@@ -60,7 +80,7 @@ class APIDailyUsageRepository:
         return DailyUsageSnapshot(already_counted=counted, used_count=used_count)
 
     async def insert_success(self, record: DailyUsageRecord) -> None:
-        await self._post(self.record_url, record)
+        await self._post(self.record_url, record, "record_success")
 
     async def aclose(self) -> None:
         await self.client.aclose()
@@ -82,6 +102,11 @@ def _api_url(base_url: str, path: str) -> httpx.URL:
 
 async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | None:
     limiter: DailyUsageLimiter | None = None
+    logger.info(
+        f"[Daily Usage] initializing enabled={settings.enable_daily_usage_limit} "
+        f"limit={settings.daily_usage_limit} "
+        f"timeout_seconds={settings.daily_usage_api_timeout_seconds}"
+    )
     if settings.enable_daily_usage_limit:
         snapshot_url = _api_url(
             settings.hag_slb_url, settings.daily_usage_api_snapshot_path
@@ -100,4 +125,5 @@ async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | 
             settings.daily_usage_limit,
             settings.daily_usage_api_timeout_seconds,
         )
+    logger.info(f"[Daily Usage] initialized client_ready={limiter is not None}")
     return limiter

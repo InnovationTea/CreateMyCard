@@ -70,10 +70,10 @@ class DailyUsageLimiter:
 
     async def check(self, uid: str, request_id: str | None) -> DailyUsageRecord | None:
         record: DailyUsageRecord | None = None
-        if not uid.strip() or not request_id:
-            logger.info("[Daily Usage] bypass reason=missing_identity")
+        if not uid.strip():
+            logger.info("[Daily Usage] bypass reason=missing_uid")
             return record
-        if not request_id.strip():
+        if not request_id or not request_id.strip():
             logger.info("[Daily Usage] bypass reason=missing_request_id")
             return record
         record = DailyUsageRecord(
@@ -82,12 +82,18 @@ class DailyUsageLimiter:
             request_id_hash=hashlib.sha256(request_id.encode("utf-8")).hexdigest(),
             usage_date=self.clock().astimezone(_BEIJING).date(),
         )
+        logger.info(
+            f"[Daily Usage] check_started record_id={record.record_id} "
+            f"uid_hash={record.uid_hash} request_id_hash={record.request_id_hash} "
+            f"date={record.usage_date} limit={self.limit}"
+        )
         try:
             async with asyncio.timeout(self.timeout_seconds):
                 snapshot = await self.repository.snapshot(record)
         except Exception as exc:
             logger.error(
-                f"[Daily Usage] check_failed uid_hash={record.uid_hash} "
+                f"[Daily Usage] check_failed record_id={record.record_id} "
+                f"uid_hash={record.uid_hash} request_id_hash={record.request_id_hash} "
                 f"exception_type={type(exc).__name__} reason=usage_api_check_failed"
             )
             raise DailyUsageError(
@@ -95,17 +101,30 @@ class DailyUsageLimiter:
                 "暂时无法检查今日卡片生成次数，请稍后重试。",
             ) from exc
         logger.info(
-            f"[Daily Usage] checked uid_hash={record.uid_hash} "
+            f"[Daily Usage] checked record_id={record.record_id} uid_hash={record.uid_hash} "
             f"request_id_hash={record.request_id_hash} date={record.usage_date} "
             f"used_count={snapshot.used_count} limit={self.limit} "
             f"already_counted={snapshot.already_counted}"
         )
         if snapshot.already_counted:
+            logger.info(
+                f"[Daily Usage] allowed record_id={record.record_id} "
+                "reason=already_counted record_required=False"
+            )
             record = None
         elif snapshot.used_count >= self.limit:
+            logger.warning(
+                f"[Daily Usage] rejected record_id={record.record_id} "
+                f"reason=limit_exceeded used_count={snapshot.used_count} limit={self.limit}"
+            )
             raise DailyUsageError(
                 ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED,
                 "今日 AI 卡片生成次数已达上限，请明天再尝试。",
+            )
+        else:
+            logger.info(
+                f"[Daily Usage] allowed record_id={record.record_id} "
+                "reason=within_limit record_required=True"
             )
         return record
 
@@ -115,24 +134,31 @@ class DailyUsageLimiter:
         for attempt, delay in enumerate(delays, start=1):
             if delay:
                 await asyncio.sleep(delay)
+            logger.info(
+                f"[Daily Usage] record_started record_id={record.record_id} "
+                f"attempt={attempt} max_attempts={len(delays)}"
+            )
             try:
                 async with asyncio.timeout(self.timeout_seconds):
                     await self.repository.insert_success(record)
             except Exception as exc:
                 logger.error(
-                    f"[Daily Usage] record_failed uid_hash={record.uid_hash} "
+                    f"[Daily Usage] record_failed record_id={record.record_id} "
+                    f"uid_hash={record.uid_hash} "
                     f"request_id_hash={record.request_id_hash} date={record.usage_date} "
                     f"attempt={attempt} exception_type={type(exc).__name__} "
                     "reason=usage_api_record_failed"
                 )
             else:
                 logger.info(
-                    f"[Daily Usage] recorded uid_hash={record.uid_hash} "
+                    f"[Daily Usage] recorded record_id={record.record_id} attempt={attempt} "
+                    f"uid_hash={record.uid_hash} "
                     f"request_id_hash={record.request_id_hash} date={record.usage_date}"
                 )
                 return
         logger.error(
-            f"[Daily Usage] record_exhausted uid_hash={record.uid_hash} "
+            f"[Daily Usage] record_exhausted record_id={record.record_id} "
+            f"uid_hash={record.uid_hash} "
             f"request_id_hash={record.request_id_hash} reason=delivered_but_not_confirmed_by_api"
         )
 
