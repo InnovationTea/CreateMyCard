@@ -242,7 +242,7 @@ class Settings(BaseSettings):
     enable_widget_edit: bool = CONFIG.get("enable_widget_edit", "true") == "true"
     enable_semantic_widget_edit: bool = CONFIG.get("enable_semantic_widget_edit", "true") == "true"
     widget_edit_max_repair_attempts: int = Field(
-        default=CONFIG.get("widget_edit_max_repair_attempts", 2), ge=0, le=5,
+        default=CONFIG.get("widget_edit_max_repair_attempts", 3), ge=0, le=5,
     )
     enable_single_step_generation_fallback: bool = (
         CONFIG.get("enable_single_step_generation_fallback", "false") == "true"
