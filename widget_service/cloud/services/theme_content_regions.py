@@ -63,6 +63,10 @@ def photo_layout_evidence(nodes: list[dict], data_model: dict | None = None,
             result["photoBodyTextFlow"] = body_text_flow_evidence(
                 nodes, data_model, include_buttons=True, exclude_ids=title_ids,
             )
+            texture_titles = _layout_title_ids(final_layout, include_region_titles=True)
+            result["textureBodyTextFlow"] = body_text_flow_evidence(
+                nodes, data_model, include_buttons=True, exclude_ids=texture_titles,
+            )
             result["photoTopContent"] = top_content_evidence(
                 nodes, result.get("photoBodyTextFlow", {}), title_ids,
             )
@@ -220,7 +224,8 @@ def _non_text_ancestors(nodes: list[dict], identities: list[str]) -> dict:
     return result
 
 
-def _layout_title_ids(final_layout: str | None) -> set[str] | None:
+def _layout_title_ids(final_layout: str | None,
+                      *, include_region_titles: bool = False) -> set[str] | None:
     from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
 
     result: set[str] | None = None
@@ -240,6 +245,13 @@ def _layout_title_ids(final_layout: str | None) -> set[str] | None:
         for row in by_id.values():
             if row.component_type in {"PillButton", "CircleButton", "CardButton", "Button"}:
                 result.add(row.component_id)
+            region_title = (row.component_type == "Region"
+                            and row.props.get("variant", "").startswith("title-"))
+            if include_region_titles and region_title and row.children:
+                first = by_id.get(row.children[0])
+                title_types = {"SingleLineTitle", "DoubleLineTitle"}
+                if first is not None and first.component_type in title_types:
+                    result.add(first.component_id)
         if scope.props.get("layout") == "W-content-side-slots" and scope.children:
             scope = by_id.get(scope.children[0])
         if scope is not None and scope.children:

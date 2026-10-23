@@ -78,7 +78,7 @@ def test_disabled_new_subject_preserves_existing_fallback(monkeypatch, identity,
         if item.get("id") == identity:
             item["enabled"] = False
     monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
-    _, audit = choose(focus_sample(business, 4), monkeypatch)
+    _, audit = choose(focus_sample(business, 1), monkeypatch)
     assert set(audit.get("candidates", [])) == expected
 
 

@@ -122,7 +122,7 @@ def test_wide_conditional_body_counts_current_branch_with_four_line_limit(
     reason = rejection(saved, "photo-ux-concert-stage-wide")
     assert (reason is None) is allowed
     reason = rejection(saved, PURPLE.replace("square", "wide"))
-    assert (reason is None) is allowed
+    assert (reason is None) is (extra_lines <= 2)
     assert saved.nodes == before
 
 

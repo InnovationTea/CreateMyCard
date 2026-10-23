@@ -120,24 +120,24 @@ def test_fully_centered_usage_only_uses_circles(monkeypatch, lines, allowed):
 
 @pytest.mark.parametrize("wide", [False, True])
 def test_over_limit_body_lines_reject_usage_photos(wide):
-    limit = 4 if wide else 3
+    limit = 3
     saved = sample(USAGE, limit + 1, wide=wide)
     suffix = "wide" if wide else "square"
     for shape in ("diamond", "diagonal"):
         assert f"超过{limit}行" in rejection(saved, PURPLE + shape + "-" + suffix)
 
 
-def test_square_sleep_plus_usage_stays_mixed_even_with_same_purple_family():
+def test_square_sleep_plus_usage_uses_first_business_purple_family():
     saved = sample(USAGE, 1)
     rows = themes.decode(saved.compact)
     rows[0][3].append("sleep")
     path = "/data/healthSport/nightSleepDurationText"
     rows.extend([["sleep", "Text", {"content": {"path": path}}], [path, "7小时"]])
     saved = expanded(rows, saved.task)
-    assert "单业务" in rejection(saved, PURPLE + "diamond-square")
+    assert rejection(saved, PURPLE + "diamond-square") is None
 
 
-def test_wide_classifies_only_main_content_and_keeps_layout_gate():
+def test_wide_abstract_uses_first_business_without_main_focus_gate():
     saved = sample(USAGE, 3, wide=True)
     rows = themes.decode(saved.compact)
     upper = next(row for row in rows if row[0] == "upper")
@@ -150,7 +150,7 @@ def test_wide_classifies_only_main_content_and_keeps_layout_gate():
     assert rejection(expanded(rows, saved.task), PURPLE + "diamond-wide") is None
     saved = sample(USAGE, 2)
     saved.task["size"] = "2x4"
-    assert "主焦点" in rejection(saved, PURPLE + "diamond-wide")
+    assert rejection(saved, PURPLE + "diamond-wide") is None
 
 
 def test_query_and_unshown_usage_cannot_override_actual_weather():
@@ -159,7 +159,7 @@ def test_query_and_unshown_usage_cannot_override_actual_weather():
     saved.task["dataModelSchema"] = {"data": {"dailyUsage": {"mostUsedApps": []}}}
     rows = themes.decode(saved.compact)
     rows.append([USAGE, "45分钟"])
-    assert "单业务" in rejection(expanded(rows, saved.task), PURPLE + "diamond-square")
+    assert "首个可见业务" in rejection(expanded(rows, saved.task), PURPLE + "diamond-square")
 
 
 def test_disabled_switch_still_excludes_usage_photos(monkeypatch):

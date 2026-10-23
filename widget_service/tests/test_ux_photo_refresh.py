@@ -108,7 +108,8 @@ def test_battery_subject_precedes_abstract_without_relayout(monkeypatch, wide):
     saved = sample(PATHS.get("battery"), 3, wide=wide)
     result, audit = choose(saved, monkeypatch)
     if wide:
-        assert all(not item.startswith("photo-") for item in audit.get("candidates", []))
+        assert len(audit.get("candidates", [])) == 6
+        assert all(item.startswith("photo-ux-texture-") for item in audit.get("candidates", []))
     else:
         assert audit.get("candidates") == [identity]
         assert audit.get("themeId") == identity

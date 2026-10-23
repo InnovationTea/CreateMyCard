@@ -163,10 +163,10 @@ def test_selection_is_uniform_blue_and_preserves_foreground(monkeypatch, event_i
 @pytest.mark.parametrize("event_id", [NAVIGATION, SETTINGS])
 @pytest.mark.parametrize("wide", [False, True])
 @pytest.mark.parametrize("lines", [1, 3, 4, 5])
-def test_body_line_gate_uses_square_three_and_wide_four(event_id, wide, lines):
+def test_body_line_gate_uses_three_for_square_and_wide(event_id, wide, lines):
     saved = entry_sample(event_id, lines, wide)
     reason = rejection(saved, BLUE + "diamond-" + ("wide" if wide else "square"))
-    limit = 4 if wide else 3
+    limit = 3
     allowed = lines <= limit
     assert (reason is None) is allowed
     if not allowed:
@@ -209,7 +209,9 @@ def test_unshown_actions_and_query_do_not_create_a_business():
     rows[0][3].remove("button")
     rows = [row for row in rows if row[0] != "button"]
     saved.task.update(userQuery="导航和系统设置", eventCandidates=[action(NAVIGATION)])
-    assert "单业务" in rejection(expanded(rows, saved.task), BLUE + "diamond-square")
+    for color in ("blue", "purple", "orange"):
+        assert rejection(expanded(rows, saved.task),
+                         f"photo-ux-texture-{color}-diamond-square") is None
 
 
 def test_disabled_photo_switch_still_applies(monkeypatch):

@@ -2238,7 +2238,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 菱格",
-      "description": "橙色无主体纹理 · 菱格。业务类别：sport、countdown。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 菱格。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sport、countdown时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2309,7 +2309,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 斜纹",
-      "description": "橙色无主体纹理 · 斜纹。业务类别：sport、countdown。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 斜纹。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sport、countdown时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2380,7 +2380,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 同心圆",
-      "description": "橙色无主体纹理 · 同心圆。业务类别：sport、countdown。2x2单业务，正文最多3行。标题和按钮文案不计行数；整卡全居中布局唯一可用形状。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 同心圆。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sport、countdown时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。2x2全居中仅用同心圆。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2451,7 +2451,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 菱格",
-      "description": "紫色无主体纹理 · 菱格。业务类别：sleep、earphone、music、app-usage。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 菱格。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sleep、earphone、music、app-usage时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2524,7 +2524,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 斜纹",
-      "description": "紫色无主体纹理 · 斜纹。业务类别：sleep、earphone、music、app-usage。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 斜纹。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sleep、earphone、music、app-usage时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2597,7 +2597,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 同心圆",
-      "description": "紫色无主体纹理 · 同心圆。业务类别：sleep、earphone、music、app-usage。2x2单业务，正文最多3行。标题和按钮文案不计行数；整卡全居中布局唯一可用形状。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 同心圆。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sleep、earphone、music、app-usage时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。2x2全居中仅用同心圆。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2670,7 +2670,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 菱格",
-      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather、navigation、settings。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 菱格。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为calendar、weather、navigation、settings时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2743,7 +2743,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 斜纹",
-      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather、navigation、settings。2x2单业务，正文最多3行。标题和按钮文案不计行数；只用于非全居中布局，与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 斜纹。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为calendar、weather、navigation、settings时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2816,7 +2816,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 同心圆",
-      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather、navigation、settings。2x2单业务，正文最多3行。标题和按钮文案不计行数；整卡全居中布局唯一可用形状。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 同心圆。2x2整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为calendar、weather、navigation、settings时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。2x2全居中仅用同心圆。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x2"
       ],
@@ -2889,7 +2889,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 菱格",
-      "description": "橙色无主体纹理 · 菱格。业务类别：sport、countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 菱格。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sport、countdown时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -2902,8 +2902,7 @@
         "businesses": [
           "sport",
           "countdown"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -2960,7 +2959,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 斜纹",
-      "description": "橙色无主体纹理 · 斜纹。业务类别：sport、countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 斜纹。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sport、countdown时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -2973,8 +2972,7 @@
         "businesses": [
           "sport",
           "countdown"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3031,7 +3029,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "橙色无主体纹理 · 同心圆",
-      "description": "橙色无主体纹理 · 同心圆。业务类别：sport、countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "橙色无主体纹理 · 同心圆。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sport、countdown时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。2x4同心圆暂不启用，保留素材和OBS。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3044,8 +3042,7 @@
         "businesses": [
           "sport",
           "countdown"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3102,7 +3099,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 菱格",
-      "description": "紫色无主体纹理 · 菱格。业务类别：sleep、earphone、music、app-usage。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 菱格。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sleep、earphone、music、app-usage时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3117,8 +3114,7 @@
           "earphone",
           "music",
           "app-usage"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3175,7 +3171,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 斜纹",
-      "description": "紫色无主体纹理 · 斜纹。业务类别：sleep、earphone、music、app-usage。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 斜纹。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sleep、earphone、music、app-usage时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3190,8 +3186,7 @@
           "earphone",
           "music",
           "app-usage"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3248,7 +3243,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "紫色无主体纹理 · 同心圆",
-      "description": "紫色无主体纹理 · 同心圆。业务类别：sleep、earphone、music、app-usage。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "紫色无主体纹理 · 同心圆。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为sleep、earphone、music、app-usage时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。2x4同心圆暂不启用，保留素材和OBS。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3263,8 +3258,7 @@
           "earphone",
           "music",
           "app-usage"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3321,7 +3315,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 菱格",
-      "description": "蓝色无主体纹理 · 菱格。业务类别：calendar、weather、navigation、settings。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 菱格。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为calendar、weather、navigation、settings时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3336,8 +3330,7 @@
           "weather",
           "navigation",
           "settings"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3394,7 +3387,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 斜纹",
-      "description": "蓝色无主体纹理 · 斜纹。业务类别：calendar、weather、navigation、settings。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；与另一非同心圆形状各50%选择。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 斜纹。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为calendar、weather、navigation、settings时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。非全居中布局使用菱形或斜纹，同色各50%。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3409,8 +3402,7 @@
           "weather",
           "navigation",
           "settings"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3467,7 +3459,7 @@
       "kind": "photo",
       "pool": "texturePhotos",
       "name": "蓝色无主体纹理 · 同心圆",
-      "description": "蓝色无主体纹理 · 同心圆。业务类别：calendar、weather、navigation、settings。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；双大背板和无主焦点布局不匹配。标题和按钮文案不计行数；暂不启用，保留素材和OBS配置。仅无合格主体图时参与。白字100%/80%/60%。",
+      "description": "蓝色无主体纹理 · 同心圆。2x4整卡正文最多3行，标题和按钮文案不计；允许混合业务和任意内容对齐，宽卡不要求主焦点。首个可见业务为calendar、weather、navigation、settings时使用本色；首个业务未配置颜色时蓝、紫、橙等概率选择。2x4同心圆暂不启用，保留素材和OBS。仅无合格主体图时参与。白字100%/80%/60%。",
       "sizes": [
         "2x4"
       ],
@@ -3482,8 +3474,7 @@
           "weather",
           "navigation",
           "settings"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {

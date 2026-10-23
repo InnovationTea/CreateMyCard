@@ -132,7 +132,8 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
         path = PATHS.get("countdown")
     assert path
     clouds = item.get("id") == "photo-ux-clouds-weather-square"
-    limit = 4 if item.get("size") == "2x4" else 3
+    wide_subject = item.get("size") == "2x4" and item.get("pool") == "photos"
+    limit = 4 if wide_subject else 3
     if clouds:
         limit = 2
     for count in (limit, limit + 1):
@@ -209,9 +210,9 @@ def test_header_buttons_excluded_but_body_subtitle_and_clickable_info_count():
 
 
 @pytest.mark.parametrize("other,allowed", [
-    ("/data/countdown/second/countdownDays", True), ("/data/weather/current/temperature", False),
+    ("/data/countdown/second/countdownDays", True), ("/data/weather/current/temperature", True),
 ])
-def test_same_business_instances_count_as_single_business(other, allowed):
+def test_abstract_keeps_first_countdown_color_for_same_or_mixed_business(other, allowed):
     saved = sample(PATHS.get("countdown"), 1, button=False, title="生日和考试")
     rows = themes.decode(saved.compact)
     rows[0][3].append("second")
@@ -237,7 +238,7 @@ def test_wide_only_counts_left_body_and_classifies_left_business():
 def test_wide_unrecognized_or_split_layout_rejected(identity):
     saved = sample(wide=False)
     saved.task["size"] = "2x4"
-    assert rejection(saved, identity)
+    assert (rejection(saved, identity) is None) is ("texture" in identity)
 
 
 @pytest.mark.parametrize("failure", ["missing-layout", "unknown-value", "missing-node", "mixed"])
@@ -362,7 +363,7 @@ def test_abstract_business_colors_follow_gallery_rules(business, family, wide):
     suffix = "wide" if wide else "square"
     for color in ("blue", "purple", "orange"):
         identity = f"photo-ux-texture-{color}-diamond-{suffix}"
-        assert (rejection(saved, identity) is None) is (color == family)
+        assert (rejection(saved, identity) is None) is (family is None or color == family)
 
 
 def test_music_buttons_only_have_zero_body_lines():
@@ -376,14 +377,14 @@ def test_music_buttons_only_have_zero_body_lines():
     assert rejection(saved, PURPLE) is None
 
 
-def test_battery_has_subject_but_no_abstract_candidate_even_with_ring():
+def test_battery_has_subject_and_unmapped_abstract_colors_even_with_ring():
     saved = sample(PATHS.get("battery"), 3)
     root = next(node for node in saved.nodes if node.get("id") == "root")
     root.get("children", []).append("ring")
     saved.nodes.append({"id": "ring", "component": "Progress",
                         "styles": {"type": "ring"}})
     assert rejection(saved, "photo-ux-starry-sky-square") is None
-    assert rejection(saved, BLUE)
+    assert rejection(saved, BLUE) is None
 
 
 @pytest.mark.parametrize("response", ['{"themeId":"gradient-purple"}', "invalid"])

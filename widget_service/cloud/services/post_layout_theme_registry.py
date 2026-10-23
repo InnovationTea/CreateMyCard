@@ -193,6 +193,8 @@ def _validate_content_eligibility(theme: dict) -> None:
     if theme.get("kind") != "photo" or theme.get("composition") != "native":
         raise ValueError("Unified photo eligibility requires native composition")
     is_texture = theme.get("pool") == "texturePhotos"
+    if is_texture:
+        _check(theme.get("family"), {"enum": ["blue", "purple", "orange"]}, "texture.family")
     if theme.get("subjectless") is not is_texture:
         raise ValueError("Only the abstract texture pool uses subjectless policy")
     policy = theme.get("contentEligibility", {})

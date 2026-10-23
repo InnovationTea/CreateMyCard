@@ -6,6 +6,7 @@ from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_plan import _VISIBLE_PROP_NAMES, _compact_visible_state
 from services.display_text import concatenated_display_text
 from services.event_matching import is_optional_switch_event
+from services.post_layout_theme_registry import load_theme_registry
 from services.square_photo_expansion import SLEEP_FIELDS
 
 _SPORT_FIELD = re.compile(
@@ -134,6 +135,38 @@ def visible_business(rows: list[ComponentRow]) -> str | None:
     if len(businesses) == 1 and not unknown:
         result = next(iter(businesses))
     return result
+
+
+def first_visible_business(rows: list[ComponentRow]) -> str | None:
+    """rows须按内容树遍历顺序传入；首个未知业务不借用后续业务颜色。"""
+    state = _compact_visible_state(rows)
+    result: str | None = None
+    for occurrence in state.path_occurrences:
+        path = occurrence.data_id
+        if path.rsplit("/", 1)[-1] in {"updatedAt", "targetDateText"}:
+            continue
+        result = _path_business(path)
+        break
+    else:
+        for action in state.handlers:
+            result = _action_business(action)
+            break
+    return result
+
+
+def texture_business_reason(photo: dict, rows: list[ComponentRow]) -> str | None:
+    business = first_visible_business(rows)
+    mapped_families = set()
+    # 停用某颜色的素材不代表删除其业务映射，不能因此改用其它颜色。
+    for item in load_theme_registry().get("themes", []):
+        if item.get("pool") != "texturePhotos":
+            continue
+        if business in item.get("contentEligibility", {}).get("businesses", []):
+            mapped_families.add(item.get("family"))
+    reason: str | None = None
+    if mapped_families and photo.get("family") not in mapped_families:
+        reason = "抽象图颜色与首个可见业务的配置不匹配"
+    return reason
 
 
 def _holiday_name(text: str) -> bool:

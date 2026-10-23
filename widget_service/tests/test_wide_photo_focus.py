@@ -60,12 +60,15 @@ def focus_sample(business="weather", lines=4, layout="top", variant="continuous"
 @pytest.mark.parametrize("identity,business", CASES)
 @pytest.mark.parametrize("layout", ["left", "right", "top"])
 @pytest.mark.parametrize("lines", [3, 4, 5])
-def test_approved_wide_photos_count_only_main_body(identity, business, layout, lines):
+def test_subject_counts_main_but_abstract_counts_whole_card(identity, business, layout, lines):
     saved = focus_sample(business, lines, layout)
     reason = rejection(saved, identity)
-    assert (reason is None) is (lines <= 4), reason
-    if lines == 5:
-        assert "超过4行" in reason
+    abstract = "texture" in identity
+    limit = 3 if abstract else 4
+    body_lines = lines + 2 if abstract and layout == "top" else lines
+    assert (reason is None) is (body_lines <= limit), reason
+    if body_lines > limit:
+        assert f"超过{limit}行" in reason
     scope = "primary" if layout == "top" else "main"
     assert evidence(saved).get("photoBodyTextFlow", {}).get(scope, {}).get("lineCount") == lines
 
@@ -98,11 +101,17 @@ def test_mixed_or_unknown_main_business_does_not_use_auxiliary_business(identity
     primary = next(row for row in rows if row[0] == "primary")
     primary[2]["content"] = {"path": "/data/unknown/value"}
     rows.append(["/data/unknown/value", "未知"])
-    assert "单业务" in rejection(expanded(rows, saved.task), identity)
+    if "texture" in identity:
+        assert rejection(expanded(rows, saved.task), identity) is None
+    else:
+        assert "单业务" in rejection(expanded(rows, saved.task), identity)
     primary[2]["content"] = (
         "{{ ${" + PATHS.get(business) + "} + ${/data/phoneBattery/batteryLevel} }}"
     )
-    assert "单业务" in rejection(expanded(rows, saved.task), identity)
+    if "texture" in identity:
+        assert rejection(expanded(rows, saved.task), identity) is None
+    else:
+        assert "单业务" in rejection(expanded(rows, saved.task), identity)
 
 
 def test_only_approved_wide_configs_use_main_focus_and_circle_enablement_is_unchanged():
@@ -112,11 +121,12 @@ def test_only_approved_wide_configs_use_main_focus_and_circle_enablement_is_unch
         if policy.get("wideLayout") == "main-focus":
             flexible.append(item.get("id"))
             assert item.get("size") == "2x4"
-            assert item.get("pool") == "texturePhotos" or item.get("id") in {
+            assert item.get("pool") == "photos" and item.get("id") in {
                 A19, WAVE, FUZZY, GRADIENT,
             }
-    assert len(flexible) == 13
+    assert len(flexible) == 4
     for item in registry.registered_themes("texturePhotos", include_disabled=True):
+        assert "wideLayout" not in item.get("contentEligibility", {})
         if item.get("id", "").endswith("circles-wide"):
             assert item.get("enabled") is False
     assert registry.load_theme_registry().get("photoEligibility", {}).get("wideMaxTextLines") == 4
@@ -150,7 +160,9 @@ def test_square_photos_still_stop_at_three_lines(identity, business):
 
 @pytest.mark.parametrize("layout", ["W-split-panels", "W-four-slots"])
 @pytest.mark.parametrize("business", ["weather", "countdown"])
-def test_two_large_panels_and_no_focus_grid_stay_out(monkeypatch, layout, business):
+def test_subject_rejects_split_and_grid_but_abstract_uses_total_lines(
+    monkeypatch, layout, business,
+):
     path = PATHS.get(business)
     assert path is not None
     content = {"path": path}
@@ -173,7 +185,12 @@ def test_two_large_panels_and_no_focus_grid_stay_out(monkeypatch, layout, busine
     rows.append([path, "29"])
     saved = expanded(rows, {"size": "2x4", "userQuery": "天气", "appVersion": "99.0.0"})
     _, audit = choose(saved, monkeypatch)
-    assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
+    if layout == "W-split-panels":
+        assert all(identity.startswith("photo-ux-texture-")
+                   for identity in audit.get("candidates", []))
+        assert audit.get("themeId", "").startswith("photo-ux-texture-")
+    else:
+        assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
     for identity in (WAVE, FUZZY, GRADIENT):
         assert rejection(saved, identity)
 
@@ -208,7 +225,7 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
             if item.get("id") == GRADIENT:
                 item["enabled"] = False
         monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
-    saved = focus_sample(business, 4, layout)
+    saved = focus_sample(business, 1 if identity == ORANGE else 4, layout)
     original = artifact()
     original.genui = saved.source
     original.taskSpec = saved.task
