@@ -259,10 +259,6 @@ class Settings(BaseSettings):
     )
     enable_daily_usage_limit: bool = CONFIG.get("enable_daily_usage_limit", "false") == "true"
     daily_usage_limit: int = Field(default=CONFIG.get("daily_usage_limit", 20), gt=0)
-    daily_usage_api_host: str = CONFIG.get("daily_usage_api_host", "")
-    daily_usage_api_port: int = Field(
-        default=CONFIG.get("daily_usage_api_port", 8080), ge=1, le=65535
-    )
     daily_usage_api_snapshot_path: str = CONFIG.get(
         "daily_usage_api_snapshot_path", "/genui-agent/v1/daily-usage/snapshot"
     )
@@ -354,9 +350,7 @@ class Settings(BaseSettings):
     # dmq 华山开关
     ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
 
-    @field_validator(
-        "daily_usage_limit", "daily_usage_api_port", mode="before"
-    )
+    @field_validator("daily_usage_limit", mode="before")
     @classmethod
     def validate_daily_usage_integer(cls, value: object) -> object:
         if isinstance(value, (bool, float)):

@@ -193,50 +193,49 @@ async def test_api_total_timeout_and_cancellation_are_preserved():
 
 
 @pytest.mark.asyncio
-async def test_disabled_factory_never_creates_client_or_resolves_host(monkeypatch):
+async def test_disabled_factory_never_creates_client_or_validates_url(monkeypatch):
     factory = Mock(side_effect=AssertionError("must not create client"))
-    host = Mock(side_effect=AssertionError("must not resolve host"))
+    build_url = Mock(side_effect=AssertionError("must not validate URL"))
     monkeypatch.setattr(daily_usage_api.httpx, "AsyncClient", factory)
-    monkeypatch.setattr(daily_usage_api, "get_container_ip", host)
+    monkeypatch.setattr(daily_usage_api, "_api_url", build_url)
     assert (
-        await daily_usage_api.create_daily_usage_limiter(Settings(enable_daily_usage_limit=False))
+        await daily_usage_api.create_daily_usage_limiter(
+            Settings(enable_daily_usage_limit=False, hag_slb_url="")
+        )
         is None
     )
     factory.assert_not_called()
-    host.assert_not_called()
+    build_url.assert_not_called()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "system,configured,expected",
+    "configured,expected",
     [
-        ("Windows", "", "127.0.0.1"),
-        ("Linux", "", "container.test"),
-        ("Windows", "explicit.test", "explicit.test"),
-        ("Linux", "explicit.test", "explicit.test"),
+        ("http://usage.test:8090", "http://usage.test:8090"),
+        ("https://usage.test:8443/", "https://usage.test:8443"),
+        ("https://usage.test", "https://usage.test"),
+        ("http://usage.test/old/prefix/", "http://usage.test"),
+        ("http://[::1]:8080/", "http://[::1]:8080"),
+        ("  https://usage.test:8443/  ", "https://usage.test:8443"),
     ],
 )
-async def test_factory_address_timeout_and_no_startup_request(
-    monkeypatch, system, configured, expected
-):
+async def test_factory_address_timeout_and_no_startup_request(monkeypatch, configured, expected):
     client = Mock(post=AsyncMock(), aclose=AsyncMock())
     factory = Mock(return_value=client)
     monkeypatch.setattr(daily_usage_api.httpx, "AsyncClient", factory)
-    monkeypatch.setattr(daily_usage_api.platform, "system", lambda: system)
-    monkeypatch.setattr(daily_usage_api, "get_container_ip", lambda: "container.test")
     limiter = await daily_usage_api.create_daily_usage_limiter(
         Settings(
             enable_daily_usage_limit=True,
-            daily_usage_api_host=configured,
-            daily_usage_api_port=8090,
+            hag_slb_url=configured,
             daily_usage_api_snapshot_path="/custom/query",
             daily_usage_api_record_path="/custom/record",
             daily_usage_api_timeout_seconds=2.0,
         )
     )
     assert limiter is not None
-    assert str(limiter.repository.snapshot_url) == f"http://{expected}:8090/custom/query"
-    assert str(limiter.repository.record_url) == f"http://{expected}:8090/custom/record"
+    assert str(limiter.repository.snapshot_url) == f"{expected}/custom/query"
+    assert str(limiter.repository.record_url) == f"{expected}/custom/record"
     factory.assert_called_once_with(timeout=2.0, follow_redirects=False, trust_env=False)
     client.post.assert_not_called()
     await limiter.aclose()
@@ -246,7 +245,32 @@ async def test_factory_address_timeout_and_no_startup_request(
 @pytest.mark.parametrize("path", ["", "relative", "//other/path", "/path?q=1", "/path#x"])
 def test_invalid_api_path_rejected(path):
     with pytest.raises(ValueError):
-        daily_usage_api._api_url("localhost", 8080, path)
+        daily_usage_api._api_url("https://usage.test:8443", path)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "",
+        " ",
+        "usage.test:8080",
+        "/relative",
+        "ftp://usage.test",
+        "http:///",
+        "http://user:password@usage.test",
+        "http://usage.test?q=1",
+        "http://usage.test#x",
+    ],
+)
+async def test_invalid_slb_url_rejected_before_client_creation(monkeypatch, base_url):
+    factory = Mock()
+    monkeypatch.setattr(daily_usage_api.httpx, "AsyncClient", factory)
+    with pytest.raises(ValueError):
+        await daily_usage_api.create_daily_usage_limiter(
+            Settings(enable_daily_usage_limit=True, hag_slb_url=base_url)
+        )
+    factory.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -255,8 +279,6 @@ def test_invalid_api_path_rejected(path):
         ("daily_usage_limit", 0),
         ("daily_usage_limit", True),
         ("daily_usage_limit", 2.0),
-        ("daily_usage_api_port", 65536),
-        ("daily_usage_api_port", True),
         ("daily_usage_api_timeout_seconds", 0),
     ],
 )
@@ -266,10 +288,14 @@ def test_invalid_configuration_rejected(option, value):
 
 
 def test_environment_overrides_and_mysql_settings_removed(monkeypatch):
+    monkeypatch.setenv("WIDGET_SERVICE_HAG_SLB_URL", "https://usage.test:8443")
+    monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_API_HOST", "ignored.test")
     monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_API_PORT", "8091")
     monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_MYSQL_PASSWORD", "ignored-secret")
     settings = Settings()
-    assert settings.daily_usage_api_port == 8091
+    assert settings.hag_slb_url == "https://usage.test:8443"
+    assert "daily_usage_api_host" not in settings.model_dump()
+    assert "daily_usage_api_port" not in settings.model_dump()
     assert "ignored-secret" not in repr(settings)
     assert not any(name.startswith("daily_usage_mysql_") for name in settings.model_dump())
 

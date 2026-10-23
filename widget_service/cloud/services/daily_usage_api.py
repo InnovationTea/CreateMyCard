@@ -1,12 +1,11 @@
 """每日次数 API 适配器；只负责 HTTP 契约，不连接数据库或读取数据库密码。"""
 
-import platform
 from typing import Any
 
 import httpx
 
 from app.logger import task_logger
-from config.config import Settings, get_container_ip
+from config.config import Settings
 from services.daily_usage_limiter import DailyUsageLimiter, DailyUsageRecord, DailyUsageSnapshot
 
 
@@ -67,29 +66,30 @@ class APIDailyUsageRepository:
         await self.client.aclose()
 
 
-def _api_url(host: str, port: int, path: str) -> httpx.URL:
+def _api_url(base_url: str, path: str) -> httpx.URL:
     if not path.startswith("/") or path.startswith("//"):
         raise ValueError("daily usage API path must be an absolute local path")
     if "?" in path or "#" in path:
         raise ValueError("daily usage API path must not contain query or fragment")
-    return httpx.URL(scheme="http", host=host, port=port, path=path)
+    base = httpx.URL(base_url.strip())
+    if base.scheme not in ("http", "https") or not base.host:
+        raise ValueError("daily usage API requires an absolute HTTP(S) hag_slb_url")
+    if base.userinfo or base.query or base.fragment:
+        raise ValueError("hag_slb_url must not contain credentials, query or fragment")
+    # 接口路径从域名根目录开始，保留 hag_slb_url 的协议、主机和端口。
+    return base.copy_with(path=path)
 
 
 async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | None:
     limiter: DailyUsageLimiter | None = None
     if settings.enable_daily_usage_limit:
-        host = settings.daily_usage_api_host.strip()
-        if not host:
-            host = "127.0.0.1" if platform.system() == "Windows" else get_container_ip()
-        if not isinstance(host, str) or not host.strip():
-            raise ValueError("daily usage API host is required")
         snapshot_url = _api_url(
-            host, settings.daily_usage_api_port, settings.daily_usage_api_snapshot_path
+            settings.hag_slb_url, settings.daily_usage_api_snapshot_path
         )
         record_url = _api_url(
-            host, settings.daily_usage_api_port, settings.daily_usage_api_record_path
+            settings.hag_slb_url, settings.daily_usage_api_record_path
         )
-        # 内部同容器 HTTP 调用，不走环境代理、不跟随重定向，不在启动时发送请求。
+        # 内部 HTTP(S) 调用，不走环境代理、不跟随重定向，不在启动时发送请求。
         client = httpx.AsyncClient(
             timeout=settings.daily_usage_api_timeout_seconds,
             follow_redirects=False,

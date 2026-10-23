@@ -4,9 +4,7 @@ ENVIRONMENT: local
 # 每日成功次数：通过内部 API 查询及记录；绿区 spec 未配置时同样默认关闭。
 enable_daily_usage_limit: false
 daily_usage_limit: 20
-# 留空时 Windows 用 127.0.0.1，其它环境用 get_container_ip()；显式 host 优先。
-daily_usage_api_host: ""
-daily_usage_api_port: 8080
+# 协议、域名和端口统一取 hag_slb_url，以下路径从域名根目录开始。
 daily_usage_api_snapshot_path: /genui-agent/v1/daily-usage/snapshot
 daily_usage_api_record_path: /genui-agent/v1/daily-usage/record-success
 daily_usage_api_timeout_seconds: 3.0
