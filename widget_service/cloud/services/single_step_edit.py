@@ -200,7 +200,10 @@ class SingleStepEditProcessor:
         seen: set[tuple[str, str]] = set()
         for change in changes:
             self._apply_change(change, components, seen)
-        return "\n".join(json.dumps(item, ensure_ascii=False) for item in messages)
+        return "\n".join(
+            json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+            for item in messages
+        )
 
     def _apply_change(self, change: Any, components: dict[str, dict],
                       seen: set[tuple[str, str]]) -> None:
