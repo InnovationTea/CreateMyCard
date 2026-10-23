@@ -2093,6 +2093,144 @@
       }
     },
     {
+      "id": "photo-ux-fuzzy-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "朦胧天气宽景",
+      "description": "朦胧天气宽景。业务类别：weather。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标和按钮。白字100%/80%/60%，同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ],
+        "wideLayout": "main-focus"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/f79de9bf55e148669f468344bb9b4290/3a9b912d859948fb90fe482e40c09579.jpg",
+        "sourceSha256": "b809c1f213de6e880c8f9bad8e0af97a33078ca67d00ce46d8d3234ad224cf6a",
+        "assetSha256": "b809c1f213de6e880c8f9bad8e0af97a33078ca67d00ce46d8d3234ad224cf6a",
+        "assetBytes": 160342,
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          2003,
+          1001
+        ],
+        "assetSize": [
+          2003,
+          1001
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_fuzzy_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/f79de9bf55e148669f468344bb9b4290/3a9b912d859948fb90fe482e40c09579.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-gradient-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "柔色倒计时宽景",
+      "description": "柔色倒计时宽景。业务类别：countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标、按钮或倒计时名称。白字100%/80%/60%，同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "countdown",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "countdown"
+        ],
+        "wideLayout": "main-focus"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/55da5dff89014002b0daac98b9e6c12d/a30904689c3248a9b2e68b4bbbbf5879.jpg",
+        "sourceSha256": "8d716867164b5b79a96364cfe47433cd0c1bff48abf525616d56f10e1018bb51",
+        "assetSha256": "8d716867164b5b79a96364cfe47433cd0c1bff48abf525616d56f10e1018bb51",
+        "assetBytes": 202006,
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_gradient_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/55da5dff89014002b0daac98b9e6c12d/a30904689c3248a9b2e68b4bbbbf5879.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
       "id": "photo-ux-texture-orange-diamond-square",
       "enabled": true,
       "kind": "photo",

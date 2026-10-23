@@ -180,7 +180,7 @@ def test_grouped_layouts_excluded(monkeypatch, layout_id):
 
 
 def test_removed_photo_pools_are_empty_including_disabled_entries():
-    assert len(themes.registered_themes("photos")) == 15
+    assert len(themes.registered_themes("photos")) == 17
     assert themes.registered_themes("subjectlessWidePhotos", include_disabled=True) == []
     assert themes.registered_themes("squareExpansions", include_disabled=True) == []
 

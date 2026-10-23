@@ -90,8 +90,9 @@ def test_wide_weather_depends_on_main_region_not_right_slot(monkeypatch, main_we
     result, audit = choose(saved, monkeypatch)
     assert (WIDE in audit.get("candidates", [])) is main_weather
     if main_weather:
-        assert audit.get("candidates") == [WIDE]
-        assert audit.get("themeId") == WIDE
+        expected = {WIDE, "photo-ux-fuzzy-wide"}
+        assert set(audit.get("candidates", [])) == expected
+        assert audit.get("themeId") in expected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 

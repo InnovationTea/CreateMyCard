@@ -1,4 +1,4 @@
-"""宽卡主焦点四行及三类图片跨方向准入；不改变方卡、业务或前景。"""
+"""宽卡主焦点四行及批准图片跨方向准入；不改变方卡、业务或前景。"""
 
 import asyncio
 from types import SimpleNamespace
@@ -19,11 +19,14 @@ from test_uniform_photo_eligibility import ACTION, PATHS, choose, evidence, reje
 
 A19 = "photo-ux-digital-wave-wide"
 WAVE = "photo-ux-wave-wide"
+FUZZY = "photo-ux-fuzzy-wide"
+GRADIENT = "photo-ux-gradient-wide"
 BLUE = "photo-ux-texture-blue-diamond-wide"
 PURPLE = "photo-ux-texture-purple-diagonal-wide"
 ORANGE = "photo-ux-texture-orange-diamond-wide"
 CASES = [(A19, "calendar"), (WAVE, "weather"), (BLUE, "weather"),
-         (PURPLE, "sleep"), (ORANGE, "countdown")]
+         (PURPLE, "sleep"), (ORANGE, "countdown"), (FUZZY, "weather"),
+         (GRADIENT, "countdown")]
 
 
 def focus_sample(business="weather", lines=4, layout="top", variant="continuous", title=True):
@@ -69,9 +72,12 @@ def test_approved_wide_photos_count_only_main_body(identity, business, layout, l
 
 @pytest.mark.parametrize("variant", ["continuous", "bottom-details", "equal"])
 @pytest.mark.parametrize("title", [False, True])
-def test_all_registered_top_bottom_variants_have_the_same_main_scope(variant, title):
-    saved = focus_sample(variant=variant, title=title)
-    assert rejection(saved, WAVE) is None
+@pytest.mark.parametrize("identity,business", [(WAVE, "weather"), (FUZZY, "weather"),
+                                             (GRADIENT, "countdown")])
+def test_all_registered_top_bottom_variants_have_the_same_main_scope(variant, title, identity,
+                                                                   business):
+    saved = focus_sample(business, variant=variant, title=title)
+    assert rejection(saved, identity) is None
 
 
 @pytest.mark.parametrize("identity,business", [
@@ -106,8 +112,10 @@ def test_only_approved_wide_configs_use_main_focus_and_circle_enablement_is_unch
         if policy.get("wideLayout") == "main-focus":
             flexible.append(item.get("id"))
             assert item.get("size") == "2x4"
-            assert item.get("pool") == "texturePhotos" or item.get("id") in {A19, WAVE}
-    assert len(flexible) == 11
+            assert item.get("pool") == "texturePhotos" or item.get("id") in {
+                A19, WAVE, FUZZY, GRADIENT,
+            }
+    assert len(flexible) == 13
     for item in registry.registered_themes("texturePhotos", include_disabled=True):
         if item.get("id", "").endswith("circles-wide"):
             assert item.get("enabled") is False
@@ -141,34 +149,43 @@ def test_square_photos_still_stop_at_three_lines(identity, business):
 
 
 @pytest.mark.parametrize("layout", ["W-split-panels", "W-four-slots"])
-def test_two_large_panels_and_no_focus_grid_stay_out(monkeypatch, layout):
+@pytest.mark.parametrize("business", ["weather", "countdown"])
+def test_two_large_panels_and_no_focus_grid_stay_out(monkeypatch, layout, business):
+    path = PATHS.get(business)
+    assert path is not None
+    content = {"path": path}
+    if business == "countdown":
+        content = "{{ ${" + path + "} + '天' }}"
     if layout == "W-split-panels":
         rows = [["root", "Layout", {"layout": layout}, ["left", "right"]]]
         for side in ("left", "right"):
             rows.extend([
                 [side, "Region", {"variant": "title-content"}, [side + "_title", side + "_text"]],
                 [side + "_title", "SingleLineTitle", {"title": "天气"}],
-                [side + "_text", "Text", {"content": {"path": PATHS.get("weather")}}],
+                [side + "_text", "Text", {"content": content}],
             ])
     else:
         rows = [["root", "Layout", {"layout": layout}, ["a", "b", "c", "d"]]]
         for identity in ("a", "b", "c", "d"):
             rows.append([identity, "InfoBlock", {"variant": "slot", "surfaceRole": "panel",
-                                                "primaryText": {"path": PATHS.get("weather")},
+                                                "primaryText": content,
                                                 "secondaryText": "天气"}])
-    rows.append([PATHS.get("weather"), "29"])
+    rows.append([path, "29"])
     saved = expanded(rows, {"size": "2x4", "userQuery": "天气", "appVersion": "99.0.0"})
     _, audit = choose(saved, monkeypatch)
     assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
-    assert rejection(saved, WAVE)
+    for identity in (WAVE, FUZZY, GRADIENT):
+        assert rejection(saved, identity)
 
 
-def test_top_primary_title_alone_is_not_a_main_focus():
-    saved = focus_sample()
+@pytest.mark.parametrize("identity,business", [(WAVE, "weather"), (FUZZY, "weather"),
+                                             (GRADIENT, "countdown")])
+def test_top_primary_title_alone_is_not_a_main_focus(identity, business):
+    saved = focus_sample(business)
     rows = themes.decode(saved.compact)
     rows[0][3] = ["header", "details"]
     rows = [row for row in rows if row[0] != "primary"]
-    assert rejection(expanded(rows, saved.task), WAVE)
+    assert rejection(expanded(rows, saved.task), identity)
 
 
 @pytest.mark.parametrize("query", ["使用融球效果", "不要背景图片", "使用纯色背景"])
@@ -180,10 +197,17 @@ def test_explicit_user_theme_stays_above_new_photo_rules(monkeypatch, query):
 
 
 @pytest.mark.parametrize("identity,business", [(A19, "calendar"), (WAVE, "weather"),
-                                               (ORANGE, "countdown")])
+                                             (ORANGE, "countdown"), (FUZZY, "weather"),
+                                             (GRADIENT, "countdown")])
 @pytest.mark.parametrize("layout", ["left", "right", "top"])
 def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch, identity,
                                                                    business, layout):
+    if identity == ORANGE:
+        config = registry.load_theme_registry()
+        for item in config.get("themes", []):
+            if item.get("id") == GRADIENT:
+                item["enabled"] = False
+        monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
     saved = focus_sample(business, 4, layout)
     original = artifact()
     original.genui = saved.source

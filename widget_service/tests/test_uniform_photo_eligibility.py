@@ -35,6 +35,7 @@ SUBJECT_FILES = {
     "starfield_weather_square", "starry_sky_square", "starry_sky_wide",
     "track_runner_square", "track_sprint_square", "violin_stage_square", "sand_arch_square",
     "meeting_room_square", "meeting_room_wide", "wave_square", "wave_wide",
+    "fuzzy_wide", "gradient_wide",
 }
 PATHS = {
     "travel": "/data/travel/flightNumber", "countdown": "/data/countdown/first/countdownDays",
@@ -98,7 +99,7 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 23
+    assert len(subjects) == 25
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
     actual = {Path(item.get("src", "")).name for item in subjects}
     assert actual == expected
