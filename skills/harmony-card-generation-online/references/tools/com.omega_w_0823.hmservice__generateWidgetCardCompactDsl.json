@@ -79,7 +79,7 @@
       },
       "size": {
         "type": "String",
-        "description": "主 Agent 建议尺寸"
+        "description": "用户指定尺寸时必须显式传入，优先于默认或建议；未指定按尺寸规则。"
       },
       "sourceArtifactUrl": {
         "type": "String",
