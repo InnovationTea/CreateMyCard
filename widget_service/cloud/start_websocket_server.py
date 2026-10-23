@@ -12,6 +12,7 @@ from app.logger import logger
 from app.websocket_metrics import report_websocket_metrics, websocket_metrics
 from config.config import get_settings
 from custom.model_runtime import ModelExecutionRuntime
+from services.daily_usage_mysql import create_daily_usage_limiter
 
 _MODULE = "[Main]"
 
@@ -42,13 +43,21 @@ def create_app() -> FastAPI:
         _app.state.model_runtime = model_runtime
         """启动并回收 WebSocket 全局统计打印任务。"""
         reporter = asyncio.create_task(report_websocket_metrics(websocket_metrics))
+        daily_usage_limiter = None
         try:
+            daily_usage_limiter = await create_daily_usage_limiter(get_settings())
+            _app.state.daily_usage_limiter = daily_usage_limiter
             yield
         finally:
             reporter.cancel()
             with suppress(asyncio.CancelledError):
                 await reporter
-            await model_runtime.aclose()
+            try:
+                if daily_usage_limiter is not None:
+                    await daily_usage_limiter.aclose()
+            finally:
+                _app.state.daily_usage_limiter = None
+                await model_runtime.aclose()
     fastapi_app = FastAPI(
         title="Widget Service",
         version="0.1.0",

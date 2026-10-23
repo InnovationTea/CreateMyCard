@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
-from pydantic import AliasChoices, AliasGenerator, Field, field_validator
+from pydantic import AliasChoices, AliasGenerator, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from config.config_helper import ConfigHelper
@@ -257,6 +257,24 @@ class Settings(BaseSettings):
     enable_widget_directive_commands: bool = (
         CONFIG.get("enable_widget_directive_commands") == "true"
     )
+    enable_daily_usage_limit: bool = CONFIG.get("enable_daily_usage_limit", "false") == "true"
+    daily_usage_limit: int = Field(default=CONFIG.get("daily_usage_limit", 20), gt=0)
+    daily_usage_mysql_host: str = CONFIG.get("daily_usage_mysql_host", "")
+    daily_usage_mysql_port: int = Field(
+        default=CONFIG.get("daily_usage_mysql_port", 3306), ge=1, le=65535
+    )
+    daily_usage_mysql_database: str = CONFIG.get("daily_usage_mysql_database", "")
+    daily_usage_mysql_user: str = CONFIG.get("daily_usage_mysql_user", "")
+    daily_usage_mysql_password: SecretStr = Field(
+        default=CONFIG.get("daily_usage_mysql_password", ""), repr=False
+    )
+    daily_usage_mysql_ssl_ca: str = CONFIG.get("daily_usage_mysql_ssl_ca", "")
+    daily_usage_mysql_pool_size: int = Field(
+        default=CONFIG.get("daily_usage_mysql_pool_size", 10), gt=0
+    )
+    daily_usage_mysql_timeout_seconds: float = Field(
+        default=CONFIG.get("daily_usage_mysql_timeout_seconds", 3.0), gt=0
+    )
     enable_compact_dsl_argument_repair_fallback: bool = (
         CONFIG.get("enable_compact_dsl_argument_repair_fallback", "false") == "true"
     )
@@ -338,6 +356,15 @@ class Settings(BaseSettings):
 
     # dmq 华山开关
     ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
+
+    @field_validator(
+        "daily_usage_limit", "daily_usage_mysql_port", "daily_usage_mysql_pool_size", mode="before"
+    )
+    @classmethod
+    def validate_daily_usage_integer(cls, value: object) -> object:
+        if isinstance(value, (bool, float)):
+            raise ValueError("daily usage integer settings must not be boolean or float")
+        return value
 
     @field_validator("compact_dsl_interface_retry_count", mode="before")
     @classmethod

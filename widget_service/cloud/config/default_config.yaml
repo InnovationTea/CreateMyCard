@@ -1,5 +1,18 @@
 # 蓝区默认配置。绿区 spec 配置存在时，只读取 spec，不与本文件合并。
 ENVIRONMENT: local
+
+# 每日成功次数：关闭时不创建 MySQL 连接池；绿区 spec 未配置时同样默认关闭。
+enable_daily_usage_limit: false
+daily_usage_limit: 20
+daily_usage_mysql_host: ""
+daily_usage_mysql_port: 3306
+daily_usage_mysql_database: ""
+daily_usage_mysql_user: ""
+daily_usage_mysql_password: ""
+# 指定 CA 时启用 TLS 并校验证书及主机名。
+daily_usage_mysql_ssl_ca: ""
+daily_usage_mysql_pool_size: 10
+daily_usage_mysql_timeout_seconds: 3.0
 enable_photo_background_theme: true
 enable_subjectless_wide_theme: false
 enable_square_music_photo_expansion: false
