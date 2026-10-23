@@ -38,9 +38,9 @@ _CONTENT_ELIGIBILITY = {
     "properties": {
         "kind": {"const": "uniform"},
         "maxTextLines": {"type": "integer", "minimum": 1, "maximum": 3},
-        "wideLayout": {"const": "main-focus"},
+        "wideLayout": {"enum": ["main-focus", "side-focus"]},
         "placement": {"enum": ["top-left-empty-bottom", "bottom-left", "not-bottom-left",
-                               "center", "not-center"]},
+                               "center", "not-center", "bottom"]},
         "businesses": {"type": "array", "minItems": 1, "uniqueItems": True,
                        "items": {"enum": ["calendar", "battery", "earphone", "weather",
                                           "sleep", "music", "sport", "countdown", "holiday",
@@ -204,7 +204,7 @@ def _validate_content_eligibility(theme: dict) -> None:
             raise ValueError("Top-only content requires a square subject photo")
         if policy.get("maxTextLines") != 2:
             raise ValueError("Top-only content requires the approved two-line limit")
-    elif placement in {"bottom-left", "not-bottom-left"}:
+    elif placement in {"bottom-left", "not-bottom-left", "bottom"}:
         if is_texture or theme.get("sizes") != ["2x4"]:
             raise ValueError("Bottom-left content requires a wide subject photo")
     elif placement in {"center", "not-center"}:

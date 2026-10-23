@@ -14,7 +14,7 @@ MEETING_WIDE = "photo-ux-meeting-room-wide"
 DISABLED = {
     "galaxy-sleep-square",
     "track-runner-square", "sunrise-runner-square", "track-sprint-square", "running-pair-wide",
-    "starry-sky-wide", "airplane-tarmac-wide", "bedside-lamp-wide",
+    "starry-sky-wide", "bedside-lamp-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
 }
 
@@ -23,7 +23,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 17
+    assert len(registry.registered_themes("photos")) == 18
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:

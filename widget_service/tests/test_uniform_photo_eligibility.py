@@ -137,7 +137,7 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
         limit = 2
     for count in (limit, limit + 1):
         placement = item.get("contentEligibility", {}).get("placement")
-        button = not clouds and placement != "bottom-left"
+        button = not clouds and placement not in {"bottom-left", "bottom"}
         saved = sample(path, count, wide=item.get("size") == "2x4", title="假期", button=button)
         if placement == "center":
             rows = themes.decode(saved.compact)

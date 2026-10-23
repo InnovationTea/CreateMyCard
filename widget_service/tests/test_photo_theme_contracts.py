@@ -52,7 +52,7 @@ def test_photo_gates_do_not_cross_size_pools(enabled, size, gate):
 
 def test_current_subject_and_texture_assets_are_active_and_present():
     root = Path(__file__).resolve().parents[2]
-    expected = {"photos": 17, "texturePhotos": 15,
+    expected = {"photos": 18, "texturePhotos": 15,
                 "subjectlessWidePhotos": 0, "squareExpansions": 0}
     for key, count in expected.items():
         entries = themes.registered_themes(key)

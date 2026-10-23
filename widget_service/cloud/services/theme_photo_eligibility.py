@@ -40,6 +40,10 @@ def _placement_reason(policy: dict, scope: ComponentRow, rows: list[ComponentRow
     if placement in {"center", "not-center"}:
         if _fully_centered(scope, rows) != (placement == "center"):
             reason = "2x2全居中只用同心圆，其余布局只用菱形或斜纹"
+    elif placement == "bottom":
+        bottom = scope.component_type == "Region" and scope.props.get("variant") == "title-content"
+        if not bottom or flow.get("lineCount", 0) == 0:
+            reason = "此图片要求主区正文整体居下，不能仅辅助内容贴底"
     elif placement in {"bottom-left", "not-bottom-left"}:
         bottom = scope.component_type == "Region" and scope.props.get("variant") == "title-content"
         bottom_left = bottom and flow.get("leftAligned") is True
@@ -55,13 +59,15 @@ def _wide_scope(root: ComponentRow, by_id: dict, final_layout: str,
     """只读已登记主次槽位，不用组件大小或请求文案猜测主焦点。"""
     result: ComponentRow | None = None
     requirement = rules.get("wideLayout", {})
-    flexible = policy.get("wideLayout") == "main-focus"
+    layout_policy = policy.get("wideLayout")
+    flexible = layout_policy == "main-focus"
     if root.component_type != "Layout":
         return result
     layout = root.props.get("layout")
     if layout == "W-content-side-slots":
         orientation = root.props.get("orientation", "content-left")
-        if flexible and orientation in ("content-left", "content-right"):
+        both_sides = layout_policy in {"main-focus", "side-focus"}
+        if both_sides and orientation in ("content-left", "content-right"):
             requirement = {**requirement, "orientation": orientation}
         if matches_subjectless_layout(final_layout, requirement):
             result = by_id.get(root.children[0])
@@ -103,6 +109,8 @@ def photo_content_reason(photo: dict, task: dict, evidence: dict,
         if scope is None:
             if policy.get("wideLayout") == "main-focus":
                 return "2x4图片需要明确主焦点，不支持双大背板或无主次布局"
+            if policy.get("wideLayout") == "side-focus":
+                return "2x4图片需要左右主焦点加另一侧上下双槽，不支持上下或双大背板布局"
             return "2x4图片需要左主焦点和右侧上下两个背板"
     elif task.get("size") != "2x2":
         return "图片只支持2x2和2x4"

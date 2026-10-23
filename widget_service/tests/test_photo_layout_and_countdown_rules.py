@@ -29,6 +29,8 @@ def test_split_panels_are_excluded_for_every_photo_business(identity):
     reason = themes.photo_reason(theme, sample.task, evidence, final_layout=sample.compact)
     if theme.get("contentEligibility", {}).get("wideLayout") == "main-focus":
         assert reason == "2x4图片需要明确主焦点，不支持双大背板或无主次布局"
+    elif theme.get("contentEligibility", {}).get("wideLayout") == "side-focus":
+        assert reason == "2x4图片需要左右主焦点加另一侧上下双槽，不支持上下或双大背板布局"
     else:
         assert reason == "2x4图片需要左主焦点和右侧上下两个背板"
 

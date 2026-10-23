@@ -522,11 +522,11 @@
     },
     {
       "id": "photo-ux-airplane-tarmac-wide",
-      "enabled": false,
+      "enabled": true,
       "kind": "photo",
       "pool": "photos",
       "name": "停机坪飞机",
-      "description": "暂不启用，保留素材和OBS配置。停机坪飞机。业务类别：travel。2x4左主焦点加右侧上下两个背板，左侧主内容区最多4行。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "停机坪飞机。业务类别：travel。2x4左右主次布局，主焦点可在左侧或右侧，但主区正文必须整体居下，最多4行。顶部标题和按钮文案不计行数；辅助槽允许其它业务和按钮。不匹配上下布局、双大背板或主读数居上/居中。沿用白字100%/80%/60%，同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -537,7 +537,9 @@
         "kind": "uniform",
         "businesses": [
           "travel"
-        ]
+        ],
+        "wideLayout": "side-focus",
+        "placement": "bottom"
       },
       "matchingPolicy": "layout-only",
       "source": {
