@@ -168,4 +168,7 @@ def unpainted_document(source: str) -> str:
             for key in list(styles):
                 if is_role(styles[key]):
                     del styles[key]
-    return "\n".join(json.dumps(item, ensure_ascii=False) for item in records)
+    return "\n".join(
+        json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+        for item in records
+    )

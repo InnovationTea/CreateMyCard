@@ -80,7 +80,10 @@ class EditIntent(BaseModel):
 
 
 def dump_rows(rows: list[dict]) -> str:
-    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    return "\n".join(
+        json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+        for row in rows
+    )
 
 
 def _tree(source: str) -> tuple[list[dict], dict[str, dict]]:
