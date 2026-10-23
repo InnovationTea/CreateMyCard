@@ -1,0 +1,107 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "杭州西湖区天气速览",
+    "userQuery": "帮我做个卡片看杭州市西湖区现在是什么天气，点一下查看杭州天气详情。\n\n本轮卡片静态内容（用作展示的外部事实）：\n杭州市西湖区现在多云，当前气温25℃，今天最高32°、最低21°，空气质量良。AI预报提示今天会有小雨转中雨。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "西湖区",
+          "forecastDays": 1,
+          "prefectureName": "杭州市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/cityCode"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020024935824"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "b1b77308-062d-4f89-bb2c-fbb478798617"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "杭州西湖区天气速览",
+  "userQuery": "帮我做个卡片看杭州市西湖区现在是什么天气，点一下查看杭州天气详情。\n\n本轮卡片静态内容（用作展示的外部事实）：\n杭州市西湖区现在多云，当前气温25℃，今天最高32°、最低21°，空气质量良。AI预报提示今天会有小雨转中雨。",
+  "title": "今日天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "西湖区",
+        "forecastDays": 1,
+        "prefectureName": "杭州市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/cityCode"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

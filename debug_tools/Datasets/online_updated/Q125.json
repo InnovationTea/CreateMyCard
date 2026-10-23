@@ -1,0 +1,107 @@
+{
+  "content": {
+    "title": "电量管理",
+    "description": "电量查看与省电",
+    "userQuery": "帮我生成一个手机电量管理卡片，能查看当前电量，还能一键开启省电模式",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryCapacityLevelDesc"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "battery_saving_mode",
+              "switchFlag": 0
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.setPowerSavingMode"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020070842354"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "c543ab6d-835f-4852-bf90-26eb500d6c5c"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "battery_saving_mode",
+            "switchFlag": 0
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.setPowerSavingMode"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "电量查看与省电",
+  "userQuery": "帮我生成一个手机电量管理卡片，能查看当前电量，还能一键开启省电模式",
+  "title": "电量管理",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ]
+}

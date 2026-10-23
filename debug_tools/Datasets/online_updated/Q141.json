@@ -1,0 +1,97 @@
+{
+  "content": {
+    "title": "运动天气卡片",
+    "description": "昨日步数与今日温度",
+    "userQuery": "显示昨天的累计步数和今天的实时温度，昨日累计步数从华为运动健康获取。\n\n本轮卡片静态内容（用作展示的外部事实）：\n昨日（2026年10月19日）累计步数7821步，来源于华为运动健康。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "雨花台区",
+          "forecastDays": 1,
+          "prefectureName": "南京市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.341",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020025408890"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "0865ce5c-a676-4ba2-bf9f-c7176b321137"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "昨日步数与今日温度",
+  "userQuery": "显示昨天的累计步数和今天的实时温度，昨日累计步数从华为运动健康获取。\n\n本轮卡片静态内容（用作展示的外部事实）：\n昨日（2026年10月19日）累计步数7821步，来源于华为运动健康。",
+  "title": "运动天气卡片",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "雨花台区",
+        "forecastDays": 1,
+        "prefectureName": "南京市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "candidateOutputFields": [
+        "/dailySteps"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ]
+}

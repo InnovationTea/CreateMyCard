@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "元旦倒计时",
+    "description": "距离元旦还有多少天",
+    "userQuery": "创建一张明年元旦的倒计时桌面卡片",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HOP-AL10 7.0.0.109",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2027-01-01"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.7.8.303",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261019073847412"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "a7e8f842-536c-4635-9132-097cfc1bc0f9"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HOP-AL10 7.0.0.109",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "距离元旦还有多少天",
+  "userQuery": "创建一张明年元旦的倒计时桌面卡片",
+  "title": "元旦倒计时",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2027-01-01"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

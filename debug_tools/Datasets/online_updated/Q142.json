@@ -1,0 +1,100 @@
+{
+  "content": {
+    "title": "实时天气",
+    "description": "实时天气卡片，显示当前位置、实时温度、天气变化和空气质量，支持一键拨打电话",
+    "userQuery": "生成一个实时观察的天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话",
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HOP-AL00 7.0.0.105",
+    "bundleName": "com.huawei.genui",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "滨江区",
+          "forecastDays": 3,
+          "prefectureName": "杭州市"
+        },
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi"
+        }
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.7.8.303",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261019074911243"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "074b7d3a-3650-4516-bf20-8f0ed277b75b"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "dataCapabilities": [
+    {
+      "id": "ViewWeather",
+      "inputSchema": {
+        "districtName": "滨江区",
+        "forecastDays": 3,
+        "prefectureName": "杭州市"
+      }
+    }
+  ],
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HOP-AL00 7.0.0.105",
+  "description": "实时天气卡片，显示当前位置、实时温度、天气变化和空气质量，支持一键拨打电话",
+  "userQuery": "生成一个实时观察的天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话",
+  "title": "实时天气",
+  "eventCapabilities": [
+    {
+      "actionTemplate": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": ""
+          }
+        },
+        "call": "clickToApi"
+      },
+      "dynamicArguments": [
+        {
+          "description": "填写用户提供的电话号码；未提供时填写空字符串。",
+          "path": "/params/phoneNumber",
+          "type": "string"
+        }
+      ],
+      "id": "event.call.phone"
+    }
+  ]
+}
