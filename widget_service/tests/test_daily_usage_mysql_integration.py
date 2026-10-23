@@ -28,6 +28,14 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(autouse=True)
+def test_sts_password(monkeypatch):
+    password = os.environ.get("WIDGET_TEST_MYSQL_PASSWORD", "")
+    loader = Mock(return_value=password.encode("utf-8"))
+    monkeypatch.setattr(daily_usage_mysql.sts_config, "get_sts_config", loader)
+    return loader
+
+
 @asynccontextmanager
 async def mysql_limiter():
     database = "widget_usage_test_" + uuid.uuid4().hex
@@ -52,7 +60,6 @@ async def mysql_limiter():
             daily_usage_mysql_host=options.get("host"),
             daily_usage_mysql_port=options.get("port"),
             daily_usage_mysql_user=options.get("user"),
-            daily_usage_mysql_password=options.get("password"),
             daily_usage_mysql_database=database,
         )
         limiter = await daily_usage_mysql.create_daily_usage_limiter(settings)
@@ -153,7 +160,7 @@ async def test_real_app_lifespan_websocket_and_mysql_end_to_end(monkeypatch):
             "daily_usage_mysql_port",
             "daily_usage_mysql_database",
             "daily_usage_mysql_user",
-            "daily_usage_mysql_password",
+            "daily_usage_mysql_password_sts_config_key",
         ):
             monkeypatch.setattr(settings, option, getattr(configured, option))
         monkeypatch.setattr(settings, "enable_widget_directive_commands", True)

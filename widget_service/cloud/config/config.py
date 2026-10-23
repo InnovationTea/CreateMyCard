@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
-from pydantic import AliasChoices, AliasGenerator, Field, SecretStr, field_validator
+from pydantic import AliasChoices, AliasGenerator, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from config.config_helper import ConfigHelper
@@ -265,8 +265,8 @@ class Settings(BaseSettings):
     )
     daily_usage_mysql_database: str = CONFIG.get("daily_usage_mysql_database", "")
     daily_usage_mysql_user: str = CONFIG.get("daily_usage_mysql_user", "")
-    daily_usage_mysql_password: SecretStr = Field(
-        default=CONFIG.get("daily_usage_mysql_password", ""), repr=False
+    daily_usage_mysql_password_sts_config_key: str = CONFIG.get(
+        "daily_usage_mysql_password_sts_config_key", "genui.mysql.password"
     )
     daily_usage_mysql_ssl_ca: str = CONFIG.get("daily_usage_mysql_ssl_ca", "")
     daily_usage_mysql_pool_size: int = Field(

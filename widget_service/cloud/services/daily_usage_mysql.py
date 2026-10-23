@@ -6,6 +6,7 @@ import aiomysql
 
 from config.config import Settings
 from services.daily_usage_limiter import DailyUsageLimiter, DailyUsageRecord, DailyUsageSnapshot
+from utils.base_utils import sts_config
 
 _SNAPSHOT_SQL = """
 SELECT EXISTS(
@@ -71,6 +72,20 @@ class MySQLDailyUsageRepository:
         await self.pool.wait_closed()
 
 
+def _load_mysql_password(config_key: str) -> str:
+    """读取 STS 原始密码；不裁剪、不做 Base64 猜测，也不回退普通配置。"""
+    try:
+        password = sts_config.get_sts_config(config_key)
+        if isinstance(password, bytes):
+            password = password.decode("utf-8")
+        if not isinstance(password, str):
+            raise TypeError("STS password must be bytes or str")
+    except Exception:
+        # STS 异常可能包含密钥内容，禁止将原始异常链带入启动日志。
+        raise RuntimeError("daily usage MySQL STS password could not be loaded") from None
+    return password
+
+
 async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | None:
     limiter: DailyUsageLimiter | None = None
     if settings.enable_daily_usage_limit:
@@ -78,9 +93,11 @@ async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | 
             settings.daily_usage_mysql_host,
             settings.daily_usage_mysql_database,
             settings.daily_usage_mysql_user,
+            settings.daily_usage_mysql_password_sts_config_key,
         )
         if not all(value.strip() for value in required_values):
-            raise ValueError("daily usage MySQL host, database and user are required")
+            raise ValueError("daily usage MySQL host, database, user and STS key are required")
+        password = _load_mysql_password(settings.daily_usage_mysql_password_sts_config_key)
         ssl_context = None
         if settings.daily_usage_mysql_ssl_ca:
             ssl_context = ssl.create_default_context(cafile=settings.daily_usage_mysql_ssl_ca)
@@ -89,7 +106,7 @@ async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | 
             host=settings.daily_usage_mysql_host,
             port=settings.daily_usage_mysql_port,
             user=settings.daily_usage_mysql_user,
-            password=settings.daily_usage_mysql_password.get_secret_value(),
+            password=password,
             db=settings.daily_usage_mysql_database,
             charset="utf8mb4",
             autocommit=True,

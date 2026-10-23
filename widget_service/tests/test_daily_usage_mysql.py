@@ -1,6 +1,7 @@
 """MySQL 存储适配、配置及应用生命周期测试。"""
 
 import asyncio
+import traceback
 from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
@@ -12,6 +13,13 @@ from config.config import Settings, get_settings
 from services import daily_usage_mysql
 from services.daily_usage_limiter import DailyUsageRecord
 from test_daily_usage_limiter import NOW
+
+
+@pytest.fixture
+def sts_loader(monkeypatch):
+    loader = Mock(return_value=b"test-only-secret")
+    monkeypatch.setattr(daily_usage_mysql.sts_config, "get_sts_config", loader)
+    return loader
 
 
 def connection_mocks():
@@ -71,7 +79,7 @@ async def test_missing_snapshot_row_is_an_error_not_zero_usage():
 
 
 @pytest.mark.asyncio
-async def test_disabled_factory_never_creates_pool(monkeypatch):
+async def test_disabled_factory_never_creates_pool(monkeypatch, sts_loader):
     factory = AsyncMock()
     monkeypatch.setattr(daily_usage_mysql.aiomysql, "create_pool", factory)
     assert (
@@ -79,11 +87,12 @@ async def test_disabled_factory_never_creates_pool(monkeypatch):
         is None
     )
     factory.assert_not_called()
+    sts_loader.assert_not_called()
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("missing", ["host", "database", "user"])
-async def test_enabled_factory_requires_connection_configuration(monkeypatch, missing):
+@pytest.mark.parametrize("missing", ["host", "database", "user", "password_sts_config_key"])
+async def test_enabled_factory_requires_connection_configuration(monkeypatch, missing, sts_loader):
     factory = AsyncMock()
     monkeypatch.setattr(daily_usage_mysql.aiomysql, "create_pool", factory)
     config = {
@@ -96,10 +105,11 @@ async def test_enabled_factory_requires_connection_configuration(monkeypatch, mi
     with pytest.raises(ValueError):
         await daily_usage_mysql.create_daily_usage_limiter(Settings(**config))
     factory.assert_not_called()
+    sts_loader.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_factory_uses_bounded_async_pool_and_secret_password(monkeypatch):
+async def test_factory_uses_bounded_async_pool_and_secret_password(monkeypatch, sts_loader):
     pool, _connection, _cursor = connection_mocks()
     factory = AsyncMock(return_value=pool)
     monkeypatch.setattr(daily_usage_mysql.aiomysql, "create_pool", factory)
@@ -108,7 +118,7 @@ async def test_factory_uses_bounded_async_pool_and_secret_password(monkeypatch):
         daily_usage_mysql_host="localhost",
         daily_usage_mysql_database="test",
         daily_usage_mysql_user="test",
-        daily_usage_mysql_password="test-only-secret",
+        daily_usage_mysql_password_sts_config_key="test.mysql.password",
     )
     assert "test-only-secret" not in repr(settings)
     limiter = await daily_usage_mysql.create_daily_usage_limiter(settings)
@@ -119,7 +129,46 @@ async def test_factory_uses_bounded_async_pool_and_secret_password(monkeypatch):
     assert options.get("autocommit") is True
     assert options.get("connect_timeout") == 3.0
     assert options.get("password") == "test-only-secret"
+    sts_loader.assert_called_once_with("test.mysql.password")
     await limiter.aclose()
+
+
+@pytest.mark.parametrize("secret", [b" spaced secret ", " spaced secret ", "密码", b"", ""])
+def test_sts_password_preserves_exact_value(sts_loader, secret):
+    sts_loader.return_value = secret
+    expected = secret.decode("utf-8") if isinstance(secret, bytes) else secret
+    assert daily_usage_mysql._load_mysql_password("test.key") == expected
+    sts_loader.assert_called_once_with("test.key")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("secret", [None, 123, b"\xffsecret", KeyError("secret-value")])
+async def test_invalid_sts_password_stops_before_pool_creation(monkeypatch, sts_loader, secret):
+    factory = AsyncMock()
+    monkeypatch.setattr(daily_usage_mysql.aiomysql, "create_pool", factory)
+    if isinstance(secret, Exception):
+        sts_loader.side_effect = secret
+    else:
+        sts_loader.return_value = secret
+    settings = Settings(
+        enable_daily_usage_limit=True,
+        daily_usage_mysql_host="localhost",
+        daily_usage_mysql_database="test",
+        daily_usage_mysql_user="test",
+    )
+    with pytest.raises(RuntimeError, match="STS password could not be loaded") as captured:
+        await daily_usage_mysql.create_daily_usage_limiter(settings)
+    assert "secret-value" not in "".join(traceback.format_exception(captured.value))
+    assert captured.value.__suppress_context__ is True
+    factory.assert_not_called()
+
+
+def test_plaintext_password_environment_is_not_a_settings_field(monkeypatch):
+    monkeypatch.setenv("WIDGET_SERVICE_DAILY_USAGE_MYSQL_PASSWORD", "ignored-secret")
+    settings = Settings()
+    assert "daily_usage_mysql_password" not in settings.model_dump()
+    assert "ignored-secret" not in repr(settings)
+    assert settings.daily_usage_mysql_password_sts_config_key == "genui.mysql.password"
 
 
 @pytest.mark.parametrize(
@@ -162,7 +211,7 @@ def test_lifespan_closes_pool_and_preserves_query_health(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_tls_ca_enables_certificate_verification(monkeypatch):
+async def test_tls_ca_enables_certificate_verification(monkeypatch, sts_loader):
     pool, _connection, _cursor = connection_mocks()
     factory = AsyncMock(return_value=pool)
     context = Mock()

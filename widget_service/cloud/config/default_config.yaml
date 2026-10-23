@@ -8,7 +8,8 @@ daily_usage_mysql_host: ""
 daily_usage_mysql_port: 3306
 daily_usage_mysql_database: ""
 daily_usage_mysql_user: ""
-daily_usage_mysql_password: ""
+# 这里只保存 STS 键名，不保存数据库密码。
+daily_usage_mysql_password_sts_config_key: genui.mysql.password
 # 指定 CA 时启用 TLS 并校验证书及主机名。
 daily_usage_mysql_ssl_ca: ""
 daily_usage_mysql_pool_size: 10
