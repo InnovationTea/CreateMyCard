@@ -177,12 +177,10 @@ def _collect_title_content_icon_conflict_errors(
         if reference.component.component_type == "SingleLineTitle"
     }
     for icon in title_icons:
-        conflicting_content_ids = [
-            reference.component.component_id
-            for reference in references
-            if reference.source == icon
-            and reference.component.component_type != "SingleLineTitle"
-        ]
+        conflicting_content_ids = []
+        for reference in references:
+            if reference.source == icon and reference.component.component_type != "SingleLineTitle":
+                conflicting_content_ids.append(reference.component.component_id)
         if not conflicting_content_ids:
             continue
         errors.append(
