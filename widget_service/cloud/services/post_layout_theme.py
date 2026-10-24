@@ -222,44 +222,16 @@ def presets(task: dict) -> list[dict]:
 
 
 def photo_background(photo: dict) -> list[dict]:
-    frame = photo.get("frame", {})
     fit = "fill" if photo.get("objectFit") == "fill" else "cover"
-
-    def percent(key: str) -> str:
-        return f"{frame.get(key, 1) * 100:g}%"
-
     return [
         {
             "id": PREFIX + "background",
             "component": "Stack",
-            "children": [PREFIX + "base", PREFIX + "slot"],
+            "children": [PREFIX + "base"],
             "styles": {"width": "matchParent", "height": "matchParent", "alignContent": "topStart"},
         },
         {
             "id": PREFIX + "base",
-            "component": "Image",
-            "src": photo.get("src"),
-            "styles": {"width": "matchParent", "height": "matchParent", "objectFit": fit},
-        },
-        {
-            "id": PREFIX + "slot",
-            "component": "Stack",
-            "children": [PREFIX + "imageBox"],
-            "styles": {
-                "width": percent("slotWidth"),
-                "height": percent("slotHeight"),
-                "alignContent": frame.get("align", "topStart"),
-            },
-        },
-        {
-            "id": PREFIX + "imageBox",
-            "component": "Column",
-            "children": [PREFIX + "image"],
-            "itemMargin": 0,
-            "styles": {"width": percent("imageWidth"), "height": percent("imageHeight")},
-        },
-        {
-            "id": PREFIX + "image",
             "component": "Image",
             "src": photo.get("src"),
             "styles": {"width": "matchParent", "height": "matchParent", "objectFit": fit},
@@ -421,11 +393,25 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
 
 
 def select_equivalent_photo(selected: str, candidates: list[dict]) -> tuple[str, dict]:
-    available = [item.get("id") for item in candidates if item.get("kind") == "photo"]
+    photos = [item for item in candidates if item.get("kind") == "photo"]
+    available = [item.get("id") for item in photos]
     audit = {}
     if available:
-        selected = secrets.choice(available)
+        choices = available
         audit = {"mode": "uniform", "eligible": available, "selected": selected}
+        if all(item.get("pool") == "texturePhotos" for item in photos):
+            families = []
+            for item in photos:
+                family = item.get("family")
+                if family not in families:
+                    families.append(family)
+            families.sort()
+            if len(families) > 1:
+                family = secrets.choice(families)
+                choices = [item.get("id") for item in photos if item.get("family") == family]
+                audit.update(mode="uniform-family-and-shape", families=families, family=family)
+        selected = secrets.choice(choices)
+        audit["selected"] = selected
     return selected, audit
 
 
@@ -505,17 +491,27 @@ async def select_theme(
             candidates.append({**photo, "kind": "photo"})
     layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
     if layout_reason:
+        retained = []
         for candidate in candidates:
-            if candidate.get("kind") == "photo":
+            subject = candidate.get("kind") == "photo" and candidate.get("pool") != "texturePhotos"
+            if subject:
                 rejected[candidate.get("id")] = layout_reason
-        candidates = [candidate for candidate in candidates if candidate.get("kind") != "photo"]
+            else:
+                retained.append(candidate)
+        candidates = retained
     if overrides:
         candidates = [item for item in candidates if item.get("kind") in {"gradient", "solid"}]
     photos = [item for item in candidates if item.get("kind") == "photo"]
     fusion_candidates = [item for item in candidates if item.get("kind") == "fusion"]
     ordinary_requested = bool(re.search(r"纯色|渐变", task.get("userQuery", "")))
     if photos:
-        candidates = photos
+        priority = max(item.get("selectionPriority", 0) for item in photos)
+        candidates = []
+        for photo in photos:
+            if photo.get("selectionPriority", 0) == priority:
+                candidates.append(photo)
+            else:
+                rejected[photo.get("id")] = "已有更高优先级的合格图片"
     elif fusion_candidates and not ordinary_requested:
         candidates = fusion_candidates
     allowed = {item.get("id"): item for item in candidates}
@@ -528,7 +524,8 @@ async def select_theme(
             "以下为本次最终主题选择合同，优先于上面原规则的默认推荐："
             "布局已定稿。只能从候选选择一个themeId，不输出色值、不改布局。"
             "选择顺序：用户明确要求的主题 > preferredExpansions > eligiblePhotos > 其它候选。"
-            "eligiblePhotos已通过统一业务、布局及正文三行条件，组内由程序等概率选择。"
+            "eligiblePhotos已通过所属图片池的业务、布局与正文行数条件，由程序选择。"
+            "主体图按同级等概率，抽象图按首业务配色，未映射颜色等概率、同色形状等概率。"
             "云侧不知道实际卡片宽高，不声称已通过真实像素避让。"
             "不要因业务同时属于其它类别而跳过。"
             "没有用户指定其它主题且eligiblePhotos非空时，从eligiblePhotos中选择；"

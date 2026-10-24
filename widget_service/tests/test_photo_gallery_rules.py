@@ -14,7 +14,7 @@ MEETING_WIDE = "photo-ux-meeting-room-wide"
 DISABLED = {
     "galaxy-sleep-square",
     "track-runner-square", "sunrise-runner-square", "track-sprint-square", "running-pair-wide",
-    "starry-sky-wide", "airplane-tarmac-wide", "bedside-lamp-wide",
+    "starry-sky-wide", "bedside-lamp-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
 }
 
@@ -23,7 +23,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 13
+    assert len(registry.registered_themes("photos")) == 18
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -85,22 +85,23 @@ def test_hidden_holiday_name_and_button_label_cannot_authorize_a12():
 
 
 @pytest.mark.parametrize("button,align,lines,allowed", [
-    (False, "start", 1, True), (False, "start", 3, True), (False, "start", 4, False),
-    (False, "center", 1, False), (True, "start", 1, False),
+    (False, "start", 1, True), (False, "start", 3, True), (False, "start", 4, True),
+    (False, "start", 5, False), (False, "center", 1, True), (True, "start", 1, True),
 ])
-def test_a19_only_uses_bottom_left_calendar_body(button, align, lines, allowed):
+def test_a19_uses_calendar_main_up_to_four_lines_without_bottom_placement(button, align,
+                                                                       lines, allowed):
     saved = sample(PATHS.get("calendar"), lines, wide=True, button=button, align=align)
     assert (rejection(saved, WAVE) is None) is allowed
 
 
-def test_a19_rejects_top_primary_bottom_support_and_old_information_business():
+def test_a19_accepts_top_primary_bottom_support_but_rejects_old_information_business():
     saved = sample(PATHS.get("calendar"), 1, wide=True, button=False)
     rows = themes.decode(saved.compact)
     main = next(row for row in rows if row[0] == "main")
     main[2]["variant"] = "title-hero-support"
     main[3].append("details")
     rows.append(["details", "Text", {"content": "会议室"}])
-    assert rejection(expanded(rows, saved.task), WAVE)
+    assert rejection(expanded(rows, saved.task), WAVE) is None
     assert rejection(sample(PATHS.get("information"), 1, wide=True, button=False), WAVE)
 
 
@@ -119,12 +120,14 @@ def test_meeting_square_rejects_wrong_business_alignment_or_line_count(business,
     assert rejection(saved, MEETING_SQUARE)
 
 
-@pytest.mark.parametrize("button,expected", [(False, WAVE), (True, MEETING_WIDE)])
-def test_meeting_wide_and_a19_partition_bottom_left_layout(monkeypatch, button, expected):
+@pytest.mark.parametrize("button,expected", [(False, {WAVE}), (True, {WAVE, MEETING_WIDE})])
+def test_a19_overlaps_meeting_wide_without_changing_meeting_placement(
+    monkeypatch, button, expected,
+):
     saved = sample(PATHS.get("calendar"), 3, wide=True, button=button)
     result, audit = choose(saved, monkeypatch)
-    assert audit.get("candidates") == [expected]
-    assert audit.get("themeId") == expected
+    assert set(audit.get("candidates", [])) == expected
+    assert audit.get("themeId") in expected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 
@@ -137,11 +140,12 @@ def test_meeting_wide_accepts_top_primary_with_bottom_support_without_action():
     rows.append(["details", "Text", {"content": "会议室"}])
     saved = expanded(rows, saved.task)
     assert rejection(saved, MEETING_WIDE) is None
-    assert rejection(saved, WAVE)
+    assert rejection(saved, WAVE) is None
 
 
 def test_meeting_wide_keeps_business_line_count_and_wide_layout_gate():
-    assert rejection(sample(PATHS.get("calendar"), 4, wide=True), MEETING_WIDE)
+    assert rejection(sample(PATHS.get("calendar"), 4, wide=True), MEETING_WIDE) is None
+    assert rejection(sample(PATHS.get("calendar"), 5, wide=True), MEETING_WIDE)
     assert rejection(sample(PATHS.get("sleep"), 1, wide=True), MEETING_WIDE)
     saved = sample(PATHS.get("calendar"), 1, wide=True)
     rows = themes.decode(saved.compact)
@@ -202,6 +206,11 @@ def test_fully_centered_uses_only_circles(monkeypatch, business, family, primiti
 @pytest.mark.parametrize("wide", [False, True])
 @pytest.mark.parametrize("shape", ["diamond", "diagonal"])
 def test_other_layouts_choose_between_two_equal_candidates(monkeypatch, wide, shape):
+    config = registry.load_theme_registry()
+    for item in config.get("themes", []):
+        if item.get("pool") == "photos":
+            item["enabled"] = False
+    monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
     suffix = "wide" if wide else "square"
     expected = {f"photo-ux-texture-blue-{item}-{suffix}" for item in ("diamond", "diagonal")}
     selected = f"photo-ux-texture-blue-{shape}-{suffix}"

@@ -93,9 +93,38 @@ def test_photo_fallback_never_adds_fusion_layers_or_changes_foreground(
     assert root.get("styles", {}).get("backgroundColor") == "#FF8FADCC"
     background = node_by_id(result, themes.PREFIX + "background")
     assert root.get("children") == [themes.PREFIX + "background", themes.PREFIX + "foreground"]
-    assert background.get("children") == [themes.PREFIX + "base", themes.PREFIX + "slot"]
+    assert background.get("children") == [themes.PREFIX + "base"]
     assert "fusionBall" not in result
     assert themes.foreground_signature(source()) == themes.foreground_signature(result)
+
+
+@pytest.mark.parametrize(
+    "theme",
+    registry.registered_themes("photos", include_disabled=True)
+    + registry.registered_themes("texturePhotos", include_disabled=True),
+    ids=lambda theme: theme.get("id"),
+)
+def test_every_photo_has_one_image_and_keeps_fallback_and_foreground(theme):
+    original = source()
+    original_theme = copy.deepcopy(theme)
+    result = themes.apply_theme(original, theme, {"size": theme.get("size")}, {})
+    nodes = themes.components(themes.decode(result))
+    layers = themes.photo_background(theme)
+    assert len(layers) == 2
+    images = [node for node in nodes if node.get("component") == "Image"]
+    assert len(images) == 1
+    assert images[0].get("id") == themes.PREFIX + "base"
+    assert images[0].get("src") == theme.get("src")
+    assert images[0].get("styles") == {
+        "width": "matchParent", "height": "matchParent", "objectFit": "fill",
+    }
+    retired = {themes.PREFIX + name for name in ("slot", "imageBox", "image")}
+    assert not retired.intersection(node.get("id") for node in nodes)
+    for node in nodes:
+        assert not retired.intersection(node.get("children", []))
+    assert node_by_id(result, "root").get("styles", {}).get("backgroundColor") == "#FF8FADCC"
+    assert themes.foreground_signature(result) == themes.foreground_signature(original)
+    assert theme == original_theme
 
 
 @pytest.mark.parametrize("rgb", ["000000", "FFFFFF"])

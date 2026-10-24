@@ -103,6 +103,8 @@ def apply_system_component_colors(
             resolved.append(component)
             continue
         props = copy.deepcopy(component.props)
+        if component.component_type == "CardButton" and "icon" not in props:
+            props["icon"] = _CARD_BUTTON_FALLBACK_ICON
         if font_role is not None:
             font_color = _system_palette_color(palette, font_role)
             # 兼容历史 Compact DSL；新生成不再公开 fontColor，由运行时补齐。
@@ -853,10 +855,7 @@ def _expand_secondary_body(
                 variant=variant,
                 props={
                     "content": value,
-                    "fontColor": (
-                        component.props["fontColor"] if item.get("label") is not None
-                        else _color_with_alpha(component.props["fontColor"], 0.6)
-                    ),
+                    "fontColor": _secondary_value_color(item, component.props["fontColor"]),
                     "height": item_height,
                     "maxLines": max_lines,
                     "layoutWeight": 1,
@@ -904,6 +903,16 @@ def _expand_secondary_body(
         children=tuple(root_children),
     )
     return [root, *rows]
+
+
+def _secondary_value_color(item: dict[str, Any], color: str) -> str:
+    value = item.get("value")
+    is_value = item.get("label") is not None or _is_path_binding(value)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        is_value = True
+    if isinstance(value, str) and _is_complete_expression(value):
+        is_value = is_value or re.search(r"\$\{/[^{}]+\}", value) is not None
+    return color if is_value else _color_with_alpha(color, 0.6)
 
 
 def _secondary_item_layout(
