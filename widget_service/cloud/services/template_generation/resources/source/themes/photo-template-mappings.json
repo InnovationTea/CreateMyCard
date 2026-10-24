@@ -1,0 +1,572 @@
+{
+  "version": 1,
+  "mappings": [
+    {
+      "themeId": "photo-ux-birds-countdown-square",
+      "templateIds": [
+        "CountdownOverviewDepartureHero@1",
+        "CountdownOverviewEventHero@1",
+        "CountdownOverviewTargetCompact@1",
+        "CountdownOverviewTargetDetailFull@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-concert-stage-wide",
+      "templateIds": [
+        "BluetoothDeviceOverviewCaseConnectionHero@1",
+        "BluetoothDeviceOverviewCaseSettingsHero@1",
+        "BluetoothDeviceOverviewConnectionTextFull@1",
+        "BluetoothDeviceOverviewEarbudChargingWideFull@1",
+        "BluetoothDeviceOverviewEarbudPairChargingFull@1",
+        "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
+        "BluetoothDeviceOverviewEarphoneCaseHero@1",
+        "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",
+        "BluetoothDeviceOverviewEarphoneHero@1",
+        "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+        "BluetoothDeviceOverviewHero@1",
+        "BluetoothDeviceOverviewStatusHero@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-meeting-room-square",
+      "templateIds": [
+        "ScheduleOverviewDateStartLocationFull@1",
+        "ScheduleOverviewDatedAllDayHero@1",
+        "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
+        "ScheduleOverviewReminderFull@1",
+        "ScheduleOverviewReminderHero@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-meeting-room-wide",
+      "templateIds": [
+        "ScheduleOverviewAllDayLocationFull@1",
+        "ScheduleOverviewDateStartLocationFull@1",
+        "ScheduleOverviewDateTitleFull@1",
+        "ScheduleOverviewDatedAllDayHero@1",
+        "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
+        "ScheduleOverviewReminderFull@1",
+        "ScheduleOverviewReminderHero@1",
+        "ScheduleOverviewReminderStartFull@1",
+        "ScheduleOverviewSourceReminderFull@1",
+        "ScheduleOverviewTitleStartFull@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-sand-arch-square",
+      "templateIds": [
+        "ActivityOverviewCompact@1",
+        "HeartRateOverviewCompact@1",
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewIconCompact@1",
+        "HeartRateOverviewIconHero@1",
+        "HeartRateOverviewUpdatedHero@1",
+        "HeartRateOverviewUpdatedIconHero@1",
+        "WorkoutOverviewCompact@1",
+        "WorkoutOverviewHero@1",
+        "WorkoutOverviewTrainingRecordHero@1",
+        "WorkoutOverviewTypeDurationCompact@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-sleep-square",
+      "templateIds": [
+        "SleepOverviewCompact@1",
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1",
+        "SleepOverviewNapFull@1",
+        "SleepOverviewNapHero@1",
+        "SleepOverviewScoreFull@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-sleep-wide",
+      "templateIds": [
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1",
+        "SleepOverviewNapFull@1",
+        "SleepOverviewNapHero@1",
+        "SleepOverviewScoreDetailWideFull@1",
+        "SleepOverviewScoreFull@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-sport-center-wide",
+      "templateIds": [
+        "ActivityOverviewFull@1",
+        "ActivityOverviewWideFull@1",
+        "HeartRateOverviewFull@1",
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewIconHero@1",
+        "HeartRateOverviewMinMaxFull@1",
+        "HeartRateOverviewUpdatedFull@1",
+        "HeartRateOverviewUpdatedHero@1",
+        "HeartRateOverviewUpdatedIconHero@1",
+        "WorkoutOverviewFull@1",
+        "WorkoutOverviewHero@1",
+        "WorkoutOverviewTrainingRecordHero@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-starfield-weather-square",
+      "templateIds": [
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertFull@1",
+        "WeatherOverviewDailyUvColdFull@1",
+        "WeatherOverviewRainWindFull@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-starry-sky-square",
+      "templateIds": [
+        "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewChargingTemperatureFull@1",
+        "BatteryOverviewCurrentVoltageFull@1",
+        "BatteryOverviewFull@1",
+        "BatteryOverviewHealthLevelFull@1",
+        "BatteryOverviewHealthLevelHero@1",
+        "BatteryOverviewHealthTemperatureHero@1",
+        "BatteryOverviewPercentLevelHero@1",
+        "BatteryOverviewPercentStatusFull@1",
+        "BatteryOverviewStatusHero@1",
+        "BatteryOverviewTemperatureHero@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-blue-diagonal-square",
+      "templateIds": [
+        "ScheduleOverviewDateStartLocationFull@1",
+        "ScheduleOverviewDateTitleFull@1",
+        "ScheduleOverviewDatedAllDayHero@1",
+        "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
+        "ScheduleOverviewReminderFull@1",
+        "ScheduleOverviewReminderHero@1",
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertFull@1",
+        "WeatherOverviewDailyUvColdFull@1",
+        "WeatherOverviewRainWindFull@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-blue-diagonal-wide",
+      "templateIds": [
+        "ScheduleOverviewAllDayLocationFull@1",
+        "ScheduleOverviewDateStartLocationFull@1",
+        "ScheduleOverviewDateTitleFull@1",
+        "ScheduleOverviewDatedAllDayHero@1",
+        "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
+        "ScheduleOverviewReminderFull@1",
+        "ScheduleOverviewReminderHero@1",
+        "ScheduleOverviewReminderStartFull@1",
+        "ScheduleOverviewSourceReminderFull@1",
+        "ScheduleOverviewTitleStartFull@1",
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertFull@1",
+        "WeatherOverviewConditionHero@1",
+        "WeatherOverviewDailyUvColdFull@1",
+        "WeatherOverviewFeelsLikeHero@1",
+        "WeatherOverviewHero@1",
+        "WeatherOverviewHumidityWindLevelHero@1",
+        "WeatherOverviewRainWindFull@1",
+        "WeatherOverviewWindHero@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-blue-diamond-square",
+      "templateIds": [
+        "ScheduleOverviewDateStartLocationFull@1",
+        "ScheduleOverviewDateTitleFull@1",
+        "ScheduleOverviewDatedAllDayHero@1",
+        "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
+        "ScheduleOverviewReminderFull@1",
+        "ScheduleOverviewReminderHero@1",
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertFull@1",
+        "WeatherOverviewDailyUvColdFull@1",
+        "WeatherOverviewRainWindFull@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-blue-diamond-wide",
+      "templateIds": [
+        "ScheduleOverviewAllDayLocationFull@1",
+        "ScheduleOverviewDateStartLocationFull@1",
+        "ScheduleOverviewDateTitleFull@1",
+        "ScheduleOverviewDatedAllDayHero@1",
+        "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountNotesFull@1",
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
+        "ScheduleOverviewReminderFull@1",
+        "ScheduleOverviewReminderHero@1",
+        "ScheduleOverviewReminderStartFull@1",
+        "ScheduleOverviewSourceReminderFull@1",
+        "ScheduleOverviewTitleStartFull@1",
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertFull@1",
+        "WeatherOverviewConditionHero@1",
+        "WeatherOverviewDailyUvColdFull@1",
+        "WeatherOverviewFeelsLikeHero@1",
+        "WeatherOverviewHero@1",
+        "WeatherOverviewHumidityWindLevelHero@1",
+        "WeatherOverviewRainWindFull@1",
+        "WeatherOverviewWindHero@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-orange-diagonal-square",
+      "templateIds": [
+        "ActivityOverviewCompact@1",
+        "ActivityOverviewFull@1",
+        "CountdownOverviewDepartureHero@1",
+        "CountdownOverviewEventHero@1",
+        "CountdownOverviewFull@1",
+        "CountdownOverviewHero@1",
+        "CountdownOverviewTargetCompact@1",
+        "CountdownOverviewTargetDetailFull@1",
+        "HeartRateOverviewCompact@1",
+        "HeartRateOverviewFull@1",
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewIconCompact@1",
+        "HeartRateOverviewIconHero@1",
+        "HeartRateOverviewMinMaxFull@1",
+        "HeartRateOverviewUpdatedFull@1",
+        "HeartRateOverviewUpdatedHero@1",
+        "HeartRateOverviewUpdatedIconHero@1",
+        "WorkoutOverviewCompact@1",
+        "WorkoutOverviewFull@1",
+        "WorkoutOverviewHero@1",
+        "WorkoutOverviewTrainingRecordHero@1",
+        "WorkoutOverviewTypeDurationCompact@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-orange-diagonal-wide",
+      "templateIds": [
+        "ActivityOverviewFull@1",
+        "ActivityOverviewWideFull@1",
+        "CountdownOverviewDepartureHero@1",
+        "CountdownOverviewEventHero@1",
+        "CountdownOverviewFull@1",
+        "CountdownOverviewHero@1",
+        "CountdownOverviewTargetDetailFull@1",
+        "HeartRateOverviewFull@1",
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewIconHero@1",
+        "HeartRateOverviewMinMaxFull@1",
+        "HeartRateOverviewUpdatedFull@1",
+        "HeartRateOverviewUpdatedHero@1",
+        "HeartRateOverviewUpdatedIconHero@1",
+        "WorkoutOverviewFull@1",
+        "WorkoutOverviewHero@1",
+        "WorkoutOverviewTrainingRecordHero@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-orange-diamond-square",
+      "templateIds": [
+        "ActivityOverviewCompact@1",
+        "ActivityOverviewFull@1",
+        "CountdownOverviewDepartureHero@1",
+        "CountdownOverviewEventHero@1",
+        "CountdownOverviewFull@1",
+        "CountdownOverviewHero@1",
+        "CountdownOverviewTargetCompact@1",
+        "CountdownOverviewTargetDetailFull@1",
+        "HeartRateOverviewCompact@1",
+        "HeartRateOverviewFull@1",
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewIconCompact@1",
+        "HeartRateOverviewIconHero@1",
+        "HeartRateOverviewMinMaxFull@1",
+        "HeartRateOverviewUpdatedFull@1",
+        "HeartRateOverviewUpdatedHero@1",
+        "HeartRateOverviewUpdatedIconHero@1",
+        "WorkoutOverviewCompact@1",
+        "WorkoutOverviewFull@1",
+        "WorkoutOverviewHero@1",
+        "WorkoutOverviewTrainingRecordHero@1",
+        "WorkoutOverviewTypeDurationCompact@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-orange-diamond-wide",
+      "templateIds": [
+        "ActivityOverviewFull@1",
+        "ActivityOverviewWideFull@1",
+        "CountdownOverviewDepartureHero@1",
+        "CountdownOverviewEventHero@1",
+        "CountdownOverviewFull@1",
+        "CountdownOverviewHero@1",
+        "CountdownOverviewTargetDetailFull@1",
+        "HeartRateOverviewFull@1",
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewIconHero@1",
+        "HeartRateOverviewMinMaxFull@1",
+        "HeartRateOverviewUpdatedFull@1",
+        "HeartRateOverviewUpdatedHero@1",
+        "HeartRateOverviewUpdatedIconHero@1",
+        "WorkoutOverviewFull@1",
+        "WorkoutOverviewHero@1",
+        "WorkoutOverviewTrainingRecordHero@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-purple-diagonal-square",
+      "templateIds": [
+        "BluetoothDeviceOverviewCaseConnectionHero@1",
+        "BluetoothDeviceOverviewCaseSettingsHero@1",
+        "BluetoothDeviceOverviewConnectionTextFull@1",
+        "BluetoothDeviceOverviewEarbudPairChargingFull@1",
+        "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
+        "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",
+        "BluetoothDeviceOverviewEarphoneCompact@1",
+        "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+        "BluetoothDeviceOverviewHero@1",
+        "BluetoothDeviceOverviewStatusHero@1",
+        "SleepOverviewCompact@1",
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1",
+        "SleepOverviewNapFull@1",
+        "SleepOverviewNapHero@1",
+        "SleepOverviewScoreFull@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-purple-diagonal-wide",
+      "templateIds": [
+        "BluetoothDeviceOverviewCaseConnectionHero@1",
+        "BluetoothDeviceOverviewCaseSettingsHero@1",
+        "BluetoothDeviceOverviewConnectionTextFull@1",
+        "BluetoothDeviceOverviewEarbudChargingWideFull@1",
+        "BluetoothDeviceOverviewEarbudPairChargingFull@1",
+        "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
+        "BluetoothDeviceOverviewEarphoneCaseHero@1",
+        "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",
+        "BluetoothDeviceOverviewEarphoneHero@1",
+        "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+        "BluetoothDeviceOverviewHero@1",
+        "BluetoothDeviceOverviewStatusHero@1",
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1",
+        "SleepOverviewNapFull@1",
+        "SleepOverviewNapHero@1",
+        "SleepOverviewScoreDetailWideFull@1",
+        "SleepOverviewScoreFull@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-purple-diamond-square",
+      "templateIds": [
+        "BluetoothDeviceOverviewCaseConnectionHero@1",
+        "BluetoothDeviceOverviewCaseSettingsHero@1",
+        "BluetoothDeviceOverviewConnectionTextFull@1",
+        "BluetoothDeviceOverviewEarbudPairChargingFull@1",
+        "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
+        "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",
+        "BluetoothDeviceOverviewEarphoneCompact@1",
+        "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+        "BluetoothDeviceOverviewHero@1",
+        "BluetoothDeviceOverviewStatusHero@1",
+        "SleepOverviewCompact@1",
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1",
+        "SleepOverviewNapFull@1",
+        "SleepOverviewNapHero@1",
+        "SleepOverviewScoreFull@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-texture-purple-diamond-wide",
+      "templateIds": [
+        "BluetoothDeviceOverviewCaseConnectionHero@1",
+        "BluetoothDeviceOverviewCaseSettingsHero@1",
+        "BluetoothDeviceOverviewConnectionTextFull@1",
+        "BluetoothDeviceOverviewEarbudChargingWideFull@1",
+        "BluetoothDeviceOverviewEarbudPairChargingFull@1",
+        "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideFull@1",
+        "BluetoothDeviceOverviewEarphoneCaseHero@1",
+        "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",
+        "BluetoothDeviceOverviewEarphoneHero@1",
+        "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+        "BluetoothDeviceOverviewHero@1",
+        "BluetoothDeviceOverviewStatusHero@1",
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1",
+        "SleepOverviewNapFull@1",
+        "SleepOverviewNapHero@1",
+        "SleepOverviewScoreDetailWideFull@1",
+        "SleepOverviewScoreFull@1"
+      ],
+      "layoutTemplateIds": [
+        "WideFullTwoCompactLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideHeroCompactLayout@1"
+      ]
+    },
+    {
+      "themeId": "photo-ux-violin-stage-square",
+      "templateIds": [
+        "BluetoothDeviceOverviewCaseConnectionHero@1",
+        "BluetoothDeviceOverviewCaseSettingsHero@1",
+        "BluetoothDeviceOverviewConnectionTextFull@1",
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "BluetoothDeviceOverviewEarbudTripleHero@1",
+        "BluetoothDeviceOverviewEarphoneCompact@1",
+        "BluetoothDeviceOverviewHero@1",
+        "BluetoothDeviceOverviewStatusHero@1"
+      ],
+      "layoutTemplateIds": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "FullIconActionLayout@1",
+        "CompactTwoActionLayout@1"
+      ]
+    }
+  ]
+}

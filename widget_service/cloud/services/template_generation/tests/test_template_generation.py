@@ -6794,7 +6794,10 @@ def test_countdown_theme_candidates_follow_fusion_gate(
 async def test_generic_countdown_query_uses_countdown_overview_without_workout_semantics(
     enable_fusion_ball: bool,
     theme_id: str,
+    monkeypatch,
 ) -> None:
+    # 此用例验证原主题与融球开关；图片主题的内容及回退由本地专项回归覆盖。
+    monkeypatch.setattr(get_settings(), "enable_photo_background_theme", False)
     task_spec = TaskSpec(
         userQuery="做一张日程倒数卡片，我想看看高考还剩下多少天",
         size="2x2",

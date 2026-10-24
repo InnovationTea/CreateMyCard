@@ -1519,6 +1519,8 @@ class WidgetGenerationService:
                     source_load_result.artifact_digest if source_load_result else None
                 ),
             )
+            if source_generated_by_template and template_source_generator is not None:
+                artifact = template_source_generator.register_artifact_assets(artifact)
             with trace_attempt(**validation_attempts):
                 trace_step(
                     "artifact.candidate.built",
@@ -1857,6 +1859,8 @@ class WidgetGenerationService:
                     source_load_result.artifact_digest if source_load_result else None
                 ),
             )
+            if source_generated_by_template and template_source_generator is not None:
+                artifact = template_source_generator.register_artifact_assets(artifact)
             if colorless_source() or single_step_theme:
                 from services.post_layout_theme import theme_artifact
 

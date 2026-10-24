@@ -1414,9 +1414,15 @@ def _validate_image_source(component_id: str, source: Any) -> None:
         raise CompactDslConversionError(
             f"{component_id}: Image.src must be a non-empty local path."
         )
-    if not source.startswith("resources/base/media/"):
+    if source.startswith("resources/base/media/"):
+        return
+    from services.template_generation.engine.cardplan.photo_delivery import (
+        is_delivered_photo_source,
+    )
+
+    if not is_delivered_photo_source(component_id, source):
         raise CompactDslConversionError(
-            f"{component_id}: Image.src must use resources/base/media/."
+            f"{component_id}: Image.src must use resources/base/media/ or a registered theme URL."
         )
 
 

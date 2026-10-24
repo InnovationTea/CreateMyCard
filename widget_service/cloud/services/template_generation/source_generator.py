@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from custom.model_runtime import ModelExecutionRuntime
+from models.artifact import WidgetArtifact
 from models.generation import CandidateDataBinding, ModelRequestContext, TaskSpec
 from services.fusion_ball_expander import fusion_ball_enabled
 from services.generation_pipeline import DslProcessorKind
@@ -24,6 +25,12 @@ class TemplateSourceGenerator:
     protocol_profile: dict[str, Any] | None = field(default=None, init=False)
     model_runtime: ModelExecutionRuntime | None = field(default=None, init=False)
     model_request_context: ModelRequestContext | None = field(default=None, init=False)
+
+    def register_artifact_assets(self, artifact: WidgetArtifact) -> WidgetArtifact:
+        """登记本模块已交付的图片，以便公共校验和编辑恢复读取。"""
+        from services.template_generation.engine.cardplan.photo_delivery import register_photo_asset
+
+        return register_photo_asset(artifact)
 
     async def __call__(
         self,
