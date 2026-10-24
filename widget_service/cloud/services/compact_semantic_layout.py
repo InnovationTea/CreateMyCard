@@ -143,6 +143,9 @@ class _Compiler:
         self.origins: dict[str, str] = {}
         self.seen: set[str] = set()
         self.ratio_cells: dict[str, str] = {}
+        self.padding: int | None = None
+        self.parent_gap: int | None = None
+        self.panel_padding: int | None = None
 
     def validate_tree(self, identifier: str, visiting: set[str], visited: set[str]) -> None:
         if identifier in visiting:

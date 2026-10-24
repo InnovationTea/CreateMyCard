@@ -326,16 +326,17 @@ def _height_group_key(diagnostic: dict[str, Any]) -> tuple[str, int | None] | No
     source_line = diagnostic.get("sourceLine")
     if not isinstance(source_line, int) or isinstance(source_line, bool):
         source_line = None
+    group_key: tuple[str, int | None] | None = None
     if isinstance(component_id, str) and component_id:
-        return component_id, source_line
-    actual = diagnostic.get("actual")
-    occupancy = actual.get("occupancy") if isinstance(actual, dict) else None
-    if not isinstance(occupancy, str):
-        return None
-    item_match = re.match(r"^([A-Za-z0-9_-]+)_item\d+_", occupancy)
-    if item_match is None:
-        return None
-    return f"{item_match.group(1)}_items", source_line
+        group_key = component_id, source_line
+    else:
+        actual = diagnostic.get("actual")
+        occupancy = actual.get("occupancy") if isinstance(actual, dict) else None
+        if isinstance(occupancy, str):
+            item_match = re.match(r"^([A-Za-z0-9_-]+)_item\d+_", occupancy)
+            if item_match is not None:
+                group_key = f"{item_match.group(1)}_items", source_line
+    return group_key
 
 
 def _compact_number(value: Any) -> str:
