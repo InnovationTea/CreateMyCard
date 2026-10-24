@@ -38,6 +38,7 @@ def test_missing_spec_uses_default_config(
     assert helper.config_file.name == "default_config.yaml"
     assert helper.get("obs.expire.time") == 3600
     assert helper.get("enable_a2ui_model_mock") == "true"
+    assert helper.get("daily_usage_slb") == ""
     assert helper.get("fusion_ball_min_prd_version") == "11.7.5.206"
     assert helper.get("enable_compact_dsl_argument_repair_fallback") == "false"
     assert helper.get("compact_dsl_argument_repair_reminder_count") == 1

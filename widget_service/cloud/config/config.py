@@ -242,7 +242,7 @@ class Settings(BaseSettings):
     enable_widget_edit: bool = CONFIG.get("enable_widget_edit", "true") == "true"
     enable_semantic_widget_edit: bool = CONFIG.get("enable_semantic_widget_edit", "true") == "true"
     widget_edit_max_repair_attempts: int = Field(
-        default=CONFIG.get("widget_edit_max_repair_attempts", 2), ge=0, le=5,
+        default=CONFIG.get("widget_edit_max_repair_attempts", 3), ge=0, le=5,
     )
     enable_single_step_generation_fallback: bool = (
         CONFIG.get("enable_single_step_generation_fallback", "false") == "true"
@@ -256,6 +256,18 @@ class Settings(BaseSettings):
     enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
     enable_widget_directive_commands: bool = (
         CONFIG.get("enable_widget_directive_commands") == "true"
+    )
+    enable_daily_usage_limit: bool = CONFIG.get("enable_daily_usage_limit", "false") == "true"
+    daily_usage_limit: int = Field(default=CONFIG.get("daily_usage_limit", 20), gt=0)
+    daily_usage_slb: str = CONFIG.get("daily_usage_slb", "")
+    daily_usage_api_snapshot_path: str = CONFIG.get(
+        "daily_usage_api_snapshot_path", "/genui-agent/v1/daily-usage/snapshot"
+    )
+    daily_usage_api_record_path: str = CONFIG.get(
+        "daily_usage_api_record_path", "/genui-agent/v1/daily-usage/record-success"
+    )
+    daily_usage_api_timeout_seconds: float = Field(
+        default=CONFIG.get("daily_usage_api_timeout_seconds", 3.0), gt=0
     )
     enable_compact_dsl_argument_repair_fallback: bool = (
         CONFIG.get("enable_compact_dsl_argument_repair_fallback", "false") == "true"
@@ -338,6 +350,13 @@ class Settings(BaseSettings):
 
     # dmq 华山开关
     ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
+
+    @field_validator("daily_usage_limit", mode="before")
+    @classmethod
+    def validate_daily_usage_integer(cls, value: object) -> object:
+        if isinstance(value, (bool, float)):
+            raise ValueError("daily usage integer settings must not be boolean or float")
+        return value
 
     @field_validator("compact_dsl_interface_retry_count", mode="before")
     @classmethod

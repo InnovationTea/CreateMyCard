@@ -514,7 +514,7 @@ def test_default_semantic_edit_and_budget_are_independent_from_creation():
 
     settings = Settings(_env_file=None)
     assert settings.enable_semantic_widget_edit is True
-    assert settings.widget_edit_max_repair_attempts == 2
+    assert settings.widget_edit_max_repair_attempts == 3
 
 
 def test_noop_does_not_ignore_explicit_size_change(source):
