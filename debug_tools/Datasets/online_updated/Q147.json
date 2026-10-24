@@ -1,0 +1,81 @@
+{
+  "content": {
+    "title": "打电话给赵红",
+    "description": "一键拨打赵红电话",
+    "userQuery": "生成一个打电话给赵红的卡片，点击卡片可以拨打赵红的电话。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VDE-AL10 7.0.0.109",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi"
+        },
+        "capabilityId": "event.call.phone"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_call_bule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VDE-AL10",
+    "prdVer": "11.7.9.214",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261021044358434"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "69f32a56-3dd5-4b56-a2a4-c40e29b7dec3"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VDE-AL10 7.0.0.109",
+  "candidateAssetIds": [
+    "asset.ic_call_bule"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": ""
+          }
+        },
+        "call": "clickToApi"
+      },
+      "capabilityId": "event.call.phone"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "一键拨打赵红电话",
+  "userQuery": "生成一个打电话给赵红的卡片，点击卡片可以拨打赵红的电话。",
+  "title": "打电话给赵红",
+  "candidateDataBindings": []
+}

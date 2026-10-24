@@ -1,0 +1,121 @@
+{
+  "content": {
+    "title": "耗电应用",
+    "description": "耗电排行速览",
+    "userQuery": "生成一个能够显示耗电应用的桌面卡片",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "limit": 5
+        },
+        "candidateOutputFields": [
+          "/rankingList/0/appName",
+          "/rankingList/0/powerText",
+          "/rankingList/1/appName",
+          "/rankingList/1/powerText",
+          "/rankingList/2/appName",
+          "/rankingList/2/powerText",
+          "/rankingList/3/appName",
+          "/rankingList/3/powerText",
+          "/rankingList/4/appName",
+          "/rankingList/4/powerText"
+        ],
+        "capabilityId": "GetAppPowerConsumptionRanking",
+        "writeResultTo": "/data/powerRanking"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.battery"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_ranking"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261019064912008"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "7",
+    "isNew": false,
+    "sessionId": "d49c96e9-eb63-4ca7-9968-b25390421864"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.ic_ranking"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "battery"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.battery"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "耗电排行速览",
+  "userQuery": "生成一个能够显示耗电应用的桌面卡片",
+  "title": "耗电应用",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "limit": 5
+      },
+      "candidateOutputFields": [
+        "/rankingList/0/appName",
+        "/rankingList/0/powerText",
+        "/rankingList/1/appName",
+        "/rankingList/1/powerText",
+        "/rankingList/2/appName",
+        "/rankingList/2/powerText",
+        "/rankingList/3/appName",
+        "/rankingList/3/powerText",
+        "/rankingList/4/appName",
+        "/rankingList/4/powerText"
+      ],
+      "capabilityId": "GetAppPowerConsumptionRanking",
+      "writeResultTo": "/data/powerRanking"
+    }
+  ]
+}
