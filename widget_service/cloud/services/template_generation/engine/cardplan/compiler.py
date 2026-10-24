@@ -83,6 +83,12 @@ from .models import (
     TemplateVariant,
 )
 from .parser import ParsedCall, parse_hybrid_card, parse_ux_layout_card
+from .photo_theme import (
+    SURFACE_MARKER,
+    apply_photo_background,
+    apply_photo_surfaces,
+    mark_theme_surfaces,
+)
 from .provider_bundle import (
     provider_template_family_identity,
     provider_template_layout_kind,
@@ -309,6 +315,8 @@ def compile_hybrid_card(
     content_height = _estimate_height(content)
     root = _compile_card_shell(card_params, content, contract, registry)
     root = _apply_theme_content_color(root, contract, registry)
+    theme = registry.require_theme(contract.theme_profile_id)
+    root = apply_photo_surfaces(root, theme)
     card_action = card_params.get("action")
     if isinstance(card_action, dict):
         if card_action["id"] not in state.action_ids:
@@ -333,6 +341,7 @@ def compile_hybrid_card(
         content = _constrain_content_height(content, body_budget, task_spec.size)
         root = _compile_card_shell(card_params, content, contract, registry)
         root = _apply_theme_content_color(root, contract, registry)
+        root = apply_photo_surfaces(root, theme)
     if fusion_palette is None:
         root = apply_content_safe_inset(root, size=task_spec.size)
     else:
@@ -341,6 +350,7 @@ def compile_hybrid_card(
             size=task_spec.size,
             palette=fusion_palette,
         )
+    root = apply_photo_background(root, theme)
     root = _strip_advanced_component_markers(root)
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_tersel_to_a2ui(
@@ -509,6 +519,8 @@ def compile_ux_layout_card(
         registry,
     )
     root = _apply_theme_content_color(root, contract, registry)
+    theme = registry.require_theme(contract.theme_profile_id)
+    root = apply_photo_surfaces(root, theme)
     root = _strip_advanced_component_markers(root)
     count, depth = _shape(root)
     if count > contract.limits.max_expanded_components:
@@ -524,6 +536,7 @@ def compile_ux_layout_card(
             size=task_spec.size,
             palette=fusion_palette,
         )
+    root = apply_photo_background(root, theme)
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_tersel_to_a2ui(
         effective,
@@ -4728,6 +4741,7 @@ def _instantiate_blueprint(
         _template_value(item, params, binding_values, resolved_theme_values)
         for item in node.values
     ]
+    mark_theme_surfaces(node, values)
     # 仅由受信模板源声明；此标记不进入端侧样式或模型开放参数。
     for value in values:
         if isinstance(value, dict):
@@ -8920,6 +8934,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     children = tuple(_strip_advanced_component_markers(child) for child in node.children)
     values: list[Any] = []
     marker_keys = {
+        SURFACE_MARKER,
         "_boundTemplateAction",
         "_advancedComponent",
         "_preserveOriginalColor",
@@ -8929,6 +8944,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     for value in node.values:
         if isinstance(value, dict) and not marker_keys.isdisjoint(value):
             cleaned = dict(value)
+            cleaned.pop(SURFACE_MARKER, None)
             cleaned.pop("_boundTemplateAction", None)
             cleaned.pop("_advancedComponent", None)
             cleaned.pop("_preserveOriginalColor", None)

@@ -107,6 +107,7 @@ class TemplatePlan(StrictModel):
 
     plan_id: str = Field(alias="planId", min_length=1)
     theme_id: str = Field(alias="themeId", min_length=1)
+    photo_theme_ids: tuple[str, ...] = Field(default=(), exclude=True)
     layout_template_id: str = Field(alias="layoutTemplateId", min_length=1)
     business_slots: tuple[TemplatePlanBusinessSlot, ...] = Field(
         alias="businessSlots",
@@ -428,6 +429,17 @@ class MarkdownRuleReference(StrictModel):
     path: str = Field(min_length=1)
 
 
+class PhotoBackgroundStyle(StrictModel):
+    """从受控图片注册表投影的模板背景及匹配范围。"""
+
+    src: str = Field(min_length=1)
+    object_fit: Literal["cover", "fill"]
+    size: Literal["2x2", "2x4"]
+    template_ids: tuple[str, ...] = Field(min_length=1)
+    layout_template_ids: tuple[str, ...] = Field(min_length=1)
+    pool: Literal["photos", "texturePhotos"]
+
+
 class ThemeDefinition(StrictModel):
     theme_format: Literal["card-theme/2"] = Field(alias="themeFormat")
     theme_profile_id: str = Field(alias="themeProfileId")
@@ -461,6 +473,7 @@ class ThemeDefinition(StrictModel):
         alias="supportContentStyle",
     )
     fusion_ball_style: FusionBallStyle | None = Field(default=None, alias="fusionBallStyle")
+    photo_background_style: PhotoBackgroundStyle | None = Field(default=None)
     first_layer_rule: MarkdownRuleReference = Field(alias="firstLayerRule")
 
     @property

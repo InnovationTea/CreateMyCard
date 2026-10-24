@@ -428,8 +428,12 @@ async def test_case_percent_full_requires_battery_and_status(missing: str) -> No
 @pytest.mark.parametrize("fusion", [False, True])
 @pytest.mark.parametrize("connected", [False, True])
 async def test_connection_text_full_renders_both_boolean_states(
-    fusion: bool, connected: bool,
+    monkeypatch, fusion: bool, connected: bool,
 ) -> None:
+    from config.config import get_settings
+
+    # 本例固定检查原主题的 left；图片主题的枚举适配由本地专项回归覆盖。
+    monkeypatch.setattr(get_settings(), "enable_photo_background_theme", False)
     fields = {
         "earphoneName": _provider_field("示例耳机", "string"),
         "isConnected": _provider_field(connected, "boolean"),

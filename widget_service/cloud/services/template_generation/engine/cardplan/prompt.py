@@ -231,7 +231,7 @@ def build_hybrid_prompt(
     limits = HybridLimits(
         max_raw_components=18 if task_spec.size == "2x2" else 28,
         max_expanded_components=36 if task_spec.size == "2x2" else 52,
-        max_nesting_depth=9 if ux_layout_root_ids else 7,
+        max_nesting_depth=10 if ux_layout_root_ids else 7,
         vertical_budget_vp=126,
     )
     contract = HybridBodyContract(

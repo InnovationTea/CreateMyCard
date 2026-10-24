@@ -10,6 +10,7 @@ from typing import Any
 from app.logger import json_for_log, logger
 from models.generation import CandidateDataBinding, TaskSpec
 from services.card_validation.base import expression_references
+from services.post_layout_theme_registry import registered_themes
 from services.template_generation.controls import load_template_controls
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
@@ -59,6 +60,7 @@ from services.template_generation.engine.cardplan.models import (
     CARDTPL_SOURCE_FORMATS,
     TemplatePlan,
 )
+from services.template_generation.engine.cardplan.photo_selection import finalize_template_photo
 from services.template_generation.engine.cardplan.registry import (
     CardPlanRegistry,
     get_cardplan_registry,
@@ -470,9 +472,9 @@ async def _generate_selected_templates(
             for path in slot.field_bindings.values():
                 if path not in generic_paths:
                     generic_paths.append(path)
-    if registry.enabled_calendar_fallback_template_ids:
-        # 补充 Full 的最小字段不依赖旧日程投影形态。下方仍按已检索模板的
-        # required/optional 路径复制真实源字段，并由正式编译器验证绑定。
+    if template_plans or registry.enabled_calendar_fallback_template_ids:
+        # 已检索并完成规划的模板以登记绑定为准，不再受旧整组组件事实门禁限制。
+        # 下方只复制真实源字段，编译器仍验证必填绑定、类型和完整计划。
         projected_task_spec = source_task_spec.model_copy(update={"dataModelSchema": {"data": {}}})
     else:
         projected_task_spec = project_content_component_facts(
@@ -542,6 +544,14 @@ async def _generate_selected_templates(
                 exc,
             )
 
+    compilation, final_theme_id = finalize_template_photo(
+        compilation, task_spec=projected_task_spec, contract=projection.contract, registry=registry,
+        compile_options={
+            "protocol_profile": protocol_profile,
+            "business_title": str(card_spec.get("title") or "") or None,
+            "card_spec": card_spec, "enable_data_bindings": True,
+        },
+    )
     requested_asset_sources = {
         source
         for item in projected_task_spec.assetCandidates
@@ -554,6 +564,12 @@ async def _generate_selected_templates(
         for source in projection.contract.allowed_asset_sources
         if source not in requested_asset_sources and source in compilation.a2ui
     )
+    photo = registry.require_theme(final_theme_id).photo_background_style
+    if photo is not None:
+        registered = next(item for item in registered_themes() if item.get("id") == final_theme_id)
+        address = registered.get("remoteUrl") or photo.src
+        if address not in requested_asset_sources and address not in trusted_sources:
+            trusted_sources = (*trusted_sources, address)
     logger.info(
         f"{_MODULE} selected_templates_generated "
         f"template_count={compilation.stats.template_call_count} "
@@ -568,7 +584,7 @@ async def _generate_selected_templates(
         template_ids=tuple(compilation.stats.template_used_ids),
         trusted_internal_asset_sources=trusted_sources,
         expanded_component_count=compilation.stats.expanded_component_count,
-        theme_id=projection.theme_id,
+        theme_id=final_theme_id,
     )
 
 
