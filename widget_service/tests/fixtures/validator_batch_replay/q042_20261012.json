@@ -1,0 +1,32 @@
+{
+  "source": "debug_tools/batch_output/batch_20261012_220126_18896f95/Q042/attempt_000/blocks",
+  "genuiSha256": "af9cef23ce76512e1aad860d8b07605267b797c2a006a298aea2d621ac5a5513",
+  "genui": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"header\",\"body\"],\"itemMargin\":6,\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":20,\"clip\":true,\"justifyContent\":\"start\",\"linearGradient\":{\"direction\":\"RightBottom\",\"colors\":[[\"#FFCBDDFE\",0],[\"#FFF1F6FE\",1]]}}},{\"id\":\"header\",\"component\":\"Row\",\"children\":[\"header_title\"],\"itemMargin\":0,\"styles\":{\"width\":\"matchParent\",\"height\":12,\"flexShrink\":0,\"justifyContent\":\"start\",\"alignItems\":\"center\"}},{\"id\":\"header_title\",\"component\":\"Text\",\"content\":\"北京出差\",\"styles\":{\"fontSize\":12,\"fontWeight\":400,\"lineHeight\":1,\"textAlign\":\"start\",\"maxLines\":1,\"flexShrink\":0,\"width\":\"matchParent\",\"fontColor\":\"#991F4799\"}},{\"id\":\"body\",\"component\":\"Column\",\"children\":[\"content\",\"action_area\"],\"itemMargin\":8,\"styles\":{\"width\":\"matchParent\",\"layoutWeight\":1}},{\"id\":\"content\",\"component\":\"Column\",\"children\":[\"countdown\",\"weather\"],\"itemMargin\":2,\"styles\":{\"width\":\"matchParent\",\"justifyContent\":\"start\",\"alignItems\":\"start\",\"layoutWeight\":1}},{\"id\":\"countdown\",\"component\":\"Row\",\"children\":[\"countdown_value\"],\"itemMargin\":0,\"styles\":{\"justifyContent\":\"start\",\"alignItems\":\"baseline\",\"flexShrink\":0,\"width\":\"matchParent\"}},{\"id\":\"countdown_value\",\"component\":\"Text\",\"content\":\"{{ ${/data/countdown/countdownDays} + '天' }}\",\"styles\":{\"height\":30,\"fontSize\":30,\"fontWeight\":700,\"lineHeight\":1,\"maxLines\":1,\"flexShrink\":0,\"fontColor\":\"#FF1F4799\",\"textOverflow\":\"clip\"}},{\"id\":\"weather\",\"component\":\"Column\",\"children\":[\"weather_row0\"],\"itemMargin\":2,\"styles\":{\"width\":\"matchParent\",\"alignItems\":\"start\",\"flexShrink\":1}},{\"id\":\"weather_item0_label\",\"component\":\"Text\",\"content\":\"北京 \",\"styles\":{\"height\":20,\"fontSize\":14,\"fontWeight\":500,\"maxLines\":1,\"flexShrink\":0,\"fontColor\":\"#FF1F4799\",\"textOverflow\":\"clip\"}},{\"id\":\"weather_item0_value\",\"component\":\"Text\",\"content\":\"{{ ${/data/weather/current/condition} + ' ' + ${/data/weather/current/temperatureC} + '℃' }}\",\"styles\":{\"height\":20.0,\"fontSize\":14,\"fontWeight\":500,\"maxLines\":1,\"flexShrink\":1,\"fontColor\":\"#991F4799\",\"layoutWeight\":1,\"textOverflow\":\"clip\"}},{\"id\":\"weather_item0\",\"component\":\"Row\",\"children\":[\"weather_item0_label\",\"weather_item0_value\"],\"itemMargin\":0,\"styles\":{\"height\":20.0,\"alignItems\":\"start\",\"flexShrink\":1,\"constraintSize\":{\"minWidth\":0},\"layoutWeight\":1}},{\"id\":\"weather_row0\",\"component\":\"Row\",\"children\":[\"weather_item0\"],\"itemMargin\":0,\"styles\":{\"width\":\"matchParent\",\"height\":20.0,\"alignItems\":\"start\",\"flexShrink\":0}},{\"id\":\"action_area\",\"component\":\"Column\",\"children\":[\"action\"],\"styles\":{\"width\":\"matchParent\",\"height\":36,\"flexShrink\":0},\"itemMargin\":0},{\"id\":\"action\",\"component\":\"Button\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Weather_CityCode\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}\"}}],\"label\":\"查看天气\",\"styles\":{\"height\":36,\"borderRadius\":30,\"padding\":0,\"flexShrink\":0,\"width\":\"matchParent\",\"backgroundColor\":\"#331F4799\",\"fontColor\":\"#FF1F4799\",\"fontSize\":14,\"fontWeight\":500,\"textAlign\":\"center\"}}]}}\n\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{\"countdown\":{\"countdownDays\":30},\"weather\":{\"current\":{\"temperatureC\":29,\"condition\":\"多云\"},\"location\":{\"cityCode\":\"60814\"}}}}}}",
+  "cardSpec": {
+    "title": "出差倒计时",
+    "description": "倒计时+目的地天气",
+    "suggestSize": "2x2",
+    "imageDomainWhitelist": [
+      "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+      "lfcontentcenterdev.hwcloudtest.cn",
+      "hagres-drcn.dbankcdn.com"
+    ],
+    "dataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-11-15"
+        },
+        "writeResultTo": "/data/countdown"
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "北京市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather"
+      }
+    ]
+  }
+}

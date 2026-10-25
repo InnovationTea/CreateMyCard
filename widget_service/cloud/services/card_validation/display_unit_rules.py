@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from .base import expression_body, expression_references
+from .base import INTERP_RE, expression_body, expression_references
 
 _STRING_LITERAL_RE = re.compile(r"^'(?P<value>(?:[^'\\]|\\.)*)'$")
 _ARRAY_INDEX_RE = re.compile(r"/(?P<index>\d+)(?=/|$)")
@@ -203,6 +203,11 @@ def repair_repeated_display_units(
                     break
                 matching_siblings.append(sibling_id)
             keep_count = 0 if rule.unit_included else 1
+            value_component = by_id.get(component_id)
+            if value_component is None:
+                continue
+            inline_count = _unconditional_inline_unit_count(value_component.get("content"), rule)
+            keep_count = max(0, keep_count - inline_count)
             for sibling_id in matching_siblings[keep_count:]:
                 repaired_children.remove(sibling_id)
                 removed_child_ids.add(sibling_id)
@@ -230,6 +235,19 @@ def repair_repeated_display_units(
         json.dumps(message, ensure_ascii=False, separators=(",", ":"))
         for message in messages
     )
+
+
+def _unconditional_inline_unit_count(expression: Any, rule: DisplayUnitRule) -> int:
+    """只扣除直接绑定和字面量拼接中确定存在的单位，不推断条件或算术。"""
+    if not isinstance(expression, str):
+        return 0
+    terms = _split_concat_terms(expression_body(expression))
+    for term in terms:
+        if _STRING_LITERAL_RE.fullmatch(term) is not None:
+            continue
+        if INTERP_RE.fullmatch(term) is None:
+            return 0
+    return matching_unit_literal_count(expression, rule)
 
 
 def _repair_expression_units(expression: str, rule: DisplayUnitRule) -> str:
