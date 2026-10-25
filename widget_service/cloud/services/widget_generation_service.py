@@ -1907,15 +1907,11 @@ class WidgetGenerationService:
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
         trace_phase("response")
         omitted_facts: tuple[dict[str, Any], ...] = ()
-        if accepted_compact_plan is not None and compact_repair_tracker is not None:
+        if accepted_compact_plan is not None:
             omitted_facts = compact_plan_omitted_facts(
                 latest_processing_result.source_dsl,
                 accepted_compact_plan,
                 task_spec.model_dump(mode="json", exclude_none=True),
-                compact_repair_tracker.validation_omitted_fact_indexes(
-                    accepted_compact_plan,
-                    validate_drop_plan_facts=settings.enable_drop_plan_fact_validation,
-                ),
             )
         omitted_requirements = [
             str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")

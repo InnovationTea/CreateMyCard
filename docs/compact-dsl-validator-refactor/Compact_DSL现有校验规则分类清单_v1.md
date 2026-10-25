@@ -1,5 +1,16 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-25：Q043／Q084／Q109 批跑回放补强生成修复反馈：
+
+| 检查项 | 分类与实际落点 | 归属理由 |
+|---|---|---|
+| 整卡缺核心信息的修复范围 | 生成修复编排，`compact_repair_strategy.py` | 消费现有 SecondaryBody 诊断，选整卡重组；不复制或放宽 `semantic/plan_contracts.py` 判定 |
+| 高度预算与源信息的证据摘要 | 生成修复上下文，`compact_repair_evidence.py` | 读取既有诊断及源稿，复用 `compact_repair_context.py` 事实关联；未知映射保留未知 |
+| 同拓扑、同业务内容的修复进展 | 请求内编排辅助，`compact_repair_evidence.py`、`compact_repair_strategy.py` | 比较已报告的容量和核心缺失，影响已有修复路由；不新增发布校验或删除授权 |
+| 最终缺失事实与降级状态 | 生成结果编排，`compact_plan.py`、`widget_generation_service.py` | 复用既有可见覆盖检查，响应统计全部实际缺失；显式 Drop 校验清单和发布阻断策略保持不变 |
+
+回归使用 `task_a2b68e673af4` 服务日志提取的真实末稿和诊断；离线回放仅验证反馈与路由，不代表模型成功率或真机效果。
+
 2026-10-25：批跑衍生回归修正两处生成辅助行为，不新增或放宽发布校验：
 
 | 检查项 | 分类与实际落点 | 归属理由及验证 |
