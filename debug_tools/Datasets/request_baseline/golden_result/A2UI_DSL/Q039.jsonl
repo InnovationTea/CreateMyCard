@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"最近运动","fontSize":12}]
+["content","EmphasisText",{"mainText":{"path":"/data/healthSport/exerciseTypeName"},"secondaryText":{"path":"/data/healthSport/exerciseDurationText"},"fontSize":18}]
+["action","PillButton",{"label":"查看锻炼记录","icon":"resources/base/media/figure_run.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}]}]
+["/data/healthSport/exerciseTypeName","户外跑步"]
+["/data/healthSport/exerciseDurationText","40分"]

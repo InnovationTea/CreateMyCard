@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"睡眠分析","fontSize":12}]
+["primary","EmphasisText",{"mainText":{"path":"/data/healthSport/nightSleepDurationText"},"secondaryText":{"path":"/data/healthSport/sleepTypeDesc"},"fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"深睡时长 ","value":{"path":"/data/healthSport/deepSleepDurationText"}}],"fontSize":14}]
+["/data/healthSport/nightSleepDurationText","7小时1分"]
+["/data/healthSport/sleepTypeDesc","科学睡眠"]
+["/data/healthSport/deepSleepDurationText","2小时15分"]

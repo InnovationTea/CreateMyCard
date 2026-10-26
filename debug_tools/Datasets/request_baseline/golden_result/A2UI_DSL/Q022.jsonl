@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-primary-secondary-action"},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":"本次运动","fontSize":12}]
+["primary","EmphasisText",{"mainText":{"path":"/data/healthSport/exerciseDurationText"},"fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"消耗","value":{"path":"/data/healthSport/exerciseCalorieText"}},{"label":"心率","value":"{{ ${/data/healthSport/exerciseHeartRateAvg} + ' 次/分钟' }}"}],"fontSize":14}]
+["action","PillButton",{"label":"打开歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["/data/healthSport/exerciseDurationText","40分"]
+["/data/healthSport/exerciseCalorieText","260 千卡"]
+["/data/healthSport/exerciseHeartRateAvg",135]

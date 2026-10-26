@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"primaryText":{"path":"/data/calendar/events/0/title"},"secondaryText":{"path":"/data/calendar/events/0/dtStart"}}]
+["second","InfoBlock",{"primaryText":{"path":"/data/calendar/events/1/title"},"secondaryText":{"path":"/data/calendar/events/1/dtStart"}}]
+["/data/calendar/events/0/title","产品立项会"]
+["/data/calendar/events/0/dtStart","09:00"]
+["/data/calendar/events/1/title","客户交流会"]
+["/data/calendar/events/1/dtStart","15:00"]

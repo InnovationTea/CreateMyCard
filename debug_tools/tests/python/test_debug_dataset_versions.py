@@ -43,7 +43,7 @@ def _version(number: int = 1) -> dict:
 
 
 @pytest.mark.parametrize(
-    ("name", "count"), [("open_domain", 55), ("online_updated", 114), ("request_baseline", 88)]
+    ("name", "count"), [("open_domain", 55), ("online_updated", 146), ("request_baseline", 88)]
 )
 def test_migrated_samples_have_independent_versions_and_available_assets(name, count):
     directory = ROOT / "debug_tools/Datasets" / name

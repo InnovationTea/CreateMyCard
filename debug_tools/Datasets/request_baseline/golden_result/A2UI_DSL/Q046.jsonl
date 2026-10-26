@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-content-dual-action"},["battery_summary","cta_music","cta_alarm"]]
+["battery_summary","TableText",{"items":[{"label":"耳机盒","value":"{{ ${/data/earphone/batteryLevel} + '%' }}"},{"label":"状态","value":{"path":"/data/earphone/chargingStatusDesc"}}],"fontSize":12}]
+["cta_music","CardButton",{"label":"每日歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["cta_alarm","CardButton",{"label":"闹钟","icon":"resources/base/media/alarm_fill_1.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Clock","bundleName":"com.huawei.hmos.clock","abilityName":"com.huawei.hmos.clock.phone","uri":""}}]}]
+["/data/earphone/batteryLevel",80]
+["/data/earphone/chargingStatusDesc","未充电"]

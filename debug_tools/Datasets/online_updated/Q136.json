@@ -1,0 +1,47 @@
+{
+  "content": {
+    "title": "天气与耳机状态卡片",
+    "description": "展示今日风力等级、降水概率，以及耳机连接状态、耳机仓电量和连接状态，点击可打开歌单",
+    "userQuery": "生成一个2×2的鸿蒙桌面卡片，显示今天的风力等级和降水概率、耳机是否连接、耳机仓的电量、耳机仓是否连接，点击卡片可以打开歌单。\n本轮卡片静态内容（用作展示的外部事实）：\n上海青浦区今日天气：中雨，气温16℃~22℃，北风3-4级，空气质量优，降水概率较高。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020112351441"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "8",
+    "isNew": false,
+    "sessionId": "b1b77308-062d-4f89-bb2c-fbb478798617"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "展示今日风力等级、降水概率，以及耳机连接状态、耳机仓电量和连接状态，点击可打开歌单",
+  "userQuery": "生成一个2×2的鸿蒙桌面卡片，显示今天的风力等级和降水概率、耳机是否连接、耳机仓的电量、耳机仓是否连接，点击卡片可以打开歌单。\n本轮卡片静态内容（用作展示的外部事实）：\n上海青浦区今日天气：中雨，气温16℃~22℃，北风3-4级，空气质量优，降水概率较高。",
+  "title": "天气与耳机状态卡片"
+}

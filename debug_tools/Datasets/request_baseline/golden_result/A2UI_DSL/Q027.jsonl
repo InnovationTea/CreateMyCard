@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-primary-secondary-action"},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":"今日运动","fontSize":12}]
+["primary","EmphasisText",{"mainText":{"path":"/data/healthSport/exerciseTypeName"},"secondaryText":{"path":"/data/healthSport/targetDateText"},"fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"最低心率","value":"{{ ${/data/healthSport/exerciseHeartRateMin} + '次/分钟' }}"}],"fontSize":14}]
+["action","PillButton",{"label":"收藏歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]
+["/data/healthSport/targetDateText","2026-08-06"]
+["/data/healthSport/exerciseTypeName","户外跑步"]
+["/data/healthSport/exerciseHeartRateMin",96]

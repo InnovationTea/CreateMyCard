@@ -1,0 +1,103 @@
+{
+  "content": {
+    "title": "电量提醒",
+    "description": "手机电量状态",
+    "userQuery": "生成一个电量提醒的桌面卡片，展示手机当前电量信息。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryCapacityLevelDesc"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.battery"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261021045316895"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "aef84de8-cc37-4a87-8c3c-e791695a2595"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "battery"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.battery"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "手机电量状态",
+  "userQuery": "生成一个电量提醒的桌面卡片，展示手机当前电量信息。",
+  "title": "电量提醒",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ]
+}

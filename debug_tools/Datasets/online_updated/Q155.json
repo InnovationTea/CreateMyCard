@@ -1,0 +1,121 @@
+{
+  "content": {
+    "title": "实时天气",
+    "description": "天气实时观察",
+    "userQuery": "帮我生成一个实时观察天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日东莞市松山湖天气晴朗，气温25℃~33℃，空气质量优，当前温度28℃。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "NJL-AL20 6.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "松山湖",
+          "forecastDays": 1,
+          "prefectureName": "东莞市"
+        },
+        "candidateOutputFields": [
+          "/location/prefectureName",
+          "/location/districtName",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/airQuality",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "1388888888"
+            }
+          },
+          "call": "clickToApi"
+        },
+        "capabilityId": "event.call.phone"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_call_bule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "NJL-AL20",
+    "prdVer": "11.7.8.320",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261019023625362"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "9711c91d-550c-4093-9d99-5198b4aaf698"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "NJL-AL20 6.0.0.111",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.ic_call_bule"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "1388888888"
+          }
+        },
+        "call": "clickToApi"
+      },
+      "capabilityId": "event.call.phone"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "天气实时观察",
+  "userQuery": "帮我生成一个实时观察天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日东莞市松山湖天气晴朗，气温25℃~33℃，空气质量优，当前温度28℃。",
+  "title": "实时天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "松山湖",
+        "forecastDays": 1,
+        "prefectureName": "东莞市"
+      },
+      "candidateOutputFields": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/condition"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

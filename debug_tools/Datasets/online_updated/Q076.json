@@ -26,7 +26,7 @@
           "args": {
             "intentName": "CallPhone",
             "params": {
-              "phoneNumber": ""
+              "phoneNumber": "1388888888"
             }
           }
         }
@@ -94,7 +94,7 @@
         "args": {
           "intentName": "CallPhone",
           "params": {
-            "phoneNumber": ""
+            "phoneNumber": "1388888888"
           }
         }
       }
