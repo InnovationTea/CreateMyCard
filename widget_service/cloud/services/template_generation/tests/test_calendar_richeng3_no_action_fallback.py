@@ -419,7 +419,10 @@ def test_three_field_reuse_rejects_explicit_extra_context_prohibition(query: str
 
 @pytest.mark.parametrize("missing", [_TITLE, _END])
 @pytest.mark.parametrize("mode", ["candidate", "schema", "type"])
-def test_three_field_reuse_requires_real_authorized_title_and_end(missing: str, mode: str) -> None:
+@pytest.mark.asyncio
+async def test_three_field_reuse_requires_real_authorized_title_and_end(
+    monkeypatch: pytest.MonkeyPatch, missing: str, mode: str
+) -> None:
     inputs = _case(_CASES[1])
     if mode == "candidate":
         binding = inputs.bindings[0].model_copy(
@@ -438,7 +441,22 @@ def test_three_field_reuse_requires_real_authorized_title_and_end(missing: str, 
         else:
             _event(schema)[key] = {"type": "array", "items": {"type": "string"}}
         inputs = inputs._replace(task=inputs.task.model_copy(update={"dataModelSchema": schema}))
-    assert _fallback(inputs, _registry()) is None
+    original = deepcopy(inputs)
+    result = _fallback(inputs, _registry())
+    if missing == _END and mode == "schema":
+        # 结束时间现在可缺省；存在的标题仍须真实、授权且类型正确。
+        assert result is not None
+        assert result.intent == inputs.intent
+        _configure(monkeypatch, _registry())
+        target = "ScheduleOverviewDatedMeetingWideFull@1"
+        output = await _compile(inputs, "WideFullOnlyLayout@1", (target,))
+        assert target in output.template_ids
+        for path in (_TITLE, _DATE, _START, _LOCATION):
+            assert f"/data/calendar{path}" in output.a2ui
+        assert f"/data/calendar{_END}" not in output.a2ui
+    else:
+        assert result is None
+    assert inputs == original
 
 
 @pytest.mark.parametrize("case", _CASES, ids=lambda case: case.suffix)

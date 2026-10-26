@@ -110,9 +110,10 @@
     可选 `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewReminderFull@1`：同版式的提醒 Full；时间轴展示标题、开始时间和提前提醒分钟数，
     三项全部必需，不要求发起人、重要程度或更新时间；可选 `calendarIcon` 与 `headerLabel`。
-- Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 可用于 `SingleFocusLayout@1`、
+- 小卡 Hero 使用 `HeroActionLayout@1` 加一个 `PillAction@1`；宽卡 Hero 只能按实际下发的组合使用。
+  Full 可用于 `SingleFocusLayout@1`、
   `WideTwoFullLayout@1`，或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个
-  `IconAction@1`。WideFull 当前只作 `2x4` 预留。
+  `IconAction@1`。WideFull 使用本轮 Planner 下发的 `2x4` 布局，例如无动作的 `WideFullOnlyLayout@1`。
 - HeroContent 必须位于 HeroTitle 之后，且布局第三个直接 child 必须是一个 `PillAction@1`；不得交换
   两个业务位置。除明确声明 `supportedEventIds` 与可选 `actionId` 的模板外，不得在业务模板内嵌 Action；
   `ScheduleOverviewEventCountTwoEventsFull@1` 消费动作时不得再为同一事件生成独立 Action child。
@@ -138,3 +139,33 @@
   尺寸适配只涉及模板布局，不改变字段、可选项、模板选择或事件消费。
 - Action 图标必须与动作语义一致；`PillAction@1` 暂时禁止设置 `icon`，只展示文本；
   `IconAction@1` 仍使用语义匹配的动作素材，不得复用业务内容素材。
+
+## calendar_fail 受限无动作补充
+
+- 仅使用本轮 Planner 实际下发的候选组合；这些模板默认隐藏，不改变原成功路线，不自行切换角色。
+- 新入口按实际 schema 中会显示的可选字段核对候选授权和排他要求，不能因字段没有列为必需而忽略
+  其显示影响；字段未获授权时保留未命中，不绕过正式数据投影或覆盖校验。
+- `DateAllDayFull` 的日期可选，`ReminderDetailsWideFull` 的更新时间可选；缺失时使用较少行的同风格
+  布局。`DatedMeetingWideFull` 的日期、结束时间可选，结束时间缺失只显示真实开始时刻。
+  三款的完整输入仍使用原布局，不补“未知日期”等占位数据。
+- `ScheduleOverviewDateAllDayWideFull@1` 展示单项日期、标题、全天；
+  `ScheduleOverviewLocationDescriptionEndWideFull@1` 展示备注、结束、地点；
+  `ScheduleOverviewAllDayLocationWideFull@1` 展示全天、地点及真实可选标题、时区。
+  均使用 `WideFullOnlyLayout@1`，不需要展示 Props、图标或动作。
+- `ScheduleOverviewTwoEventsWideFull@1` 完整显示两个不同索引的开始时间，标题、结束、地点可选；
+  `ScheduleOverviewEventCountThreeDetailsWideFull@1` 显示总数及三条日程各自标题、开始和备注。
+  二者使用 `WideFullOnlyLayout@1`，不能少展示一项、补造日程、复用首项数据或承诺备注全文。
+  双日程共用两列时间轴底板，列间距 12vp，标题 14fp/700，辅助信息 10fp/400；结束时间和地点
+  按真实可选字段增加辅助行，不以参考样例替换内容。三项详情使用三个 30vp 高横条，间距 6vp，
+  左侧合并绑定各自标题及备注、右侧显示开始时间；时间轴不再用于该三项模板。
+- 仅有首项投影的数量、开始时间和备注概览，可复用 `ScheduleOverviewEventCountDetailsWideFull@1`；
+  新入口要求首项标题也在真实 schema 和候选范围内，沿用模板固定的“首项”“首项备注”范围标识，
+  保留动态总数。明确完整列表、逐条、各自、固定多项、禁止只显示首项或排斥额外标题时不选此摘要。
+  原有多项路线优先，不修改原模板布局、输入字段或总数样例。
+- `ScheduleOverviewTitleLocationHero@1` 仅用于已下发的日程天气无动作宽卡，与
+  `WeatherOverviewConditionHero@1` 组成 `WideTwoFocusLayout@1`；该受限组合不套用小卡 Hero 加按钮
+  的说明，不添加日期、温度或任何动作。全部新增日程模板 Props 均为 `{}`。
+  日程文字统一居中，标题区、主内容区、辅助区分别高 16/58/16vp，字号 12/24/12fp、间距 6vp。
+  仅该精确组合且天气为三行基础信息、没有图标或动作时，天气沿用同样的居中排版，并将布局底板
+  间距与圆角设为 12vp；底板保持主题 RGB，使用约 10% 不透明度。额外天气字段及其他组合保持原排版。
+- 模板使用主题主辅内容色，宽高跟随父容器；真机验收尺寸由调用者提供，不写入线上模板合同。

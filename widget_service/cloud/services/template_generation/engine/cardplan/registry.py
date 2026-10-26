@@ -59,6 +59,12 @@ CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS = frozenset(
         "ScheduleOverviewEventCountThreeTimeNotesWideFull@1",
         "ScheduleOverviewDateTitleFull@1",
         "ScheduleOverviewDateCountdownReminderFull@1",
+        "ScheduleOverviewDateAllDayWideFull@1",
+        "ScheduleOverviewTwoEventsWideFull@1",
+        "ScheduleOverviewLocationDescriptionEndWideFull@1",
+        "ScheduleOverviewAllDayLocationWideFull@1",
+        "ScheduleOverviewEventCountThreeDetailsWideFull@1",
+        "ScheduleOverviewTitleLocationHero@1",
     }
 )
 

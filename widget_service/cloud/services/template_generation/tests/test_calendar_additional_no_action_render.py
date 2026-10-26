@@ -44,7 +44,7 @@ class _Case:
 _CASES = (
     _Case("ScheduleOverviewTitleStartFull@1", "2x2", ("title", "dtStart")),
     _Case("ScheduleOverviewReminderStartFull@1", "2x2", ("dtStart", "remindTime/0"), ("title",)),
-    _Case("ScheduleOverviewDateAllDayFull@1", "2x2", ("startDate", "title", "isAllDay")),
+    _Case("ScheduleOverviewDateAllDayFull@1", "2x2", ("title", "isAllDay"), ("startDate",)),
     _Case("ScheduleOverviewDateEndFull@1", "2x2", ("title", "startDate", "dtEnd")),
     _Case(
         "ScheduleOverviewAllDayLocationFull@1",
@@ -61,12 +61,14 @@ _CASES = (
     _Case(
         "ScheduleOverviewReminderDetailsWideFull@1",
         "2x4",
-        ("senderName", "importantEventType", "remindTime/0", "/updatedAt"),
+        ("senderName", "importantEventType", "remindTime/0"),
+        ("/updatedAt",),
     ),
     _Case(
         "ScheduleOverviewDatedMeetingWideFull@1",
         "2x4",
-        ("startDate", "title", "dtStart", "dtEnd", "eventLocation"),
+        ("title", "dtStart", "eventLocation"),
+        ("startDate", "dtEnd"),
     ),
 )
 _SAMPLES: dict[str, str | int | bool] = {
@@ -395,7 +397,7 @@ def _visual_tree(
     [
         (_CASES[1], ()),
         (_CASES[1], ("title",)),
-        (_CASES[2], ()),
+        (_CASES[2], ("startDate",)),
         (_CASES[3], ()),
         (_CASES[4], ()),
         (_CASES[4], ("title",)),
@@ -428,8 +430,8 @@ def test_small_grouped_layout_matches_existing_reminder_reference(
 def test_dated_meeting_uses_existing_reminder_details_layout(
     registry: CardPlanRegistry,
 ) -> None:
-    components = _compile(_CASES[7], (), registry, dict(_SAMPLES))
-    reference = _compile(_CASES[6], (), registry, dict(_SAMPLES))
+    components = _compile(_CASES[7], _CASES[7].optional, registry, dict(_SAMPLES))
+    reference = _compile(_CASES[6], _CASES[6].optional, registry, dict(_SAMPLES))
     root, reference_root = _business_column(components), _business_column(reference)
     assert _visual_properties(root) == _visual_properties(reference_root)
     header, body = _children(root, components)
