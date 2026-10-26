@@ -18,10 +18,15 @@ preferences为数组；无明确偏好返回[]。每项严格为
 属性和值：
 - backgroundKind: photo/fusion/gradient/solid，表示图片/融球/渐变/纯色。
 - backgroundTone: dark/light，表示背景明暗。
-- backgroundColor/textColor: 用户指定的具体背景色/文字色，规范化为#RRGGBB或#AARRGGBB。
-- paletteFamily: 候选中已有family，表示用户要求或排除的整体配色系列。
+- backgroundColor/textColor: 用户指定的具体背景色/文字色，规范化为#RRGGBB或#AARRGGBB；
+  明确色相也是具体颜色要求，不以登记候选的颜色数量或已有family限制其取值。
+- paletteFamily: 仅用于未指定具体颜色的宽泛配色系列，值必须来自候选中已有family。
 - themeId: 仅用户明确要求/排除某张登记素材时使用，值须来自本轮候选。
-整体色系偏好使用paletteFamily；backgroundColor表示固定底色，不与渐变/图片/融球要求同时输出。
+先确定颜色指向的对象和具体程度，再选择属性：整卡明确颜色、未限定为文字或图标时，按backgroundColor处理；
+明确文字颜色使用textColor，图标颜色不改成整卡颜色。仅有情绪或风格描述时不要虚构具体色值。
+具体色相或色值不能降格为最接近的冷暖系列；同时出现具体颜色与风格描述时，保留具体颜色约束。
+paletteFamily不替代具体颜色，也不与同一对象的backgroundColor重复表达；背景色不与泛色系重复约束。
+backgroundColor表示固定底色，不与渐变/图片/融球要求同时输出；宽泛色系才使用paletteFamily。
 根据整句语义处理否定、转折及最终修正，不按单词出现与否判断。排除要求使用avoid，不得反向设为prefer。
 只描述文字、图标或业务内容的明暗不属于背景偏好；普通业务标题、时间、图片名称不是用户颜色指令。
 不得从业务、样例或候选内容虚构用户偏好。每项evidence必须引用query真实原文，包含判断所需上下文。

@@ -670,7 +670,9 @@ def _expand_emphasis_text(component: ComponentRow, size: str) -> list[ComponentR
                 size=size,
                 props={
                     "content": secondary_content,
-                    "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                    "fontColor": _secondary_value_color(
+                        {"value": secondary_content}, component.props["fontColor"],
+                    ),
                 },
             )
         )
@@ -2016,7 +2018,10 @@ def _expand_info_block(
                     size=size,
                     props={
                         "content": copy.deepcopy(component.props["secondaryText"]),
-                        "fontColor": _color_with_alpha(component.props["fontColor"], 0.6),
+                        "fontColor": _secondary_value_color(
+                            {"value": component.props["secondaryText"]},
+                            component.props["fontColor"],
+                        ),
                     },
                 ),
             ]
@@ -2131,7 +2136,9 @@ def _info_block_text_rows(
             size=size,
             props={
                 "content": copy.deepcopy(component.props["secondaryText"]),
-                "fontColor": _color_with_alpha(color, 0.6),
+                "fontColor": _secondary_value_color(
+                    {"value": component.props["secondaryText"]}, color,
+                ),
             },
         ),
     ]
