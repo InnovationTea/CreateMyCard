@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":{"path":"/data/weather/daily/1/date"},"secondaryText":{"path":"/data/weather/daily/1/weekday"}}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":{"path":"/data/weather/daily/1/condition"},"secondaryText":"明天天气"}]
+["/data/weather/daily/1/date","2026-08-06"]
+["/data/weather/daily/1/weekday","星期四"]
+["/data/weather/daily/1/condition","多云"]

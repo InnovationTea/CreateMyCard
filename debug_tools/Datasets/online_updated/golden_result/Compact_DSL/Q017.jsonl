@@ -1,0 +1,3 @@
+["root","Layout",{"layout":"S-content-dual-action","variant":"actions-only"},["daily","favorite"]]
+["daily","CardButton",{"label":"每日歌单","icon":"resources/base/media/icon_music.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["favorite","CardButton",{"label":"收藏歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]

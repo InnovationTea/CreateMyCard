@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","secondaryText":{"path":"/data/earphone/leftChargingStatusDesc"},"visual":{"type":"icon","icon":"resources/base/media/icon_left.svg"}}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}","secondaryText":{"path":"/data/earphone/rightChargingStatusDesc"},"visual":{"type":"icon","icon":"resources/base/media/icon_right.svg"}}]
+["/data/earphone/leftBatteryLevel",76]
+["/data/earphone/leftChargingStatusDesc","未充电"]
+["/data/earphone/rightBatteryLevel",78]
+["/data/earphone/rightChargingStatusDesc","未充电"]
