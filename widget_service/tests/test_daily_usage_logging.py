@@ -13,6 +13,8 @@ from test_daily_usage_api import make_repository, record
 from test_daily_usage_limiter import make_limiter
 from test_daily_usage_routes import OPERATION, payload, run_route
 
+pytestmark = pytest.mark.usefixtures("daily_usage_auth")
+
 
 @pytest.fixture
 def usage_logs(monkeypatch):

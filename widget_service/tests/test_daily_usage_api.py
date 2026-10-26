@@ -1,6 +1,9 @@
 """次数 API 契约与生命周期测试；不依赖真实 API 或数据库。"""
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
 from unittest.mock import AsyncMock, Mock
 
@@ -15,6 +18,8 @@ from services import daily_usage_api
 from services.daily_usage_limiter import DailyUsageError, DailyUsageLimiter, DailyUsageRecord
 from test_daily_usage_limiter import NOW
 
+pytestmark = pytest.mark.usefixtures("daily_usage_auth")
+
 
 def record():
     return DailyUsageRecord("record-id", "a" * 64, "b" * 64, NOW.date())
@@ -26,6 +31,7 @@ def make_repository(handler):
         client,
         httpx.URL("http://usage.test:8080/snapshot"),
         httpx.URL("http://usage.test:8080/record"),
+        "usage-test-access-key",
     )
 
 
@@ -198,6 +204,8 @@ async def test_disabled_factory_never_creates_client_or_validates_url(monkeypatc
     build_url = Mock(side_effect=AssertionError("must not validate URL"))
     monkeypatch.setattr(daily_usage_api.httpx, "AsyncClient", factory)
     monkeypatch.setattr(daily_usage_api, "_api_url", build_url)
+    secret_loader = Mock(side_effect=AssertionError("must not load STS"))
+    monkeypatch.setattr(daily_usage_api.sts_config, "get_sts_config", secret_loader)
     assert (
         await daily_usage_api.create_daily_usage_limiter(
             Settings(enable_daily_usage_limit=False, daily_usage_slb="")
@@ -206,6 +214,7 @@ async def test_disabled_factory_never_creates_client_or_validates_url(monkeypatc
     )
     factory.assert_not_called()
     build_url.assert_not_called()
+    secret_loader.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -228,6 +237,7 @@ async def test_factory_address_timeout_and_no_startup_request(monkeypatch, confi
         Settings(
             enable_daily_usage_limit=True,
             daily_usage_slb=configured,
+            hag_osms_ak="configured-test-access-key",
             hag_slb_url="https://unrelated-hag.test:9443",
             daily_usage_api_snapshot_path="/custom/query",
             daily_usage_api_record_path="/custom/record",
@@ -237,6 +247,7 @@ async def test_factory_address_timeout_and_no_startup_request(monkeypatch, confi
     assert limiter is not None
     assert str(limiter.repository.snapshot_url) == f"{expected}/custom/query"
     assert str(limiter.repository.record_url) == f"{expected}/custom/record"
+    assert limiter.repository.access_key == "configured-test-access-key"
     factory.assert_called_once_with(timeout=2.0, follow_redirects=False, trust_env=False)
     client.post.assert_not_called()
     await limiter.aclose()
@@ -318,3 +329,98 @@ def test_lifespan_closes_api_client_and_preserves_query_health(monkeypatch):
     limiter.aclose.assert_awaited_once()
     assert application.state.daily_usage_limiter is None
     factory.assert_awaited_once_with(get_settings())
+
+
+def test_auth_timestamp_is_unix_milliseconds(monkeypatch):
+    monkeypatch.setattr(daily_usage_api.time, "time_ns", lambda: 1792992000123456789)
+    assert daily_usage_api._format_timestamp() == "1792992000123"
+
+
+@pytest.mark.parametrize("secret", [b"test-secret", "test-secret", "测试密钥"])
+def test_auth_headers_sign_timestamp_with_raw_sts_secret(monkeypatch, secret):
+    loader = Mock(return_value=secret)
+    monkeypatch.setattr(daily_usage_api.sts_config, "get_sts_config", loader)
+    monkeypatch.setattr(daily_usage_api, "_format_timestamp", lambda: "1792992000123")
+    raw_secret = secret.encode("utf-8") if isinstance(secret, str) else secret
+    expected = base64.b64encode(
+        hmac.digest(raw_secret, b"1792992000123", hashlib.sha256)
+    ).decode("utf-8")
+    assert daily_usage_api._build_auth_headers("test-ak") == {
+        "Content-Type": "application/json",
+        "x-access-key": "test-ak",
+        "x-ts": "1792992000123",
+        "x-sign": expected,
+    }
+    loader.assert_called_once_with("hag.osms.sk")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["snapshot", "insert_success"])
+@pytest.mark.parametrize("failure", ["empty-ak", "empty-str", "empty-bytes", "missing-sts"])
+async def test_auth_failure_never_sends_unsigned_request(monkeypatch, method, failure):
+    handler = Mock(side_effect=AssertionError("must not send HTTP request"))
+    repository = make_repository(handler)
+    loader = Mock(return_value=b"test-secret")
+    if failure == "empty-ak":
+        repository.access_key = ""
+    elif failure == "empty-str":
+        loader.return_value = ""
+    elif failure == "empty-bytes":
+        loader.return_value = b""
+    else:
+        loader.side_effect = KeyError("missing STS configuration")
+    monkeypatch.setattr(daily_usage_api.sts_config, "get_sts_config", loader)
+    try:
+        with pytest.raises((ValueError, KeyError)):
+            await getattr(repository, method)(record())
+        handler.assert_not_called()
+        if failure == "empty-ak":
+            loader.assert_not_called()
+    finally:
+        await repository.aclose()
+
+
+@pytest.mark.asyncio
+async def test_snapshot_record_and_retries_are_signed_fresh_without_secret_logs(monkeypatch):
+    requests = []
+    messages = []
+    timestamps = iter(["1792992000000", "1792992000100", "1792992000200"])
+    monkeypatch.setattr(daily_usage_api, "_format_timestamp", lambda: next(timestamps))
+    monkeypatch.setattr(
+        daily_usage_api, "logger", Mock(info=messages.append, error=messages.append)
+    )
+    loader = Mock(return_value=b"usage-test-secret")
+    monkeypatch.setattr(daily_usage_api.sts_config, "get_sts_config", loader)
+
+    def handler(request):
+        requests.append(request)
+        if len(requests) == 2:
+            raise httpx.ReadTimeout("response lost", request=request)
+        return httpx.Response(
+            200, json={"success": True, "data": {"alreadyCounted": False, "usedCount": 0}}
+        )
+
+    repository = make_repository(handler)
+    limiter = DailyUsageLimiter(repository, 20, 1.0)
+    try:
+        await repository.snapshot(record())
+        await limiter.record_success(record())
+        assert len(requests) == 3
+        assert loader.call_count == 3
+        assert [request.url.path for request in requests] == ["/snapshot", "/record", "/record"]
+        assert [request.headers.get("x-ts") for request in requests] == [
+            "1792992000000", "1792992000100", "1792992000200"
+        ]
+        for request in requests:
+            assert request.headers.get("x-access-key") == "usage-test-access-key"
+            timestamp = request.headers.get("x-ts")
+            assert timestamp is not None
+            expected = base64.b64encode(
+                hmac.digest(b"usage-test-secret", timestamp.encode("utf-8"), "sha256")
+            ).decode("utf-8")
+            assert request.headers.get("x-sign") == expected
+            assert expected not in "\n".join(messages)
+        assert "usage-test-secret" not in "\n".join(messages)
+        assert "usage-test-access-key" not in "\n".join(messages)
+    finally:
+        await limiter.aclose()

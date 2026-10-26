@@ -20,6 +20,8 @@ from test_daily_usage_api import make_repository
 from test_daily_usage_limiter import NOW
 from test_daily_usage_routes import final_message, frame_info, payload
 
+pytestmark = pytest.mark.usefixtures("daily_usage_auth")
+
 
 class FakeUsageAPI:
     """仅供测试的幂等 API，不作为生产回退。"""
@@ -128,6 +130,7 @@ def test_real_app_lifespan_websocket_and_http_adapter(monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_daily_usage_limit", True)
     monkeypatch.setattr(settings, "daily_usage_limit", 1)
+    monkeypatch.setattr(settings, "hag_osms_ak", "usage-test-access-key")
     monkeypatch.setattr(settings, "daily_usage_slb", "https://usage.test:8443")
     monkeypatch.setattr(settings, "enable_widget_directive_commands", True)
     monkeypatch.setattr(settings, "enable_compact_dsl_interface_retry", False)

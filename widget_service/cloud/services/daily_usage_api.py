@@ -1,5 +1,9 @@
 """每日次数 API 适配器；只负责 HTTP 契约，不连接数据库或读取数据库密码。"""
 
+import base64
+import hashlib
+import hmac
+import time
 from time import perf_counter
 from typing import Any
 
@@ -8,6 +12,32 @@ import httpx
 from app.logger import logger, task_logger
 from config.config import Settings
 from services.daily_usage_limiter import DailyUsageLimiter, DailyUsageRecord, DailyUsageSnapshot
+from utils.base_utils import sts_config
+
+OSMS_SECRET_CONFIG_KEY = "hag.osms.sk"
+
+
+def _format_timestamp() -> str:
+    """生成 Unix 毫秒时间戳。"""
+    return str(time.time_ns() // 1_000_000)
+
+
+def _build_auth_headers(access_key: str) -> dict[str, str]:
+    """使用 STS 密钥对本次请求的时间戳签名。"""
+    if not access_key:
+        raise ValueError("每日次数接口鉴权 access key 为空")
+    secret_key = sts_config.get_sts_config(OSMS_SECRET_CONFIG_KEY)
+    secret_bytes = secret_key.encode("utf-8") if isinstance(secret_key, str) else secret_key
+    if not secret_bytes:
+        raise ValueError("每日次数接口鉴权 secret key 为空")
+    timestamp = _format_timestamp()
+    digest = hmac.new(secret_bytes, timestamp.encode("utf-8"), hashlib.sha256).digest()
+    return {
+        "Content-Type": "application/json",
+        "x-access-key": access_key,
+        "x-ts": timestamp,
+        "x-sign": base64.b64encode(digest).decode("utf-8"),
+    }
 
 
 class APIDailyUsageRepository:
@@ -16,10 +46,12 @@ class APIDailyUsageRepository:
         client: httpx.AsyncClient,
         snapshot_url: httpx.URL,
         record_url: httpx.URL,
+        access_key: str,
     ) -> None:
         self.client = client
         self.snapshot_url = snapshot_url
         self.record_url = record_url
+        self.access_key = access_key
 
     async def _post(
         self, url: httpx.URL, record: DailyUsageRecord, operation: str
@@ -39,8 +71,9 @@ class APIDailyUsageRepository:
             f"[Daily Usage] api_started operation={operation} record_id={record.record_id}"
         )
         try:
+            headers = _build_auth_headers(self.access_key)
             response = await self.client.post(
-                url, json=payload, headers={"Content-Type": "application/json"}
+                url, json=payload, headers=headers
             )
         except Exception as exc:
             logger.error(
@@ -121,7 +154,7 @@ async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | 
             trust_env=False,
         )
         limiter = DailyUsageLimiter(
-            APIDailyUsageRepository(client, snapshot_url, record_url),
+            APIDailyUsageRepository(client, snapshot_url, record_url, settings.hag_osms_ak),
             settings.daily_usage_limit,
             settings.daily_usage_api_timeout_seconds,
         )
