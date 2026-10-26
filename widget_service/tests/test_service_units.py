@@ -7,6 +7,7 @@ import copy
 import hashlib
 import hmac
 import json as json_module
+import socket
 import sys
 import threading
 import time
@@ -4829,6 +4830,21 @@ def test_shared_download_file_uses_remote_http_options(tmp_path, monkeypatch):
         requested.update(kwargs)
         return FakeResponse()
 
+    def fake_getaddrinfo(hostname, port):
+        assert hostname == "obs.real.example"
+        assert port is None
+        return [
+            (
+                socket.AF_INET6,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("2606:4700:4700::1111", 0, 0, 0),
+            ),
+        ]
+
+    # HTTP 与 DNS 都使用确定性替身，仍执行真实的公网地址安全判定。
+    monkeypatch.setattr("utils.url_guard.socket.getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr("utils.download_file_from_url.requests.get", fake_get)
     target_path = tmp_path / "artifact.md"
 
