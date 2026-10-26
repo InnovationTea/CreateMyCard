@@ -49,6 +49,10 @@ SRC = "resources/base/media/drop_1.svg"
 URL = "https://example.test/drop_1.svg"
 
 
+# 本组验证既有创建、回退或路由合同，静态策略由专项测试覆盖。
+pytestmark = pytest.mark.usefixtures("existing_generation_policy")
+
+
 def _source() -> CompactDslArtifactSource:
     task = TaskSpec(userQuery="静态卡片", size="2x4", dataModelSchema={"data": {}})
     artifact = WidgetArtifact(

@@ -34,6 +34,8 @@ function renderFixture(runtime: 'debug' | 'platform', fixture: string): string {
   return markup;
 }
 
+// 两套 Runtime 源码使用相同的 React 宿主，避免本机依赖提升导致 React 18/19 混用。
+// DOM 对比仍分别加载调试工具副本和 SDK 原始实现。
 describe('Debug Tools 与 render/platform 的 Renderer Runtime 一致性', () => {
   it.each([
     'a2ui.jsonl',

@@ -16,9 +16,9 @@
       "@genui-sdk/components": ["render/genui-sdk/components/src/index.ts"],
       "@genui-sdk/interactions": ["render/genui-sdk/interactions/src/index.ts"],
       "@genui-sdk/renderer": ["render/genui-sdk/renderer/src/index.ts"],
-      "react": ["render/platform/node_modules/react/index.js"],
-      "react/jsx-runtime": ["render/platform/node_modules/react/jsx-runtime.js"],
-      "react-dom/server": ["render/platform/node_modules/react-dom/server.node.js"]
+      "react": ["debug_tools/node_modules/react/index.js"],
+      "react/jsx-runtime": ["debug_tools/node_modules/react/jsx-runtime.js"],
+      "react-dom/server": ["debug_tools/node_modules/react-dom/server.node.js"]
     }
   }
 }

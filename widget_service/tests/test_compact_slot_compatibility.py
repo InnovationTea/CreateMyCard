@@ -9,8 +9,13 @@ from services.compact_slot_compatibility import (
 )
 
 
-@pytest.mark.parametrize("name", ["TableText", "EmphasisText"])
-def test_dual_action_content_rejects_known_overflow(name: str) -> None:
+@pytest.mark.parametrize("name,status,minimum_height", [
+    ("TableText", "incompatible", 52.0),
+    ("EmphasisText", "conditional", 36.0),
+])
+def test_dual_action_content_uses_current_recipe_lower_bound(
+    name: str, status: str, minimum_height: float,
+) -> None:
     placements = ["items[0].value", "items[1].value"]
     if name == "EmphasisText":
         placements = ["mainText", "secondaryText"]
@@ -21,8 +26,9 @@ def test_dual_action_content_rejects_known_overflow(name: str) -> None:
         layout_id="S-content-dual-action", slot_rule={"types": ["Column", "Row"]},
         width=126.0, height=38.0,
     )
-    assert result.status == "incompatible"
-    assert result.minimum_height is not None and result.minimum_height > 38.0
+    assert result.status == status
+    assert result.minimum_height == minimum_height
+    assert bool(result.reasons) is (status == "incompatible")
 
 
 def test_auxiliary_fit_still_requires_a_core() -> None:

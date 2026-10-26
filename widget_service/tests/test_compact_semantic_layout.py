@@ -537,6 +537,8 @@ async def test_online_artifact_saves_valid_semantic_source_after_json_repair(
     broken = valid.replace('"InfoBlock", {', '"InfoBlock", ', 1)
     saved = []
     settings = get_settings()
+    # 本例验证旧四槽源的 JSON 修复；静态正文收敛由专项服务用例覆盖。
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", False)
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
     monkeypatch.setattr(WidgetGenerationService, "_enable_card_template",

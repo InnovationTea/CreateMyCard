@@ -1585,6 +1585,10 @@ def _parse_component_header(
             f"{component_id}: component type must be a non-empty string."
         )
     allowed_types = COMPACT_INPUT_COMPONENT_TYPES
+    from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+
+    if current_content_policy().is_static:
+        allowed_types = allowed_types | STATIC_COMPONENTS
     if skip_compact_dsl_validation:
         allowed_types = allowed_types | _INTERNAL_COMPONENT_TYPES
     if component_type not in allowed_types:
@@ -2154,6 +2158,12 @@ def _convert_component(
         _normalize_icon_button_stack(styles)
     if component.component_type == "Text":
         _normalize_text_component(styles)
+        from services.generation_content_policy import current_content_policy
+
+        marker = component.props.get("_visualRecipe")
+        if current_content_policy().is_static and isinstance(marker, str):
+            if marker.startswith("static-content-v1:"):
+                styles["wordBreak"] = "normal"
     if styles:
         converted["styles"] = styles
     return converted

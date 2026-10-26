@@ -545,6 +545,16 @@ async def select_theme(
             else:
                 retained.append(candidate)
         candidates = retained
+    from services.generation_content_policy import current_content_policy
+
+    if current_content_policy().is_static:
+        retained = []
+        for candidate in candidates:
+            if candidate.get("kind") in {"gradient", "solid"}:
+                retained.append(candidate)
+            else:
+                rejected[candidate.get("id")] = "静态文字卡优先浅色底，减少纹理对信息的干扰"
+        candidates = retained
     expansions = [item.get("id") for item in candidates if item.get("composition") == "square-left"]
     prompt = [
         {

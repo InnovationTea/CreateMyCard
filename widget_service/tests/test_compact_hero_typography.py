@@ -125,6 +125,8 @@ def test_template_keeps_other_compact_validations(change: str, message: str) -> 
         rows[3].props["content"] = {"path": "/data/unknown/value"}
     else:
         rows[2] = ComponentRow("reading", "Column", {}, ())
+        # 构造单一的空容器错误，避免孤立子节点先触发引用树检查。
+        del rows[3:]
     with pytest.raises(CompactDslValidationError, match=message):
         validate_compact_dsl(
             _source(rows), task_spec=spec, card_spec={"suggestSize": "2x2"}
@@ -134,7 +136,7 @@ def test_template_keeps_other_compact_validations(change: str, message: str) -> 
 @pytest.mark.parametrize("change", [
     "none", "expression", "inherited-width", "percent-description",
 ])
-def test_non_template_formatted_readout_keeps_original_contract(change: str) -> None:
+def test_formatted_readout_accepts_equivalent_expression_and_inherited_width(change: str) -> None:
     rows = [
         ComponentRow("root", "Column", {"width": 136}, ("value",)),
         ComponentRow("value", "Text", {
@@ -154,4 +156,4 @@ def test_non_template_formatted_readout_keeps_original_contract(change: str) -> 
         rows[1].props["width"] = "matchParent"
     elif change == "percent-description":
         value_schema["description"] = "电量，已包含 % 单位"
-    assert bool(_errors(rows, spec)) is (change != "none")
+    assert not _errors(rows, spec)

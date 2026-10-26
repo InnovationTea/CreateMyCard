@@ -1,0 +1,78 @@
+{
+  "content": {
+    "title": "运动天气卡片",
+    "description": "展示昨天的累计步数和今天的实时温度",
+    "userQuery": "显示昨天的累计步数和今天的实时温度",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "雨花台区",
+          "forecastDays": 1,
+          "prefectureName": "南京市"
+        },
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.341",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020025324697"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "0865ce5c-a676-4ba2-bf9f-c7176b321137"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "展示昨天的累计步数和今天的实时温度",
+  "dataCapabilityParams": {
+    "GetHealthAndSportSummary": {
+      "targetDayOffset": -1
+    },
+    "ViewWeather": {
+      "districtName": "雨花台区",
+      "forecastDays": 1,
+      "prefectureName": "南京市"
+    }
+  },
+  "userQuery": "显示昨天的累计步数和今天的实时温度",
+  "title": "运动天气卡片",
+  "dataCapabilityIds": [
+    "ViewWeather",
+    "GetHealthAndSportSummary"
+  ]
+}

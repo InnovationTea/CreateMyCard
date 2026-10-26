@@ -1,0 +1,81 @@
+{
+  "content": {
+    "title": "东方绿舟酒店",
+    "description": "东方绿舟酒店按钮卡片",
+    "userQuery": "帮忙生成一个东方绿舟酒店的一个按钮卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n东方绿舟酒店",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.18",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "1388888888"
+            }
+          },
+          "call": "clickToApi"
+        },
+        "capabilityId": "event.call.phone"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_call_bule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.7.8.339",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261017090554284"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "5",
+    "isNew": false,
+    "sessionId": "b52567eb-1150-4530-998e-ba12bd54d7b5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.18",
+  "candidateAssetIds": [
+    "asset.ic_call_bule"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "1388888888"
+          }
+        },
+        "call": "clickToApi"
+      },
+      "capabilityId": "event.call.phone"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "东方绿舟酒店按钮卡片",
+  "userQuery": "帮忙生成一个东方绿舟酒店的一个按钮卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n东方绿舟酒店",
+  "title": "东方绿舟酒店",
+  "candidateDataBindings": []
+}

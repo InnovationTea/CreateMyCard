@@ -8,20 +8,25 @@ from services.card_validation import CompactDslValidationError, validate_compact
 from services.card_validation.compact_dsl_validator import small_card_text_pressure
 
 
-def test_small_card_pressure_keeps_complete_label_and_value() -> None:
+@pytest.mark.parametrize("width", [40, 100])
+def test_small_card_pressure_keeps_complete_label_and_value(width: int) -> None:
     rows = [
         ["root", "Column", {"width": "matchParent"}, ["body"]],
         ["body", "SecondaryBody", {
-            "role": "supporting", "width": 100, "fontSize": 14,
+            "role": "supporting", "width": width, "fontSize": 12,
             "items": [{"label": "完整状态标签", "value": "正常"}],
         }],
     ]
     source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
     task = {"size": "2x2", "dataModelSchema": {"data": {}}}
     pressure = small_card_text_pressure(source, task)
-    assert len(pressure) == 1
-    assert "完整状态标签" in pressure[0] and "正常" in pressure[0]
-    assert "112vp" in pressure[0] and "100vp" in pressure[0]
+    if width == 100:
+        assert pressure == []
+    else:
+        combined = [message for message in pressure if "compound value" in message]
+        assert len(combined) == 1
+        assert "完整状态标签" in combined[0] and "正常" in combined[0]
+        assert "96vp" in combined[0] and "40vp" in combined[0]
     assert small_card_text_pressure(source, {**task, "size": "2x4"}) == []
 
 

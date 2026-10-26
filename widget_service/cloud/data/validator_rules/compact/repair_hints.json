@@ -1,4 +1,10 @@
 {
+  "COMPACT_STATIC_CONTEXT_MISSING": "缺少服务端接受的静态计划上下文，停止交付；不能通过伪造DSL标记或改用旧组件绕过静态保护。",
+  "COMPACT_STATIC_SOURCE_NOT_ALLOWED": "sourceTexts须引用本轮有效输入的连续原文；展示摘要无需逐字匹配引用，由模型核验语义，不引用其它请求或补造事实。",
+  "COMPACT_STATIC_GROUP_MISMATCH": "按已接受计划的对象顺序和分组重排正文条目或对比栏，共享说明放在标题或note；不能跨对象借用事实或删除必要对象。",
+  "COMPACT_STATIC_CORE_MISSING": "在原对象或条目内恢复完整展示文字；保留must、受保护片段、原文要求及全部Action，无保护且非原文的should可整项省略并反馈；不能再次截短已接受核心。",
+  "COMPACT_STATIC_PROTECTED_TEXT_CHANGED": "恢复已接受计划中的保护片段或完整原文，包括否定、预计、适用范围和单位；不改写Plan来迁就当前布局。",
+  "COMPACT_STATIC_TEXT_CAPACITY": "按共同文字合同和每栏可用宽度重组完整内容；静态正文仅按12→11→10登记档位调整，最小10；保留限定词和对象归属，不靠maxLines截断、裁切或任意缩字通过。",
   "COMPACT_ASSET_NOT_ALLOWED": "从本轮素材候选中选择与原意相符的资源路径，修正对应素材属性；不要编造路径或用网络地址替代。",
   "COMPACT_SVG_FILL_COLOR_MISSING": "为该图标补充符合组件合同和当前配色的 fillColor（#AARRGGBB）；保留原素材，不修改组件内部尺寸或字号。",
   "COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE": "保留完整内容及原绑定，改用适合该信息角色的 EmphasisText 或正文组件；不要截取样例数字、强转数值或伪造字段。",

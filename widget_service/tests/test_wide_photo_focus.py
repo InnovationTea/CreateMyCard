@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock
 import pytest
 
 from config.config import get_settings
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services.capability_registry import CapabilityRegistry
 from services.protocol_registry import A2UIProtocolRegistry
 from services.validator import ArtifactValidator
-from test_autumn_calendar_photos import expanded
 from test_photo_asset_delivery import artifact
 from test_photo_background_fallback import node_by_id
 from test_uniform_photo_eligibility import ACTION, PATHS, choose, evidence, rejection, sample

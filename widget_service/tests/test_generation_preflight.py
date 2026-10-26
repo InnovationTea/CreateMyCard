@@ -72,7 +72,8 @@ def test_generation_tool_schema_matches_source_direct_result_contract():
         "capabilityId",
         "candidateOutputFields",
     }
-    assert output_schema["required"] == ["status", "suggestSize", "message"]
+    assert output_schema["required"] == ["status", "suggestSize"]
+    assert "omittedRequirements" in output_schema["properties"]
     assert "artifactUrl" in output_schema["properties"]
     assert "effectiveCapabilities" in output_schema["properties"]
 

@@ -71,10 +71,9 @@ def layout_source():
     ]}}])
 
 
-@pytest.mark.parametrize("error_type", [OSError, TimeoutError, ValueError])
-def test_selection_never_starts_a_measurement_process(monkeypatch, error_type):
+def test_selection_never_starts_a_measurement_process(monkeypatch):
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", True)
-    process = AsyncMock(side_effect=error_type("must not start a renderer"))
+    process = AsyncMock(side_effect=AssertionError("不得启动渲染进程"))
     monkeypatch.setattr(asyncio, "create_subprocess_exec", process)
     client = SimpleNamespace(generate=AsyncMock(return_value='{"themeId":"gradient-blue"}'))
     source = layout_source()

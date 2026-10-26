@@ -45,9 +45,9 @@ def test_hero_renders_earbud_pair_only_once(
         bindings["right"] = "${data.earphone.rightBatteryLevel}"
     params: dict[str, str] = {}
     if left_icon:
-        params["leftEarIcon"] = "resources/base/media/l_circle_fill.svg"
+        params["leftEarIcon"] = "resources/base/media/icon_left.svg"
     if right_icon:
-        params["rightEarIcon"] = "resources/base/media/r_circle_fill.svg"
+        params["rightEarIcon"] = "resources/base/media/icon_right.svg"
     root = _instantiate_blueprint(
         definition.variants[0].root,
         params,
@@ -59,10 +59,13 @@ def test_hero_renders_earbud_pair_only_once(
     expected_pairs = int(has_pair)
     assert source.count("leftBatteryLevel") == expected_pairs
     assert source.count("rightBatteryLevel") == expected_pairs
-    assert source.count('"左"') == int(has_pair and not left_icon)
-    assert source.count('"右"') == int(has_pair and not right_icon)
-    assert source.count("l_circle_fill.svg") == int(has_pair and left_icon)
-    assert source.count("r_circle_fill.svg") == int(has_pair and right_icon)
+    # 当前左右耳图标成对采用，任一缺失时两侧均使用 L/R 圆形兜底。
+    use_icons = left_icon and right_icon
+    assert source.count('"L"') == int(has_pair and not use_icons)
+    assert source.count('"R"') == int(has_pair and not use_icons)
+    assert source.count("icon_left.svg") == int(has_pair and use_icons)
+    assert source.count("icon_right.svg") == int(has_pair and use_icons)
     assert source.count("earphoneName") == 1
-    assert source.count("isConnected") == 1
+    # 连接状态可在标题/说明等多个表达式中复用；左右耳读数仍须各出现一次。
+    assert "isConnected" in source
     assert source.count("耳机播控") == int(not has_pair)

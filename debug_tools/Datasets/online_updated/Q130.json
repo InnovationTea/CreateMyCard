@@ -1,0 +1,85 @@
+{
+  "content": {
+    "title": "日出日落",
+    "description": "每日日出日落时间",
+    "userQuery": "帮我生成一个日出日落的卡片，显示每天日出日落时间。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今天南京市江宁区日出时间约为06:10，日落时间约为17:25",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "江宁区",
+          "forecastDays": 1,
+          "prefectureName": "南京市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/location/prefectureName",
+          "/location/districtName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.ic_sun"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.9.212",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261018073914736"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "12af4449-20a5-4b01-952c-64c770cd3288"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.ic_sun"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "每日日出日落时间",
+  "userQuery": "帮我生成一个日出日落的卡片，显示每天日出日落时间。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今天南京市江宁区日出时间约为06:10，日落时间约为17:25",
+  "title": "日出日落",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "江宁区",
+        "forecastDays": 1,
+        "prefectureName": "南京市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/location/prefectureName",
+        "/location/districtName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

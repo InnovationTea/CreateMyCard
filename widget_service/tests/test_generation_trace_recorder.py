@@ -39,6 +39,10 @@ from services.widget_generation_service import WidgetGenerationService
 _UID = "create-ABCDEFGH-00001-002"
 
 
+# 本组验证既有创建、回退或路由合同，静态策略由专项测试覆盖。
+pytestmark = pytest.mark.usefixtures("existing_generation_policy")
+
+
 def _trace_directory(root: Path, uid: str = _UID) -> Path:
     task_type, identifier, request_sequence, caller_retry = uid.split("-")
     return root / task_type / identifier / request_sequence / caller_retry

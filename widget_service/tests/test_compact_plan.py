@@ -1229,13 +1229,17 @@ def test_plan_normalization_makes_single_line_title_an_exclusive_title_hint() ->
     )
 
 
-def test_plan_keeps_progress_hint_for_complete_percentage_text() -> None:
+def test_plan_keeps_progress_hint_for_registered_numeric_source() -> None:
     spec = task_spec()
     spec["dataModelSchema"]["data"]["weather"] = {
         "rainProbability": {
             "type": "string",
             "description": "可直接显示的降雨概率百分比",
             "sampleValue": "20%",
+            "numericSource": "/data/weather/rainProbabilityPercent",
+        },
+        "rainProbabilityPercent": {
+            "type": "number", "description": "降雨概率数值", "sampleValue": 20,
         },
         "condition": {
             "type": "string",

@@ -242,7 +242,7 @@ class Settings(BaseSettings):
     enable_widget_edit: bool = CONFIG.get("enable_widget_edit", "true") == "true"
     enable_semantic_widget_edit: bool = CONFIG.get("enable_semantic_widget_edit", "true") == "true"
     widget_edit_max_repair_attempts: int = Field(
-        default=CONFIG.get("widget_edit_max_repair_attempts", 2), ge=0, le=5,
+        default=CONFIG.get("widget_edit_max_repair_attempts", 3), ge=0, le=5,
     )
     enable_single_step_generation_fallback: bool = (
         CONFIG.get("enable_single_step_generation_fallback", "false") == "true"
@@ -253,9 +253,53 @@ class Settings(BaseSettings):
     enable_drop_plan_fact_validation: bool = (
         CONFIG.get("enable_drop_plan_fact_validation", "false") == "true"
     )
+    enable_static_content_generation_policy: bool = (
+        CONFIG.get("enable_static_content_generation_policy", "false") == "true"
+    )
+    static_content_max_input_chars: int = Field(
+        default=CONFIG.get("static_content_max_input_chars", 16000),
+        ge=1,
+        le=64000,
+    )
+    static_content_max_source_chars: int = Field(
+        default=CONFIG.get("static_content_max_source_chars", 2000),
+        ge=1,
+        le=16000,
+    )
+    static_content_max_source_references: int = Field(
+        default=CONFIG.get("static_content_max_source_references", 72),
+        ge=1,
+        le=288,
+    )
+    static_content_max_source_positions: int = Field(
+        default=CONFIG.get("static_content_max_source_positions", 512), ge=1, le=4096,
+    )
+    static_content_max_output_chars: int = Field(
+        default=CONFIG.get("static_content_max_output_chars", 32000),
+        ge=1,
+        le=128000,
+    )
     enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
     enable_widget_directive_commands: bool = (
         CONFIG.get("enable_widget_directive_commands") == "true"
+    )
+    enable_daily_usage_limit: bool = CONFIG.get("enable_daily_usage_limit", "false") == "true"
+    daily_usage_limit: int = Field(default=CONFIG.get("daily_usage_limit", 20), gt=0)
+    daily_usage_limit_exceeded_message: str = CONFIG.get(
+        "daily_usage_limit_exceeded_message", "今日 AI 卡片生成次数已达上限，请明天再尝试。"
+    )
+    daily_usage_limit_unavailable_message: str = CONFIG.get(
+        "daily_usage_limit_unavailable_message", "本次卡片生成失败，请稍后重试。"
+    )
+    daily_usage_slb: str = CONFIG.get("daily_usage_slb", "")
+    daily_usage_api_snapshot_path: str = CONFIG.get(
+        "daily_usage_api_snapshot_path", "/genui-agent/v1/daily-usage/snapshot"
+    )
+    daily_usage_api_record_path: str = CONFIG.get(
+        "daily_usage_api_record_path", "/genui-agent/v1/daily-usage/record-success"
+    )
+    daily_usage_api_timeout_seconds: float = Field(
+        default=CONFIG.get("daily_usage_api_timeout_seconds", 3.0), gt=0
     )
     enable_compact_dsl_argument_repair_fallback: bool = (
         CONFIG.get("enable_compact_dsl_argument_repair_fallback", "false") == "true"
@@ -338,6 +382,13 @@ class Settings(BaseSettings):
 
     # dmq 华山开关
     ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
+
+    @field_validator("daily_usage_limit", mode="before")
+    @classmethod
+    def validate_daily_usage_integer(cls, value: object) -> object:
+        if isinstance(value, (bool, float)):
+            raise ValueError("daily usage integer settings must not be boolean or float")
+        return value
 
     @field_validator("compact_dsl_interface_retry_count", mode="before")
     @classmethod

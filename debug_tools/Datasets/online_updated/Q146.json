@@ -1,0 +1,59 @@
+{
+  "content": {
+    "title": "杭州周末活动",
+    "description": "杭州10月17-18日活动汇总",
+    "userQuery": "帮我把上面的信息总结成一张卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n杭州10月17日-18日活动汇总：演唱会包括GAI周延REAL G巡回演唱会（10.17黄龙体育中心）、周华健少年的奇幻之旅3.0（10.17-18杭州奥体AT中心）、老狼纯真年代巡回演唱会（10.17拱墅运河体育公园）、马健涛巡回演唱会（10.17临平大剧院）、江美琪伤心唱出来就没事了演唱会2.0（10.17CH8 Livehouse）、舞动精灵Groove Coverage出道25周年演唱会（10.17MAO Livehouse）、五条人县・城・记巡演杭州站（10.18CH8 Livehouse）、Sasablue 2026巡演杭州站（10.17蛙厂RMMF）；话剧舞台剧包括姚晨领衔非穷尽列举（10.17-18杭州大剧院）、舞剧三国山止川行（10.17临平大剧院）、昆剧牡丹亭（10.17蝴蝶剧场）、人间失格治愈话剧（10.18浙话艺术剧院）；体育赛事包括CBA杭州赛区浙商证券主场比赛（10.17黄龙体育中心）、杭州高尔夫球公开赛（10.18西湖高尔夫俱乐部）；脱口秀相声包括笑海相声专场、西湖脱口秀大笑喜剧、沉浸式悬疑互动剧名媛迷案致命诱惑。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.18",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.music_fill",
+      "asset.icon_schedule",
+      "asset.local_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.7.8.339",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261017091049735"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "9",
+    "isNew": false,
+    "sessionId": "b52567eb-1150-4530-998e-ba12bd54d7b5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.18",
+  "candidateAssetIds": [
+    "asset.music_fill",
+    "asset.icon_schedule",
+    "asset.local_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "杭州10月17-18日活动汇总",
+  "userQuery": "帮我把上面的信息总结成一张卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n杭州10月17日-18日活动汇总：演唱会包括GAI周延REAL G巡回演唱会（10.17黄龙体育中心）、周华健少年的奇幻之旅3.0（10.17-18杭州奥体AT中心）、老狼纯真年代巡回演唱会（10.17拱墅运河体育公园）、马健涛巡回演唱会（10.17临平大剧院）、江美琪伤心唱出来就没事了演唱会2.0（10.17CH8 Livehouse）、舞动精灵Groove Coverage出道25周年演唱会（10.17MAO Livehouse）、五条人县・城・记巡演杭州站（10.18CH8 Livehouse）、Sasablue 2026巡演杭州站（10.17蛙厂RMMF）；话剧舞台剧包括姚晨领衔非穷尽列举（10.17-18杭州大剧院）、舞剧三国山止川行（10.17临平大剧院）、昆剧牡丹亭（10.17蝴蝶剧场）、人间失格治愈话剧（10.18浙话艺术剧院）；体育赛事包括CBA杭州赛区浙商证券主场比赛（10.17黄龙体育中心）、杭州高尔夫球公开赛（10.18西湖高尔夫俱乐部）；脱口秀相声包括笑海相声专场、西湖脱口秀大笑喜剧、沉浸式悬疑互动剧名媛迷案致命诱惑。",
+  "title": "杭州周末活动",
+  "candidateDataBindings": []
+}

@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-primary-secondary-action"},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":"昨晚睡眠","icon":"resources/base/media/moon_z_fill_1.svg","fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/healthSport/sleepScore"},"unit":"分","fontSize":30}]
+["support","SecondaryBody",{"items":[{"label":"睡眠状态 ","value":{"path":"/data/healthSport/sleepStatus"}},{"label":"时长 ","value":{"path":"/data/healthSport/nightSleepDurationText"}}],"columns":1,"fontSize":12}]
+["action","PillButton",{"label":"设置使用时长","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"parent_control"}}]}]
+["/data/healthSport/sleepScore",82]
+["/data/healthSport/sleepStatus","良好"]
+["/data/healthSport/nightSleepDurationText","7小时1分"]

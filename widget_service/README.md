@@ -209,7 +209,11 @@ py -3.12 -m pytest tests\test_service_units.py -s -q
 ```
 
 真实 WebSocket 联调时，业务日志由单独运行的 `cloud/start_websocket_server.py` 进程输出，应在服务终端查看；
-本地文件日志位于 `cloud/logs/agent_YYYYMMDD.log`。客户端测试终端只显示请求响应和脚本打印的校验报告。
+本地文件日志位于 `cloud/logs/agent_YYYYMMDD_PID.log`，其中日期使用 UTC，`PID` 为写入进程号。
+微服务、调试平台及其它独立进程各写自己的文件，避免 Windows 下共用文件导致 100 MB 轮转时出现
+`WinError 32`；继续使用 ZIP 压缩和 30 天保留配置。升级后需重启微服务及调试平台，使各进程加载新配置。
+旧的 `agent_YYYYMMDD.log` 不会自动迁移，确认相关进程退出并释放文件后再按需归档。
+客户端测试终端只显示请求响应和脚本打印的校验报告。
 
 ## GitHub PR 自动测试
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""连接已经启动的本地服务，验证 create -> edit -> edit 多轮链路。"""
+"""连接已启动且启用语义编辑的服务，验证创建、视觉编辑及数据删除拒绝。"""
 
 import asyncio
 import json
@@ -102,8 +102,8 @@ def _assert_artifact_success(data: dict) -> None:
     assert data["artifactDigest"].startswith("sha256:")
 
 
-def test_live_multi_round_create_visual_edit_and_clear_data():
-    """验证本地服务上的首次生成、纯视觉编辑和清空数据三轮链路。"""
+def test_live_multi_round_create_visual_edit_and_reject_data_removal():
+    """验证创建及视觉编辑成功，删除动态数据不生成新产物。"""
 
     async def scenario() -> None:
         created = await _generate(
@@ -158,7 +158,7 @@ def test_live_multi_round_create_visual_edit_and_clear_data():
         assert visual_edit["suggestSize"] == "2x4"
         assert visual_edit["effectiveCapabilities"]["data"] == ["ViewWeather"]
 
-        cleared = await _generate(
+        rejected = await _generate(
             {
                 "bundleName": "com.omega_w_0823.hmservice",
                 "userQuery": "去掉动态天气，只保留静态卡片",
@@ -167,17 +167,15 @@ def test_live_multi_round_create_visual_edit_and_clear_data():
             },
             "edit-clear-3",
         )
-        _assert_artifact_success(cleared)
-        assert cleared["artifactUrl"] not in {
-            created["artifactUrl"],
-            visual_edit["artifactUrl"],
-        }
-        assert cleared["effectiveCapabilities"]["data"] == []
+        assert rejected.get("status") == "unsupported"
+        assert rejected.get("errorCode") == "WIDGET_EDIT_UNSUPPORTED"
+        assert not rejected.get("artifactUrl")
+        assert not rejected.get("artifactDigest")
 
-        print("\n多轮 WebSocket 测试通过：create -> visual edit -> clear data")
+        print("\n多轮 WebSocket 测试通过：创建、视觉编辑成功，删除数据被拒绝")
 
     asyncio.run(scenario())
 
 
 if __name__ == "__main__":
-    test_live_multi_round_create_visual_edit_and_clear_data()
+    test_live_multi_round_create_visual_edit_and_reject_data_removal()

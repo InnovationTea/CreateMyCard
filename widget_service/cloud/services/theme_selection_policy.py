@@ -1,5 +1,7 @@
 """后置主题候选的原融合规则门禁；不负责布局或颜色展开。"""
 
+import hashlib
+
 from models.generation import TaskSpec
 from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
 from services.compact_layout_runtime import match_compact_layout
@@ -10,6 +12,15 @@ from services.prompt_builder import PromptBuilder
 
 
 def default_palette_family(task: dict) -> str | None:
+    from services.generation_content_policy import current_content_policy
+
+    if current_content_policy().is_static:
+        requested = task.get("staticPaletteFamily")
+        families = ("blue", "purple", "warm")
+        if requested in families:
+            return requested
+        seed = task.get("userQuery", "").strip().encode("utf-8")
+        return families[int.from_bytes(hashlib.sha256(seed).digest()[:8]) % len(families)]
     data = task.get("dataModelSchema", {}).get("data", {})
     roots = set(data) if isinstance(data, dict) else set()
     if len(roots) > 1:
@@ -60,6 +71,10 @@ def fusion_candidate_gate(
     task: dict, final_layout: str | None, business_context: BusinessContext | None = None,
 ) -> dict:
     evidence = {"allowedTokens": [], "reason": None}
+    from services.generation_content_policy import current_content_policy, effective_layout_scope
+
+    if current_content_policy().is_static:
+        return {**evidence, "reason": "静态内容使用通用渐变，不按业务关键词选择融球"}
     if task.get("size") != "2x2":
         return {**evidence, "reason": "原规则：仅2x2可用融球"}
     if not final_layout:
@@ -67,7 +82,7 @@ def fusion_candidate_gate(
     try:
         typed_task = TaskSpec.model_validate(task)
         rows = [r for r in parse_compact_dsl_rows(final_layout) if isinstance(r, ComponentRow)]
-        layout = match_compact_layout(rows, size="2x2", layout_scope="S-plan-guided")
+        layout = match_compact_layout(rows, size="2x2", layout_scope=effective_layout_scope("2x2"))
     except ValueError as exc:
         return {**evidence, "reason": "无法确认定稿内容：" + str(exc)}
     content = [r for r in rows if r.component_type not in {"PillButton", "CircleButton"}]

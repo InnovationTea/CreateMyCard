@@ -5,9 +5,9 @@ import json
 
 import pytest
 
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
-from test_autumn_calendar_photos import expanded
 from test_clouds_photo_top_content import CLOUDS, weather_sample
 from test_uniform_photo_eligibility import PATHS, choose, rejection, sample
 

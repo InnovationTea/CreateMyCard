@@ -73,6 +73,9 @@ def validate_card(
 
     context = SourceParser().parse(resolved_dsl, resolved_cardspec, reporter)
     context.edit_mode = opts.edit_mode
+    task = artifact_value.get("taskSpec")
+    if isinstance(task, dict) and isinstance(task.get("dataModelSchema"), dict):
+        context.data_model_schema = task.get("dataModelSchema")
     attach_effective_capabilities(
         context,
         effective_value,

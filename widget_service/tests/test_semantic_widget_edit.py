@@ -12,6 +12,7 @@ from api.schemas import GenerateWidgetCardRequest
 from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
+from models.generation import CandidateDataBinding
 from services import widget_edit_contract, widget_edit_prompt, widget_edit_service
 from services.artifact_store import ArtifactStore, ArtifactUploadError
 from services.card_validation import ValidationOptions, validate_card
@@ -297,6 +298,29 @@ async def test_normal_business_outcome_never_repairs_or_saves(edit_run, outcome)
 
 
 @pytest.mark.asyncio
+async def test_data_removal_is_rejected_before_model_and_save(edit_run):
+    edit_run.source.generationPlan.candidateDataBindings = [
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            arguments={"prefectureName": "上海市", "forecastDays": 1},
+            writeResultTo="/data/weather",
+            candidateOutputFields=["/current/condition"],
+        )
+    ]
+    original = edit_run.source.model_dump_json()
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        _request(userQuery="去掉动态天气，只保留静态卡片", candidateDataBindings=[]),
+    )
+    assert response.status == GenerationStatus.UNSUPPORTED
+    assert response.errorCode == ErrorCode.WIDGET_EDIT_UNSUPPORTED.value
+    assert not response.artifactUrl
+    assert not response.artifactDigest
+    assert not edit_run.calls
+    assert not edit_run.saved
+    assert edit_run.source.model_dump_json() == original
+
+
+@pytest.mark.asyncio
 async def test_size_edit_updates_layout_and_runtime_together(edit_run, source):
     edit_run.intent = _intent(
         mode="layout", dimensions=["layout"], targets=["root"], targetSize="2x2",
@@ -514,7 +538,7 @@ def test_default_semantic_edit_and_budget_are_independent_from_creation():
 
     settings = Settings(_env_file=None)
     assert settings.enable_semantic_widget_edit is True
-    assert settings.widget_edit_max_repair_attempts == 2
+    assert settings.widget_edit_max_repair_attempts == 3
 
 
 def test_noop_does_not_ignore_explicit_size_change(source):

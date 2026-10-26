@@ -221,6 +221,7 @@ def test_existing_calendar_countdown_route_keeps_countdown_fusion():
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("existing_generation_policy")
 @pytest.mark.parametrize("plan_format", ["plain", "invalid_then_json"])
 async def test_generation_passes_same_context_to_plan_and_theme(
     monkeypatch, isolated_theme_stage, plan_format,
@@ -242,4 +243,3 @@ async def test_generation_passes_same_context_to_plan_and_theme(
     await run_plan_flow(monkeypatch, plan_format)
     assert isinstance(seen.get("plan"), business.BusinessContext)
     assert seen.get("plan") is seen.get("theme")
-

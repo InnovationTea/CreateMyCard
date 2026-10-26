@@ -92,7 +92,6 @@ def test_info_block_contract_is_noninteractive() -> None:
     assert plain_example in create_prompt
     assert icon_example in create_prompt
     assert progress_example in create_prompt
-    assert "每行只承载一个动态业务值" in create_prompt
     assert "两个同级 InfoBlock 必须放入无标题的 S-dual-info" in create_prompt
     assert '"layout":"S-dual-info"' in create_prompt
     assert '"variant":"stacked","primaryText":"{{ \'明天 \' +' not in create_prompt
@@ -152,6 +151,15 @@ def test_secondary_body_contract_groups_related_items() -> None:
     assert "多个短字段按原顺序放入一个实例" in prompt
     assert "两项同行用 14；两项 `columns:1` 分行用 12" in prompt
     assert "标题、Badge、按钮、布局容器和其它 `SecondaryBody`" in prompt
+
+
+def test_static_explanation_preserves_dynamic_supporting_text_contract() -> None:
+    component = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+    repair = read_prompt(DEFAULT_SOURCE, "repair")
+    assert "`secondaryText` 仅作静态说明时" in component
+    assert "辅助行已有动态事实时不能覆盖它" in component
+    assert "先按组件合同恢复读数与静态说明的分工" in repair
+    assert "不得覆盖动态辅助值" in repair
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

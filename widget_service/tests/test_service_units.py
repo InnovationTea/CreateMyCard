@@ -7,6 +7,7 @@ import copy
 import hashlib
 import hmac
 import json as json_module
+import socket
 import sys
 import threading
 import time
@@ -161,7 +162,7 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
                 errorCode="FAILED",
                 error={"message": "failed"},
             ),
-            ("工具执行过程中发生未分类的服务异常，本次调用未成功完成，建议稍后重试。报错信息如下"),
+            ("工具执行过程中发生未分类的服务异常，本次调用未成功完成，请停止本轮自动调用并保留原有效来源。报错信息如下"),
         ),
     ],
 )
@@ -1735,7 +1736,8 @@ def test_data_capability_output_schema_is_self_contained():
         assert leaves
         assert all({"type", "description"}.issubset(leaf) for leaf in leaves)
         # 二期新增能力允许没有示例值，TaskSpecBuilder 按字段类型提供默认值。
-        if capability.id not in PHASE_TWO_DATA_CAPABILITY_IDS:
+        without_samples = (*PHASE_TWO_DATA_CAPABILITY_IDS, "GetPhoneCallRecords", "GetMemoData")
+        if capability.id not in without_samples:
             assert all("sampleValue" in leaf for leaf in leaves)
 
 
@@ -2247,7 +2249,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
         "com.huawei.hmsapp.totemweather",
     ]
     assert result["installedPackageCount"] == 0
-    assert result.get("availableDataCapabilityCount") == 6
+    assert result.get("availableDataCapabilityCount") == 8
     assert result["availableEventCapabilityCount"] > 0
     assert result["availableAssetCapabilityCount"] > 0
     assert {item["id"] for item in result["removedCapabilities"]} == set(
@@ -3651,7 +3653,26 @@ async def test_a2ui_model_client_wraps_transport_exception(monkeypatch):
 @pytest.fixture
 def isolated_dsl_generation(monkeypatch, isolated_theme_stage):
     """质量修复单测隔离 Plan 与主题；完整两阶段链路由专属集成测试覆盖。"""
+    monkeypatch.setattr(get_settings(), "enable_static_content_generation_policy", False)
     monkeypatch.setattr(get_settings(), "enable_a2ui_model_mock", True)
+
+
+def _standard_text_dsl(text: str) -> str:
+    """提供可通过最终来源复核的最小标准产物，不用占位字符串冒充 DSL。"""
+    messages = [
+        {"version": "v0.9", "createSurface": {
+            "surfaceId": "surface_card", "catalogId": "ohos.a2ui.extended.catalog.form",
+        }},
+        {"version": "v0.9", "updateComponents": {
+            "surfaceId": "surface_card", "components": [
+                {"id": "root", "component": "Text", "content": text},
+            ],
+        }},
+        {"version": "v0.9", "updateDataModel": {
+            "surfaceId": "surface_card", "path": "/", "value": {"state": {"ready": True}},
+        }},
+    ]
+    return "\n".join(json_module.dumps(message) for message in messages)
 
 
 def _model_failure_request() -> GenerateWidgetCardRequest:
@@ -3782,7 +3803,9 @@ async def test_repair_model_failure_does_not_validate_or_save_second_result(monk
 @pytest.mark.asyncio
 async def test_validation_repair_stops_early_after_second_configured_repair(monkeypatch):
     settings = get_settings()
-    generated_values = iter(["dsl-first", "dsl-second", "dsl-third"])
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", False)
+    standard_outputs = [_standard_text_dsl(label) for label in ("first", "second", "third")]
+    generated_values = iter(standard_outputs)
     model_calls = 0
     validation_calls: list[str] = []
 
@@ -3793,7 +3816,7 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
 
     def validate_until_third(_validator, artifact, _profile):
         validation_calls.append(artifact.genui)
-        if artifact.genui == "dsl-third":
+        if artifact.genui == standard_outputs[-1]:
             return []
         return [f"invalid {artifact.genui}"]
 
@@ -3817,7 +3840,7 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
     )
 
     assert model_calls == 3
-    assert validation_calls == ["dsl-first", "dsl-second", "dsl-third"]
+    assert validation_calls == standard_outputs
     assert response.status == GenerationStatus.SUCCESS
 
 
@@ -4316,6 +4339,7 @@ async def test_source_format_warning_does_not_trigger_repair(
     processor_kind,
 ):
     settings = get_settings()
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", False)
     model_calls = 0
     processor = get_dsl_processor(processor_kind)
     # 产物现在保存已解析的Compact源；本测试仍只隔离非阻断warning，不使用伪DSL。
@@ -4337,7 +4361,7 @@ async def test_source_format_warning_does_not_trigger_repair(
         )
         return DslProcessingResult(
             source_dsl=source_dsl,
-            standard_dsl="standard-a2ui-dsl",
+            standard_dsl=_standard_text_dsl("静态卡片"),
             issues=(issue,),
         )
 
@@ -4806,6 +4830,21 @@ def test_shared_download_file_uses_remote_http_options(tmp_path, monkeypatch):
         requested.update(kwargs)
         return FakeResponse()
 
+    def fake_getaddrinfo(hostname, port):
+        assert hostname == "obs.real.example"
+        assert port is None
+        return [
+            (
+                socket.AF_INET6,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("2606:4700:4700::1111", 0, 0, 0),
+            ),
+        ]
+
+    # HTTP 与 DNS 都使用确定性替身，仍执行真实的公网地址安全判定。
+    monkeypatch.setattr("utils.url_guard.socket.getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr("utils.download_file_from_url.requests.get", fake_get)
     target_path = tmp_path / "artifact.md"
 

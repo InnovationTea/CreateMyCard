@@ -1,0 +1,63 @@
+{
+  "content": {
+    "title": "杭州滨江区天气",
+    "description": "杭州滨江区今日天气：多云，23℃~31℃，东南风2级，空气质量优",
+    "userQuery": "帮我生成一个杭州滨江区天气桌面卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n杭州滨江区今天（10月17日）多云，气温23℃~31℃，东南风2级，空气质量优。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.18",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.ic_weather_color",
+      "asset.ic_sun",
+      "asset.icon_weather_thermometer_medium",
+      "asset.icon_weather_wind",
+      "asset.ic_purification"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.7.8.339",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261017090643904"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": false,
+    "sessionId": "b52567eb-1150-4530-998e-ba12bd54d7b5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.18",
+  "candidateAssetIds": [
+    "asset.ic_weather_color",
+    "asset.ic_sun",
+    "asset.icon_weather_thermometer_medium",
+    "asset.icon_weather_wind",
+    "asset.ic_purification"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "杭州滨江区今日天气：多云，23℃~31℃，东南风2级，空气质量优",
+  "userQuery": "帮我生成一个杭州滨江区天气桌面卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n杭州滨江区今天（10月17日）多云，气温23℃~31℃，东南风2级，空气质量优。",
+  "title": "杭州滨江区天气",
+  "candidateDataBindings": []
+}

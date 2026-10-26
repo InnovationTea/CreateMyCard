@@ -341,7 +341,7 @@ def test_accepts_svg_icon_auto_tinted_by_pill_button() -> None:
     )
 
 
-def test_accepts_progress_circle_bound_to_complete_percentage_text() -> None:
+def test_rejects_progress_circle_bound_to_complete_percentage_text() -> None:
     source = "\n".join(
         [
             '["root","Column",{},["ring"]]',
@@ -368,20 +368,22 @@ def test_accepts_progress_circle_bound_to_complete_percentage_text() -> None:
         }
     }
 
-    validate_compact_dsl(
-        source,
-        task_spec=task_spec,
-        card_spec={
-            "suggestSize": "2x4",
-            "dataBindings": [
-                {
-                    "capabilityId": "ViewWeather",
-                    "arguments": {},
-                    "writeResultTo": "/data/weather",
-                }
-            ],
-        },
-    )
+    with pytest.raises(CompactDslValidationError, match="schema type string"):
+        validate_compact_dsl(
+            source,
+            task_spec=task_spec,
+            card_spec={
+                "suggestSize": "2x4",
+                "dataBindings": [
+                    {
+                        "capabilityId": "ViewWeather",
+                        "arguments": {},
+                        "writeResultTo": "/data/weather",
+                    }
+                ],
+            },
+        )
+
 
 
 def test_accepts_progress_circle_percentage_expression() -> None:
@@ -448,7 +450,7 @@ def test_rejects_progress_circle_bound_to_business_copy_with_percentage() -> Non
 
     with pytest.raises(
         CompactDslValidationError,
-        match="complete numeric percentage",
+        match="schema type string",
     ):
         validate_compact_dsl(
             source,

@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"高德地图","icon":"resources/base/media/icon_car.svg","fontSize":12}]
+["content","EventCard",{"items":[{"title":"通勤导航","time":"家 → 公司"}]}]
+["action","PillButton",{"label":"导航去公司","icon":"resources/base/media/location_north_up_right_fill.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"StartNavigate","params":{"dstLocation":{"latitude":"","location":"company","longitude":""}}}}]}]
+["/state/ready",true]

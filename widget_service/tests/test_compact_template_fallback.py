@@ -44,6 +44,8 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
     body_attempts: list[list[dict[str, str]]] = []
     settings = get_settings().model_copy(update={
         "enable_a2ui_model_mock": False,
+        # 本用例验证旧模板回退合同；静态专项明确跳过模板。
+        "enable_static_content_generation_policy": False,
         "enable_artifact_validation": True,
         "enable_validation_failure_retry": repair_enabled,
         "validation_failure_max_repair_attempts": 1,
@@ -132,28 +134,43 @@ async def test_template_attempt_falls_back_to_fresh_fusion(
                 return DslProcessingResult(source_dsl=source, issues=(
                     QualityIssue(stage="conversion", code="FUSION_ERROR", message="invalid fusion"),
                 ))
-        return DslProcessingResult(source_dsl=source, standard_dsl=source)
+        standard = json.dumps({"version": "v0.9", "updateComponents": {
+            "surfaceId": "surface_card", "components": [
+                {"id": "root", "component": "Text", "content": source},
+            ],
+        }})
+        return DslProcessingResult(source_dsl=source, standard_dsl=standard)
 
     def rewrite(_mapper, source):
-        if source == "template-source" and failure == "asset_mapping":
+        if "template-source" in source and failure == "asset_mapping":
             raise ValueError("unknown template asset")
         return source
 
     def validate(_validator, artifact, _profile):
-        if artifact.genui == "template-source":
+        if "template-source" in artifact.genui:
             if failure == "validator_exception":
                 raise ValueError("template validation failed")
             if failure == "validation":
                 return ["invalid template binding"]
         return []
 
+    def source_label(artifact):
+        payload = json.loads(artifact.genui)
+        update = payload.get("updateComponents")
+        assert isinstance(update, dict)
+        components = update.get("components")
+        assert isinstance(components, list) and len(components) == 1
+        label = components[0].get("content")
+        assert isinstance(label, str)
+        return label
+
     async def theme(artifact, *_args, **_kwargs):
-        themed.append(artifact.genui)
+        themed.append(source_label(artifact))
         return artifact
 
     async def save(store, artifact):
-        saved.append(artifact.genui)
-        assert store.design_token == artifact.genui
+        saved.append(source_label(artifact))
+        assert store.design_token == source_label(artifact)
         return SimpleNamespace(
             artifactUrl="https://artifact.test/fusion", artifactDigest="sha256:x",
         )
@@ -276,7 +293,9 @@ async def test_template_model_retry_policy(
 
 @pytest.mark.asyncio
 async def test_fusion_failure_does_not_restart_template(monkeypatch) -> None:
-    settings = get_settings().model_copy(update={"enable_a2ui_model_mock": False})
+    settings = get_settings().model_copy(update={
+        "enable_a2ui_model_mock": False, "enable_static_content_generation_policy": False,
+    })
     monkeypatch.setattr(service_module, "get_settings", lambda: settings)
     monkeypatch.setattr("custom.a2ui_model_client.get_settings", lambda: settings)
     monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: True)

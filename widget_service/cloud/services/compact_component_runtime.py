@@ -162,6 +162,17 @@ def component_visual_recipe(
     variant: str | None = None,
 ) -> dict[str, Any]:
     """Resolve one component recipe with size and variant overrides applied."""
+    from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+    from services.static_text_capacity import component_spec
+
+    if component_name in STATIC_COMPONENTS:
+        if not current_content_policy().is_static:
+            raise CompactComponentRuntimeError("静态组件未获本请求授权。")
+        return {
+            "alignment": "aligned",
+            "metrics": component_spec(component_name),
+            "parts": {"root": {"component": "Column", "styles": {"width": "matchParent"}}},
+        }
     components = _load_contract()["components"]
     recipe = components.get(component_name)
     if not isinstance(recipe, dict):

@@ -17,6 +17,9 @@ from services.generation_pipeline import (
 )
 from services.widget_generation_service import WidgetGenerationService
 
+# 本组验证既有创建、回退或路由合同，静态策略由专项测试覆盖。
+pytestmark = pytest.mark.usefixtures("existing_generation_policy")
+
 
 def omitted_issue():
     return QualityIssue(stage="validation", code="COMPACT_PLAN_FACT_OMITTED",

@@ -640,7 +640,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 protocol_profile=self.profile,
             )
 
-    def test_progress_circle_normalizes_bound_percentage_text(self) -> None:
+    def test_progress_circle_preserves_refreshable_numeric_binding(self) -> None:
         compact_dsl = _serialize(
             [
                 ["root", "Column", {}, ["circle"]],
@@ -648,7 +648,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "circle",
                     "ProgressCircle",
                     {
-                        "externalText": {"path": "/data/weather/rainProbability"},
+                        "externalText": {"path": "/data/weather/rainProbabilityPercent"},
                         "icon": "resources/base/media/rain.svg",
                         "accessibility": {"label": "降雨概率"},
                         "width": 72,
@@ -659,7 +659,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                         "backgroundColor": "#331F4799",
                     },
                 ],
-                ["/data/weather/rainProbability", "20%"],
+                ["/data/weather/rainProbabilityPercent", 20],
             ]
         )
 
@@ -674,14 +674,14 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(
             components["circle_ring"]["value"],
-            "{{ ${/__display/data/weather/rainProbability/progressValue} }}",
+            "{{ ${/data/weather/rainProbabilityPercent} }}",
         )
         self.assertEqual(
             components["circle_external_text"]["content"],
-            "{{ ${/data/weather/rainProbability} }}",
+            "{{ ${/data/weather/rainProbabilityPercent} + '%' }}",
         )
         self.assertEqual(
-            data_model["__display"]["data"]["weather"]["rainProbability"]["progressValue"],
+            data_model["data"]["weather"]["rainProbabilityPercent"],
             20,
         )
 
@@ -766,7 +766,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             "{{ (${/data/current} / ${/data/total} * 100) + '%' }}",
         )
 
-    def test_progress_components_normalize_percentage_text_against_total(self) -> None:
+    def test_progress_components_keep_numeric_drivers_and_formatted_readouts(self) -> None:
         compact_dsl = _serialize(
             [
                 ["root", "Column", {}, ["line", "single"]],
@@ -774,7 +774,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "line",
                     "ProgressLine2",
                     {
-                        "value": {"path": "/data/task/completionText"},
+                        "value": {"path": "/data/task/completionCount"},
                         "total": 10,
                         "displayValue": {"path": "/data/task/completionText"},
                         "fontColor": "#FF563D99",
@@ -786,7 +786,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     "single",
                     "ProgressCircleSingle",
                     {
-                        "value": {"path": "/data/device/batteryText"},
+                        "value": {"path": "/data/device/batteryLevel"},
                         "total": 100,
                         "icon": "resources/base/media/battery_leaf_fill.svg",
                         "displayValue": {"path": "/data/device/batteryText"},
@@ -797,7 +797,9 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     },
                 ],
                 ["/data/task/completionText", "60%"],
+                ["/data/task/completionCount", 6],
                 ["/data/device/batteryText", "68％"],
+                ["/data/device/batteryLevel", 68],
             ]
         )
 
@@ -812,18 +814,18 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(
             components["line_bar"]["value"],
-            "{{ ${/__display/data/task/completionText/progressValue} }}",
+            "{{ ${/data/task/completionCount} }}",
         )
         self.assertEqual(
-            data_model["__display"]["data"]["task"]["completionText"]["progressValue"],
+            data_model["data"]["task"]["completionCount"],
             6,
         )
         self.assertEqual(
             components["single_ring"]["value"],
-            "{{ ${/__display/data/device/batteryText/progressValue} }}",
+            "{{ ${/data/device/batteryLevel} }}",
         )
         self.assertEqual(
-            data_model["__display"]["data"]["device"]["batteryText"]["progressValue"],
+            data_model["data"]["device"]["batteryLevel"],
             68,
         )
 
@@ -851,7 +853,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         with self.assertRaisesRegex(
             CompactDslConversionError,
-            "complete numeric percentage",
+            "dynamic progress requires a number/integer",
         ):
             convert_compact_dsl_to_a2ui(
                 compact_dsl,

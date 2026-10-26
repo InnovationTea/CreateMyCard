@@ -9,11 +9,12 @@ from unittest.mock import AsyncMock
 import pytest
 
 from config.config import get_settings
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services.compact_composition_context import small_card_display_text
 from services.display_text import concatenated_display_text
 from services.theme_content_regions import photo_layout_evidence
-from test_autumn_calendar_photos import calendar_sample, expanded
+from test_autumn_calendar_photos import calendar_sample
 from test_uniform_photo_eligibility import rejection
 
 CALENDAR_ID = "photo-ux-texture-blue-diamond-square"

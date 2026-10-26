@@ -105,6 +105,13 @@ class TaskSpecBuilder:
                     "description": leaf["description"],
                     "sampleValue": sample_value,
                 }
+                source_name = leaf.get("numericSource")
+                if isinstance(source_name, str):
+                    source_parts = (*write_parts, *relative_parts[:-1], source_name)
+                    escaped_parts = []
+                    for part in source_parts:
+                        escaped_parts.append(str(part).replace("~", "~0").replace("/", "~1"))
+                    metadata["numericSource"] = "/" + "/".join(escaped_parts)
                 self._set_by_parts(data_model_schema, (*write_parts, *relative_parts), metadata)
             if generated_sample_count:
                 logger.warning(

@@ -11,7 +11,8 @@ from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 @pytest.mark.parametrize("max_lines", [1, 2])
 def test_nested_inline_body_keeps_slot_and_uses_actual_text_height(size, max_lines):
     font_size = 14 if max_lines == 1 else 12
-    line_height = 19 if max_lines == 1 else 16
+    # 当前正文合同使用等字号行盒：单行14vp，多行每行12vp。
+    line_height = font_size
     rows = [
         ["root", "Row", {"alignItems": "center", "itemMargin": 8}, ["value", "body"]],
         ["value", "EmphasizedData", {"value": 29, "unit": "℃", "fontSize": 30}],
@@ -61,4 +62,4 @@ def test_vertical_supporting_list_is_not_flattened_or_bottom_rewritten(size):
     nodes = {item.get("id"): item for item in components}
     assert nodes.get("root", {}).get("styles", {}).get("alignItems") == "center"
     assert nodes.get("details", {}).get("children") == ["details_row0", "details_row1"]
-    assert nodes.get("details_item0_value", {}).get("styles", {}).get("height") == 16
+    assert nodes.get("details_item0_value", {}).get("styles", {}).get("height") == 12

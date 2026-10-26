@@ -1,6 +1,6 @@
 {
-  "current_version": "v3",
-  "update_date": "2026-10-21",
+  "current_version": "v4",
+  "update_date": "2026-10-26",
   "history_versions": [
     {
       "update_date": "2026-10-17",
@@ -91,6 +91,19 @@
         "Q096：候选素材并集新增 asset.emoji_music",
         "Q103：候选素材并集新增 asset.emoji_z",
         "Q119：候选素材并集新增 asset.ic_calender"
+      ]
+    },
+    {
+      "version": "v4",
+      "update_date": "2026-10-26",
+      "commits": [
+        "bb9203345311927ec9baa8718eb69af700e177ac"
+      ],
+      "changes": [
+        "新增 Q125-Q156 共 32 条现网请求样本，样本总数从 114 调整为 146。",
+        "补齐拨号事件 mock 号码 1388888888，共 19 条：Q018、Q030、Q047、Q052、Q054、Q055、Q057、Q076、Q080、Q082、Q088、Q122、Q124、Q131、Q139、Q142、Q145、Q147、Q155；原 phoneNumber 为空串，拨号动作在批跑与渲染时无法验证。",
+        "修正 size 与用户 query 冲突，共 4 条：Q037、Q038、Q039、Q137 由 2x2 调整为 2x4，与 query 中明确声明的 2x4 规格对齐。",
+        "content 与外层同名字段同步修改，保持两层取值一致。"
       ]
     }
   ]

@@ -85,6 +85,15 @@ class DataCapability(BaseModel):
             errors: list[str] = []
             leaf_count = 0
             for name, child in properties.items():
+                if isinstance(child, dict) and "numericSource" in child:
+                    source_name = child.get("numericSource")
+                    source = properties.get(source_name) if isinstance(source_name, str) else None
+                    if child.get("type") != "string":
+                        errors.append(f"{pointer}/{name}: numericSource requires a string field")
+                    if not isinstance(source, dict):
+                        errors.append(f"{pointer}/{name}: numericSource must name a sibling field")
+                    elif source.get("type") not in {"number", "integer"}:
+                        errors.append(f"{pointer}/{name}: numericSource must be number/integer")
                 child_errors, child_leaf_count = cls._output_schema_errors(
                     child,
                     (*path, name),

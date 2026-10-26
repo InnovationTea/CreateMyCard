@@ -4,9 +4,9 @@ import copy
 
 import pytest
 
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services.theme_content_regions import body_text_flow_evidence
-from test_autumn_calendar_photos import expanded
 from test_uniform_photo_eligibility import PURPLE, choose, evidence, rejection, sample
 
 

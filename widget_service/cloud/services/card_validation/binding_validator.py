@@ -20,6 +20,14 @@ class BindingValidator(BaseValidator):
     name = "binding"
 
     def validate(self, context, rules, reporter) -> None:
+        from .progress_sources import progress_source_errors
+
+        for message in progress_source_errors(context.components, context.data_model_schema):
+            reporter.add(
+                "error", "BINDING_PROGRESS_SOURCE_INVALID", "semantic", "genui",
+                line=2, message=message,
+                fix_hint="绑定同对象同指标的有效数值字段；无法满足时保留完整文字展示。",
+            )
         if not getattr(context, "use_effective_capabilities", False):
             self._check_capability_arguments(context, rules, reporter)
         self._check_template_paths(context, rules, reporter)

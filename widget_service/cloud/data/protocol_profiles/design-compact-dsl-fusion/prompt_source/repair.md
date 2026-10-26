@@ -79,7 +79,7 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 
 | 实际问题 | 最小合法处理 |
 |---|---|
-| InfoBlock 的 progressCircle 主值格式错误 | 保留 visual/icon，同一数值改原始 PathBinding，百分号放 unit；不删环绕过校验 |
+| InfoBlock 的 progressCircle 主值格式错误 | 若存在已登记的有效数值来源则绑定该数值并保留 visual/icon；只有文本时保留完整文字，不生成首帧数值副本 |
 | InfoBlock 主文本超宽 | 先按组件合同恢复读数与静态说明的分工；不得覆盖动态辅助值。完整读数仍放不下时才在scope内重选合法组合，不因可移出的静态前缀直接退化为表格或主辅混搭 |
 | SecondaryBody 动态 label | 保留静态标签；动态部分与原 value 按显示顺序合入同项完整 value Expression，保留全部绑定 |
 | SecondaryBody 项数/字号/宽度 | 最多6项，只移除未被 Plan 要求的重复或可选项；必要项改组合。按最终单/多行使用规定字号；长值可 columns:1、maxLines:2并计新增行高 |
@@ -110,4 +110,5 @@ drop_optional_component 从第4次修复起且当前有结构/容量错误和合
 - 若上一轮原样返回，本轮必须实际删除指定组件及父引用；已不存在则保持删除并闭合剩余结构。
 
 除明确授权省略项外，全部 Plan must/should 在生成、局部修复、重组和无损紧凑阶段都必须保留。最后输出完整修复 DSL，不原样重交已知失败候选。
+动态进度类型错误时，绑定展示字段 numericSource 指向的有效数值字段；未登记关系时不猜测，不把字符串样例解析为常数或私有数据。若仅能展示文字，保留全部事实并改用文字组件。
 <!-- /prompt:contract -->

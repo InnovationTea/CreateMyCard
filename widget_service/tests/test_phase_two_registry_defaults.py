@@ -80,11 +80,14 @@ def test_public_request_registry_selection(
     values = {
         "uid": "test-user",
         "device": {"romVersion": settings.default_device_rom_version},
-        "userQuery": "时间卡片",
-        "title": "时间",
-        "description": "查看时间",
-        "dataCapabilityIds": ["GetCurrentTime"],
     }
+    if request_type is DataCapabilitySchemasRequest:
+        values["dataCapabilityIds"] = ["GetCurrentTime"]
+    elif request_type is GenerateWidgetCardRequest:
+        values.update(
+            userQuery="时间卡片", title="时间", description="查看时间",
+            candidateDataBindings=[],
+        )
     if app is not None:
         values["prdVer"] = app
     if rom is not None:

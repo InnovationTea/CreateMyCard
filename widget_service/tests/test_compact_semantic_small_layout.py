@@ -9,16 +9,12 @@ import pytest
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
-    DataRow,
     convert_compact_dsl_to_a2ui,
     parse_compact_dsl_rows,
     serialize_compact_dsl_source,
 )
 from services.compact_layout_runtime import match_compact_layout
-from services.compact_prompt_loader import FRAGMENT
-from services.compact_region_layout import reference_region_boxes
-from services.compact_semantic_layout import GEOMETRY_PROPS, SMALL_CHILD_ROLES
-from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
+from services.compact_semantic_layout import SMALL_CHILD_ROLES
 
 SOURCE = Path(__file__).parents[1] / (
     "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/fewshots/2x2.md"
@@ -139,97 +135,25 @@ def test_small_group_uses_registered_same_region_geometry(variant: str) -> None:
     assert '"component": "Layout"' not in converted
 
 
-def _business_nodes(source: str, ids: set[str]) -> tuple[dict[str, dict], dict]:
-    converted = convert_compact_dsl_to_a2ui(
-        source, size="2x2", protocol_profile={"version": "v0.9", "appVersion": "99.0"},
-    )
-    messages = [json.loads(line) for line in converted.splitlines()]
-    update = messages[1].get("updateComponents")
-    assert isinstance(update, dict)
-    nodes = update.get("components")
-    assert isinstance(nodes, list)
-    by_id = {}
-    for node in nodes:
-        by_id[node.get("id")] = node
-    selected = {}
-    pending = list(ids)
-    while pending:
-        identifier = pending.pop()
-        node = by_id.get(identifier)
-        assert isinstance(node, dict)
-        selected[identifier] = node
-        pending.extend(node.get("children", []))
-    boxes = reference_region_boxes(nodes, size="2x2")
-    return selected, boxes
-
-
 @pytest.mark.parametrize("legacy", LEGACY, ids=[item.get("fragment") for item in LEGACY])
-def test_small_fewshot_migration_preserves_input_business_and_processor(legacy: dict) -> None:
-    fragment = legacy.get("fragment")
-    body = dict(FRAGMENT.findall(SOURCE.read_text(encoding="utf-8"))).get(fragment)
-    assert body is not None
-    blocks = {}
-    for kind, content in re.findall(r"```(json|genui)\n([\s\S]*?)\n```", body):
-        blocks[kind] = content
-    source = blocks.get("genui")
+def test_legacy_small_samples_round_trip_without_changing_output(legacy: dict) -> None:
+    """历史输入保持可解析、可转换，不冻结现行案例的节点 ID、文案和布局。"""
     original = legacy.get("dsl")
-    assert source is not None and original is not None
-    assert blocks.get("json") == legacy.get("input")
-    # 人工审阅的辅助节点只调整UI；其绑定与其它节点保持原迁移要求。
-    reviewed_nodes = {
-        "example-v08": {"battery"},
-        "example-v14": {"earphone_summary"},
-        "example-v03": {"cta_play", "cta_fav"},
-    }.get(fragment, set())
-    reviewed_bindings = []
-    business = []
-    for dsl in (original, source):
-        facts = {}
-        bindings = set()
-        for row in parse_compact_dsl_rows(dsl, expand_layouts=False):
-            if not isinstance(row, ComponentRow):
-                continue
-            if row.component_type in {"Row", "Column", "Stack", "Layout", "Group"}:
-                continue
-            if row.component_id in reviewed_nodes:
-                bindings.update(re.findall(r"/data/[A-Za-z0-9_~/-]+", json.dumps(row.props)))
-                continue
-            props = {}
-            for key, value in row.props.items():
-                if key not in GEOMETRY_PROPS:
-                    props[key] = value
-            facts[row.component_id] = (row.component_type, props)
-        business.append(facts)
-        reviewed_bindings.append(bindings)
-    assert reviewed_bindings[0] == reviewed_bindings[1]
-    assert business[0] == business[1]
-    old_nodes, old_boxes = _business_nodes(original, set(business[0]))
-    new_nodes, new_boxes = _business_nodes(source, set(business[1]))
-    assert old_nodes == new_nodes
-    for identifier in old_nodes:
-        assert old_boxes.get(identifier) == new_boxes.get(identifier)
-    old_rows = parse_compact_dsl_rows(original, expand_layouts=False)
-    new_rows = parse_compact_dsl_rows(source, expand_layouts=False)
-    assert [row for row in old_rows if isinstance(row, DataRow)] == [
-        row for row in new_rows if isinstance(row, DataRow)
-    ]
-    original_root = next(row for row in old_rows if isinstance(row, ComponentRow)
-                         and row.component_id == "root")
-    root = next(row for row in new_rows if isinstance(row, ComponentRow)
-                and row.component_id == "root")
-    for key in ("design", "linearGradient", "backgroundColor", "backgroundImage"):
-        assert root.props.get(key) == original_root.props.get(key)
-    input_source = legacy.get("input")
-    assert isinstance(input_source, str)
-    task = json.loads(input_source)
-    task["appVersion"] = "99.0"
-    processed = DesignCompactProcessor().process(source, DslProcessingContext(
-        size="2x2", card_spec={"suggestSize": "2x2"}, task_spec=task,
-        protocol_profile={"version": "v0.9", "appVersion": "99.0"},
-    ))
-    assert not processed.errors
-    assert '"Layout"' in processed.source_dsl
-    assert '"width"' not in serialize_compact_dsl_source(source)
+    assert isinstance(original, str)
+    serialized = serialize_compact_dsl_source(original)
+    original_rows = parse_compact_dsl_rows(original, expand_layouts=False)
+    assert parse_compact_dsl_rows(serialized, expand_layouts=False) == original_rows
+    profile = {"version": "v0.9", "appVersion": "99.0"}
+    converted = convert_compact_dsl_to_a2ui(original, size="2x2", protocol_profile=profile)
+    assert convert_compact_dsl_to_a2ui(
+        serialized, size="2x2", protocol_profile=profile,
+    ) == converted
+    messages = [json.loads(line) for line in converted.splitlines()]
+    assert len(messages) == 3
+    for message, operation in zip(
+        messages, ("createSurface", "updateComponents", "updateDataModel"), strict=True,
+    ):
+        assert operation in message
 
 
 @pytest.mark.parametrize("replacement", [

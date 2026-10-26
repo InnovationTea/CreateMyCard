@@ -86,6 +86,7 @@ def validate_compact_dsl(
     enforce_model_component_types: bool = False,
     original_source: str | None = None,
     repair_context: RepairGuidanceContext | None = None,
+    allowed_omitted_fact_indexes: tuple[int, ...] = (),
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
@@ -94,6 +95,13 @@ def validate_compact_dsl(
             expand_layouts=False,
             size=task_spec.get("size"),
         )
+        from services.generation_content_policy import current_content_policy
+
+        if current_content_policy().is_static:
+            source_components = [row for row in original_rows if isinstance(row, ComponentRow)]
+            static_model_errors = collect_model_component_errors(source_components)
+            if static_model_errors:
+                raise CompactDslValidationError.from_records(static_model_errors.records)
         rows = parse_compact_dsl_rows(compact_dsl, size=task_spec.get("size"))
     except CompactDslConversionError as exc:
         raise CompactDslValidationError([str(exc)]) from exc
@@ -115,7 +123,7 @@ def validate_compact_dsl(
     _expanded_source, context.layout_origins = expand_compact_semantic_layout(
         compact_dsl, size=task_spec.get("size"),
     )
-    if enforce_model_component_types:
+    if enforce_model_component_types and not current_content_policy().is_static:
         model_errors = collect_model_component_errors(components)
         if model_errors:
             raise _validation_error(model_errors, context, repair_context)
@@ -160,6 +168,17 @@ def validate_compact_dsl(
     if binding_contract_errors:
         raise CompactDslValidationError([*layout_errors, *binding_contract_errors])
     original_errors = DiagnosticCollector()
+    from services.generation_content_policy import current_content_policy
+
+    if current_content_policy().is_static:
+        from .semantic.static_content import collect_static_group_errors
+
+        collect_static_group_errors(
+            compact_dsl,
+            compact_plan,
+            original_errors,
+            allowed_omitted_fact_indexes,
+        )
     _collect_model_asset_source_errors(components, task_spec, original_errors)
     _collect_asset_color_errors(components, task_spec, original_errors)
     _collect_numeric_component_errors(components, task_spec, original_errors)
@@ -169,6 +188,13 @@ def validate_compact_dsl(
     try:
         components = expand_high_level_component_rows(components, size=size, data_model=data_model)
     except CompactDslConversionError as exc:
+        from .semantic.layout.text_capacity import capacity_diagnostic_from_error
+
+        diagnostic = capacity_diagnostic_from_error(exc)
+        if diagnostic is not None:
+            capacity_errors = DiagnosticCollector()
+            capacity_errors.emit(diagnostic)
+            raise _validation_error(capacity_errors, context, repair_context) from exc
         raise CompactDslValidationError([str(exc)]) from exc
     components = ComponentRows(components)
     context.components = components

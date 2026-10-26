@@ -277,4 +277,3 @@ class FinalBusinessContext:
         elif layout == "W-top-bottom" and len(root.children) in {2, 3}:
             result = root.children[-2]
         return result
-

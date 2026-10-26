@@ -203,10 +203,10 @@ class TaskLogger:
             enqueue=True  # 异步安全写入
         )
 
-        # 文件输出 - 按大小轮转
+        # 本地独立进程不能共享轮转文件；enqueue 只协调当前处理器的队列。
         current_date = datetime.now(tz=UTC).strftime("%Y%m%d")
         if get_settings().LOCAL_FLAG:
-            log_file = os.path.join(log_dir, f"agent_{current_date}.log")
+            log_file = os.path.join(log_dir, f"agent_{current_date}_{os.getpid()}.log")
         else:
             log_file = os.path.join(log_dir, "debug_python.log")
         _logger.add(

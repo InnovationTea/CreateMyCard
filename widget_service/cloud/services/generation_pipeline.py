@@ -28,6 +28,11 @@ from services.compact_plan import (
 )
 from services.compact_repair_context import bounded_component_capacity_contexts
 from services.compact_wide_recomposition import recompose_wide_card
+from services.generation_content_policy import (
+    EXISTING_CONTENT_POLICY,
+    GenerationContentPolicy,
+    content_policy_scope,
+)
 from services.generation_trace_recorder import TraceSpan, trace_operation, trace_record, trace_step
 from services.protocol_registry import A2UIProtocolRegistry
 from utils.ops_metrics import report_ops_metrics
@@ -91,6 +96,7 @@ class DslProcessingContext:
     plan_information_coverage_as_warning: bool = False
     repair_context: RepairGuidanceContext | None = None
     colorless_layout: bool = False
+    content_policy: GenerationContentPolicy = EXISTING_CONTENT_POLICY
 
 
 @dataclass(frozen=True)
@@ -174,10 +180,44 @@ class DesignCompactProcessor:
     ) -> DslProcessingResult:
         from services.theme_style_roles import layout_phase
 
-        with layout_phase(context.colorless_layout, context.task_spec):
+        with (
+            content_policy_scope(context.content_policy),
+            layout_phase(context.colorless_layout, context.task_spec),
+        ):
             result = self._process(source_dsl, context)
+            if context.content_policy.is_static and result.errors:
+                static_recovery_started_at = time.perf_counter()
+                from services.static_content_presentation import static_presentation_candidates
+
+                plan = context.compact_plan or {}
+                sources = list(
+                    static_presentation_candidates(
+                        plan, context.size, context.allowed_omitted_plan_fact_indexes
+                    )
+                )
+                frozen = plan.get("staticPresentation")
+                if isinstance(frozen, str) and not context.allowed_omitted_plan_fact_indexes:
+                    sources.insert(0, frozen)
+                tried = set()
+                for candidate_source in sources:
+                    if candidate_source in tried:
+                        continue
+                    tried.add(candidate_source)
+                    candidate_result = self._process(candidate_source, context)
+                    if candidate_result.errors:
+                        continue
+                    trace_step(
+                        "static_content.presentation.recovered",
+                        stage="dsl.staticPresentation",
+                        status="success",
+                        duration_ms=_elapsed_ms(static_recovery_started_at),
+                        details={"candidateCount": len(tried), "coreChanged": False},
+                        text_artifacts={"static_presentation_source": candidate_source},
+                    )
+                    return candidate_result
             enabled = get_settings().enable_design_compact_deterministic_repair
             eligible = context.size == "2x4" and not context.skip_compact_dsl_validation
+            eligible = eligible and not context.content_policy.is_static
             if not enabled or not eligible or not result.errors:
                 return result
             started_at = time.perf_counter()
@@ -185,8 +225,11 @@ class DesignCompactProcessor:
                 context.design_profile_id or "design-compact-dsl"
             )
             candidate = recompose_wide_card(
-                result.source_dsl, task_spec=context.task_spec, card_spec=context.card_spec,
-                protocol_profile=profile, layout_scope=context.layout_scope,
+                result.source_dsl,
+                task_spec=context.task_spec,
+                card_spec=context.card_spec,
+                protocol_profile=profile,
+                layout_scope=context.layout_scope,
                 compact_plan=context.compact_plan,
                 messages=tuple(issue.message for issue in result.errors),
                 allowed_omitted_fact_indexes=context.allowed_omitted_plan_fact_indexes,
@@ -207,18 +250,24 @@ class DesignCompactProcessor:
                 artifacts["deterministic_repair_output"] = result.source_dsl
                 artifact_roles["deterministic_repair_output"] = "output"
             trace_step(
-                "dsl.deterministic_repair.completed", stage="dsl.deterministicRepair",
-                status="success", duration_ms=_elapsed_ms(started_at),
+                "dsl.deterministic_repair.completed",
+                stage="dsl.deterministicRepair",
+                status="success",
+                duration_ms=_elapsed_ms(started_at),
                 details={
-                    "applied": applied, "candidateCount": candidate.candidate_count,
+                    "applied": applied,
+                    "candidateCount": candidate.candidate_count,
                     "reasons": list(candidate.reasons),
                 },
-                text_artifacts=artifacts, artifact_roles=artifact_roles,
+                text_artifacts=artifacts,
+                artifact_roles=artifact_roles,
             )
             return result
 
     def _process(
-        self, source_dsl: str, context: DslProcessingContext,
+        self,
+        source_dsl: str,
+        context: DslProcessingContext,
     ) -> DslProcessingResult:
         binding_repair_started_at = time.perf_counter()
         from services.layout_theme_contract import strip_source_colors
@@ -229,6 +278,10 @@ class DesignCompactProcessor:
             if in_layout_phase():
                 source_dsl = strip_source_colors(source_dsl)
                 original_source_dsl = source_dsl
+            if context.content_policy.is_static:
+                from services.static_content_planning import normalize_static_record_table
+
+                source_dsl = normalize_static_record_table(source_dsl)
             source_dsl = repair_compact_dsl_safe_structure(
                 source_dsl,
                 size=context.size,
@@ -243,15 +296,20 @@ class DesignCompactProcessor:
             )
             expansion_started_at = time.perf_counter()
             expanded_source, layout_origins = expand_compact_semantic_layout(
-                source_dsl, size=context.size,
+                source_dsl,
+                size=context.size,
                 skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
             if layout_origins:
                 trace_step(
-                    "dsl.semantic_layout.expanded", stage="dsl.layoutExpansion", status="success",
+                    "dsl.semantic_layout.expanded",
+                    stage="dsl.layoutExpansion",
+                    status="success",
                     duration_ms=_elapsed_ms(expansion_started_at),
-                    text_artifacts={"semantic_layout_source": source_dsl,
-                                    "semantic_layout_expanded": expanded_source},
+                    text_artifacts={
+                        "semantic_layout_source": source_dsl,
+                        "semantic_layout_expanded": expanded_source,
+                    },
                     json_artifacts={"semantic_layout_origins": layout_origins},
                 )
         except CompactDslConversionError as exc:
@@ -283,26 +341,38 @@ class DesignCompactProcessor:
         design_profile_id = context.design_profile_id or "design-compact-dsl"
         design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(design_profile_id)
         outer_applied = False
-        if context.size == "2x2" and not context.skip_compact_dsl_validation:
+        small_recomposition = context.size == "2x2" and not context.skip_compact_dsl_validation
+        if small_recomposition and not context.content_policy.is_static:
             outer_started_at = time.perf_counter()
             outer_input = source_dsl
             outer_result = recompose_small_card(
-                source_dsl, task_spec=context.task_spec, card_spec=context.card_spec,
-                protocol_profile=design_protocol, layout_scope=context.layout_scope,
+                source_dsl,
+                task_spec=context.task_spec,
+                card_spec=context.card_spec,
+                protocol_profile=design_protocol,
+                layout_scope=context.layout_scope,
                 compact_plan=context.compact_plan,
             )
             source_dsl = outer_result.source_dsl
             outer_applied = outer_result.applied
             trace_step(
                 "dsl.outer_recomposition.completed",
-                stage="dsl.outerRecomposition", status="success",
+                stage="dsl.outerRecomposition",
+                status="success",
                 duration_ms=_elapsed_ms(outer_started_at),
-                details={"applied": outer_applied, "reasons": list(outer_result.reasons),
-                         "candidateCount": outer_result.candidate_count},
-                text_artifacts={"outer_recomposition_input": outer_input,
-                                "outer_recomposition_output": source_dsl},
-                artifact_roles={"outer_recomposition_input": "input",
-                                "outer_recomposition_output": "output"},
+                details={
+                    "applied": outer_applied,
+                    "reasons": list(outer_result.reasons),
+                    "candidateCount": outer_result.candidate_count,
+                },
+                text_artifacts={
+                    "outer_recomposition_input": outer_input,
+                    "outer_recomposition_output": source_dsl,
+                },
+                artifact_roles={
+                    "outer_recomposition_input": "input",
+                    "outer_recomposition_output": "output",
+                },
             )
 
         plan_coverage_started_at = time.perf_counter()
@@ -323,9 +393,7 @@ class DesignCompactProcessor:
         )
         duplicate_fact_context: dict[str, Any] = {}
         if plan_coverage.duplicate_facts:
-            duplicate_fact_context["duplicateFacts"] = list(
-                plan_coverage.duplicate_facts
-            )
+            duplicate_fact_context["duplicateFacts"] = list(plan_coverage.duplicate_facts)
         plan_issues = tuple(
             QualityIssue(
                 stage="validation",
@@ -370,9 +438,7 @@ class DesignCompactProcessor:
                     "informationCoverageSeverity": (
                         "warning" if context.plan_information_coverage_as_warning else "error"
                     ),
-                    "omittedFacts": [
-                        fact.get("requirement") for fact in omitted_facts
-                    ],
+                    "omittedFacts": [fact.get("requirement") for fact in omitted_facts],
                 }
             },
             artifact_roles={
@@ -381,7 +447,7 @@ class DesignCompactProcessor:
             },
         )
 
-        if not context.skip_compact_dsl_validation:
+        if not context.skip_compact_dsl_validation or context.content_policy.is_static:
             compact_validation_started_at = time.perf_counter()
             try:
                 validation_result = validate_compact_dsl(
@@ -394,6 +460,11 @@ class DesignCompactProcessor:
                     enforce_model_component_types=True,
                     original_source=original_source_dsl,
                     repair_context=context.repair_context,
+                    **(
+                        {"allowed_omitted_fact_indexes": context.allowed_omitted_plan_fact_indexes}
+                        if context.content_policy.is_static
+                        else {}
+                    ),
                 )
             except CompactDslValidationError as exc:
                 trace_step(
@@ -409,7 +480,9 @@ class DesignCompactProcessor:
                     artifact_roles={"compact_validation_input": "input"},
                 )
                 compact_issues = self._validation_failure(
-                    source_dsl, exc.errors, groups=exc.groups,
+                    source_dsl,
+                    exc.errors,
+                    groups=exc.groups,
                 ).issues
                 capacity_contexts = bounded_component_capacity_contexts(
                     source_dsl,
@@ -476,6 +549,14 @@ class DesignCompactProcessor:
                 protocol_profile=design_protocol,
                 skip_compact_dsl_validation=context.skip_compact_dsl_validation,
             )
+            from services.card_validation.progress_sources import progress_dsl_errors
+
+            progress_errors = progress_dsl_errors(
+                standard_dsl,
+                context.task_spec.get("dataModelSchema"),
+            )
+            if progress_errors:
+                raise CompactDslConversionError("; ".join(progress_errors))
             trace_step(
                 "dsl.conversion.completed",
                 stage="dsl.convert",
@@ -521,11 +602,16 @@ class DesignCompactProcessor:
                 for message in (validation_result.warnings if validation_result else ())
             )
             if outer_applied:
-                warnings += (QualityIssue(
-                    stage="conversion", code="COMPACT_OUTER_RECOMPOSITION_APPLIED",
-                    message="2x2 outer composition compiled without changing facts or font sizes.",
-                    severity="warning",
-                ),)
+                warnings += (
+                    QualityIssue(
+                        stage="conversion",
+                        code="COMPACT_OUTER_RECOMPOSITION_APPLIED",
+                        message=(
+                            "2x2 outer composition compiled without changing facts or font sizes."
+                        ),
+                        severity="warning",
+                    ),
+                )
             return DslProcessingResult(
                 source_dsl=source_dsl,
                 standard_dsl=standard_dsl,

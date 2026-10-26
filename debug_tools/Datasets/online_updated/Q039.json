@@ -29,7 +29,7 @@
       }
     ],
     "title": "旅途倒计时",
-    "size": "2x2",
+    "size": "2x4",
     "candidateEventCandidates": [
       {
         "capabilityId": "event.call.phone",
@@ -109,7 +109,7 @@
     }
   ],
   "title": "旅途倒计时",
-  "size": "2x2",
+  "size": "2x4",
   "candidateEventCandidates": [
     {
       "capabilityId": "event.call.phone",

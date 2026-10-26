@@ -2,10 +2,10 @@
 
 import pytest
 
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services.compact_high_level_components import ComponentRow
 from services.theme_texture_eligibility import visible_business
-from test_autumn_calendar_photos import expanded
 from test_uniform_photo_eligibility import BLUE, choose, evidence, rejection, sample
 
 DATE = "/data/currentTime/currentDate"

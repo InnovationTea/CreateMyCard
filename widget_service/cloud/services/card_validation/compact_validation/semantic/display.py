@@ -272,6 +272,8 @@ def _collect_semantic_text_errors(
                     ),
                 ),
             )
+
+
 def _collect_unbound_action_hint_errors(components: list[ComponentRow], errors: list[str]) -> None:
     components_by_id = {component.component_id: component for component in components}
     parent_by_child: dict[str, str] = {}

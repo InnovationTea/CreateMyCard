@@ -7,6 +7,7 @@ import sys
 import uuid
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from ws_response_parser import parse_legacy_stream_content
@@ -65,6 +66,10 @@ WidgetGenerationService = importlib.import_module(
 compact_dsl_argument_issue_tracker = importlib.import_module(
     "services.compact_dsl_argument_repair"
 ).compact_dsl_argument_issue_tracker
+
+
+# 本组验证既有创建、回退或路由合同，静态策略由专项测试覆盖。
+pytestmark = pytest.mark.usefixtures("existing_generation_policy")
 
 
 def test_ops_metric_mappings_cover_all_websocket_operations():
@@ -343,7 +348,14 @@ def _assert_success_envelope(message: dict, operation: str, request_id: str) -> 
     assert "status" in legacy_message
     assert "errorCode" in legacy_message
     assert "error" in legacy_message
-    assert legacy_message["error"] == {}
+    error = legacy_message.get("error")
+    assert isinstance(error, dict)
+    if legacy_message.get("status") in {"failed", "unsupported"}:
+        details = error.get("details")
+        assert isinstance(details, dict)
+        assert details.get("retryable") is False
+    else:
+        assert error == {}
     return legacy_message
 
 
@@ -942,7 +954,9 @@ def test_handler_exception_keeps_plugin_envelope_successful(monkeypatch):
     assert legacy_message["type"] == "error"
     assert legacy_message["errorCode"] == "FAILED"
     assert "未分类的服务异常" in legacy_message["explanation"]
-    assert legacy_message["error"]["message"] == "overview failed"
+    assert "未分类的服务异常" in legacy_message["error"]["message"]
+    assert legacy_message["error"]["details"]["retryable"] is False
+    assert "overview failed" not in response["reply"]["streamInfo"]["streamContent"]
 
 
 def test_legacy_registry_field_is_ignored_for_first_two_interfaces():

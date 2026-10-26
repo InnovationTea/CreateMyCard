@@ -1,0 +1,139 @@
+{
+  "content": {
+    "title": "蓝牙听歌",
+    "description": "耳机状态与推荐歌单",
+    "userQuery": "生成一个蓝牙听歌卡片，实时显示耳机状态和播放网易云音乐的推荐歌单",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName",
+          "/batteryLevel",
+          "/chargingStatusDesc",
+          "/leftBatteryLevel",
+          "/leftChargingStatusDesc",
+          "/rightBatteryLevel",
+          "/rightChargingStatusDesc"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.daily"
+      },
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "bluetooth_entry"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.bluetooth"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_bluetooth_earbuds_black",
+      "asset.emoji_music"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261017074058505"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "6ad484b4-5889-4238-8c72-610ccdcdc1ad"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.emoji_bluetooth_earbuds_black",
+    "asset.emoji_music"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.daily"
+    },
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "bluetooth_entry"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.bluetooth"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "耳机状态与推荐歌单",
+  "userQuery": "生成一个蓝牙听歌卡片，实时显示耳机状态和播放网易云音乐的推荐歌单",
+  "title": "蓝牙听歌",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc"
+      ],
+      "capabilityId": "GetEarphoneInfo",
+      "writeResultTo": "/data/earphone"
+    }
+  ]
+}

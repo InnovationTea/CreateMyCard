@@ -138,6 +138,9 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 ```
 恰好一个 handler，完整保留候选中的静态值、Expression 或 PathBinding，无 condition、as、$context 或动作链。动作文字简洁保留真实行为与必要目标；不生成无事件按钮，不重复入口。
 
+### 动态图形的数值来源
+
+进度图形只绑定模型上下文已声明的 number/integer 字段。展示文字上的 numericSource 是同对象同指标的绝对数值来源，优先用它驱动图形，文字继续使用原字段；辅助驱动字段不新增必显事实。不得从首帧百分比字符串派生私有数值，不得输出 /__display 绑定。没有合法数值来源时保留完整文字，不借用其它对象或其它指标。ProgressCircle.externalText 的动态路径必须为数值，程序会追加百分号；ProgressCircleSingle/ProgressLine2 的 value 与 displayValue 必须满足已登记的指标关系。
 <!-- /prompt:binding-events -->
 
 <!-- prompt:typography -->

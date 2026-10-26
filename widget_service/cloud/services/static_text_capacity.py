@@ -1,0 +1,304 @@
+"""静态内容的共享参考文字度量；不测量或猜测真实宿主尺寸。"""
+
+from __future__ import annotations
+
+import json
+import math
+import re
+import unicodedata
+from copy import deepcopy
+from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "data/protocol_profiles/design-compact-dsl-fusion/runtime/static-content-v1.json"
+)
+_DATE = (
+    r"\d{4}年\d{1,2}月(?:\d{1,2}日)?|\d{1,2}月\d{1,2}日|"
+    r"\d{1,2}时\d{1,2}分(?:\d{1,2}秒)?|\d+分\d+秒"
+)
+_NUMBER = rf"(?:{_DATE}|\d+(?:[.,:/]\d+)*(?:年|月|日|号|时|分|秒)?)"
+_UNIT = (
+    r"(?:元(?:/[年月日人次])?|[%％℃]|°C|公里|千米|米|公斤|千克|毫升|分钟|小时|天|次|"
+    r"[A-Za-z]+(?:/[A-Za-z]+)?)"
+)
+_TEXT_TOKEN = re.compile(
+    r"[A-Za-z]+[A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*(?:['’][A-Za-z]+)*"
+    rf"|[$¥￥€]?[+-]?{_NUMBER}(?:[–—~至-]{_NUMBER})?(?:[ \t]?{_UNIT})?|.",
+)
+
+
+def critical_readings(text: str) -> tuple[str, ...]:
+    """返回换行用的数值词元；不参与来源核验或重要性判断。"""
+    values = []
+    for match in _TEXT_TOKEN.finditer(text):
+        token = match.group()
+        if any(character.isdigit() for character in token):
+            values.append(token)
+    return tuple(values)
+
+
+@lru_cache(maxsize=1)
+def _contract() -> dict[str, Any]:
+    payload = json.loads(_CONTRACT_PATH.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or payload.get("version") != "static-content-v1":
+        raise ValueError("静态内容合同版本无效。")
+    for key in ("layout", "text", "components", "measurement", "typography", "lineBreak"):
+        if not isinstance(payload.get(key), dict):
+            raise ValueError(f"静态内容合同缺少 {key}。")
+    _validate_contract_fields(payload)
+    _validate_typography(payload)
+    for name in ("noLineStart", "noLineEnd"):
+        value = payload.get("lineBreak", {}).get(name)
+        if not isinstance(value, str) or not value:
+            raise ValueError("静态断行禁则必须为非空字符集。")
+    return payload
+
+
+def _validate_contract_fields(payload: dict[str, Any]) -> None:
+    for name in (
+        "title",
+        "header",
+        "body",
+        "attribute",
+        "attributeBody",
+        "note",
+        "recordTitle",
+        "recordDescription",
+        "compactTitle",
+        "compactDescription",
+        "side",
+        "comparisonPrimary",
+        "comparisonSecondary",
+        "detail",
+    ):
+        text_fields = payload.get("text", {}).get(name)
+        if not isinstance(text_fields, dict):
+            raise ValueError(f"静态文字规格缺少 {name}。")
+        for key in ("fontSize", "lineHeight", "maxLines", "fontWeight"):
+            if number(text_fields, key) <= 0:
+                raise ValueError(f"静态文字规格 {name}.{key} 必须为正数。")
+        if not number(text_fields, "maxLines").is_integer():
+            raise ValueError(f"静态文字规格 {name}.maxLines 必须为整数。")
+    required = {
+        "StaticHeader": ("iconSize", "iconGap"),
+        "ContentBlock": ("gap", "attributeGap", "compactAttributeGap", "maximumAttributes"),
+        "RecordList": (
+            "minimumItems",
+            "maximumItems",
+            "gap",
+            "compactGap",
+            "panelPadding",
+            "panelRadius",
+            "innerGap",
+            "sideGap",
+            "leadingMax",
+            "trailingMax",
+            "dividerWidth",
+            "dividerAlpha",
+        ),
+        "ComparisonGroup": ("minimumItems", "maximumItems", "gap", "padding", "innerGap", "radius"),
+    }
+    for name, keys in required.items():
+        component_fields = payload.get("components", {}).get(name)
+        if not isinstance(component_fields, dict):
+            raise ValueError(f"静态组件规格缺少 {name}。")
+        for key in keys:
+            number(component_fields, key)
+    for key in ("padding", "gap", "compactGap", "radius"):
+        number(payload.get("layout", {}), key)
+    for key in ("asciiEm", "wideAsciiEm", "digitEm", "narrowAsciiEm", "wideEm", "safetyFactor"):
+        if number(payload.get("measurement", {}), key) <= 0:
+            raise ValueError(f"静态文字度量 {key} 必须为正数。")
+
+
+
+def _validate_typography(payload: dict[str, Any]) -> None:
+    typography = payload.get("typography", {})
+    if set(typography) != {"11", "10"}:
+        raise ValueError("静态字号档位必须为12默认、11、10。")
+    for font_key, styles in typography.items():
+        if not isinstance(styles, dict):
+            raise ValueError("静态字号档位必须登记文字样式。")
+        for name, spec in styles.items():
+            baseline = payload.get("text", {}).get(name)
+            if not isinstance(baseline, dict) or not isinstance(spec, dict):
+                raise ValueError("静态字号档位引用未知样式。")
+            if baseline.get("fontSize") != 12 or name == "compactTitle":
+                raise ValueError("静态字号档位不能缩小标题或主值。")
+            if number(spec, "fontSize") != int(font_key):
+                raise ValueError("静态字号必须与登记档位一致且不小于10。")
+            if number(spec, "lineHeight") < number(spec, "fontSize"):
+                raise ValueError("静态行高不能小于所选字号。")
+
+
+def static_content_contract() -> dict[str, Any]:
+    return deepcopy(_contract())
+
+
+def contract_section(name: str) -> dict[str, Any]:
+    section = _contract().get(name)
+    if not isinstance(section, dict):
+        raise ValueError(f"静态内容合同缺少 {name}。")
+    return deepcopy(section)
+
+
+def text_spec(name: str, font_size: int = 12) -> dict[str, Any]:
+    if isinstance(font_size, bool) or font_size not in (12, 11, 10):
+        raise ValueError("静态字号只允许12、11、10，最小为10。")
+    spec = contract_section("text").get(name)
+    if not isinstance(spec, dict):
+        raise ValueError(f"静态文字规格未登记：{name}。")
+    if font_size != 12:
+        overrides = contract_section("typography").get(str(font_size), {})
+        selected = overrides.get(name)
+        if isinstance(selected, dict):
+            spec.update(selected)
+    return spec
+
+
+def component_spec(name: str) -> dict[str, Any]:
+    spec = contract_section("components").get(name)
+    if not isinstance(spec, dict):
+        raise ValueError(f"静态组件规格未登记：{name}。")
+    return spec
+
+
+def number(spec: dict[str, Any], name: str) -> float:
+    value = spec.get(name)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"静态合同 {name} 必须是数值。")
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(f"静态合同 {name} 必须是非负有限数值。")
+    return float(value)
+
+
+@dataclass(frozen=True)
+class TextCapacity:
+    lines: int
+    height: float
+    maximum_lines: int
+    width: float
+    wrapped_lines: tuple[str, ...]
+
+    @property
+    def fits(self) -> bool:
+        return self.lines <= self.maximum_lines
+
+
+def character_width(character: str, font: float) -> float:
+    if unicodedata.combining(character):
+        return 0.0
+    metrics = _contract().get("measurement")
+    if not isinstance(metrics, dict):
+        raise ValueError("静态文字度量合同缺失。")
+    metric = "wideEm"
+    if character.isascii():
+        metric = "asciiEm"
+        if character in "MWmw@#%&":
+            metric = "wideAsciiEm"
+        elif character.isdigit():
+            metric = "digitEm"
+        elif character in " .,:;!/|ilI'`":
+            metric = "narrowAsciiEm"
+    em = number(metrics, metric)
+    return font * em * number(metrics, "safetyFactor")
+
+
+def text_width(text: str, font: float) -> float:
+    maximum = 0.0
+    for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        maximum = max(maximum, sum(character_width(character, font) for character in line))
+    return maximum
+
+
+def measure_text(text: str, width: float, spec: dict[str, Any]) -> TextCapacity:
+    """按可读片段换行，关键读数不从中间拆开；超长英文按字符保留。"""
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("静态文字必须为非空字符串。")
+    if not math.isfinite(width) or width <= 0:
+        raise ValueError("静态文字参考宽度未知或不足。")
+    font = number(spec, "fontSize")
+    maximum = int(number(spec, "maxLines"))
+    line_height = number(spec, "lineHeight")
+    wrapped: list[str] = []
+    for paragraph in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        wrapped.extend(_wrap_paragraph(paragraph, width, font))
+    lines = len(wrapped)
+    return TextCapacity(lines, lines * line_height, maximum, width, tuple(wrapped))
+
+
+
+def _protect_line_start(tokens: list[str], forbidden: str) -> list[str]:
+    result: list[str] = []
+    for token in tokens:
+        if token and token[0] in forbidden and result:
+            suffix = token
+            while result and result[-1].isspace():
+                suffix = result.pop() + suffix
+            if result:
+                result[-1] += suffix
+            else:
+                result.append(suffix)
+        else:
+            result.append(token)
+    return result
+
+
+def _wrap_paragraph(paragraph: str, width: float, font: float) -> list[str]:
+    lines: list[str] = []
+    current = ""
+    occupied = 0.0
+    rules = contract_section("lineBreak")
+    tokens = [match.group() for match in _TEXT_TOKEN.finditer(paragraph)]
+    tokens = _protect_line_start(tokens, rules.get("noLineStart", ""))
+    no_line_end = rules.get("noLineEnd", "") + "-~～至–—"
+    for token in tokens:
+        extent = text_width(token, font)
+        if extent > width + 1e-7:
+            if any(character.isdigit() for character in token):
+                raise ValueError(
+                    f"COMPACT_STATIC_TEXT_CAPACITY: 关键读数 {token!r} 超过 {width:g}vp；"
+                    "保持数值、日期时间和单位完整，改用更宽正文或列表，不能拆数字或缩字。"
+                )
+            pieces = _protect_line_start(list(token), rules.get("noLineStart", ""))
+        else:
+            pieces = [token]
+        for piece in pieces:
+            extent = text_width(piece, font)
+            if extent > width + 1e-7:
+                raise ValueError("COMPACT_STATIC_TEXT_CAPACITY: 静态文字单个字符超过参考文字区。")
+            if occupied + extent > width + 1e-7:
+                carry = ""
+                if len(current) > 1 and current[-1] in no_line_end:
+                    carry = current[-1]
+                    current = current[:-1]
+                lines.append(current)
+                current = carry
+                occupied = text_width(carry, font)
+                if occupied + extent > width + 1e-7:
+                    raise ValueError(
+                        "COMPACT_STATIC_TEXT_CAPACITY: 完整片段与分隔符超宽，请改用更宽正文。"
+                    )
+            current += piece
+            occupied += extent
+    lines.append(current)
+    return lines
+
+
+def static_capacity_prompt(size: str) -> str:
+    """Plan 与 DSL 使用相同的有界文字规格，不打开闭域容量工作表。"""
+    return (
+        "# 静态文字与容量合同\n"
+        f"当前尺寸 {size}；按公共参考画布扣除安全区、header、note及间距后验算正文。"
+        "以下字号与行高由程序拥有，maxLines是上限，不是必需行数；"
+        "先按可见版本、单栏实际参考宽度核算；空间紧张先去装饰标题和冗长来源，"
+        "再精简补充或显式尾部省略，保留已选读数、条件及保护片段。"
+        "RecordList/ComparisonGroup最多三项，短键值可用最多六项属性表；"
+        "两条带说明的记录通常比三条更易读。字号仅允许12→11→10，10为硬下限；"
+        "默认12放不下再逐档尝试完整内容，之后才省略should。标题和主值不缩小，仍检查整卡高度。\n"
+        + json.dumps(static_content_contract(), ensure_ascii=False, separators=(",", ":"))
+    )

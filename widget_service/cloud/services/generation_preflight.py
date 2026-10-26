@@ -25,6 +25,7 @@ from services.card_validation.base import (
     is_single_wrapped_expression,
 )
 from services.event_matching import normalize_event_handler
+from services.related_output_fields import complete_related_output_fields
 from services.task_spec_builder import TaskSpecBuilder
 
 _MODULE = "[Generation Preflight]"
@@ -36,6 +37,25 @@ _ASSET_SOURCE = "getWidgetCapabilityOverview.assetCandidates[]"
 _LEGACY_WEATHER_URI = (
     "hww://www.huawei.com/totemweather?enterType=share&cityCode="
 )
+
+
+def _closed_argument_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """参数对象默认闭合；显式扩展规则与原始注册表保持不变。"""
+    result = dict(schema)
+    properties = schema.get("properties")
+    if isinstance(properties, dict):
+        closed_properties = {}
+        for name, child in properties.items():
+            if isinstance(child, dict):
+                closed_properties[name] = _closed_argument_schema(child)
+            else:
+                closed_properties[name] = child
+        result["properties"] = closed_properties
+        result.setdefault("additionalProperties", False)
+    items = schema.get("items")
+    if isinstance(items, dict):
+        result["items"] = _closed_argument_schema(items)
+    return result
 
 
 class GenerationPreflight:
@@ -59,6 +79,10 @@ class GenerationPreflight:
             candidate_bindings,
             issues,
         )
+        if not issues:
+            effective_bindings = complete_related_output_fields(
+                effective_bindings, data_capabilities,
+            )
         effective_events = self._resolve_events(
             candidate_events,
             effective_bindings,
@@ -582,7 +606,7 @@ class GenerationPreflight:
     ) -> None:
         if not schema:
             return
-        validator = Draft202012Validator(schema)
+        validator = Draft202012Validator(_closed_argument_schema(schema))
         errors = sorted(validator.iter_errors(instance), key=self._schema_error_key)
         for error in errors:
             locations = self._schema_error_locations(error)

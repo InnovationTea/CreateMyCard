@@ -36,7 +36,7 @@
       }
     ],
     "title": "风况·耳机",
-    "size": "2x2",
+    "size": "2x4",
     "candidateEventCandidates": [
       {
         "capabilityId": "event.open.music.daily",
@@ -124,7 +124,7 @@
     }
   ],
   "title": "风况·耳机",
-  "size": "2x2",
+  "size": "2x4",
   "candidateEventCandidates": [
     {
       "capabilityId": "event.open.music.daily",

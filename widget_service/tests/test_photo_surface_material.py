@@ -4,11 +4,12 @@ import copy
 
 import pytest
 
+from photo_samples.common import expanded
+from photo_samples.music import earphone_sample
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services.theme_style_roles import role
-from test_autumn_calendar_photos import calendar_sample, expanded
-from test_metronome_photo import music_sample
+from test_autumn_calendar_photos import calendar_sample
 from test_photo_background_fallback import node_by_id, photo_theme, source
 
 
@@ -51,12 +52,18 @@ def test_actual_button_expansion_receives_material(button):
 
 
 def test_native_button_without_icon_receives_material():
-    sample = music_sample(with_icon=False)
+    original = earphone_sample()
+    rows = themes.decode(original.compact)
+    button = next(row for row in rows if row[0] == "cta")
+    props = button[2]
+    props.pop("icon", None)
+    sample = expanded(rows, original.task)
     result = themes.apply_theme(sample.source, photo_theme("2x2"), sample.task, {})
-    for identity in ("daily", "favorite"):
-        node = node_by_id(result, identity)
-        assert node.get("component") == "Button"
-        assert node.get("styles", {}).get("backdropBlur") == {"radius": 20}
+    node = node_by_id(result, "cta")
+    assert node.get("component") == "Button"
+    assert node.get("onClick") == props.get("onClick")
+    assert node.get("styles", {}).get("backdropBlur") == {"radius": 20}
+    assert themes.foreground_signature(sample.source) == themes.foreground_signature(result)
 
 
 def test_actual_wide_infoblock_and_cardbutton_surfaces():

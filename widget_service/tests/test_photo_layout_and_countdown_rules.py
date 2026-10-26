@@ -9,12 +9,13 @@ from unittest.mock import AsyncMock
 import pytest
 
 from config.config import get_settings
+from photo_samples.battery import WIDE, wide_battery_sample
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import subjectless_wide_theme
 from services.post_layout_theme_registry import registered_themes
 from services.theme_content_regions import photo_layout_evidence, photo_layout_exclusion_reason
-from test_autumn_calendar_photos import COUNTDOWN_ID, expanded, photo
-from test_battery_music_photo_rules import wide_battery_sample
+from test_autumn_calendar_photos import COUNTDOWN_ID, photo
 
 SPLIT_REASON = "2x4左右两个大背板布局不使用图片背景"
 
@@ -77,20 +78,49 @@ def test_legacy_wide_pool_uses_the_same_global_exclusion():
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_model_cannot_return_excluded_subject_but_ice_can_match(monkeypatch, enabled):
+@pytest.mark.parametrize("selected_shape", [
+    "photo-ux-ice-wide", WIDE, "photo-ux-texture-blue-diagonal-wide",
+])
+def test_model_cannot_return_excluded_subject_but_eligible_photo_can_match(
+    monkeypatch, enabled, selected_shape,
+):
     sample = wide_battery_sample("W-split-panels")
+    excluded_subject = "photo-ux-airplane-tarmac-wide"
+    if selected_shape != "photo-ux-ice-wide":
+        # 未启用冰面时仍需覆盖两种抽象形状，不能依赖随机抽样碰巧命中。
+        def without_ice(pool):
+            return [item for item in registered_themes(pool)
+                    if item.get("id") != "photo-ux-ice-wide"]
+
+        monkeypatch.setattr(themes, "registered_themes", without_ice)
+
+    # 测试固定蓝色，再分别抽中两种形状；不依赖颜色或形状的随机结果。
+    random_options = []
+
+    def choose_shape(options):
+        random_options.append(tuple(options))
+        if "blue" in options:
+            return "blue"
+        assert selected_shape in options
+        return selected_shape
+
+    monkeypatch.setattr(themes.secrets, "choice", choose_shape)
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", enabled)
-    rejected_subject = "photo-ux-airplane-tarmac-wide"
-    client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({
-        "themeId": rejected_subject,
-    })))
+    client = SimpleNamespace(generate=AsyncMock(
+        return_value=json.dumps({"themeId": excluded_subject}),
+    ))
     result, audit = asyncio.run(themes.select_theme(
         sample.source, sample.task, client, final_layout=sample.compact,
     ))
-    assert rejected_subject not in audit.get("candidates", [])
-    assert audit.get("themeId") != rejected_subject
+    assert audit.get("themeId") != excluded_subject
+    assert excluded_subject not in audit.get("candidates", [])
+    assert excluded_subject in audit.get("rejected", {})
     if enabled:
-        assert audit.get("themeId") == "photo-ux-ice-wide"
+        assert random_options
+        assert selected_shape in audit.get("candidates", [])
+        assert audit.get("themeId") == selected_shape
+        if selected_shape != "photo-ux-ice-wide":
+            assert audit.get("theme", {}).get("pool") == "texturePhotos"
     else:
         assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
     assert themes.foreground_signature(sample.source) == themes.foreground_signature(result)

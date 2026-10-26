@@ -10,6 +10,7 @@ import pytest
 
 from config.config import get_settings
 from models.artifact import ArtifactMeta, WidgetArtifact
+from photo_samples.weather import fixture, task
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services.protocol_registry import A2UIProtocolRegistry
@@ -17,7 +18,6 @@ from services.source_artifact_repository import SourceArtifactLoadResult, Source
 from services.theme_layout_summary import theme_description
 from services.validator import ArtifactValidator
 from test_photo_background_fallback import node_by_id, source
-from test_weather_photo_eligibility import fixture, task
 
 PHOTO_ID = "photo-ux-clouds-weather-square"
 ADDRESS = "https://hagres-drcn.dbankcdn.com/assets/theme-test.jpg?version=1"

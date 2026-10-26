@@ -57,12 +57,44 @@ def _load_contract() -> dict[str, Any]:
 
 def load_layout_contract() -> dict[str, Any]:
     """Return an isolated copy of the complete layout contract."""
-    return copy.deepcopy(_load_contract())
+    result = copy.deepcopy(_load_contract())
+    from services.generation_content_policy import STATIC_LAYOUTS, current_content_policy
+    from services.static_text_capacity import contract_section, number
+
+    if not current_content_policy().is_static:
+        return result
+    layouts = result.get("layouts")
+    scopes = result.get("scopes")
+    if not isinstance(layouts, dict) or not isinstance(scopes, dict):
+        raise CompactLayoutRuntimeError("布局合同结构无效。")
+    spec = contract_section("layout")
+    for size, identifier in STATIC_LAYOUTS.items():
+        prefix = "S" if size == "2x2" else "W"
+        patterns = []
+        for gap_name in ("gap", "compactGap"):
+            patterns.append({
+                "rules": [{
+                    "path": [], "types": ["Column"],
+                    "props": {
+                        "padding": number(spec, "padding"),
+                        "itemMargin": number(spec, gap_name),
+                        "_staticLayout": identifier,
+                    },
+                    "childCountMin": 1, "childCountMax": 3,
+                }],
+            })
+        layouts[identifier] = {
+            "size": size, "actionCount": {"min": 0, "max": 0}, "patterns": patterns,
+        }
+        from services.generation_content_policy import static_layout_ids
+
+        scopes[f"{prefix}-static-content-guided"] = list(static_layout_ids(size))
+    return result
 
 
 def layout_ids_for_size(size: str) -> tuple[str, ...]:
     """Return all formal layout IDs registered for one widget size."""
-    layouts = _load_contract().get("layouts")
+    layouts = load_layout_contract().get("layouts")
     if not isinstance(layouts, dict):
         return ()
     identifiers: list[str] = []
@@ -76,7 +108,7 @@ def layout_ids_for_size(size: str) -> tuple[str, ...]:
 
 def allowed_layout_ids(size: str, layout_scope: str) -> tuple[str, ...]:
     """Resolve a fixed layout ID or an adaptive scope to formal layout IDs."""
-    contract = _load_contract()
+    contract = load_layout_contract()
     layouts = contract.get("layouts")
     if not isinstance(layouts, dict):
         raise CompactLayoutRuntimeError("Compact layout contract has no layouts.")
@@ -116,7 +148,7 @@ def match_compact_layout(
     if root is None:
         raise CompactLayoutRuntimeError("Compact layout requires a root component.")
 
-    contract = _load_contract()
+    contract = load_layout_contract()
     layouts = contract.get("layouts")
     if not isinstance(layouts, dict):
         raise CompactLayoutRuntimeError("Compact layout contract has no layouts.")
@@ -135,7 +167,8 @@ def match_compact_layout(
             continue
         best_variant: tuple[tuple[int, int, int], int, list[str]] | None = None
         action_errors = _action_count_mismatches(
-            layout, components,
+            layout,
+            components,
             root_action_handler=(root_action_handler if layout_id in WHOLE_CARD_LAYOUTS else None),
         )
         placement_errors = _component_placement_mismatches(

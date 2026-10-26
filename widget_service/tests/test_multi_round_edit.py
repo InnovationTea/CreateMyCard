@@ -100,6 +100,8 @@ def editable_artifact_storage(tmp_path, monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)
     monkeypatch.setattr(settings, "enable_semantic_widget_edit", False)
+    # 本组覆盖旧创建与编辑兼容路线，静态 Plan 策略由专项测试验证。
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", False)
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "artifact_base_url", "https://obs.test/widget")
     monkeypatch.setattr(settings, "enable_widget_edit", True)
