@@ -101,12 +101,6 @@ GENERATION_OPERATIONS = frozenset(
     }
 )
 ERROR_EXPLANATIONS = {
-    ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED.value: (
-        "今日 AI 卡片生成次数已达上限，请明天再尝试；停止本轮自动调用，不要更换请求标识绕过限制"
-    ),
-    ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE.value: (
-        "暂时无法检查今日卡片生成次数，请稍后重试；停止本轮自动调用"
-    ),
     ErrorCode.INVALID_ARGUMENTS.value: (
         "工具参数传入有误，请按 details.issues 修正全部必填字段、类型和取值后再调用；"
         "不要只修第一项或原样重试。报错信息如下"
@@ -706,8 +700,14 @@ def _build_plugin_stream_response(
     出参：插件顶层始终成功；业务异常说明和完整旧消息放入 streamContent。
     """
     resolved_streaming_text_id = streaming_text_id or legacy_message.requestId or uuid.uuid4().hex
+    message_payload = legacy_message.model_dump(mode="json")
+    daily_usage_message = _daily_usage_error_message(legacy_message.errorCode)
+    if daily_usage_message is not None:
+        error = message_payload.get("error")
+        if isinstance(error, dict):
+            error["message"] = daily_usage_message
     stream_content = json.dumps(
-        legacy_message.model_dump(mode="json"),
+        message_payload,
         ensure_ascii=False,
         separators=(",", ":"),
     )
@@ -732,10 +732,30 @@ def _build_plugin_stream_response(
     )
 
 
+def _daily_usage_error_message(error_code: str) -> str | None:
+    message: str | None = None
+    if error_code in (
+        ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED.value,
+        ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE.value,
+    ):
+        settings = get_settings()
+        messages = {
+            ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED.value: settings.daily_usage_limit_exceeded_message,
+            ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE.value: (
+                settings.daily_usage_limit_unavailable_message
+            ),
+        }
+        message = messages.get(error_code)
+    return message
+
+
 def _error_explanation(error_code: str) -> str:
     """把内部错误码转换成主 Agent 可理解、可采取下一步动作的异常说明。"""
     if not error_code:
         return ""
+    daily_usage_message = _daily_usage_error_message(error_code)
+    if daily_usage_message is not None:
+        return f"请向用户回复“{daily_usage_message}”，并停止本轮自动调用"
     return ERROR_EXPLANATIONS.get(error_code, DEFAULT_ERROR_EXPLANATION)
 
 

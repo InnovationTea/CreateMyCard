@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from config.config import get_settings
 from core.errors import ErrorCode
 from services.daily_usage_limiter import DailyUsageError, DailyUsageLimiter, DailyUsageSnapshot
 
@@ -58,6 +59,17 @@ async def test_daily_limit_boundaries_and_existing_request(count):
     if count:
         assert await limiter.check("user", "s&0") is None
     assert await limiter.check("different-user", "s&0") is not None
+
+
+@pytest.mark.asyncio
+async def test_limit_exception_uses_configured_message(monkeypatch):
+    monkeypatch.setattr(get_settings(), "daily_usage_limit_exceeded_message", "自定义额度提示。")
+    repository = AsyncMock()
+    repository.snapshot.return_value = DailyUsageSnapshot(False, 20)
+    with pytest.raises(DailyUsageError) as captured:
+        await make_limiter(repository).check("user", "s&new")
+    assert str(captured.value) == "自定义额度提示。"
+    assert captured.value.code == ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED
 
 
 @pytest.mark.asyncio

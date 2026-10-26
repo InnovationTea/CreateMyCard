@@ -259,6 +259,12 @@ class Settings(BaseSettings):
     )
     enable_daily_usage_limit: bool = CONFIG.get("enable_daily_usage_limit", "false") == "true"
     daily_usage_limit: int = Field(default=CONFIG.get("daily_usage_limit", 20), gt=0)
+    daily_usage_limit_exceeded_message: str = CONFIG.get(
+        "daily_usage_limit_exceeded_message", "今日 AI 卡片生成次数已达上限，请明天再尝试。"
+    )
+    daily_usage_limit_unavailable_message: str = CONFIG.get(
+        "daily_usage_limit_unavailable_message", "本次卡片生成失败，请稍后重试。"
+    )
     daily_usage_slb: str = CONFIG.get("daily_usage_slb", "")
     daily_usage_api_snapshot_path: str = CONFIG.get(
         "daily_usage_api_snapshot_path", "/genui-agent/v1/daily-usage/snapshot"

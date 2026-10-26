@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Protocol
 
 from app.logger import logger
+from config.config import get_settings
 from core.errors import ErrorCode
 
 _BEIJING = timezone(timedelta(hours=8))
@@ -120,7 +121,7 @@ class DailyUsageLimiter:
             )
             raise DailyUsageError(
                 ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED,
-                "今日 AI 卡片生成次数已达上限，请明天再尝试。",
+                get_settings().daily_usage_limit_exceeded_message,
             )
         else:
             logger.info(
