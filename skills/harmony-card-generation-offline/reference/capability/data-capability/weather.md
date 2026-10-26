@@ -19,7 +19,7 @@
       },
       "forecastDays": {
         "type": "integer",
-        "description": "返回预报天数，支持1至5天；不传时默认返回3天。"
+        "description": "从明天起返回的预报天数，不包含今天，支持1至5天；不传时默认返回3天。该参数表示数量，不是目标日期偏移；仅展示明天时传1并引用daily[0]。"
       }
     },
     "required": [
@@ -103,13 +103,13 @@
       },
       "daily": {
         "type": "array",
-        "description": "从今天开始按日期升序排列的每日预报。",
+        "description": "以端侧本次刷新日期为基准，从明天开始按日期升序排列的每日预报，不包含今天。daily[0]为明天，daily[1]为后天；同一天的日期、星期、天气和气温须引用同一下标。",
         "items": {
           "type": "object",
           "properties": {
             "date": {
               "type": "string",
-              "description": "预报日期，来源于 day_time。"
+              "description": "预报日期，来源于 day_time。daily[0]为明天日期，daily[1]为后天日期，不包含今天。"
             },
             "weekday": {
               "type": "string",
