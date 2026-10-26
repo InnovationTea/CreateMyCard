@@ -524,7 +524,8 @@ class GenerationPreflight:
                     actual_value=data_path,
                     repair_instruction=(
                         "从本轮能力概述重新复制完整 actionTemplate；"
-                        "只允许按 dynamicArguments 描述修改已声明的动态参数。"
+                        "只允许按 dynamicArguments 描述修改已声明的动态参数；"
+                        "数组占位符 i 必须替换为实际展示对象的数字下标，不得猜测。"
                     ),
                     reference_source=_EVENT_SOURCE,
                 )
@@ -843,9 +844,11 @@ class GenerationPreflight:
         ):
             template_is_array_placeholder = template_part == "i"
             actual_is_array_index = actual_part.isdigit()
-            if actual_part != template_part and not (
-                template_is_array_placeholder and actual_is_array_index
-            ):
+            if template_is_array_placeholder:
+                if not actual_is_array_index:
+                    return False
+                continue
+            if actual_part != template_part:
                 return False
         return True
 

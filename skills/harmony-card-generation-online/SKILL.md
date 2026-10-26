@@ -184,6 +184,7 @@ invoke(functionName:"RequestDataPermission", arguments:{
 - **外部事实回复检查：** 采用且尚未告知的外部事实须先按步骤 0/5 实际发送 R16W/R16，不以草稿或入参代替；用户直接提供的固定内容无需另行复述。
 - **生成传参门禁：** 外层 `arguments` 和 `candidateDataBindings[].arguments` 必须为 JSON 对象，禁止 JSON 字符串。动态展示须传对应 `capabilityId`、Schema 必填参数及用户指定值，无参用 `{}`；不得只在 query 描述。`writeResultTo` 位于不冲突的 `/data/...`，输出字段为 Schema 叶子路径，数组用实际数字下标。
   事件项为 `{capabilityId, action}`，完整复制模板到 `action`，仅替换声明动态路径，保留固定字段及空字符串；不传 `actionTemplate`、`dynamicArguments` 定义。只用运行时声明字段；create 标题/说明非空，纯视觉 edit 可合法继承，不强制重传未修改列表。
+  列表动作必须将模板中的 `i` 替换为实际展示对象的数字下标；未明确目标时不能默认填 `0`，也不能提交未替换的模板。预检返回下标错误时按真实对象修正，不能原样重试。
   `dataCapabilityIds` 仅用于加载数据定义和权限检查；生成接口禁止传入它或 `eventCapabilityIds`，必须使用完整的 `candidateDataBindings`、`candidateEventCandidates`，不能仅传 ID 列表。
 - **纯静态 create：** 无动态需求时 `candidateDataBindings:[]`，无必要合法动作或匹配素材时对应候选传 `[]`；不为填满卡片补动态数据、动作或素材。完整事实与展示要求放入 `userQuery`，不只写在标题、说明中；摘要与排版由生成工具处理。
 - **用户回复：** 所有前置检查通过后，紧邻生成工具调用前实际发送 create 的 R01 或 edit 的 R02；仍需用户信息用 R05 等待，技术缺口用 R14 停止。生成前停止时不发送 R01/R02。

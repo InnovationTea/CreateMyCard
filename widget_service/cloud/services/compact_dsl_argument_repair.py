@@ -28,6 +28,7 @@ from services.argument_json_recovery import (
     repair_syntax,
 )
 from services.capability_registry import CapabilityRegistry
+from services.card_validation.base import expression_references
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_preflight import GenerationPreflight
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
@@ -501,6 +502,9 @@ def _rebuild_event_candidates(
             continue
         action = candidate.get("action")
         source_action = action if isinstance(action, dict) else {}
+        if "dynamicArguments" in candidate:
+            source_action = dict(source_action)
+            source_action.setdefault("dynamicArguments", candidate.get("dynamicArguments"))
         template = capability.actionTemplate.model_dump(mode="json")
         template_args = template.get("args")
         if not isinstance(template_args, dict):
@@ -529,22 +533,64 @@ def _copy_dynamic_argument(
         return
     source_args = source_action.get("args")
     sources = [source_args, source_action]
-    value = _MISSING
+    value: Any = _MISSING
     for source in sources:
         if not isinstance(source, dict):
             continue
-        value = _read_path(source, parts)
+        value = _read_dynamic_argument(source, parts, dynamic_argument.path)
         if value is not _MISSING:
             break
+    template_value = _read_path(template_args, parts)
     if value is _MISSING:
+        _reject_unresolved_array_argument(template_value, capability_id, dynamic_argument.path)
         return
+    value = _restore_binding_expression(value, template_value)
+    _reject_unresolved_array_argument(value, capability_id, dynamic_argument.path)
     if not _dynamic_value_is_valid(value, dynamic_argument):
+        _reject_unresolved_array_argument(template_value, capability_id, dynamic_argument.path)
         warnings.append(
             f"事件 {capability_id} 的动态参数 {dynamic_argument.path} 类型或取值非法，"
             "已保留能力清单默认值。"
         )
         return
     _write_existing_path(template_args, parts, value)
+
+
+def _read_dynamic_argument(source: dict[str, Any], parts: tuple[str, ...], path: str) -> Any:
+    """仅恢复已声明路径，优先沿用正式嵌套参数，再读取旧格式。"""
+    value: Any = _read_path(source, parts)
+    if value is _MISSING:
+        value = source.get(path, _MISSING)
+    if value is _MISSING:
+        legacy = source.get("dynamicArguments")
+        if isinstance(legacy, dict):
+            value = legacy.get(path, _MISSING)
+    return value
+
+
+def _restore_binding_expression(value: Any, template_value: Any) -> Any:
+    restored: Any = value
+    if not isinstance(value, str) or not isinstance(template_value, str):
+        return restored
+    match = re.fullmatch(r"\s*\{\{\s*\$\{([^{}]+)\}\s*\}\}\s*", template_value)
+    if match is not None and value.startswith("/data/"):
+        if GenerationPreflight._event_reference_matches(value, match.group(1)):
+            restored = "{{ ${" + value + "} }}"
+    return restored
+
+
+def _reject_unresolved_array_argument(value: Any, capability_id: str, path: str) -> None:
+    if not isinstance(value, str):
+        return
+    references = expression_references(value)
+    if value.startswith("/data/"):
+        references.append(value)
+    for reference in references:
+        if not GenerationPreflight._event_reference_matches(reference, reference):
+            raise CompactDslArgumentRepairError(
+                f"事件 {capability_id} 的动态参数 {path} 尚未指定实际数组下标，"
+                "不能保留模板占位符 i。"
+            )
 
 
 def _read_path(source: Any, parts: tuple[str, ...]) -> Any:
