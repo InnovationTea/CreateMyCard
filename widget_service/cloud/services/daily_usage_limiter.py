@@ -94,12 +94,11 @@ class DailyUsageLimiter:
             logger.error(
                 f"[Daily Usage] check_failed record_id={record.record_id} "
                 f"uid_hash={record.uid_hash} request_id_hash={record.request_id_hash} "
-                f"exception_type={type(exc).__name__} reason=usage_api_check_failed"
+                f"exception_type={type(exc).__name__} reason=usage_api_check_failed "
+                "action=bypass record_required=False"
             )
-            raise DailyUsageError(
-                ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE,
-                "暂时无法检查今日卡片生成次数，请稍后重试。",
-            ) from exc
+            record = None
+            return record
         remaining_count = max(self.limit - snapshot.used_count, 0)
         logger.info(
             f"[Daily Usage] checked record_id={record.record_id} uid_hash={record.uid_hash} "
@@ -131,38 +130,28 @@ class DailyUsageLimiter:
         return record
 
     async def record_success(self, record: DailyUsageRecord) -> None:
-        """交付后有限重试；唯一键保证提交响应丢失后重试仍只记录一次。"""
-        delays = (0.0, 0.1, 0.3)
-        for attempt, delay in enumerate(delays, start=1):
-            if delay:
-                await asyncio.sleep(delay)
-            logger.info(
-                f"[Daily Usage] record_started record_id={record.record_id} "
-                f"attempt={attempt} max_attempts={len(delays)}"
-            )
-            try:
-                async with asyncio.timeout(self.timeout_seconds):
-                    await self.repository.insert_success(record)
-            except Exception as exc:
-                logger.error(
-                    f"[Daily Usage] record_failed record_id={record.record_id} "
-                    f"uid_hash={record.uid_hash} "
-                    f"request_id_hash={record.request_id_hash} date={record.usage_date} "
-                    f"attempt={attempt} exception_type={type(exc).__name__} "
-                    "reason=usage_api_record_failed"
-                )
-            else:
-                logger.info(
-                    f"[Daily Usage] recorded record_id={record.record_id} attempt={attempt} "
-                    f"uid_hash={record.uid_hash} "
-                    f"request_id_hash={record.request_id_hash} date={record.usage_date}"
-                )
-                return
-        logger.error(
-            f"[Daily Usage] record_exhausted record_id={record.record_id} "
-            f"uid_hash={record.uid_hash} "
-            f"request_id_hash={record.request_id_hash} reason=delivered_but_not_confirmed_by_api"
+        """交付后尝试一次；失败降级，不累积重试等待或改变生成结果。"""
+        logger.info(
+            f"[Daily Usage] record_started record_id={record.record_id} "
+            "attempt=1 max_attempts=1"
         )
+        try:
+            async with asyncio.timeout(self.timeout_seconds):
+                await self.repository.insert_success(record)
+        except Exception as exc:
+            logger.error(
+                f"[Daily Usage] record_failed record_id={record.record_id} "
+                f"uid_hash={record.uid_hash} "
+                f"request_id_hash={record.request_id_hash} date={record.usage_date} "
+                f"attempt=1 exception_type={type(exc).__name__} "
+                "reason=usage_api_record_failed action=continue_without_confirmation"
+            )
+        else:
+            logger.info(
+                f"[Daily Usage] recorded record_id={record.record_id} attempt=1 "
+                f"uid_hash={record.uid_hash} "
+                f"request_id_hash={record.request_id_hash} date={record.usage_date}"
+            )
 
     async def aclose(self) -> None:
         await self.repository.aclose()

@@ -893,12 +893,10 @@ async def _check_daily_usage(
         return record
     if limiter is None:
         logger.error(
-            f"[Daily Usage] check_failed operation={operation} reason=client_not_initialized"
+            f"[Daily Usage] check_failed operation={operation} reason=client_not_initialized "
+            "action=bypass record_required=False"
         )
-        raise DailyUsageError(
-            ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE,
-            "暂时无法检查今日卡片生成次数，请稍后重试。",
-        )
+        return record
     record = await limiter.check(uid, request_id)
     return record
 

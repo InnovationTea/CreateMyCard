@@ -1,5 +1,6 @@
 """HTTP 模拟服务与真实路由组合验证；不代表真实 API 服务端已完成联调。"""
 
+import asyncio
 import json
 from datetime import timedelta
 from types import SimpleNamespace
@@ -18,9 +19,66 @@ from start_websocket_server import create_app
 from test_compact_dsl_interface_retry import make_response
 from test_daily_usage_api import make_repository
 from test_daily_usage_limiter import NOW
-from test_daily_usage_routes import final_message, frame_info, payload
+from test_daily_usage_routes import final_message, frame_info, payload, run_route
 
 pytestmark = pytest.mark.usefixtures("daily_usage_auth")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", sorted(routes.GENERATION_OPERATIONS))
+@pytest.mark.parametrize(
+    "failure",
+    ["network", "timeout", "sts", "401", "403", "404", "500", "202", "json", "data", "false"],
+)
+async def test_api_failure_bypasses_without_counting_and_recovery_enforces_limit(
+    monkeypatch, operation, failure
+):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_daily_usage_limit", True)
+    monkeypatch.setattr(settings, "enable_widget_directive_commands", True)
+    monkeypatch.setattr(settings, "enable_compact_dsl_interface_retry", False)
+    monkeypatch.setattr(routes, "get_service", lambda _runtime: Mock())
+    calls = []
+    if failure == "sts":
+        monkeypatch.setattr(
+            daily_usage_api.sts_config,
+            "get_sts_config",
+            Mock(side_effect=[KeyError("private-sts-detail"), b"usage-test-secret"]),
+        )
+
+    async def handler(request):
+        calls.append(request.url.path)
+        if len(calls) == 1 and failure != "sts":
+            if failure == "network":
+                raise httpx.ConnectError("offline", request=request)
+            if failure == "timeout":
+                await asyncio.sleep(10)
+            if failure == "json":
+                return httpx.Response(200, text="invalid JSON")
+            if failure == "data":
+                return httpx.Response(200, json={"success": True, "data": {"usedCount": "0"}})
+            if failure == "false":
+                return httpx.Response(200, json={"success": False})
+            return httpx.Response(int(failure), json={"success": True})
+        return httpx.Response(
+            200, json={"success": True, "data": {"alreadyCounted": False, "usedCount": 20}}
+        )
+
+    limiter = DailyUsageLimiter(make_repository(handler), 20, 0.05)
+    try:
+        frames, generated = await run_route(
+            monkeypatch, limiter, operation=operation,
+            requests=[payload(interaction="1"), payload(interaction="2")],
+        )
+        finals = [frame for frame in frames if frame_info(frame).get("streamType") == "final"]
+        assert len(finals) == 2
+        assert final_message([finals[0]]).get("status") == "success"
+        assert final_message([finals[1]]).get("errorCode") == ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED
+        assert len(generated) == 1
+        assert calls == (["/snapshot"] if failure == "sts" else ["/snapshot", "/snapshot"])
+        assert settings.enable_daily_usage_limit is True
+    finally:
+        await limiter.aclose()
 
 
 class FakeUsageAPI:
@@ -64,7 +122,7 @@ class FakeUsageAPI:
 
 
 @pytest.mark.asyncio
-async def test_lost_record_response_retries_same_body_without_double_count():
+async def test_lost_record_response_is_not_retried_and_duplicate_still_deduplicates():
     api = FakeUsageAPI(lose_first_write_response=True)
     limiter = DailyUsageLimiter(make_repository(api), 1, 1.0, clock=lambda: NOW)
     try:
@@ -73,9 +131,9 @@ async def test_lost_record_response_retries_same_body_without_double_count():
         assert record is not None
         assert duplicate is not None
         await limiter.record_success(record)
-        assert len(api.writes) == 2
-        assert api.writes[0] == api.writes[1]
+        assert len(api.writes) == 1
         await limiter.record_success(duplicate)
+        assert len(api.writes) == 2
         assert len(api.records) == 1
         assert await limiter.check("user", "s&1") is None
         with pytest.raises(DailyUsageError) as captured:

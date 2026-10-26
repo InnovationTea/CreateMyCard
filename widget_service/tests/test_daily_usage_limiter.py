@@ -128,12 +128,19 @@ async def test_multiple_requests_share_daily_row_and_users_are_isolated():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("exception", [OSError("offline"), TimeoutError("timeout")])
-async def test_read_failure_is_closed(exception):
+async def test_read_failure_bypasses_without_counting_and_next_request_recovers(exception):
     repository = AsyncMock()
     repository.snapshot.side_effect = exception
+    limiter = make_limiter(repository)
+    assert await limiter.check("user", "s&1") is None
+    repository.insert_success.assert_not_awaited()
+    repository.snapshot.side_effect = None
+    repository.snapshot.return_value = DailyUsageSnapshot(False, 0)
+    assert await limiter.check("user", "s&2") is not None
+    repository.snapshot.return_value = DailyUsageSnapshot(False, 20)
     with pytest.raises(DailyUsageError) as captured:
-        await make_limiter(repository).check("user", "s&1")
-    assert captured.value.code == ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE
+        await limiter.check("user", "s&3")
+    assert captured.value.code == ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED
 
 
 @pytest.mark.asyncio
@@ -146,13 +153,13 @@ async def test_usage_api_check_has_bounded_timeout():
 
     repository.snapshot.side_effect = slow_read
     limiter = DailyUsageLimiter(repository, 20, 0.001)
-    with pytest.raises(DailyUsageError):
-        await limiter.check("user", "s&1")
+    assert await limiter.check("user", "s&1") is None
+    repository.insert_success.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure_count", [1, 2, 3])
-async def test_write_failures_are_retried_without_failing_delivered_result(failure_count):
+async def test_write_failure_stops_without_retry_or_failing_delivered_result(failure_count):
     repository = AsyncMock()
     repository.snapshot.return_value = DailyUsageSnapshot(False, 0)
     outcomes = [OSError("offline")] * failure_count + [None]
@@ -161,7 +168,7 @@ async def test_write_failures_are_retried_without_failing_delivered_result(failu
     record = await limiter.check("user", "s&1")
     assert record is not None
     await limiter.record_success(record)
-    assert repository.insert_success.await_count == min(failure_count + 1, 3)
+    assert repository.insert_success.await_count == 1
     for call in repository.insert_success.call_args_list:
         assert call.args == (record,)
 
@@ -175,6 +182,25 @@ async def test_cancellation_is_not_swallowed_and_close_is_forwarded():
         await limiter.check("user", "s&1")
     await limiter.aclose()
     repository.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_write_timeout_is_bounded_and_cancellation_is_not_swallowed():
+    repository = AsyncMock()
+    repository.snapshot.return_value = DailyUsageSnapshot(False, 0)
+    limiter = DailyUsageLimiter(repository, 20, 0.001)
+    record = await limiter.check("user", "s&1")
+    assert record is not None
+
+    async def slow_write(_record):
+        await asyncio.sleep(10)
+
+    repository.insert_success.side_effect = slow_write
+    await asyncio.wait_for(limiter.record_success(record), timeout=0.5)
+    repository.insert_success.assert_awaited_once_with(record)
+    repository.insert_success.side_effect = asyncio.CancelledError
+    with pytest.raises(asyncio.CancelledError):
+        await limiter.record_success(record)
 
 
 @pytest.mark.parametrize("limit,timeout", [(0, 1.0), (-1, 1.0), (20, 0.0)])

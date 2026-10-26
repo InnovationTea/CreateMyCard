@@ -1,5 +1,6 @@
 """每日次数 API 适配器；只负责 HTTP 契约，不连接数据库或读取数据库密码。"""
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -71,7 +72,7 @@ class APIDailyUsageRepository:
             f"[Daily Usage] api_started operation={operation} record_id={record.record_id}"
         )
         try:
-            headers = _build_auth_headers(self.access_key)
+            headers = await asyncio.to_thread(_build_auth_headers, self.access_key)
             response = await self.client.post(
                 url, json=payload, headers=headers
             )
@@ -141,22 +142,28 @@ async def create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter | 
         f"timeout_seconds={settings.daily_usage_api_timeout_seconds}"
     )
     if settings.enable_daily_usage_limit:
-        snapshot_url = _api_url(
-            settings.daily_usage_slb, settings.daily_usage_api_snapshot_path
-        )
-        record_url = _api_url(
-            settings.daily_usage_slb, settings.daily_usage_api_record_path
-        )
-        # 内部 HTTP(S) 调用，不走环境代理、不跟随重定向，不在启动时发送请求。
-        client = httpx.AsyncClient(
-            timeout=settings.daily_usage_api_timeout_seconds,
-            follow_redirects=False,
-            trust_env=False,
-        )
-        limiter = DailyUsageLimiter(
-            APIDailyUsageRepository(client, snapshot_url, record_url, settings.hag_osms_ak),
-            settings.daily_usage_limit,
-            settings.daily_usage_api_timeout_seconds,
-        )
+        try:
+            limiter = _create_daily_usage_limiter(settings)
+        except Exception as exc:
+            logger.error(
+                "[Daily Usage] initialization_failed action=bypass "
+                f"exception_type={type(exc).__name__} reason=client_initialization_failed"
+            )
     logger.info(f"[Daily Usage] initialized client_ready={limiter is not None}")
     return limiter
+
+
+def _create_daily_usage_limiter(settings: Settings) -> DailyUsageLimiter:
+    snapshot_url = _api_url(settings.daily_usage_slb, settings.daily_usage_api_snapshot_path)
+    record_url = _api_url(settings.daily_usage_slb, settings.daily_usage_api_record_path)
+    # 内部 HTTP(S) 调用，不走环境代理、不跟随重定向，不在启动时发送请求。
+    client = httpx.AsyncClient(
+        timeout=settings.daily_usage_api_timeout_seconds,
+        follow_redirects=False,
+        trust_env=False,
+    )
+    return DailyUsageLimiter(
+        APIDailyUsageRepository(client, snapshot_url, record_url, settings.hag_osms_ak),
+        settings.daily_usage_limit,
+        settings.daily_usage_api_timeout_seconds,
+    )

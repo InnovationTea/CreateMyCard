@@ -5,6 +5,7 @@ import base64
 import hashlib
 import hmac
 import json
+import threading
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -15,7 +16,7 @@ from pydantic import ValidationError
 import start_websocket_server
 from config.config import Settings, get_settings
 from services import daily_usage_api
-from services.daily_usage_limiter import DailyUsageError, DailyUsageLimiter, DailyUsageRecord
+from services.daily_usage_limiter import DailyUsageLimiter, DailyUsageRecord
 from test_daily_usage_limiter import NOW
 
 pytestmark = pytest.mark.usefixtures("daily_usage_auth")
@@ -165,15 +166,14 @@ async def test_invalid_json_is_rejected(method):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("exception", [httpx.ReadTimeout, httpx.ConnectError])
-async def test_network_failure_rejects_generation(exception):
+async def test_network_failure_bypasses_generation_limit(exception):
     def handler(request):
         raise exception("test offline", request=request)
 
     repository = make_repository(handler)
     limiter = DailyUsageLimiter(repository, 20, 1.0)
     try:
-        with pytest.raises(DailyUsageError):
-            await limiter.check("user", "s&1")
+        assert await limiter.check("user", "s&1") is None
     finally:
         await limiter.aclose()
 
@@ -187,8 +187,7 @@ async def test_api_total_timeout_and_cancellation_are_preserved():
     repository = make_repository(handler)
     limiter = DailyUsageLimiter(repository, 20, 0.001)
     try:
-        with pytest.raises(DailyUsageError):
-            await limiter.check("user", "s&1")
+        assert await limiter.check("user", "s&1") is None
         pending = asyncio.create_task(repository.snapshot(record()))
         await asyncio.sleep(0)
         pending.cancel()
@@ -278,14 +277,15 @@ def test_invalid_api_path_rejected(path):
 async def test_invalid_slb_url_rejected_before_client_creation(monkeypatch, base_url):
     factory = Mock()
     monkeypatch.setattr(daily_usage_api.httpx, "AsyncClient", factory)
-    with pytest.raises(ValueError):
+    assert (
         await daily_usage_api.create_daily_usage_limiter(
             Settings(
                 enable_daily_usage_limit=True,
                 daily_usage_slb=base_url,
                 hag_slb_url="https://unrelated-hag.test:9443",
             )
-        )
+        ) is None
+    )
     factory.assert_not_called()
 
 
@@ -336,6 +336,47 @@ def test_auth_timestamp_is_unix_milliseconds(monkeypatch):
     assert daily_usage_api._format_timestamp() == "1792992000123"
 
 
+@pytest.mark.asyncio
+async def test_slow_sts_does_not_block_event_loop_or_send_after_timeout(monkeypatch):
+    release = threading.Event()
+    started = threading.Event()
+    finished = threading.Event()
+    event_loop_thread = threading.get_ident()
+
+    def slow_secret(_config_key):
+        assert threading.get_ident() != event_loop_thread
+        started.set()
+        try:
+            assert release.wait(2.0)
+            return b"test-secret"
+        finally:
+            finished.set()
+
+    monkeypatch.setattr(daily_usage_api.sts_config, "get_sts_config", slow_secret)
+    handler = Mock(side_effect=AssertionError("must not send after timeout"))
+    limiter = DailyUsageLimiter(make_repository(handler), 20, 0.05)
+    try:
+        assert await asyncio.wait_for(limiter.check("user", "s&1"), timeout=0.5) is None
+        assert started.is_set()
+        assert not release.is_set()
+        handler.assert_not_called()
+    finally:
+        release.set()
+        assert await asyncio.to_thread(finished.wait, 2.0)
+        await limiter.aclose()
+    handler.assert_not_called()
+
+
+def test_invalid_api_configuration_does_not_block_application_startup(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_daily_usage_limit", True)
+    monkeypatch.setattr(settings, "daily_usage_slb", "")
+    application = start_websocket_server.create_app()
+    with TestClient(application) as client:
+        assert client.get("/health").status_code == 200
+        assert application.state.daily_usage_limiter is None
+
+
 @pytest.mark.parametrize("secret", [b"test-secret", "test-secret", "测试密钥"])
 def test_auth_headers_sign_timestamp_with_raw_sts_secret(monkeypatch, secret):
     loader = Mock(return_value=secret)
@@ -381,10 +422,10 @@ async def test_auth_failure_never_sends_unsigned_request(monkeypatch, method, fa
 
 
 @pytest.mark.asyncio
-async def test_snapshot_record_and_retries_are_signed_fresh_without_secret_logs(monkeypatch):
+async def test_snapshot_and_record_are_signed_fresh_without_secret_logs(monkeypatch):
     requests = []
     messages = []
-    timestamps = iter(["1792992000000", "1792992000100", "1792992000200"])
+    timestamps = iter(["1792992000000", "1792992000100"])
     monkeypatch.setattr(daily_usage_api, "_format_timestamp", lambda: next(timestamps))
     monkeypatch.setattr(
         daily_usage_api, "logger", Mock(info=messages.append, error=messages.append)
@@ -394,8 +435,6 @@ async def test_snapshot_record_and_retries_are_signed_fresh_without_secret_logs(
 
     def handler(request):
         requests.append(request)
-        if len(requests) == 2:
-            raise httpx.ReadTimeout("response lost", request=request)
         return httpx.Response(
             200, json={"success": True, "data": {"alreadyCounted": False, "usedCount": 0}}
         )
@@ -405,11 +444,11 @@ async def test_snapshot_record_and_retries_are_signed_fresh_without_secret_logs(
     try:
         await repository.snapshot(record())
         await limiter.record_success(record())
-        assert len(requests) == 3
-        assert loader.call_count == 3
-        assert [request.url.path for request in requests] == ["/snapshot", "/record", "/record"]
+        assert len(requests) == 2
+        assert loader.call_count == 2
+        assert [request.url.path for request in requests] == ["/snapshot", "/record"]
         assert [request.headers.get("x-ts") for request in requests] == [
-            "1792992000000", "1792992000100", "1792992000200"
+            "1792992000000", "1792992000100"
         ]
         for request in requests:
             assert request.headers.get("x-access-key") == "usage-test-access-key"

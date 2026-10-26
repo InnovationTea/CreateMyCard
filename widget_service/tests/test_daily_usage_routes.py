@@ -194,15 +194,18 @@ async def test_query_operations_skip_quota(setup_route, operation):
 
 
 @pytest.mark.asyncio
-async def test_usage_api_unavailable_is_not_reported_as_parameter_error(monkeypatch, setup_route):
+async def test_usage_api_unavailable_continues_generation_without_counting(
+    monkeypatch, setup_route
+):
     limiter = make_limiter()
     limiter.repository.snapshot = AsyncMock(side_effect=OSError("offline"))
     report = Mock()
     monkeypatch.setattr(routes, "report_ops_metrics", report)
     frames, calls = await run_route(monkeypatch, limiter)
-    assert not calls
-    assert final_message(frames).get("errorCode") == ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE
-    report.assert_not_called()
+    assert len(calls) == 1
+    assert final_message(frames).get("status") == "success"
+    assert limiter.repository.writes == 0
+    assert setup_route.enable_daily_usage_limit is True
 
 
 @pytest.mark.asyncio
@@ -262,7 +265,7 @@ async def test_count_write_failure_does_not_replace_success_with_error(monkeypat
     frames, calls = await run_route(monkeypatch, limiter)
     assert len(calls) == 1
     assert final_message(frames).get("status") == "success"
-    assert limiter.repository.insert_success.await_count == 3
+    assert limiter.repository.insert_success.await_count == 1
 
 
 @pytest.mark.asyncio
@@ -294,10 +297,10 @@ async def test_edit_is_counted_like_create(monkeypatch, setup_route):
 
 
 @pytest.mark.asyncio
-async def test_enabled_without_initialized_client_fails_closed(monkeypatch, setup_route):
+async def test_enabled_without_initialized_client_bypasses(monkeypatch, setup_route):
     frames, calls = await run_route(monkeypatch, None)
-    assert not calls
-    assert final_message(frames).get("errorCode") == ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE
+    assert len(calls) == 1
+    assert final_message(frames).get("status") == "success"
 
 
 @pytest.mark.asyncio

@@ -77,9 +77,9 @@ async def test_check_bypass_logs_reason(monkeypatch, route_settings, usage_logs,
 
 @pytest.mark.asyncio
 async def test_missing_client_is_logged(route_settings, usage_logs):
-    with pytest.raises(DailyUsageError):
-        await routes._check_daily_usage(OPERATION, payload(), "s&1", None)
+    assert await routes._check_daily_usage(OPERATION, payload(), "s&1", None) is None
     assert "reason=client_not_initialized" in usage_logs[-1]
+    assert "action=bypass record_required=False" in usage_logs[-1]
 
 
 @pytest.mark.asyncio
@@ -130,7 +130,7 @@ async def test_remaining_count_logs_actual_snapshot(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failures", [1, 3])
-async def test_record_retry_logs_attempts_and_final_outcome(usage_logs, failures):
+async def test_record_failure_logs_single_attempt_and_continues(usage_logs, failures):
     limiter = make_limiter()
     saved = await limiter.check("user", "s&1")
     assert saved is not None
@@ -139,11 +139,11 @@ async def test_record_retry_logs_attempts_and_final_outcome(usage_logs, failures
     )
     usage_logs.clear()
     await limiter.record_success(saved)
-    for attempt in range(1, min(failures + 1, 3) + 1):
-        expected = f"record_started record_id={saved.record_id} attempt={attempt} max_attempts=3"
-        assert any(expected in message for message in usage_logs)
-    outcome = "record_exhausted" if failures == 3 else "recorded"
-    assert outcome in usage_logs[-1]
+    expected = f"record_started record_id={saved.record_id} attempt=1 max_attempts=1"
+    assert any(expected in message for message in usage_logs)
+    assert limiter.repository.insert_success.await_count == 1
+    assert "record_failed" in usage_logs[-1]
+    assert "action=continue_without_confirmation" in usage_logs[-1]
     assert "private-error-detail" not in "\n".join(usage_logs)
 
 
@@ -199,7 +199,8 @@ async def test_failed_record_is_not_misreported_as_skipped(monkeypatch, route_se
     limiter.repository.insert_success = AsyncMock(side_effect=OSError("offline"))
     await run_route(monkeypatch, limiter)
     text = "\n".join(usage_logs)
-    assert "record_exhausted" in text
+    assert "record_failed" in text
+    assert "action=continue_without_confirmation" in text
     assert "record_skipped" not in text
     assert "[Daily Usage] recorded " not in text
 
@@ -232,12 +233,12 @@ async def test_api_transport_failure_is_logged_without_exception_text(usage_logs
     repository = make_repository(fail)
     limiter = make_limiter(repository)
     try:
-        with pytest.raises(DailyUsageError):
-            await limiter.check("private-user", "private-request")
+        assert await limiter.check("private-user", "private-request") is None
     finally:
         await limiter.aclose()
     text = "\n".join(usage_logs)
     assert "api_failed operation=snapshot" in text
     assert "exception_type=ConnectError" in text
     assert "check_failed" in usage_logs[-1]
+    assert "action=bypass record_required=False" in usage_logs[-1]
     assert "private-network-detail" not in text
