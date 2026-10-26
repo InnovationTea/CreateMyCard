@@ -39,11 +39,11 @@ def test_new_photos_only_match_assigned_business(identity, businesses, wide, bus
 
 
 @pytest.mark.parametrize("identity,businesses,wide", CASES)
-@pytest.mark.parametrize("lines,allowed", [(1, True), (3, True), (4, False)])
-def test_new_photos_keep_shared_line_limit_with_buttons(identity, businesses, wide, lines, allowed):
+@pytest.mark.parametrize("lines", [1, 3, 4, 5])
+def test_new_photos_keep_shared_line_limit_with_buttons(identity, businesses, wide, lines):
     business = "countdown" if businesses[0] == "holiday" else businesses[0]
     saved = sample(PATHS.get(business), lines, wide=wide, button=True, title="假期")
-    assert (rejection(saved, identity) is None) is allowed
+    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 3))
 
 
 @pytest.mark.parametrize("identity,businesses,wide", CASES)
@@ -64,7 +64,7 @@ def test_replaced_photos_are_removed_from_registry_and_assets(identity):
     assert not (Path(__file__).parents[2] / "resources/base/media" / name).exists()
 
 
-@pytest.mark.parametrize("selected", [CLOUDS, WEATHER])
+@pytest.mark.parametrize("selected", ["photo-ux-wave-square", WEATHER])
 def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, selected):
     calls = []
 
@@ -73,10 +73,10 @@ def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, sele
         return selected
 
     monkeypatch.setattr(themes.secrets, "choice", choice)
-    saved = sample(PATHS.get("weather"), 1, button=False)
+    saved = sample(PATHS.get("weather"), 3, button=False)
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
-    assert set(calls[0]) == {CLOUDS, WEATHER}
+    assert set(calls[0]) == {"photo-ux-wave-square", WEATHER}
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -108,7 +108,8 @@ def test_battery_subject_precedes_abstract_without_relayout(monkeypatch, wide):
     saved = sample(PATHS.get("battery"), 3, wide=wide)
     result, audit = choose(saved, monkeypatch)
     if wide:
-        assert all(not item.startswith("photo-") for item in audit.get("candidates", []))
+        assert len(audit.get("candidates", [])) == 6
+        assert all(item.startswith("photo-ux-texture-") for item in audit.get("candidates", []))
     else:
         assert audit.get("candidates") == [identity]
         assert audit.get("themeId") == identity

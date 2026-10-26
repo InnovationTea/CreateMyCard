@@ -41,5 +41,8 @@ def remove_bitmap_fill_colors(a2ui: str) -> str:
                     changed = True
     result = a2ui
     if changed:
-        result = "\n".join(json.dumps(message, ensure_ascii=False) for message in messages)
+        result = "\n".join(
+            json.dumps(message, ensure_ascii=False, separators=(",", ":"))
+            for message in messages
+        )
     return result

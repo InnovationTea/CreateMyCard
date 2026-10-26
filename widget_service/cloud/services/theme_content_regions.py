@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from services.card_validation.base import read_pointer
-from services.display_text import concatenated_display_text
+from services.display_text import current_display_text
 from services.theme_style_roles import ROLE_PATTERN, is_role
 
 
@@ -62,6 +62,10 @@ def photo_layout_evidence(nodes: list[dict], data_model: dict | None = None,
         if title_ids is not None:
             result["photoBodyTextFlow"] = body_text_flow_evidence(
                 nodes, data_model, include_buttons=True, exclude_ids=title_ids,
+            )
+            texture_titles = _layout_title_ids(final_layout, include_region_titles=True)
+            result["textureBodyTextFlow"] = body_text_flow_evidence(
+                nodes, data_model, include_buttons=True, exclude_ids=texture_titles,
             )
             result["photoTopContent"] = top_content_evidence(
                 nodes, result.get("photoBodyTextFlow", {}), title_ids,
@@ -220,7 +224,8 @@ def _non_text_ancestors(nodes: list[dict], identities: list[str]) -> dict:
     return result
 
 
-def _layout_title_ids(final_layout: str | None) -> set[str] | None:
+def _layout_title_ids(final_layout: str | None,
+                      *, include_region_titles: bool = False) -> set[str] | None:
     from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
 
     result: set[str] | None = None
@@ -240,6 +245,13 @@ def _layout_title_ids(final_layout: str | None) -> set[str] | None:
         for row in by_id.values():
             if row.component_type in {"PillButton", "CircleButton", "CardButton", "Button"}:
                 result.add(row.component_id)
+            region_title = (row.component_type == "Region"
+                            and row.props.get("variant", "").startswith("title-"))
+            if include_region_titles and region_title and row.children:
+                first = by_id.get(row.children[0])
+                title_types = {"SingleLineTitle", "DoubleLineTitle"}
+                if first is not None and first.component_type in title_types:
+                    result.add(first.component_id)
         if scope.props.get("layout") == "W-content-side-slots" and scope.children:
             scope = by_id.get(scope.children[0])
         if scope is not None and scope.children:
@@ -272,7 +284,7 @@ def _current_text_lines(node: dict, data_model: dict) -> int | None:
     content = node.get("content")
     if type(content) in {int, float}:
         content = str(content)
-    text = concatenated_display_text(content, lookup)
+    text = current_display_text(content, lookup)
     result: int | None = None
     if text is not None:
         result = len(text.replace("\r\n", "\n").replace("\r", "\n").split("\n")) if text else 0
@@ -334,11 +346,30 @@ def text_flow_evidence(nodes: list[dict], *, current_data: dict | None = None,
             child_flows = [visit(child, ancestors | {identity}) for child in children]
             flow = _container_text_flow(kind, styles, child_flows,
                                         current_text=current_data is not None)
+            if kind == "Row":
+                child_nodes = [by_id.get(child, {}) for child in children]
+                if _row_distributes_text(child_nodes, child_flows):
+                    flow["leftAligned"] = False
         flows[identity] = flow
         return flow
 
     visit("root", set())
     return flows
+
+
+def _row_distributes_text(nodes: list[dict], flows: list[dict]) -> bool:
+    """Local start alignment does not make weighted or fixed-width columns globally left."""
+    reserved = False
+    for node, flow in zip(nodes, flows, strict=True):
+        has_text = bool(flow.get("maxLines"))
+        if has_text and reserved:
+            return True
+        styles = node.get("styles", {})
+        weight = styles.get("layoutWeight")
+        stretched = type(weight) in {int, float} and weight > 0
+        column_width = has_text and styles.get("width") not in {None, "wrapContent"}
+        reserved = reserved or stretched or column_width
+    return False
 
 
 def _container_text_flow(kind: str, styles: dict, children: list[dict],

@@ -519,13 +519,19 @@ for (const color of ["#FFFFFFFF", "#FF000000", "#FF1F4799", "#FF8C4B1C"]) {
   for (const size of ["2x2", "2x4"] as const) {
     test(`SecondaryBody 标签弱化、值强调：${color}/${size}`, () => {
       const source = [
-        ["root", "Column", {}, ["details", "note"]],
+        ["root", "Column", {}, ["details", "note", "dataOnly"]],
         ["details", "SecondaryBody", {
           fontColor: color, columns: 1,
           items: [{ label: "天气 ", value: { path: "/condition" } }],
         }],
         ["note", "SecondaryBody", { fontColor: color, items: [{ value: "辅助说明" }] }],
+        ["dataOnly", "SecondaryBody", { fontColor: color, columns: 1, items: [
+          { value: { path: "/condition" } },
+          { value: "{{ '风力 ' + ${/wind} + '级' }}" },
+          { value: 0 },
+        ] }],
         ["/condition", "多云"],
+        ["/wind", 2],
       ].map(row => JSON.stringify(row)).join("\n");
       const result = compileMiniDsl(source, { size });
       const nodes = result.graph.getAllNodes();
@@ -535,6 +541,10 @@ for (const color of ["#FFFFFFFF", "#FF000000", "#FF1F4799", "#FF8C4B1C"]) {
       assert.equal(label.fontColor, `#99${color.slice(3)}`);
       assert.equal(value.fontColor, color);
       assert.equal(note.fontColor, `#99${color.slice(3)}`);
+      for (let index = 0; index < 3; index++) {
+        const styles = nodes.get(`dataOnly_item${index}_value`)?.props.styles as Record<string, unknown>;
+        assert.equal(styles.fontColor, color);
+      }
     });
   }
 }

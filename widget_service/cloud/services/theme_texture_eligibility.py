@@ -5,11 +5,16 @@ import re
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_plan import _VISIBLE_PROP_NAMES, _compact_visible_state
 from services.display_text import concatenated_display_text
+from services.event_matching import is_optional_switch_event
+from services.post_layout_theme_registry import load_theme_registry
 from services.square_photo_expansion import SLEEP_FIELDS
 
 _SPORT_FIELD = re.compile(
     r"^(?:exercise|run|daily(?:Steps|Distance|TotalCalories)|steps|stepCount|activity|active|"
     r"calories|distance|heartRate|calorie|stand|move|workout|floors)", re.I,
+)
+_APP_USAGE_FIELD = re.compile(
+    r"/data/(?:[^/]+/)+mostUsedApps/[0-9]+/(?:appName|totalDuration)",
 )
 
 
@@ -28,23 +33,66 @@ def subtree(identity: str, by_id: dict) -> list[ComponentRow]:
     return result
 
 
-def _only_music_actions(rows: list[ComponentRow]) -> bool:
-    found = False
+def _settings_action(action: dict, call: str, intent: str, arguments: dict) -> bool:
+    if is_optional_switch_event(action):
+        return True
+    if call == "clickToDeeplink" and intent == "Settings":
+        return arguments.get("bundleName") == "com.huawei.hmos.settings"
+    if call != "clickToIntent":
+        return False
+    if intent in {"OpenFlashlight", "CloseFlashlight"}:
+        return True
+    parameters = arguments.get("params")
+    if not isinstance(parameters, dict):
+        return False
+    return (intent in {"EnterSettingPage", "SetSettingOption"}
+            and parameters.get("appBundleName") == "com.huawei.hmos.settings")
+
+
+def _action_business(action: object) -> str | None:
+    result: str | None = None
+    if not isinstance(action, dict):
+        return result
+    arguments = action.get("args")
+    if not isinstance(arguments, dict):
+        return result
+    call = action.get("call")
+    intent = arguments.get("intentName")
+    if not isinstance(call, str) or not isinstance(intent, str):
+        return result
+    if (call, intent) == ("clickToDeeplink", "Music"):
+        result = "music"
+    elif (call, intent) == ("clickToIntent", "StartNavigate"):
+        result = "navigation"
+    elif _settings_action(action, call, intent, arguments):
+        result = "settings"
+    return result
+
+
+def _only_action_business(rows: list[ComponentRow]) -> str | None:
+    businesses: set[str | None] = set()
     for row in rows:
-        for action in row.props.get("onClick", []):
-            if not isinstance(action, dict):
-                return False
-            arguments = action.get("args", {})
-            if not isinstance(arguments, dict) or action.get("call") != "clickToDeeplink":
-                return False
-            if arguments.get("intentName") != "Music":
-                return False
-            found = True
-    return found
+        actions = row.props.get("onClick", [])
+        if not isinstance(actions, list):
+            businesses.add(None)
+            continue
+        for action in actions:
+            businesses.add(_action_business(action))
+    result: str | None = None
+    if len(businesses) == 1:
+        result = next(iter(businesses))
+    return result
 
 
 def _path_business(path: str) -> str | None:
     result: str | None = None
+    date_paths = {
+        "/data/currentTime/currentDate",
+        "/data/currentTime/dayOfWeek",
+        "/data/currentTime/lunarDate",
+    }
+    if path in date_paths:
+        result = "calendar"
     prefixes = {
         "/data/calendar/": "calendar", "/data/phoneBattery/": "battery",
         "/data/earphone/": "earphone", "/data/weather/": "weather",
@@ -63,6 +111,9 @@ def _path_business(path: str) -> str | None:
             result = "sleep"
         elif _SPORT_FIELD.match(field_name):
             result = "sport"
+    # GetDailyMostUsage的写入根由请求指定，按其输出叶子识别，不依赖dailyUsage别名。
+    if _APP_USAGE_FIELD.fullmatch(path):
+        result = "app-usage"
     return result
 
 
@@ -70,7 +121,7 @@ def visible_business(rows: list[ComponentRow]) -> str | None:
     state = _compact_visible_state(rows)
     result: str | None = None
     if not state.paths:
-        result = "music" if _only_music_actions(rows) else None
+        result = _only_action_business(rows)
     businesses = set()
     unknown = False
     for path in state.paths:
@@ -84,6 +135,38 @@ def visible_business(rows: list[ComponentRow]) -> str | None:
     if len(businesses) == 1 and not unknown:
         result = next(iter(businesses))
     return result
+
+
+def first_visible_business(rows: list[ComponentRow]) -> str | None:
+    """rows须按内容树遍历顺序传入；首个未知业务不借用后续业务颜色。"""
+    state = _compact_visible_state(rows)
+    result: str | None = None
+    for occurrence in state.path_occurrences:
+        path = occurrence.data_id
+        if path.rsplit("/", 1)[-1] in {"updatedAt", "targetDateText"}:
+            continue
+        result = _path_business(path)
+        break
+    else:
+        for action in state.handlers:
+            result = _action_business(action)
+            break
+    return result
+
+
+def texture_business_reason(photo: dict, rows: list[ComponentRow]) -> str | None:
+    business = first_visible_business(rows)
+    mapped_families = set()
+    # 停用某颜色的素材不代表删除其业务映射，不能因此改用其它颜色。
+    for item in load_theme_registry().get("themes", []):
+        if item.get("pool") != "texturePhotos":
+            continue
+        if business in item.get("contentEligibility", {}).get("businesses", []):
+            mapped_families.add(item.get("family"))
+    reason: str | None = None
+    if mapped_families and photo.get("family") not in mapped_families:
+        reason = "抽象图颜色与首个可见业务的配置不匹配"
+    return reason
 
 
 def _holiday_name(text: str) -> bool:

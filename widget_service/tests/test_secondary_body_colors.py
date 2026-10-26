@@ -143,6 +143,28 @@ def test_standalone_supporting_text_keeps_existing_dim_color():
     assert value.props.get("fontColor") == "#99FFFFFF"
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("color", ["#FFFFFFFF", "#FF000000", "#FF1F4799", "@theme:primary/1"])
+@pytest.mark.parametrize("content", [
+    {"path": "/data/weather/current/condition"},
+    "{{ '风力 ' + ${/data/weather/current/windLevel} + '级' }}",
+    "{{ '风向 ' + ${/data/weather/current/windDirection} }}",
+    "{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}",
+    0,
+])
+def test_unlabelled_readings_keep_full_ink_without_changing_nodes(size, color, content):
+    component = ComponentRow("support", "SecondaryBody", {
+        "fontColor": color, "items": [{"value": content}],
+    })
+    with layout_phase(color.startswith("@theme:")):
+        rows = _expand_secondary_body(component, size)
+    node = next(row for row in rows if row.component_id == "support_item0_value")
+    assert node.props.get("fontColor") == color
+    assert node.props.get("content") == content
+    assert not any(row.component_id.endswith("_label") for row in rows)
+    assert len(rows) == 4
+
+
 def test_existing_merged_multiline_value_is_not_split_to_change_color():
     component = ComponentRow("support", "SecondaryBody", {
         "fontColor": "#FF000000", "columns": 1,

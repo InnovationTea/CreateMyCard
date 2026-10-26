@@ -1,4 +1,4 @@
-"""统一图集、三行正文、主体居左与按池等概率选图的回归。"""
+"""统一图集、方卡三行/宽卡四行、主体居左与按池等概率选图的回归。"""
 
 import asyncio
 import copy
@@ -34,7 +34,8 @@ SUBJECT_FILES = {
     "sleep_square", "sleep_wide", "sport_center_wide", "sunrise_runner_square",
     "starfield_weather_square", "starry_sky_square", "starry_sky_wide",
     "track_runner_square", "track_sprint_square", "violin_stage_square", "sand_arch_square",
-    "meeting_room_square", "meeting_room_wide",
+    "meeting_room_square", "meeting_room_wide", "wave_square", "wave_wide",
+    "fuzzy_wide", "gradient_wide",
 }
 PATHS = {
     "travel": "/data/travel/flightNumber", "countdown": "/data/countdown/first/countdownDays",
@@ -98,7 +99,7 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 21
+    assert len(subjects) == 25
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
     actual = {Path(item.get("src", "")).name for item in subjects}
     assert actual == expected
@@ -116,6 +117,8 @@ def test_only_current_subject_and_abstract_assets_remain():
             expected_keys.update({"maxTextLines", "placement"})
         elif item.get("contentEligibility", {}).get("placement"):
             expected_keys.add("placement")
+        if item.get("contentEligibility", {}).get("wideLayout"):
+            expected_keys.add("wideLayout")
         assert set(item.get("contentEligibility", {})) == expected_keys
         assert "https://" not in json.dumps(theme_description(item))
 
@@ -129,10 +132,13 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
         path = PATHS.get("countdown")
     assert path
     clouds = item.get("id") == "photo-ux-clouds-weather-square"
-    limit = 2 if clouds else 3
+    wide_subject = item.get("size") == "2x4" and item.get("pool") == "photos"
+    limit = 4 if wide_subject else 3
+    if clouds:
+        limit = 2
     for count in (limit, limit + 1):
         placement = item.get("contentEligibility", {}).get("placement")
-        button = not clouds and placement != "bottom-left"
+        button = not clouds and placement not in {"bottom-left", "bottom"}
         saved = sample(path, count, wide=item.get("size") == "2x4", title="假期", button=button)
         if placement == "center":
             rows = themes.decode(saved.compact)
@@ -204,9 +210,9 @@ def test_header_buttons_excluded_but_body_subtitle_and_clickable_info_count():
 
 
 @pytest.mark.parametrize("other,allowed", [
-    ("/data/countdown/second/countdownDays", True), ("/data/weather/current/temperature", False),
+    ("/data/countdown/second/countdownDays", True), ("/data/weather/current/temperature", True),
 ])
-def test_same_business_instances_count_as_single_business(other, allowed):
+def test_abstract_keeps_first_countdown_color_for_same_or_mixed_business(other, allowed):
     saved = sample(PATHS.get("countdown"), 1, button=False, title="生日和考试")
     rows = themes.decode(saved.compact)
     rows[0][3].append("second")
@@ -232,7 +238,7 @@ def test_wide_only_counts_left_body_and_classifies_left_business():
 def test_wide_unrecognized_or_split_layout_rejected(identity):
     saved = sample(wide=False)
     saved.task["size"] = "2x4"
-    assert rejection(saved, identity)
+    assert (rejection(saved, identity) is None) is ("texture" in identity)
 
 
 @pytest.mark.parametrize("failure", ["missing-layout", "unknown-value", "missing-node", "mixed"])
@@ -357,7 +363,7 @@ def test_abstract_business_colors_follow_gallery_rules(business, family, wide):
     suffix = "wide" if wide else "square"
     for color in ("blue", "purple", "orange"):
         identity = f"photo-ux-texture-{color}-diamond-{suffix}"
-        assert (rejection(saved, identity) is None) is (color == family)
+        assert (rejection(saved, identity) is None) is (family is None or color == family)
 
 
 def test_music_buttons_only_have_zero_body_lines():
@@ -371,14 +377,14 @@ def test_music_buttons_only_have_zero_body_lines():
     assert rejection(saved, PURPLE) is None
 
 
-def test_battery_has_subject_but_no_abstract_candidate_even_with_ring():
+def test_battery_has_subject_and_unmapped_abstract_colors_even_with_ring():
     saved = sample(PATHS.get("battery"), 3)
     root = next(node for node in saved.nodes if node.get("id") == "root")
     root.get("children", []).append("ring")
     saved.nodes.append({"id": "ring", "component": "Progress",
                         "styles": {"type": "ring"}})
     assert rejection(saved, "photo-ux-starry-sky-square") is None
-    assert rejection(saved, BLUE)
+    assert rejection(saved, BLUE) is None
 
 
 @pytest.mark.parametrize("response", ['{"themeId":"gradient-purple"}', "invalid"])

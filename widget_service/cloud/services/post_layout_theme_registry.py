@@ -38,20 +38,23 @@ _CONTENT_ELIGIBILITY = {
     "properties": {
         "kind": {"const": "uniform"},
         "maxTextLines": {"type": "integer", "minimum": 1, "maximum": 3},
+        "wideLayout": {"enum": ["main-focus", "side-focus"]},
         "placement": {"enum": ["top-left-empty-bottom", "bottom-left", "not-bottom-left",
-                               "center", "not-center"]},
+                               "center", "not-center", "bottom"]},
         "businesses": {"type": "array", "minItems": 1, "uniqueItems": True,
                        "items": {"enum": ["calendar", "battery", "earphone", "weather",
                                           "sleep", "music", "sport", "countdown", "holiday",
-                                          "travel", "information", "smart-home"]}},
+                                          "travel", "information", "smart-home", "app-usage",
+                                          "navigation", "settings"]}},
     },
 }
 _PHOTO_ELIGIBILITY = {
     "type": "object", "additionalProperties": False,
-    "required": ["maxTextLines", "includeTitle", "includeButtons", "squareSingleBusiness",
-                 "squareSubjectAlignment", "wideLayout"],
+    "required": ["maxTextLines", "wideMaxTextLines", "includeTitle", "includeButtons",
+                 "squareSingleBusiness", "squareSubjectAlignment", "wideLayout"],
     "properties": {
-        "maxTextLines": {"const": 3}, "includeTitle": {"const": False},
+        "maxTextLines": {"const": 3}, "wideMaxTextLines": {"const": 4},
+        "includeTitle": {"const": False},
         "includeButtons": {"const": False}, "squareSingleBusiness": {"const": True},
         "squareSubjectAlignment": {"const": "left"},
         "wideLayout": {
@@ -76,6 +79,7 @@ _THEME = {
         "sourceSize": {"enum": ["2x2"]},
         "businessDescription": _TEXT,
         "matchingPolicy": {"const": "layout-only"},
+        "selectionPriority": {"type": "integer", "minimum": 0},
         "contentEligibility": _CONTENT_ELIGIBILITY,
         "subjectless": {"type": "boolean"},
         "subjectlessLayout": {
@@ -142,6 +146,8 @@ def _check(value: object, schema: dict, label: str) -> None:
 def _validate_theme(theme: dict) -> None:
     _check(theme, _THEME, "theme")
     kind = theme.get("kind")
+    if "selectionPriority" in theme and kind != "photo":
+        raise ValueError("Selection priority only applies to photos")
     background_schema = _BACKGROUNDS.get(kind)
     if background_schema is None:
         raise ValueError("Unknown theme background kind")
@@ -187,16 +193,20 @@ def _validate_content_eligibility(theme: dict) -> None:
     if theme.get("kind") != "photo" or theme.get("composition") != "native":
         raise ValueError("Unified photo eligibility requires native composition")
     is_texture = theme.get("pool") == "texturePhotos"
+    if is_texture:
+        _check(theme.get("family"), {"enum": ["blue", "purple", "orange"]}, "texture.family")
     if theme.get("subjectless") is not is_texture:
         raise ValueError("Only the abstract texture pool uses subjectless policy")
     policy = theme.get("contentEligibility", {})
+    if policy.get("wideLayout") is not None and theme.get("sizes") != ["2x4"]:
+        raise ValueError("Main-focus layout requires a wide photo")
     placement = policy.get("placement")
     if placement == "top-left-empty-bottom":
         if is_texture or theme.get("sizes") != ["2x2"]:
             raise ValueError("Top-only content requires a square subject photo")
         if policy.get("maxTextLines") != 2:
             raise ValueError("Top-only content requires the approved two-line limit")
-    elif placement in {"bottom-left", "not-bottom-left"}:
+    elif placement in {"bottom-left", "not-bottom-left", "bottom"}:
         if is_texture or theme.get("sizes") != ["2x4"]:
             raise ValueError("Bottom-left content requires a wide subject photo")
     elif placement in {"center", "not-center"}:

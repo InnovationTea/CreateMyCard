@@ -12,6 +12,56 @@
 - 直接按运行时 schema 读取本次工具返回的业务结果。必要字段缺失、类型非法或无法可靠识别时停止，不用历史结果或其它工具填补技术缺口。
 - examples 和 tools 静态快照仅供联调，不能覆盖当前运行时 schema；scripts 不参与在线执行。
 
+### 生成工具传参核对
+
+- 外层 `invoke.arguments` 必须为 JSON 对象，不是序列化 JSON 字符串；`candidateDataBindings[].arguments` 同样必须为对象，不能是字符串、数组或 `null`。
+- create 传入非空 `userQuery`、`title`、`description`，不传 `sourceArtifactUrl`；edit 使用真实有效来源，用户明确修改且工具声明的字段必须显式传入，包括 `size`。
+- 动态展示须有对应绑定，逐项传入本轮能力 ID、完整 `arguments`、合法 `writeResultTo`；参数满足本轮 Schema 的必填、类型、枚举和范围，用户明确指定值不得被默认覆盖。没有参数的能力使用 `{}`；未指定的可选参数仅按已声明默认处理，不能补造取值。
+- `candidateOutputFields` 如传入，必须是输出 Schema 可推导的叶子 JSON Pointer；数组使用实际非负整数下标。`writeResultTo` 必须位于 `/data/...` 且不相同、不互为父子或覆盖。
+- 每项事件为 `{capabilityId, action}`，`action` 含完整 `call` 与 `args`。从本轮概述完整复制 `actionTemplate`，只在 `dynamicArguments` 声明路径替换值；不把模板定义、参数定义或整项概述直接塞进候选。
+- 不能只在 `userQuery` 写“动态显示”或“点击执行”而省略所需绑定、事件或参数。纯视觉 edit 可以按真实有效编辑链继承未修改列表，不为满足此规则强制重传或清空。
+
+下例仅在本轮概述及完整 Schema 确认这些字段和模板时成立；业务参数仍取本轮用户需求，不照抄示例。
+
+```json
+{
+  "functionName": "generateWidgetCardCompactDsl",
+  "arguments": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "做一张上海青浦今日天气卡片，点击查看同城市天气。",
+    "title": "今日天气",
+    "description": "青浦天气速览",
+    "size": "2x2",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {"prefectureName": "上海市", "districtName": "青浦区", "forecastDays": 1},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": ["/current/temperatureText"]
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "skillName": "harmony-card-generation-online"
+}
+```
+
+反例：外层 `"arguments": "{...}"`、绑定中 `"arguments": "{}"`、`GetCountdownDays` 缺少 `targetDate`、事件项直接传 `{actionTemplate, dynamicArguments}`，均不能提交。应在生成前按真实定义补正；业务值有歧义才追问，定义缺失或结构非法则按原异常规则停止。
+
 ### 概述和完整数据定义
 
 概述读取 dataCapabilities、可选 unavailableCapabilities、eventCapabilities 和 assetCandidates。
@@ -23,6 +73,50 @@ unavailableCapabilities 缺失或空数组视为空；存在时必须为字符�
 
 只为概述中选中的可用数据 ID 加载 schema，不传空数组。结果读取 dataCapabilities 和 missingCapabilityIds；
 移除 missing 后立即重新判断核心目标，不能先调用权限或生成。数据类 edit 校验编辑后保留的完整集合。
+
+## 动态数据与点击能力边界
+
+维护依据为微服务当前 `app-11.7.7.300_rom-7.0` 快照的 [11 项数据能力](../../../widget_service/cloud/data/capabilities/app-11.7.7.300_rom-7.0/data_capabilities.json) 与 [48 项事件](../../../widget_service/cloud/data/capabilities/app-11.7.7.300_rom-7.0/event_capabilities.json)。以下概述不构成永久白名单，也不要求在线读取注册表；版本和应用安装依赖过滤后的本轮概述、完整 Schema 与事件模板优先。未返回的能力不可选，不能仅凭名称承诺字段、精度、刷新频率或操作效果。
+
+### 数据范围与参数限制
+
+| 数据能力 | 可提供内容 | 参数与限制 |
+| --- | --- | --- |
+| `ViewWeather` | 当前天气与未来数日预报 | 国内城市/区县，不支持国外或精确到街道；`forecastDays` 为 1～5，默认 3；`districtName`、`prefectureName` 可选，区县歧义须明确城市 |
+| `GetCalendarEvents` | 系统日程、时间、倒计时与相关详情/会议字段 | `futureDays` 默认 7，按由近到远返回；不支持任意条件或按天过滤，不能承诺创建、删除或完成日程 |
+| `GetCountdownDays` | 目标日期距今天数，由端侧计算 | 必填 `targetDate`，格式 `YYYY-MM-DD`；不能让生成模型猜日期或计算值冒充动态结果 |
+| `GetEarphoneInfo` | 蓝牙耳机名称、电量与充电状态 | 无参 `{}`；不支持星闪连接，非华为耳机仅名称、其它可能为 `--`；相关限制须按既有固定话术处理，不承诺读到不支持数据 |
+| `GetPhoneBatteryInfo` | 本机电池状态快照 | 无参 `{}`；不含最大容量或容量百分比式健康度；`healthStatusDesc` 是物理健康状态描述，不等于最大容量指标 |
+| `GetHealthAndSportSummary` | 睡眠、日常活动与最近一次专业运动、相关心率分析 | `targetDayOffset` 默认 0，描述支持过去 30 天；不是实时心率监测，也不支持任意历史跨度 |
+| `GetCurrentTime` | 公历日期、星期、农历及更新时间 | 无参 `{}`；输出未声明独立时分秒字段，不据名称承诺秒级时钟或后台计时 |
+| `GetAppPowerConsumptionRanking` | 应用耗电排行 | `limit` 默认 5；不能查询指定 App 的使用时长 |
+| `GetDailyMostUsage` | 当日应用使用时长排行 | `topN` 默认 3；依赖用户开启“健康使用设备”，不支持任意 App/任意日期统计；前提未满足按既有权限/限制规则处理 |
+| `GetPhoneCallRecords` | 通话计数、总时长及最近记录 | `callRecordType` 默认 0 为全量；其它枚举只能按本轮定义，不能自行猜测筛选值 |
+| `GetMemoData` | 笔记、待办统计及列表 | 无参 `{}`；读取与提醒标记不代表支持写入、勾选待办或创建后台提醒 |
+
+参数默认、枚举、范围和输出叶子均以本轮定义为准；不能把上述描述自行转成 Schema 未声明的新参数。数据存在不证明有相应写入事件，打开页面或执行操作也不证明有对应状态读取能力。
+
+### 点击范围与执行限制
+
+| 事件分类 | 当前事件 ID | 可执行范围与限制 |
+| --- | --- | --- |
+| 拨号 | `event.call.phone` | 打开指定号码拨号界面，不是自动拨通；号码按用户值及模板动态参数填写，未提供时仅使用模板允许的空值 |
+| 内存清理 | `event.clean.memory` | 清理运行内存；不因此具备内存占用、释放量或存储统计数据 |
+| 设置页面（16 项） | `event.open.settings.dnd`、`event.open.settings.bluetooth`、`event.open.settings.battery`、`event.open.settings.batteryHealth`、`event.open.settings.parentControl`、`event.open.settings.storage`、`event.open.settings.dndMode`、`event.open.settings.sleepMode`、`event.open.settings.studyMode`、`event.open.settings.mobileNetwork`、`event.open.settings.wifi`、`event.open.settings.mobileData`、`event.open.settings.simManagement`、`event.open.settings.hotspot`、`event.open.settings.dataUsage`、`event.open.settings.darkMode` | 只打开声明的设置页面或模式页面，不代表直接切换设置、开启飞行/深色模式或读出其状态 |
+| 天气详情 | `event.open.weather` | 同城市详情，依赖 `ViewWeather` 的 `/location/cityCode`，保留完整 URI 模板，不替换为搜索链接 |
+| 时钟页面（5 项） | `event.open.clock.alarm`、`event.open.clock.worldClock`、`event.open.clock.alarmTab`、`event.open.clock.stopwatch`、`event.open.clock.timer` | 打开首页或指定 Tab；不创建闹钟、不启动计时/秒表、不建立后台提醒 |
+| 音乐页面（2 项） | `event.open.music.daily`、`event.open.music.favorite` | 打开每日 30 首或收藏歌单；不提供播放、暂停、切歌及播放状态 |
+| 健康页面（5 项） | `event.open.health.sport`、`event.open.health.sleep`、`event.open.health.sportsRecord`、`event.open.health.activityRecord`、`event.open.health.workoutDuration` | 打开声明的锻炼、睡眠或记录页面，不启动专业训练或测量 |
+| 日程详情与入会 | `event.enter.meeting`、`event.viewCalendarEvent` | 分别依赖同一展示项的 `events[i].oneClickServiceLink`、`events[i].entityId`；`i` 必须是实际数字下标；不支持创建、删除或完成日程 |
+| 导航 | `event.startNavigate` | 仅 `home`、`company`；经纬度保持模板空字符串，不扩展为任意目的地或搜索坐标 |
+| 开关操作（8 项） | `event.setPowerSavingMode`、`event.setMobileData`、`event.setNearLinkMode`、`event.setBluetoothMode`、`event.setWifiMode`、`event.setLocationSwitch`、`event.setScreenUseTimeManageSwitch`、`event.setMicPermissionSwitch` | 仅声明的开关操作；未声明目标状态参数时不能承诺确定开启/关闭，也不能补任意系统开关或推断当前状态 |
+| 声音模式 | `event.setSoundMode` | 动态参数仅为 `Vibrate`、`Sound`、`Silent`，其余固定字段保留 |
+| 手电筒 | `event.openFlashlight`、`event.closeFlashlight` | 分别为打开、关闭动作，不由其它开关模板推导 |
+| 相机模式 | `event.openCamera` | 仅打开指定模式：`Photo`、`Video`、`PORTRAIT`、`CINEMA`、`NIGHT`、`SUPER_MACRO`、`LIGHT_PAINTING`、`TIME_LAPSE`、`SLOW_MO`、`STITCHING`、`PRO`；不自动拍摄或录制 |
+| 通话页面 | `event.open.contacts.callLog` | 打开电话应用全部通话页，不代表发起电话或修改记录 |
+| 备忘录入口 | `event.viewNote` | 仅打开应用，不写笔记、不勾选待办、不创建提醒 |
+
+可展示数据、应用入口、直接操作与卡片内交互分别判断。用户要求的勾选、输入、拖动、持续监控或后台任务没有对应事件/协议支持时，不能用装饰按钮、静态文案、外部事实或任意跳转替代。已有页面入口仅在用户本就要求入口时直接满足；将操作需求改为入口会改变主要用途时必须先确认。
 
 ## 满足度、尺寸与候选构造
 
@@ -42,9 +136,11 @@ unavailableCapabilities 缺失或空数组视为空；存在时必须为字符�
 - 外部事实来源：本轮已校验并实际采用的 WebSearch、其它 Agent 工具或 Skill 结果、当前会话最近一条助手答案；
 - 用户事实来源：用户本轮明确陈述的静态值，例如明确给出的金额、时间或地点。用户只表达意图时不能把意图当作事实。
 
-只有在来源清单覆盖该数据项后，才允许把它放入有效 `userQuery`、标题、说明、数据绑定或事件参数。用户需求中没有来源的核心数据必须停止；次要数据先移除其需求和依赖后再继续；改变主要用途的替代必须等待确认。生成工具、生成模型、历史缓存、旧 artifact、示例和普通回复不能成为来源，也不能用来查询或补齐业务数据。
+同时登记交互需求：实际效果（打开页面/执行操作/卡片内交互）、目标、参数、数据依赖和核心/次要级别。每项关联本轮可用事件 ID、完整模板及动态参数位置；需要数据字段时关联合法绑定和同一展示对象的字段路径。仅有数据、素材、外部链接或相近事件名称不能证明交互可用。
 
-能力概述返回后做第一次动态覆盖检查，完整 Schema 返回后做第二次字段和参数覆盖检查，外部事实和用户明确值归入同一来源清单后再做最终检查。最终检查不通过时不发送 R01/R02，不调用生成工具。
+只有在来源清单覆盖该数据或交互项后，才允许把它放入有效 `userQuery`、标题、说明、数据绑定或事件参数。没有来源的核心数据或动作必须停止；次要项先移除需求和依赖后再继续；改变主要用途的替代必须等待确认。生成工具、生成模型、历史缓存、旧 artifact、示例和未经校验的普通回复不能成为来源，也不能用来补齐业务数据或动作。
+
+能力概述返回后做第一次数据和事件覆盖检查，完整 Schema 返回后做第二次字段和参数检查，步骤 3 再核对事件模板、枚举、目标及依赖字段。可用事件依赖的数据不在合法绑定中或参数不足时不能提交；缺用户业务值按原澄清规则，结构缺口按异常规则，功能不支持按核心/次要/替代规则处理。外部事实和用户明确值归入来源清单后再做最终检查，不通过时不发送 R01/R02，不调用生成工具。
 
 ### 参数补全与外部事实
 
@@ -87,26 +183,31 @@ unavailableCapabilities 缺失或空数组视为空；存在时必须为字符�
 
 ### 生成调用前来源复核
 
-在生成请求落地前逐项复核来源清单：
+在生成请求落地前逐项复核数据与交互来源清单：
 
 1. 核心数据全部有动态能力、已校验外部事实或用户明确值；
 2. 次要缺失项及其依赖已从有效 `userQuery`、标题、说明、候选和事件参数中删除；
 3. 每个 `candidateDataBindings` 的能力 ID、参数、路径和字段都能回溯到本轮 Schema；
 4. 静态内容只复制完整事实清单或用户明确值，不从 R16/R16W 摘要、历史请求或模型常识重建；
-5. 没有待查询、待推断或待生成模型补齐的业务数据。
+5. 每项核心交互均有语义匹配的可用事件，完整模板、动态参数、目标和数据依赖可构造；不能用页面入口冒充执行操作；
+6. 动态展示已有合法绑定或符合纯视觉 edit 的真实继承规则；所有显式参数通过“生成工具传参核对”；
+7. 没有待查询、待推断或待生成模型补齐的业务数据或交互能力。
 
-任一检查失败时，没有任何合法来源的核心数据使用 R07；已调用来源失败或事实无法校验使用 R17；次要数据使用 R08C/R08E；改变主要用途的可用替代使用 R09；技术结构无法构造时使用 R14。来源复核失败不得发送 R01/R02，不得调用 `generateWidgetCardCompactDsl`。
+任一检查失败时，没有合法来源的核心数据或不支持的核心交互使用 R07；已调用来源失败或事实无法校验使用 R17；次要项使用 R08C/R08E 并移除；改变主要用途的明确可用替代使用 R09 等待；技术结构无法构造时使用 R14。超范围编辑仍用 R10，不自动重建。来源复核失败不得发送 R01/R02，不得调用 `generateWidgetCardCompactDsl`。
 
 ### 筛选和尺寸预算
 
 - 数据最多选择 2 个核心候选；事件最多 2 个主动作。同一个事件 id 构造的多个事件视作一个主动作。
   此预算分类不表示点击目标相同；call 或完整 args 不同的事件不得合并为一个整卡入口。
 - 素材选择 1～4 个强相关 ID，没有匹配时传空数组。按返回 `description` 判断素材与主业务、标题、状态或动作的语义关系，不要求描述声明专用槽位；先为 `PillButton` 和 `CircleButton` 分配动作图标，再由 `SingleLineTitle` 从按钮未使用的候选中按标题或卡片主题语义选择图标。按钮与标题不得复用同一素材，但可使用不同的语义匹配素材。`W-content-side-slots` 的内容区标题固定使用纯文字，不为 `SingleLineTitle` 分配图标；其它布局中，PNG 保留原色，`SingleLineTitle` 的 SVG 由运行时固定使用 100% 不透明的主图形色，其它显式染色 SVG 使用合法 `fillColor`。不得为了保留标题图标把可使用准确图标的动作改成纯文字按钮，也不得伪造素材路径。没有剩余匹配素材时标题不选择图标。不得只为填满画面新增数据、高风险动作或无关事件。
-- 用户明确指定 2x2/2x4 时优先尊重；否则默认 2x2，包含数据且至少两个点击能力时建议 2x4。
+- create/edit 均先提取用户本轮明确指定的目标尺寸，并显式传入 `size`，不得只写在 `userQuery`、继承旧尺寸或用默认值、模型建议覆盖。
+  明确的“2×2”“2乘4”等表达按工具支持值规范化为 `2x2`、`2x4`；尺寸有歧义时用 R05 澄清，不猜测规格。
+  用户未指定时才按既有规则：create 默认 2x2，包含数据且至少两个点击能力时建议 2x4；edit 未要求改尺寸时沿用合法来源的尺寸。
 - 2x2 以 1 个焦点、最多 3 个主区域和 1 个主动作为预算，主要展示项通常 1～3 项，紧凑且不新增主区域时最多 4 项；
   2x4 最多 4 个主区域、2 个主动作、4 个主要展示项。
 - 超量时依次移除装饰、可选项、次要支撑项，再摘要列表或保留首项。用户要求全部保留且无法取舍时追问。
   核心内容、受保护文本、必要热区、必须同屏关系或关键媒体无法在 2x2 成立时允许 2x4，不因横版更舒展升级。
+  此预算不能用于压缩主 Agent 传递的完整外部事实；事实仍完整写入 `userQuery`，卡片展示内容由生成工具按布局处理。
 - 内容不足可补充已选数据内强相关的状态、时间、上下文字段和合法素材；无合法补充时保持简洁。
 - create 的 title/description 为非空静态短文案，建议不超过 8/12 字；无法提炼时使用“桌面卡片”/“信息速览”。
   不含动态值、隐私或可用性承诺；edit 只有明确修改时传。
@@ -225,13 +326,23 @@ artifactUrl 必须是当前业务字段中可解析的非空绝对 URL，符合�
 
 | 结果 | 业务判定与编辑节点 |
 | --- | --- |
-| success + 合法新 URL，无已知缺失 | 完整成功；更新目标卡片内部编辑来源 |
-| degraded + 合法新 URL，或 success + 合法新 URL 但已知部分缺失 | 部分满足；更新来源，保留确定缺失项 |
-| unsupported | 不支持，不更新来源，即使带 URL |
-| failed | 失败，不更新来源，即使带 URL |
+| success + 合法新 URL，无已知缺失 | 完整成功；更新目标卡片内部编辑来源，立即结束生成调用 |
+| degraded + 合法新 URL，或 success + 合法新 URL 但已知部分缺失 | 部分满足；更新来源，保留确定缺失项，立即结束生成调用 |
+| unsupported | R07 结束，不重试、不更新来源，即使带 URL |
+| failed | 不更新来源，即使带 URL；仅满足下述失败重试条件才继续，否则 R14 结束 |
 | needs_clarification（仅 edit） | 从 editFeedback 提取一个最小必要问题，按 R05 澄清，不重试、不更新来源 |
 | unchanged（仅 edit） | 原卡已满足本轮要求，按 R20 说明无需修改，不重试、不更新来源 |
-| 未知状态、非法 payload、success/degraded 缺合法新 URL、edit 返回来源 URL | 非法结果，不更新来源 |
+| 未知状态、非法 payload、success/degraded 缺合法新 URL、edit 返回来源 URL | R14 结束，不重试、不更新来源 |
+
+### 生成调用次数与失败重试
+
+- 按同一用户任务累计生成调用次数，最多 3 次总调用（首次加最多 2 次重试）；不能通过重读 Skill、回到步骤 7、切换 create/edit 或重置计数继续调用。必须串行等待当前调用的最终结果，不并发、不在等待中再次提交。
+- `success/degraded` 一经返回即关闭本任务的生成调用，先前即使发生过失败也一样。不得为了美化、确认结果、补用户回复、补 URL 或补次要内容重调；缺合法新 URL 按 R14 结束。只有用户后续明确提出新的创建或编辑需求时才建立新任务计数。
+- 只有结构合法且业务状态明确为 `failed` 时，才检查实际返回是否给出明确可执行的参数修正信息。信息必须来自本次合法返回，并符合运行时工具 Schema；不得虚构 `retryable`、修复说明字段或错误码含义，也不能从笼统错误猜测修法。返回明确禁止重试时停止。
+- 有修正依据、错误未重复且尚有调用额度时，只修改被指出的问题，重新执行步骤 7 参数与来源门禁后再调。尺寸仍优先采用用户指定值；修正不能擅自改变主要用途、编造能力或移除核心需求。需要澄清或替代确认时按现有模板等待用户，不抢先重试。
+- 每次重试保留本轮模式与原有效 `sourceArtifactUrl`，不得采用失败返回的 URL 或转创建；能力集合或 binding 改变时重新执行权限检查，编辑边界、外部事实完整使用与实际告知规则保持不变。
+- 错误重复、缺少新的明确修正信息、无法合法修正或第 3 次仍失败时，实际发送 R14 并停止。重试期间不播报内部错误，不重复 R01/R02 或已告知事实；最终成功或失败再按步骤 8 反馈。
+- `unsupported`、编辑的 `needs_clarification/unchanged`、非法结果、工具不可用、invoke 抛错、超时及调用状态不确定都不重试；不能把传输异常视作明确业务 `failed`。本计数独立于微服务内部修复或重试预算。
 
 create 的有效 URL 建立初始编辑节点；edit 返回的新 URL 原样成为下一轮来源，不覆盖来源产物。
-URL 仅保留在内部工具轨迹，用于后续 edit；你不补做下载、生成、校验、重试、修复或上传。
+URL 仅保留在内部工具轨迹，用于后续 edit；除上述有界失败重试外，不补做生成，不下载、校验、修改或上传产物。

@@ -50,7 +50,7 @@ def artifact():
     )
 
 
-@pytest.mark.parametrize(("pool", "count"), [("photos", 21), ("texturePhotos", 18)])
+@pytest.mark.parametrize(("pool", "count"), [("photos", 25), ("texturePhotos", 18)])
 def test_current_photos_have_obs_addresses(pool, count):
     photos = registry.registered_themes(pool, include_disabled=True)
     assert len(photos) == count
@@ -65,11 +65,11 @@ def test_current_photos_have_obs_addresses(pool, count):
 
 
 @pytest.mark.parametrize(("photo_id", "size"), [
-    (item.get("id"), item.get("size")) for item in registry.registered_themes()
+    (item.get("id"), item.get("size")) for item in registry.registered_themes(include_disabled=True)
     if item.get("kind") == "photo"
 ])
 def test_registered_photo_sources_pass_existing_final_asset_validation(monkeypatch, photo_id, size):
-    photo = next(item for item in registry.registered_themes()
+    photo = next(item for item in registry.registered_themes(include_disabled=True)
                  if item.get("id") == photo_id)
     original = artifact()
     original.taskSpec["size"] = size
@@ -84,8 +84,15 @@ def test_registered_photo_sources_pass_existing_final_asset_validation(monkeypat
     assert not audit.get("finalValidationErrors"), audit
     expected = photo.get("remoteUrl") or photo.get("src")
     assert isinstance(expected, str)
-    assert node_by_id(delivered.genui, themes.PREFIX + "image").get("src") == expected
     assert node_by_id(delivered.genui, themes.PREFIX + "base").get("src") == expected
+    images = []
+    for node in themes.components(themes.decode(delivered.genui)):
+        if node.get("component") == "Image" and node.get("src") == expected:
+            images.append(node)
+    assert len(images) == 1
+    assert themes.foreground_signature(delivered.genui) == (
+        themes.foreground_signature(original.genui)
+    )
     assert node_by_id(delivered.genui, "root").get("styles", {}).get("backgroundColor")
     assert delivered.taskSpec.get("assetCandidates") == [
         {"id": photo_id, "src": expected, "description": "主题背景"},
@@ -126,7 +133,6 @@ def test_final_delivery_maps_only_photo_and_preserves_fallback(monkeypatch, addr
     assert not audit.get("finalValidationErrors"), audit
     assert audit.get("themeId") == PHOTO_ID
     expected = address or photo.get("src")
-    assert node_by_id(delivered.genui, themes.PREFIX + "image").get("src") == expected
     assert node_by_id(delivered.genui, themes.PREFIX + "base").get("src") == expected
     assert delivered.taskSpec.get("assetCandidates") == [
         {"id": PHOTO_ID, "src": expected, "description": "主题背景"},
@@ -176,7 +182,8 @@ def test_theme_prompt_never_receives_remote_url(monkeypatch, enabled):
     result, audit = asyncio.run(themes.select_theme(
         layout, task(), client, final_layout=sample.layout,
     ))
-    assert (audit.get("themeId") in {PHOTO_ID, "photo-ux-starfield-weather-square"}) is enabled
+    weather_photos = {PHOTO_ID, "photo-ux-starfield-weather-square", "photo-ux-wave-square"}
+    assert (audit.get("themeId") in weather_photos) is enabled
     assert ADDRESS not in json.dumps(theme_description(photo))
     assert ADDRESS not in json.dumps(client.generate.call_args.args)
     assert ADDRESS not in result

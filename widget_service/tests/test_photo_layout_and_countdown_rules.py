@@ -27,7 +27,12 @@ def test_split_panels_are_excluded_for_every_photo_business(identity):
     evidence = photo_layout_evidence(sample.nodes)
     assert evidence.get("sideBySidePanels") is True
     reason = themes.photo_reason(theme, sample.task, evidence, final_layout=sample.compact)
-    assert reason == "2x4图片需要左主焦点和右侧上下两个背板"
+    if theme.get("contentEligibility", {}).get("wideLayout") == "main-focus":
+        assert reason == "2x4图片需要明确主焦点，不支持双大背板或无主次布局"
+    elif theme.get("contentEligibility", {}).get("wideLayout") == "side-focus":
+        assert reason == "2x4图片需要左右主焦点加另一侧上下双槽，不支持上下或双大背板布局"
+    else:
+        assert reason == "2x4图片需要左主焦点和右侧上下两个背板"
 
 
 @pytest.mark.parametrize("semantic", [False, True])
@@ -67,21 +72,25 @@ def test_legacy_wide_pool_uses_the_same_global_exclusion():
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_model_cannot_return_excluded_photo_or_change_ordinary_candidates(monkeypatch, enabled):
+def test_model_cannot_return_excluded_subject_but_abstract_can_match(monkeypatch, enabled):
     sample = wide_battery_sample("W-split-panels")
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", enabled)
     client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({"themeId": WIDE})))
     result, audit = asyncio.run(themes.select_theme(
         sample.source, sample.task, client, final_layout=sample.compact,
     ))
-    assert not audit.get("themeId", "").startswith("photo-")
-    assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
+    assert audit.get("themeId") != WIDE
+    if enabled:
+        assert audit.get("themeId", "").startswith("photo-ux-texture-")
+    else:
+        assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
     assert themes.foreground_signature(sample.source) == themes.foreground_signature(result)
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", False)
     _, baseline = asyncio.run(themes.select_theme(
         sample.source, sample.task, client, final_layout=sample.compact,
     ))
-    assert audit.get("candidates") == baseline.get("candidates")
+    if not enabled:
+        assert audit.get("candidates") == baseline.get("candidates")
 
 
 def single_countdown(label="本周日倒计时", name=None):
