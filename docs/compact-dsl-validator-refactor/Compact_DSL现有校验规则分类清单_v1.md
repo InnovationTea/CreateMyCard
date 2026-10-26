@@ -1,5 +1,26 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-25：Q043／Q084／Q109 批跑回放补强生成修复反馈：
+
+| 检查项 | 分类与实际落点 | 归属理由 |
+|---|---|---|
+| 整卡缺核心信息的修复范围 | 生成修复编排，`compact_repair_strategy.py` | 消费现有 SecondaryBody 诊断，选整卡重组；不复制或放宽 `semantic/plan_contracts.py` 判定 |
+| 高度预算与源信息的证据摘要 | 生成修复上下文，`compact_repair_evidence.py` | 读取既有诊断及源稿，复用 `compact_repair_context.py` 事实关联；未知映射保留未知 |
+| 同拓扑、同业务内容的修复进展 | 请求内编排辅助，`compact_repair_evidence.py`、`compact_repair_strategy.py` | 比较已报告的容量和核心缺失，影响已有修复路由；不新增发布校验或删除授权 |
+| 最终缺失事实与降级状态 | 生成结果编排，`compact_plan.py`、`widget_generation_service.py` | 复用既有可见覆盖检查，响应统计全部实际缺失；显式 Drop 校验清单和发布阻断策略保持不变 |
+
+回归使用 `task_a2b68e673af4` 服务日志提取的真实末稿和诊断；离线回放仅验证反馈与路由，不代表模型成功率或真机效果。
+
+2026-10-25：批跑衍生回归修正两处生成辅助行为，不新增或放宽发布校验：
+
+| 检查项 | 分类与实际落点 | 归属理由及验证 |
+|---|---|---|
+| 正文首选与备选标题的候选归一化 | 生成计划标准化，`services/compact_plan.py` | 2×4 与 2×2 一致，不因备选标题覆盖正文首选；标题首选与事实覆盖仍保留原合同。回归位于 `test_batch_validator_regressions.py` |
+| 表达式与纯单位兄弟节点的联合去重 | 生成确定性修复，`card_validation/display_unit_rules.py` | 复用既有单位识别，直接拼接已含单位时扣除兄弟节点保留数；不改变 `display_unit_validator.py` 的语义／展示单位判定。回归保存 10 月 12 日 Q042 原稿并分别标注衍生变体 |
+
+1023.2 仅有日志分析报告，不能据此声称该批次的最终 DSL 已重放成功。新增回归分别证明候选归一化结果、
+旧批次原稿保持不变、重复单位修复后复检通过，以及真正缺失单位仍阻断；不代表模型生成成功率或真机验收。
+
 2026-10-21：编辑目标履约属于标准 A2UI 的语义／编辑目标一致性，判定位于
 `card_validation/edit_validation/artifact.py`；模型意图形状、字段权限及可比较性属于
 `widget_edit_contract.py`。提示词加载与修复格式化位于 `widget_edit_prompt.py`，编排仍在

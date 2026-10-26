@@ -1550,20 +1550,23 @@ def compact_plan_omitted_facts(
     compact_dsl: str,
     plan: dict[str, Any] | None,
     task_spec: dict[str, Any],
-    allowed_omitted_fact_indexes: tuple[int, ...],
+    allowed_omitted_fact_indexes: tuple[int, ...] | None = None,
 ) -> tuple[dict[str, Any], ...]:
-    """返回最终兜底后确实不再可见的非 Action 事实。"""
-    if not plan or not allowed_omitted_fact_indexes:
+    """报告缺失的非 Action 事实；None 检查全计划，显式清单保留原授权范围。"""
+    if not plan or allowed_omitted_fact_indexes == ():
         return ()
     facts = plan.get("info_required")
     if not isinstance(facts, list):
         return ()
+    inspected_indexes = allowed_omitted_fact_indexes
+    if inspected_indexes is None:
+        inspected_indexes = tuple(range(len(facts)))
     rows = parse_compact_dsl_rows(compact_dsl)
     components = [row for row in rows if isinstance(row, ComponentRow)]
     state = _compact_visible_state(components)
     event_handlers = _event_handlers_by_id(task_spec)
     omitted: list[dict[str, Any]] = []
-    for index in allowed_omitted_fact_indexes:
+    for index in inspected_indexes:
         if not 0 <= index < len(facts):
             continue
         fact = facts[index]
@@ -2016,11 +2019,7 @@ def _validate_facts(
                         accepted_hints.append(hint)
                 removed_single_line_title_alternatives = False
                 removed_single_line_title_backup = False
-                allow_title_backup_removal = task_spec.get("size") == "2x2"
-                if task_spec.get("size") == "2x4" and accepted_hints:
-                    if accepted_hints[0] == "Badge":
-                        allow_title_backup_removal = True
-                if allow_title_backup_removal and accepted_hints:
+                if accepted_hints:
                     title_is_backup = accepted_hints[0] != "SingleLineTitle"
                     if title_is_backup and "SingleLineTitle" in accepted_hints:
                         accepted_hints.remove("SingleLineTitle")

@@ -21,6 +21,11 @@ from services.compact_repair_context import (
     repair_topology_fingerprint,
     semantic_layout_repair_guidance,
 )
+from services.compact_repair_evidence import (
+    RepairProgress,
+    missing_core_information,
+    repair_failure_evidence,
+)
 
 _CAPACITY_MARKERS = (
     "vertical layout requires at least",
@@ -144,6 +149,8 @@ class CompactRepairDirective:
     stop_reason: str | None = None
     joint_context: dict[str, Any] | None = None
     capacity_fits: tuple[dict[str, Any], ...] = ()
+    failure_evidence: dict[str, Any] | None = None
+    progress: str = "unknown"
 
     def to_prompt_payload(self) -> dict[str, Any]:
         """转换成可进入修复提示词和 Trace 的稳定字段。"""
@@ -186,6 +193,9 @@ class CompactRepairDirective:
             payload["jointRecomposition"] = copy.deepcopy(self.joint_context)
         if self.capacity_fits:
             payload["capacityFits"] = copy.deepcopy(list(self.capacity_fits))
+        if self.failure_evidence:
+            payload["failureEvidence"] = copy.deepcopy(self.failure_evidence)
+        payload["progress"] = self.progress
         return payload
 
 
@@ -610,6 +620,8 @@ def compact_capacity_recovery_failure_category(
 
 
 def _joint_repair_relevant(category: str, quality_errors: list[dict[str, Any]]) -> bool:
+    if missing_core_information(quality_errors):
+        return True
     if category in {"layout_capacity", "layout_structure", "plan_coverage"}:
         return True
     for issue in quality_errors:
@@ -630,6 +642,7 @@ def _layout_directive(
     force_parent_layout: bool = False,
     allow_text_compaction: bool = False,
     offer_anchor_action_migration: bool = False,
+    capacity_improved: bool = False,
 ) -> CompactRepairDirective:
     split_panels_instruction = ""
     if prefer_split_panels:
@@ -663,7 +676,7 @@ def _layout_directive(
             "固定侧槽宽度无法通过局部换行或修改 Props 闭合；重新分配完整信息组和动作槽。"
             f"{split_panels_instruction}"
         )
-    elif category_attempt == 1:
+    elif category_attempt == 1 or capacity_improved:
         scope = "parent_layout" if category == "layout_structure" else "sublayout"
         strategy = (
             "parent_layout_recompose" if scope == "parent_layout" else "rebudget"
@@ -720,7 +733,19 @@ def _non_layout_directive(
     duplicate_plan_facts = (
         category == "plan_coverage" and _has_duplicate_plan_facts(quality_errors)
     )
-    if duplicate_plan_facts and category_attempt == 1 and not no_progress:
+    if missing_core_information(quality_errors):
+        scope = "full_dsl"
+        strategy = "plan_guided_recompose"
+        retry_target = "dsl_recompose"
+        instruction = (
+            "整卡只有辅助正文、标题或按钮，缺少核心信息；这是整卡选型问题，"
+            "不能只改某个 SecondaryBody 的属性。按已接受 Plan 找到主要读数、结论或"
+            "事件，选择语义匹配的核心组件，其余同对象信息作为辅助；"
+            "等权属性比较才考虑合法 TableText。不能新增占位核心或重复事实来凑组件。"
+            "保留全部动作、绑定和未授权省略的事实，再核算各区完整占用；"
+            "更换核心组件后仍须通过原组件、覆盖和容量校验。"
+        )
+    elif duplicate_plan_facts and category_attempt == 1 and not no_progress:
         scope = "information_group"
         strategy = "deduplicate_visible_facts"
         retry_target = "dsl_local_repair"
@@ -994,6 +1019,7 @@ class CompactRepairStrategyTracker:
         self._latest_capacity_fits: list[dict[str, Any]] = []
         self._capacity_overflow_limit: int | None = None
         self._capacity_overflow_fact_indexes: set[int] = set()
+        self._previous_progress: RepairProgress | None = None
 
     @property
     def allowed_omitted_fact_indexes(self) -> tuple[int, ...]:
@@ -1067,6 +1093,10 @@ class CompactRepairStrategyTracker:
         task_spec: dict[str, Any] | None = None,
     ) -> CompactRepairDirective:
         """根据当前失败和请求内历史选择局部修复或结构重组。"""
+        observed = RepairProgress.capture(invalid_source_dsl, quality_errors)
+        progress = observed.compare(self._previous_progress)
+        self._previous_progress = observed
+        capacity_improved = progress == "improved"
         category = _issue_category(quality_errors)
         capacity_fits = _capacity_fits_from_issues(quality_errors)
         if not capacity_fits:
@@ -1099,7 +1129,7 @@ class CompactRepairStrategyTracker:
         if category in {"layout_capacity", "layout_structure"}:
             self._layout_failure_seen = True
         fingerprint = _issue_fingerprint(quality_errors)
-        if fingerprint == self._previous_fingerprint:
+        if fingerprint == self._previous_fingerprint and not capacity_improved:
             self._consecutive_failures += 1
         else:
             self._consecutive_failures = 1
@@ -1108,6 +1138,7 @@ class CompactRepairStrategyTracker:
             self._previous_source is not None
             and normalized_source == self._previous_source
         )
+        no_progress = (no_progress or progress == "stalled") and not capacity_improved
         category_attempt = self._category_attempts.get(category, 0) + 1
         self._category_attempts[category] = category_attempt
         self._previous_fingerprint = fingerprint
@@ -1115,6 +1146,7 @@ class CompactRepairStrategyTracker:
         changed_constraint = previous_category is not None and category != previous_category
         persistent_capacity = category == "layout_capacity" and category_attempt >= 2
         joint_progress_failed = changed_constraint or revisited_topology or persistent_capacity
+        joint_progress_failed = joint_progress_failed and not capacity_improved
         joint_inputs_available = compact_plan is not None and task_spec is not None
         joint_recompose = (
             joint_inputs_available and previous_layout_failure and relevant
@@ -1366,7 +1398,7 @@ class CompactRepairStrategyTracker:
                     allow_text_compaction=allow_text_compaction,
                 )
                 self._fallback_submission_count += 1
-        elif is_layout_failure and full_recompose_seen:
+        elif is_layout_failure and full_recompose_seen and not capacity_improved:
             self._active_fallback = "compact_component"
             directive = _compact_component_fallback_directive(
                 category=category,
@@ -1417,6 +1449,7 @@ class CompactRepairStrategyTracker:
                 force_parent_layout=force_parent_layout,
                 allow_text_compaction=allow_text_compaction,
                 offer_anchor_action_migration=offer_anchor_action_migration,
+                capacity_improved=capacity_improved,
             )
         else:
             directive = _non_layout_directive(
@@ -1493,5 +1526,12 @@ class CompactRepairStrategyTracker:
                     sorted(self._allowed_omitted_fact_indexes)
                 ),
             )
+        directive = replace(
+            directive,
+            failure_evidence=repair_failure_evidence(
+                invalid_source_dsl, quality_errors, compact_plan,
+            ),
+            progress=progress,
+        )
         self._previous_strategy = directive.repair_strategy
         return directive

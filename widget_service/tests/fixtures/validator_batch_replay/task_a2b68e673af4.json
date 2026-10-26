@@ -1,0 +1,1083 @@
+{
+  "runId": "batch_20261025_162209_36484454",
+  "taskId": "task_a2b68e673af4",
+  "source": "service_c1b50cd8cefe.log (GB18030), last model DSL and final validation errors; no synthetic fixes",
+  "cases": [
+    {
+      "sampleId": "Q043",
+      "size": "2x4",
+      "dsl": "[\"root\",\"Layout\",{\"layout\":\"W-split-panels\"},[\"left\",\"right\"]]\n[\"left\",\"Region\",{\"variant\":\"title-content-action\"},[\"left_title\",\"left_body\",\"left_action\"]]\n[\"left_title\",\"SingleLineTitle\",{\"title\":\"漠河天气\",\"fontSize\":12}]\n[\"left_body\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"温度 \",\"value\":{\"path\":\"/data/weather/current/temperatureText\"}},{\"label\":\"天气 \",\"value\":{\"path\":\"/data/weather/current/condition\"}},{\"label\":\"体感 \",\"value\":\"{{ ${/data/weather/current/feelsLikeC} + '℃' }}\"},{\"label\":\"风力 \",\"value\":\"{{ ${/data/weather/current/windLevel} + '级' }}\"}],\"fontSize\":12}]\n[\"left_action\",\"PillButton\",{\"label\":\"天气详情\",\"icon\":\"resources/base/media/ic_weather_color.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Weather_CityCode\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}\"}}]}]\n[\"right\",\"Region\",{\"variant\":\"title-content-action\"},[\"right_title\",\"right_body\",\"right_action\"]]\n[\"right_title\",\"SingleLineTitle\",{\"title\":\"手机电量\",\"fontSize\":12}]\n[\"right_body\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"label\":\"电量 \",\"value\":{\"path\":\"/data/phoneBattery/batterySOCText\"}},{\"label\":\"状态 \",\"value\":{\"path\":\"/data/phoneBattery/chargingStatusDesc\"}},{\"label\":\"温度 \",\"value\":{\"path\":\"/data/phoneBattery/batteryTemperatureText\"}},{\"label\":\"充电器 \",\"value\":{\"path\":\"/data/phoneBattery/pluggedTypeDesc\"}}],\"fontSize\":12}]\n[\"right_action\",\"PillButton\",{\"label\":\"电池设置\",\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Settings\",\"bundleName\":\"com.huawei.hmos.settings\",\"abilityName\":\"com.huawei.hmos.settings.MainAbility\",\"uri\":\"battery\"}}]}]\n[\"/data/weather/current/alertLevel\",\"大风蓝色预警\"]\n[\"/data/weather/current/coldLevel\",\"低\"]\n[\"/data/weather/current/condition\",\"多云\"]\n[\"/data/weather/current/feelsLikeC\",31]\n[\"/data/weather/current/temperatureText\",\"29℃\"]\n[\"/data/weather/current/windLevel\",2]\n[\"/data/weather/location/cityCode\",\"60814\"]\n[\"/data/phoneBattery/batterySOCText\",\"68%\"]\n[\"/data/phoneBattery/batteryTemperatureText\",\"29.0 ℃\"]\n[\"/data/phoneBattery/chargingStatusDesc\",\"未充电\"]\n[\"/data/phoneBattery/pluggedTypeDesc\",\"未连接充电器\"]",
+      "plan": {
+        "info_required": [
+          {
+            "requirement": "漠河当前天气现象",
+            "priority": "must",
+            "dataId": "/data/weather/current/condition",
+            "componentHints": [
+              "EmphasisText",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "漠河当前温度",
+            "priority": "must",
+            "dataId": "/data/weather/current/temperatureText",
+            "componentHints": [
+              "EmphasisText",
+              "EmphasizedData"
+            ]
+          },
+          {
+            "requirement": "漠河当前体感温度",
+            "priority": "must",
+            "dataId": "/data/weather/current/feelsLikeC",
+            "componentHints": [
+              "SecondaryBody",
+              "TextBlock"
+            ]
+          },
+          {
+            "requirement": "漠河当前风力等级",
+            "priority": "must",
+            "dataId": "/data/weather/current/windLevel",
+            "componentHints": [
+              "SecondaryBody",
+              "TextBlock"
+            ]
+          },
+          {
+            "requirement": "漠河天气预警信息",
+            "priority": "must",
+            "dataId": "/data/weather/current/alertLevel",
+            "componentHints": [
+              "SecondaryBody",
+              "TextBlock"
+            ]
+          },
+          {
+            "requirement": "漠河感冒指数",
+            "priority": "must",
+            "dataId": "/data/weather/current/coldLevel",
+            "componentHints": [
+              "SecondaryBody",
+              "TextBlock"
+            ]
+          },
+          {
+            "requirement": "手机剩余电量",
+            "priority": "must",
+            "dataId": "/data/phoneBattery/batterySOCText",
+            "componentHints": [
+              "InfoBlock",
+              "EmphasisText"
+            ]
+          },
+          {
+            "requirement": "手机充电状态",
+            "priority": "must",
+            "dataId": "/data/phoneBattery/chargingStatusDesc",
+            "componentHints": [
+              "SecondaryBody",
+              "TextBlock"
+            ]
+          },
+          {
+            "requirement": "电池温度",
+            "priority": "must",
+            "dataId": "/data/phoneBattery/batteryTemperatureText",
+            "componentHints": [
+              "SecondaryBody",
+              "TextBlock"
+            ]
+          },
+          {
+            "requirement": "充电器类型",
+            "priority": "must",
+            "dataId": "/data/phoneBattery/pluggedTypeDesc",
+            "componentHints": [
+              "SecondaryBody",
+              "TextBlock"
+            ]
+          },
+          {
+            "requirement": "点击查看漠河天气详情",
+            "priority": "must",
+            "actionId": "event.open.weather",
+            "componentHints": [
+              "CardButton",
+              "PillButton"
+            ]
+          },
+          {
+            "requirement": "点击打开电池设置",
+            "priority": "must",
+            "actionId": "event.open.settings.battery",
+            "componentHints": [
+              "CardButton",
+              "PillButton"
+            ]
+          }
+        ],
+        "layoutHints": [
+          "W-split-panels",
+          "W-content-side-slots"
+        ],
+        "assetAssignments": {
+          "actions": [
+            {
+              "actionId": "event.open.weather",
+              "assetId": "asset.ic_weather_color",
+              "reason": "天气图标与天气详情入口语义匹配"
+            },
+            {
+              "actionId": "event.open.settings.battery",
+              "assetId": "asset.battery_leaf_fill",
+              "reason": "电池图标与电池设置入口语义匹配"
+            }
+          ],
+          "title": {
+            "assetId": null,
+            "reason": "两个候选素材已分别分配给两个动作按钮，无剩余匹配标题图标"
+          }
+        }
+      },
+      "issues": [
+        {
+          "stage": "validation",
+          "code": "COMPACT_DSL_VALIDATION_FAILED",
+          "message": "component left_body: SecondaryBody is auxiliary and cannot be the only information component in the card; pair it with a core information component somewhere in the card. Titles, buttons and other SecondaryBody instances do not count."
+        },
+        {
+          "stage": "validation",
+          "code": "COMPACT_DSL_VALIDATION_FAILED",
+          "message": "component right_body: SecondaryBody is auxiliary and cannot be the only information component in the card; pair it with a core information component somewhere in the card. Titles, buttons and other SecondaryBody instances do not count."
+        }
+      ],
+      "logLine": 3489
+    },
+    {
+      "sampleId": "Q084",
+      "size": "2x2",
+      "dsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-content\"},[\"title\",\"content\"]]\n[\"title\",\"SingleLineTitle\",{\"title\":\"天气\",\"icon\":\"resources/base/media/ic_weather_color.svg\",\"fontSize\":12}]\n[\"content\",\"Group\",{\"variant\":\"supporting-items\"},[\"content_temperature\",\"content_detail_1\"]]\n[\"content_temperature\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/weather/current/temperatureText\"},\"secondaryText\":{\"path\":\"/data/weather/current/condition\"},\"fontSize\":18}]\n[\"content_detail_1\",\"SecondaryBody\",{\"items\":[{\"label\":\"体感\",\"value\":\"{{ ${/data/weather/current/feelsLikeC} + '℃' }}\"},{\"label\":\"湿度\",\"value\":\"{{ ${/data/weather/current/humidityPercent} + '%' }}\"},{\"label\":\"空气质量\",\"value\":{\"path\":\"/data/weather/current/airQuality\"}},{\"label\":\"紫外线\",\"value\":{\"path\":\"/data/weather/current/uvIndex\"}},{\"label\":\"风向风力\",\"value\":\"{{ ${/data/weather/current/windDirection} + ' ' + ${/data/weather/current/windLevel} + '级' }}\"},{\"label\":\"降雨概率\",\"value\":\"{{ ${/data/weather/daily/0/rainProbabilityPercent} + '%' }}\"}],\"columns\":2,\"fontSize\":12}]\n[\"/data/weather/current/temperatureText\",\"29℃\"]\n[\"/data/weather/current/condition\",\"多云\"]\n[\"/data/weather/current/feelsLikeC\",31]\n[\"/data/weather/current/humidityPercent\",68]\n[\"/data/weather/current/airQuality\",\"良\"]\n[\"/data/weather/current/uvIndex\",\"中等\"]\n[\"/data/weather/current/windDirection\",\"东南风\"]\n[\"/data/weather/current/windLevel\",2]\n[\"/data/weather/daily/0/rainProbabilityPercent\",20]",
+      "plan": {
+        "info_required": [
+          {
+            "requirement": "当前天气现象",
+            "priority": "must",
+            "dataId": "/data/weather/current/condition",
+            "componentHints": [
+              "EmphasisText",
+              "InfoBlock",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "当前温度",
+            "priority": "must",
+            "dataId": "/data/weather/current/temperatureText",
+            "componentHints": [
+              "EmphasisText",
+              "InfoBlock",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "体感温度",
+            "priority": "must",
+            "dataId": "/data/weather/current/feelsLikeC",
+            "componentHints": [
+              "SecondaryBody",
+              "TableText"
+            ]
+          },
+          {
+            "requirement": "相对湿度",
+            "priority": "must",
+            "dataId": "/data/weather/current/humidityPercent",
+            "componentHints": [
+              "SecondaryBody",
+              "TableText"
+            ]
+          },
+          {
+            "requirement": "空气质量等级",
+            "priority": "must",
+            "dataId": "/data/weather/current/airQuality",
+            "componentHints": [
+              "SecondaryBody",
+              "TableText"
+            ]
+          },
+          {
+            "requirement": "紫外线等级",
+            "priority": "must",
+            "dataId": "/data/weather/current/uvIndex",
+            "componentHints": [
+              "SecondaryBody",
+              "TableText"
+            ]
+          },
+          {
+            "requirement": "风向",
+            "priority": "must",
+            "dataId": "/data/weather/current/windDirection",
+            "componentHints": [
+              "SecondaryBody",
+              "TableText"
+            ]
+          },
+          {
+            "requirement": "风力等级",
+            "priority": "must",
+            "dataId": "/data/weather/current/windLevel",
+            "componentHints": [
+              "SecondaryBody",
+              "TableText"
+            ]
+          },
+          {
+            "requirement": "降雨概率",
+            "priority": "must",
+            "dataId": "/data/weather/daily/0/rainProbabilityPercent",
+            "componentHints": [
+              "SecondaryBody",
+              "TableText"
+            ]
+          }
+        ],
+        "layoutHints": [
+          "S-title-dual-content",
+          "S-title-content"
+        ],
+        "assetAssignments": {
+          "actions": [],
+          "title": {
+            "assetId": "asset.ic_weather_color",
+            "reason": "天气主题标题图标，未被其它内容使用"
+          }
+        }
+      },
+      "issues": [
+        {
+          "stage": "validation",
+          "code": "COMPACT_DSL_VALIDATION_FAILED",
+          "message": "component root: vertical layout requires at least 146vp within 126vp; it overflows by 20vp. Regroup facts or choose a layout with enough body space; preserve required text, actions, font sizes and fixed design heights. Weight, clipping, flex shrink and distributed alignment cannot eliminate content height. Occupancy: title=20vp+margin(0vp), __layout__root__content=120vp+margin(0vp), gaps=6vp."
+        },
+        {
+          "stage": "validation",
+          "code": "COMPACT_DSL_VALIDATION_FAILED",
+          "message": "component __layout__root__content: vertical layout requires at least 120vp within 100vp; it overflows by 20vp. Regroup facts or choose a layout with enough body space; preserve required text, actions, font sizes and fixed design heights. Weight, clipping, flex shrink and distributed alignment cannot eliminate content height. Occupancy: content=120vp+margin(0vp), gaps=0vp."
+        }
+      ],
+      "logLine": 6330
+    },
+    {
+      "sampleId": "Q109",
+      "size": "2x4",
+      "dsl": "[\"root\",\"Layout\",{\"layout\":\"W-split-panels\"},[\"left\",\"right\"]]\n[\"left_title\",\"SingleLineTitle\",{\"title\":\"杭州2天1晚秋日漫游\",\"icon\":\"resources/base/media/ic_calender.svg\",\"fontSize\":12}]\n[\"left_body\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/countdown/countdownDays\"},\"secondaryText\":\"距离出发还有\",\"fontSize\":18}]\n[\"left\",\"Region\",{\"variant\":\"title-content\"},[\"left_title\",\"left_body\"]]\n[\"right_title\",\"SingleLineTitle\",{\"title\":\"Day2\",\"fontSize\":12}]\n[\"right_body\",\"SecondaryBody\",{\"columns\":1,\"items\":[{\"value\":\"Day1：09:00-11:30灵隐寺祈福\"},{\"value\":\"11:30-13:00知竹素菜馆午餐\"},{\"value\":\"13:30-16:30浙江省博物馆新馆\"},{\"value\":\"17:00-19:00清河坊历史文化街区\"},{\"value\":\"19:00赵府私厨晚餐\"},{\"value\":\"入住如家商旅酒店\"}],\"fontSize\":12}]\n[\"right\",\"Region\",{\"variant\":\"title-content\"},[\"right_title\",\"right_body\"]]\n[\"/data/countdown/countdownDays\",30]",
+      "plan": {
+        "info_required": [
+          {
+            "requirement": "距离2026年10月17日出发的倒计时天数",
+            "priority": "must",
+            "dataId": "/data/countdown/countdownDays",
+            "componentHints": [
+              "EmphasisText",
+              "SingleLineTitle"
+            ]
+          },
+          {
+            "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+            "priority": "must",
+            "text": "Day1：09:00-11:30灵隐寺祈福",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day1 11:30-13:00 知竹素菜馆午餐",
+            "priority": "must",
+            "text": "11:30-13:00知竹素菜馆午餐",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day1 13:30-16:30 浙江省博物馆新馆",
+            "priority": "must",
+            "text": "13:30-16:30浙江省博物馆新馆",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day1 17:00-19:00 清河坊历史文化街区",
+            "priority": "must",
+            "text": "17:00-19:00清河坊历史文化街区",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day1 19:00 赵府私厨晚餐",
+            "priority": "must",
+            "text": "19:00赵府私厨晚餐",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day1 入住如家商旅酒店",
+            "priority": "must",
+            "text": "入住如家商旅酒店",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day2 09:30-11:30 小河直街",
+            "priority": "must",
+            "text": "Day2：09:30-11:30小河直街",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day2 11:30-13:00 胜利河美食街午餐",
+            "priority": "must",
+            "text": "11:30-13:00胜利河美食街午餐",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day2 13:30-15:30 拱宸桥桥西直街",
+            "priority": "must",
+            "text": "13:30-15:30拱宸桥桥西直街",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          },
+          {
+            "requirement": "Day2 15:30 返程",
+            "priority": "must",
+            "text": "15:30返程",
+            "componentHints": [
+              "SummaryList",
+              "SecondaryBody"
+            ]
+          }
+        ],
+        "layoutHints": [
+          "W-split-panels",
+          "W-top-bottom"
+        ],
+        "assetAssignments": {
+          "actions": [],
+          "title": {
+            "assetId": "asset.ic_calender",
+            "reason": "日历图标语义匹配行程与倒计时日程主题"
+          }
+        }
+      },
+      "issues": [
+        {
+          "stage": "validation",
+          "code": "COMPACT_DSL_VALIDATION_FAILED",
+          "message": "component right: vertical layout requires at least 148vp within 110vp; it overflows by 38vp. Regroup facts or choose a layout with enough body space; preserve required text, actions, font sizes and fixed design heights. Weight, clipping, flex shrink and distributed alignment cannot eliminate content height. Occupancy: __layout__right__sub=148vp+margin(0vp), gaps=0vp."
+        },
+        {
+          "stage": "validation",
+          "code": "COMPACT_DSL_VALIDATION_FAILED",
+          "message": "component __layout__right__sub: vertical layout requires at least 148vp within 110vp; it overflows by 38vp. Regroup facts or choose a layout with enough body space; preserve required text, actions, font sizes and fixed design heights. Weight, clipping, flex shrink and distributed alignment cannot eliminate content height. Occupancy: right_title=12vp+margin(0vp), __layout__right__body=130vp+margin(0vp), gaps=6vp."
+        },
+        {
+          "stage": "validation",
+          "code": "COMPACT_DSL_VALIDATION_FAILED",
+          "message": "component __layout__right__body: vertical layout requires at least 130vp within 92vp; it overflows by 38vp. Regroup facts or choose a layout with enough body space; preserve required text, actions, font sizes and fixed design heights. Weight, clipping, flex shrink and distributed alignment cannot eliminate content height. Occupancy: right_body=130vp+margin(0vp), gaps=0vp."
+        }
+      ],
+      "logLine": 7968
+    }
+  ],
+  "modelVerification": {
+    "runId": "batch_20261025_175449_c1e4f208",
+    "cases": [
+      {
+        "sampleId": "Q043",
+        "dsl": "[\"root\",\"Layout\",{\"layout\":\"W-split-panels\"},[\"left\",\"right\"]]\n\n[\"left\",\"Region\",{\"variant\":\"title-content-action\"},[\"left_title\",\"left_body\",\"left_action\"]]\n\n[\"left_title\",\"SingleLineTitle\",{\"title\":\"漠河天气\",\"fontSize\":12}]\n\n[\"left_body\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/weather/current/temperatureText\"},\"secondaryText\":{\"path\":\"/data/weather/current/condition\"},\"fontSize\":18}]\n\n[\"left_action\",\"PillButton\",{\"label\":\"查看天气详情\",\"icon\":\"resources/base/media/ic_weather_color.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Weather_CityCode\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}\"}}]}]\n\n[\"right\",\"Region\",{\"variant\":\"title-content-action\"},[\"right_title\",\"right_body\",\"right_action\"]]\n\n[\"right_title\",\"SingleLineTitle\",{\"title\":\"手机电池\",\"fontSize\":12}]\n\n[\"right_body\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/phoneBattery/batterySOCText\"},\"secondaryText\":{\"path\":\"/data/phoneBattery/chargingStatusDesc\"},\"fontSize\":18}]\n\n[\"right_action\",\"PillButton\",{\"label\":\"电池设置\",\"icon\":\"resources/base/media/battery_leaf_fill.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Settings\",\"bundleName\":\"com.huawei.hmos.settings\",\"abilityName\":\"com.huawei.hmos.settings.MainAbility\",\"uri\":\"battery\"}}]}]\n\n[\"/data/weather/location/cityCode\",\"60814\"]\n\n[\"/data/weather/current/temperatureText\",\"29℃\"]\n\n[\"/data/weather/current/condition\",\"多云\"]\n\n[\"/data/weather/current/feelsLikeC\",31]\n\n[\"/data/weather/current/windLevel\",2]\n\n[\"/data/weather/current/alertLevel\",\"大风蓝色预警\"]\n\n[\"/data/weather/current/coldLevel\",\"低\"]\n\n[\"/data/phoneBattery/batterySOCText\",\"68%\"]\n\n[\"/data/phoneBattery/chargingStatusDesc\",\"未充电\"]\n\n[\"/data/phoneBattery/batteryTemperatureText\",\"29.0 ℃\"]\n\n[\"/data/phoneBattery/pluggedTypeDesc\",\"未连接充电器\"]",
+        "plan": {
+          "info_required": [
+            {
+              "requirement": "漠河当前温度",
+              "priority": "must",
+              "dataId": "/data/weather/current/temperatureText",
+              "componentHints": [
+                "EmphasisText",
+                "EmphasizedData"
+              ]
+            },
+            {
+              "requirement": "漠河当前天气现象",
+              "priority": "must",
+              "dataId": "/data/weather/current/condition",
+              "componentHints": [
+                "EmphasisText",
+                "SecondaryBody"
+              ]
+            },
+            {
+              "requirement": "漠河当前体感温度（数值，需追加℃）",
+              "priority": "must",
+              "dataId": "/data/weather/current/feelsLikeC",
+              "componentHints": [
+                "SecondaryBody",
+                "TextBlock"
+              ]
+            },
+            {
+              "requirement": "漠河当前风力等级（整数，需追加级）",
+              "priority": "must",
+              "dataId": "/data/weather/current/windLevel",
+              "componentHints": [
+                "SecondaryBody",
+                "TextBlock"
+              ]
+            },
+            {
+              "requirement": "漠河天气预警信息",
+              "priority": "must",
+              "dataId": "/data/weather/current/alertLevel",
+              "componentHints": [
+                "SecondaryBody",
+                "TextBlock"
+              ]
+            },
+            {
+              "requirement": "漠河感冒风险等级",
+              "priority": "must",
+              "dataId": "/data/weather/current/coldLevel",
+              "componentHints": [
+                "SecondaryBody",
+                "TextBlock"
+              ]
+            },
+            {
+              "requirement": "点击查看漠河天气详情",
+              "priority": "must",
+              "actionId": "event.open.weather",
+              "componentHints": [
+                "PillButton",
+                "CardButton"
+              ]
+            },
+            {
+              "requirement": "手机剩余电量",
+              "priority": "must",
+              "dataId": "/data/phoneBattery/batterySOCText",
+              "componentHints": [
+                "InfoBlock",
+                "ProgressCircleSingle"
+              ]
+            },
+            {
+              "requirement": "手机充电状态",
+              "priority": "must",
+              "dataId": "/data/phoneBattery/chargingStatusDesc",
+              "componentHints": [
+                "InfoBlock",
+                "SecondaryBody"
+              ]
+            },
+            {
+              "requirement": "手机电池温度",
+              "priority": "must",
+              "dataId": "/data/phoneBattery/batteryTemperatureText",
+              "componentHints": [
+                "SecondaryBody",
+                "InfoBlock"
+              ]
+            },
+            {
+              "requirement": "充电器类型",
+              "priority": "must",
+              "dataId": "/data/phoneBattery/pluggedTypeDesc",
+              "componentHints": [
+                "SecondaryBody",
+                "InfoBlock"
+              ]
+            },
+            {
+              "requirement": "点击打开电池设置",
+              "priority": "must",
+              "actionId": "event.open.settings.battery",
+              "componentHints": [
+                "CardButton",
+                "PillButton"
+              ]
+            }
+          ],
+          "layoutHints": [
+            "W-split-panels",
+            "W-content-side-slots"
+          ],
+          "assetAssignments": {
+            "actions": [
+              {
+                "actionId": "event.open.weather",
+                "assetId": "asset.ic_weather_color",
+                "reason": "天气详情入口，天气主题图标语义匹配"
+              },
+              {
+                "actionId": "event.open.settings.battery",
+                "assetId": "asset.battery_leaf_fill",
+                "reason": "电池设置入口，电池图标语义匹配"
+              }
+            ],
+            "title": {
+              "assetId": null,
+              "reason": "标题使用漠河地名，素材候选仅有天气与电池图标且均已分配给动作，无剩余匹配素材"
+            }
+          }
+        },
+        "taskSpec": {
+          "userQuery": "去黑龙江漠河拍摄，查看漠河当前天气、体感温度、风力、天气预警和感冒风险，查看手机剩余电量、充电状态、电池温度和充电器类型，点击可查看漠河天气详情，点击可打开电池设置，卡片规格为2x4",
+          "size": "2x4",
+          "appVersion": "11.9.9.300",
+          "eventCandidates": [
+            {
+              "id": "event.open.weather",
+              "description": "打开手机天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。",
+              "call": "clickToDeeplink",
+              "args": {
+                "intentName": "Weather_CityCode",
+                "bundleName": "",
+                "abilityName": "",
+                "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+              }
+            },
+            {
+              "id": "event.open.settings.battery",
+              "description": "打开系统设置中的电池页",
+              "call": "clickToDeeplink",
+              "args": {
+                "intentName": "Settings",
+                "bundleName": "com.huawei.hmos.settings",
+                "abilityName": "com.huawei.hmos.settings.MainAbility",
+                "uri": "battery"
+              }
+            }
+          ],
+          "dataModelSchema": {
+            "data": {
+              "weather": {
+                "current": {
+                  "alertLevel": {
+                    "type": "string",
+                    "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+                    "sampleValue": "大风蓝色预警"
+                  },
+                  "coldLevel": {
+                    "type": "string",
+                    "description": "感冒指数。",
+                    "sampleValue": "低"
+                  },
+                  "condition": {
+                    "type": "string",
+                    "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                    "sampleValue": "多云"
+                  },
+                  "feelsLikeC": {
+                    "type": "number",
+                    "description": "当前体感温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”。",
+                    "sampleValue": 31
+                  },
+                  "temperatureText": {
+                    "type": "string",
+                    "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                    "sampleValue": "29℃"
+                  },
+                  "windLevel": {
+                    "type": "integer",
+                    "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+                    "sampleValue": 2
+                  }
+                },
+                "daily": [
+                  {
+                    "condition": {
+                      "type": "string",
+                      "description": "白天天气现象，来源于weather_icon。",
+                      "sampleValue": "多云"
+                    },
+                    "date": {
+                      "type": "string",
+                      "description": "预报日期，来源于 day_time。",
+                      "sampleValue": "2026-08-06"
+                    },
+                    "temperatureRangeText": {
+                      "type": "string",
+                      "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                      "sampleValue": "25℃ / 32℃"
+                    },
+                    "weekday": {
+                      "type": "string",
+                      "description": "星期文本，例如“星期日”。",
+                      "sampleValue": "星期四"
+                    }
+                  }
+                ],
+                "location": {
+                  "cityCode": {
+                    "type": "string",
+                    "description": "城市代码，如60814代表青浦区",
+                    "sampleValue": "60814"
+                  }
+                }
+              },
+              "phoneBattery": {
+                "batteryCapacityLevelDesc": {
+                  "type": "string",
+                  "description": "设备电池电量等级的语义化文本描述。",
+                  "sampleValue": "正常电量"
+                },
+                "batterySOCText": {
+                  "type": "string",
+                  "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
+                  "sampleValue": "68%"
+                },
+                "batteryTemperatureText": {
+                  "type": "string",
+                  "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+                  "sampleValue": "29.0 ℃"
+                },
+                "chargingStatusDesc": {
+                  "type": "string",
+                  "description": "当前设备电池的充电状态文本描述。",
+                  "sampleValue": "未充电"
+                },
+                "pluggedTypeDesc": {
+                  "type": "string",
+                  "description": "当前设备连接的充电器类型文本描述。",
+                  "sampleValue": "未连接充电器"
+                }
+              }
+            }
+          },
+          "assetCandidates": [
+            {
+              "id": "asset.ic_weather_color",
+              "src": "resources/base/media/ic_weather_color.svg",
+              "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。"
+            },
+            {
+              "id": "asset.battery_leaf_fill",
+              "src": "resources/base/media/battery_leaf_fill.svg",
+              "description": "样式：默认黑色的单色实心横向电池图标，电池内部为叶片留白；适用：电池相关场景，包括电量、省电模式、节能电池、绿色用电状态，也可作为电池健康或电池温度信息的辅助图标，相关数据可结合 GetPhoneBatteryInfo 展示。图标本身不表示具体电量、健康等级或温度高低。"
+            },
+            {
+              "id": "photo-ux-texture-blue-diagonal-wide",
+              "src": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/6a71f1c343e144e68f443f4fbacbf752/11e22e7d231a461dae766e1a9dfedaa1.jpg",
+              "description": "主题背景"
+            }
+          ]
+        },
+        "expectedMissing": 6
+      },
+      {
+        "sampleId": "Q084",
+        "dsl": "[\"root\",\"Layout\",{\"layout\":\"S-title-dual-content\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"abilityName\":\"\",\"bundleName\":\"\",\"intentName\":\"Weather_CityCode\",\"uri\":\"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}\"}}]},[\"title\",\"primary\",\"support\"]]\n\n[\"title\",\"SingleLineTitle\",{\"title\":\"天气详情\",\"fontSize\":12}]\n\n[\"primary\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/weather/current/temperatureText\"},\"fontSize\":18}]\n\n[\"support\",\"SecondaryBody\",{\"items\":[{\"label\":\"体感\",\"value\":\"{{ ${/data/weather/current/feelsLikeC} + '℃' }}\"},{\"label\":\"湿度\",\"value\":\"{{ ${/data/weather/current/humidityPercent} + '%' }}\"},{\"label\":\"空气质量\",\"value\":{\"path\":\"/data/weather/current/airQuality\"}},{\"label\":\"紫外线\",\"value\":{\"path\":\"/data/weather/current/uvIndex\"}},{\"label\":\"风力\",\"value\":\"{{ ${/data/weather/current/windDirection} + ' ' + ${/data/weather/current/windLevel} + '级' }}\"},{\"label\":\"降雨概率\",\"value\":\"{{ ${/data/weather/daily/0/rainProbabilityPercent} + '%' }}\"}],\"fontSize\":12}]\n\n[\"/data/weather/current/temperatureText\",\"29℃\"]\n\n[\"/data/weather/current/feelsLikeC\",31]\n\n[\"/data/weather/current/humidityPercent\",68]\n\n[\"/data/weather/current/airQuality\",\"良\"]\n\n[\"/data/weather/current/uvIndex\",\"中等\"]\n\n[\"/data/weather/current/windDirection\",\"东南风\"]\n\n[\"/data/weather/current/windLevel\",2]\n\n[\"/data/weather/daily/0/rainProbabilityPercent\",20]\n\n[\"/data/weather/location/cityCode\",\"60814\"]",
+        "plan": {
+          "info_required": [
+            {
+              "requirement": "当前温度文本（含℃）",
+              "priority": "must",
+              "dataId": "/data/weather/current/temperatureText",
+              "componentHints": [
+                "EmphasisText",
+                "EmphasizedData"
+              ]
+            },
+            {
+              "requirement": "体感温度数值，需追加℃",
+              "priority": "must",
+              "dataId": "/data/weather/current/feelsLikeC",
+              "componentHints": [
+                "SecondaryBody",
+                "TableText"
+              ]
+            },
+            {
+              "requirement": "相对湿度百分比，需追加%",
+              "priority": "must",
+              "dataId": "/data/weather/current/humidityPercent",
+              "componentHints": [
+                "SecondaryBody",
+                "TableText"
+              ]
+            },
+            {
+              "requirement": "空气质量等级",
+              "priority": "must",
+              "dataId": "/data/weather/current/airQuality",
+              "componentHints": [
+                "SecondaryBody",
+                "TableText"
+              ]
+            },
+            {
+              "requirement": "紫外线等级",
+              "priority": "must",
+              "dataId": "/data/weather/current/uvIndex",
+              "componentHints": [
+                "SecondaryBody",
+                "TableText"
+              ]
+            },
+            {
+              "requirement": "风向与风力等级，风力需追加级",
+              "priority": "must",
+              "dataId": "/data/weather/current/windDirection",
+              "componentHints": [
+                "SecondaryBody",
+                "TableText"
+              ]
+            },
+            {
+              "requirement": "白天降雨概率，需追加%",
+              "priority": "must",
+              "dataId": "/data/weather/daily/0/rainProbabilityPercent",
+              "componentHints": [
+                "SecondaryBody",
+                "TableText"
+              ]
+            },
+            {
+              "requirement": "打开天气应用该城市天气页",
+              "priority": "must",
+              "actionId": "event.open.weather",
+              "componentHints": [
+                "PillButton",
+                "CardButton"
+              ]
+            }
+          ],
+          "layoutHints": [
+            "S-title-dual-content",
+            "S-title-content"
+          ],
+          "assetAssignments": {
+            "actions": [
+              {
+                "actionId": "event.open.weather",
+                "assetId": "asset.ic_weather_color",
+                "reason": "天气详情入口使用天气主题图标"
+              }
+            ],
+            "title": {
+              "assetId": "asset.ic_purification",
+              "reason": "标题为天气卡片，使用空气质量主题叶片图标"
+            }
+          }
+        },
+        "taskSpec": {
+          "userQuery": "在国庆风格的天气卡片上增加更多的天气信息，包括体感温度、湿度、空气质量、紫外线、风向风力、降雨概率等",
+          "size": "2x2",
+          "appVersion": "11.7.8.320",
+          "eventCandidates": [
+            {
+              "id": "event.open.weather",
+              "description": "打开手机天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。",
+              "call": "clickToDeeplink",
+              "args": {
+                "abilityName": "",
+                "bundleName": "",
+                "intentName": "Weather_CityCode",
+                "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+              }
+            }
+          ],
+          "dataModelSchema": {
+            "data": {
+              "weather": {
+                "current": {
+                  "airQuality": {
+                    "type": "string",
+                    "description": "当前空气质量等级，例如“优”“良”。",
+                    "sampleValue": "良"
+                  },
+                  "coldLevel": {
+                    "type": "string",
+                    "description": "感冒指数。",
+                    "sampleValue": "低"
+                  },
+                  "condition": {
+                    "type": "string",
+                    "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                    "sampleValue": "多云"
+                  },
+                  "feelsLikeC": {
+                    "type": "number",
+                    "description": "当前体感温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”。",
+                    "sampleValue": 31
+                  },
+                  "humidityPercent": {
+                    "type": "number",
+                    "description": "当前相对湿度的纯数值百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+                    "sampleValue": 68
+                  },
+                  "temperatureText": {
+                    "type": "string",
+                    "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                    "sampleValue": "29℃"
+                  },
+                  "uvIndex": {
+                    "type": "string",
+                    "description": "当前紫外线等级，例如“弱”“中等”“强”。",
+                    "sampleValue": "中等"
+                  },
+                  "windDirection": {
+                    "type": "string",
+                    "description": "当前风向。",
+                    "sampleValue": "东南风"
+                  },
+                  "windLevel": {
+                    "type": "integer",
+                    "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+                    "sampleValue": 2
+                  }
+                },
+                "daily": [
+                  {
+                    "airQuality": {
+                      "type": "string",
+                      "description": "当天空气质量等级。",
+                      "sampleValue": "良"
+                    },
+                    "condition": {
+                      "type": "string",
+                      "description": "白天天气现象，来源于weather_icon。",
+                      "sampleValue": "多云"
+                    },
+                    "date": {
+                      "type": "string",
+                      "description": "预报日期，来源于 day_time。",
+                      "sampleValue": "2026-08-06"
+                    },
+                    "rainProbabilityPercent": {
+                      "type": "number",
+                      "description": "白天降雨概率的百分数数值，返回值不包含单位，例如 20 表示 20%；文本展示必须追加一个“%”，进度组件直接使用数值。",
+                      "sampleValue": 20
+                    },
+                    "temperatureRangeText": {
+                      "type": "string",
+                      "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                      "sampleValue": "25℃ / 32℃"
+                    },
+                    "uvIndex": {
+                      "type": "string",
+                      "description": "当天紫外线等级。",
+                      "sampleValue": "中等"
+                    },
+                    "weekday": {
+                      "type": "string",
+                      "description": "星期文本，例如“星期日”。",
+                      "sampleValue": "星期四"
+                    }
+                  }
+                ],
+                "location": {
+                  "cityCode": {
+                    "type": "string",
+                    "description": "城市代码，如60814代表青浦区",
+                    "sampleValue": "60814"
+                  }
+                }
+              }
+            }
+          },
+          "assetCandidates": [
+            {
+              "id": "asset.ic_weather_color",
+              "src": "resources/base/media/ic_weather_color.svg",
+              "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。"
+            },
+            {
+              "id": "asset.ic_uv_color",
+              "src": "resources/base/media/ic_uv_color.svg",
+              "description": "样式：浅黄色到浅橙色渐变的太阳图标，中心带 UV 字样和放射光线，原始尺寸为 24×24，SVG 矢量图（保留原色，禁止染色）保留原始渐变配色；适用：天气卡片中展示 ViewWeather 的 current.uvIndex 或 daily.uvIndex 紫外线等级，可作为紫外线指标的辅助图标。图标颜色不代表具体紫外线等级，等级仍以数据字段和文字为准。"
+            },
+            {
+              "id": "asset.ic_purification",
+              "src": "resources/base/media/ic_purification.svg",
+              "description": "样式：默认黑色的单色实心净化叶片图标，主体为向上舒展的叶片轮廓；适用：天气卡片中的空气质量指标，可结合 ViewWeather 的 current.airQuality 或 daily.airQuality 展示，也可与 event.open.weather 组成天气详情入口。图标仅表示空气质量主题，不代表具体空气质量等级、污染程度或空气净化器正在运行。"
+            },
+            {
+              "id": "asset.icon_weather_wind",
+              "src": "resources/base/media/icon_weather_wind.svg",
+              "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。"
+            },
+            {
+              "id": "asset.icon_weather_thermometer_medium",
+              "src": "resources/base/media/icon_weather_thermometer_medium.svg",
+              "description": "样式：黑色的温度计图标，内部温度柱处于中档，管身右侧带三组刻度；适用：中等温度、舒适温度区间、当前气温或温度等级。"
+            },
+            {
+              "id": "asset.drop_1",
+              "src": "resources/base/media/drop_1.svg",
+              "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。"
+            }
+          ]
+        },
+        "expectedMissing": 0
+      },
+      {
+        "sampleId": "Q109",
+        "dsl": "[\"root\",\"Layout\",{\"layout\":\"W-top-bottom\",\"variant\":\"continuous\"},[\"primary\",\"details\"]]\n\n[\"primary\",\"EmphasisText\",{\"mainText\":\"{{ '距离出发还有 ' + ${/data/countdown/countdownDays} + ' 天' }}\",\"fontSize\":18}]\n\n[\"details\",\"SummaryList\",{\"items\":[\"09:00-11:30灵隐寺祈福\",\"11:30-13:00知竹素菜馆午餐\",\"13:30-16:30浙江省博物馆新馆\"]}]\n\n[\"/data/countdown/countdownDays\",30]",
+        "plan": {
+          "info_required": [
+            {
+              "requirement": "距离2026年10月17日出发的倒计时天数",
+              "priority": "must",
+              "dataId": "/data/countdown/countdownDays",
+              "componentHints": [
+                "EmphasisText",
+                "SingleLineTitle"
+              ]
+            },
+            {
+              "requirement": "Day1 09:00-11:30 灵隐寺祈福",
+              "priority": "must",
+              "text": "09:00-11:30灵隐寺祈福",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day1 11:30-13:00 知竹素菜馆午餐",
+              "priority": "must",
+              "text": "11:30-13:00知竹素菜馆午餐",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day1 13:30-16:30 浙江省博物馆新馆",
+              "priority": "must",
+              "text": "13:30-16:30浙江省博物馆新馆",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day1 17:00-19:00 清河坊历史文化街区",
+              "priority": "must",
+              "text": "17:00-19:00清河坊历史文化街区",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day1 19:00 赵府私厨晚餐",
+              "priority": "must",
+              "text": "19:00赵府私厨晚餐",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day1 入住如家商旅酒店",
+              "priority": "must",
+              "text": "入住如家商旅酒店",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day2 09:30-11:30 小河直街",
+              "priority": "must",
+              "text": "09:30-11:30小河直街",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day2 11:30-13:00 胜利河美食街午餐",
+              "priority": "must",
+              "text": "11:30-13:00胜利河美食街午餐",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            },
+            {
+              "requirement": "Day2 13:30-15:30 拱宸桥桥西直街",
+              "priority": "must",
+              "text": "13:30-15:30拱宸桥桥西直街",
+              "componentHints": [
+                "EventCard",
+                "SummaryList"
+              ]
+            }
+          ],
+          "layoutHints": [
+            "W-top-bottom"
+          ],
+          "assetAssignments": {
+            "actions": [],
+            "title": {
+              "assetId": "asset.ic_calender",
+              "reason": "日历图标语义匹配日期倒计时与行程概览"
+            }
+          }
+        },
+        "taskSpec": {
+          "userQuery": "将杭州2天1晚秋日漫游完整行程生成一张大尺寸桌面卡片，每一天包含具体的时间分配。Day1：09:00-11:30灵隐寺祈福、11:30-13:00知竹素菜馆午餐、13:30-16:30浙江省博物馆新馆、17:00-19:00清河坊历史文化街区、19:00赵府私厨晚餐、入住如家商旅酒店；Day2：09:30-11:30小河直街、11:30-13:00胜利河美食街午餐、13:30-15:30拱宸桥桥西直街、15:30返程。目标日期2026年10月17日，使用GetCountdownDays数据能力展示距离出发的倒计时天数。",
+          "size": "2x4",
+          "appVersion": "11.7.8.339",
+          "eventCandidates": [],
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "type": "integer",
+                  "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+                  "sampleValue": 30
+                }
+              }
+            }
+          },
+          "assetCandidates": [
+            {
+              "id": "asset.ic_calender",
+              "src": "resources/base/media/ic_calender.svg",
+              "description": "样式：黄色到橙色渐变的日历图标，带顶部装订环、分隔栏与日期圆点，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：日程概览、近期日历事项或日期倒计时卡片，可结合 GetCalendarEvents 展示日程，也可结合 GetCountdownDays 展示目标日期倒计时，并可作为 event.viewCalendarEvent 的辅助入口图标。图标不表示存在日程、日程已完成或倒计时具体天数。"
+            },
+            {
+              "id": "photo-ux-gradient-wide",
+              "src": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/55da5dff89014002b0daac98b9e6c12d/a30904689c3248a9b2e68b4bbbbf5879.jpg",
+              "description": "主题背景"
+            }
+          ]
+        },
+        "expectedMissing": 6
+      }
+    ]
+  }
+}
