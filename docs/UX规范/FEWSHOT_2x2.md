@@ -1,32 +1,15 @@
 # 2x2 Few-shot
 
-示例中的图标位置不可迁移到普通内容行：内容区仅允许环中心或 S4 双对象分区主视觉图标，其他内容不生成 Image，L/R/盒 Text 标识保留。S4 包括同类双对象，如两个城市天气，并且必须完整生成上下两个 `134×63vp` 分区；单对象绝对禁止仿照 V05 生成单个分区。有语义准确且状态安全的候选素材时，每个天气区可放 1 个主视觉图标（可复用 src，分别计数），不是给温度、日期等文字逐行配图，按钮及标题不再配图标。V05 的环只适用于具有明确 0-100 比例语义的电量，不得迁移到温度、时间、时长、倒计时或普通数值；两座城市天气禁止使用进度环。用户明确指定图标的例外仍按主提示词执行。
+配套规范：[通用卡片 UX 规范](UX-SPEC.md)。本文件按原有“示例说明 → user → assistant”格式，同步当前 Fusion 完整案例，不再使用旧单步走的自由基础组件案例。
 
-示例中的数据路径、事件和素材候选取自能力清单；真实输出只能使用当前 TaskSpec 实际提供的 path、icon 和 onClick。示例用于参考布局，浅色示例使用同色相微渐变、80% 白色内容背板和同色相 60% 透明度辅助文字；背景选择、业务映射及内容配色统一遵循 PROMPT.md 第十二节；用户明确配色要求优先，未指定时不得沿用旧纯色和同色背板或自由取色。融球示例仅在本次尺寸、业务、密度和运行时条件均满足时使用，否则按主业务切换到对应浅色微渐变及配套内容色。
+**来源版本：2026-10-23，main `56c3e7827f080c3250caac4c580008679811698f`。** 维护源：[`prompt_source/fewshots/2x2.md`](https://github.com/InnovationTea/CreateMyCard/blob/56c3e7827f080c3250caac4c580008679811698f/widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/fewshots/2x2.md)，共 19 例。案例 ID 保留维护源编号，不按本文件顺序重新编号。
 
-融球与浅色 S4 的表面不可混用：当任一 2x2 示例将 root 改为 `fusion-ball-*` 时，分区背板若保留只能改成 `#33FFFFFF`，文字和单色图标改用白色；不得复制 V05 的 `#CCFFFFFF` 背板或蓝/紫/暖文字色。S4 分区需要图标时必须使用 `Row -> [text_group, visual]`，图标在右侧，不得用 `Column` 将图标堆到文字下方。
+以下案例仅用于参考信息关系、组件组合和布局表达；当前 TaskSpec、已接受 Plan、组件与布局合同优先。不得复制本轮输入没有的事实、路径、事件、素材或样例数据，不为贴合案例删减、补造或静态化信息。
 
-图标与动作必须逐一匹配当前对象和真实目标；候选中允许存在干扰项。示例里的动作不是业务默认配置，跨业务组合只在用户明确要求时保留。没有准确图标就用纯文字；不要按分区数复制共享动作。
+**主题与容量说明：** 下列输入与 DSL 代码块原样同步维护源，不是最终模型请求或主题后 A2UI。维护源中保留的颜色、渐变、design 及标题中的主题名，在实际布局提示组装时按 layout-only 规则清理，布局定稿后统一应用本轮主题；不能直接认定最终沿用示例颜色。历史标题中的 Sub-118 / Sub-140 仅是维护说明，不是当前允许输出的布局名，实际以示例的 Region.variant 为准。几何数字是参考容量，不是固定生产宿主。案例同步不代表本轮重新生成或真机验收通过。
 
-2x2 单业务示例不应被理解为统一模板：先判断主焦点是量化主值、核心状态、事项标题还是唯一动作，再决定主区域的顺序和留白。量化主值优先使用大字号纯数字并把单位降为 12-16fp；状态或事项卡只放大真正的核心句，其余字段保持 12fp 支撑层。除 S3/S4 固定规则外，允许在同一骨架内采用顶部主值、中心主值或底部动作沉底三种安全变体，但必须保留一个清晰重心。
-
-## 示例零（2x2-V00）：中性单信息骨架（未知业务回退）
-本例只提供 2x2 的安全信息层级、留白和数据绑定，不携带天气、设备、健康或日程语义。未知业务、字段含义不足或多业务组合无法匹配已知示例时，只参考本例的结构，不复制“主信息”等文案。
-### user
-```json
-{"userQuery":"生成一张信息卡片","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"view":{"primary":{"type":"string","description":"主要展示值","sampleValue":"示例值"},"secondary":{"type":"string","description":"辅助展示值","sampleValue":"辅助信息"}}}},"assetCandidates":[]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"justifyContent":"center","alignItems":"center","itemMargin":6,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["primary","secondary"]]
-["primary","Text",{"content":{"path":"/data/view/primary"},"width":126,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"center","maxLines":1}]
-["secondary","Text",{"content":{"path":"/data/view/secondary"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","textAlign":"center","maxLines":1}]
-["/data/view/primary","示例值"]
-["/data/view/secondary","辅助信息"]
-```
-
-## 示例一（2x2-V01）：运动会倒计时（S1 单信息·融球暖橙）
-倒计时是“量化主值第一行”的位置例外：目标名称固定在顶部居中，大数字主值组位于其下方的卡片中部，数字与单位纵向排列，单位固定在数字下方，不得把大数字移到目标名称上方。仅当用户明确要求一个动作且实际候选的目标匹配时，在 root 末尾追加 `action_area` 和胶囊 `ActionUnit`；`value_group` 使用 `layoutWeight:1` 占满中间剩余高度，使 36vp 按钮固定距卡片底部 12vp。
+## 示例一（2x2-V01）：运动会倒计时（`S-center`·融球暖橙）
+本例使用“核心居中”：唯一量化焦点由 `DataDisplay` 同时承载短标签、核心数值和单位，作为 root 的唯一内容组件。仅当用户明确要求一个动作且实际候选目标匹配时，改选带动作布局，不在 `S-center` 中临时增加标题或动作槽。
 干扰候选示范：输入虽含一个歌单事件和音符素材，但本次只要求倒计时；输出不生成按钮、图标或隐式点击，不把候选数量当作用户意图。
 ### user
 ```json
@@ -34,318 +17,359 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"design":"fusion-ball-sport-orange"},["title_area","value_group"]]
-["title_area","Row",{"width":126,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":"运动会倒计时","width":102,"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","textAlign":"center","maxLines":1}]
-["value_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
-["value_unit","Text",{"content":"天","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["root","Layout",{"layout":"S-center","design":"fusion-ball-sport-orange"},["content"]]
+["content","DataDisplay",{"label":"运动会倒计时","value":{"path":"/data/countdown/countdownDays"},"supportingText":"天"}]
 ["/data/countdown/countdownDays",32]
 ```
 
-## 示例二（2x2-V02）：FreeBuds 状态 + 蓝牙设置（S2 状态亚型·蓝色微渐变）
-归属示范：虽提供歌单入口与音乐图标，但用户只要求耳机状态和蓝牙设置。不得增加歌单按钮，也不用音符表达耳机电量；蓝牙入口无准确动作素材时保留纯文字。
+## 示例二（2x2-V09）：单核心数值及单位说明（`S-center`）
+
+root 双轴居中且只包含一个全宽 `DataDisplay`；组件以静态“当前任务”为标签，动态绑定任务数量，并以静态“项”作为支撑文本。本例没有标题、动作或其它内容组件。
+
 ### user
 ```json
-{"userQuery":"做张耳机小卡片，看看耳机叫什么、连上没有，左右耳和充电盒还剩多少电，再放个打开蓝牙设置的按钮。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"dataModelSchema":{"data":{"earphone":{"isConnected":{"type":"boolean","description":"当前是否处于耳机连接活跃状态","sampleValue":true},"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"FreeBuds Pro 3"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比0到100","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比0到100","sampleValue":62},"batteryLevel":{"type":"integer","description":"充电盒电量百分比0到100","sampleValue":95}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"样式：音乐音符实心图标，默认黑色，图形为双音符连接造型；适用：音乐播放卡片、音频功能入口、歌单展示。"}]}
+{"userQuery":"展示当前任务数，并注明单位是项","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"view":{"value":{"type":"integer","description":"当前任务数量，单位项","sampleValue":42}}}},"assetCandidates":[]}
 ```
+
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title_area","content_area","action_area"]]
-["title_area","CardHeader",{"title":{"path":"/data/earphone/earphoneName"},"fontColor":"#FF1F4799"}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text","battery_row"]]
-["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":24,"fontSize":18,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["battery_row","Column",{"width":136,"itemMargin":2},["ears","case"]]
-["action_area","Column",{"width":136,"flexShrink":0,"alignItems":"start"},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置","actionSurface":"#331F4799","actionInk":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"flexShrink":0}]
+["root","Layout",{"layout":"S-center","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["content"]]
+["content","DataDisplay",{"label":"当前任务","value":{"path":"/data/view/value"},"supportingText":"项"}]
+["/data/view/value",42]
+```
+
+## 示例三（2x2-V15）：天气预警文本结论（`S-center`）
+
+本例展示 `DataDisplay` 的短文本模式：root 只包含一个居中信息组，不额外生成标题或
+动作。真实天气预警图标占用上方 label 槽；核心结论使用 24fp，并将更新日期作为紧密支撑文本。
+图标只能来自当前素材候选；无真实预警时不能套用本例。
+
+### user
+```json
+{"userQuery":"用居中卡片展示当前天气预警等级和更新日期，不需要按钮。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weather":{"current":{"alertLevel":{"type":"string","description":"当前气象预警的短文本结论","sampleValue":"蓝色预警"}},"updatedAtText":{"type":"string","description":"天气数据更新日期文本","sampleValue":"2026-9-19 更新"}}}},"assetCandidates":[{"src":"resources/base/media/ic_weatherWarning.svg","description":"渐变云朵预警图标；仅用于真实气象预警，保留原色。"}]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-center","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["content"]]
+["content","DataDisplay",{"icon":"resources/base/media/ic_weatherWarning.svg","value":{"path":"/data/weather/current/alertLevel"},"supportingText":{"path":"/data/weather/updatedAtText"}}]
+["/data/weather/current/alertLevel","蓝色预警"]
+["/data/weather/updatedAtText","2026-9-19 更新"]
+```
+
+## 示例四（2x2-V10）：完整事件信息（`S-title-content`）
+
+活动名称、时间范围和地点属于同一事件，完整匹配 `EventCard` 的标题、时间和地点结构；该组件不要求必须带动作。
+没有动作消费素材，跑步图标与“社区夜跑”和整张卡片主题语义匹配，因此默认分配给标题。
+
+### user
+```json
+{"userQuery":"展示社区夜跑的活动名称、开始和结束时间，以及集合地点。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"communityRun":{"name":{"type":"string","description":"活动名称","sampleValue":"社区夜跑"},"start":{"type":"string","description":"开始时间","sampleValue":"19:00"},"end":{"type":"string","description":"结束时间","sampleValue":"20:30"},"place":{"type":"string","description":"集合地点","sampleValue":"南门广场"}}}},"assetCandidates":[{"src":"resources/base/media/figure_run.svg","description":"可染色的跑步人物图标，适用于跑步、夜跑和运动活动"}]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-content","linearGradient":{"direction":"RightBottom","colors":[["#FFFFE0CC",0],["#FFFFF7F2",1]]}},["title","content"]]
+["title","SingleLineTitle",{"title":"活动安排","icon":"resources/base/media/figure_run.svg","fontSize":12}]
+["content","EventCard",{"items":[{"title":{"path":"/data/communityRun/name"},"time":"{{ ${/data/communityRun/start} + ' – ' + ${/data/communityRun/end} }}","location":{"path":"/data/communityRun/place"}}]}]
+["/data/communityRun/name","社区夜跑"]
+["/data/communityRun/start","19:00"]
+["/data/communityRun/end","20:30"]
+["/data/communityRun/place","南门广场"]
+```
+
+## 示例五（2x2-V19）：无动作的数值主信息与状态补充（`S-title-dual-content`）
+
+温度是主信息，用EmphasizedData；状态是同对象补充，用SecondaryBody。没有Action，不预留按钮，不把两项机械拆成表格。温度原字段已含单位，保留完整动态绑定，不再填写unit以免重复；不假设组件能拆分格式化字符串。
+
+### user
+```json
+{"userQuery":"只展示电池温度和充电状态，以温度为主，不需要操作入口。","size":"2x2","assetCandidates":[],"eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batteryTemperatureText":{"type":"string","description":"包含单位的电池温度文本","sampleValue":"29.0°C"},"chargingStatusDesc":{"type":"string","description":"当前充电状态","sampleValue":"未充电"}}}}}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-dual-content","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title","temperature","status"]]
+["title","SingleLineTitle",{"title":"电池温度","fontSize":12}]
+["temperature","EmphasizedData",{"value":{"path":"/data/phoneBattery/batteryTemperatureText"},"fontSize":30}]
+["status","SecondaryBody",{"items":[{"label":"状态","value":{"path":"/data/phoneBattery/chargingStatusDesc"}}],"fontSize":14}]
+["/data/phoneBattery/batteryTemperatureText","29.0°C"]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
+```
+
+## 示例六（2x2-V16）：无动作的文本主信息与同级补充（`S-title-dual-content`）
+
+连接状态用EmphasisText；左右耳电量保持同级，进入同一个SecondaryBody，不把一侧作为另一侧的辅助。三项属于同一对象的结论和属性，不使用双分区或动作槽；动态读数分别绑定并补完整百分比单位。
+
+### user
+```json
+{"userQuery":"只看耳机连接状态，并补充左右耳的电量，不需要操作入口。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"earphone":{"isConnected":{"type":"boolean","description":"当前是否处于耳机连接活跃状态","sampleValue":true},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比0到100","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比0到100","sampleValue":62}}}},"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-dual-content","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title","status","batteries"]]
+["title","SingleLineTitle",{"title":"耳机状态","fontSize":12}]
+["status","EmphasisText",{"mainText":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","fontSize":18}]
+["batteries","SecondaryBody",{"items":[{"label":"左耳","value":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}"},{"label":"右耳","value":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}"}],"columns":1,"fontSize":12}]
 ["/data/earphone/isConnected",true]
-["/data/earphone/earphoneName","FreeBuds Pro 3"]
 ["/data/earphone/leftBatteryLevel",47]
 ["/data/earphone/rightBatteryLevel",62]
-["/data/earphone/batteryLevel",95]
-["ears","Text",{"content":"{{ 'L ' + ${/data/earphone/leftBatteryLevel} + '% | R ' + ${/data/earphone/rightBatteryLevel} + '%' }}","width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["case","Text",{"content":"{{ '盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
 ```
 
-## 示例三（2x2-V03）：耳机盒电量与双入口（S3 紧凑信息组）
-两个按钮占 78vp，根组间距 8vp，信息组占 40vp，按钮内部间距 6vp。对象和电量合并为 14fp 主信息，12fp 状态紧随其下；不生成 CardHeader、独立大数字区或标题图标。按钮图标仅用于动作识别。示例的两个入口均由用户明确要求，不能因候选存在而自动增加按钮。
+## 示例七（2x2-V12）：四台设备电量（`S-quad-content`）
+
+四台设备是四个同级真实占比，并且每个对象都有准确图标。使用四个 `ProgressCircle` 进入固定 2×2 槽位，
+图标区分对象，环外读数显示真实百分比；不使用 `ProgressCircleSingle` 重造多对象组合，也不手写文字卡块。
+
 ### user
 ```json
-{"userQuery":"显示耳机盒电量和充电状态，并提供每日歌单和收藏歌单两个入口。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100，展示时追加%","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
+{"userQuery":"做张纯展示卡片，同时看手机、儿童手表、相机和耳机盒的电量百分比。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"percent":{"type":"integer","description":"手机电量百分比0到100","sampleValue":68}},"watchBattery":{"percent":{"type":"integer","description":"儿童手表电量百分比0到100","sampleValue":47}},"cameraBattery":{"percent":{"type":"integer","description":"相机电量百分比0到100","sampleValue":82}},"earphoneBattery":{"percent":{"type":"integer","description":"耳机盒电量百分比0到100","sampleValue":59}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"可染色的手机单色图标"},{"src":"resources/base/media/kidswatch_fill.svg","description":"可染色的儿童手表单色图标"},{"src":"resources/base/media/camera_fill.svg","description":"可染色的相机单色图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"可染色的耳机盒单色图标"}]}
 ```
+
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["header_area","action_area"]]
-["header_area","Column",{"width":126,"height":40,"justifyContent":"start","alignItems":"start","itemMargin":2,"flexShrink":0},["device_name","battery_row"]]
-["device_name","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":126,"fontSize":14,"fontWeight":700,"fontColor":"#FF563D99","maxLines":1,"height":20}]
-["battery_row","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1,"height":18}]
-["action_area","Column",{"width":126,"itemMargin":6,"flexShrink":0,"alignItems":"start","height":78},["cta_play","cta_fav"]]
-["cta_play","ActionUnit",{"state":"capsule","label":"每日歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#33563D99","actionInk":"#FF563D99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"flexShrink":0}]
-["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#33563D99","actionInk":"#FF563D99","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"flexShrink":0}]
-["/data/earphone/batteryLevel",80]
-["/data/earphone/chargingStatusDesc","未充电"]
+["root","Layout",{"layout":"S-quad-content","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["top_left","top_right","bottom_left","bottom_right"]]
+["top_left","ProgressCircle",{"externalText":{"path":"/data/phoneBattery/percent"},"icon":"resources/base/media/phone_fill.svg","accessibility":{"label":"手机电量百分比"},"fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["top_right","ProgressCircle",{"externalText":{"path":"/data/watchBattery/percent"},"icon":"resources/base/media/kidswatch_fill.svg","accessibility":{"label":"儿童手表电量百分比"},"fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["bottom_left","ProgressCircle",{"externalText":{"path":"/data/cameraBattery/percent"},"icon":"resources/base/media/camera_fill.svg","accessibility":{"label":"相机电量百分比"},"fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["bottom_right","ProgressCircle",{"externalText":{"path":"/data/earphoneBattery/percent"},"icon":"resources/base/media/earphone_case_16644.svg","accessibility":{"label":"耳机盒电量百分比"},"fillColor":"#991F4799","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["/data/phoneBattery/percent",68]
+["/data/watchBattery/percent",47]
+["/data/cameraBattery/percent",82]
+["/data/earphoneBattery/percent",59]
 ```
 
-
-## 示例四（2x2-V04）：天气（S2 稀疏无动作变体·蓝色微渐变）
-本例示范稀疏卡的三锚点：地点留在顶部，温度与天气现象作为连续主信息组垂直居中，温度范围沉底。
-候选中的温度计与整卡主题精确匹配、状态中性且不挤压地点标题，因此保留在 CardHeader 右上角；闹钟和日历只是干扰候选，必须舍弃。三个事实纵向都有空间时不使用 ` | ` 横向压缩；为容纳两条支撑信息，温度采用完整的 24fp 格式化主读数，而不是强行使用 38fp 数字 hero。
-### user
-```json
-{"userQuery":"做张深圳天气卡片，看看现在多少度、天气怎么样，还有今天最高和最低温度。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weather":{"current":{"temperatureC":{"type":"number","description":"当前摄氏温度","sampleValue":38},"condition":{"type":"string","description":"白天天气现象","sampleValue":"晴"}},"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"深圳"}},"daily":[{"temperatureRangeText":{"type":"string","description":"当日温度范围文本","sampleValue":"26°C/16°C"}}]}}},"assetCandidates":[{"src":"resources/base/media/icon_weather_temperature1.svg","description":"淡黄色外壳与粉红色温度柱组成的彩色温度计，建议保留原色；用于温度概览。"},{"src":"resources/base/media/alarm_fill_1.svg","description":"样式：默认黑色的单色闹钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：闹钟设置、定时提醒、日程提醒。"},{"src":"resources/base/media/calendar_fill.svg","description":"样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title_area","content_area","bottom_area"]]
-["title_area","CardHeader",{"title":{"path":"/data/weather/location/prefectureName"},"fontColor":"#FF1F4799","icon":"resources/base/media/icon_weather_temperature1.svg"}]
-["content_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":2,"flexShrink":1},["temperature","condition"]]
-["temperature","Text",{"content":"{{ ${/data/weather/current/temperatureC} + '°C' }}","width":126,"height":34,"fontSize":24,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["condition","Text",{"content":{"path":"/data/weather/current/condition"},"width":126,"height":20,"fontSize":14,"fontWeight":500,"fontColor":"#FF1F4799","maxLines":1}]
-["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","flexShrink":0,"alignItems":"start"},["temperature_range"]]
-["temperature_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
-["/data/weather/current/temperatureC",38]
-["/data/weather/current/condition","晴"]
-["/data/weather/daily/0/temperatureRangeText","26°C/16°C"]
-["/data/weather/location/prefectureName","深圳"]
-```
-
-
-
-
-## 示例五（2x2-V05）：手机+耳机电量（S4 上下双背板·蓝色微渐变）
-本例仅因 `phoneBattery` 与 `earphone` 是两个独立展示对象才使用 S4；单个对象的多个字段或两个动作不得仿照本例拆成两个分区。
-对象名比图标或环图更重要：第一行明确“手机 / 耳机盒＋电量”，第二行显示充电状态。移除可选环图以保证两行文字完整。
-### user
-```json
-{"userQuery":"我想随时看看手机和耳机盒还剩多少电、有没有在充电，点手机那块能打开电池设置，点耳机那块能打开蓝牙设置。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机剩余电量百分比0到100","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"手机当前充电状态","sampleValue":"未充电"}},"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100","sampleValue":47},"chargingStatusDesc":{"type":"string","description":"耳机盒当前充电状态","sampleValue":"充电中"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["phone_row","ear_row"]]
-["phone_row","Row",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]},["phone_text","phone_icon"]]
-["phone_text","Column",{"width":82,"justifyContent":"center","itemMargin":4},["phone_value","phone_status"]]
-["phone_value","Text",{"content":"{{ '手机 ' + ${/data/phoneBattery/batterySOC} + '%' }}","width":82,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["phone_status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":82,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["phone_icon","Image",{"src":"resources/base/media/phone_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
-["ear_row","Row",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"borderRadius":16,"backgroundColor":"#CCFFFFFF","justifyContent":"start","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]},["ear_text","ear_icon"]]
-["ear_text","Column",{"width":82,"justifyContent":"center","itemMargin":4},["ear_value","ear_status"]]
-["ear_value","Text",{"content":"{{ '耳机盒 ' + ${/data/earphone/batteryLevel} + '%' }}","width":82,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
-["ear_status","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":82,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["ear_icon","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
-["/data/phoneBattery/batterySOC",68]
-["/data/phoneBattery/chargingStatusDesc","未充电"]
-["/data/earphone/batteryLevel",47]
-["/data/earphone/chargingStatusDesc","充电中"]
-```
-
-## 示例六（2x2-V06）：单个或下一场会议（S2 会议时间线亚型·黄色微渐变）
-2x2 整卡唯一业务为 calendar、最终只展示一个会议，且 userQuery、事件候选或 TaskSpec 的标题/描述/sampleValue 明确表达会议语义时，强制使用本例；sampleValue 只用于路由判断，不得代替动态绑定。会议标题必须作为内容区第一行 `14fp/700`：优先绑定 `events[0].title`，无真实标题字段且用户未给出名称时固定写“日程”，不得省略或用 `eventCount`、日期、时间替代。时间、地点固定 `12fp/400`。出现任一其他业务时改走 S4，禁止使用本例和 TimelineUnit。仅按当前 TaskSpec 替换字段和动作，不改成普通信息列或融球布局。
+## 示例八（2x2-V04）：下一场会议（`S-title-content-action`·黄色微渐变）
+单个会议的标题、时间与入会动作分别保留。一个或多个具有标题和时间的事件使用同一个 `EventCard`；多项普通
+高度放不下时使用 compact。更多事件或必要明细无法闭合时改选更大布局，不拆成普通正文绕过专用组件。
 ### user
 ```json
 {"userQuery":"帮我做张会议提醒卡片，看看下一场会叫什么、几点开始，还能点一下直接入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"},"oneClickServiceLink":{"type":"string","description":"一键入会链接","sampleValue":"wemeet://join/example"}}]}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFFFE0CC",0],["#FFFFF7F2",1]]}},["day_area","content_area","action_area"]]
-["day_area","Row",{"width":126,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
-["day_tag","Text",{"content":"下一场会议","fontSize":12,"fontWeight":400,"fontColor":"#FF8C4B1C","maxLines":1}]
-["content_area","Row",{"width":126,"layoutWeight":1,"padding":{"top":4},"itemMargin":8,"alignItems":"top","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
-["timeline","TimelineUnit",{"color":"#FF8C4B1C","lineColor":"#1A8C4B1C"}]
-["meeting_texts","Column",{"width":"matchParent","height":48,"layoutWeight":1,"itemMargin":4,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time"]]
-["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":14,"fontWeight":700,"width":"matchParent","fontColor":"#FF8C4B1C","maxLines":1}]
-["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#FF8C4B1C","maxLines":1}]
-["action_area","Column",{"width":126,"flexShrink":0,"alignItems":"start"},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"加入会议","actionSurface":"#338C4B1C","actionInk":"#FF8C4B1C","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"flexShrink":0}]
+["root","Layout",{"layout":"S-title-content-action","linearGradient":{"direction":"RightBottom","colors":[["#FFFFE0CC",0],["#FFFFF7F2",1]]}},["title","content","action"]]
+["title","SingleLineTitle",{"title":"下一场会议","fontSize":12}]
+["content","EventCard",{"items":[{"title":{"path":"/data/calendar/events/0/title"},"time":{"path":"/data/calendar/events/0/dtStart"}}]}]
+["action","PillButton",{"label":"加入会议","onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}]}]
 ["/data/calendar/events/0/title","UI需求评审会"]
 ["/data/calendar/events/0/dtStart","14:00 - 15:30"]
 ["/data/calendar/events/0/oneClickServiceLink","wemeet://join/example"]
 ```
 
-## 示例七（2x2-V07）：今日步数（S2 数值亚型·整卡隐式入口·透明 PNG 标题图标）
+## 示例九（2x2-V11）：单一占比与必要动作（`S-title-content-action`）
+
+一个设备的真实电量占比是唯一内容，并且输入提供了准确的儿童手表图标，因此使用
+`ProgressCircleSingle`；动作放在独立 `PillButton` 槽，不用普通数值组件弱化比例语义。
+
 ### user
 ```json
-{"userQuery":"做张运动卡片，看看我今天走了多少步、消耗多少热量，点一下能看运动详情。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"全天累计步数","sampleValue":2319},"dailyTotalCaloriesText":{"type":"string","description":"总消耗热量文本（含单位）","sampleValue":"59 千卡"}}}},"assetCandidates":[{"src":"resources/base/media/emoji_run.png","description":"透明背景、保留原色；仅适用于步数或跑步唯一主业务的 2x2 单业务 CardHeader 右上角 20vp 主题图"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["title_area","content_area","bottom_area"]]
-["title_area","CardHeader",{"title":"今日步数","fontColor":"#FF563D99","icon":"resources/base/media/emoji_run.png"}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row"]]
-["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":2},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":30,"fontWeight":700,"fontColor":"#FF563D99","maxLines":1}]
-["value_unit","Text",{"content":"步","fontSize":12,"fontWeight":500,"fontColor":"#FF563D99","padding":{"bottom":5},"maxLines":1}]
-["bottom_area","Column",{"width":136,"height":18,"itemMargin":2,"justifyContent":"start","flexShrink":0,"alignItems":"start"},["aux_2"]]
-["aux_2","Row",{"itemMargin":4,"alignItems":"center"},["aux_2_t","aux_2_v"]]
-["aux_2_t","Text",{"content":"消耗热量","fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1}]
-["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","maxLines":1}]
-["/data/healthSport/dailySteps",2319]
-["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
+{"userQuery":"看儿童手表还剩多少电，并打开设备设置。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"WearableSettings","bundleName":"com.example.wearable","abilityName":"MainAbility","uri":"wearable://settings"}}],"dataModelSchema":{"data":{"wearable":{"batteryPercent":{"type":"integer","description":"儿童手表剩余电量百分比0到100","sampleValue":73}}}},"assetCandidates":[{"src":"resources/base/media/kidswatch_fill.svg","description":"可染色的儿童手表单色图标"}]}
 ```
 
-## 示例八（2x2-V08）：发布会倒计时（左对齐主值·开始时间·单动作）
-倒计时存在底部按钮或另一类可见数据时，不再使用 V01 的居中数字与纵向单位。标题、主值组和辅助信息
-统一左对齐；数字与单位放在同一 `value_row`，开始时间独占第二行，底部动作沉底。`/data/countdown`
-与 `/data/calendar` 在这里共同描述同一个发布会目标，不拆成 S4 两个业务对象。
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-content-action","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title","content","action"]]
+["title","SingleLineTitle",{"title":"儿童手表","fontSize":12}]
+["content","ProgressCircleSingle",{"value":{"path":"/data/wearable/batteryPercent"},"total":100,"icon":"resources/base/media/kidswatch_fill.svg","displayValue":"{{ ${/data/wearable/batteryPercent} + '%' }}","label":"剩余电量","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["action","PillButton",{"label":"设备设置","onClick":[{"call":"clickToDeeplink","args":{"intentName":"WearableSettings","bundleName":"com.example.wearable","abilityName":"MainAbility","uri":"wearable://settings"}}]}]
+["/data/wearable/batteryPercent",73]
+```
+
+## 示例十（2x2-V13）：进度环、状态与单动作（`S-title-content-action`）
+
+环形比例是用户明确要求，单个对象的真实占比、可见读数与同对象状态完整匹配 `ProgressCircleSingle`。
+标题按 Recipe 实际单行高度参与预算；标题后间距6、正文到动作间距8、动作高36，并保留独立动作槽。
+只有这一项电量和一项状态时适用，更多必需事实须重新分配正文，不能删事实套例。
+
+### user
+```json
+{"userQuery":"用进度环显示手机电量和充电状态，提供电池设置按钮。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机剩余电量百分比0到100","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"手机充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/battery_leaf_fill.svg","description":"可染色的电量单色图标"}]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-content-action","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title","content","action"]]
+["title","SingleLineTitle",{"title":"手机电量","fontSize":12}]
+["content","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"icon":"resources/base/media/battery_leaf_fill.svg","displayValue":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","label":"剩余电量","secondaryLabel":{"path":"/data/phoneBattery/chargingStatusDesc"},"backgroundColor":"#331F4799","color":"#FF1F4799"}]
+["action","PillButton",{"label":"电池设置","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
+["/data/phoneBattery/batterySOC",68]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
+```
+
+## 示例十一（2x2-V05）：发布会倒计时（`S-title-primary-secondary-action`·左对齐主值·开始时间）
+倒计时存在底部按钮或另一类可见数据时，改用带动作布局，不再使用 V01 的无动作标题单内容结构。标题、主值组和辅助信息
+统一左对齐；标题使用 `SingleLineTitle`，倒计时使用量化主值，普通开始时间使用 `SecondaryBody`，主次内容的纵向间距为 2vp，底部动作沉底。`/data/countdown`
+与 `/data/calendar` 在这里共同描述同一个发布会目标，不拆成 `S-dual-info` 两个业务对象。
 ### user
 ```json
 {"userQuery":"下一场日程是18天后的产品发布会，显示离发布会还有几天、日程标题和开始时间，并提供查看详情按钮。","size":"2x2","eventCandidates":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}],"dataModelSchema":{"data":{"countdown":{"countdownDays":{"type":"integer","description":"距离目标日期的自然日天数纯整数，返回值不包含‘天’","sampleValue":18}},"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"产品发布会"},"dtStart":{"type":"string","description":"格式化后的日程开始时间短文本","sampleValue":"上午10:00"},"entityId":{"type":"string","description":"系统日程的全局唯一实体ID","sampleValue":"event-001"}}]}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":0,"design":"fusion-ball-sport-orange"},["title_area","value_group","action_area"]]
-["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","textAlign":"start","maxLines":1}]
-["value_group","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":0,"flexShrink":1},["value_row","start_time"]]
-["value_row","Row",{"width":126,"height":48,"justifyContent":"start","alignItems":"bottom","itemMargin":0,"flexShrink":0},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
-["value_unit","Text",{"content":"天","fontSize":16,"fontWeight":400,"fontColor":"#FFFFFFFF","padding":{"bottom":6},"maxLines":1}]
-["start_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"width":126,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","textAlign":"start","maxLines":1}]
-["action_area","Column",{"width":136,"height":36,"flexShrink":0},["action"]]
-["action","ActionUnit",{"state":"capsule","label":"查看详情","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]}]
+["root","Layout",{"layout":"S-title-primary-secondary-action","design":"fusion-ball-sport-orange"},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":{"path":"/data/calendar/events/0/title"},"fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/countdown/countdownDays"},"unit":"天","fontSize":30}]
+["support","SecondaryBody",{"items":[{"value":{"path":"/data/calendar/events/0/dtStart"}}],"fontSize":14}]
+["action","PillButton",{"label":"查看详情","onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]}]
 ["/data/countdown/countdownDays",18]
 ["/data/calendar/events/0/title","产品发布会"]
 ["/data/calendar/events/0/dtStart","上午10:00"]
 ["/data/calendar/events/0/entityId","event-001"]
 ```
 
-## 示例九（2x2-V09）：电池测量主读数（S2 完整主读数·单动作）
-完整温度在 126vp 内容宽度内使用20fp；同样适用于 description 明确为电流、电压、功率、频率等测量值且首帧为“数字+合法单位”的格式化字符串。负号、小数和单位一起做压力检查，不拆单位、不追加字段标签。若同一业务同时有多个测量值，只突出一个主读数，其余值使用 12/14/18fp 辅助行；`"4 V"` 后不能再拼“电压”，`"-151 mA"` 后不能再拼“电流”。状态紧跟主值，按钮沉底。
+## 示例十二（2x2-V06）：电池温度与充电状态（`S-title-primary-secondary-action`·单动作）
+卡级标题为“电池温度”。正文依次使用左对齐的全宽 `EmphasizedData` 绑定已包含单位的温度文本，并用 `SecondaryBody` 绑定充电状态，两者纵向间距为 2vp；不拆分或重复追加温度单位。正文与 36vp 底部动作区之间保留 8vp，“电池设置”使用 `PillButton`。
 ### user
 ```json
-{"userQuery":"显示电池温度和充电状态，使用浅青渐变，并能打开电池设置。","size":"2x2","assetCandidates":[],"eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"phoneBattery":{"batteryTemperatureText":{"type":"string","description":"包含单位的电池温度文本","sampleValue":"29.0°C"},"chargingStatusDesc":{"type":"string","description":"当前充电状态","sampleValue":"未充电"}}}}}
+{"userQuery":"显示电池温度和充电状态，使用蓝色渐变，并能打开电池设置。","size":"2x2","assetCandidates":[],"eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}],"dataModelSchema":{"data":{"phoneBattery":{"batteryTemperatureText":{"type":"string","description":"包含单位的电池温度文本","sampleValue":"29.0°C"},"chargingStatusDesc":{"type":"string","description":"当前充电状态","sampleValue":"未充电"}}}}}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["header","main","action_area"]]
-["header","CardHeader",{"title":"电池温度","fontColor":"#FF1F4799"}]
-["main","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","itemMargin":4},["temperature","status"]]
-["temperature","Text",{"content":{"path":"/data/phoneBattery/batteryTemperatureText"},"width":126,"fontSize":20,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1,"height":28}]
-["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":126,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
-["action_area","Column",{"width":126,"height":36,"flexShrink":0},["action"]]
-["action","ActionUnit",{"state":"capsule","label":"电池设置","actionSurface":"#331F4799","actionInk":"#FF1F4799","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
+["root","Layout",{"layout":"S-title-primary-secondary-action","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":"电池温度","fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/phoneBattery/batteryTemperatureText"},"fontSize":30}]
+["support","SecondaryBody",{"items":[{"value":{"path":"/data/phoneBattery/chargingStatusDesc"}}],"fontSize":14}]
+["action","PillButton",{"label":"电池设置","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
 ["/data/phoneBattery/batteryTemperatureText","29.0°C"]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ```
 
-## 示例十（2x2-V10）：双城市天气（S4 对象名称不可省略）
-城市名动态绑定，与温度同组。优先保留对象名和完整读数，不放可选图标；长城市名先独占第一行，第二行显示温度，再删可选天气描述，不截断名称或缩小到12fp以下。
+## 示例十三（2x2-V02）：FreeBuds 状态 + 蓝牙设置（`S-title-anchor`·蓝色微渐变）
+本例使用“标题锚点内容”：耳机名称进入标题，连接状态放在主内容区；左耳、右耳和耳机仓是三个图标可区分的同级占比，使用纵向 `NumericRatioStack` 放在左下支撑区；蓝牙设置使用准确图标的 `CircleButton` 放在右下角。
+底部锚点行高56vp，左侧支撑区宽78vp，右侧动作槽为40×40vp并底对齐；不得增加歌单按钮，也不用音乐图标表达耳机电量。
+### user
+```json
+{"userQuery":"做张耳机小卡片，看看耳机叫什么、连上没有，左右耳和充电盒还剩多少电，再放个打开蓝牙设置的按钮。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"dataModelSchema":{"data":{"earphone":{"isConnected":{"type":"boolean","description":"当前是否处于耳机连接活跃状态","sampleValue":true},"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"FreeBuds Pro 3"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比0到100","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比0到100","sampleValue":62},"batteryLevel":{"type":"integer","description":"充电盒电量百分比0到100","sampleValue":95}}}},"assetCandidates":[{"src":"resources/base/media/l_circle_fill.svg","description":"左耳电量使用的单色L圆形图标"},{"src":"resources/base/media/r_circle_fill.svg","description":"右耳电量使用的单色R圆形图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"耳机仓电量使用的单色耳机仓图标"},{"src":"resources/base/media/ic_Bluetooth.svg","description":"打开蓝牙设置使用的单色蓝牙图标"},{"src":"resources/base/media/music_fill.svg","description":"音乐播放入口使用的音符图标，与本次耳机状态需求无关"}]}
+```
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-anchor","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":{"path":"/data/earphone/earphoneName"},"fontSize":12}]
+["primary","EmphasisText",{"mainText":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","fontSize":18}]
+["support","NumericRatioStack",{"direction":"column","items":[{"icon":"resources/base/media/l_circle_fill.svg","value":{"path":"/data/earphone/leftBatteryLevel"},"unit":"%"},{"icon":"resources/base/media/r_circle_fill.svg","value":{"path":"/data/earphone/rightBatteryLevel"},"unit":"%"},{"icon":"resources/base/media/earphone_case_16644.svg","value":{"path":"/data/earphone/batteryLevel"},"unit":"%"}],"fillColor":"#FF1F4799"}]
+["action","CircleButton",{"icon":"resources/base/media/ic_Bluetooth.svg","accessibility":{"label":"打开蓝牙设置"},"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+["/data/earphone/isConnected",true]
+["/data/earphone/earphoneName","FreeBuds Pro 3"]
+["/data/earphone/leftBatteryLevel",47]
+["/data/earphone/rightBatteryLevel",62]
+["/data/earphone/batteryLevel",95]
+```
+
+## 示例十四（2x2-V08）：耳机状态与右下蓝牙设置（`S-title-anchor`）
+连接状态是主信息；左下耳机仓电量使用SecondaryBody作为辅助信息，不再以第二个EmphasisText形成两个视觉重点。
+主内容、能够独立表达信息的左下内容和准确图标动作天然形成左文右动作关系时，可直接选择 `S-title-anchor`，
+不需要先证明底部文字按钮失败。动作可以由准确图标表达且不要求显示文字时使用 `CircleButton`。按钮本体固定
+`36×36vp`，放在底部 Row 末项的 `40×40vp` 居中 Stack 中；完整动作名称写入 `accessibility.label`。
+### user
+```json
+{"userQuery":"做张耳机状态卡片，显示名称、连接状态和电量，右下角用蓝牙图标打开蓝牙设置。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"earphone":{"earphoneName":{"type":"string","description":"耳机名称","sampleValue":"FreeBuds Pro 3"},"isConnected":{"type":"boolean","description":"当前是否连接","sampleValue":true},"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100","sampleValue":68}}}},"assetCandidates":[{"src":"resources/base/media/bluetooth_fill.svg","description":"蓝牙设置入口的单色蓝牙图标"}]}
+```
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-anchor","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title_area","connection","battery","settings_action"]]
+["title_area","SingleLineTitle",{"title":{"path":"/data/earphone/earphoneName"},"fontSize":12}]
+["connection","EmphasisText",{"mainText":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","fontSize":18}]
+["battery","SecondaryBody",{"columns":1,"items":[{"label":"耳机仓","value":"{{ ${/data/earphone/batteryLevel} + '%' }}"}],"fontSize":14}]
+["settings_action","CircleButton",{"icon":"resources/base/media/bluetooth_fill.svg","accessibility":{"label":"打开蓝牙设置"},"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+["/data/earphone/earphoneName","FreeBuds Pro 3"]
+["/data/earphone/isConnected",true]
+["/data/earphone/batteryLevel",68]
+```
+
+## 示例十五（2x2-V14）：线上评审与右下入会（`S-title-anchor`）
+会议标题和开始时间属于同一个日程事件，使用 `EventCard` 放在上方主内容区；事件标题保持单行，为下方时间
+保留固定的 16vp。耳机连接状态和耳机仓电量是两项同级辅助属性，使用两行 `SecondaryBody` 放在左下
+38vp 支撑区。候选中存在与入会动作准确匹配的
+会议 SVG，且用户没有要求卡面显示按钮文案，因此入会动作优先使用右下角 `CircleButton`，不能先选择
+`PillButton`，再把 `EventCard` 降级为普通正文来腾出空间。会议演示板图标已分配给按钮，标题不得重复
+使用；标题表达的是会议主信息，应从剩余素材中选择同属会议日程语义的日历图标，不能使用只对应次要
+耳机状态的耳机图标，也不能因首选会议图标冲突直接省略。
+
+### user
+```json
+{"userQuery":"下午三点有合作方线上评审会，日程中有可用的入会链接，帮我做个卡片，看会议开始时间、耳机是否连接和耳机仓电量，点击按钮一键入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"dtStart":{"type":"string","description":"格式化后的日程开始时间短文本","sampleValue":"15:00"},"oneClickServiceLink":{"type":"string","description":"一键入会链接","sampleValue":"wemeet://join/review"}}]},"earphone":{"isConnected":{"type":"boolean","description":"当前是否有蓝牙耳机处于连接活跃状态","sampleValue":true},"batteryLevel":{"type":"integer","description":"耳机仓当前剩余电量百分比0到100，展示时追加%","sampleValue":80}}}},"assetCandidates":[{"src":"resources/base/media/icon_meeting.svg","description":"可染色的会议演示板图标，适用于会议、汇报、演示和议程入口"},{"src":"resources/base/media/calendar_fill.svg","description":"可染色的日历实心图标，适用于会议日程、日历事件和当日安排"},{"src":"resources/base/media/icon_earphone.svg","description":"可染色的无线耳机图标，适用于耳机连接状态"},{"src":"resources/base/media/earphone_case_16644.svg","description":"可染色的耳机仓图标，适用于耳机仓电量"}]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-anchor","linearGradient":{"direction":"RightBottom","colors":[["#FFFFE0CC",0],["#FFFFF7F2",1]]}},["title_area","event","earphone_summary","meeting_action"]]
+["title_area","SingleLineTitle",{"title":"线上评审","icon":"resources/base/media/calendar_fill.svg","fontSize":12}]
+["event","EventCard",{"items":[{"title":"合作方线上评审","time":{"path":"/data/calendar/events/0/dtStart"}}]}]
+["earphone_summary","SecondaryBody",{"columns":1,"items":[{"label":"耳机","value":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}"},{"label":"耳机仓","value":"{{ ${/data/earphone/batteryLevel} + '%' }}"}],"fontSize":12}]
+["meeting_action","CircleButton",{"icon":"resources/base/media/icon_meeting.svg","accessibility":{"label":"一键入会"},"onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}]}]
+["/data/calendar/events/0/dtStart","15:00"]
+["/data/calendar/events/0/oneClickServiceLink","wemeet://join/review"]
+["/data/earphone/isConnected",true]
+["/data/earphone/batteryLevel",80]
+```
+
+## 示例十六（2x2-V03）：耳机盒电量与双入口（`S-content-dual-action`）
+紧凑信息区固定 38vp，两个CardButton各占36vp，三个区域之间分别保留 8vp，满足 `38 + 8 + 36 + 8 + 36 = 126vp`。电量与充电状态是两项需要逐项查看的等权信息，使用两行 `TableText`，不把两个 `SecondaryBody` 与按钮组成无核心信息区；不生成标题组件、独立大数字区或标题图标。示例的两个入口均由用户明确要求，不能因候选存在而自动增加按钮。
+### user
+```json
+{"userQuery":"显示耳机盒电量和充电状态，并提供每日歌单和收藏歌单两个入口。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100，展示时追加%","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
+```
+### assistant
+```genui
+["root","Layout",{"layout":"S-content-dual-action","linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["battery_summary","cta_play","cta_fav"]]
+["battery_summary","TableText",{"items":[{"label":"耳机盒","value":"{{ ${/data/earphone/batteryLevel} + '%' }}"},{"label":"状态","value":{"path":"/data/earphone/chargingStatusDesc"}}],"fontSize":12}]
+["cta_play","CardButton",{"label":"每日歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["cta_fav","CardButton",{"label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]
+["/data/earphone/batteryLevel",80]
+["/data/earphone/chargingStatusDesc","未充电"]
+```
+
+## 示例十七（2x2-V17）：纯双操作卡片（`S-content-dual-action` · `actions-only`）
+
+只有两个必要操作，没有展示事实。两个CardButton分别承载原始候选事件，使用actions-only，不补标题或占位正文。按钮各57vp、间距8vp，在126vp安全区内整体居中；图标来自候选，尺寸由布局决定。
+
+### user
+```json
+{"userQuery":"只放每日歌单、收藏歌单两个独立入口，不显示状态和其它信息。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-content-dual-action","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]},"variant":"actions-only"},["daily","favorite"]]
+["daily","CardButton",{"label":"每日歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["favorite","CardButton",{"label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]
+```
+
+## 示例十八（2x2-V18）：单一读数与双卡片按钮（`S-content-dual-action`）
+
+正文只有耳机盒电量这一项；使用EmphasizedData，数值与百分比单位分别表达，在38vp内容预算内承载。两个CardButton各36vp、间距8vp；不改回PillButton，不把动态读数静态写进label。与V03的两项属性不同，本例没有额外补充，不为填满正文增加状态。
+
+### user
+```json
+{"userQuery":"展示耳机盒电量，再放每日歌单和收藏歌单两个入口。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100，展示时追加%","sampleValue":80}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-content-dual-action","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["summary","daily","favorite"]]
+["summary","EmphasizedData",{"value":{"path":"/data/earphone/batteryLevel"},"unit":"%","fontSize":30}]
+["daily","CardButton",{"label":"每日歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["favorite","CardButton",{"label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]
+["/data/earphone/batteryLevel",80]
+```
+
+## 示例十九（2x2-V07）：双城市天气（`S-dual-info`）
+root 纵向放置两个等权 `InfoBlock`，间距为 8vp。每个信息块的 `primaryText` 在同一条表达式中拼接动态城市名与完整温度文本，`secondaryText` 绑定天气状况；本例不使用图标、标题或动作。
 ### user
 ```json
 {"userQuery":"同时看上海和北京现在的温度与天气，不需要按钮。","size":"2x2","assetCandidates":[],"eventCandidates":[],"dataModelSchema":{"data":{"shanghai":{"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"上海"}},"current":{"temperatureText":{"type":"string","description":"含单位的当前温度文本","sampleValue":"29°C"},"condition":{"type":"string","description":"天气状况","sampleValue":"多云"}}},"beijing":{"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"北京"}},"current":{"temperatureText":{"type":"string","description":"含单位的当前温度文本","sampleValue":"18°C"},"condition":{"type":"string","description":"天气状况","sampleValue":"晴"}}}}}}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":20,"clip":true,"alignItems":"center","justifyContent":"start","itemMargin":8,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["shanghai","beijing"]]
-["shanghai","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["shanghaiValue","shanghaiCondition"]]
-["shanghaiValue","Text",{"content":"{{ ${/data/shanghai/location/prefectureName} + ' ' + ${/data/shanghai/current/temperatureText} }}","width":110,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
-["shanghaiCondition","Text",{"content":{"path":"/data/shanghai/current/condition"},"width":110,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
+["root","Layout",{"layout":"S-dual-info","linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["first","second"]]
+["first","InfoBlock",{"primaryText":"{{ ${/data/shanghai/location/prefectureName} + ' ' + ${/data/shanghai/current/temperatureText} }}","secondaryText":{"path":"/data/shanghai/current/condition"},"backgroundColor":"#CCFFFFFF"}]
+["second","InfoBlock",{"primaryText":"{{ ${/data/beijing/location/prefectureName} + ' ' + ${/data/beijing/current/temperatureText} }}","secondaryText":{"path":"/data/beijing/current/condition"},"backgroundColor":"#CCFFFFFF"}]
 ["/data/shanghai/location/prefectureName","上海"]
 ["/data/shanghai/current/temperatureText","29°C"]
 ["/data/shanghai/current/condition","多云"]
-["beijing","Column",{"width":134,"height":63,"padding":{"left":12,"right":12,"top":0,"bottom":0},"justifyContent":"center","itemMargin":4,"borderRadius":16,"backgroundColor":"#CCFFFFFF"},["beijingValue","beijingCondition"]]
-["beijingValue","Text",{"content":"{{ ${/data/beijing/location/prefectureName} + ' ' + ${/data/beijing/current/temperatureText} }}","width":110,"fontSize":14,"fontColor":"#FF1F4799","fontWeight":700,"maxLines":1}]
-["beijingCondition","Text",{"content":{"path":"/data/beijing/current/condition"},"width":110,"fontSize":12,"fontColor":"#FF1F4799","fontWeight":400,"maxLines":1}]
 ["/data/beijing/location/prefectureName","北京"]
 ["/data/beijing/current/temperatureText","18°C"]
 ["/data/beijing/current/condition","晴"]
-```
-
-## 示例十一（2x2-V11）：运动三指标与歌单入口（时长上下文·双指标分行·图文动作）
-本例示范“有按钮但纵向仍充足”时不把两个独立指标压进 ` | ` 单行。时长并入顶部上下文；热量和心率包含较长单位，无法在两个窄列中保留压力余量，因此在中部使用两条完整信息纵排。只有两个指标都足够短、各自的值和标签均通过独立槽位预算时，才改用等宽双列。图文动作 Row 属于动作区，不计入信息行，相同歌单事件只绑定按钮一次，不再绑定 root。
-### user
-```json
-{"userQuery":"帮我做个运动音乐卡片，看今天最近一次运动的时长、消耗热量和平均心率，训练时可以打开歌单。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"dataModelSchema":{"data":{"healthSport":{"exerciseDurationText":{"type":"string","description":"已包含时间单位的单次运动时长文本","sampleValue":"40分"},"exerciseCalorieText":{"type":"string","description":"已包含千卡单位的单次运动热量文本","sampleValue":"260 千卡"},"exerciseHeartRateAvg":{"type":"integer","description":"平均心率纯整数，展示时追加次/分钟","sampleValue":135}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"音乐音符单色图标；适用于用户明确要求的歌单动作入口。"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"design":"fusion-ball-sport-orange"},["title_area","content_area","action_area"]]
-["title_area","CardHeader",{"title":"{{ '最近运动 · ' + ${/data/healthSport/exerciseDurationText} }}","fontColor":"#FFFFFFFF"}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":6,"flexShrink":1},["calorie","heart_rate"]]
-["calorie","Text",{"content":"{{ '热量 ' + ${/data/healthSport/exerciseCalorieText} }}","width":136,"fontSize":14,"fontWeight":500,"fontColor":"#FFFFFFFF","maxLines":1}]
-["heart_rate","Text",{"content":"{{ '心率 ' + ${/data/healthSport/exerciseHeartRateAvg} + '次/分钟' }}","width":136,"fontSize":14,"fontWeight":500,"fontColor":"#FFFFFFFF","maxLines":1}]
-["action_area","Column",{"width":136,"height":36,"flexShrink":0,"justifyContent":"start","alignItems":"center"},["music_action"]]
-["music_action","Row",{"width":126,"height":36,"borderRadius":18,"backgroundColor":"#33FFFFFF","padding":{"left":8,"right":8,"top":0,"bottom":0},"itemMargin":8,"justifyContent":"center","alignItems":"center","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]},["music_icon","music_label"]]
-["music_icon","Image",{"src":"resources/base/media/music_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#99FFFFFF"}]
-["music_label","Text",{"content":"打开歌单","fontSize":14,"fontWeight":400,"fontColor":"#E6FFFFFF","maxLines":1}]
-["/data/healthSport/exerciseDurationText","40分"]
-["/data/healthSport/exerciseCalorieText","260 千卡"]
-["/data/healthSport/exerciseHeartRateAvg",135]
-```
-
-## 示例十二（2x2-V12）：睡眠时长与状态（S2 稀疏无动作变体·紫色微渐变）
-本例示范没有按钮的稀疏卡：稳定主题在顶部，时长与睡眠类型组成一个居中的主信息组，深睡时长作为独立支撑沉底。格式化时长使用全宽 24fp 单行并保留完整单位；候选月亮图标表达稳定的睡眠主题而非某个动态睡眠结论，因此保留在 CardHeader 右上角。该素材是支持 `fillColor` 的单色 SVG，CardHeader 必须显式使用紫色主内容色，不能漏写后显示默认黑色。该构图可迁移到其它“标题＋短主结果＋直接说明＋底部元数据”的单业务卡，不复制睡眠语义或素材路径。
-### user
-```json
-{"userQuery":"做张昨晚睡眠卡片，显示睡眠时长、睡眠类型和深睡时长，不要按钮。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthSleep":{"sleepDurationText":{"type":"string","description":"已包含小时和分钟单位的昨晚睡眠时长","sampleValue":"7小时1分"},"sleepTypeName":{"type":"string","description":"睡眠类型","sampleValue":"科学睡眠"},"deepSleepDurationText":{"type":"string","description":"已包含小时和分钟单位的深睡时长","sampleValue":"2小时15分"}}}},"assetCandidates":[{"src":"resources/base/media/moon_circle_fill.svg","description":"样式：默认黑色的单色月亮圆形实心图标，内部通过镂空表现月牙，支持通过 fillColor 与卡片配色统一；适用：夜间模式、睡眠追踪、勿扰模式。"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["title_area","content_area","bottom_area"]]
-["title_area","CardHeader",{"title":"昨晚睡眠","fontColor":"#FF563D99","icon":"resources/base/media/moon_circle_fill.svg","fillColor":"#FF563D99"}]
-["content_area","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["sleep_duration","sleep_type"]]
-["sleep_duration","Text",{"content":{"path":"/data/healthSleep/sleepDurationText"},"width":126,"height":34,"fontSize":24,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
-["sleep_type","Text",{"content":{"path":"/data/healthSleep/sleepTypeName"},"width":126,"height":24,"fontSize":18,"fontWeight":500,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
-["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","alignItems":"center","flexShrink":0},["deep_sleep"]]
-["deep_sleep","Text",{"content":"{{ '深睡 ' + ${/data/healthSleep/deepSleepDurationText} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#99563D99","textAlign":"center","maxLines":1}]
-["/data/healthSleep/sleepDurationText","7小时1分"]
-["/data/healthSleep/sleepTypeName","科学睡眠"]
-["/data/healthSleep/deepSleepDurationText","2小时15分"]
-```
-
-## 示例十三（2x2-V13）：双数值范围对照（S2 对称并列焦点组·紫色微渐变）
-本例示范两个天然同级、需要一起比较的短量化指标。两个值共同构成一个并列焦点组，不按字段顺序、数值
-大小或文字长短任意挑选单一 hero；共享单位进入标题，每列保持“值＋标签”成组，使用同字号、同字重、
-同宽度和同一基线。该构图可迁移到最高/最低、当前/目标、已用/剩余等成对读数；若值含长单位或任一列
-压力预算不足，则统一改成两条对齐的纵向标签—值行，不缩小其中一列、不省略标签。
-### user
-```json
-{"userQuery":"做张心率复盘卡片，同时看最高和最低心率以及更新时间。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"healthVitals":{"maximumHeartRate":{"type":"integer","description":"本次记录的最高心率纯整数，单位次/分钟","sampleValue":168},"minimumHeartRate":{"type":"integer","description":"本次记录的最低心率纯整数，单位次/分钟","sampleValue":96},"updatedAt":{"type":"string","description":"数据更新时间短文本","sampleValue":"更新于 09:00"}}}},"assetCandidates":[{"src":"resources/base/media/heart_fill.svg","description":"样式：默认黑色的单色实心爱心图标；适用：喜欢、收藏、关爱、心脏健康或心率栏目入口。"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFDBCCFF",0],["#FFF6F2FF",1]]}},["title_area","metric_group","bottom_area"]]
-["title_area","CardHeader",{"title":"心率 · 次/分","fontColor":"#FF563D99","icon":"resources/base/media/heart_fill.svg","fillColor":"#FF563D99"}]
-["metric_group","Row",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"center","itemMargin":8,"flexShrink":1},["maximum_group","metric_divider","minimum_group"]]
-["maximum_group","Column",{"width":54,"justifyContent":"center","alignItems":"center","itemMargin":2},["maximum_value","maximum_label"]]
-["maximum_value","Text",{"content":{"path":"/data/healthVitals/maximumHeartRate"},"width":54,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
-["maximum_label","Text",{"content":"最高","width":54,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
-["metric_divider","Divider",{"width":1,"height":44,"vertical":true,"color":"#33563D99"}]
-["minimum_group","Column",{"width":54,"justifyContent":"center","alignItems":"center","itemMargin":2},["minimum_value","minimum_label"]]
-["minimum_value","Text",{"content":{"path":"/data/healthVitals/minimumHeartRate"},"width":54,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
-["minimum_label","Text",{"content":"最低","width":54,"fontSize":12,"fontWeight":400,"fontColor":"#FF563D99","textAlign":"center","maxLines":1}]
-["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","alignItems":"center","flexShrink":0},["updated_at"]]
-["updated_at","Text",{"content":{"path":"/data/healthVitals/updatedAt"},"width":126,"fontSize":12,"fontWeight":400,"fontColor":"#99563D99","textAlign":"center","maxLines":1}]
-["/data/healthVitals/maximumHeartRate",168]
-["/data/healthVitals/minimumHeartRate",96]
-["/data/healthVitals/updatedAt","更新于 09:00"]
-```
-
-## 示例十四（2x2-V14）：三项同级状态概览（S2 对齐标签值列表·蓝色微渐变）
-本例示范三个没有明确主次的状态、等级或分类指标。整组是阅读焦点，不把其中某个较短 sampleValue 脱离
-标签放大；标签共享左侧对齐线，值共享右侧对齐线和统一字重，信息组在内容区垂直居中，地点等上下文沉底。
-只有 userQuery 明确指定重点，或 schema 提供真实整体结果时，才从该列表切换为单一主焦点构图。
-### user
-```json
-{"userQuery":"做张明日健康指数卡片，同时显示紫外线、空气质量、感冒指数和地点。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weatherHealth":{"ultravioletLevel":{"type":"string","description":"明日紫外线等级","sampleValue":"中等"},"airQualityLevel":{"type":"string","description":"明日空气质量等级","sampleValue":"良"},"coldRiskLevel":{"type":"string","description":"明日感冒指数等级","sampleValue":"低"},"locationName":{"type":"string","description":"指数适用地点","sampleValue":"成都公园"}}}},"assetCandidates":[]}
-```
-### assistant
-```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"linearGradient":{"direction":"RightBottom","colors":[["#FFCBDDFE",0],["#FFF1F6FE",1]]}},["title_area","metric_list","bottom_area"]]
-["title_area","CardHeader",{"title":"明日健康指数","fontColor":"#FF1F4799"}]
-["metric_list","Column",{"width":126,"layoutWeight":1,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["ultraviolet_row","air_row","cold_row"]]
-["ultraviolet_row","Row",{"width":126,"height":20,"justifyContent":"start","alignItems":"center"},["ultraviolet_label","ultraviolet_value"]]
-["ultraviolet_label","Text",{"content":"紫外线","width":70,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["ultraviolet_value","Text",{"content":{"path":"/data/weatherHealth/ultravioletLevel"},"width":56,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"end","maxLines":1}]
-["air_row","Row",{"width":126,"height":20,"justifyContent":"start","alignItems":"center"},["air_label","air_value"]]
-["air_label","Text",{"content":"空气质量","width":70,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["air_value","Text",{"content":{"path":"/data/weatherHealth/airQualityLevel"},"width":56,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"end","maxLines":1}]
-["cold_row","Row",{"width":126,"height":20,"justifyContent":"start","alignItems":"center"},["cold_label","cold_value"]]
-["cold_label","Text",{"content":"感冒指数","width":70,"fontSize":12,"fontWeight":400,"fontColor":"#FF1F4799","maxLines":1}]
-["cold_value","Text",{"content":{"path":"/data/weatherHealth/coldRiskLevel"},"width":56,"fontSize":14,"fontWeight":700,"fontColor":"#FF1F4799","textAlign":"end","maxLines":1}]
-["bottom_area","Column",{"width":126,"height":18,"justifyContent":"end","alignItems":"start","flexShrink":0},["location"]]
-["location","Text",{"content":"{{ '地点 ' + ${/data/weatherHealth/locationName} }}","width":126,"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
-["/data/weatherHealth/ultravioletLevel","中等"]
-["/data/weatherHealth/airQualityLevel","良"]
-["/data/weatherHealth/coldRiskLevel","低"]
-["/data/weatherHealth/locationName","成都公园"]
 ```
