@@ -15,7 +15,7 @@ _PATH = "path"
 _EXPRESSION = "expression"
 _SCALAR_TYPES = frozenset({"string", "integer", "number"})
 _STRING_TYPES = frozenset({"string"})
-_PROGRESS_TYPES = frozenset({"string", "integer", "number"})
+_PROGRESS_TYPES = frozenset({"integer", "number"})
 
 
 @dataclass(frozen=True)
@@ -143,6 +143,15 @@ def collect_compact_component_binding_errors(
 ) -> list[str]:
     """Return binding-contract errors for one unexpanded semantic component."""
     contracts = COMPACT_COMPONENT_BINDING_CONTRACTS.get(component_type)
+    if component_type == "InfoBlock":
+        visual = props.get("visual")
+        if isinstance(visual, dict) and visual.get("type") == "progressCircle":
+            contracts = dict(contracts or {})
+            contracts["primaryText"] = PROGRESS_BINDING
+    from services.generation_content_policy import STATIC_COMPONENTS
+
+    if component_type in STATIC_COMPONENTS:
+        contracts = {}
     if contracts is None:
         return []
 
@@ -166,7 +175,9 @@ def collect_compact_component_binding_errors(
             if mode != _PATH or schema_type_resolver is None:
                 continue
             schema_type = schema_type_resolver(binding_path)
-            if schema_type is None or schema_type in contract.path_types:
+            if schema_type in contract.path_types:
+                continue
+            if schema_type is None and contract not in {PROGRESS_BINDING, PROGRESS_CIRCLE_BINDING}:
                 continue
             expected = ", ".join(sorted(contract.path_types))
             errors.append(

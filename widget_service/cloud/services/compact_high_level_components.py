@@ -267,6 +267,10 @@ def expand_high_level_component_rows(
         for child_id in parent.children:
             parents[child_id] = parent
     secondary_widths = _secondary_body_widths(components, size)
+    from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+    from services.static_content_components import expand_static_component
+
+    static_widths = _static_content_widths(components, size)
     generated_ids: set[str] = set()
     expanded: list[ComponentRow] = []
     expanders = {
@@ -294,13 +298,26 @@ def expand_high_level_component_rows(
     for component in components:
         expander = expanders.get(component.component_type)
         parent = parents.get(component.component_id)
-        if expander is None:
+        static_type = component.component_type in STATIC_COMPONENTS
+        static_support = (
+            current_content_policy().is_static
+            and component.component_type in {"SecondaryBody", "SingleLineTitle"}
+        )
+        if static_type or static_support:
+            width = static_widths.get(component.component_id)
+            if width is None:
+                raise CompactDslConversionError("静态组件参考宽度无法确定。")
+            rows = expand_static_component(component, size, width=width, palette=color_palette)
+            rows[0] = _place_high_level_root(component, rows[0], parent)
+        elif expander is None:
             rows = [component]
         elif component.component_type in {"PillButton", "CircleButton"}:
             rows = expander(component, size, color_palette=color_palette)
         elif component.component_type == "SecondaryBody":
             rows = expander(
-                component, size, data_model=data_model,
+                component,
+                size,
+                data_model=data_model,
                 available_width=secondary_widths.get(component.component_id),
             )
         elif component.component_type in {
@@ -325,7 +342,9 @@ def expand_high_level_component_rows(
                 parent,
                 size=size,
             )
-        elif component.component_type == "SingleLineTitle":
+        elif (
+            component.component_type == "SingleLineTitle" and not current_content_policy().is_static
+        ):
             header = ComponentRow(
                 component.component_id,
                 component.component_type,
@@ -333,7 +352,7 @@ def expand_high_level_component_rows(
                 component.children,
             )
             rows[0] = _place_high_level_root(component, header, parents.get(component.component_id))
-        if expander is not None:
+        if expander is not None or static_type or static_support:
             rows = _allocate_expanded_ids(component, rows, existing_ids | generated_ids)
         for index, row in enumerate(rows):
             if in_layout_phase() and row.component_type == "Image":
@@ -354,6 +373,41 @@ def expand_high_level_component_rows(
             generated_ids.add(row.component_id)
             expanded.append(row)
     return expanded
+
+
+def _static_content_widths(components: list[ComponentRow], size: str) -> dict[str, float]:
+    from services.compact_region_layout import reference_region_boxes
+    from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+
+    targets = []
+    nodes = []
+    for component in components:
+        kind = component.component_type
+        props = component.props
+        static_support = (
+            current_content_policy().is_static and kind in {"SecondaryBody", "SingleLineTitle"}
+        )
+        if kind in STATIC_COMPONENTS or static_support:
+            targets.append(component.component_id)
+            kind = "Column"
+            props = {"width": "matchParent", **props}
+        nodes.append(
+            {
+                "id": component.component_id,
+                "component": kind,
+                "styles": props,
+                "children": list(component.children),
+            }
+        )
+    if not targets:
+        return {}
+    boxes = reference_region_boxes(nodes, size=size)
+    result: dict[str, float] = {}
+    for identifier in targets:
+        box = boxes.get(identifier)
+        if box is not None and box.width is not None:
+            result[identifier] = box.width
+    return result
 
 
 def _allocate_expanded_ids(
@@ -652,8 +706,6 @@ def _emphasis_secondary_content(component: ComponentRow) -> Any:
         f"${{{path}}}" for path in paths
     )
     return f"{{{{ {body} }}}}"
-
-
 
 
 def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
@@ -1385,9 +1437,6 @@ def _progress_circle_values(
             total=100,
             data_model=data_model,
         )
-        found, initial_value = _json_pointer_value(data_model or {}, path)
-        if found and isinstance(initial_value, str):
-            return progress_value, copy.deepcopy(value)
         return progress_value, f"{{{{ ${{{path}}} + '%' }}}}"
     if _is_complete_expression(value):
         return _progress_circle_expression_values(value)
@@ -1469,23 +1518,14 @@ def _normalized_progress_binding(
     found, initial_value = _json_pointer_value(data_model or {}, path)
     if not found:
         return copy.deepcopy(value)
-    if not isinstance(initial_value, (int, float, str)) or isinstance(
-        initial_value,
-        bool,
-    ):
-        return copy.deepcopy(value)
-    numeric_value = _normalized_progress_literal(
-        component,
-        prop_name,
-        initial_value,
-        total=total,
-    )
-    if not isinstance(initial_value, str):
-        return copy.deepcopy(value)
-    derived_path = f"/__display{path}/progressValue"
-    if data_model is not None:
-        _set_json_pointer(data_model, derived_path, numeric_value)
-    return {"path": derived_path}
+    if isinstance(initial_value, str):
+        raise CompactDslConversionError(
+            f"{component.component_id}: {component.component_type}.{prop_name} "
+            "dynamic progress requires a number/integer source; formatted text cannot "
+            "be converted from the initial frame. Use a registered numeric source or text display."
+        )
+    _normalized_progress_literal(component, prop_name, initial_value, total=total)
+    return copy.deepcopy(value)
 
 
 def _normalized_progress_literal(

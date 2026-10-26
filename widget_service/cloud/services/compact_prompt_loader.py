@@ -155,3 +155,66 @@ def read_prompt(source_root: Path, name: str, size: str | None = None) -> str:
     if content is None:
         raise ValueError(f"Compact prompt not found: {name}")
     return content
+
+
+@lru_cache(maxsize=32)
+def read_static_prompt(source_root: Path, name: str, size: str) -> str:
+    """独立装配静态增量，旧七种提示词的片段和返回内容不变。"""
+    manifest = json.loads((source_root / "manifest.yaml").read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError("静态提示词 manifest 必须为对象。")
+    profile = manifest.get("staticContent")
+    if not isinstance(profile, dict) or profile.get("version") != "static-content-v1":
+        raise ValueError("静态提示词资源未完整登记。")
+    references = profile.get(name)
+    if not isinstance(references, list) or not references:
+        raise ValueError(f"缺少静态提示词 {name}。")
+    if size not in {"2x2", "2x4"}:
+        raise ValueError("静态提示词尺寸无效。")
+    parts = []
+    for reference in references:
+        if not isinstance(reference, str):
+            raise ValueError("静态提示词引用必须是字符串。")
+        reference = reference.replace("{size}", size)
+        filename, separator, fragment = reference.partition("#")
+        content = _inside(source_root, filename).read_text(encoding="utf-8")
+        if separator:
+            found = None
+            for match in FRAGMENT.finditer(content):
+                if match.group(1) == fragment:
+                    found = match.group(2)
+                    break
+            if found is None:
+                raise ValueError(f"静态提示词共享片段不存在：{reference}")
+            content = found
+        if not content.strip():
+            raise ValueError(f"静态提示词资源为空：{reference}")
+        parts.append(content)
+    result = "\n\n".join(parts)
+    if name == "plan":
+        from services.compact_reference_canvas import reference_dimension
+        from services.static_text_capacity import static_content_contract
+
+        contract = static_content_contract()
+        budget = {
+            "referenceOnly": True,
+            "width": reference_dimension(size, "width"),
+            "height": reference_dimension(size, "height"),
+            "layout": contract.get("layout"),
+            "text": contract.get("text"),
+            "components": contract.get("components"),
+        }
+        result += (
+            "\n\n# 本轮参考排版合同\n"
+            "以下来自运行时共享合同，仅供云侧规划，不代表真实宿主尺寸。"
+            "先扣安全区、标题和说明，再核算各字段与总高；字段分别合规不代表整卡可放。"
+            "提交前在本次推理内压缩重复措辞和重组表达，不新增调用。\n"
+            + json.dumps(budget, ensure_ascii=False, separators=(",", ":"))
+        )
+    if name == "fewshot":
+        example_ids = profile.get("exampleIds")
+        expected = example_ids.get(size) if isinstance(example_ids, dict) else None
+        actual = re.findall(r"(?m)^## (2x[24]-V\d+)", result)
+        if not expected or actual != expected:
+            raise ValueError("静态案例登记与实际资源不一致。")
+    return result

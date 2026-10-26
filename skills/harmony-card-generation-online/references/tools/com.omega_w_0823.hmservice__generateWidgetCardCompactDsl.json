@@ -105,6 +105,10 @@
         "type": "String",
         "description": "仅编辑的需澄清、无需修改或不支持结论提供必要业务说明；主 Agent 按回复规范组织，不直接透传内部内容。"
       },
+      "omittedRequirements": {
+        "type": "Array<String>",
+        "description": "可选，生成中实际省略的信息；用于部分满足说明，不得据此补做生成。"
+      },
       "artifactDigest": {
         "type": "String",
         "description": "服务端排障使用的 artifact 摘要。"
@@ -134,8 +138,7 @@
     },
     "required": [
       "status",
-      "suggestSize",
-      "message"
+      "suggestSize"
     ],
     "type": "object"
   },

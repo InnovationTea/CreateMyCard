@@ -22,6 +22,64 @@ from services.compact_dsl_a2ui_converter import (
 )
 
 
+def static_source_errors(fact: dict[str, Any], source: str) -> list[str]:
+    """仅检查引用可追溯及明确原文约束；摘要语义由模型判断。"""
+    from config.config import get_settings
+
+    references = fact.get("sourceTexts")
+    if not isinstance(references, list) or not references:
+        return ["静态 text 事实必须提交非空 sourceTexts。"]
+    errors: list[str] = []
+    source = source.replace("\r\n", "\n").replace("\r", "\n")
+    valid_sources = []
+    for reference in references:
+        if not isinstance(reference, str) or not reference.strip():
+            errors.append("sourceTexts 只接受非空原文字符串。")
+            continue
+        reference = reference.replace("\r\n", "\n").replace("\r", "\n")
+        if len(reference) > get_settings().static_content_max_source_chars:
+            errors.append("静态来源引用超过长度预算。")
+        if reference not in source:
+            diagnostic = _static_source_diagnostic()
+            errors.append(diagnostic.message)
+        valid_sources.append(reference)
+    display = fact.get("text")
+    if not isinstance(display, str) or not display.strip():
+        return [*errors, "静态展示文字必须非空。"]
+    display = display.replace("\r\n", "\n").replace("\r", "\n")
+    protected = fact.get("protectedTexts", [])
+    if not isinstance(protected, list):
+        return [*errors, "protectedTexts 必须是原文片段数组。"]
+    if len(protected) > 12:
+        errors.append("单事实保护片段不得超过12项。")
+    for fragment in protected:
+        if not isinstance(fragment, str) or not fragment.strip():
+            errors.append("保护片段必须是非空文字。")
+            continue
+        fragment = fragment.replace("\r\n", "\n").replace("\r", "\n")
+        if not any(fragment in reference for reference in valid_sources):
+            errors.append("保护片段没有来源引用依据。")
+        if fragment not in display:
+            errors.append("COMPACT_STATIC_PROTECTED_TEXT_CHANGED: 展示文字缺少保护片段。")
+    verbatim = fact.get("preserveVerbatim", False)
+    if not isinstance(verbatim, bool):
+        errors.append("preserveVerbatim 必须是布尔值。")
+    if verbatim is True and display not in valid_sources:
+        errors.append("原文展示必须完整保留一个引用片段。")
+    return errors
+
+
+def _static_source_diagnostic() -> CompactDiagnostic:
+    return CompactDiagnostic(
+        code="COMPACT_STATIC_SOURCE_NOT_ALLOWED",
+        validation_class="semantic",
+        category="cross_file",
+        message="COMPACT_STATIC_SOURCE_NOT_ALLOWED: 来源引用不在本轮有效输入中。",
+        legacy_message="COMPACT_STATIC_SOURCE_NOT_ALLOWED: 来源引用不在本轮有效输入中。",
+        expected={"quotedFromCurrentInput": True},
+    )
+
+
 def _collect_undeclared_data_path_error(
     path: str, data_model_schema: dict[str, Any], errors: list[str]
 ) -> None:

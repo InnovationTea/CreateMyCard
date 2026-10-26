@@ -506,6 +506,7 @@
         },
         "batterySOCText": {
           "type": "string",
+          "numericSource": "batterySOC",
           "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
           "sampleValue": "68%",
           "displayUnits": [

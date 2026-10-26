@@ -50,6 +50,7 @@ from services.card_validation.compact_validation.repair_guidance import RepairGu
 from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
 from services.compact_plan import (
     CompactPlanValidationError,
+    CompactPlanValidationResult,
     compact_plan_omitted_facts,
     parse_compact_plan_call,
 )
@@ -59,6 +60,11 @@ from services.compact_repair_strategy import (
 )
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
+from services.generation_content_policy import (
+    activate_request_policy,
+    isolated_content_request,
+    resolve_content_policy,
+)
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessingResult,
@@ -292,6 +298,7 @@ class WidgetGenerationService:
         return response
 
     @trace_flow
+    @isolated_content_request
     async def generate_widget_card(
         self,
         request: GenerateWidgetCardRequest,
@@ -575,6 +582,38 @@ class WidgetGenerationService:
         task_spec = preflight.task_spec
         if card_spec is None or task_spec is None:
             raise RuntimeError("generation preflight did not build generation specs")
+        content_policy = resolve_content_policy(
+            operation=policy.operation,
+            enabled=settings.enable_static_content_generation_policy,
+            is_edit=generation_mode == "edit",
+            requested_data=bool(request.candidateDataBindings),
+            effective_data=bool(effective_bindings),
+            single_step=policy.single_step,
+        )
+        activate_request_policy(content_policy)
+        if content_policy.is_static:
+            if len(request.userQuery) > settings.static_content_max_input_chars:
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.FAILED,
+                    suggestSize=card_spec.suggestSize,
+                    message="静态来源内容过长，请缩小本次需要制作的内容范围后重试。",
+                    errorCode=ErrorCode.VALIDATION_FAILED.value,
+                )
+            template_source_generator = None
+            try_jsx = False
+            single_step_fallback_enabled = False
+        trace_record(
+            "content_policy.selected",
+            stage="configuration",
+            status="success",
+            details={
+                "mode": content_policy.mode, "version": content_policy.version,
+                "reason": "eligibleStaticCreate" if content_policy.is_static else "existingRoute",
+                "staticPolicyEnabled": settings.enable_static_content_generation_policy,
+                "requestedData": bool(request.candidateDataBindings),
+                "effectiveData": bool(effective_bindings),
+            },
+        )
         latency_by_stage["generationPreflight"] = self._elapsed_ms(stage_started_at)
         trace_step(
             "generation_preflight.completed",
@@ -781,6 +820,7 @@ class WidgetGenerationService:
             CompactRepairStrategyTracker(
                 max_repair_attempts=settings.validation_failure_max_repair_attempts,
                 capacity_recovery=capacity_recovery,
+                static_content=content_policy.is_static,
             )
             if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
             else None
@@ -797,7 +837,8 @@ class WidgetGenerationService:
         single_step_theme = policy.single_step and generation_mode == "create"
         processor = (
             SingleStepFallbackProcessor(post_layout_theme=single_step_theme)
-            if policy.single_step else get_dsl_processor(policy.processor_kind)
+            if policy.single_step
+            else get_dsl_processor(policy.processor_kind)
         )
         if policy.single_step and source_load_result is not None:
             processor = SingleStepEditProcessor(source_load_result.artifact.genui)
@@ -806,6 +847,7 @@ class WidgetGenerationService:
         report_ops_metrics(body={"cardSizeCode": 1 if card_spec.suggestSize == "2x4" else 0})
         processing_context = DslProcessingContext(
             size=card_spec.suggestSize,
+            content_policy=content_policy,
             card_spec=card_spec.model_dump(mode="json", exclude_none=True),
             task_spec=task_spec.model_dump(mode="json", exclude_none=True),
             protocol_profile=conversion_protocol_profile,
@@ -840,15 +882,17 @@ class WidgetGenerationService:
             )
 
         direct_fusion_request = (
-            not policy.single_step and uses_post_layout_theme(policy.operation)
+            not policy.single_step
+            and uses_post_layout_theme(policy.operation)
             and template_source_generator is None
             and not try_jsx
         )
-        defer_size_notification = (
+        expandable_request = (
             generation_mode == "create"
             and direct_fusion_request
             and expansion_enabled(task_spec.model_dump(mode="json", exclude_none=True))
         )
+        defer_size_notification = expandable_request and not content_policy.is_static
 
         async def generate_compact_plan() -> dict:
             """先取得可校验的信息合同，不在本阶段加载或检索 Few-shot。"""
@@ -862,6 +906,14 @@ class WidgetGenerationService:
                 policy.model_profile_id,
                 size=task_spec.size,
             )
+            if content_policy.is_static:
+                from services.compact_prompt_loader import read_static_prompt
+
+                plan_contract = read_static_prompt(
+                    A2UIProtocolRegistry.design_prompt_directory(policy.model_profile_id),
+                    "plan",
+                    task_spec.size,
+                )
             plan_system_prompt = f"{prompt[0]['content']}\n\n{plan_contract.strip()}"
             plan_prompt_started_at = time.perf_counter()
             plan_prompt = PromptBuilder().build_compact_plan(
@@ -886,6 +938,8 @@ class WidgetGenerationService:
             )
             plan_profile = {"id": "compact-info-plan", "format": "raw-json"}
             max_plan_attempts = 2
+            refinement_plan: CompactPlanValidationResult | None = None
+            refinement_source: str | None = None
             for attempt in range(1, max_plan_attempts + 1):
                 trace_increment_attempt("planContractAttempts")
                 with (
@@ -907,6 +961,9 @@ class WidgetGenerationService:
                             phase="plan",
                         )
                     )
+                    if content_policy.is_static:
+                        if len(raw_plan) > settings.static_content_max_output_chars:
+                            raise A2UIModelGenerationError("静态Plan输出超过本请求预算。")
                     plan_prompt.append({"role": "assistant", "content": raw_plan})
                     trace_record(
                         "plan.model.completed",
@@ -916,14 +973,20 @@ class WidgetGenerationService:
                         text_artifacts={"plan_extracted_output": raw_plan},
                     )
                     parse_started_at = time.perf_counter()
+                    static_contract_options = (
+                        {"require_static_omission_refs": True} if content_policy.is_static else {}
+                    )
                     try:
                         validation = parse_compact_plan_call(
                             raw_plan,
                             task_spec.model_dump(mode="json", exclude_none=True),
                             static_text_source=previous_design_token,
+                            require_static_identity=content_policy.is_static,
                             require_composition=(
                                 settings.enable_design_compact_runtime_prompt_context
+                                and not content_policy.is_static
                             ),
+                            **static_contract_options,
                         )
                     except CompactPlanValidationError as exc:
                         plan_span.outcome("failed", errorCount=len(exc.errors))
@@ -947,26 +1010,58 @@ class WidgetGenerationService:
                                 "plan_validation_errors": "diagnostic",
                             },
                         )
-                        if not will_retry:
+                        if not will_retry and refinement_plan is not None:
+                            validation = refinement_plan
+                            trace_record(
+                                "static_content.plan.refinement.fallback",
+                                stage="plan", status="success",
+                                details={"reason": "保留此前结构合法的静态计划，继续DSL排版"},
+                            )
+                            if refinement_source is not None:
+                                raw_plan = refinement_source
+                        elif not will_retry:
                             raise A2UIModelGenerationError(
                                 "Compact Info Plan did not satisfy the plan contract"
                             ) from exc
-                        trace_increment_retry("planContractRetries")
-                        repair_prompt_started_at = time.perf_counter()
-                        plan_prompt = PromptBuilder.build_compact_plan_repair(
-                            plan_prompt,
-                            raw_plan,
-                            exc.errors,
-                        )
-                        trace_step(
-                            "plan.prompt.built",
-                            stage="plan.promptBuild",
-                            status="success",
-                            duration_ms=self._elapsed_ms(repair_prompt_started_at),
-                            details={"reason": "contract_repair"},
-                            json_artifacts={"plan_repair_prompt": plan_prompt},
-                        )
-                        continue
+                        else:
+                            trace_increment_retry("planContractRetries")
+                            repair_prompt_started_at = time.perf_counter()
+                            plan_prompt = PromptBuilder.build_compact_plan_repair(
+                                plan_prompt, raw_plan, exc.errors,
+                            )
+                            trace_step(
+                                "plan.prompt.built", stage="plan.promptBuild", status="success",
+                                duration_ms=self._elapsed_ms(repair_prompt_started_at),
+                                details={"reason": "contract_repair"},
+                                json_artifacts={"plan_repair_prompt": plan_prompt},
+                            )
+                            continue
+                    if refinement_plan is not None:
+                        previous_candidate = refinement_plan.plan.get("staticPresentation")
+                        if previous_candidate and not validation.plan.get("staticPresentation"):
+                            validation = refinement_plan
+                            if refinement_source is not None:
+                                raw_plan = refinement_source
+                            trace_record(
+                                "static_content.plan.refinement.fallback",
+                                stage="plan", status="success",
+                                details={"reason": "新计划未找到可行候选，保留此前合法候选与计划"},
+                            )
+                    if content_policy.is_static and attempt < max_plan_attempts:
+                        feedback = validation.plan.get("staticPresentationFeedback")
+                        if feedback:
+                            refinement_plan = validation
+                            refinement_source = raw_plan
+                            plan_prompt = PromptBuilder.build_static_plan_refinement(
+                                plan_prompt, feedback,
+                            )
+                            trace_increment_retry("planCapacityRefinements")
+                            trace_record(
+                                "static_content.plan.refinement", stage="plan", status="scheduled",
+                                details={"attempt": attempt, "remainingAttempts": 1},
+                                json_artifacts={"capacity_reference": feedback},
+                            )
+                            continue
                     trace_step(
                         "plan.validation.completed",
                         stage="plan.parseValidate",
@@ -997,6 +1092,31 @@ class WidgetGenerationService:
                             f"warnings={json_for_log(validation.warnings)}"
                         )
                     accepted_compact_plan_warnings = tuple(validation.warnings)
+                    if content_policy.is_static:
+                        from services.static_content_context import StaticContentContext
+
+                        evidence = StaticContentContext.from_plan(
+                            request.userQuery, validation.plan
+                        )
+                        trace_record(
+                            "static_content.plan.accepted",
+                            stage="plan",
+                            status="success",
+                            details={
+                                "inputChars": evidence.input_chars,
+                                "displayChars": evidence.display_chars,
+                                "sourceReferenceCount": len(evidence.source_positions),
+                                "protectedCount": evidence.protected_count,
+                                "groupCount": len(validation.plan.get("contentGroups", [])),
+                            },
+                            json_artifacts={
+                                "static_source_evidence": {
+                                    "version": evidence.policy_version,
+                                    "sourcePositions": list(evidence.source_positions),
+                                    "contentGroups": validation.plan.get("contentGroups"),
+                                }
+                            },
+                        )
                     compact_agent_messages = plan_prompt
                     return validation.plan
             raise AssertionError("Compact Plan retry loop exited unexpectedly")
@@ -1107,7 +1227,7 @@ class WidgetGenerationService:
                 policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
                 and policy.operation == "generateWidgetCardCompactDsl"
             )
-            if uses_compact_plan and not model_client.use_mock:
+            if uses_compact_plan and (not model_client.use_mock or content_policy.is_static):
                 if source_fallback_started:
                     trace_phase_outcome("degraded", reason="fallback_to_model")
                 accepted_compact_plan = await generate_compact_plan()
@@ -1342,6 +1462,15 @@ class WidgetGenerationService:
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
+            if content_policy.is_static:
+                if len(source_dsl) > settings.static_content_max_output_chars:
+                    issue = QualityIssue(
+                        stage="validation",
+                        code="COMPACT_STATIC_TEXT_CAPACITY",
+                        message="静态DSL输出超过本请求预算，请保留核心并减少非必要结构。",
+                    )
+                    latest_processing_result = DslProcessingResult(source_dsl, issues=(issue,))
+                    return [issue.repair_message()]
             if task_spec.size == "2x2" and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                 from services.compact_composition_context import retain_original_small_display_roles
 
@@ -1374,6 +1503,7 @@ class WidgetGenerationService:
                 plan_information_coverage_as_warning=(
                     quality_repair_attempt_count > 0
                     and not settings.enable_drop_plan_fact_validation
+                    and not content_policy.is_static
                 ),
                 allowed_omitted_plan_fact_indexes=(
                     compact_repair_tracker.validation_omitted_fact_indexes(
@@ -1421,7 +1551,9 @@ class WidgetGenerationService:
                     if not isinstance(processor, SingleStepEditProcessor):
                         processing_result = replace(
                             processing_result,
-                            standard_dsl=asset_mapper.rewrite_standard(processing_result.standard_dsl),
+                            standard_dsl=asset_mapper.rewrite_standard(
+                                processing_result.standard_dsl
+                            ),
                         )
                     with trace_attempt(**validation_attempts):
                         trace_step(
@@ -1550,13 +1682,16 @@ class WidgetGenerationService:
                 preservation_errors = processor.preservation_errors(artifact.genui)
                 validation_errors.extend(preservation_errors)
                 trace_record(
-                    "single_step.edit.patch_verified", stage="singleStepEdit",
+                    "single_step.edit.patch_verified",
+                    stage="singleStepEdit",
                     status="failed" if preservation_errors else "success",
-                    json_artifacts={"edit_patch_audit": {
-                        "sourceDigest": source_digest(processor.original),
-                        "changes": processor.applied_changes,
-                        "errors": preservation_errors,
-                    }},
+                    json_artifacts={
+                        "edit_patch_audit": {
+                            "sourceDigest": source_digest(processor.original),
+                            "changes": processor.applied_changes,
+                            "errors": preservation_errors,
+                        }
+                    },
                 )
             with trace_attempt(**validation_attempts):
                 trace_step(
@@ -1636,7 +1771,9 @@ class WidgetGenerationService:
             )
             repair_limit = max(1, policy.quality_repair_limit)
         trace_record(
-            "generation.policy.effective", stage="configuration", status="success",
+            "generation.policy.effective",
+            stage="configuration",
+            status="success",
             details={
                 "singleStep": policy.single_step,
                 "qualityRepairEnabled": retry_on_validation_failure,
@@ -1653,6 +1790,16 @@ class WidgetGenerationService:
                 repair=repair_source_dsl,
             )
         except A2UIModelGenerationError as exc:
+            failure_message = "卡片创建过程遇到问题了，请稍后再试。"
+            failure_code = ErrorCode.A2UI_GENERATION_FAILED.value
+            if content_policy.is_static and isinstance(exc.__cause__, CompactPlanValidationError):
+                plan_errors = exc.__cause__.errors
+                if any("COMPACT_STATIC_TEXT_CAPACITY:" in error for error in plan_errors):
+                    failure_message = (
+                        "当前卡片暂时无法容纳必须共同保留的信息，"
+                        "请减少展示对象或缩小内容范围后重试。"
+                    )
+                    failure_code = ErrorCode.VALIDATION_FAILED.value
             quality_repair_count = quality_repair_attempt_count
             model_failure_retry_count = model_client.model_failure_retry_count
             total_retry_count = model_failure_retry_count + quality_repair_count
@@ -1667,7 +1814,7 @@ class WidgetGenerationService:
             }
             logger.error(
                 f"{_MODULE} a2ui_generation_failed phase={model_call_phase} "
-                f"error_code={ErrorCode.A2UI_GENERATION_FAILED.value} "
+                f"error_code={failure_code} "
                 f"model_failure_retry_count={model_failure_retry_count} "
                 f"quality_repair_count={quality_repair_count} "
                 f"exception_type={type(exc).__name__} validation_continued=false "
@@ -1676,9 +1823,9 @@ class WidgetGenerationService:
             response = GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
                 suggestSize=card_spec.suggestSize,
-                message="卡片创建过程遇到问题了，请稍后再试。",
+                message=failure_message,
                 removedCapabilities=removed,
-                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+                errorCode=failure_code,
                 effectiveCapabilities=effective_capabilities,
             )
             self._log_generation_summary(
@@ -1747,7 +1894,9 @@ class WidgetGenerationService:
                     text_artifacts={"single_step_failed_compact_source": source_dsl},
                 )
                 with trace_span(
-                    "single_step.fallback", stage="singleStepFallback", kind="group",
+                    "single_step.fallback",
+                    stage="singleStepFallback",
+                    kind="group",
                 ) as span:
                     fallback_response = await self._generate_widget_card_with_policy(
                         request,
@@ -1860,20 +2009,60 @@ class WidgetGenerationService:
             if colorless_source() or single_step_theme:
                 from services.post_layout_theme import theme_artifact
 
+                unthemed_genui = artifact.genui
+                theme_task = task_spec.model_dump(mode="json", exclude_none=True)
+                if content_policy.is_static and accepted_compact_plan is not None:
+                    theme_task["staticPaletteFamily"] = accepted_compact_plan.get("paletteFamily")
                 artifact = await theme_artifact(
-                    artifact, task_spec.model_dump(mode="json", exclude_none=True), model_client,
-                    ArtifactValidator(asset_mapper.mapping), protocol_profile,
+                    artifact,
+                    theme_task,
+                    model_client,
+                    ArtifactValidator(asset_mapper.mapping),
+                    protocol_profile,
                     allow_expansion=defer_size_notification,
                     final_layout=design_token,
                 )
+                if content_policy.is_static:
+                    from services.static_content_context import final_static_display_errors
+
+                    final_errors = final_static_display_errors(unthemed_genui, artifact.genui)
+                    if final_errors:
+                        trace_record(
+                            "static_content.final.failed",
+                            stage="artifactValidation",
+                            status="failed",
+                            json_artifacts={"errors": final_errors},
+                        )
+                        return GenerateWidgetCardResponse(
+                            status=GenerationStatus.FAILED,
+                            suggestSize=card_spec.suggestSize,
+                            message="静态卡片最终内容复核未通过，请缩小展示范围后重试。",
+                            errorCode=ErrorCode.VALIDATION_FAILED.value,
+                        )
             final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
             if defer_size_notification and before_model_call is not None:
                 await before_model_call(final_size)
             final_span.json_artifacts["final_artifact"] = artifact.model_dump(
-                mode="json", exclude_none=True,
+                mode="json",
+                exclude_none=True,
             )
             final_span.artifact_roles["final_artifact"] = "output"
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
+        from services.card_validation.progress_sources import progress_dsl_errors
+
+        progress_errors = progress_dsl_errors(
+            artifact.genui, artifact.taskSpec.get("dataModelSchema"),
+        )
+        if progress_errors:
+            trace_record(
+                "artifact.progress_sources.failed", stage="artifactValidation", status="failed",
+                json_artifacts={"progress_source_errors": progress_errors},
+            )
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED, suggestSize=final_size,
+                message="进度展示缺少可刷新的数值来源，本次卡片未保存。",
+                errorCode=ErrorCode.VALIDATION_FAILED.value,
+            )
         logger.info(
             f"{_MODULE} artifact_built "
             f"effective_capabilities={json_for_log(artifact.effectiveCapabilities)} "
@@ -1952,6 +2141,7 @@ class WidgetGenerationService:
             removedCapabilities=removed,
             errorCode=response_plan.errorCode,
             effectiveCapabilities=artifact.effectiveCapabilities,
+            omittedRequirements=omitted_requirements,
         )
         latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
         self._log_generation_summary(

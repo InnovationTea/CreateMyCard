@@ -49,11 +49,11 @@ EXPECTED_EXAMPLES = {
     "fewshots/2x2.md:example-v14":
         "c08ddcc4cfc7349133df3c30b709afd2c6c33b0e45dc912e068c6ace3cef9cd2",
     "fewshots/2x2.md:example-v03":
-        "d983258707b421e97f91abc5890fc56a2d78869818e79cdf7b7d88f9827a6e54",
+        "62b9d0656427aaf5be826d17e291a449d1268d3e81555cbc92d67ab0ccb5180e",
     "fewshots/2x2.md:example-v17":
-        "6b2b19822d65f1fa494bebce3dad273286374a2ea2569c08ec63a46350d5fc6b",
+        "aa841371bef80ac47c97fa0ff117bdd32068717e5d518ed70881cedd0d67cc18",
     "fewshots/2x2.md:example-v18":
-        "4daef85f015357f9d5f68d5d792c71164a093e25ec6d436d99ea6451cb323a2f",
+        "d2506de3e48ae95cc0851efbc3d1cab71187cb98db32ba4812d995f6eb944161",
     "fewshots/2x2.md:example-v07":
         "d64d1db29b42efec9a23a7a701e15a3c63e955f40e7bbbba3e22d21b8081f62a",
     "fewshots/2x4.md:example-v03":
@@ -65,15 +65,15 @@ EXPECTED_EXAMPLES = {
     "fewshots/2x4.md:example-v09":
         "bf27585a2d9b137ed19451dabdd940b669e6b11e92325f9539b3969afeaacf50",
     "fewshots/2x4.md:example-v08":
-        "5258330397a5166a7546afbab9d870cd5d1402e29f9cc39fd36d8f84596d1684",
+        "acdff714b84be5ecb86b5e16b331496a4671662fbd28c5380d6def663174b475",
     "fewshots/2x4.md:example-v10":
         "d8511c5b19937e14a488156946778b30733ef951910fedf964197b8b264d06fa",
     "fewshots/2x4.md:example-v23":
-        "d6940e02240e39cc9278820de4a2067ee02a7cc7a4bec2e854267afec011ed43",
+        "9aa8609b6cd66360cddf3c286450f17f760d0a0703586331a4bd2df4f521437c",
     "fewshots/2x4.md:example-v06":
         "56abe3100740b9decebdf151026ee5bf9f66e5181be4235b42573cbeed5da56f",
     "fewshots/2x4.md:example-v19":
-        "5a53bd53e3f78c7d09603812a8407c1eead76d717fb582ba031410414b4b17fc",
+        "d380b7dda2b2bd4830b227521c34123a6ee65d94a816c7ef8a2baa07d55b9903",
     "fewshots/2x4.md:example-v38":
         "e252bc6f02d127221dceb4fa494d47f699ac332c9c74e95aae7a8a98fba74088",
     "fewshots/2x4.md:example-v39":
@@ -282,7 +282,7 @@ def _assert_structural_names(rows):
 
 
 @pytest.mark.parametrize("filename,case,section", _examples())
-def test_complete_examples_only_change_component_names(filename, case, section):
+def test_complete_examples_match_reviewed_payload_baseline(filename, case, section):
     input_value, source = _example_payload(section)
     expected = EXPECTED_EXAMPLES.get(f"{filename}:{case}")
     assert expected is not None

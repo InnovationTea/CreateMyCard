@@ -978,7 +978,9 @@ class PromptBuilder:
         """生成、校验和修复共享同尺寸全集；Plan 候选不冻结布局。"""
         if task_spec.size not in {"2x2", "2x4"}:
             raise ValueError(f"Unsupported Compact size: {task_spec.size}")
-        return "S-plan-guided" if task_spec.size == "2x2" else "W-plan-guided"
+        from services.generation_content_policy import effective_layout_scope
+
+        return effective_layout_scope(task_spec.size)
 
     @staticmethod
     def _query_mentions_weather(task_spec: TaskSpec) -> bool:
@@ -1510,6 +1512,19 @@ class PromptBuilder:
         settings = get_settings()
         if not settings.enable_design_compact_few_shots:
             return ""
+        from services.compact_prompt_loader import read_static_prompt
+        from services.generation_content_policy import current_content_policy
+
+        if current_content_policy().is_static:
+            root = A2UIProtocolRegistry.design_prompt_directory(DESIGN_COMPACT_PROFILE_ID)
+            examples = read_static_prompt(root, "fewshot", task_spec.size)
+            if settings.enable_design_compact_few_shot_selection and plan is not None:
+                return select_structural_fewshots(
+                    examples,
+                    plan,
+                    task_spec.model_dump(mode="json"),
+                ).content
+            return examples
         examples = A2UIProtocolRegistry.read_design_few_shot(
             DESIGN_COMPACT_PROFILE_ID,
             task_spec.size,
@@ -1518,7 +1533,9 @@ class PromptBuilder:
         identifiers = tuple(dict.fromkeys(re.findall(r"\b2x[24]-V\d+\b", examples)))
         if settings.enable_design_compact_few_shot_selection and plan is not None:
             selected = select_structural_fewshots(
-                examples, plan, task_spec.model_dump(mode="json"),
+                examples,
+                plan,
+                task_spec.model_dump(mode="json"),
             )
             content = selected.content
             identifiers = selected.identifiers
@@ -1618,6 +1635,25 @@ class PromptBuilder:
         defer_compact_examples: bool = False,
     ) -> list[dict[str, str]]:
         """首次生成使用 PROMPT，编辑时叠加文件化多轮规则。"""
+        from services.compact_prompt_loader import read_static_prompt
+        from services.generation_content_policy import current_content_policy
+        from services.static_text_capacity import static_capacity_prompt
+
+        if current_content_policy().is_static:
+            root = A2UIProtocolRegistry.design_prompt_directory(DESIGN_COMPACT_PROFILE_ID)
+            for resource_size in ("2x2", "2x4"):
+                for resource in ("create", "plan", "dsl", "repair", "fewshot"):
+                    read_static_prompt(root, resource, resource_size)
+            value = task_spec.model_dump(mode="json", exclude_none=True, exclude={"appVersion"})
+            return [
+                {
+                    "role": "system",
+                    "content": read_static_prompt(root, "create", task_spec.size)
+                    + "\n\n"
+                    + static_capacity_prompt(task_spec.size),
+                },
+                {"role": "user", "content": json.dumps(value, ensure_ascii=False)},
+            ]
         constructive_result = None
         recovery = None
         runtime_prompt_context_enabled = (
@@ -1713,7 +1749,12 @@ class PromptBuilder:
             exclude_none=True,
             exclude={"appVersion"},
         )
+        from services.generation_content_policy import current_content_policy
+
         runtime_prompt_context_enabled = get_settings().enable_design_compact_runtime_prompt_context
+        runtime_prompt_context_enabled = (
+            runtime_prompt_context_enabled and not current_content_policy().is_static
+        )
         tool = build_compact_plan_tool(
             task_spec_value,
             include_composition=runtime_prompt_context_enabled,
@@ -1725,6 +1766,11 @@ class PromptBuilder:
         recovery_context = ""
         if retry_context is not None and retry_context.capacity_recovery:
             recovery_context = f"\n\n{_CAPACITY_RECOVERY_PLAN_INSTRUCTION}"
+            if current_content_policy().is_static:
+                recovery_context = (
+                    "\n\n上一轮容量未闭合。本轮重新选择分组、组件和布局；"
+                    "保留must、保护原文、全部Action，不以扩尺寸、改写或省略核心解决容量。"
+                )
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}{recovery_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
@@ -1733,6 +1779,15 @@ class PromptBuilder:
             "收到 submit_card_plan 成功结果后，按后续消息继续生成 Compact DSL。"
             f"\n{PLAN_JSON_OUTPUT_INSTRUCTION}"
         )
+        if current_content_policy().is_static:
+            return [
+                {"role": "system", "content": effective_system_prompt},
+                {"role": "user", "content": generation_user_content},
+                {
+                    "role": "user",
+                    "content": "<agent_stage>plan</agent_stage>\n" + PLAN_JSON_OUTPUT_INSTRUCTION,
+                },
+            ]
         if "# TextBlock 槽位容量合同" not in effective_system_prompt:
             capacity_contract = compact_text_block_capacity_context(task_spec.size)
             if capacity_contract:
@@ -1757,6 +1812,14 @@ class PromptBuilder:
         errors: tuple[str, ...],
     ) -> list[dict[str, str]]:
         """把失败 Plan 与校验工具结果追加到同一条对话。"""
+        from services.generation_content_policy import current_content_policy
+
+        text_instruction = "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
+        if current_content_policy().is_static:
+            text_instruction = (
+                "text只能提取sourceTexts中已有内容；修正来源引用、保护文字和contentGroups索引，"
+                "保留日期、单位、否定和限定词；不得用自由摘要改写事实。"
+            )
         if len(plan_prompt) < 3 or plan_prompt[0].get("role") != "system":
             raise ValueError("Compact Plan repair requires the active Plan conversation")
         repaired = copy.deepcopy(plan_prompt)
@@ -1779,11 +1842,10 @@ class PromptBuilder:
                         },
                         "outputFormat": plan_output_format_feedback(invalid_output),
                         "instruction": (
-                            PLAN_JSON_OUTPUT_INSTRUCTION
-                            + " "
+                            PLAN_JSON_OUTPUT_INSTRUCTION + " "
                             "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
                             "但应移除模型自行新增且用户未要求的装饰标题事实。"
-                            "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
+                            f"{text_instruction}"
                             "不得生成 Compact DSL、Markdown 或解释。"
                         ),
                     },
@@ -1793,6 +1855,35 @@ class PromptBuilder:
             }
         )
         return repaired
+
+    @staticmethod
+    def build_static_plan_refinement(
+        conversation: list[dict[str, str]], feedback: list[str],
+    ) -> list[dict[str, str]]:
+        """在已有Plan预算内反馈有限试排参考，不宣称所有合法布局无解。"""
+        updated = copy.deepcopy(conversation)
+        updated.append({
+            "role": "user",
+            "content": json.dumps({
+                "toolResult": {
+                    "name": "submit_card_plan", "ok": True,
+                    "accepted": False, "capacityReference": feedback,
+                },
+                "instruction": (
+                    "结构合法，但有限候选尚未排下，尚未冻结计划；不代表所有布局无解。"
+                    "请使用本阶段剩余的最后一次提交，按用户用途重新总结过长展示文字，"
+                    "拆出名称、短标签和读数，保留条件及或/且关系；长出处降为可选短说明。"
+                    "以最终可见文字核算整卡总行数，不只满足单字段行数。"
+                    "避免同一对象每句重复主体、周期和单位；共同适用范围写一次，"
+                    "必要人群、强度、范围、例外和替代关系不能列入遗漏。"
+                    "名称可与完整正文同放无标签属性行，避免额外标签行挤占容量。"
+                    "用户明确要求完整或原文时仍遵守，不由程序删除事实。"
+                    "本次只提交完整submit_card_plan，不输出DSL或原样重复过长计划。"
+                    "最后一次结构合法计划仍将交由DSL尝试，不新增模型阶段。"
+                ),
+            }, ensure_ascii=False),
+        })
+        return updated
 
     @staticmethod
     def build_compact_dsl_continuation(
@@ -1824,6 +1915,26 @@ class PromptBuilder:
             }
         )
 
+        from services.compact_prompt_loader import read_static_prompt
+        from services.generation_content_policy import current_content_policy
+
+        if current_content_policy().is_static:
+            root = A2UIProtocolRegistry.design_prompt_directory(DESIGN_COMPACT_PROFILE_ID)
+            examples = PromptBuilder._compact_few_shot_context(
+                task_spec,
+                compact_plan,
+                component_source=conversation[0]["content"],
+            )
+            updated.append(
+                {
+                    "role": "user",
+                    "content": examples
+                    + "\n\n"
+                    + read_static_prompt(root, "dsl", task_spec.size)
+                    + "\n<agent_stage>compact_dsl</agent_stage>",
+                }
+            )
+            return updated
         runtime_context_enabled = get_settings().enable_design_compact_runtime_prompt_context
         task_value = task_spec.model_dump(mode="json")
         conflicts = composition_implementation_conflicts(compact_plan)
@@ -2037,6 +2148,26 @@ class PromptBuilder:
         original_display_roles: dict[str, dict[str, Any]] | None = None,
     ) -> list[dict[str, str]]:
         """构造携带源 DSL 和结构化质量问题的修复请求。"""
+        from services.compact_prompt_loader import read_static_prompt
+        from services.generation_content_policy import current_content_policy
+
+        if current_content_policy().is_static:
+            if task_spec is None or compact_plan is None:
+                raise ValueError("静态修复缺少已接受展示上下文。")
+            root = A2UIProtocolRegistry.design_prompt_directory(DESIGN_COMPACT_PROFILE_ID)
+            conversation = copy.deepcopy(initial_prompt)
+            if conversation[-1].get("content") != invalid_source_dsl:
+                conversation.append({"role": "assistant", "content": invalid_source_dsl})
+            payload = {
+                "toolResult": {"name": "validate_compact_dsl", "ok": False},
+                "qualityErrors": compact_issues_for_model(quality_errors),
+                "repairStrategy": repair_strategy,
+                "instruction": read_static_prompt(root, "repair", task_spec.size),
+            }
+            conversation.append(
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}
+            )
+            return conversation
         is_design_compact = dsl_format == DESIGN_COMPACT_PROFILE_ID
         minimum_messages = 2
         invalid_prompt = (

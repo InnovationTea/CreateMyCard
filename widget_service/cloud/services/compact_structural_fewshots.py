@@ -89,6 +89,9 @@ def query_features(plan: dict[str, Any], task: dict[str, Any]) -> Features:
     values = []
     actions: set[str] = set()
     components = []
+    from services.generation_content_policy import current_content_policy
+
+    static_content = current_content_policy().is_static
     for fact in plan.get("info_required", []):
         action = fact.get("actionId")
         if action:
@@ -97,7 +100,7 @@ def query_features(plan: dict[str, Any], task: dict[str, Any]) -> Features:
             path = fact.get("dataId")
             text = fact.get("text")
             key = ("data", path) if path else ("text", text)
-            if key not in seen:
+            if key not in seen or static_content:
                 seen.add(key)
                 values.append(_sample(task, path) if path else text)
         hints = fact.get("componentHints", [])
@@ -169,9 +172,22 @@ def _example(identifier: str, section: str, task: dict, rows: list[list]) -> Exa
     values = []
     for pointer in sorted(visible_paths):
         values.append(_sample(task, pointer))
+    from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+
+    fact_count = len(visible_paths)
+    if current_content_policy().is_static and names.intersection(STATIC_COMPONENTS):
+        from services.card_validation.compact_validation.semantic.static_content import (
+            static_display_groups,
+        )
+
+        source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+        object_groups, shared_groups = static_display_groups(source)
+        for group in object_groups + shared_groups:
+            values.extend(group.parts)
+        fact_count = len(values)
     mean_length, max_length = _pressure(values)
     features = Features(
-        str(task.get("size")), len(visible_paths), buttons,
+        str(task.get("size")), fact_count, buttons,
         "whole-card" if whole else "buttons" if buttons else "none",
         mean_length, max_length, (layout,), (tuple(sorted(names)),),
     )

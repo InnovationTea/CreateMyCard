@@ -13,6 +13,21 @@
         "description": "业务入参，对应旧协议 arguments；uid、romVersion 和 odid 均可选。",
         "requiredProperties": ["userQuery"],
         "properties": {
+          "skillName": {
+            "type": "string",
+            "required": false,
+            "description": "可选透传调用元数据，服务端剥离，不参与业务决策或进入模型。"
+          },
+          "requestId": {
+            "type": "string",
+            "required": false,
+            "description": "可选重复关联元数据，业务模型剥离；实际关联沿用外层请求或 session 解析规则。"
+          },
+          "functionName": {
+            "type": "string",
+            "required": false,
+            "description": "可选透传路由元数据，服务端剥离，不参与业务校验或改变实际接口。"
+          },
           "bundleName": {
             "type": "string",
             "required": false,
@@ -173,13 +188,13 @@
         "data.artifactUrl": "string，artifact 下载地址；成功或降级成功时返回。",
         "data.artifactDigest": "string，artifact 内容摘要。",
         "data.suggestSize": "string，最终生成卡片尺寸，枚举 2x2/2x4。",
-        "data.message": "string，可展示给主 Agent 或用户的生成结果说明。",
+        "data.omittedRequirements": "string[]，可选，实际省略的信息；仅用于部分满足说明，不据此补做生成。",
         "data.removedCapabilities": "RemovedCapability[]，被微服务裁决移除的能力及原因。",
         "data.errorCode": "string，失败或不支持时返回的错误码。",
         "data.effectiveCapabilities": "object，最终进入 artifact 的有效 data、event、asset 能力集合。",
         "status": "string，旧完整出参调用状态；生成接口透传 data.status。",
         "errorCode": "string，旧完整出参错误码；生成接口透传 data.errorCode。",
-        "error": "object，旧完整出参错误详情；成功、降级或业务 unsupported 通常为空对象。"
+        "error": "object；参数错误提供 details.issues 的路径和修正说明、retryable 及 requiredActions；业务 failed/unsupported 提供停止指引，success/degraded 为空对象。"
       }
     },
     "CandidateDataBinding": {

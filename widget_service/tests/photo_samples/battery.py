@@ -2,8 +2,8 @@
 
 import json
 
-from test_autumn_calendar_photos import expanded
-from test_metronome_photo import ACTION, earphone_sample
+from photo_samples.common import expanded
+from photo_samples.music import ACTION, earphone_sample
 
 SQUARES = ["photo-ux-texture-blue-diamond-square", "photo-ux-texture-blue-diamond-square"]
 WIDE = "photo-ux-texture-blue-diamond-wide"

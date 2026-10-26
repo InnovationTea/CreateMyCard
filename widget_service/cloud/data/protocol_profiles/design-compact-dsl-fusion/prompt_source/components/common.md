@@ -553,4 +553,5 @@ compact 的时间与地点同行：时间取自然宽度，分隔符保持原间
 ["settings","CardButton",{"label":"蓝牙设置","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
 ```
 
+动态进度约束：以上数值字符串和百分比字符串仅指静态字面量；动态 PathBinding 必须指向 number/integer。有 numericSource 时使用其登记的数值路径，不将文本首帧解析为进度。
 <!-- /prompt:catalog -->

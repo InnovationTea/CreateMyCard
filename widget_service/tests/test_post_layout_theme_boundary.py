@@ -24,6 +24,9 @@ from services.layout_theme_contract import strip_source_colors, uses_post_layout
 from services.theme_style_roles import in_layout_phase, layout_phase, role
 from services.widget_generation_service import WidgetGenerationService
 
+# 本组验证既有创建、回退或路由合同，静态策略由专项测试覆盖。
+pytestmark = pytest.mark.usefixtures("existing_generation_policy")
+
 
 @pytest.mark.parametrize("operation,template,jsx,expected", [
     ("generateWidgetCardCompactDsl", False, False, True),

@@ -34,6 +34,13 @@ enable_single_step_widget_edit: true
 enable_widget_edit: true
 # Repair 后是否继续严格校验 Plan 展示事实；动作覆盖始终校验。
 enable_drop_plan_fact_validation: false
+# 静态内容只向预检通过且没有动态候选的普通 Fusion 创建开放。
+enable_static_content_generation_policy: true
+static_content_max_input_chars: 16000
+static_content_max_source_chars: 2000
+static_content_max_source_references: 72
+static_content_max_source_positions: 512
+static_content_max_output_chars: 32000
 enable_artifact_download_mock: true
 enable_widget_directive_commands: false
 enable_compact_dsl_argument_repair_fallback: false

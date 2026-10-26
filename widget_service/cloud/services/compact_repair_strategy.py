@@ -23,6 +23,7 @@ from services.compact_repair_context import (
 )
 
 _CAPACITY_MARKERS = (
+    "compact_static_text_capacity",
     "vertical layout requires at least",
     "overflows by",
     "occupancy:",
@@ -76,18 +77,10 @@ _INFO_BLOCK_PROGRESS_VALUE_MARKERS = (
     "infoblock.primarytext must be a finite number or complete numeric percentage",
     "infoblock.primarytext must resolve between 0 and total",
 )
-_SECONDARY_BODY_DYNAMIC_LABEL_MARKERS = (
-    "secondarybody.items[].label only accepts a static value",
-)
-_SECONDARY_BODY_FONT_SIZE_MARKERS = (
-    "secondarybody.fontsize must be the fixed recipe value",
-)
-_CAPACITY_REGROUP_CONTRACT_MARKERS = (
-    "is auxiliary and cannot be the only information component",
-)
-_DUPLICATE_PLAN_FACT_PREFIX = (
-    "plan fact is displayed more than once in visible dsl:"
-)
+_SECONDARY_BODY_DYNAMIC_LABEL_MARKERS = ("secondarybody.items[].label only accepts a static value",)
+_SECONDARY_BODY_FONT_SIZE_MARKERS = ("secondarybody.fontsize must be the fixed recipe value",)
+_CAPACITY_REGROUP_CONTRACT_MARKERS = ("is auxiliary and cannot be the only information component",)
+_DUPLICATE_PLAN_FACT_PREFIX = "plan fact is displayed more than once in visible dsl:"
 COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
 DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT = 4
 PLAN_COVERAGE_EARLY_DROP_MIN_REPAIR_ATTEMPTS = 2
@@ -176,10 +169,11 @@ class CompactRepairDirective:
                 "requirements": list(self.optional_drop.requirements),
                 "containsMustFacts": self.optional_drop.contains_must_facts,
             }
+            if self.optional_drop.partial:
+                payload["optionalDrop"]["partial"] = True
+                payload["optionalDrop"]["displayTexts"] = list(self.optional_drop.display_texts)
         if self.approved_omitted_fact_indexes:
-            payload["approvedOmittedFactIndexes"] = list(
-                self.approved_omitted_fact_indexes
-            )
+            payload["approvedOmittedFactIndexes"] = list(self.approved_omitted_fact_indexes)
         if self.stop_reason is not None:
             payload["stopReason"] = self.stop_reason
         if self.joint_context is not None:
@@ -254,9 +248,7 @@ def _capacity_regroup_contract_failure(
     quality_errors: list[dict[str, Any]],
 ) -> bool:
     """识别容量重组后常见的核心／辅助组件语义未闭合。"""
-    messages = "\n".join(
-        str(issue.get("message") or "").lower() for issue in quality_errors
-    )
+    messages = "\n".join(str(issue.get("message") or "").lower() for issue in quality_errors)
     return _contains_marker(messages, _CAPACITY_REGROUP_CONTRACT_MARKERS)
 
 
@@ -322,9 +314,7 @@ def _fixed_side_slot_text_overflow(
     quality_errors: list[dict[str, Any]],
 ) -> bool:
     """识别侧双槽固定信息槽无法容纳完整单行内容的容量错误。"""
-    messages = "\n".join(
-        str(issue.get("message") or "") for issue in quality_errors
-    )
+    messages = "\n".join(str(issue.get("message") or "") for issue in quality_errors)
     if "text width overflow" not in messages.lower():
         return False
     fixed_slots: list[str] = []
@@ -343,9 +333,7 @@ def _fixed_side_slot_text_overflow(
             continue
         if not isinstance(children, list) or len(children) != 3:
             continue
-        fixed_slots = [
-            child for child in children[1:] if isinstance(child, str)
-        ]
+        fixed_slots = [child for child in children[1:] if isinstance(child, str)]
         break
     if len(fixed_slots) != 2:
         return False
@@ -422,16 +410,15 @@ def _requires_parent_layout_recompose(
 
 def _component_contract_instruction(quality_errors: list[dict[str, Any]]) -> str:
     """为可确定修法的组件属性错误提供不降级的精确指令。"""
-    messages = "\n".join(
-        str(issue.get("message") or "").lower() for issue in quality_errors
-    )
+    messages = "\n".join(str(issue.get("message") or "").lower() for issue in quality_errors)
     base_instruction = (
         "只修复错误组件中被定位的 Props、绑定或格式，并复查直接父容器；"
         "保留该组件其它合法属性、动态事实、事件和视觉能力，"
         "不得通过删除未报错属性、移除视觉变体或更换为弱语义组件来绕过校验。"
     )
     secondary_body_count = re.search(
-        r"secondarybody\.items requires 1 to 6 entries \(got (\d+)\)", messages,
+        r"secondarybody\.items requires 1 to 6 entries \(got (\d+)\)",
+        messages,
     )
     if secondary_body_count is not None and int(secondary_body_count.group(1)) > 6:
         return (
@@ -469,9 +456,7 @@ def _component_contract_instruction(quality_errors: list[dict[str, Any]]) -> str
 
 def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
     codes = {str(issue.get("code") or "") for issue in quality_errors}
-    messages = "\n".join(
-        str(issue.get("message") or "").lower() for issue in quality_errors
-    )
+    messages = "\n".join(str(issue.get("message") or "").lower() for issue in quality_errors)
     for issue in quality_errors:
         diagnostics = issue.get("compactDiagnostics", [])
         if not isinstance(diagnostics, list):
@@ -665,9 +650,7 @@ def _layout_directive(
         )
     elif category_attempt == 1:
         scope = "parent_layout" if category == "layout_structure" else "sublayout"
-        strategy = (
-            "parent_layout_recompose" if scope == "parent_layout" else "rebudget"
-        )
+        strategy = "parent_layout_recompose" if scope == "parent_layout" else "rebudget"
         instruction = (
             "修复违反合同的父布局结构，重新分配完整信息组和动作槽。"
             if scope == "parent_layout"
@@ -676,9 +659,7 @@ def _layout_directive(
     elif category_attempt == 2:
         scope = "parent_layout"
         strategy = "parent_layout_recompose"
-        instruction = (
-            "前一轮布局修复没有闭合；停止修改局部几何，重新选择父布局变体并分配全部事实。"
-        )
+        instruction = "前一轮布局修复没有闭合；停止修改局部几何，重新选择父布局变体并分配全部事实。"
     else:
         scope = "full_dsl"
         strategy = "plan_guided_recompose"
@@ -717,9 +698,7 @@ def _non_layout_directive(
     force_targeted: bool = False,
 ) -> CompactRepairDirective:
     repeated_root_cause = consecutive_failures >= 2 or no_progress
-    duplicate_plan_facts = (
-        category == "plan_coverage" and _has_duplicate_plan_facts(quality_errors)
-    )
+    duplicate_plan_facts = category == "plan_coverage" and _has_duplicate_plan_facts(quality_errors)
     if duplicate_plan_facts and category_attempt == 1 and not no_progress:
         scope = "information_group"
         strategy = "deduplicate_visible_facts"
@@ -738,9 +717,7 @@ def _non_layout_directive(
     elif force_targeted:
         scope = "information_group" if category == "plan_coverage" else "component"
         strategy = (
-            "coverage_restore"
-            if category == "plan_coverage"
-            else "component_contract_repair"
+            "coverage_restore" if category == "plan_coverage" else "component_contract_repair"
         )
         retry_target = "dsl_local_repair"
         instruction = (
@@ -767,9 +744,7 @@ def _non_layout_directive(
     else:
         scope = "information_group" if category == "plan_coverage" else "component"
         strategy = (
-            "coverage_restore"
-            if category == "plan_coverage"
-            else "component_contract_repair"
+            "coverage_restore" if category == "plan_coverage" else "component_contract_repair"
         )
         retry_target = "dsl_local_repair"
         instruction = (
@@ -813,8 +788,7 @@ def _exhausted_directive(
         no_progress=no_progress,
         retryable=False,
         instruction=(
-            "本次请求已经达到全局最大修复次数；停止调用模型，"
-            "保留当前诊断并按校验失败处理。"
+            "本次请求已经达到全局最大修复次数；停止调用模型，保留当前诊断并按校验失败处理。"
         ),
         fallback_stage=fallback_stage,
         fallback_attempt=fallback_attempt,
@@ -927,6 +901,14 @@ def _drop_optional_component_fallback_directive(
             "事实与 Action；本轮不得删除任何其他组件、"
             "改变动态绑定、缩字、裁切或隐藏内容。"
         )
+    if candidate.partial:
+        instruction = (
+            "已进入静态最小删减兜底。仅允许省略 allowedOmittedFactIndexes 对应的should文字："
+            f"{candidate.display_texts!r}。只修改其所在条目或字段；"
+            "不得删除仍承载must、保护原文或未授权should的整组件、整条目、整组。"
+            "仅当条目或组已无剩余事实时才移除空条目或组，并重排余下内容。"
+            "保留全部Action、对象归属和未授权事实；不改写Plan、缩字、截断或隐藏。"
+        )
     return CompactRepairDirective(
         category=category,
         scope="full_dsl",
@@ -951,6 +933,23 @@ def _drop_candidate_is_fully_removed(
     candidate: CompactOptionalDropCandidate,
 ) -> bool:
     """候选行及全部父级引用均消失后，才允许选择下一个候选。"""
+    if candidate.partial:
+        from services.card_validation.compact_validation.semantic.static_content import (
+            display_text,
+            static_display_groups,
+        )
+
+        try:
+            objects, shared = static_display_groups(compact_dsl)
+        except (TypeError, ValueError):
+            return False
+        for group in objects + shared:
+            if group.component_id != candidate.component_id:
+                continue
+            visible = display_text("".join(group.parts))
+            if any(display_text(text) in visible for text in candidate.display_texts):
+                return False
+        return True
     try:
         rows = parse_compact_dsl_rows(compact_dsl)
     except (CompactDslConversionError, TypeError, ValueError):
@@ -969,11 +968,13 @@ class CompactRepairStrategyTracker:
         *,
         max_repair_attempts: int = 10,
         capacity_recovery: bool = False,
+        static_content: bool = False,
     ) -> None:
         if max_repair_attempts < 1:
             raise ValueError("max_repair_attempts must be at least 1")
         self._max_repair_attempts = max_repair_attempts
         self._capacity_recovery = capacity_recovery
+        self._static_content = static_content
         self._repair_submission_count = 0
         self._previous_fingerprint: str | None = None
         self._previous_source: str | None = None
@@ -1015,6 +1016,8 @@ class CompactRepairStrategyTracker:
     ) -> tuple[int, ...]:
         """仅在已进入Drop且开关关闭时放宽展示事实，保留Action检查。"""
         explicitly_allowed = self.allowed_omitted_fact_indexes
+        if self._static_content:
+            return explicitly_allowed
         if validate_drop_plan_facts or not explicitly_allowed:
             return explicitly_allowed
         facts = compact_plan.get("info_required") if compact_plan is not None else None
@@ -1046,7 +1049,7 @@ class CompactRepairStrategyTracker:
             compact_dsl,
             compact_plan,
             task_spec,
-            allow_must_fallback=allow_must_fallback,
+            allow_must_fallback=allow_must_fallback and not self._static_content,
             max_fact_count=max_fact_count,
             allowed_fact_indexes=allowed_fact_indexes,
         )
@@ -1081,9 +1084,7 @@ class CompactRepairStrategyTracker:
             overflow_limit = _capacity_overflow_limit(capacity_fits)
             if overflow_limit is not None:
                 self._capacity_overflow_limit = overflow_limit
-            self._capacity_overflow_fact_indexes = _capacity_overflow_fact_indexes(
-                capacity_fits
-            )
+            self._capacity_overflow_fact_indexes = _capacity_overflow_fact_indexes(capacity_fits)
         previous_category = self._joint_categories[-1] if self._joint_categories else None
         previous_layout_failure = self._layout_failure_seen
         has_plan_coverage_error = _has_missing_plan_fact_error(quality_errors)
@@ -1105,8 +1106,7 @@ class CompactRepairStrategyTracker:
             self._consecutive_failures = 1
         normalized_source = invalid_source_dsl.strip()
         no_progress = (
-            self._previous_source is not None
-            and normalized_source == self._previous_source
+            self._previous_source is not None and normalized_source == self._previous_source
         )
         category_attempt = self._category_attempts.get(category, 0) + 1
         self._category_attempts[category] = category_attempt
@@ -1116,9 +1116,7 @@ class CompactRepairStrategyTracker:
         persistent_capacity = category == "layout_capacity" and category_attempt >= 2
         joint_progress_failed = changed_constraint or revisited_topology or persistent_capacity
         joint_inputs_available = compact_plan is not None and task_spec is not None
-        joint_recompose = (
-            joint_inputs_available and previous_layout_failure and relevant
-        )
+        joint_recompose = joint_inputs_available and previous_layout_failure and relevant
         joint_recompose = joint_recompose and joint_progress_failed
         joint_recompose = joint_recompose and not self._joint_full_recompose_seen
         full_recompose_seen = self._previous_strategy == "plan_guided_recompose"
@@ -1146,9 +1144,7 @@ class CompactRepairStrategyTracker:
             if self._allowed_omitted_fact_indexes:
                 directive = replace(
                     directive,
-                    approved_omitted_fact_indexes=tuple(
-                        sorted(self._allowed_omitted_fact_indexes)
-                    ),
+                    approved_omitted_fact_indexes=tuple(sorted(self._allowed_omitted_fact_indexes)),
                 )
             self._previous_strategy = directive.repair_strategy
             return directive
@@ -1171,24 +1167,23 @@ class CompactRepairStrategyTracker:
         bounded_capacity_followup = (
             self._capacity_pressure_repair_submitted
             and self._repair_submission_count > 0
-            and (
-                is_layout_failure
-                or _capacity_regroup_contract_failure(quality_errors)
-            )
+            and (is_layout_failure or _capacity_regroup_contract_failure(quality_errors))
         )
         early_drop_due = persistent_plan_coverage_followup or bounded_capacity_followup
         allow_text_compaction = _capacity_text_compaction_relevant(
             invalid_source_dsl,
         )
         recovery_drop_due = self._capacity_recovery and self._repair_submission_count == 0
-        drop_entry_due = early_drop_due or recovery_drop_due or (
-            self._repair_submission_count >= DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT - 1
-            and self._active_fallback != "drop_optional_component"
+        drop_entry_due = (
+            early_drop_due
+            or recovery_drop_due
+            or (
+                self._repair_submission_count >= DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT - 1
+                and self._active_fallback != "drop_optional_component"
+            )
         )
         drop_relevant_failure = (
-            is_layout_failure
-            or persistent_plan_coverage_followup
-            or bounded_capacity_followup
+            is_layout_failure or persistent_plan_coverage_followup or bounded_capacity_followup
         )
         if drop_entry_due and drop_relevant_failure and task_spec is not None:
             max_fact_count = self._capacity_overflow_limit if early_drop_due else None
@@ -1276,10 +1271,7 @@ class CompactRepairStrategyTracker:
                     candidate=self._optional_drop_candidate,
                 )
                 self._fallback_submission_count += 1
-        elif (
-            is_semantic_layout_contract_failure
-            and self._consecutive_failures <= 2
-        ):
+        elif is_semantic_layout_contract_failure and self._consecutive_failures <= 2:
             directive = _semantic_layout_contract_directive(
                 fingerprint=fingerprint,
                 consecutive_failures=self._consecutive_failures,
@@ -1429,14 +1421,9 @@ class CompactRepairStrategyTracker:
             )
         if early_drop_due and directive.repair_strategy == "drop_optional_component":
             if persistent_plan_coverage_followup:
-                early_drop_instruction = (
-                    "Plan 事实缺失经过两次无损修复后仍未恢复；"
-                )
+                early_drop_instruction = "Plan 事实缺失经过两次无损修复后仍未恢复；"
             else:
-                early_drop_instruction = (
-                    "固定容量组件的超限内容在一次无损重组后"
-                    "仍未获得合法落点；"
-                )
+                early_drop_instruction = "固定容量组件的超限内容在一次无损重组后仍未获得合法落点；"
             directive = replace(
                 directive,
                 instruction=(
@@ -1456,16 +1443,11 @@ class CompactRepairStrategyTracker:
         ):
             directive = replace(
                 directive,
-                instruction=(
-                    f"{directive.instruction}\n\n{semantic_layout_guidance}"
-                ),
+                instruction=(f"{directive.instruction}\n\n{semantic_layout_guidance}"),
             )
         if directive.retryable:
             self._repair_submission_count += 1
-            if (
-                has_plan_coverage_error
-                and directive.repair_strategy != "drop_optional_component"
-            ):
+            if has_plan_coverage_error and directive.repair_strategy != "drop_optional_component":
                 self._plan_coverage_repair_submission_count += 1
             if capacity_fits and directive.repair_strategy != "drop_optional_component":
                 self._capacity_pressure_repair_submitted = True
@@ -1489,8 +1471,32 @@ class CompactRepairStrategyTracker:
         if self._allowed_omitted_fact_indexes:
             directive = replace(
                 directive,
-                approved_omitted_fact_indexes=tuple(
-                    sorted(self._allowed_omitted_fact_indexes)
+                approved_omitted_fact_indexes=tuple(sorted(self._allowed_omitted_fact_indexes)),
+            )
+        if self._static_content:
+            repeated = directive.consecutive_failures >= 2
+            directive = replace(
+                directive,
+                instruction=(
+                    "按当前静态合同修复完整源，正文仅用ContentBlock、RecordList、ComparisonGroup；"
+                    "保留must核心、保护片段、原文要求和动作；无保护should可省略并反馈取舍。"
+                    "不得删除仍承载must的组件；混合组件只删除可选补充片段。"
+                    "先修属性与布局，再去装饰标题、短键值改属性表，按实际行盒重组。"
+                    "对比对象名与主值分开，关键数值、日期时间、单位保持完整片段；"
+                    "超宽时改全宽正文或列表；省略号只采用Plan已有展示版本，"
+                    "完整落实已接受核心文字；不再次摘要、缩字、隐式裁切或将核心移入note。"
+                    + (
+                        "同一问题重复出现：必须切换组件形态，优先完整复制计划的staticPresentation；"
+                        "若没有已验证候选，按试排容量重新分配主副字段，不能再次返回相同结构。"
+                        if repeated
+                        else ""
+                    )
+                ),
+                retryable=directive.retryable and directive.consecutive_failures < 3,
+                stop_reason=(
+                    "static_repeated_failure"
+                    if directive.consecutive_failures >= 3
+                    else directive.stop_reason
                 ),
             )
         self._previous_strategy = directive.repair_strategy

@@ -2,7 +2,7 @@
 ["panel_a","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":16,"clip":true,"backgroundColor":"#99FFFFFF","itemMargin":6,"alignItems":"start","justifyContent":"start","layoutWeight":1},["title_a","content_a","action_a"]]
 ["title_a","SingleLineTitle",{"title":"手机电量","fontSize":12,"width":"matchParent"}]
 ["content_a","Column",{"width":"matchParent","alignItems":"start","justifyContent":"center","layoutWeight":1},["phone_ring"]]
-["phone_ring","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOCText"},"total":100,"icon":"resources/base/media/battery_leaf_fill.svg","displayValue":{"path":"/data/phoneBattery/batterySOCText"},"label":"剩余电量","color":"#FF1F4799","backgroundColor":"#331F4799"}]
+["phone_ring","ProgressCircleSingle",{"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"icon":"resources/base/media/battery_leaf_fill.svg","displayValue":{"path":"/data/phoneBattery/batterySOCText"},"label":"剩余电量","color":"#FF1F4799","backgroundColor":"#331F4799"}]
 ["action_a","PillButton",{"label":"打开歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
 ["panel_b","Column",{"width":"matchParent","height":"matchParent","padding":8,"borderRadius":16,"clip":true,"backgroundColor":"#99FFFFFF","itemMargin":6,"alignItems":"start","justifyContent":"start","layoutWeight":1},["title_b","buds_row"]]
 ["title_b","SingleLineTitle",{"title":"{{ ${/data/earphone/isConnected} ? '耳机已连接' : '耳机未连接' }}","fontSize":12,"width":"matchParent"}]
@@ -15,3 +15,4 @@
 ["/data/earphone/batteryLevel",80]
 ["/data/earphone/leftBatteryLevel",76]
 ["/data/earphone/rightBatteryLevel",78]
+["/data/phoneBattery/batterySOC",68]

@@ -31,6 +31,7 @@ class ValidationContext:
     template_context_by_component: dict[str, dict[str, Any]] = field(default_factory=dict)
     quality_score: int | None = None
     edit_mode: bool = False
+    data_model_schema: dict[str, Any] | None = None
 
     def has_fusion_template_root(self) -> bool:
         """兼容既有调用名，仅按模板根标记判断整卡质量豁免。"""

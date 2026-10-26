@@ -11,11 +11,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from config.config import get_settings
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services.theme_content_regions import photo_layout_evidence
 from services.theme_layout_summary import theme_description
-from test_autumn_calendar_photos import expanded
 from test_photo_asset_delivery import artifact
 from test_photo_background_fallback import node_by_id
 

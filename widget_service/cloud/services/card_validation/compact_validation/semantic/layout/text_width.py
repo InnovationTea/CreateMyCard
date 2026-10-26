@@ -101,6 +101,14 @@ def _collect_text_width_budget_errors(
             available = min(available, maximum)
         # 只反馈明显冲突，不把字符压力估计作为精确字体测量门禁。
         required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
+        from services.generation_content_policy import current_content_policy
+
+        marker = props.get("_visualRecipe")
+        if current_content_policy().is_static and isinstance(marker, str):
+            if marker.startswith("static-content-v1:"):
+                from services.static_text_capacity import text_width
+
+                required = text_width(text, font)
         if available > 0 and required > available + 1e-7:
             text_block_part = None
             for part in ("TextBlock.label", "TextBlock.value"):

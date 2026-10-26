@@ -154,10 +154,12 @@ def collect_secondary_body_context_errors(
     errors: list[str],
 ) -> None:
     """阻止新生成的 SecondaryBody 在整卡没有核心信息时独立承担内容。"""
-    has_core_information = any(
-        component.component_type in CORE_INFORMATION_COMPONENT_TYPES
-        for component in components
-    )
+    from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+
+    core_types = CORE_INFORMATION_COMPONENT_TYPES
+    if current_content_policy().is_static:
+        core_types = core_types | STATIC_COMPONENTS
+    has_core_information = any(component.component_type in core_types for component in components)
     if has_core_information:
         return
     for component in components:

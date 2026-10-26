@@ -9,12 +9,13 @@ from unittest.mock import AsyncMock
 import pytest
 
 from config.config import get_settings
+from photo_samples.battery import WIDE, wide_battery_sample
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import subjectless_wide_theme
 from services.post_layout_theme_registry import registered_themes
 from services.theme_content_regions import photo_layout_evidence, photo_layout_exclusion_reason
-from test_autumn_calendar_photos import COUNTDOWN_ID, expanded, photo
-from test_battery_music_photo_rules import WIDE, wide_battery_sample
+from test_autumn_calendar_photos import COUNTDOWN_ID, photo
 
 SPLIT_REASON = "2x4左右两个大背板布局不使用图片背景"
 
@@ -72,16 +73,45 @@ def test_legacy_wide_pool_uses_the_same_global_exclusion():
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_model_cannot_return_excluded_subject_but_abstract_can_match(monkeypatch, enabled):
+@pytest.mark.parametrize("selected_shape", [WIDE, "photo-ux-texture-blue-diagonal-wide"])
+def test_model_cannot_return_excluded_subject_but_abstract_can_match(
+    monkeypatch, enabled, selected_shape,
+):
     sample = wide_battery_sample("W-split-panels")
+    subjects = []
+    for theme in registered_themes("photos"):
+        if theme.get("size") == "2x4":
+            subjects.append(theme)
+    assert subjects
+    excluded_subject = subjects[0].get("id")
+    assert isinstance(excluded_subject, str)
+
+    # 测试固定蓝色，再分别抽中两种形状；不依赖颜色或形状的随机结果。
+    random_options = []
+
+    def choose_shape(options):
+        random_options.append(tuple(options))
+        if "blue" in options:
+            return "blue"
+        assert selected_shape in options
+        return selected_shape
+
+    monkeypatch.setattr(themes.secrets, "choice", choose_shape)
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", enabled)
-    client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({"themeId": WIDE})))
+    client = SimpleNamespace(generate=AsyncMock(
+        return_value=json.dumps({"themeId": excluded_subject}),
+    ))
     result, audit = asyncio.run(themes.select_theme(
         sample.source, sample.task, client, final_layout=sample.compact,
     ))
-    assert audit.get("themeId") != WIDE
+    assert audit.get("themeId") != excluded_subject
+    assert excluded_subject not in audit.get("candidates", [])
+    assert excluded_subject in audit.get("rejected", {})
     if enabled:
-        assert audit.get("themeId", "").startswith("photo-ux-texture-")
+        assert random_options
+        assert selected_shape in audit.get("candidates", [])
+        assert audit.get("themeId") == selected_shape
+        assert audit.get("theme", {}).get("pool") == "texturePhotos"
     else:
         assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
     assert themes.foreground_signature(sample.source) == themes.foreground_signature(result)

@@ -8,6 +8,8 @@ from pydantic import (
     Field,
     PrivateAttr,
     SerializerFunctionWrapHandler,
+    ValidationError,
+    field_validator,
     model_serializer,
     model_validator,
 )
@@ -211,8 +213,47 @@ class CandidateEventCandidate(BaseModel):
     capabilityId: str
     action: EventAction
 
+    @field_validator("action", mode="before")
+    @classmethod
+    def reject_unknown_action_fields(cls, value: Any) -> Any:
+        """仅约束生成候选，保留历史产物动作模型的兼容行为。"""
+        if isinstance(value, dict):
+            unknown = sorted(set(value) - set(EventAction.model_fields))
+            if unknown:
+                raise ValueError(f"action 包含未声明字段：{', '.join(unknown)}。")
+        return value
+
+
+def _reject_generation_capability_ids(values: dict[str, Any]) -> None:
+    replacements = {
+        "dataCapabilityIds": "candidateDataBindings",
+        "eventCapabilityIds": "candidateEventCandidates",
+    }
+    errors = []
+    for name, replacement in replacements.items():
+        if name in values:
+            errors.append(_request_field_error(
+                name, f"生成接口不接受 {name}，请使用完整的 {replacement}。",
+            ))
+    if errors:
+        raise ValidationError.from_exception_data("GenerationRequest", errors)
+
+
+def _request_field_error(name: str, message: str) -> dict[str, Any]:
+    return {"type": "value_error", "loc": (name,), "ctx": {"error": ValueError(message)}}
+
+
+def _without_tool_metadata(values: dict[str, Any]) -> dict[str, Any]:
+    """仅剥离已登记的顶层调用元数据，不清洗未知业务字段。"""
+    normalized = dict(values)
+    for name in ("bundleName", "functionName", "skillName", "requestId"):
+        normalized.pop(name, None)
+    return normalized
+
 
 class GenerateWidgetCardRequest(VersionedToolRequest):
+    model_config = ConfigDict(extra="forbid")
+
     userQuery: str = Field(min_length=1)
     sourceArtifactUrl: str | None = None
     size: WidgetSize | None = None
@@ -223,30 +264,44 @@ class GenerateWidgetCardRequest(VersionedToolRequest):
     candidateAssetIds: list[str] | None = None
     options: GenerationOptions = Field(default_factory=GenerationOptions)
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_capability_id_lists(cls, value: Any) -> Any:
+        """拒绝错传的查询参数，仅剥离已登记的工具元数据。"""
+        if isinstance(value, dict):
+            _reject_generation_capability_ids(value)
+            value = _without_tool_metadata(value)
+        return value
+
     @model_validator(mode="after")
     def validate_generation_mode_fields(self) -> "GenerateWidgetCardRequest":
         """校验 create 条件必填及 edit 的显式空值。"""
         is_edit = "sourceArtifactUrl" in self.model_fields_set
+        errors = []
         if not is_edit:
             if self.title is None:
-                raise ValueError("title is required in create mode")
+                errors.append(_request_field_error("title", "title is required in create mode"))
             if self.description is None:
-                raise ValueError("description is required in create mode")
-            return self
-
-        if not isinstance(self.sourceArtifactUrl, str) or not self.sourceArtifactUrl.strip():
-            raise ValueError("sourceArtifactUrl must be a non-empty string")
-        nullable_edit_fields = (
-            "size",
-            "title",
-            "description",
-            "candidateDataBindings",
-            "candidateEventCandidates",
-            "candidateAssetIds",
-        )
-        for field_name in nullable_edit_fields:
-            if field_name in self.model_fields_set and getattr(self, field_name) is None:
-                raise ValueError(f"{field_name} cannot be null in edit mode")
+                errors.append(_request_field_error(
+                    "description", "description is required in create mode",
+                ))
+        else:
+            invalid_source = not isinstance(self.sourceArtifactUrl, str)
+            if invalid_source or not self.sourceArtifactUrl.strip():
+                errors.append(_request_field_error(
+                    "sourceArtifactUrl", "sourceArtifactUrl must be a non-empty string",
+                ))
+            nullable_edit_fields = (
+                "size", "title", "description", "candidateDataBindings",
+                "candidateEventCandidates", "candidateAssetIds",
+            )
+            for field_name in nullable_edit_fields:
+                if field_name in self.model_fields_set and getattr(self, field_name) is None:
+                    errors.append(_request_field_error(
+                        field_name, f"{field_name} cannot be null in edit mode",
+                    ))
+        if errors:
+            raise ValidationError.from_exception_data(type(self).__name__, errors)
         return self
 
 
@@ -267,6 +322,8 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     出参：Pydantic 模型对象。
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     operation: WidgetCardOperation
     dataCapabilityIds: list[str] = Field(default_factory=list)
     userQuery: str | None = None
@@ -277,6 +334,21 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     candidateDataBindings: list[CandidateDataBinding] | None = None
     candidateEventCandidates: list[CandidateEventCandidate] | None = None
     candidateAssetIds: list[str] | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_generation_capability_id_lists(cls, value: Any) -> Any:
+        """按操作区分字段，保留数据定义查询的合法 ID 列表。"""
+        if isinstance(value, dict):
+            operation = value.get("operation")
+            if operation in (
+                "generateWidgetCard",
+                "generateWidgetCardCompactDsl",
+                "generateWidgetCardTerseDslNested2",
+            ):
+                _reject_generation_capability_ids(value)
+            value = _without_tool_metadata(value)
+        return value
 
 
 class GenerateWidgetCardResponse(BaseModel):
@@ -292,11 +364,14 @@ class GenerateWidgetCardResponse(BaseModel):
     errorCode: str = ""
     effectiveCapabilities: dict[str, list[Any]] = Field(default_factory=dict)
     editFeedback: str | None = None
+    omittedRequirements: list[str] = Field(default_factory=list)
 
     @model_serializer(mode="wrap")
     def serialize_result(self, handler: SerializerFunctionWrapHandler):
-        """只在编辑正常业务结论时输出说明，保持首次生成响应结构。"""
+        """仅在有实际编辑反馈或省略明细时输出对应字段。"""
         payload = handler(self)
         if self.editFeedback is None:
             payload.pop("editFeedback", None)
+        if not self.omittedRequirements:
+            payload.pop("omittedRequirements", None)
         return payload

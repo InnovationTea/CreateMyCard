@@ -253,6 +253,32 @@ class Settings(BaseSettings):
     enable_drop_plan_fact_validation: bool = (
         CONFIG.get("enable_drop_plan_fact_validation", "false") == "true"
     )
+    enable_static_content_generation_policy: bool = (
+        CONFIG.get("enable_static_content_generation_policy", "false") == "true"
+    )
+    static_content_max_input_chars: int = Field(
+        default=CONFIG.get("static_content_max_input_chars", 16000),
+        ge=1,
+        le=64000,
+    )
+    static_content_max_source_chars: int = Field(
+        default=CONFIG.get("static_content_max_source_chars", 2000),
+        ge=1,
+        le=16000,
+    )
+    static_content_max_source_references: int = Field(
+        default=CONFIG.get("static_content_max_source_references", 72),
+        ge=1,
+        le=288,
+    )
+    static_content_max_source_positions: int = Field(
+        default=CONFIG.get("static_content_max_source_positions", 512), ge=1, le=4096,
+    )
+    static_content_max_output_chars: int = Field(
+        default=CONFIG.get("static_content_max_output_chars", 32000),
+        ge=1,
+        le=128000,
+    )
     enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
     enable_widget_directive_commands: bool = (
         CONFIG.get("enable_widget_directive_commands") == "true"

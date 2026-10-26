@@ -1,5 +1,63 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-25 静态展示质量增量：`displayRole`、`presentationStyle`、`paletteFamily` 的静态专属形状与
+枚举检查归 `compact_plan.py` 的信息计划合同；动态 Plan 不接受这些字段。可省略属性标签的字段形状
+由 `static_content_components.py` 共享展开检查，归语法／组件；value 仍必填，显式 label 不得为空。
+属性列参考宽度与行盒沿用共享文字度量，实际整卡容量仍由原语义／布局规则判定。
+候选只消费模型角色、结构偏好及可选事实授权，委托公共校验，不根据 query 或业务词裁决内容。
+静态主题稳定选择与浅色面板属于后置主题策略，不新增校验诊断或改变动态规则。
+
+2026-10-25 摘要职责修订（替代此前静态提取式规则）：
+sourceTexts当前输入可追溯与明确原文约束仍归semantic/cross_file.py；
+删除数字/原文标签匹配、分句限定词检查，语义交给既有Plan与DSL模型阶段。
+已接受展示版本的同组落实与可选遗漏归semantic/static_content.py，不再识别数字或条件词。
+容量仍归semantic/layout及共享static_text_capacity.py，数值词元仅用于换行。
+static_content_planning.py仅试排完整计划，不删选事实、不匹配关系词、不自动归位保护或补证据；
+有限候选未命中不再硬拒Plan。调用编排与闭域错误严重程度不变，不新增诊断码。
+历史条目中的提取式匹配、程序筛选与尾部截短规则以本修订为准。
+
+2026-10-25：混合标识/日期边界与分隔符来源比较归semantic/cross_file及共享static_text_capacity；
+同组保护片段归位属于compact_plan委托的计划标准化。真实截短与最终覆盖归semantic/static_content；
+规划说明与实际删减分离、内部试排源字段形状归compact_plan，响应继续委托原ResponsePlanner。
+static_content_presentation只构造有限候选并委托正式校验，不增加入口校验或复制几何公式；
+候选采用归generation_pipeline，重复停止归compact_repair_strategy。沿用现有诊断码及闭域严重程度。
+
+
+2026-10-24 交付优先修订：来源引用只核验被选读数与局部条件（semantic/cross_file.py）；
+删除 Plan 全卡三对象及粗估高度门禁，实际组件/整卡容量仍归 semantic/layout/text_capacity.py 和原布局规则。
+可选 should、省略号、属性表逐行及分隔符规范化归 semantic/static_content.py，覆盖与交付反馈共用；
+Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状，现有响应规划返回 degraded。
+语法准入、动作、原文保护和闭域严重程度不变，未新增诊断码。
+
+2026-10-24 收敛补充：
+
+| 检查项 | 分类与实际位置 | 归属理由 |
+| --- | --- | --- |
+| 开域模型源禁止旧正文及基础节点 | 语法／组件，syntax/components.py，api.py 在展开前委托 | 是模型可提交类型集合，复用既有禁止组件诊断，不检查生成容器 |
+| 同组已选读数、单位及相应分句限定词完整性 | 语义／跨文件，semantic/cross_file.py | 核对来源与计划，允许同对象跨事实拆分，不跨对象借用 |
+| Plan 动作数量与正文角色 | 语义／布局，semantic/layout/text_capacity.py，由 compact_plan.py 委托 | 不以记录数替代全卡容量，不承担布局选择 |
+| 关键片段换行与详细文字容量 | 语义／布局，共享 static_text_capacity.py；text_capacity.py 发布原容量诊断 | 展开与校验同一度量，语义组件负责生成固定行 |
+| 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 只对请求授权及静态生成标记采用共享度量，闭域原判定不变 |
+
+以上沿用已登记诊断，不新增规则码，不迁移其它检查或更改闭域严重程度。
+
+2026-10-24：开域静态内容采用请求级准入，不改变原动态集合和校验默认值。
+
+| 检查项 | 分类与实际文件 | 归属理由 |
+| --- | --- | --- |
+| sourceTexts 当前输入引用、连续片段与完整数字词 | 语义／跨文件一致性，`semantic/cross_file.py` | 比较静态 Plan 与本轮来源，不能靠来源存在证明自由摘要正确 |
+| 对象顺序、同组覆盖、shared 位置、核心和原文保护 | 语义／展示，`semantic/static_content.py` | 比较已接受分组与原语义条目；覆盖、最小删减和实际省略反馈共用判定 |
+| 静态上下文缺失 | 语义／跨文件一致性，`semantic/static_content.py` | 缺少受信服务上下文时拒绝，不能由模型标记授权 |
+| 单字宽、完整行数及固定行高 | 语义／布局，`semantic/layout/text_capacity.py`；度量合同 `static_text_capacity.py` | 共享文字度量及参数，不在入口复制容量判断；总高、横向预算仍委托原布局校验 |
+| 新组件属性与静态值形状 | 共享展开 `static_content_components.py`、组件／绑定准入模块 | 新组件展开为原 Text / Row / Column / Divider，保留旧组件默认合同 |
+| 静态布局角色、贴底组合 | 共享编译 `compact_semantic_layout.py`、`compact_layout_runtime.py` | 几何和角色仅一个实现；单独有效 scope，不向动态范围加入新布局 |
+| 主题后文字、可达性及前景冻结 | 保存前语义复核 `static_content_context.py` | 复用既有主题前景签名；主题不能改变文字或祖先容量关系 |
+
+Plan 的来源字段、contentGroups 结构和去重索引映射归 `compact_plan.py`；
+建议格式化归 `repair_guidance.py` 和 `repair_hints.json`，调用编排归 `generation_pipeline.py`、
+`widget_generation_service.py`，有界修复授权归 `compact_repair_strategy.py`。
+六个新增诊断已登记到规则目录与回归清单，不进行其它校验整体迁移。
+
 2026-10-21：编辑目标履约属于标准 A2UI 的语义／编辑目标一致性，判定位于
 `card_validation/edit_validation/artifact.py`；模型意图形状、字段权限及可比较性属于
 `widget_edit_contract.py`。提示词加载与修复格式化位于 `widget_edit_prompt.py`，编排仍在
@@ -1217,3 +1275,55 @@ BASE-02 至 BASE-04 同样不在本次文档更新中修正规则。新反馈涉
   2026-10-21：根包装的不透明兜底色位于图片下方，不清除图片场景；仅前景子树的不透明背板
   恢复纯色判定。缺少完整图片包装仍不豁免，阈值与诊断码不变。
   仅识别固定后置图片包装，不改变模板方案及普通纯色/渐变检查，不属于 Compact 布局规则。
+
+## 2026-10-24 关联字段与动态进度来源
+
+| 检查项 | 分类与实际落点 | 归属理由 |
+| --- | --- | --- |
+| 动态进度必须为已声明数值类型 | 语义／数据绑定，`semantic/bindings.py`；复用 `compact_component_bindings.py` 的组件绑定合同 | 检查绑定源类型；去除 `/__display` 私有路径豁免，沿用 `COMPACT_BINDING_PROGRESS_TYPE` |
+| 进度驱动与展示文字的登记关系 | 语义／数据绑定，`semantic/bindings.py` | 检查同对象同指标关系，不扩展布局或 Plan 编排职责 |
+| 完整产物进度引用首帧副本或非数值来源 | 公共绑定校验，`card_validation/progress_sources.py`，由公共 `BindingValidator` 调用 | 基于原始依赖和声明判断动态来源；代码 `BINDING_PROGRESS_SOURCE_INVALID`；转换后及保存前复用同一判定 |
+
+关联字段补齐属于预检编排，位于 `related_output_fields.py`，注册关系由能力模型验证；不加入 Compact 语法或布局规则。
+模板仍可跳过 Compact 专项，但不能跳过转换后及保存前的动态数值来源门禁。进度错误修复建议保留在现有提示词与建议配置中。
+测试见 `test_related_progress_sources.py`、转换器/绑定合同回归及浏览器预览连续数据更新测试；不新增端侧字符串转换函数或派生数据协议。
+
+
+## 2026-10-25 开域静态容量反馈、名称与展示覆盖修订
+
+| 检查或行为 | 分类与实际文件 | 理由与边界 |
+| --- | --- | --- |
+| identity形状、shared为null、新提交显式键、displayRole别名 | Plan合同，compact_plan.py | 模型提交的展示规划，不推断用户语义；动态工具不扩字段，历史解析保持兼容 |
+| 同对象名称可见、带标签字段完整覆盖、完整字段换序 | 语义／展示，semantic/static_content.py | 检查接受计划的落实，复用对象分组读取与COMPACT_STATIC_CORE_MISSING；不复制布局、来源或语义理解 |
+| 数字和ASCII词元边界、逐字要求 | 语义／展示，同上 | 防止部分读数或单字集合误覆盖；名称、单位与必要限定不能跨对象补齐；原文约束不放宽 |
+| 有界试排无命中时的反馈 | 候选构造static_content_presentation.py、传递compact_plan.py、编排widget_generation_service.py | 仅反馈有限候选失败，在原两次Plan预算内修订，不新增校验拒绝或模型阶段 |
+| compact区块间距、无label属性与辅助说明行盒 | 展开static_content_components.py、compact_semantic_layout.py；共享合同static-content-v1.json | 等字号使用登记行盒，不放宽实际宽高门禁，动态布局合同不变 |
+
+修复说明继续由静态repair提示词承载，既有错误分类与诊断码不变；不在入口重复实现检查。
+回归位置：test_static_content_contracts.py、test_static_content_generation.py、test_static_content_quality.py。
+
+
+2026-10-25 字号档位修订（用户允许最小10）：参数枚举属于静态组件合同，沿用
+static_content_components.py的参数展开检查，不向公共入口或动态组件添加判断。
+12/11/10字号及对应行盒、配置引用完整性归static_text_capacity.py与共享静态运行合同；
+实际宽高继续由semantic/layout/text_capacity及原布局校验负责，后置冻结检查不变。
+候选排序归static_content_presentation.py，修复说明只改repair_hints.json中的静态容量诊断项。
+不新增业务关键词、正则分流或诊断码。回归：test_static_content_contracts.py的档位下限、
+标题层级、完整内容先于省略，以及test_static_content_generation.py的11字号容量恢复。
+
+
+## 2026-10-25 英文边界、静态标题及遗漏对账
+
+| 检查项 | 分类、实际文件 | 归属理由 |
+| --- | --- | --- |
+| 英文名称与读数词元边界 | 语义／展示，semantic/static_content.py | 对已冻结展示文字做局部覆盖，保留分隔后的词元边界；身份不使用词序重排或词片段拼凑，沿用核心缺失码 |
+| 属性可见文字与角色元数据隔离 | 语义／展示，同上 | 只收集label/value，valueRole不得补充事实覆盖 |
+| flow/compact的实际间距匹配 | 语义／布局合同，compact_layout_runtime.py | 两个模式都从静态运行合同登记；原动态合同保持不变，不放宽任意几何 |
+| 静态标题完整行盒、图标占宽、超宽拒绝 | 静态组件参数及共享容量展开，static_content_components.py；分支接入compact_high_level_components.py | 在既有静态组件展开单一位置检查，复用require_static_text_capacity；旧动态标题配方不变 |
+| 引用式遗漏的类型、范围、去重映射与核心保护 | Plan合同，compact_plan.py | 仅解析模型声明，不推断业务语义；最终遗漏继续复用static_fact_coverage，不在入口再做覆盖判定 |
+| 省略后恢复及实际遗漏消息 | 既有compact_plan_omitted_facts格式化 | 候选声明不是实际遗漏；无保护should确实缺失才报告，历史自由声明保守兼容 |
+| 左右对齐与通用标点禁则 | 静态展开与共享文字度量，static_content_components.py、static_text_capacity.py | 模型显式角色决定对齐；标点只用于排版，全部行盒仍经过正式宽高检查 |
+
+候选构造与guided试排归static_content_presentation.py，不复制判定；静态提示词负责模型说明。
+复验包括英文完整词/反例、两尺寸flow与compact、标题裁切拒绝和替代组织、事实引用恢复/省略、
+去重与保护、对齐元数据不计可见文字，以及真实超容量失败。新诊断码为零。

@@ -1,4 +1,8 @@
 {
+  "BINDING_PROGRESS_SOURCE_INVALID": {
+    "message": "进度绑定缺少可刷新的有效数值来源。",
+    "fixHint": "绑定同对象同指标的有效数值字段；只有文字时保留完整文字展示。"
+  },
   "ASSET.EMOJI_ICON": {
     "message": "不应使用 emoji 作为视觉图标。",
     "fixHint": "将 emoji 替换为已注册的本地图标素材。"

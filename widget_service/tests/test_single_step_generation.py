@@ -32,6 +32,9 @@ from services.widget_edit_protocol.converter import convert_compact_dsl_to_a2ui
 from services.widget_edit_protocol.resources import MODEL_FORMAT
 from services.widget_generation_service import WidgetGenerationService
 
+# 本组验证既有创建、回退或路由合同，静态策略由专项测试覆盖。
+pytestmark = pytest.mark.usefixtures("existing_generation_policy")
+
 
 def _default_switch_settings(monkeypatch):
     from config.config import Settings

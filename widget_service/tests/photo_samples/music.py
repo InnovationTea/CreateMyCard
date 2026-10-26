@@ -2,7 +2,7 @@
 
 
 
-from test_autumn_calendar_photos import expanded
+from photo_samples.common import expanded
 
 IDENTITY = "photo-ux-violin-stage-square"
 VIOLIN = "photo-ux-violin-stage-square"
@@ -24,17 +24,4 @@ def earphone_sample():
         ["cta", "PillButton", {"label": "收藏歌单", "onClick": ACTION, "icon": ICON}],
         [PATH, "80%"],
     ]
-    return expanded(rows, task)
-
-
-def music_sample(with_icon=True):
-    task = {"size": "2x2", "userQuery": "每日推荐和收藏歌单", "appVersion": "99.0.0",
-            "dataModelSchema": {"data": {}}}
-    rows = [["root", "Layout", {"layout": "S-content-dual-action", "variant": "actions-only"},
-             ["daily", "favorite"]]]
-    for identity, label in (("daily", "每日推荐"), ("favorite", "收藏歌单")):
-        props = {"label": label, "onClick": ACTION}
-        if with_icon:
-            props["icon"] = ICON
-        rows.append([identity, "PillButton", props])
     return expanded(rows, task)

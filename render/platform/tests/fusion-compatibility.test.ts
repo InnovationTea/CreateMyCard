@@ -228,29 +228,25 @@ test("ProgressCircle 沿用运行态环样式并支持模型控制外框宽高",
     + '"width":72,"height":76,"fontColor":"#FF1F4799","color":"#FF1F4799",'
     + '"backgroundColor":"#331F4799"}]\n'
     + '["/data/weather/rainProbability","20%"]';
-  const percentage = compileMiniDsl(percentageSource, { size: "2x4" });
-  assert.equal(
-    percentage.graph.getDataModelValue(
-      SURFACE_ID,
-      "/__display/data/weather/rainProbability/progressValue",
-    ),
-    20,
+  assert.throws(
+    () => compileMiniDsl(percentageSource, { size: "2x4" }),
+    /动态进度必须绑定数值字段/,
   );
+  const numeric = compileMiniDsl(percentageSource.replace('"20%"', '20'), { size: "2x4" });
   assert.deepEqual(
-    percentage.graph.getNode("circle_ring")?.props.value,
-    { path: "/__display/data/weather/rainProbability/progressValue" },
-  );
-  assert.deepEqual(
-    percentage.graph.getNode("circle_external_text")?.props.content,
+    numeric.graph.getNode("circle_ring")?.props.value,
     { path: "/data/weather/rainProbability" },
   );
-  assert.throws(
-    () => compileMiniDsl(
-      percentageSource.replace('"20%"', '"降雨概率 20%"'),
-      { size: "2x4" },
-    ),
-    /完整数值百分比/,
-  );
+  for (const level of [35, 81, 0, 100]) {
+    numeric.graph.setDataModelValue(SURFACE_ID, "/data/weather", { rainProbability: level });
+    const node = numeric.graph.getNode("circle_ring");
+    assert.ok(node);
+    const resolved = resolvePathBindingsInValue(node.props, p => (
+      numeric.graph.getDataModelValue(SURFACE_ID, p)
+    )) as Record<string, unknown>;
+    assert.equal(resolved.value, level);
+  }
+
 });
 
 test("圆角裁剪覆盖模糊合成层，融球预览保留色彩变化且不改写 A2UI", () => {

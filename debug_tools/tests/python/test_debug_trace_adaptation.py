@@ -267,6 +267,7 @@ async def test_real_fusion_pipeline_produces_importable_theme_trace(tmp_path, mo
     from services.widget_generation_service import WidgetGenerationService
 
     settings = get_settings()
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", False)
     monkeypatch.setattr(settings, "enable_generation_trace_recording", True)
     monkeypatch.setattr(settings, "generation_trace_root", tmp_path)
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", True)

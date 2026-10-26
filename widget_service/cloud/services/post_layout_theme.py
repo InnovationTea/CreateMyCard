@@ -501,6 +501,16 @@ async def select_theme(
         candidates = retained
     if overrides:
         candidates = [item for item in candidates if item.get("kind") in {"gradient", "solid"}]
+    from services.generation_content_policy import current_content_policy
+
+    if current_content_policy().is_static:
+        retained = []
+        for candidate in candidates:
+            if candidate.get("kind") in {"gradient", "solid"}:
+                retained.append(candidate)
+            else:
+                rejected[candidate.get("id")] = "静态文字卡优先浅色底，减少纹理对信息的干扰"
+        candidates = retained
     photos = [item for item in candidates if item.get("kind") == "photo"]
     fusion_candidates = [item for item in candidates if item.get("kind") == "fusion"]
     ordinary_requested = bool(re.search(r"纯色|渐变", task.get("userQuery", "")))

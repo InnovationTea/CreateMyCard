@@ -60,6 +60,16 @@ def _secondary_body_width_error() -> dict:
 
 
 def _expected_after_main_updates(expected: dict, case_index: int) -> dict:
+    # 动态百分比文本不再生成首帧数值副本；只登记本次批准的合同变化。
+    if case_index in {3, 4}:
+        message = (
+            "component ring.props.externalText: PathBinding /data/weather/rainProbability "
+            "has schema type string; expected one of integer, number."
+        )
+        return {
+            "exception": "CompactDslValidationError", "errors": [message],
+            "message": f"Compact DSL validation failed:\n- {message}",
+        }
     if case_index in AMBIGUOUS_METRIC_WARNING_CASES:
         message = expected.get("errors", [])[0]
         return {"warnings": [f"COMPACT_DISPLAY_AMBIGUOUS_METRIC: {message}"]}

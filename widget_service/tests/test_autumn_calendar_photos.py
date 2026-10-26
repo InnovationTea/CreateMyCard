@@ -1,17 +1,14 @@
 """倒计时图片配色回归，以及共用的倒计时与会议样例。"""
 
-import json
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 import yaml
 
+from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
-from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.theme_content_regions import photo_layout_evidence
-from services.theme_style_roles import layout_phase
 
 COUNTDOWN_ID = "photo-ux-birds-countdown-square"
 START = "/data/calendar/events/0/startTime"
@@ -26,14 +23,6 @@ ACTION = [{"call": "clickToDeeplink", "args": {
 def photo(identity):
     return next(entry for entry in registry.registered_themes("photos")
                 if entry.get("id") == identity)
-
-
-def expanded(rows, task):
-    compact = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    with layout_phase(True, task):
-        source = convert_compact_dsl_to_a2ui(compact, size=task.get("size"))
-    nodes = themes.components(themes.decode(source))
-    return SimpleNamespace(compact=compact, source=source, nodes=nodes, task=task)
 
 
 def calendar_sample(layout="S-title-dual-content", button="CircleButton", with_icon=True):

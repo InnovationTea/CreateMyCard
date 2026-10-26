@@ -132,6 +132,70 @@ def test_dataset_discovery_keeps_invalid_entries_visible(tmp_path):
     assert "根节点" in items[1].error
 
 
+def test_prepare_request_preserves_routing_metadata_for_service_normalization():
+    source = _request()
+    source_content = source.get("content")
+    assert isinstance(source_content, dict)
+    source_content["functionName"] = "generateWidgetCardCompactDsl"
+    source_content["unexpectedField"] = True
+    original = json.loads(json.dumps(source))
+    prepared = prepare_request(
+        source, uid="batch-1234abcd-00001-000", run_token="1234abcd",
+        sample_id="Q001", attempt=0,
+    )
+    content = prepared.get("content")
+    assert isinstance(content, dict)
+    assert content.get("functionName") == "generateWidgetCardCompactDsl"
+    assert content.get("unexpectedField") is True
+    assert source == original
+
+
+@pytest.mark.parametrize("function_name", ["getDataCapabilitySchemas", "", None, []])
+def test_legacy_route_metadata_does_not_block_batch_discovery(tmp_path, function_name):
+    source = _request()
+    content = source.get("content")
+    assert isinstance(content, dict)
+    content["functionName"] = function_name
+    path = tmp_path / "Q001.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    items = discover_datasets(tmp_path)
+    assert len(items) == 1
+    assert items[0].valid is True
+    prepared = prepare_request(
+        source, uid="batch-test", run_token="test", sample_id="Q001", attempt=0,
+    )
+    prepared_content = prepared.get("content")
+    assert isinstance(prepared_content, dict)
+    assert prepared_content.get("functionName") == function_name
+
+
+@pytest.mark.parametrize("dataset_id", ["open_domain", "online_updated", "request_baseline"])
+def test_repository_datasets_prepare_for_strict_generation_schema(dataset_id):
+    from debug_tools.paths import DEBUG_TOOLS_ROOT, ensure_cloud_import_path
+
+    ensure_cloud_import_path()
+    from api.routes import _normalize_payload
+    from api.schemas import GenerateWidgetCardRequest
+
+    paths = sorted((DEBUG_TOOLS_ROOT / "Datasets" / dataset_id).glob("*.json"))
+    samples = [path for path in paths if path.name != "version.json"]
+    assert samples
+    for path in samples:
+        source = json.loads(path.read_text(encoding="utf-8"))
+        prepared = prepare_request(
+            source, uid="batch-offline-check", run_token="offline", sample_id=path.stem, attempt=0,
+        )
+        _, arguments = _normalize_payload(prepared, "generateWidgetCardCompactDsl")
+        device = arguments.get("device")
+        assert isinstance(device, dict)
+        device.pop("_sourceRomVersion", None)
+        request = GenerateWidgetCardRequest(**arguments)
+        content = source.get("content")
+        assert isinstance(content, dict)
+        assert request.userQuery == content.get("userQuery")
+        assert source == json.loads(path.read_text(encoding="utf-8"))
+
+
 def test_prepare_request_overrides_uid_without_mutating_source():
     source = _request()
 

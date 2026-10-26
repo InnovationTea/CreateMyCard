@@ -15,31 +15,60 @@ from services.compact_high_level_components import (
 from services.theme_style_roles import in_layout_phase
 
 SEMANTIC_LAYOUT_TYPES = frozenset({"Layout", "Region", "Group"})
-LAYOUT_IDS = frozenset({
-    "W-top-bottom", "W-split-panels", "W-content-side-slots", "W-four-slots",
-})
-COMPACT_VARIANTS = frozenset({
-    "center", "title-content", "title-hero-support", "title-content-action",
-})
+LAYOUT_IDS = frozenset(
+    {
+        "W-top-bottom",
+        "W-split-panels",
+        "W-content-side-slots",
+        "W-four-slots",
+    }
+)
+COMPACT_VARIANTS = frozenset(
+    {
+        "center",
+        "title-content",
+        "title-hero-support",
+        "title-content-action",
+    }
+)
 WIDE_VARIANTS = COMPACT_VARIANTS | {
-    "title-two-ratios", "title-hero-support-action", "four-ratios", "four-items",
+    "title-two-ratios",
+    "title-hero-support-action",
+    "four-ratios",
+    "four-items",
 }
-GEOMETRY_PROPS = frozenset({
-    "width", "height", "padding", "margin", "itemMargin", "layoutWeight", "flexShrink",
-    "alignItems", "justifyContent", "alignSelf", "minWidth", "maxWidth", "minHeight",
-    "maxHeight", "constraintSize", "aspectRatio",
-})
+GEOMETRY_PROPS = frozenset(
+    {
+        "width",
+        "height",
+        "padding",
+        "margin",
+        "itemMargin",
+        "layoutWeight",
+        "flexShrink",
+        "alignItems",
+        "justifyContent",
+        "alignSelf",
+        "minWidth",
+        "maxWidth",
+        "minHeight",
+        "maxHeight",
+        "constraintSize",
+        "aspectRatio",
+    }
+)
 GENERATED_PREFIX = "__layout__"
 _BACKGROUND_PROPS = frozenset({"linearGradient", "backgroundColor", "backgroundImage"})
-_TOP_BOTTOM_DETAILS_TYPES = frozenset({
-    "TextBlock",
-    "TopTextBottomValue",
-    "SummaryList",
-    "EventCard",
-})
+_TOP_BOTTOM_DETAILS_TYPES = frozenset(
+    {
+        "TextBlock",
+        "TopTextBottomValue",
+        "SummaryList",
+        "EventCard",
+    }
+)
 MIXED_FIXED_SLOT_ORDER_WARNING = (
-    "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；"
-    "当前顺序仍允许转换。"
+    "W-content-side-slots 混合固定槽建议将 InfoBlock 放在 CardButton 上方；当前顺序仍允许转换。"
 )
 SMALL_CHILD_ROLES = {
     "S-center": (1, "[content]"),
@@ -832,16 +861,118 @@ class _SmallCompiler(_Compiler):
 
 
 def expand_semantic_layout_rows(
-    rows: list[CompactRow] | tuple[CompactRow, ...], *, size: str | None = None,
+    rows: list[CompactRow] | tuple[CompactRow, ...],
+    *,
+    size: str | None = None,
 ) -> SemanticLayoutExpansion:
     if not has_semantic_layout(rows):
         return SemanticLayoutExpansion(tuple(rows), {})
-    root = next((row for row in rows if isinstance(row, ComponentRow)
-                 and row.component_id == "root"), None)
+    root = next(
+        (row for row in rows if isinstance(row, ComponentRow) and row.component_id == "root"), None
+    )
     layout = root.props.get("layout") if root is not None else None
+    from services.generation_content_policy import STATIC_LAYOUTS, current_content_policy
+
+    if isinstance(layout, str) and layout in STATIC_LAYOUTS.values():
+        if not current_content_policy().is_static:
+            _fail("root", "静态布局需要服务端请求上下文授权")
+        target = "2x2" if layout == STATIC_LAYOUTS.get("2x2") else "2x4"
+        if size is not None and size != target:
+            _fail("root", "静态布局与请求尺寸不一致")
+        return _compile_static_layout(rows, target)
     inferred = "2x2" if isinstance(layout, str) and layout in SMALL_CHILD_ROLES else "2x4"
     target = inferred if size is None else size
     if target != inferred:
         _fail("root", f"该布局仅适用于尺寸 {inferred}，不能用于 {target}")
+    if current_content_policy().is_static:
+        from services.generation_content_policy import static_layout_ids
+
+        if layout not in static_layout_ids(target):
+            _fail("root", "开域正文仅使用静态文档式布局，必要动作使用已登记的兼容布局")
+        if not any(isinstance(row, ComponentRow) and row.props.get("onClick") for row in rows):
+            _fail("root", "静态请求没有必要动作，不能选择旧动作布局")
+        if layout == "W-four-slots":
+            children = [row for row in rows if isinstance(row, ComponentRow) and row != root]
+            if any(row.component_type != "CardButton" for row in children):
+                _fail("root", "四槽仅兼容纯动作CardButton，不承载开域正文或辅助信息")
     compiler = _SmallCompiler(rows) if target == "2x2" else _Compiler(rows)
     return compiler.compile()
+
+
+def _compile_static_layout(
+    rows: list[CompactRow] | tuple[CompactRow, ...], size: str
+) -> SemanticLayoutExpansion:
+    from services.generation_content_policy import static_components_for_size
+    from services.static_text_capacity import contract_section, number
+
+    compiler = _Compiler(rows)
+    compiler.validate_tree("root", set(), set())
+    root = compiler.node("root")
+    if root.component_type != "Layout":
+        _fail("root", "静态语义布局根必须为 Layout")
+    layout = root.props.get("layout")
+    if not isinstance(layout, str):
+        _fail("root", "静态布局 ID 必须为字符串")
+    compiler.props(root, {"layout", "variant"})
+    variant = root.props.get("variant", "flow")
+    if not isinstance(variant, str) or variant not in {"flow", "compact", "bottom-content"}:
+        _fail("root", "静态布局 variant 未登记")
+    allowed = {"header", "body", "note"}
+    if set(root.children) - allowed or "body" not in root.children:
+        _fail("root", "静态布局 children 必须为可选 header、body、可选 note")
+    expected = tuple(
+        role_name for role_name in ("header", "body", "note") if role_name in root.children
+    )
+    if root.children != expected:
+        _fail("root", "静态布局角色顺序必须为 header、body、note")
+    body = compiler.node("body")
+    if body.component_type not in static_components_for_size(size):
+        _fail("body", "静态正文组件与尺寸不匹配")
+    if "header" in root.children:
+        if compiler.node("header").component_type != "SingleLineTitle":
+            _fail("header", "静态标题必须使用 SingleLineTitle")
+        compiler.title("header")
+    if "note" in root.children and compiler.node("note").component_type != "SecondaryBody":
+        _fail("note", "静态说明必须使用 SecondaryBody")
+    if variant == "bottom-content":
+        if "note" in root.children or body.props.get("variant") == "bottom-attributes":
+            _fail("body", "根贴底不能与 note 或内部属性贴底同时使用")
+    spec = contract_section("layout")
+    children = []
+    for identifier in root.children:
+        compiler.content(identifier, compact=size == "2x2")
+        if identifier == "body":
+            wrapper = compiler.generated("root", "static_body")
+            compiler.add(
+                wrapper,
+                "Column",
+                {
+                    "width": "matchParent",
+                    "layoutWeight": 1,
+                    "alignItems": "start",
+                    "justifyContent": "end" if variant == "bottom-content" else "start",
+                },
+                ("body",),
+                "root",
+            )
+            children.append(wrapper)
+        else:
+            children.append(identifier)
+    compiler.add(
+        "root",
+        "Column",
+        {
+            "width": "matchParent",
+            "height": "matchParent",
+            "padding": number(spec, "padding"),
+            "itemMargin": number(spec, "compactGap" if variant == "compact" else "gap"),
+            "borderRadius": number(spec, "radius"),
+            "clip": True,
+            "alignItems": "start",
+            "justifyContent": "start",
+            "_staticLayout": root.props.get("layout"),
+        },
+        tuple(children),
+        "root",
+    )
+    return compiler.finish(layout)

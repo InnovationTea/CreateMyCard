@@ -46,7 +46,7 @@ def test_wide_copy_keeps_top_inset_without_moving_visual() -> None:
     assert _styles("primaryRow").get("alignItems") == "bottom"
 
 
-def test_small_card_info_recipe_is_unchanged() -> None:
+def test_small_card_info_recipe_preserves_slot_with_current_typography() -> None:
     copy = _styles("copy", size="2x2")
     assert "height" not in copy
     assert "padding" not in copy
@@ -54,7 +54,8 @@ def test_small_card_info_recipe_is_unchanged() -> None:
     assert copy.get("justifyContent") == "center"
     assert _styles("primary", size="2x2").get("fontSize") == 16
     assert _styles("primaryValue", size="2x2").get("height") == 22
-    assert _styles("secondary", size="2x2").get("fontSize") == 10
+    assert _styles("secondary", size="2x2").get("fontSize") == 12
+    assert _styles("secondary", size="2x2").get("height") == 16
     assert _styles("root", size="2x2").get("height") == 63
 
 

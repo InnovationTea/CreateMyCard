@@ -36,6 +36,10 @@ _CONTENT = {
 }
 
 
+# 本组验证既有创建、回退或路由合同，静态策略由专项测试覆盖。
+pytestmark = pytest.mark.usefixtures("existing_generation_policy")
+
+
 @pytest.fixture(autouse=True)
 def retry_settings(monkeypatch):
     settings = get_settings()

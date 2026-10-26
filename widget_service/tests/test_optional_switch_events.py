@@ -176,7 +176,7 @@ def _pipeline_inputs(expected: dict, actual: dict, size: str) -> _PipelineInputs
     if size == "2x4":
         rows.append(["content", "Region", {"variant": "center"}, ["body"]])
         rows.append(["body", "EmphasisText", {"mainText": "快捷操作"}])
-    action_type = "PillButton" if size == "2x2" else "CardButton"
+    action_type = "CardButton"
     rows.extend([
         ["switch", action_type, {"label": "开关", "icon": "resources/base/media/ic_switch.svg",
                                  "onClick": [actual]}],
@@ -209,9 +209,12 @@ def test_pipeline_preserves_optional_form_through_plan_assets_and_final_validati
         layout_scope="S-content-dual-action" if size == "2x2" else "W-content-side-slots",
     ))
     assert not result.errors
+    switch_rows = []
     for row in parse_compact_dsl_rows(result.source_dsl):
         if isinstance(row, ComponentRow) and row.component_id == "switch":
-            assert row.props.get("onClick") == [actual]
+            switch_rows.append(row)
+    assert len(switch_rows) == 1
+    assert switch_rows[0].props.get("onClick") == [actual]
     for effective in (None, {"data": [], "event": inputs.task.get("eventCandidates"),
                              "asset": inputs.task.get("assetCandidates")}):
         report = validate_card(dsl_text=result.standard_dsl, effective_capabilities=effective)
@@ -286,11 +289,11 @@ def test_registry_does_not_declare_legacy_flag(
     assert not list(errors)
 
 
-def test_model_prompts_do_not_embed_switch_compatibility_rules() -> None:
+def test_creation_prompts_do_not_require_switch_compatibility_parameters() -> None:
     for size in ("2x2", "2x4"):
         prompt = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl", size=size)
         assert "switchFlag" not in prompt
-    assert "switchFlag" not in A2UIProtocolRegistry.read_design_repair_prompt("design-compact-dsl")
+    # 修复合同可以解释等价参数，不能以字段名出现与否判断是否新增了模型必填项。
     guide = _ROOT / "skills/harmony-card-generation-online/references/runtime-guide.md"
     assert "switchFlag" not in guide.read_text(encoding="utf-8")
 
@@ -345,10 +348,10 @@ async def test_registered_optional_switch_completes_service_without_repair(
     rows = [
         ["root", "Layout", {"layout": "S-content-dual-action", "variant": "actions-only"},
          ["switch", "flashlight"]],
-        ["switch", "PillButton", {
+        ["switch", "CardButton", {
             "label": "开关", "onClick": [_handler(registry, event_id, flag)],
         }],
-        ["flashlight", "PillButton", {"label": "手电筒", "onClick": [second_handler]}],
+        ["flashlight", "CardButton", {"label": "手电筒", "onClick": [second_handler]}],
     ]
     calls = []
 
@@ -362,6 +365,8 @@ async def test_registered_optional_switch_completes_service_without_repair(
         return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
 
     settings = get_settings()
+    # 本用例验证既有动作链路，不进入无动态数据请求的静态内容规划。
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", False)
     monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_design_compact_runtime_prompt_context", False)

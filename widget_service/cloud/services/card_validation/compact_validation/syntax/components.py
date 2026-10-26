@@ -191,23 +191,39 @@ class OnClickShape:
 
 
 def collect_model_component_errors(components: list[ComponentRow]) -> DiagnosticCollector:
+    from services.generation_content_policy import (
+        STATIC_COMPONENTS,
+        STATIC_SUPPORT_COMPONENTS,
+        current_content_policy,
+    )
+
+    allowed_types = MODEL_COMPACT_INPUT_COMPONENT_TYPES
+    if current_content_policy().is_static:
+        allowed_types = STATIC_COMPONENTS | STATIC_SUPPORT_COMPONENTS | {"Layout", "Region"}
     errors = DiagnosticCollector()
     for row in components:
-        if row.component_type in MODEL_COMPACT_INPUT_COMPONENT_TYPES:
+        if row.component_type in allowed_types:
             continue
         legacy = (
             f"component {row.component_id}: {row.component_type} is converter-internal and "
             f"cannot be generated directly; use a semantic Compact component."
         )
+        message = f"模型直接输出了仅供转换器内部使用的 {row.component_type} 组件。"
+        if current_content_policy().is_static:
+            message = (
+                f"开域正文不允许 {row.component_type}；"
+                "仅使用三类静态正文及必要标题、说明和动作。"
+            )
+            legacy = message
         emit_error(
             errors,
             CompactDiagnostic(
                 code="COMPACT_MODEL_COMPONENT_FORBIDDEN",
                 validation_class="syntax",
                 category="component",
-                message=f"模型直接输出了仅供转换器内部使用的 {row.component_type} 组件。",
+                message=message,
                 legacy_message=legacy,
-                expected={"allowedComponentTypes": sorted(MODEL_COMPACT_INPUT_COMPONENT_TYPES)},
+                expected={"allowedComponentTypes": sorted(allowed_types)},
                 actual=row.component_type,
                 component_id=row.component_id,
             ),

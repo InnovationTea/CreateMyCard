@@ -40,6 +40,30 @@ def _compact_component_binding_errors(
                 schema_type_resolver=resolver,
             )
         )
+        if component.component_type not in {"ProgressCircleSingle", "ProgressLine2"}:
+            continue
+        readout = _pure_binding_path(component.props.get("displayValue"))
+        if not readout:
+            continue
+        node = _schema_node_at_path(data_model_schema, readout)
+        if not isinstance(node, dict):
+            continue
+        expected_path = node.get("numericSource")
+        if expected_path is None and node.get("type") in _NUMERIC_SCHEMA_TYPES:
+            expected_path = readout
+        if expected_path is None:
+            if node.get("type") == "string":
+                errors.append(
+                    f"component {component.component_id}: readout {readout} has no registered "
+                    "numeric source; retain complete text instead of guessing a progress metric."
+                )
+            continue
+        actual_path = _pure_binding_path(component.props.get("value"))
+        if actual_path != expected_path:
+            errors.append(
+                f"component {component.component_id}: progress value must use registered "
+                f"numeric source {expected_path} for readout {readout}, not {actual_path}."
+            )
     return errors
 
 
@@ -54,8 +78,6 @@ def _collect_progress_value_errors(
             continue
         value_path = _pure_binding_path(component.props.get("value"))
         if not value_path:
-            continue
-        if value_path.startswith("/__display/") and value_path.endswith("/progressValue"):
             continue
         schema_type = _schema_type(_schema_node_at_path(data_model_schema, value_path))
         if schema_type in _NUMERIC_SCHEMA_TYPES:

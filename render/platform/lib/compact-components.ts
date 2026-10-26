@@ -430,11 +430,11 @@ function normalizedProgressBinding(
   if (record(value) && Object.keys(value).length === 1 && typeof value.path === "string") {
     const initial = data?.get(value.path);
     if (typeof initial !== "string" && typeof initial !== "number") return clone(value);
-    const numeric = normalizedProgressValue(id, type, prop, initial, total);
-    if (typeof initial !== "string") return clone(value);
-    const derivedPath = `/__display${value.path}/progressValue`;
-    data?.setDerived(derivedPath, numeric);
-    return { path: derivedPath };
+    if (typeof initial === "string") {
+      throw new Error(`${id}: ${type}.${prop} 动态进度必须绑定数值字段，不能使用首帧文本副本。`);
+    }
+    normalizedProgressValue(id, type, prop, initial, total);
+    return clone(value);
   }
   try {
     return normalizedProgressValue(id, type, prop, value, total);

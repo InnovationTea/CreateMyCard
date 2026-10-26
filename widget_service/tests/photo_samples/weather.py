@@ -1,4 +1,4 @@
-"""小花天气图采用经确认的布局准入，保持其它图片及未知尺寸规则。"""
+"""天气图片主题的共用样例。"""
 
 import json
 from types import SimpleNamespace

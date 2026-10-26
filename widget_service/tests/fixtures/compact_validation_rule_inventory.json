@@ -17,6 +17,13 @@
     },
     {
       "module": "semantic/cross_file.py",
+      "function": "_static_source_diagnostic",
+      "code": "COMPACT_STATIC_SOURCE_NOT_ALLOWED",
+      "class": "semantic",
+      "category": "cross_file"
+    },
+    {
+      "module": "semantic/cross_file.py",
       "function": "_collect_undeclared_data_path_error",
       "code": "COMPACT_CROSS_FILE_UNDECLARED_PATH",
       "class": "semantic",
@@ -114,9 +121,44 @@
       "category": "layout"
     },
     {
+      "module": "semantic/layout/text_capacity.py",
+      "function": "static_capacity_diagnostic",
+      "code": "COMPACT_STATIC_TEXT_CAPACITY",
+      "class": "semantic",
+      "category": "layout"
+    },
+    {
       "module": "semantic/numeric_display.py",
       "function": "_collect_numeric_component_errors",
       "code": "COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/static_content.py",
+      "function": "_static_group_diagnostic",
+      "code": "COMPACT_STATIC_GROUP_MISMATCH",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/static_content.py",
+      "function": "_static_group_diagnostic",
+      "code": "COMPACT_STATIC_CONTEXT_MISSING",
+      "class": "semantic",
+      "category": "cross_file"
+    },
+    {
+      "module": "semantic/static_content.py",
+      "function": "_static_group_diagnostic",
+      "code": "COMPACT_STATIC_CORE_MISSING",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/static_content.py",
+      "function": "_static_group_diagnostic",
+      "code": "COMPACT_STATIC_PROTECTED_TEXT_CHANGED",
       "class": "semantic",
       "category": "display"
     },

@@ -10,3 +10,11 @@ def isolated_theme_stage(monkeypatch):
         return artifact
 
     monkeypatch.setattr("services.post_layout_theme.theme_artifact", theme)
+
+
+@pytest.fixture
+def existing_generation_policy(monkeypatch):
+    """既有创建链路测试显式隔离静态策略；静态专项继续验证默认准入。"""
+    from config.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "enable_static_content_generation_policy", False)
