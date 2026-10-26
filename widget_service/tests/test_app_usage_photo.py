@@ -208,5 +208,5 @@ def test_usage_selection_delivers_one_obs_image_and_preserves_foreground(monkeyp
             images.append(node)
     assert len(images) == 1
     root_styles = node_by_id(delivered.genui, "root").get("styles", {})
-    assert root_styles.get("backgroundColor") == "#FF8FADCC"
+    assert root_styles.get("backgroundColor") == "#FF1F1F99"
     assert themes.foreground_signature(delivered.genui) == themes.foreground_signature(saved.source)

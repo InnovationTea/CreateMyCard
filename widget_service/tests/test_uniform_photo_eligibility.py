@@ -18,6 +18,7 @@ from services.theme_layout_summary import theme_description
 from test_autumn_calendar_photos import expanded
 from test_photo_asset_delivery import artifact
 from test_photo_background_fallback import node_by_id
+from theme_preference_samples import preference, reply
 
 BLUE = "photo-ux-texture-blue-diamond-square"
 PURPLE = "photo-ux-texture-purple-diamond-square"
@@ -30,12 +31,12 @@ ACTION = [{"call": "clickToDeeplink", "args": {
 }}]
 SUBJECT_FILES = {
     "airplane_tarmac_wide", "birds_countdown_square", "bedside_lamp_wide", "clouds_weather_square",
-    "concert_stage_wide", "digital_wave_wide", "galaxy_sleep_square", "running_pair_wide",
+    "concert_stage_wide", "digital_wave_wide", "fireworks_square", "running_pair_wide",
     "sleep_square", "sleep_wide", "sport_center_wide", "sunrise_runner_square",
     "starfield_weather_square", "starry_sky_square", "starry_sky_wide",
     "track_runner_square", "track_sprint_square", "violin_stage_square", "sand_arch_square",
     "meeting_room_square", "meeting_room_wide", "wave_square", "wave_wide",
-    "fuzzy_wide", "gradient_wide",
+    "fuzzy_wide", "gradient_wide", "ice_wide",
 }
 PATHS = {
     "travel": "/data/travel/flightNumber", "countdown": "/data/countdown/first/countdownDays",
@@ -99,15 +100,19 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 25
+    assert len(subjects) == 27
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
+    expected.add("bg_ux_road_wide.JPG")
     actual = {Path(item.get("src", "")).name for item in subjects}
     assert actual == expected
     abstract = registry.registered_themes("texturePhotos", include_disabled=True)
     assert len(abstract) == 18
     expected.update(Path(item.get("src", "")).name for item in abstract)
     directory = Path(__file__).parents[2] / "resources/base/media"
-    assert {path.name for path in directory.glob("bg_ux_*.jpg")} == expected
+    actual_files = {
+        path.name for path in directory.glob("bg_ux_*") if path.suffix.lower() == ".jpg"
+    }
+    assert actual_files == expected
     for item in PHOTOS:
         asset = Path(__file__).parents[2] / item.get("src", "")
         digest = hashlib.sha256(asset.read_bytes()).hexdigest()
@@ -123,7 +128,9 @@ def test_only_current_subject_and_abstract_assets_remain():
         assert "https://" not in json.dumps(theme_description(item))
 
 
-@pytest.mark.parametrize("item", PHOTOS, ids=lambda item: item.get("id"))
+@pytest.mark.parametrize("item", [item for item in PHOTOS
+                                 if item.get("contentEligibility", {}).get("kind") == "uniform"],
+                         ids=lambda item: item.get("id"))
 def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
     businesses = item.get("contentEligibility", {}).get("businesses", [])
     business = businesses[0]
@@ -155,7 +162,7 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
     assert saved.nodes == before
 
 
-@pytest.mark.parametrize("identity", ["photo-ux-sleep-square", "photo-ux-galaxy-sleep-square"])
+@pytest.mark.parametrize("identity", ["photo-ux-sleep-square", "photo-ux-fireworks-square"])
 @pytest.mark.parametrize("button", [False, True])
 def test_sleep_images_no_longer_have_opposing_button_requirements(identity, button):
     assert rejection(sample(button=button), identity) is None
@@ -262,7 +269,7 @@ def test_unknown_and_mixed_content_fail_closed(failure):
     assert rejection(saved, PURPLE)
 
 
-@pytest.mark.parametrize("selected", ["photo-ux-sleep-square"])
+@pytest.mark.parametrize("selected", ["photo-ux-sleep-square", "photo-ux-fireworks-square"])
 @pytest.mark.parametrize("model_response", [
     "{}", '{"themeId":"photo-ux-sleep-square"}',
     '{"themeId":"photo-ux-galaxy-sleep-square"}', "invalid",
@@ -281,7 +288,7 @@ def test_subject_priority_and_uniform_choice_ignore_model_preference(
     result, audit = choose(saved, monkeypatch, model_response)
     assert audit.get("themeId") == selected
     assert len(calls) == 1
-    assert set(calls[0]) == {"photo-ux-sleep-square"}
+    assert set(calls[0]) == {"photo-ux-sleep-square", "photo-ux-fireworks-square"}
     assert set(audit.get("candidates", [])) == set(calls[0])
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -297,11 +304,19 @@ def test_subject_failure_falls_to_abstract_then_ordinary_theme(monkeypatch):
     assert all(not identity.startswith("photo-") for identity in audit.get("candidates", []))
 
 
-@pytest.mark.parametrize("query", ["纯色睡眠", "渐变背景", "不要图片", "白色文字"])
-def test_explicit_preferences_and_disabled_switch_override_photos(monkeypatch, query):
+@pytest.mark.parametrize("query,attribute,value,operation", [
+    ("纯色睡眠", "backgroundKind", "solid", "prefer"),
+    ("渐变背景", "backgroundKind", "gradient", "prefer"),
+    ("不要图片", "backgroundKind", "photo", "avoid"),
+    ("白色文字", "textColor", "#FFFFFFFF", "prefer"),
+])
+def test_explicit_preferences_and_disabled_switch_override_photos(
+    monkeypatch, query, attribute, value, operation,
+):
     saved = sample()
     saved.task["userQuery"] = query
-    _, audit = choose(saved, monkeypatch)
+    items = [preference(attribute, value, query, operation)]
+    _, audit = choose(saved, monkeypatch, reply(items))
     assert all(not identity.startswith("photo-") for identity in audit.get("candidates", []))
     saved.task["userQuery"] = "睡眠状态"
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", False)
@@ -312,7 +327,7 @@ def test_explicit_preferences_and_disabled_switch_override_photos(monkeypatch, q
 
 
 @pytest.mark.parametrize("item", PHOTOS, ids=lambda item: item.get("id"))
-def test_all_photos_preserve_role_opacity_and_use_solid_fallback(item):
+def test_all_photos_preserve_role_opacity_and_use_matching_fallback(item):
     roles = item.get("content", {}).get("roles", {})
     rgb = "FFFFFF"
     if item.get("id") in {"photo-ux-meeting-room-square", "photo-ux-meeting-room-wide"}:
@@ -327,8 +342,16 @@ def test_all_photos_preserve_role_opacity_and_use_solid_fallback(item):
         ("primary", "#FF" + rgb), ("secondary", "#CC" + rgb), ("tertiary", "#99" + rgb),
     ):
         assert node_by_id(result, identity).get("styles", {}).get("fontColor") == color
-    assert not node_by_id(result, "root").get("styles", {}).get("linearGradient")
-    assert node_by_id(result, "root").get("styles", {}).get("backgroundColor") == "#FF8FADCC"
+    styles = node_by_id(result, "root").get("styles", {})
+    primary = roles.get("primary")
+    if primary == "#FF000000":
+        assert styles.get("backgroundColor") == "#FFE6E6E6"
+        assert styles.get("linearGradient", {}).get("colors") == [
+            ["#FFFFFFFF", 0], ["#FFE6E6E6", 1],
+        ]
+    else:
+        assert styles.get("backgroundColor") == "#FF1F1F99"
+        assert "linearGradient" not in styles
     assert node_by_id(result, "panel").get("styles", {}).get("backdropBlur") == {"radius": 20}
     assert themes.foreground_signature(result) == themes.foreground_signature(original.genui)
 

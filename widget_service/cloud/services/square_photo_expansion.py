@@ -7,12 +7,8 @@ import re
 import unicodedata
 
 from config.config import get_settings
+from services.content_business import SLEEP_FIELDS
 from services.post_layout_theme_registry import registered_themes
-
-SLEEP_FIELDS = {
-    "sleepScore", "sleepStatus", "sleepTypeDesc", "nightSleepDurationText",
-    "deepSleepDurationText", "totalNapDurationText", "fallAsleepTimeText", "wakeupTimeText",
-}
 
 
 def expansion_business(task: dict) -> str | None:
@@ -53,8 +49,6 @@ def expansion_gate(task: dict) -> dict:
         r"2\s*[x×*]\s*2|二乘二|不(?:要)?扩|不要变大|(?:保持|保留|固定)(?:原)?尺寸", query
     ):
         reason = "用户要求保留原尺寸"
-    elif re.search(r"纯色|渐变|融球|不要(?:背景)?图|不用(?:背景)?图|无(?:背景)?图", query):
-        reason = "用户明确其它主题或不要图片"
     elif not any(theme.get("business") == business
                  for theme in registered_themes("squareExpansions")):
         reason = "没有启用的对应业务扩展图片"

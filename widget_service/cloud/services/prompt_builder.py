@@ -34,6 +34,7 @@ from services.compact_plan_output import (
 )
 from services.compact_repair_context import joint_repair_contract
 from services.compact_structural_fewshots import select_structural_fewshots
+from services.content_business import BusinessContext
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
 _MODULE = "[Prompt Builder]"
@@ -524,6 +525,13 @@ _TWO_BY_FOUR_ROUTE_LOCKS = {
 
 
 class PromptBuilder:
+    @staticmethod
+    def business_context(task_spec: TaskSpec) -> BusinessContext:
+        context = BusinessContext.from_task(task_spec.model_dump(mode="json", exclude_none=True))
+        context.layout_route, _ = PromptBuilder._visual_route(task_spec)
+        context.layout_block_count = PromptBuilder._data_block_count(task_spec)
+        return context
+
     @staticmethod
     def _data_roots(task_spec: TaskSpec) -> tuple[str, ...]:
         data_schema = task_spec.dataModelSchema.get("data")
@@ -1706,6 +1714,7 @@ class PromptBuilder:
         generation_user_content: str,
         *,
         retry_context: CompactDslRetryContext | None = None,
+        business_context: BusinessContext | None = None,
     ) -> list[dict[str, str]]:
         """在创建合同后追加 Plan 阶段，不重复包装 TaskSpec。"""
         task_spec_value = task_spec.model_dump(
@@ -1719,6 +1728,8 @@ class PromptBuilder:
             include_composition=runtime_prompt_context_enabled,
         )
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
+        business_context = business_context or self.business_context(task_spec)
+        business_payload = json.dumps(business_context.candidate_payload(), ensure_ascii=False)
         capacity_context = ""
         if runtime_prompt_context_enabled:
             capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
@@ -1746,6 +1757,9 @@ class PromptBuilder:
                     "<agent_stage>plan</agent_stage>\n"
                     f"{PLAN_JSON_OUTPUT_INSTRUCTION}"
                     "本阶段不要输出 Compact DSL、Markdown 或解释。"
+                    "\n业务归属仅帮助理解已登记候选，不表示必须全部展示，不改变信息主次或布局合同。"
+                    "未知业务仍按原始数据语义规划；视觉偏好由后置主题处理。"
+                    f"\n<business_context>{business_payload}</business_context>"
                 ),
             },
         ]

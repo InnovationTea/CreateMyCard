@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import json
-import re
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -16,6 +15,13 @@ from services.theme_style_roles import ROLES
 
 MANIFEST = Path(__file__).resolve().parents[1] / "data/post_layout_themes.json"
 _COLOR = {"type": "string", "pattern": r"^#[0-9A-Fa-f]{8}$"}
+_TONE_BACKGROUND = {
+    "type": "object", "additionalProperties": False, "required": ["color", "panelColor"],
+    "properties": {
+        "color": {"type": "string", "pattern": r"^#FF[0-9A-Fa-f]{6}$"},
+        "panelColor": _COLOR,
+    },
+}
 _TEXT = {"type": "string", "minLength": 1}
 _SIZES = {"type": "array", "minItems": 1, "uniqueItems": True,
           "items": {"enum": ["2x2", "2x4"]}}
@@ -36,12 +42,12 @@ _FRAME = {
 _CONTENT_ELIGIBILITY = {
     "type": "object", "additionalProperties": False, "required": ["kind", "businesses"],
     "properties": {
-        "kind": {"const": "uniform"},
+        "kind": {"enum": ["uniform", "holiday-countdown", "weather-panels"]},
         "maxTextLines": {"type": "integer", "minimum": 1, "maximum": 3},
         "wideLayout": {"enum": ["main-focus", "side-focus"]},
         "placement": {"enum": ["top-left-empty-bottom", "bottom-left", "not-bottom-left",
                                "center", "not-center", "bottom"]},
-        "businesses": {"type": "array", "minItems": 1, "uniqueItems": True,
+        "businesses": {"type": "array", "minItems": 0, "uniqueItems": True,
                        "items": {"enum": ["calendar", "battery", "earphone", "weather",
                                           "sleep", "music", "sport", "countdown", "holiday",
                                           "travel", "information", "smart-home", "app-usage",
@@ -53,6 +59,11 @@ _PHOTO_ELIGIBILITY = {
     "required": ["maxTextLines", "wideMaxTextLines", "includeTitle", "includeButtons",
                  "squareSingleBusiness", "squareSubjectAlignment", "wideLayout"],
     "properties": {
+        "excludedForegroundAssets": {
+            "type": "array", "uniqueItems": True,
+            "items": {"type": "string",
+                      "pattern": r"^resources/base/media/[A-Za-z0-9_-]+\.(?:svg|png|jpg|jpeg)$"},
+        },
         "maxTextLines": {"const": 3}, "wideMaxTextLines": {"const": 4},
         "includeTitle": {"const": False},
         "includeButtons": {"const": False}, "squareSingleBusiness": {"const": True},
@@ -123,15 +134,27 @@ _BACKGROUNDS = {
                    "blurRadius": {"type": "number", "minimum": 0},
                }},
     "photo": {"required": ["src", "objectFit", "frame"], "properties": {
-        "src": {"type": "string", "pattern": r"^resources/base/media/[\w.-]+\.(jpg|png|jpeg)$"},
+        "src": {"type": "string", "pattern": r"^resources/base/media/[\w.-]+\.(?i:jpg|png|jpeg)$"},
         "remoteUrl": {"type": "string"},
         "objectFit": {"enum": ["fill", "cover"]}, "frame": _FRAME,
     }},
 }
 _PHOTO_FALLBACKS = {
-    "type": "object", "additionalProperties": False, "required": ["color"],
+    "type": "object", "additionalProperties": False, "required": ["darkText", "lightText"],
     "properties": {
-        "color": {"type": "string", "pattern": r"^#FF[0-9A-Fa-f]{6}$"},
+        "darkText": {
+            "type": "object", "additionalProperties": False,
+            "required": ["colors", "direction"],
+            "properties": {
+                "colors": {"type": "array", "minItems": 2, "maxItems": 2,
+                           "items": {"type": "string", "pattern": r"^#FF[0-9A-Fa-f]{6}$"}},
+                "direction": {"enum": ["LeftBottom", "RightBottom", "LeftTop", "RightTop"]},
+            },
+        },
+        "lightText": {
+            "type": "object", "additionalProperties": False, "required": ["themeId"],
+            "properties": {"themeId": _TEXT},
+        },
     },
 }
 
@@ -198,6 +221,21 @@ def _validate_content_eligibility(theme: dict) -> None:
     if theme.get("subjectless") is not is_texture:
         raise ValueError("Only the abstract texture pool uses subjectless policy")
     policy = theme.get("contentEligibility", {})
+    if not policy.get("businesses"):
+        if theme.get("enabled") or is_texture:
+            raise ValueError("Enabled photos and textures require assigned businesses")
+    if policy.get("kind") != "uniform":
+        expected = {
+            "holiday-countdown": (["2x2"], ["holiday"]),
+            "weather-panels": (["2x4"], ["weather"]),
+        }.get(policy.get("kind"))
+        if expected is None or is_texture:
+            raise ValueError("Special photo eligibility requires a subject photo")
+        sizes, businesses = expected
+        if theme.get("sizes") != sizes or policy.get("businesses") != businesses:
+            raise ValueError("Special photo eligibility has incompatible size or business")
+        if set(policy) != {"kind", "businesses"}:
+            raise ValueError("Special photo eligibility cannot mix uniform restrictions")
     if policy.get("wideLayout") is not None and theme.get("sizes") != ["2x4"]:
         raise ValueError("Main-focus layout requires a wide photo")
     placement = policy.get("placement")
@@ -307,6 +345,13 @@ def validate_registry(payload: dict) -> None:
     }, "photoSurfaceStyle")
     photo_fallbacks = payload.get("photoFallbacks")
     _check(photo_fallbacks, _PHOTO_FALLBACKS, "photoFallbacks")
+    identity = photo_fallbacks.get("lightText", {}).get("themeId")
+    target = by_id.get(identity, {})
+    if target.get("kind") != "fusion" or not target.get("enabled"):
+        raise ValueError("Photo fallback must reference an enabled fusion theme")
+    large_color = target.get("background", {}).get("ballColors", {}).get("large", "")
+    if not large_color.upper().startswith("#FF"):
+        raise ValueError("Photo fallback requires an opaque fusion base color")
     _check(payload.get("matching"), {
         "type": "object", "additionalProperties": False,
         "required": ["mode", "unknownGeometryPolicy"],
@@ -315,12 +360,18 @@ def validate_registry(payload: dict) -> None:
     }, "matching")
     overrides = payload.get("userColorOverrides")
     _check(overrides, {"type": "object", "required": ["namedColors", "neutralLight",
-                                                     "neutralDark", "legacyPanelColors"],
+                                                     "neutralDark", "legacyPanelColors",
+                                                     "toneBackgrounds"],
                        "properties": {
                            "namedColors": {"type": "object", "minProperties": 1,
                                            "additionalProperties": _COLOR},
                            "neutralLight": _ROLES, "neutralDark": _ROLES,
                            "legacyPanelColors": {"type": "array", "items": _COLOR},
+                           "toneBackgrounds": {
+                               "type": "object", "additionalProperties": False,
+                               "required": ["dark", "light"],
+                               "properties": {"dark": _TONE_BACKGROUND, "light": _TONE_BACKGROUND},
+                           },
                        }}, "userColorOverrides")
 
 
@@ -333,11 +384,18 @@ def _validate_selection(selection: dict, by_id: dict) -> None:
                            "fallbacks": {"type": "object", "minProperties": 1,
                                          "additionalProperties": _TEXT},
                            "fusionRouting": {"type": "array", "items": {
-                               "type": "object", "required": ["routes", "themeId"],
+                               "type": "object", "required": ["routes", "businesses", "themeId"],
+                               "additionalProperties": False,
                                "properties": {
                                    "routes": {"type": "array", "minItems": 1, "items": _TEXT},
                                    "themeId": _TEXT,
-                                   "queryAll": {"type": "array", "items": _TEXT},
+                                   "businesses": {
+                                       "type": "array", "minItems": 1, "uniqueItems": True,
+                                       "items": {"enum": [
+                                           "calendar", "earphone", "battery", "countdown",
+                                           "sleep", "sport",
+                                       ]},
+                                   },
                                },
                            }},
                        }}, "selection")
@@ -359,11 +417,6 @@ def _validate_selection(selection: dict, by_id: dict) -> None:
         target = by_id.get(rule.get("themeId"), {})
         if target.get("kind") != "fusion":
             raise ValueError("Fusion routing references a missing or incompatible theme")
-        for pattern in rule.get("queryAll", []):
-            try:
-                re.compile(pattern)
-            except re.error as exc:
-                raise ValueError("Invalid fusion business pattern") from exc
 
 
 @lru_cache(maxsize=1)
@@ -403,9 +456,23 @@ def fallback_theme(family: str | None) -> dict:
     raise ValueError("No configured fallback theme")
 
 
-def photo_fallback() -> dict:
-    """图片统一使用UX指定的不透明底色，与字色及普通主题选择无关。"""
-    return load_theme_registry().get("photoFallbacks", {})
+def photo_fallback(primary: str) -> dict:
+    """按最终字色选择原有兜底，仅取背景，不改变前景及普通主题候选。"""
+    config = load_theme_registry()
+    fallbacks = config.get("photoFallbacks", {})
+    black, white = (0, 0, 0), (255, 255, 255)
+    on_light = _composited_rgb(primary, backdrop=white)
+    on_dark = _composited_rgb(primary, backdrop=black)
+    result = {"kind": "gradient", "background": fallbacks.get("darkText", {})}
+    if _contrast_ratio(on_dark, black) > _contrast_ratio(on_light, white):
+        identity = fallbacks.get("lightText", {}).get("themeId")
+        target = next(
+            (item for item in config.get("themes", []) if item.get("id") == identity), None,
+        )
+        if target is None:
+            raise ValueError("Missing photo fallback theme")
+        result = {"kind": "fusion", "background": target.get("background", {})}
+    return result
 
 
 def selection_rules() -> str:

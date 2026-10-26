@@ -18,6 +18,7 @@ from test_autumn_calendar_photos import expanded
 from test_photo_asset_delivery import artifact
 from test_photo_background_fallback import node_by_id
 from test_uniform_photo_eligibility import ACTION, choose, evidence, rejection, sample
+from theme_preference_samples import preference, reply
 
 BLUE = "photo-ux-texture-blue-"
 NAVIGATION = "event.startNavigate"
@@ -241,12 +242,20 @@ def test_two_setting_buttons_count_as_one_business_and_zero_body_lines(monkeypat
     assert evidence(saved).get("photoBodyTextFlow", {}).get("root", {}).get("lineCount") == 0
 
 
-@pytest.mark.parametrize("query", ["导航卡片，不要图片", "设置入口，使用融球效果"])
-def test_explicit_visual_preference_still_excludes_photos(monkeypatch, query):
+@pytest.mark.parametrize("query,value,operation", [
+    ("导航卡片，不要图片", "photo", "avoid"),
+    ("设置入口，使用融球效果", "fusion", "prefer"),
+])
+def test_explicit_visual_preference_still_excludes_photos(monkeypatch, query, value, operation):
     saved = entry_sample(SETTINGS)
     saved.task["userQuery"] = query
-    _, audit = choose(saved, monkeypatch)
+    items = [preference("backgroundKind", value, query, operation)]
+    _, audit = choose(saved, monkeypatch, reply(items))
     assert not any(item.startswith("photo-") for item in audit.get("candidates", []))
+    if value == "fusion":
+        assert audit.get("theme", {}).get("kind") == "gradient"
+        assert audit.get("unmetPreferences") == items
+        assert not audit.get("fusionEligibility", {}).get("allowedTokens")
 
 
 @pytest.mark.parametrize("event_id", [NAVIGATION, SETTINGS])
@@ -277,6 +286,6 @@ def test_final_delivery_keeps_one_obs_image_fallback_and_colors(monkeypatch, eve
             images.append(node)
     assert len(images) == 1
     root_styles = node_by_id(delivered.genui, "root").get("styles", {})
-    assert root_styles.get("backgroundColor") == "#FF8FADCC"
+    assert root_styles.get("backgroundColor") == "#FF1F1F99"
     assert node_by_id(delivered.genui, "reading").get("styles", {}).get("fontColor") == "#FFFFFFFF"
     assert themes.foreground_signature(delivered.genui) == themes.foreground_signature(saved.source)

@@ -918,8 +918,8 @@
     "id": "asset.ic_weather_color",
     "type": "asset",
     "src": "resources/base/media/ic_weather_color.svg",
-    "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
-    "overviewDescription": "蓝色渐变云朵图标；用于天气或天气详情主题，不代表晴阴雨状态。",
+    "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图，保留原色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。选择：仅在用户明确要求彩色云朵、蓝色渐变云朵或保留该云朵原色时使用；普通天气或天气详情需求优先选择 asset.ic_weather_monochrome，仅要求背景颜色或整体色调不构成选择本图标的理由。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "overviewDescription": "蓝色渐变云朵图标；仅用户明确要求彩色云朵、蓝色渐变云朵或保留该云朵原色时选择；普通天气优先 asset.ic_weather_monochrome，背景颜色偏好不构成选择理由；不代表晴阴雨状态。",
     "sceneTags": [
       "weather",
       "condition"
@@ -930,8 +930,8 @@
     "id": "asset.ic_weather_monochrome",
     "type": "asset",
     "src": "resources/base/media/ic_weather_monochrome.svg",
-    "description": "样式：黑色单色云朵图标，原始尺寸为 24×24；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
-    "overviewDescription": "云朵单色图标；用于天气或天气详情主题，不代表晴阴雨状态。",
+    "description": "样式：黑色单色云朵图标，原始尺寸为 24×24，可随主题染成白色或黑色；选择：普通天气或天气详情需求的首选云朵图标。适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "overviewDescription": "单色云朵图标；普通天气或天气详情需求首选，可随主题染成白色或黑色，不代表晴阴雨状态。",
     "sceneTags": [
       "weather",
       "condition"

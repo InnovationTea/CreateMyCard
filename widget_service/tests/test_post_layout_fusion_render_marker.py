@@ -139,7 +139,8 @@ def test_normal_themes_do_not_add_renderer_marker(kind):
 
 
 @pytest.mark.parametrize("pool", ["photos", "subjectlessWidePhotos", "squareExpansions"])
-def test_photo_wrappers_remain_unchanged(pool):
+@pytest.mark.parametrize("fusion_enabled", [False, True])
+def test_photo_wrapper_uses_renderer_marker_only_with_fusion_fallback(pool, fusion_enabled):
     if pool == "photos":
         entries = themes.registered_themes(pool, include_disabled=True)
         assert entries
@@ -151,10 +152,13 @@ def test_photo_wrappers_remain_unchanged(pool):
             theme.update(pool=pool, composition="native", subjectless=True)
     theme["kind"] = "photo"
     source = layout_source()
+    task = {**TASK, "appVersion": "99.0.0" if fusion_enabled else None}
     if pool == "squareExpansions":
-        result = expand_square(source, theme, TASK)
+        result = expand_square(source, theme, task)
     else:
-        result = themes.apply_theme(source, theme, {**TASK, "size": theme.get("size")}, {})
-    assert FOREGROUND_ID not in result
-    assert node_by_id(result, "__post_theme_foreground").get("component") == "Column"
+        result = themes.apply_theme(source, theme, {**task, "size": theme.get("size")}, {})
+    marker = FOREGROUND_ID if fusion_enabled else "__post_theme_foreground"
+    assert (FOREGROUND_ID in result) is fusion_enabled
+    assert node_by_id(result, marker).get("component") == "Column"
+    assert node_by_id(result, marker).get("styles") == node_by_id(source, "root").get("styles")
     assert themes.foreground_signature(source) == themes.foreground_signature(result)

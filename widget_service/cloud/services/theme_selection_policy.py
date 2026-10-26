@@ -1,19 +1,15 @@
 """后置主题候选的原融合规则门禁；不负责布局或颜色展开。"""
 
-import re
-
 from models.generation import TaskSpec
 from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
 from services.compact_layout_runtime import match_compact_layout
 from services.compact_plan import _compact_visible_state
+from services.content_business import BusinessContext, VisibleBusinesses
 from services.post_layout_theme_registry import load_theme_registry
 from services.prompt_builder import PromptBuilder
 
 
 def default_palette_family(task: dict) -> str | None:
-    query = task.get("userQuery", "")
-    if re.search(r"[蓝紫暖冷青绿粉红橙黄黑白深浅]色|#[0-9a-fA-F]{6,8}", query):
-        return None
     data = task.get("dataModelSchema", {}).get("data", {})
     roots = set(data) if isinstance(data, dict) else set()
     if len(roots) > 1:
@@ -25,28 +21,44 @@ def default_palette_family(task: dict) -> str | None:
     return selection.get("defaultFamily")
 
 
-def _business_token(task: TaskSpec) -> str | None:
-    route, _ = PromptBuilder._visual_route(task)
+def prepare_business_context(task: dict) -> BusinessContext:
+    try:
+        typed = TaskSpec.model_validate(task)
+    except ValueError:
+        return BusinessContext.from_task(task)
+    return PromptBuilder.business_context(typed)
+
+
+def _business_token(
+    task: TaskSpec, businesses: VisibleBusinesses, context: BusinessContext,
+) -> str | None:
+    route = context.layout_route
     roots = {root.casefold() for root in PromptBuilder._data_roots(task)}
     # Generic reminder wording in the layout route does not change a health-only business.
     if route == "calendar-event" and roots == {"healthsport"}:
         route = "health-readout"
     selected: str | None = None
+    business = businesses.single
+    if business == "sport":
+        # 单独心率属于健康读数，沿用原规则，不把它当作运动融球。
+        fields = set()
+        for path in businesses.data_paths:
+            if context.data_business(path) == "sport":
+                fields.add(path.rsplit("/", 1)[-1])
+        if fields and all(name.startswith("heartRate") for name in fields):
+            business = None
     for rule in load_theme_registry().get("selection", {}).get("fusionRouting", []):
         if route not in rule.get("routes", []):
             continue
-        matches = True
-        for pattern in rule.get("queryAll", []):
-            if not re.search(pattern, task.userQuery):
-                matches = False
-                break
-        if matches:
+        if business in rule.get("businesses", []):
             selected = rule.get("themeId")
             break
     return selected
 
 
-def fusion_candidate_gate(task: dict, final_layout: str | None) -> dict:
+def fusion_candidate_gate(
+    task: dict, final_layout: str | None, business_context: BusinessContext | None = None,
+) -> dict:
     evidence = {"allowedTokens": [], "reason": None}
     if task.get("size") != "2x2":
         return {**evidence, "reason": "原规则：仅2x2可用融球"}
@@ -60,13 +72,16 @@ def fusion_candidate_gate(task: dict, final_layout: str | None) -> dict:
         return {**evidence, "reason": "无法确认定稿内容：" + str(exc)}
     content = [r for r in rows if r.component_type not in {"PillButton", "CircleButton"}]
     visible = _compact_visible_state(content)
+    context = business_context or PromptBuilder.business_context(typed_task)
+    businesses = context.visible(content)
     action_count = sum(bool(row.props.get("onClick")) for row in rows)
-    business_count = PromptBuilder._data_block_count(typed_task)
+    business_count = context.layout_block_count
     evidence.update({
         "visibleDataPaths": sorted(visible.paths), "visibleFieldCount": len(visible.paths),
         "actionCount": action_count, "businessCount": business_count, "layoutId": layout.layout_id,
     })
-    token = _business_token(typed_task)
+    evidence["visibleBusinesses"] = businesses.payload()
+    token = _business_token(typed_task, businesses, context)
     if business_count != 1:
         evidence["reason"] = "原规则：不是单业务"
     elif len(visible.paths) > 3:

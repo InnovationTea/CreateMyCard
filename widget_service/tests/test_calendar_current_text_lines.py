@@ -188,6 +188,7 @@ def test_current_display_text_uses_restricted_existing_concatenation(value, expe
     ("{{ ${/data/count} + ${/data/count} }}", None),
     ("{{ ${/data/count} == 3 ? 'a' : 'longer' }}", "longer"),
     ("{{ ${/data/flag} ? 'a' : 'longer' }}", "longer"),
+    ("{{ 'Time ' + (${/data/start} + ' - ' + ${/data/end}) }}", None),
 ])
 def test_composition_text_pressure_retains_existing_semantics(value, expected):
     task = {"dataModelSchema": {"data": {

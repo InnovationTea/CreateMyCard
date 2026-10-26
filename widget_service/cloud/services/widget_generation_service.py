@@ -575,6 +575,9 @@ class WidgetGenerationService:
         task_spec = preflight.task_spec
         if card_spec is None or task_spec is None:
             raise RuntimeError("generation preflight did not build generation specs")
+        from services.prompt_builder import PromptBuilder
+
+        business_context = PromptBuilder.business_context(task_spec)
         latency_by_stage["generationPreflight"] = self._elapsed_ms(stage_started_at)
         trace_step(
             "generation_preflight.completed",
@@ -869,6 +872,7 @@ class WidgetGenerationService:
                 plan_system_prompt,
                 prompt[1]["content"],
                 retry_context=compact_retry_context,
+                business_context=business_context,
             )
             trace_step(
                 "plan.prompt.built",
@@ -1865,6 +1869,7 @@ class WidgetGenerationService:
                     ArtifactValidator(asset_mapper.mapping), protocol_profile,
                     allow_expansion=defer_size_notification,
                     final_layout=design_token,
+                    business_context=business_context,
                 )
             final_size = artifact.cardSpec.get("suggestSize", card_spec.suggestSize)
             if defer_size_notification and before_model_call is not None:

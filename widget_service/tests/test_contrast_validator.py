@@ -118,19 +118,22 @@ def _component_dsl(components: list[dict[str, Any]]) -> str:
 
 
 @pytest.mark.parametrize("opaque", [False, True])
-@pytest.mark.parametrize("fallback", [None, "#FF8FADCC", "#FFFFFFFF"])
+@pytest.mark.parametrize("fallback", [None, "#FF8FADCC", "#FFFFFFFF", "#FF1F1F99"])
+@pytest.mark.parametrize("foreground", [
+    "__post_theme_foreground", "__genui_render_component__root",
+])
 def test_post_layout_photo_contrast_requires_pixels_unless_opaque(
-    opaque: bool, fallback: str | None,
+    opaque: bool, fallback: str | None, foreground: str,
 ) -> None:
     components = [
         {"id": "root", "component": "Stack",
-         "children": ["__post_theme_background", "__post_theme_foreground"],
+         "children": ["__post_theme_background", foreground],
          "styles": {"backgroundColor": fallback} if fallback else {}},
         {"id": "__post_theme_background", "component": "Stack",
          "children": ["__post_theme_base"]},
         {"id": "__post_theme_base", "component": "Image", "src": "background.jpg",
          "styles": {"width": "matchParent", "height": "matchParent"}},
-        {"id": "__post_theme_foreground", "component": "Column", "children": ["label"],
+        {"id": foreground, "component": "Column", "children": ["label"],
          "styles": {"backgroundColor": "#FFFFFFFF" if opaque else "#33FFFFFF"}},
         {"id": "label", "component": "Text", "content": "背景上的文字",
          "styles": {"fontColor": "#FFFFFFFF"}},
@@ -144,13 +147,18 @@ def test_post_layout_photo_contrast_requires_pixels_unless_opaque(
 
 
 @pytest.mark.parametrize("fallback", ["#FFFFFFFF", "#FF8FADCC"])
-def test_post_layout_photo_name_without_full_background_is_not_exempt(fallback: str) -> None:
+@pytest.mark.parametrize("foreground", [
+    "__post_theme_foreground", "__genui_render_component__root",
+])
+def test_post_layout_photo_name_without_full_background_is_not_exempt(
+    fallback: str, foreground: str,
+) -> None:
     components = [
         {"id": "root", "component": "Stack",
-         "children": ["__post_theme_background", "__post_theme_foreground"],
+         "children": ["__post_theme_background", foreground],
          "styles": {"backgroundColor": fallback}},
         {"id": "__post_theme_background", "component": "Stack", "children": []},
-        {"id": "__post_theme_foreground", "component": "Column", "children": ["label"]},
+        {"id": foreground, "component": "Column", "children": ["label"]},
         {"id": "label", "component": "Text", "content": "白底白字",
          "styles": {"fontColor": "#99FFFFFF"}},
     ]

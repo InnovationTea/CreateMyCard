@@ -13,6 +13,9 @@ _LOGGER = logging.getLogger(__name__)
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 _NORMAL_ROOT_ID = "root_0"
 _FUSION_BACKGROUND_ID = "fusionBallBackground"
+_PHOTO_FOREGROUND_IDS = (
+    "__post_theme_foreground", "__post_theme_contentHalf", "__genui_render_component__root",
+)
 _OPAQUE_ALPHA = 1.0
 
 RgbColor = tuple[float, float, float]
@@ -152,7 +155,7 @@ class ContrastValidator(BaseValidator):
             and "__post_theme_base" in photo_children
         )
         photo_foreground = any(
-            key in root_child_ids for key in ("__post_theme_foreground", "__post_theme_contentHalf")
+            key in root_child_ids for key in _PHOTO_FOREGROUND_IDS
         )
         full_image = (
             photo_base.get("component") == "Image"

@@ -50,7 +50,7 @@ def artifact():
     )
 
 
-@pytest.mark.parametrize(("pool", "count"), [("photos", 25), ("texturePhotos", 18)])
+@pytest.mark.parametrize(("pool", "count"), [("photos", 27), ("texturePhotos", 18)])
 def test_current_photos_have_obs_addresses(pool, count):
     photos = registry.registered_themes(pool, include_disabled=True)
     assert len(photos) == count
@@ -59,7 +59,7 @@ def test_current_photos_have_obs_addresses(pool, count):
         address = photo.get("remoteUrl")
         assert isinstance(address, str)
         assert address.startswith("https://lfcontentcenterdev.hwcloudtest.cn/")
-        assert address.endswith(".jpg")
+        assert address.lower().endswith(".jpg")
         addresses.add(address)
     assert len(addresses) == len(photos)
 
@@ -118,7 +118,11 @@ def test_registry_rejects_invalid_delivery_address(address):
 
 @pytest.mark.parametrize("address", ["", ADDRESS])
 @pytest.mark.parametrize("rgb", ["000000", "FFFFFF"])
-def test_final_delivery_maps_only_photo_and_preserves_fallback(monkeypatch, address, rgb):
+@pytest.mark.parametrize("fusion_enabled", [False, True])
+def test_final_delivery_maps_only_photo_and_preserves_fallback(
+    monkeypatch, address, rgb, fusion_enabled,
+):
+    monkeypatch.setattr(themes, "fusion_ball_enabled", lambda version: fusion_enabled)
     photo = configure(monkeypatch, address)
     original = artifact()
     original_copy = original.model_copy(deep=True)
@@ -144,9 +148,16 @@ def test_final_delivery_maps_only_photo_and_preserves_fallback(monkeypatch, addr
             node["src"] = photo.get("src")
     assert before == after
     styles = node_by_id(delivered.genui, "root").get("styles", {})
-    assert styles.get("backgroundColor") == "#FF8FADCC"
-    assert "linearGradient" not in styles
-    assert "fusionBall" not in delivered.genui
+    if rgb == "000000":
+        assert styles.get("backgroundColor") == "#FFE6E6E6"
+        assert styles.get("linearGradient", {}).get("colors") == [
+            ["#FFFFFFFF", 0], ["#FFE6E6E6", 1],
+        ]
+        assert "fusionBall" not in delivered.genui
+    else:
+        assert styles.get("backgroundColor") == "#FF1F1F99"
+        assert "linearGradient" not in styles
+        assert ("fusionBallBackground" in delivered.genui) is fusion_enabled
     assert original == original_copy
 
 

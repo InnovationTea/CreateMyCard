@@ -1,13 +1,13 @@
 """主体图按主区、抽象图按整卡准入，只读取定稿布局，不调整前景。"""
 
-from services.compact_dsl_a2ui_converter import ComponentRow, DataRow, parse_compact_dsl_rows
+from services.compact_dsl_a2ui_converter import ComponentRow
+from services.content_business import BusinessContext, FinalBusinessContext
 from services.post_layout_theme_registry import load_theme_registry
 from services.theme_layout_summary import matches_subjectless_layout
 from services.theme_texture_eligibility import (
     holiday_countdown,
     subtree,
     texture_business_reason,
-    visible_business,
 )
 
 
@@ -88,25 +88,22 @@ def _wide_scope(root: ComponentRow, by_id: dict, final_layout: str,
 
 
 def photo_content_reason(photo: dict, task: dict, evidence: dict,
-                         final_layout: str | None) -> str | None:
-    if not final_layout:
-        return "图片内容限制需要定稿布局"
-    try:
-        parsed = parse_compact_dsl_rows(final_layout, expand_layouts=False)
-    except ValueError:
-        return "无法解析图片内容限制所需的定稿布局"
-    by_id = {}
-    values = {}
-    for row in parsed:
-        if isinstance(row, ComponentRow):
-            by_id[row.component_id] = row
-        elif isinstance(row, DataRow):
-            values[row.path] = row.value
+                         final_layout: str | None, *,
+                         business_context: FinalBusinessContext | None = None) -> str | None:
+    context = business_context or FinalBusinessContext.from_layout(
+        final_layout, BusinessContext.from_task(task),
+    )
+    if context.error:
+        return context.error
+    by_id = context.by_id
+    values = context.values
     root = by_id.get("root")
     if root is None:
         return "图片缺少定稿根节点"
     rules = load_theme_registry().get("photoEligibility", {})
     policy = photo.get("contentEligibility", {})
+    if policy.get("kind") != "uniform":
+        return _special_content_reason(policy, task, root, by_id, values, context)
     wide = task.get("size") == "2x4"
     is_texture = photo.get("pool") == "texturePhotos"
     scope = root
@@ -125,14 +122,17 @@ def photo_content_reason(photo: dict, task: dict, evidence: dict,
     rows = subtree(scope.component_id, by_id)
     if not rows:
         return "图片内容树不完整"
+    businesses = context.scope(scope.component_id)
     if is_texture:
-        reason = texture_business_reason(photo, rows)
+        reason = texture_business_reason(photo, rows, businesses=businesses)
         if reason is not None:
             return reason
     else:
-        business = visible_business(rows)
+        business = businesses.single
         if "holiday" in policy.get("businesses", []):
-            business = "holiday" if holiday_countdown(rows, values) else None
+            business = "holiday" if holiday_countdown(
+                rows, values, businesses=businesses,
+            ) else None
         if business not in policy.get("businesses", []):
             return "图片业务与实际可见的单业务内容不匹配"
     flow_key = "textureBodyTextFlow" if is_texture else "photoBodyTextFlow"
@@ -157,4 +157,30 @@ def photo_content_reason(photo: dict, task: dict, evidence: dict,
             return "蓝天白云需要1至2行正文"
         if top.get("topOnly") is not True:
             return "蓝天白云要求正文居左居上且下方留空：" + str(top.get("reason"))
+    return None
+
+
+def _special_content_reason(policy: dict, task: dict, root: ComponentRow,
+                            by_id: dict, values: dict,
+                            context: FinalBusinessContext) -> str | None:
+    rows = subtree(root.component_id, by_id)
+    if not rows:
+        return "图片内容树不完整"
+    kind = policy.get("kind")
+    businesses = context.scope(root.component_id)
+    if kind == "holiday-countdown":
+        if task.get("size") != "2x2" or not holiday_countdown(
+            rows, values, businesses=businesses,
+        ):
+            return "此图片仅用于2x2单业务节假日倒计时，每个展示对象均须属于节假日"
+    elif kind == "weather-panels":
+        if task.get("size") != "2x4" or root.component_type != "Layout":
+            return "冰面图仅用于2x4双大背板或四宫格"
+        count = {"W-split-panels": 2, "W-four-slots": 4}.get(root.props.get("layout"))
+        if count is None or len(root.children) != count:
+            return "冰面图仅用于双大背板或四宫格，不用于主焦点布局"
+        if "weather" not in businesses.data_businesses:
+            return "冰面图要求至少一项实际可见天气业务"
+    else:
+        return "图片缺少已登记准入配置"
     return None

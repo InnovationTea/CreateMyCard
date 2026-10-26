@@ -55,7 +55,7 @@ def test_a17_selection_preserves_foreground_and_registered_asset(orientation, mo
     assert images[0].get("src") == audit.get("theme", {}).get("src")
     assert audit.get("theme", {}).get("remoteUrl", "").startswith("https://")
     root = next(node for node in nodes if node.get("id") == "root")
-    assert root.get("styles", {}).get("backgroundColor") == "#FF8FADCC"
+    assert root.get("styles", {}).get("backgroundColor") == "#FF1F1F99"
 
 
 @pytest.mark.parametrize("orientation", ["content-left", "content-right"])

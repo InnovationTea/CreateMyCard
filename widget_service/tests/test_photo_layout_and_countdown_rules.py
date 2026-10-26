@@ -14,20 +14,25 @@ from services import subjectless_wide_theme
 from services.post_layout_theme_registry import registered_themes
 from services.theme_content_regions import photo_layout_evidence, photo_layout_exclusion_reason
 from test_autumn_calendar_photos import COUNTDOWN_ID, expanded, photo
-from test_battery_music_photo_rules import WIDE, wide_battery_sample
+from test_battery_music_photo_rules import wide_battery_sample
 
 SPLIT_REASON = "2x4左右两个大背板布局不使用图片背景"
 
 
 @pytest.mark.parametrize("identity", [item.get("id") for item in registered_themes("photos")])
-def test_split_panels_are_excluded_for_every_photo_business(identity):
+def test_split_panels_only_admit_explicit_weather_panel_policy(identity):
     sample = wide_battery_sample("W-split-panels")
     theme = photo(identity)
     theme["size"] = "2x4"
     evidence = photo_layout_evidence(sample.nodes)
     assert evidence.get("sideBySidePanels") is True
     reason = themes.photo_reason(theme, sample.task, evidence, final_layout=sample.compact)
-    if theme.get("contentEligibility", {}).get("wideLayout") == "main-focus":
+    policy = theme.get("contentEligibility", {})
+    if policy.get("kind") == "weather-panels":
+        assert reason is None
+    elif policy.get("kind") == "holiday-countdown":
+        assert reason == "此图片仅用于2x2单业务节假日倒计时，每个展示对象均须属于节假日"
+    elif policy.get("wideLayout") == "main-focus":
         assert reason == "2x4图片需要明确主焦点，不支持双大背板或无主次布局"
     elif theme.get("contentEligibility", {}).get("wideLayout") == "side-focus":
         assert reason == "2x4图片需要左右主焦点加另一侧上下双槽，不支持上下或双大背板布局"
@@ -72,16 +77,20 @@ def test_legacy_wide_pool_uses_the_same_global_exclusion():
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_model_cannot_return_excluded_subject_but_abstract_can_match(monkeypatch, enabled):
+def test_model_cannot_return_excluded_subject_but_ice_can_match(monkeypatch, enabled):
     sample = wide_battery_sample("W-split-panels")
     monkeypatch.setattr(get_settings(), "enable_photo_background_theme", enabled)
-    client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({"themeId": WIDE})))
+    rejected_subject = "photo-ux-airplane-tarmac-wide"
+    client = SimpleNamespace(generate=AsyncMock(return_value=json.dumps({
+        "themeId": rejected_subject,
+    })))
     result, audit = asyncio.run(themes.select_theme(
         sample.source, sample.task, client, final_layout=sample.compact,
     ))
-    assert audit.get("themeId") != WIDE
+    assert rejected_subject not in audit.get("candidates", [])
+    assert audit.get("themeId") != rejected_subject
     if enabled:
-        assert audit.get("themeId", "").startswith("photo-ux-texture-")
+        assert audit.get("themeId") == "photo-ux-ice-wide"
     else:
         assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
     assert themes.foreground_signature(sample.source) == themes.foreground_signature(result)

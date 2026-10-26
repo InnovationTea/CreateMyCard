@@ -12,9 +12,8 @@ WAVE = "photo-ux-digital-wave-wide"
 MEETING_SQUARE = "photo-ux-meeting-room-square"
 MEETING_WIDE = "photo-ux-meeting-room-wide"
 DISABLED = {
-    "galaxy-sleep-square",
     "track-runner-square", "sunrise-runner-square", "track-sprint-square", "running-pair-wide",
-    "starry-sky-wide", "bedside-lamp-wide",
+    "road-wide", "bedside-lamp-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
 }
 
@@ -23,7 +22,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 18
+    assert len(registry.registered_themes("photos")) == 21
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -67,9 +66,9 @@ def double_countdown(first="国庆", second="中秋", lines=1):
 
 
 @pytest.mark.parametrize("second,lines,allowed", [
-    ("中秋", 1, True), ("中秋", 2, False), ("考试", 1, False), ("待办", 1, False),
+    ("中秋", 1, True), ("中秋", 2, True), ("考试", 1, False), ("待办", 1, False),
 ])
-def test_a12_dual_panels_need_all_holidays_and_total_at_most_three(second, lines, allowed):
+def test_a12_dual_panels_need_all_holidays_without_line_limit(second, lines, allowed):
     saved = double_countdown(second=second, lines=lines)
     flow = evidence(saved).get("photoBodyTextFlow", {}).get("root", {})
     assert flow.get("lineCount") == 2 * lines
