@@ -628,8 +628,8 @@ def test_obsolete_compact_directive_route_is_not_registered():
     assert "/api/v1/ws/tools/generateWidgetCardCompactDslWithDirective" not in route_paths
 
 
-def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
-    """外层请求合法但 content.arguments 为字符串时应返回精确错误。"""
+def test_compact_route_rejects_unrecoverable_stringified_tool_arguments(monkeypatch):
+    """外层请求合法但内层无法无损恢复时应返回精确错误。"""
     def unexpected_generate(*_args, **_kwargs):
         raise AssertionError("malformed tool arguments must not call the model")
 
@@ -639,14 +639,7 @@ def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
     content = {
         "skillName": "harmony-card-generation-online-directive",
         "functionName": "generateWidgetCardCompactDslWithDirective",
-        "arguments": json.dumps(
-            {
-                "userQuery": "生成大理天气卡片",
-                "title": "大理天气",
-                "description": "大理天气关怀卡片",
-            },
-            ensure_ascii=False,
-        ),
+        "arguments": '{"userQuery":"生成大理天气卡片","title":"未结束',
     }
     client = TestClient(app)
     request = _tool_payload(content, interaction_id)
@@ -724,7 +717,7 @@ def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
         "romVersion": "VYG-AL00 " + ".".join(("7", "0", "0", "105")),
     }
     malformed_content = {
-        "arguments": json.dumps(valid_content, ensure_ascii=False),
+        "arguments": '{"userQuery":"未结束',
         "romVersion": valid_content["romVersion"],
     }
     client = TestClient(app)

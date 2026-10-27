@@ -65,6 +65,11 @@ from services.generation_content_policy import (
     isolated_content_request,
     resolve_content_policy,
 )
+from services.generation_input_feedback import (
+    MissingDataInputError,
+    MissingDataReportValidationError,
+    parse_missing_data_report,
+)
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessingResult,
@@ -925,6 +930,7 @@ class WidgetGenerationService:
                 prompt[1]["content"],
                 retry_context=compact_retry_context,
                 business_context=business_context,
+                allow_input_request=generation_mode == "create",
             )
             trace_step(
                 "plan.prompt.built",
@@ -981,6 +987,22 @@ class WidgetGenerationService:
                         {"require_static_omission_refs": True} if content_policy.is_static else {}
                     )
                     try:
+                        input_report = parse_missing_data_report(
+                            raw_plan, request.userQuery,
+                            allow_report=generation_mode == "create",
+                        )
+                        if input_report is not None:
+                            plan_span.outcome("failed", reason="generationInputIncomplete")
+                            trace_record(
+                                "plan.input_missing", stage="plan", status="failed",
+                                details={"requirementCount": len(input_report.requirements)},
+                                json_artifacts={"missing_data_report": input_report.model_dump()},
+                            )
+                            logger.warning(
+                                f"{_MODULE} compact_plan_input_missing "
+                                f"requirement_count={len(input_report.requirements)}"
+                            )
+                            raise MissingDataInputError(input_report)
                         validation = parse_compact_plan_call(
                             raw_plan,
                             task_spec.model_dump(mode="json", exclude_none=True),
@@ -992,7 +1014,7 @@ class WidgetGenerationService:
                             ),
                             **static_contract_options,
                         )
-                    except CompactPlanValidationError as exc:
+                    except (CompactPlanValidationError, MissingDataReportValidationError) as exc:
                         plan_span.outcome("failed", errorCount=len(exc.errors))
                         parse_duration_ms = self._elapsed_ms(parse_started_at)
                         logger.warning(

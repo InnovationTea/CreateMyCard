@@ -35,6 +35,7 @@ from services.compact_plan_output import (
 from services.compact_repair_context import joint_repair_contract
 from services.compact_structural_fewshots import select_structural_fewshots
 from services.content_business import BusinessContext
+from services.generation_input_feedback import MISSING_DATA_PLAN_INSTRUCTION, missing_data_tool
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
 _MODULE = "[Prompt Builder]"
@@ -1751,6 +1752,7 @@ class PromptBuilder:
         *,
         retry_context: CompactDslRetryContext | None = None,
         business_context: BusinessContext | None = None,
+        allow_input_request: bool = True,
     ) -> list[dict[str, str]]:
         """在创建合同后追加 Plan 阶段，不重复包装 TaskSpec。"""
         task_spec_value = task_spec.model_dump(
@@ -1769,6 +1771,12 @@ class PromptBuilder:
             include_composition=runtime_prompt_context_enabled,
         )
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
+        input_contract = "\n本轮不允许 report_missing_data，编辑不得扩大数据集合。"
+        if allow_input_request:
+            input_tool = json.dumps(missing_data_tool(), ensure_ascii=False, separators=(",", ":"))
+            input_contract = (
+                f"\n\n# 必要数据输入缺口合同\n{input_tool}\n{MISSING_DATA_PLAN_INSTRUCTION}"
+            )
         business_context = business_context or self.business_context(task_spec)
         business_payload = json.dumps(business_context.candidate_payload(), ensure_ascii=False)
         capacity_context = ""
@@ -1785,10 +1793,11 @@ class PromptBuilder:
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}{recovery_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
-            "这是同一条生成对话的第一阶段。Plan 未被工具结果接受前，只能提交"
+            "这是同一条生成对话的第一阶段。正常 Plan 未被工具结果接受前，提交"
             ' {"name":"submit_card_plan","arguments":{...}}；'
             "收到 submit_card_plan 成功结果后，按后续消息继续生成 Compact DSL。"
             f"\n{PLAN_JSON_OUTPUT_INSTRUCTION}"
+            f"{input_contract}"
         )
         if current_content_policy().is_static:
             return [
@@ -1831,8 +1840,13 @@ class PromptBuilder:
         text_instruction = "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
         if current_content_policy().is_static:
             text_instruction = (
-                "text只能提取sourceTexts中已有内容；修正来源引用、保护文字和contentGroups索引，"
-                "保留日期、单位、否定和限定词；不得用自由摘要改写事实。"
+                "静态text仍允许忠于sourceTexts的摘要、合并和简洁表达，不要求逐字提取。"
+                "修正全部已报告的结构问题；contentGroups.factIndexes只引用本次提交的"
+                "info_required零起始索引，不引用来源条目；合并或删减展示事实后同步所有引用。"
+                "sourceTexts每条事实引用1至3段连续原文，必要时引用完整连续上下文，不能编造引用。"
+                "selectionNotes为一个字符串数组，不在每项外另加数组。"
+                "对照来源自查对象名称、日期、数值与单位、否定、范围、冲突来源和必要限定；"
+                "用户要求原文或全部展示时仍须遵守，不得为修复结构改变含义或删除核心。"
             )
         if len(plan_prompt) < 3 or plan_prompt[0].get("role") != "system":
             raise ValueError("Compact Plan repair requires the active Plan conversation")
@@ -1857,7 +1871,8 @@ class PromptBuilder:
                         "outputFormat": plan_output_format_feedback(invalid_output),
                         "instruction": (
                             PLAN_JSON_OUTPUT_INSTRUCTION + " "
-                            "只修正 submit_card_plan 工具调用包。不得删除用户要求来规避错误，"
+                            "按本轮提供的合同修正计划或必要数据缺口报告，不得新增未开放的调用。"
+                            "不得删除用户要求来规避错误，"
                             "但应移除模型自行新增且用户未要求的装饰标题事实。"
                             f"{text_instruction}"
                             "不得生成 Compact DSL、Markdown 或解释。"

@@ -32,7 +32,7 @@ metadata:
 
 ## 工具定义
 
-当前打开与跳转仅支持对应的华为自带应用，如华为天气、音乐、地图、日历等，不能更换为其他应用；
+以下所有打开与跳转事件统一遵守：仅支持对应的华为自带应用，如华为天气、音乐、地图、日历等，不能更换为其他应用；
 不支持网易云音乐、QQ 音乐、百度地图、高德地图等第三方应用，也不支持任意指定应用。
 用户指定第三方应用时，不得直接改用华为应用，不得修改动作模板的包名、URI 或目标；
 按既有支持范围门禁处理，仅在改变主要用途的可用替代已获用户确认时继续。
@@ -56,15 +56,15 @@ metadata:
 ### Function: generateWidgetCardCompactDsl
 - **toolName**: generateWidgetCardCompactDsl
 - **description**: 生成极简协议版本的鸿蒙卡片
-- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"能力裁决后的本轮有效卡片需求及按来源顺序追加的完整清洗外部事实；调整后生成时不得保留已移除或未经确认替代的内容"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"用户指定尺寸时必须显式传入，优先于默认或建议；未指定按尺寸规则。"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
+- **参数**: {"properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件对象数组，每项仅含 capabilityId 和 action；将概述的 actionTemplate 值复制到 action，不提交 actionTemplate 或 dynamicArguments 定义。","required":[],"properties":{"ArrayItem":{"type":"Object","description":"来自本轮概述的事件候选","required":["capabilityId","action"],"additionalProperties":false,"properties":{"capabilityId":{"type":"String","description":"本轮事件概述 ID"},"action":{"type":"Object","description":"完整复制对应模板的值，只替换声明的动态参数","required":["call","args"],"additionalProperties":false,"properties":{"call":{"type":"String","description":"模板原始调用类型，不填事件 ID"},"args":{"type":"Object","description":"模板完整参数对象，保留固定值与空字符串，禁止序列化成字符串","additionalProperties":true}}}}}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字；新建必填非空，编辑未修改时省略并继承"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"能力裁决后的本轮有效卡片需求；有外部事实时在后方追加固定标题‘本轮卡片静态内容（用作展示的外部事实）：’及完整事实；调整后生成时不得保留已移除或未经确认替代的内容"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":["capabilityId","arguments","writeResultTo"],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"符合本轮 inputSchema 的 JSON 对象；无参用 {}，禁止 JSON 字符串、数组或 null","additionalProperties":true},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}},"additionalProperties":false}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字；新建必填非空，编辑未修改时省略并继承"},"size":{"type":"String","description":"用户指定尺寸时必须显式传入，优先于默认或建议；未指定按尺寸规则。","enum":["2x2","2x4"]},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"],"type":"object","additionalProperties":false,"description":"业务参数必须直接为 JSON 对象，不调用 JSON.stringify、不手工转义整个对象；创建和编辑共用此入口。"}
 
 ### 工具调用
 
 依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式；
-**注意**：要求 `arguments` 是合法 JSON 值；`skillName` 固定为 `harmony-card-generation-online`。
+**注意**：要求 `arguments` 直接为 JSON 对象，禁止整体序列化成字符串；`skillName` 固定为 `harmony-card-generation-online`。
 
 ```text
-invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
+{"functionName":"<toolName>","arguments":{"bundleName":"com.omega_w_0823.hmservice","<业务字段>":"<本轮合法值>"},"skillName":"harmony-card-generation-online"}
 ```
 
 ## 经验攻略
@@ -74,6 +74,8 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 ## 操作规程
 
 执行前读取[固定回复规范](references/user-replies.md)；参数、能力边界、编辑继承及判定按步骤读取[运行指南](references/runtime-guide.md)，已读不重复加载。
+生成接口调用后可能没有自然语言回复机会：所有调用前已确定且需要告知的拒答、引导、澄清、缺失、限制和事实，
+必须在调用前按对应模板实际发送，不能留到步骤 8。需要回答时等待，需停止时不调用；不得提前宣称成功或推测生成结果。
 [回归示例](references/examples.md)和[工具快照](references/tools/)仅供联调核对，正常执行不额外读取，不读取或调用 scripts。运行时 schema 是调用唯一依据，示例不替代真实结果。
 
 ### 0. 查询外部事实并回复用户
@@ -126,7 +128,8 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 ### 3. 规划候选与必要追问
 
 - **进入条件：** 已得到本轮合法概述和所需 schema；读取运行指南“满足度、尺寸与候选构造”。
-- **用户回复：** 用户偏好、有歧义目标、必要动作对象缺失时用 R05，只问一个必要问题并等待；
+- **用户回复：** 必要业务信息缺失或有歧义时，先用 R05 追问一个最小必要问题并等待，不得自行推测；
+  例如个人事件倒计时缺少日期时先问日期。澄清前不进入权限、R01/R02 或生成，已明确的信息不重复询问。
   次要缺失用 R08C/R08E 告知后继续；主要用途替代用 R09 等待；必须包含的核心内容不可用用 R07 停止。
 - **工具调用示例：** 本步无调用；不能为缺失参数猜值，也不在此发起新的外部调用。当前任务既有外部来源结果
   或已发现来源可补齐客观事实且不影响能力集合选择时暂留待补；权限阶段后先处理已有结果，不足再补查。
@@ -191,11 +194,13 @@ invoke(functionName:"RequestDataPermission", arguments:{
 - **纯静态创建检查：** 包括用户直接提供的资料在内，确认已选择必要展示事实、保留完整对象名称与条件，并保留全部显式约束；有效需求不再重复附加整份原始资料。用户要求完整或原文的资料继续保留，不为提高成功率静默删减。动态、混合动态和 edit 不套用此检查。
 - **外部事实回复检查：** 采用且尚未告知的外部事实须先按步骤 0/5 实际发送 R16W/R16，不以草稿或入参代替；用户直接提供的固定内容无需另行复述。
 - **生成传参门禁：** 外层 `arguments` 和 `candidateDataBindings[].arguments` 必须为 JSON 对象，禁止 JSON 字符串。动态展示须传对应 `capabilityId`、Schema 必填参数及用户指定值，无参用 `{}`；不得只在 query 描述。`writeResultTo` 位于不冲突的 `/data/...`，输出字段为 Schema 叶子路径，数组用实际数字下标。
+  调用前核对：外层与数据参数均为对象，事件结构完整，未夹带 Schema／模板定义，数组下标对应本轮目标对象与时间；不手工转义整份参数。
   事件项为 `{capabilityId, action}`，完整复制模板到 `action`，仅替换声明动态路径，保留固定字段及空字符串；不传 `actionTemplate`、`dynamicArguments` 定义。只用运行时声明字段；create 标题/说明非空，纯视觉 edit 可合法继承，不强制重传未修改列表。
   列表动作必须将模板中的 `i` 替换为实际展示对象的数字下标；未明确目标时不能默认填 `0`，也不能提交未替换的模板。预检返回下标错误时按真实对象修正，不能原样重试。
   `dataCapabilityIds` 仅用于加载数据定义和权限检查；生成接口禁止传入它或 `eventCapabilityIds`，必须使用完整的 `candidateDataBindings`、`candidateEventCandidates`，不能仅传 ID 列表。
 - **纯静态 create：** 无动态需求时 `candidateDataBindings:[]`，无必要合法动作或匹配素材时对应候选传 `[]`；不为填满卡片补动态数据、动作或素材。完整事实与展示要求放入 `userQuery`，不只写在标题、说明中；摘要与排版由生成工具处理。
 - **使用提醒门禁：** 生成前逐项复核实际采用能力明确要求告知的前提或限制；尚未实际告知的先单独发送 R15，再发送 R01/R02。内部计划、工具参数、卡片文案或权限通过均不等于已告知；同一任务条件未变不重复，提醒不替代既有授权与支持范围门禁。
+- **调用前告知检查：** 前序已确定的拒答、权限引导、必要澄清、替代确认、次要缺失和采用事实均已实际处理；存在待回答问题或停止条件时不调用。纯静态内容 create 在 R01 前单独发送 R21，说明不会自动更新；仅快捷动作卡不适用，同一任务条件未变不重复。已知提醒不得留到生成后；实际成功、生成中省略、工程失败及编辑结果只能等真实返回后处理。
 - **用户回复：** 所有前置检查及必要使用提醒完成后，紧邻生成工具调用前实际发送 create 的 R01 或 edit 的 R02；仍需用户信息用 R05 等待，技术缺口用 R14 停止。生成前停止时不发送 R01/R02。
 - **create 示例：** 使用步骤 2～4 同一模拟计划；业务值来自用户和定义，create 不含 sourceArtifactUrl。
 
@@ -215,6 +220,41 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 },"skillName":"harmony-card-generation-online")
 ```
 
+- **带事件的结构示例：** 仅当本轮概述确认对应天气事件及相同模板时使用；将模板的值放到 `action`，不把模板字段名一起复制。实际包名、事件值及引用按本轮返回构造。
+
+```json
+{
+  "functionName": "generateWidgetCardCompactDsl",
+  "skillName": "harmony-card-generation-online",
+  "arguments": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "显示明天的天气和星期，点击查看同一城市天气详情",
+    "title": "明日天气",
+    "description": "明日出行速览",
+    "size": "2x2",
+    "candidateDataBindings": [{
+      "capabilityId": "ViewWeather",
+      "arguments": {"forecastDays": 1},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": ["/daily/0/weekday", "/daily/0/condition"]
+    }],
+    "candidateEventCandidates": [{
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }],
+    "candidateAssetIds": []
+  }
+}
+```
+
 - **尺寸 edit 示例：** 多轮用户明确要求改变已有卡片尺寸时，仍使用 edit，并在生成工具入参中显式传入本轮目标 `size`；
   不能只在 `userQuery` 中描述尺寸而省略字段。
 
@@ -230,11 +270,15 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 - 纯视觉修改、已有数据参数调整的 edit 入参及删除数据的拒绝场景见[回归示例](references/examples.md)；执行时 sourceArtifactUrl 必须取真实最近有效结果。
 
 - **继续或停止：** 生成调用串行等待结果；仅 failed 按返回修正后重试，含首次最多 3 次，不重发 R01/R02；其它结果转步骤 8，异常用 R14，不本地生成。
+  create 的 `GENERATION_INPUT_INCOMPLETE` 仅在 details 明确允许时，按运行指南核对本轮能力、
+  加载数据定义、补齐绑定或字段并复查最终权限后重调；缺口说明不是能力或权限证明。
+  核心不支持、必要业务值缺失或权限问题分别沿原停止／澄清流程处理，不扩大三次总调用预算。
 
-### 8. 判定并反馈卡片结果
+### 8. 判定卡片结果，按宿主规则反馈
 
 - **进入条件：** 只读取当前工具的运行时返回，不从 message 或对话文本提取 URL；结果映射按运行指南“生成结果与内部留存”。
-- **用户回复：** 完整成功用 R18C/R18E，纯静态内容 create 用 R18CS 说明不自动更新，仅快捷动作卡仍用 R18C；degraded 或已知缺失用对应 R18 + R19，无缺失明细按回复规范保守说明；unsupported 用 R07；failed 按指南重试或 R14，非法结果或无合法新 URL 用 R14。应发送的回复必须实际发送，开始话术和事实说明不能替代结果回复。
+- **用户回复：** 宿主允许生成后文本回复时，完整成功用 R18C/R18E；degraded 或已知缺失用对应 R18 + R19，无缺失明细按回复规范保守说明；unsupported 用 R07；failed 按指南重试或 R14，非法结果或无合法新 URL 用 R14。编辑 needs_clarification 用 R05，unchanged 用 R20。纯静态不更新提醒已在生成前发送，不在成功回复中重复。
+- **宿主边界：** 不假设生成后一定可以回复；仍按真实返回处理状态、重试和编辑来源，不把无文本机会当作成功或已告知。仅生成后才能确定的失败、实际省略及编辑澄清不能前置编造；其用户可见交付需要宿主联调确认，不新增通道、不为补回复重调生成，也不强制生成后沉默。
 - **来源与完成：** success/degraded 后禁止重调，即使 URL 非法；仅这两种状态且有合法新 URL 才更新内部编辑来源；edit 返回原 URL 不成立。不透传业务 message，不追加下载、校验或上传；没有新来源时保留旧来源。
 
 

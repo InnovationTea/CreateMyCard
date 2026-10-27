@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"运动健康","fontSize":12}]
+["primary","EmphasizedData",{"value":"{{ ${/data/healthSport/dailySteps} + '步' }}","fontSize":30}]
+["support","SecondaryBody",{"items":[{"label":"热量消耗","value":{"path":"/data/healthSport/dailyTotalCaloriesText"}},{"label":"运动距离","value":{"path":"/data/healthSport/dailyDistanceText"}}],"fontSize":14}]
+["/data/healthSport/dailySteps",6200]
+["/data/healthSport/dailyTotalCaloriesText","420 千卡"]
+["/data/healthSport/dailyDistanceText","4.60 公里"]

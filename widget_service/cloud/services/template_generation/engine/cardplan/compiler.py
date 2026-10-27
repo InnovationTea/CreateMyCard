@@ -59,6 +59,7 @@ from services.template_generation.engine.tersel_converter import (
     convert_tersel_to_a2ui,
     serialize_task_spec_data,
 )
+from services.theme_photo_processing import PhotoStyleContext
 
 from .action_labels import LABEL_ACTION_TEMPLATES, validate_action_label
 from .business_actions import supports_business_action
@@ -84,9 +85,13 @@ from .models import (
 )
 from .parser import ParsedCall, parse_hybrid_card, parse_ux_layout_card
 from .photo_theme import (
+    ACTION_MARKER,
+    PRESERVE_MARKER,
+    STYLE_MARKER,
     SURFACE_MARKER,
     apply_photo_background,
     apply_photo_surfaces,
+    collect_photo_style_context,
     mark_theme_surfaces,
 )
 from .provider_bundle import (
@@ -199,6 +204,7 @@ class HybridCompilation:
     a2ui: str
     stats: ExpansionStats
     fallback_used: bool = False
+    photo_style_context: PhotoStyleContext | None = None
 
 
 @dataclass
@@ -521,6 +527,7 @@ def compile_ux_layout_card(
     root = _apply_theme_content_color(root, contract, registry)
     theme = registry.require_theme(contract.theme_profile_id)
     root = apply_photo_surfaces(root, theme)
+    photo_style_context = collect_photo_style_context(root)
     root = _strip_advanced_component_markers(root)
     count, depth = _shape(root)
     if count > contract.limits.max_expanded_components:
@@ -576,6 +583,7 @@ def compile_ux_layout_card(
             space_constrained=content_height > body_budget,
             action_used_ids=tuple(state.action_ids),
         ),
+        photo_style_context=photo_style_context,
     )
 
 
@@ -5273,9 +5281,11 @@ def _instantiate_interpolated_text(
     shared_values = [
         _template_value(item, params, bindings, theme_values) for item in node.values[1:]
     ]
+    values = [expression, *shared_values]
+    mark_theme_surfaces(node, values)
     return Nested2Node(
         "Text",
-        tuple(_normalize_blueprint_values("Text", [expression, *shared_values])),
+        tuple(_normalize_blueprint_values("Text", values)),
         (),
     )
 
@@ -6096,9 +6106,14 @@ def _apply_theme_content_color(
         None,
     )
     if options_index is None:
-        values.append({color_property: theme.primary_color})
+        values.append({color_property: theme.primary_color,
+                       STYLE_MARKER: {color_property: "@theme:primary/1"}})
     else:
         styled = dict(values[options_index])
+        if color_property not in styled:
+            owned = dict(styled.get(STYLE_MARKER, {}))
+            owned[color_property] = "@theme:primary/1"
+            styled[STYLE_MARKER] = owned
         styled.setdefault(color_property, theme.primary_color)
         values[options_index] = styled
     return Nested2Node(node.component_type, tuple(values), children)
@@ -6138,6 +6153,10 @@ def _lower_capsule_progress(node: Nested2Node) -> Nested2Node:
                 "backgroundColor": options.get("color"),
                 "borderRadius": height / 2 if isinstance(height, (int, float)) else 4,
                 "maxLines": 1,
+                STYLE_MARKER: (
+                    {"backgroundColor": options.get(STYLE_MARKER, {}).get("color")}
+                    if "color" in options.get(STYLE_MARKER, {}) else {}
+                ),
             },
         ),
         (),
@@ -8934,6 +8953,9 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     children = tuple(_strip_advanced_component_markers(child) for child in node.children)
     values: list[Any] = []
     marker_keys = {
+        ACTION_MARKER,
+        PRESERVE_MARKER,
+        STYLE_MARKER,
         SURFACE_MARKER,
         "_boundTemplateAction",
         "_advancedComponent",
@@ -8944,6 +8966,9 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     for value in node.values:
         if isinstance(value, dict) and not marker_keys.isdisjoint(value):
             cleaned = dict(value)
+            cleaned.pop(ACTION_MARKER, None)
+            cleaned.pop(PRESERVE_MARKER, None)
+            cleaned.pop(STYLE_MARKER, None)
             cleaned.pop(SURFACE_MARKER, None)
             cleaned.pop("_boundTemplateAction", None)
             cleaned.pop("_advancedComponent", None)
@@ -9343,7 +9368,8 @@ def _lower_action_template_tree(
             _validate_image_color_options(options, preserve_original=preserve_here)
             if preserve_here or "fillColor" in options:
                 return styled
-            return _merge_node_options(styled, {"fillColor": foreground})
+            owned = {**options.get(STYLE_MARKER, {}), "fillColor": "@theme:primary/1"}
+            return _merge_node_options(styled, {"fillColor": foreground, STYLE_MARKER: owned})
         return styled
 
     def fill_missing_icon_color(current: Nested2Node) -> Nested2Node:
@@ -9380,14 +9406,15 @@ def _lower_action_template_tree(
             None,
         )
         values[options_index] = cleaned
-        return Nested2Node(filled.component_type, tuple(values), filled.children)
+        result = Nested2Node(filled.component_type, tuple(values), filled.children)
+        return _merge_node_options(result, {ACTION_MARKER: True, PRESERVE_MARKER: True})
     styled = apply_foreground(content)
     # CompactAction is rendered inside a layout-owned support slot.  The slot
     # supplies the shared surface, radius, and padding; adding an action
     # background here would create a second nested panel inside that slot.
     if node.component_type in {"CompactAction", "CompactSubtitleAction"}:
-        return styled
-    return _merge_node_options(styled, {"backgroundColor": background})
+        return _merge_node_options(styled, {ACTION_MARKER: True})
+    return _merge_node_options(styled, {"backgroundColor": background, ACTION_MARKER: True})
 
 
 def _lower_action_tile(

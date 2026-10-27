@@ -365,7 +365,7 @@
   },
   {
     "id": "GetCountdownDays",
-    "description": "计算指定的日历日期距离今天还有多少天；目标日期由模型提取，实际天数差值由端侧计算。",
+    "description": "由端侧计算目标日期距今天的自然日天数。目标日期须有可靠来源；婚礼等个人事件未明确日期时，先追问并等待用户补充，不得猜测。",
     "defaultWriteResultTo": "/data/countdown",
     "dependencies": {
       "requiredPackages": []
@@ -376,7 +376,7 @@
       "properties": {
         "targetDate": {
           "type": "string",
-          "description": "目标日期，必须是 YYYY-MM-DD 格式。"
+          "description": "目标日期，格式为 YYYY-MM-DD；缺失或有歧义时先向用户确认。"
         }
       },
       "required": [

@@ -167,6 +167,39 @@ function flattenStyles(props: Record<string, unknown>): Record<string, unknown> 
   return props;
 }
 
+/** Nearest ancestor compositor clip, used to drop a redundant nested clip-path. */
+type ClipScope = {
+  borderRadius: unknown;
+  /** Only Stack children are guaranteed to fill the ancestor paint box. */
+  isStack: boolean;
+};
+
+function isStackNodeType(nodeType: string): boolean {
+  return nodeType === "Extended.Stack" || nodeType === "Stack";
+}
+
+function hasBackdropBlur(styles: Record<string, unknown>): boolean {
+  const blur = styles.backdropBlur;
+  if (!blur || typeof blur !== "object" || !("radius" in blur)) return false;
+  return typeof (blur as { radius?: unknown }).radius === "number";
+}
+
+function fillsParent(value: unknown): boolean {
+  return value === "matchParent" || value === "100%";
+}
+
+function sameBorderRadius(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") {
+    return false;
+  }
+  const a = left as Record<string, unknown>;
+  const b = right as Record<string, unknown>;
+  return ["topLeft", "topRight", "bottomRight", "bottomLeft"].every(
+    (key) => a[key] === b[key],
+  );
+}
+
 function resolveDataBindingsInValue(
   graph: UIGraph,
   surfaceId: string | null | undefined,
@@ -274,6 +307,7 @@ function renderNodeById(
   registry: ComponentRegistry,
   options: RenderTreeOptions | null | undefined,
   bindingScopePrefix?: BindingScopePrefix,
+  clipScope?: ClipScope | null,
 ): ReactNode {
   const surfaceId = options?.surfaceId ?? graph.getActiveSurfaceId();
 
@@ -323,7 +357,7 @@ function renderNodeById(
     };
     return (
       <div key={instanceKey} data-node-id={nodeId} style={wrapStyle}>
-        {branchIds.map((cid) => renderNodeById(graph, cid, registry, options, bindingScopePrefix))}
+        {branchIds.map((cid) => renderNodeById(graph, cid, registry, options, bindingScopePrefix, clipScope))}
       </div>
     );
   }
@@ -347,6 +381,29 @@ function renderNodeById(
     );
   }
 
+  const rawProps = node.props as Record<string, unknown>;
+  const action = extractAction(rawProps);
+  const restProps = stripActionFromProps(rawProps);
+  const host = options?.interactionHost ?? null;
+
+  const clipStyles = flattenStyles(restProps);
+  // The generated photo theme wraps content in a full-size clipped layer inside an
+  // equally clipped card. Repeating clip-path there makes the wrapper a backdrop
+  // root, so glass panels can no longer sample the sibling photo; the outer clip
+  // already rounds the whole composite.
+  const skipCompositorClip =
+    clipStyles.clip === true &&
+    !hasBackdropBlur(clipStyles) &&
+    clipScope != null &&
+    clipScope.isStack &&
+    sameBorderRadius(clipStyles.borderRadius, clipScope.borderRadius) &&
+    fillsParent(clipStyles.width) &&
+    fillsParent(clipStyles.height);
+  const nextClipScope: ClipScope | null =
+    clipStyles.clip === true
+      ? { borderRadius: clipStyles.borderRadius, isStack: isStackNodeType(node.type) }
+      : null;
+
   const tpl = node.dynamicChildrenTemplate;
   const expandAsTemplate =
     tpl !== undefined &&
@@ -369,25 +426,24 @@ function renderNodeById(
               registry,
               options,
               scopeForIndexedPath(tpl!.path, idx),
+              nextClipScope,
             ),
           )
         : undefined;
   } else if (node.children.length > 0) {
     childElements = node.children.map((childId: string) =>
-      renderNodeById(graph, childId, registry, options, bindingScopePrefix),
+      renderNodeById(graph, childId, registry, options, bindingScopePrefix, nextClipScope),
     );
   } else {
     childElements = undefined;
   }
 
-  const rawProps = node.props as Record<string, unknown>;
-  const action = extractAction(rawProps);
-  const restProps = stripActionFromProps(rawProps);
-  const host = options?.interactionHost ?? null;
-
   // Flatten a2ui `styles: {...}` into top-level props so Extended components
   // receive the same flat structure as mini-protocol nodes.
   const flatProps = resolveDataBindingsInProps(graph, surfaceId, flattenStyles(restProps), bindingScopePrefix);
+  if (skipCompositorClip) {
+    flatProps.__skipCompositorClip = true;
+  }
   // The generated fusion glass uses a native blur parameter, not CSS Gaussian sigma.
   // 210 CSS pixels averages away all three colors on a 150px card. Adapt only
   // this generated layer; retain the original value in the exported A2UI graph.
