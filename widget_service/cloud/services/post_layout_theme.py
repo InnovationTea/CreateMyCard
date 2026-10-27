@@ -474,7 +474,9 @@ async def select_theme(
             update = record.get("updateDataModel", {})
             if update.get("path") == "/" and isinstance(update.get("value"), dict):
                 data_model = update.get("value")
-        evidence = photo_layout_evidence(components(records), data_model, final_layout=final_layout)
+        evidence = photo_layout_evidence(
+            components(records), data_model, final_layout=final_layout, size=task.get("size"),
+        )
         excluded = load_theme_registry().get("photoEligibility", {}).get(
             "excludedForegroundAssets", [],
         )

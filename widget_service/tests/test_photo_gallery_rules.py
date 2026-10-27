@@ -13,7 +13,7 @@ MEETING_SQUARE = "photo-ux-meeting-room-square"
 MEETING_WIDE = "photo-ux-meeting-room-wide"
 DISABLED = {
     "track-runner-square", "sunrise-runner-square", "track-sprint-square", "running-pair-wide",
-    "road-wide", "bedside-lamp-wide",
+    "road-wide", "bedside-lamp-wide", "cloud-square", "cloud-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
 }
 
@@ -22,7 +22,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 21
+    assert len(registry.registered_themes("photos")) == 25
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -152,11 +152,12 @@ def test_meeting_wide_keeps_business_line_count_and_wide_layout_gate():
     assert rejection(expanded(rows, saved.task), MEETING_WIDE)
 
 
-def test_only_new_meeting_photos_use_black_foreground():
+def test_only_approved_subject_photos_use_black_foreground():
+    black_photos = {MEETING_SQUARE, MEETING_WIDE, "photo-ux-gradient-wide"}
     for photo in registry.registered_themes(include_disabled=True):
         if photo.get("kind") != "photo":
             continue
-        rgb = "000000" if photo.get("id") in {MEETING_SQUARE, MEETING_WIDE} else "FFFFFF"
+        rgb = "000000" if photo.get("id") in black_photos else "FFFFFF"
         roles = photo.get("content", {}).get("roles", {})
         assert roles.get("primary") == "#FF" + rgb
         assert roles.get("secondary") == "#CC" + rgb

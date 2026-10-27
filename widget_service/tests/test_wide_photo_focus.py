@@ -235,7 +235,7 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
     if identity == ORANGE:
         config = registry.load_theme_registry()
         for item in config.get("themes", []):
-            if item.get("id") == GRADIENT:
+            if item.get("id") in {GRADIENT, "photo-ux-hourglass-wide"}:
                 item["enabled"] = False
         monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
     saved = focus_sample(business, 1 if identity == ORANGE else 4, layout)
@@ -284,7 +284,14 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
         audit.get("theme", {}).get("remoteUrl")
     )
     styles = node_by_id(result.genui, "root").get("styles", {})
-    assert styles.get("backgroundColor") == "#FF1F1F99"
+    rgb = "000000" if identity == GRADIENT else "FFFFFF"
+    if identity == GRADIENT:
+        assert styles.get("backgroundColor") == "#FFE6E6E6"
+        assert styles.get("linearGradient") == {
+            "direction": "LeftBottom", "colors": [["#FFFFFFFF", 0], ["#FFE6E6E6", 1]],
+        }
+    else:
+        assert styles.get("backgroundColor") == "#FF1F1F99"
     nodes = themes.components(themes.decode(result.genui))
     backgrounds = []
     for node in nodes:
@@ -292,6 +299,6 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
             backgrounds.append(node)
         if node.get("component") == "Text":
             assert node.get("styles", {}).get("fontColor") in {
-                "#FFFFFFFF", "#CCFFFFFF", "#99FFFFFF",
+                "#FF" + rgb, "#CC" + rgb, "#99" + rgb,
             }
     assert len(backgrounds) == 1

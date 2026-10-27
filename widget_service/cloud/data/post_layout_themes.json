@@ -1107,7 +1107,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "烟花睡眠",
-      "description": "烟花睡眠。与A03暗夜床头采用相同准入，2x2睡眠单业务、正文整体居左且最多3行；顶部标题和按钮文案不计。两个合格素材各50%随机选择。",
+      "description": "烟花睡眠。与暗夜床头、暖暗卧室共同沿用2x2睡眠单业务、正文整体居左且最多3行准入，标题和按钮文案不计，三张同级等概率随机选择。",
       "sizes": [
         "2x2"
       ],
@@ -2333,7 +2333,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "柔色倒计时宽景",
-      "description": "柔色倒计时宽景。业务类别：countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标、按钮或倒计时名称。白字100%/80%/60%，同级合格主体图等概率选择。",
+      "description": "柔色倒计时宽景。业务类别：countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标、按钮或倒计时名称。黑字100%/80%/60%，保留浅色背板，同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -2378,12 +2378,12 @@
       },
       "content": {
         "roles": {
-          "primary": "#FFFFFFFF",
-          "secondary": "#CCFFFFFF",
-          "tertiary": "#99FFFFFF",
-          "graphicPrimary": "#FFFFFFFF",
-          "graphicSecondary": "#CCFFFFFF",
-          "graphicTertiary": "#99FFFFFF",
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
           "componentSecondary": "#33FFFFFF",
           "componentTertiary": "#1AFFFFFF"
         },
@@ -3660,6 +3660,418 @@
       "background": {
         "src": "resources/base/media/bg_ux_texture_blue_circles_wide.jpg",
         "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/e3ccaf8eb99a41d2b279e35d6f58ea73/ed32a497bff14ba985d3f43c915c3b0b.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-cloud-square",
+      "enabled": false,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "蓝天白云方图（待启用）",
+      "description": "新增蓝天白云，仅收录素材及OBS，等待UX压暗后确认准入再启用；不进入图片候选。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ],
+        "maxTextLines": 2,
+        "placement": "top-left-empty-bottom"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/bb705bf693244ed7ac1d7168bbd5d345/310cbbc7dc6b4752bf38c0e88a5087c1.jpg",
+        "sourceSha256": "e3656c2109f930f5bb1e2e1aa1e3a3d02266482e7c7bad7664dd7b576fb667ac",
+        "assetSha256": "e3656c2109f930f5bb1e2e1aa1e3a3d02266482e7c7bad7664dd7b576fb667ac",
+        "assetBytes": 216304,
+        "processing": "按background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_cloud_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/bb705bf693244ed7ac1d7168bbd5d345/310cbbc7dc6b4752bf38c0e88a5087c1.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-cloud-wide",
+      "enabled": false,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "蓝天白云横图（待启用）",
+      "description": "新增蓝天白云，仅收录素材及OBS，等待UX压暗后确认准入再启用；不进入图片候选。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/8cada9708f9d44508a222f81778ca52b/25ec17b9e36c4a16834a95319f1c24e8.jpg",
+        "sourceSha256": "47fcb8d2b1fe04d7728a03f6c57b7bf6cb781b49574bca99631115b2043f4f63",
+        "assetSha256": "47fcb8d2b1fe04d7728a03f6c57b7bf6cb781b49574bca99631115b2043f4f63",
+        "assetBytes": 397948,
+        "processing": "按background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_cloud_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/8cada9708f9d44508a222f81778ca52b/25ec17b9e36c4a16834a95319f1c24e8.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-hourglass-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "沙漏倒计时",
+      "description": "沙漏倒计时。2x2倒计时单业务、正文整体居左且最多3行；标题和按钮文案不计，不限制倒计时名称。同级合格主体图等概率随机选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "countdown",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "countdown"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/e49b7d081e644fd8b86aab0befe7ff6a/ef44837f61cd47949f7c4eebea9ef222.jpg",
+        "sourceSha256": "03ca196222dd75d6caf5659204ab37b39c078470ef9189dbb9e28820a9167673",
+        "assetSha256": "03ca196222dd75d6caf5659204ab37b39c078470ef9189dbb9e28820a9167673",
+        "assetBytes": 144958,
+        "processing": "按background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_hourglass_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/e49b7d081e644fd8b86aab0befe7ff6a/ef44837f61cd47949f7c4eebea9ef222.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-hourglass-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "沙漏倒计时横图",
+      "description": "沙漏倒计时横图。2x4左右主次布局，主焦点业务为countdown、正文最多4行，辅助区可包含其它业务；标题和按钮文案不计。上下布局、双大背板和四宫格不匹配，同级合格主体图等概率随机选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "countdown",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "countdown"
+        ],
+        "wideLayout": "side-focus"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/55168f9741f44a10b044085401bf2c10/0b6a28db9fac47da8d2f1b6e65500e03.jpg",
+        "sourceSha256": "3e7f7e78f491e336297f734fd1d5efcafffda5a10815ab34138316da3f021445",
+        "assetSha256": "3e7f7e78f491e336297f734fd1d5efcafffda5a10815ab34138316da3f021445",
+        "assetBytes": 180449,
+        "processing": "按background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_hourglass_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/55168f9741f44a10b044085401bf2c10/0b6a28db9fac47da8d2f1b6e65500e03.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sleep-new-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "暖暗卧室睡眠",
+      "description": "暖暗卧室睡眠。2x2睡眠单业务、正文整体居左且最多3行；标题和按钮文案不计。与暗夜床头、烟花睡眠三张同级等概率随机选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "sleep",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "sleep"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c2f9795c5d3c43288624f45d4da2b7f2/a81b453ae4e342869f450aa1296a0c1e.jpg",
+        "sourceSha256": "d64c44f9e6498162e6390137f4e922340cf0f177df2f2c57abfb3fdffbda34c2",
+        "assetSha256": "d64c44f9e6498162e6390137f4e922340cf0f177df2f2c57abfb3fdffbda34c2",
+        "assetBytes": 183969,
+        "processing": "按background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_bed_square.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c2f9795c5d3c43288624f45d4da2b7f2/a81b453ae4e342869f450aa1296a0c1e.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-sleep-new-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "暖暗卧室睡眠横图",
+      "description": "暖暗卧室睡眠横图。2x4左右主次布局，主焦点业务为sleep、正文最多4行，辅助区可包含其它业务；标题和按钮文案不计。上下布局、双大背板和四宫格不匹配，同级合格主体图等概率随机选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "sleep",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "sleep"
+        ],
+        "wideLayout": "side-focus"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/71ea4ef9762840a3b71df36e6f4f1495/96e20efa1a7f4296a6ec52cd62560a0e.jpg",
+        "sourceSha256": "883b8d6d721ed36a182c69ec85f904b27e30215c9caba3390cbac19a02d49209",
+        "assetSha256": "883b8d6d721ed36a182c69ec85f904b27e30215c9caba3390cbac19a02d49209",
+        "assetBytes": 267896,
+        "processing": "按background.remoteUrl下载OBS原始字节，未裁切或重新编码",
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ]
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_bed_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/71ea4ef9762840a3b71df36e6f4f1495/96e20efa1a7f4296a6ec52cd62560a0e.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,

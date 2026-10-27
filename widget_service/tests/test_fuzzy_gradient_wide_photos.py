@@ -12,9 +12,10 @@ GRADIENT = "photo-ux-gradient-wide"
 WAVE = "photo-ux-wave-wide"
 
 
-def test_new_wide_assets_registered_as_enabled_white_subjects():
+def test_new_wide_assets_registered_with_approved_foreground_colors():
     photos = {item.get("id"): item for item in registry.registered_themes("photos")}
-    for identity, business in ((FUZZY, "weather"), (GRADIENT, "countdown")):
+    cases = ((FUZZY, "weather", "FFFFFF"), (GRADIENT, "countdown", "000000"))
+    for identity, business, rgb in cases:
         item = photos.get(identity)
         assert item is not None
         assert item.get("size") == "2x4"
@@ -24,8 +25,13 @@ def test_new_wide_assets_registered_as_enabled_white_subjects():
         assert item.get("selectionPriority", 0) == 0
         roles = item.get("content", {}).get("roles", {})
         assert [roles.get(role) for role in ("primary", "secondary", "tertiary")] == [
-            "#FFFFFFFF", "#CCFFFFFF", "#99FFFFFF",
+            "#FF" + rgb, "#CC" + rgb, "#99" + rgb,
         ]
+        graphics = ("graphicPrimary", "graphicSecondary", "graphicTertiary")
+        assert [roles.get(role) for role in graphics] == ["#FF" + rgb, "#CC" + rgb, "#99" + rgb]
+        assert item.get("content", {}).get("panelBySize", {}).get("2x4") == "#33FFFFFF"
+        assert roles.get("componentSecondary") == "#33FFFFFF"
+        assert roles.get("componentTertiary") == "#1AFFFFFF"
 
 
 @pytest.mark.parametrize("layout", ["left", "right", "top"])
@@ -55,8 +61,11 @@ def test_weather_wide_candidates_share_one_unweighted_choice(monkeypatch, layout
 def test_countdown_wide_subject_precedes_abstract_without_holiday_name(monkeypatch, layout):
     saved = focus_sample("countdown", 4, layout)
     result, audit = choose(saved, monkeypatch)
-    assert audit.get("candidates") == [GRADIENT]
-    assert audit.get("themeId") == GRADIENT
+    expected = {GRADIENT}
+    if layout in {"left", "right"}:
+        expected.add("photo-ux-hourglass-wide")
+    assert set(audit.get("candidates", [])) == expected
+    assert audit.get("themeId") in expected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 

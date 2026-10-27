@@ -1,0 +1,178 @@
+{
+  "Q16": {
+    "compact": "[\"root\",\"Layout\",{\"layout\":\"S-title-dual-content\"},[\"title\",\"primary\",\"support\"]]\n[\"title\",\"SingleLineTitle\",{\"title\":\"当前天气\",\"fontSize\":12}]\n[\"primary\",\"EmphasizedData\",{\"value\":{\"path\":\"/data/weather/current/temperatureText\"},\"fontSize\":30}]\n[\"support\",\"SecondaryBody\",{\"items\":[{\"label\":\"天气\",\"value\":{\"path\":\"/data/weather/current/condition\"}},{\"label\":\"空气\",\"value\":{\"path\":\"/data/weather/current/airQuality\"}}],\"fontSize\":14}]\n[\"/data/weather/current/temperatureText\",\"29℃\"]\n[\"/data/weather/current/condition\",\"多云\"]\n[\"/data/weather/current/airQuality\",\"良\"]",
+    "cardSpec": {
+      "title": "天气",
+      "description": "展示温度、天气和空气质量，方便安排户外运动。",
+      "suggestSize": "2x2",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "ViewWeather",
+          "arguments": {},
+          "writeResultTo": "/data/weather"
+        }
+      ]
+    },
+    "task": {
+      "size": "2x2",
+      "appVersion": "11.9.9.300",
+      "userQuery": "生成一张天气卡片，展示温度、天气和空气质量，方便参考天气安排户外运动",
+      "dataModelSchema": {
+        "data": {
+          "weather": {
+            "current": {
+              "airQuality": {
+                "type": "string",
+                "description": "当前空气质量等级，例如“优”“良”。",
+                "sampleValue": "良"
+              },
+              "condition": {
+                "type": "string",
+                "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                "sampleValue": "多云"
+              },
+              "temperatureText": {
+                "type": "string",
+                "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                "sampleValue": "29℃"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": []
+    }
+  },
+  "Q1": {
+    "compact": "[\"root\",\"Layout\",{\"layout\":\"S-title-dual-content\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Weather_CityCode\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}\"}}]},[\"title\",\"primary\",\"support\"]]\n[\"title\",\"SingleLineTitle\",{\"title\":\"天气\",\"fontSize\":12}]\n[\"primary\",\"EmphasisText\",{\"mainText\":{\"path\":\"/data/weather/current/temperatureText\"},\"fontSize\":18}]\n[\"support\",\"SecondaryBody\",{\"items\":[{\"label\":\"天气\",\"value\":{\"path\":\"/data/weather/current/condition\"}},{\"label\":\"空气\",\"value\":{\"path\":\"/data/weather/current/airQuality\"}}],\"fontSize\":14}]\n[\"/data/weather/current/temperatureText\",\"29℃\"]\n[\"/data/weather/current/condition\",\"多云\"]\n[\"/data/weather/current/airQuality\",\"良\"]\n[\"/data/weather/location/cityCode\",\"60814\"]",
+    "cardSpec": {
+      "title": "天气桌面",
+      "description": "天气桌面卡片，展示当前位置天气概况。",
+      "suggestSize": "2x2",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "dataBindings": [
+        {
+          "capabilityId": "ViewWeather",
+          "arguments": {},
+          "writeResultTo": "/data/weather"
+        }
+      ]
+    },
+    "task": {
+      "size": "2x2",
+      "appVersion": "11.7.7.342",
+      "userQuery": "天气桌面卡片",
+      "dataModelSchema": {
+        "data": {
+          "weather": {
+            "current": {
+              "airQuality": {
+                "type": "string",
+                "description": "当前空气质量等级，例如“优”“良”。",
+                "sampleValue": "良"
+              },
+              "alertLevel": {
+                "type": "string",
+                "description": "预警信息。当前气象预警信息，例如'暴雨橙色预警'、'高温黄色预警'、'台风蓝色预警'。无预警时为空字符串。",
+                "sampleValue": "大风蓝色预警"
+              },
+              "condition": {
+                "type": "string",
+                "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                "sampleValue": "多云"
+              },
+              "humidityPercent": {
+                "type": "number",
+                "description": "当前相对湿度的纯数值百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+                "sampleValue": 68
+              },
+              "temperatureText": {
+                "type": "string",
+                "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                "sampleValue": "29℃"
+              },
+              "uvIndex": {
+                "type": "string",
+                "description": "当前紫外线等级，例如“弱”“中等”“强”。",
+                "sampleValue": "中等"
+              },
+              "windDirection": {
+                "type": "string",
+                "description": "当前风向。",
+                "sampleValue": "东南风"
+              },
+              "windLevel": {
+                "type": "integer",
+                "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+                "sampleValue": 2
+              }
+            },
+            "daily": [
+              {
+                "condition": {
+                  "type": "string",
+                  "description": "白天天气现象，来源于weather_icon。",
+                  "sampleValue": "多云"
+                },
+                "rainProbabilityPercent": {
+                  "type": "number",
+                  "description": "白天降雨概率的百分数数值，返回值不包含单位，例如 20 表示 20%；文本展示必须追加一个“%”，进度组件直接使用数值。",
+                  "sampleValue": 20
+                },
+                "temperatureRangeText": {
+                  "type": "string",
+                  "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                  "sampleValue": "25℃ / 32℃"
+                },
+                "weekday": {
+                  "type": "string",
+                  "description": "星期文本，例如“星期日”。",
+                  "sampleValue": "星期四"
+                }
+              }
+            ],
+            "location": {
+              "cityCode": {
+                "type": "string",
+                "description": "城市代码，如60814代表青浦区",
+                "sampleValue": "60814"
+              },
+              "districtName": {
+                "type": "string",
+                "description": "区或县名称",
+                "sampleValue": "青浦区"
+              },
+              "prefectureName": {
+                "type": "string",
+                "description": "城市名称",
+                "sampleValue": "上海市"
+              }
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "id": "event.open.weather",
+          "description": "打开手机天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。",
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -37,6 +37,8 @@ SUBJECT_FILES = {
     "track_runner_square", "track_sprint_square", "violin_stage_square", "sand_arch_square",
     "meeting_room_square", "meeting_room_wide", "wave_square", "wave_wide",
     "fuzzy_wide", "gradient_wide", "ice_wide",
+    "cloud_square", "cloud_wide", "hourglass_square", "hourglass_wide",
+    "bed_square", "bed_wide",
 }
 PATHS = {
     "travel": "/data/travel/flightNumber", "countdown": "/data/countdown/first/countdownDays",
@@ -83,7 +85,8 @@ def sample(path=SLEEP, lines=3, *, wide=False, button=True, align="start", title
 
 def evidence(saved):
     data = themes.decode(saved.source)[-1].get("updateDataModel", {}).get("value")
-    return photo_layout_evidence(saved.nodes, data, final_layout=saved.compact)
+    return photo_layout_evidence(saved.nodes, data, final_layout=saved.compact,
+                                 size=saved.task.get("size"))
 
 
 def rejection(saved, identity):
@@ -100,7 +103,7 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 27
+    assert len(subjects) == 33
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
     expected.add("bg_ux_road_wide.JPG")
     actual = {Path(item.get("src", "")).name for item in subjects}
@@ -162,7 +165,9 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
     assert saved.nodes == before
 
 
-@pytest.mark.parametrize("identity", ["photo-ux-sleep-square", "photo-ux-fireworks-square"])
+@pytest.mark.parametrize("identity", [
+    "photo-ux-sleep-square", "photo-ux-fireworks-square", "photo-ux-sleep-new-square",
+])
 @pytest.mark.parametrize("button", [False, True])
 def test_sleep_images_no_longer_have_opposing_button_requirements(identity, button):
     assert rejection(sample(button=button), identity) is None
@@ -269,7 +274,9 @@ def test_unknown_and_mixed_content_fail_closed(failure):
     assert rejection(saved, PURPLE)
 
 
-@pytest.mark.parametrize("selected", ["photo-ux-sleep-square", "photo-ux-fireworks-square"])
+@pytest.mark.parametrize("selected", [
+    "photo-ux-sleep-square", "photo-ux-fireworks-square", "photo-ux-sleep-new-square",
+])
 @pytest.mark.parametrize("model_response", [
     "{}", '{"themeId":"photo-ux-sleep-square"}',
     '{"themeId":"photo-ux-galaxy-sleep-square"}', "invalid",
@@ -288,7 +295,9 @@ def test_subject_priority_and_uniform_choice_ignore_model_preference(
     result, audit = choose(saved, monkeypatch, model_response)
     assert audit.get("themeId") == selected
     assert len(calls) == 1
-    assert set(calls[0]) == {"photo-ux-sleep-square", "photo-ux-fireworks-square"}
+    assert set(calls[0]) == {
+        "photo-ux-sleep-square", "photo-ux-fireworks-square", "photo-ux-sleep-new-square",
+    }
     assert set(audit.get("candidates", [])) == set(calls[0])
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -330,7 +339,9 @@ def test_explicit_preferences_and_disabled_switch_override_photos(
 def test_all_photos_preserve_role_opacity_and_use_matching_fallback(item):
     roles = item.get("content", {}).get("roles", {})
     rgb = "FFFFFF"
-    if item.get("id") in {"photo-ux-meeting-room-square", "photo-ux-meeting-room-wide"}:
+    if item.get("id") in {
+        "photo-ux-meeting-room-square", "photo-ux-meeting-room-wide", "photo-ux-gradient-wide",
+    }:
         rgb = "000000"
     assert (roles.get("primary"), roles.get("secondary"), roles.get("tertiary")) == (
         "#FF" + rgb, "#CC" + rgb, "#99" + rgb,
