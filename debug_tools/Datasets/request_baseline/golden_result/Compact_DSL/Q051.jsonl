@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":{"path":"/data/weather/location/districtName"},"icon":"resources/base/media/ic_weather_monochrome.svg","fontSize":12}]
+["primary","EmphasisText",{"mainText":"健康指数","fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"空气质量","value":{"path":"/data/weather/daily/4/airQuality"}},{"label":"紫外线","value":{"path":"/data/weather/daily/4/uvIndex"}},{"label":"感冒指数","value":{"path":"/data/weather/daily/4/coldLevel"}}],"columns":1,"fontSize":12}]
+["/data/weather/location/districtName","青浦区"]
+["/data/weather/daily/4/airQuality","良"]
+["/data/weather/daily/4/uvIndex","中等"]
+["/data/weather/daily/4/coldLevel","低"]

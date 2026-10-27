@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"低电模式","fontSize":12}]
+["content","Group",{"variant":"hero-support"},["content_primary","content_support"]]
+["content_primary","EmphasizedData",{"value":{"path":"/data/phoneBattery/batterySOCText"},"fontSize":30}]
+["content_support","SecondaryBody",{"items":[{"label":"状态","value":{"path":"/data/phoneBattery/chargingStatusDesc"}}],"fontSize":14}]
+["action","PillButton",{"label":"开启省电模式","icon":"resources/base/media/battery_leaf_fill.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"SetSettingSwitch","params":{"appBundleName":"com.huawei.hmos.settings","itemName":"battery_saving_mode","switchFlag":0}}}]}]
+["/data/phoneBattery/batterySOCText","68%"]
+["/data/phoneBattery/chargingStatusDesc","未充电"]

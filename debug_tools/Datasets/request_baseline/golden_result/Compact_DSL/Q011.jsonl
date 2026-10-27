@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"电池温度","value":{"path":"/data/phoneBattery/batteryTemperatureText"},"supportingText":{"path":"/data/phoneBattery/pluggedTypeDesc"}}]
+["/data/phoneBattery/batteryTemperatureText","29.0 ℃"]
+["/data/phoneBattery/pluggedTypeDesc","未连接充电器"]
