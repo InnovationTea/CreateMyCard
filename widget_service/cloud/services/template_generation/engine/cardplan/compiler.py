@@ -936,7 +936,12 @@ def _expand_call(
             f"Template params are invalid for {wire_id}/{size}: {errors[0].message}"
         )
     title_fallback_template = (
-        wire_id == "BatteryOverviewChargingTemperatureFull@1"
+        wire_id in {
+            "BatteryOverviewChargingProgressHero@1",
+            "BatteryOverviewChargingTemperatureFull@1",
+            "BatteryOverviewCurrentVoltageFull@1",
+            "BatteryOverviewPercentStatusFull@1",
+        }
         or definition.business_id == "BluetoothDeviceOverview"
     )
     if title_fallback_template and params.get("title") == "":

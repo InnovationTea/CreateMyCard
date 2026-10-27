@@ -1907,7 +1907,7 @@ Column(
         "width": "matchParent",
         "height": "matchParent",
         "itemMargin": 4,
-        "justifyContent": "start",
+        "justifyContent": "center",
         "alignItems": "start",
         "clip": true,
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
