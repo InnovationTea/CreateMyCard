@@ -134,6 +134,7 @@
   "themes": [
     {
       "id": "gradient-blue",
+      "paletteFamilies": ["blue", "cool"],
       "enabled": true,
       "kind": "gradient",
       "pool": "standard",
@@ -179,6 +180,7 @@
     },
     {
       "id": "gradient-purple",
+      "paletteFamilies": ["purple"],
       "enabled": true,
       "kind": "gradient",
       "pool": "standard",
@@ -223,6 +225,7 @@
     },
     {
       "id": "gradient-warm",
+      "paletteFamilies": ["warm", "yellow", "orange", "red"],
       "enabled": true,
       "kind": "gradient",
       "pool": "standard",
@@ -388,6 +391,7 @@
     },
     {
       "id": "fusion-ball-battery-teal",
+      "paletteFamilies": ["green", "cyan"],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",
@@ -429,6 +433,7 @@
     },
     {
       "id": "fusion-ball-schedule-blue",
+      "paletteFamilies": ["blue", "cool"],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",
@@ -470,6 +475,7 @@
     },
     {
       "id": "fusion-ball-sleep-violet",
+      "paletteFamilies": ["purple"],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",
@@ -511,6 +517,7 @@
     },
     {
       "id": "fusion-ball-sport-orange",
+      "paletteFamilies": ["orange", "red", "warm"],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",

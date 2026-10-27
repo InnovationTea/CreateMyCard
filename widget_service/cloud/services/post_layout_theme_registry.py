@@ -87,6 +87,8 @@ _THEME = {
         "pool": {"enum": ["standard", "photos", "texturePhotos", "subjectlessWidePhotos",
                           "squareExpansions"]},
         "name": _TEXT, "description": _TEXT, "sizes": _SIZES,
+        "paletteFamilies": {"type": "array", "minItems": 1, "uniqueItems": True,
+                            "items": {"type": "string", "pattern": r"^[a-z][a-z0-9-]*$"}},
         "sourceSize": {"enum": ["2x2"]},
         "businessDescription": _TEXT,
         "matchingPolicy": {"const": "layout-only"},
@@ -169,6 +171,8 @@ def _check(value: object, schema: dict, label: str) -> None:
 def _validate_theme(theme: dict) -> None:
     _check(theme, _THEME, "theme")
     kind = theme.get("kind")
+    if "paletteFamilies" in theme and kind not in {"fusion", "gradient"}:
+        raise ValueError("Palette routing only applies to fusion and gradient themes")
     if "selectionPriority" in theme and kind != "photo":
         raise ValueError("Selection priority only applies to photos")
     background_schema = _BACKGROUNDS.get(kind)
@@ -456,6 +460,22 @@ def fallback_theme(family: str | None) -> dict:
     raise ValueError("No configured fallback theme")
 
 
+def theme_palette_families(theme: dict) -> list[str]:
+    """已登记色系兼容原family；不读取用户词汇或推测图片色调。"""
+    result = list(theme.get("paletteFamilies", []))
+    family = theme.get("family")
+    if family and family not in result:
+        result.append(family)
+    return result
+
+
+def palette_family_options() -> list[str]:
+    families = set()
+    for theme in registered_themes("standard"):
+        families.update(theme_palette_families(theme))
+    return sorted(families)
+
+
 def photo_fallback(primary: str) -> dict:
     """按最终字色选择原有兜底，仅取背景，不改变前景及普通主题候选。"""
     config = load_theme_registry()
@@ -480,6 +500,7 @@ def selection_rules() -> str:
     for theme in registered_themes("standard"):
         if theme.get("kind") == "fusion":
             lines.append(f"- {theme.get('businessDescription')}: {theme.get('id')}")
+    lines.append("登记色系：" + ", ".join(palette_family_options()))
     return "\n".join(lines)
 
 
