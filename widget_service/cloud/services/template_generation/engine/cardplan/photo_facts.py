@@ -27,10 +27,29 @@ def _unwrap(node: dict, by_id: dict) -> dict:
             break
         if child.get("component") not in {"Row", "Column", "Stack"}:
             break
-        if node.get("onClick") or _surface(node):
+        if node.get("onClick") or _surface(node) or not _neutral_alignment(node, child):
             break
         node = child
     return node
+
+
+def _neutral_alignment(node: dict, child: dict) -> bool:
+    styles = normalize_photo_styles(node.get("styles", {}))
+    child_styles = child.get("styles", {})
+    fills_width = child_styles.get("width") in {"matchParent", "100%"}
+    fills_height = child_styles.get("height") in {"matchParent", "100%"}
+    kind = node.get("component")
+    if kind == "Stack":
+        if styles.get("alignContent", "center") == "topStart":
+            return True
+        return fills_width and fills_height
+    if kind == "Column":
+        horizontal = styles.get("alignItems", "start") in {"start", "stretch"} or fills_width
+        vertical = styles.get("justifyContent", "start") == "start" or fills_height
+    else:
+        horizontal = styles.get("justifyContent", "start") == "start" or fills_width
+        vertical = styles.get("alignItems", "center") in {"start", "top", "stretch"} or fills_height
+    return horizontal and vertical
 
 
 def _surface(node: dict) -> bool:
@@ -161,11 +180,16 @@ def template_photo_facts(
     # 公共文字分析以 root 为入口；只在只读分析副本上替换作用域 ID。
     scoped_id = root.get("id")
     analysis = []
+    top_analysis = []
     for node in flow_nodes:
         if node.get("id") == scoped_id:
-            analysis.append({**node, "id": "root"})
+            analyzed = {**node, "id": "root"}
         else:
-            analysis.append(node)
+            analyzed = node
+        analysis.append(analyzed)
+        original = by_id.get(node.get("id"), {})
+        original_styles = normalize_photo_styles(original.get("styles", {}))
+        top_analysis.append({**analyzed, "styles": original_styles})
     flows = body_text_flow_evidence(
         analysis, data_model, include_buttons=True, exclude_ids=excluded,
     )
@@ -195,7 +219,7 @@ def template_photo_facts(
     scopes = {"card": scope_facts(root)}
     count = _panel_count(root, by_id)
     if size == "2x4":
-        main, orientation = _main_scope(root, by_id)
+        main, orientation = _main_scope(root, by_id, excluded)
         if main is not None:
             facts = scope_facts(main)
             scopes["main-focus"] = facts
@@ -203,7 +227,7 @@ def template_photo_facts(
                 scopes["side-focus"] = facts
             if orientation == "left":
                 scopes["left-main-dual"] = facts
-    top = top_content_evidence(analysis, flows, excluded)
+    top = top_content_evidence(top_analysis, flows, excluded)
     split = "2x4左右两个大背板布局不使用图片背景" if count == 2 and size == "2x4" else None
     return PhotoMatchFacts(size, scopes=scopes, panel_count=count,
                            top_content=top, subject_exclusion=split)
@@ -232,21 +256,42 @@ def _panel_count(root: dict, by_id: dict) -> int | None:
     return result
 
 
-def _main_scope(root: dict, by_id: dict) -> tuple[dict | None, str | None]:
-    children = _children(root, by_id)
+def _title_only(root: dict, by_id: dict, excluded: set[str]) -> bool:
+    text_found = False
+    for node in _scope_nodes(root, by_id):
+        if node.get("component") == "Button" or node.get("onClick"):
+            return False
+        if node.get("component") == "Text":
+            if node.get("id") not in excluded:
+                return False
+            text_found = True
+    return text_found
+
+
+def _main_scope(root: dict, by_id: dict, excluded: set[str]) -> tuple[dict | None, str | None]:
+    visited = set()
+    while root.get("id") not in visited:
+        visited.add(root.get("id"))
+        children = []
+        for child in _children(root, by_id):
+            if not _title_only(child, by_id, excluded):
+                children.append(child)
+        if len(children) != 1 or _surface(root) or root.get("onClick"):
+            break
+        child = children[0]
+        if not _neutral_alignment(root, child):
+            break
+        root = child
     if root.get("component") not in {"Row", "Column"} or len(children) != 2:
         return None, None
-    main = None
-    orientation = None
+    matches = []
     for index, child in enumerate(children):
         other = children[1 - index]
         side_kind = "Column" if root.get("component") == "Row" else "Row"
         if _surface(child) or other.get("component") != side_kind:
             continue
-        if not _two_surfaces(other, by_id):
+        if side_kind == "Column" and not _two_surfaces(other, by_id):
             continue
-        main = child
         directions = ("left", "right") if side_kind == "Column" else ("top", "bottom")
-        orientation = directions[index]
-        break
-    return main, orientation
+        matches.append((child, directions[index]))
+    return matches[0] if len(matches) == 1 else (None, None)

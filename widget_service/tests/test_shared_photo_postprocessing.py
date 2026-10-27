@@ -334,6 +334,122 @@ def test_template_top_bottom_main_focus_keeps_shared_line_gate(business, photo_i
     assert "left-main-dual" not in facts.scopes
 
 
+@pytest.mark.parametrize("kind,alignment,full_width,left,top", [
+    ("Stack", {"alignContent": "topStart"}, False, True, True),
+    ("Stack", {"alignContent": "center"}, False, False, False),
+    ("Stack", {"alignContent": "bottomEnd"}, False, False, False),
+    ("Stack", {"alignContent": "center"}, True, True, False),
+    ("Column", {"alignItems": "end"}, False, False, True),
+    ("Column", {"justifyContent": "center"}, False, True, False),
+    ("Row", {"justifyContent": "end", "alignItems": "top"}, False, False, True),
+])
+def test_outer_alignment_remains_part_of_template_photo_facts(
+    kind, alignment, full_width, left, top,
+):
+    saved = sample(PATHS.get("weather"), 1, button=False)
+    source, _ = template_source(saved)
+    records = themes.decode(source)
+    nodes = themes.components(records)
+    content = next(node for node in nodes if node.get("id") == "template_root")
+    content["id"] = "weather_content"
+    content["styles"].pop("width", None)
+    content["styles"].pop("height", None)
+    if full_width:
+        content["styles"]["width"] = "matchParent"
+    nodes.append({"id": "template_root", "component": kind, "children": ["weather_content"],
+                  "styles": {"width": "matchParent", "height": "matchParent", **alignment}})
+    facts = template_photo_facts(themes.encode(records), saved.task, "状态")
+    card = facts.scopes.get("card")
+    assert card is not None
+    assert card.body_flow.get("leftAligned") is left
+    assert facts.top_content.get("topOnly") is top
+    photo = next(item for item in registry.registered_themes()
+                 if item.get("id") == "photo-ux-clouds-weather-square")
+    assert (photo_reason(photo, facts) is None) is (left and top)
+
+
+@pytest.mark.parametrize("business,photo_id", [
+    ("weather", "photo-ux-wave-wide"), ("calendar", "photo-ux-digital-wave-wide"),
+    ("countdown", "photo-ux-gradient-wide"),
+])
+@pytest.mark.parametrize("variant", ["continuous", "bottom-details", "equal"])
+@pytest.mark.parametrize("title", [False, True])
+@pytest.mark.parametrize("lines", [2, 4, 5])
+def test_compiled_top_bottom_layout_matches_fusion_main_scope(
+    business, photo_id, variant, title, lines,
+):
+    saved = focus_sample(business, lines, "top", variant, title)
+    source, _ = template_source(saved)
+    facts = template_photo_facts(source, saved.task, "顶部标题")
+    expected = fusion_photo_facts(saved.task, evidence(saved), saved.compact)
+    photo = next(item for item in registry.registered_themes() if item.get("id") == photo_id)
+    assert photo_reason(photo, facts) == photo_reason(photo, expected)
+    assert "main-focus" in facts.scopes
+    assert "side-focus" not in facts.scopes
+    assert "left-main-dual" not in facts.scopes
+
+
+@pytest.mark.parametrize("support_panels", [False, True])
+def test_top_bottom_main_focus_does_not_require_two_auxiliary_panels(support_panels):
+    saved = focus_sample("weather", 2, "left")
+    source, _ = template_source(saved)
+    records = themes.decode(source)
+    nodes = themes.components(records)
+    root = next(node for node in nodes if node.get("id") == "template_root")
+    root["component"] = "Column"
+    children = root.get("children", [])
+    assert len(children) == 2
+    support = next(node for node in nodes if node.get("id") == children[1])
+    support["component"] = "Row"
+    if not support_panels:
+        for node in nodes:
+            node.get("styles", {}).pop("backgroundColor", None)
+    facts = template_photo_facts(themes.encode(records), saved.task, "状态")
+    assert "main-focus" in facts.scopes
+    assert "side-focus" not in facts.scopes
+
+
+@pytest.mark.parametrize("alignment", ["center", "bottomEnd"])
+def test_full_size_child_keeps_equivalent_outer_alignment(alignment):
+    saved = sample(PATHS.get("weather"), 1, button=False)
+    source, _ = template_source(saved)
+    records = themes.decode(source)
+    nodes = themes.components(records)
+    content = next(node for node in nodes if node.get("id") == "template_root")
+    content["id"] = "weather_content"
+    nodes.append({"id": "template_root", "component": "Stack", "children": ["weather_content"],
+                  "styles": {"width": "matchParent", "height": "matchParent",
+                             "alignContent": alignment}})
+    facts = template_photo_facts(themes.encode(records), saved.task, "状态")
+    card = facts.scopes.get("card")
+    assert card is not None
+    assert card.body_flow.get("leftAligned") is True
+    assert facts.top_content.get("topOnly") is True
+
+
+@pytest.mark.parametrize("layout", ["side-without-panels", "ambiguous-top-bottom"])
+def test_main_scope_keeps_side_panel_and_unambiguous_focus_requirements(layout):
+    saved = focus_sample("weather", 2, "left")
+    source, _ = template_source(saved)
+    records = themes.decode(source)
+    nodes = themes.components(records)
+    root = next(node for node in nodes if node.get("id") == "template_root")
+    children = root.get("children", [])
+    assert len(children) == 2
+    support = next(node for node in nodes if node.get("id") == children[1])
+    for node in nodes:
+        node.get("styles", {}).pop("backgroundColor", None)
+    if layout == "ambiguous-top-bottom":
+        root["component"] = "Column"
+        support["component"] = "Row"
+        main = next(node for node in nodes if node.get("id") == children[0])
+        main["component"] = "Row"
+    facts = template_photo_facts(themes.encode(records), saved.task, "状态")
+    assert "main-focus" not in facts.scopes
+    assert "side-focus" not in facts.scopes
+    assert "left-main-dual" not in facts.scopes
+
+
 @pytest.mark.parametrize("explicit", [None, "#FF123456"])
 def test_compiler_records_auto_action_icon_ink_but_protects_explicit_ink(explicit):
     options = {} if explicit is None else {"fillColor": explicit}
