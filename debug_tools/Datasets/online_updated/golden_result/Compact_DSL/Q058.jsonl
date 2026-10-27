@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"今日应用使用时长","icon":"resources/base/media/ic_ranking.svg","fontSize":12}]
+["content","TableText",{"items":[{"label":"应用","value":{"path":"/data/mostUsedApps/mostUsedApps/0/appName"}},{"label":"时长","value":{"path":"/data/mostUsedApps/mostUsedApps/0/totalDuration"}}],"fontSize":12}]
+["/data/mostUsedApps/mostUsedApps/0/appName","示例"]
+["/data/mostUsedApps/mostUsedApps/0/totalDuration","示例"]

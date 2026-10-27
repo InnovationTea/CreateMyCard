@@ -18,6 +18,7 @@ from services.compact_high_level_components import (
     _system_palette_color,
 )
 from services.theme_style_roles import layout_phase, role
+from test_photo_asset_delivery import artifact as photo_artifact
 
 
 @pytest.mark.parametrize("module", [registry, theme_photo_eligibility, theme_texture_eligibility])
@@ -89,17 +90,15 @@ def test_selection_never_starts_a_measurement_process(monkeypatch):
 @pytest.mark.parametrize("error", ["ARTIFACT.INVALID", "ASSET.INVALID", "VISUAL.INVALID"])
 def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, error):
     source = layout_source()
-    photo = {"id": "test-photo", "kind": "photo", "src": "test-background.jpg"}
+    photo = next(item for item in registry.registered_themes("photos")
+                 if item.get("size") == "2x2")
     audit = {"theme": photo, "outputSize": "2x2"}
-    monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=("photo-result", audit)))
+    themed = themes.apply_theme(source, photo, {"size": "2x2"}, {})
+    monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=(themed, audit)))
     monkeypatch.setattr(themes, "trace_record", Mock())
-    artifact = SimpleNamespace(
-        genui=source, meta=SimpleNamespace(generationMode="create"),
-        model_copy=Mock(side_effect=lambda **kwargs: SimpleNamespace(
-            genui=source, taskSpec={}, cardSpec={"suggestSize": "2x2"}, effectiveCapabilities={},
-            model_dump=Mock(return_value={}),
-        )),
-    )
+    artifact = photo_artifact()
+    artifact.genui = source
+    artifact.taskSpec = {}
     validator = SimpleNamespace(validate=Mock(side_effect=[[error], []]))
     result = asyncio.run(themes.theme_artifact(
         artifact, {"size": "2x2", "userQuery": "天气"}, Mock(), validator, {},

@@ -172,7 +172,7 @@
       },
       "errorCode": {
         "type": "String",
-        "description": "服务端业务错误码；不得向用户展示。"
+        "description": "服务端业务错误码；不得向用户展示。 GENERATION_INPUT_INCOMPLETE 表示创建Plan报告必要动态输入缺口；仅按 error.details 的重试许可核对能力、定义和权限后补参，不扩大调用预算。"
       },
       "effectiveCapabilities": {
         "type": "Object",

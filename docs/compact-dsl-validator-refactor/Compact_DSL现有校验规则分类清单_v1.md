@@ -1351,3 +1351,15 @@ static_content_components.py的参数展开检查，不向公共入口或动态�
 候选构造与guided试排归static_content_presentation.py，不复制判定；静态提示词负责模型说明。
 复验包括英文完整词/反例、两尺寸flow与compact、标题裁切拒绝和替代组织、事实引用恢复/省略、
 去重与保护、对齐元数据不计可见文字，以及真实超容量失败。新诊断码为零。
+
+## 2026-10-27 阶段输出、Plan反馈与静态候选优化
+
+| 检查或行为 | 分类、实际文件 | 归属理由 |
+| --- | --- | --- |
+| 错误阶段对象、组件头类型先于兼容修复 | 语法／协议与组件，共享解析器compact_dsl_a2ui_converter.py | 复用原解析责任及转换异常，不在Compact入口复制检查，不从Plan内部数组猜测DSL |
+| 静态分组引用与来源结构问题汇总 | Plan合同，compact_plan.py；来源判定复用semantic/cross_file.py | 校验本次模型提交结构，准确路径及范围不新增语义判断；既有拒绝条件保持 |
+| Plan JSON位置及修复说明 | compact_plan.py解析反馈、prompt_builder.py模型说明 | 不补造JSON内容或索引，静态修复保留忠实摘要权限，重试编排不变 |
+| 共享标题位置的有限候选 | static_content_presentation.py | 只构造已有合法结构；覆盖及实际容量继续委托原展示与布局规则，不复制判定 |
+
+回归由test_static_content_reliability.py覆盖，并执行既有静态、转换器、Plan与生成链路回归。
+不新增Compact诊断码，不修改语义展示、容量阈值或动态合同；未涉及历史待裁决规则。

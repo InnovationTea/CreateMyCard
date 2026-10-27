@@ -805,6 +805,11 @@ def _strip_optional_genui_fence(compact_dsl: str) -> str:
         if "```" in body:
             raise CompactDslConversionError("Compact DSL must contain exactly one genui fence.")
 
+    if body.lstrip().startswith("{"):
+        raise CompactDslConversionError(
+            "Compact DSL output must contain JSON array rows, not a JSON object. "
+            "The DSL stage must output component and data rows, not submit_card_plan."
+        )
     json_blocks: list[str] = []
     for line in body.splitlines():
         json_block = line.strip()
@@ -1335,11 +1340,6 @@ def _parse_component_row(
             f"Compact DSL line {line_number} has an unsupported row shape."
         )
     component_id, component_type, props = value[:3]
-    component_type, props = _repair_legacy_component_props(
-        component_id,
-        component_type,
-        props,
-    )
     component_id, component_type, props = _parse_component_header(
         component_id,
         component_type,
@@ -1506,7 +1506,8 @@ def _first_progress_color(colors: Any) -> str | None:
 
 def _repair_dimension_aliases(props: dict[str, Any]) -> None:
     for dimension_name in ("width", "height"):
-        if props.get(dimension_name) in {"100%", "stretch"}:
+        value = props.get(dimension_name)
+        if isinstance(value, str) and value in {"100%", "stretch"}:
             props[dimension_name] = "matchParent"
 
 
@@ -1537,6 +1538,8 @@ def _repair_axis_value_aliases(
         props["justifyContent"] = "end"
 
     align_items = props.get("alignItems")
+    if not isinstance(align_items, str):
+        return
     if component_type == "Row":
         if align_items in {"flex-start", "start"}:
             props["alignItems"] = "top"
@@ -1594,6 +1597,9 @@ def _parse_component_header(
         raise CompactDslConversionError(
             f"{component_id}: component type must be a non-empty string."
         )
+    if not isinstance(props, dict):
+        raise CompactDslConversionError(f"{component_id}: component props must be an object.")
+    component_type, props = _repair_legacy_component_props(component_id, component_type, props)
     allowed_types = COMPACT_INPUT_COMPONENT_TYPES
     from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
 
@@ -1605,8 +1611,6 @@ def _parse_component_header(
         raise CompactDslConversionError(
             f"{component_id}: unsupported component type {component_type}."
         )
-    if not isinstance(props, dict):
-        raise CompactDslConversionError(f"{component_id}: component props must be an object.")
     return component_id, component_type, props
 
 

@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"睡眠监测","fontSize":12}]
+["content","EmphasisText",{"mainText":{"path":"/data/healthSport/nightSleepDurationText"},"fontSize":18}]
+["action","PillButton",{"label":"打开闹钟","icon":"resources/base/media/moon_z_fill_1.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.clock.phone","bundleName":"com.huawei.hmos.clock","intentName":"Clock","uri":""}}]}]
+["/data/healthSport/nightSleepDurationText","7小时1分"]

@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"深圳天气与电量","icon":"resources/base/media/icon_weather_thermometer_medium.svg","fontSize":12}]
+["primary","EmphasisText",{"mainText":"{{ ${/data/weather/current/temperatureC} + '℃' }}","secondaryText":"{{ ${/data/weather/current/condition} + ' | 电量 ' + ${/data/phoneBattery/batterySOC} + '%' }}","fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"电池温度","value":{"path":"/data/phoneBattery/batteryTemperatureText"}}],"fontSize":14}]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/temperatureC",29]
+["/data/phoneBattery/batterySOC",68]
+["/data/phoneBattery/batteryTemperatureText","29.0 ℃"]

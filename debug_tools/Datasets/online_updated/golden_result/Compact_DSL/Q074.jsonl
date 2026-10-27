@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"存储空间","fontSize":12}]
+["content","EmphasisText",{"mainText":"存储空间","fontSize":18}]
+["action","PillButton",{"label":"存储设置","icon":"resources/base/media/externaldrive_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"storage_settings"}}]}]
+["/state/ready",true]

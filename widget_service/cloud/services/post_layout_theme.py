@@ -6,24 +6,18 @@ import copy
 import hashlib
 import json
 import math
-import re
-import secrets
 from typing import Any
 
 from config.config import get_settings
-from services.asset_url_mapper import AssetUrlMapper
 from services.content_business import BusinessContext, FinalBusinessContext
 from services.fusion_ball_expander import (
     build_fusion_ball_content_id,
-    build_fusion_ball_palette,
-    expand_fusion_ball_components,
     fusion_ball_enabled,
 )
 from services.generation_trace_recorder import trace_operation, trace_record, trace_span
 from services.post_layout_theme_registry import (
     fallback_theme,
     load_theme_registry,
-    photo_fallback,
     registered_themes,
     selection_rules,
     user_background_roles,
@@ -38,13 +32,30 @@ from services.theme_layout_summary import (
     theme_description,
 )
 from services.theme_photo_assets import excluded_foreground_assets
-from services.theme_photo_eligibility import photo_content_reason
+from services.theme_photo_eligibility import fusion_photo_facts, photo_content_reason
+from services.theme_photo_matching import eligible_photos
+from services.theme_photo_matching import secrets as secrets
+from services.theme_photo_matching import select_equivalent_photo as select_equivalent_photo
+from services.theme_photo_processing import (
+    apply_content_palette,
+    deliver_photo_source,
+    register_photo_asset,
+)
+from services.theme_photo_processing import (
+    apply_photo_fallback as apply_shared_photo_fallback,
+)
+from services.theme_photo_processing import (
+    fusion_background as build_fusion_background,
+)
+from services.theme_photo_processing import (
+    photo_background as photo_background,
+)
 from services.theme_selection_policy import (
     default_palette_family,
     fusion_candidate_gate,
     prepare_business_context,
 )
-from services.theme_style_roles import COLOR_FIELDS, ROLE_PATTERN, is_role, resolve_role
+from services.theme_style_roles import COLOR_FIELDS
 from services.theme_user_preferences import (
     PREFERENCE_INSTRUCTION,
     color_overrides,
@@ -219,93 +230,17 @@ def presets(task: dict) -> list[dict]:
     return result
 
 
-def photo_background(photo: dict) -> list[dict]:
-    fit = "fill" if photo.get("objectFit") == "fill" else "cover"
-    return [
-        {
-            "id": PREFIX + "background",
-            "component": "Stack",
-            "children": [PREFIX + "base"],
-            "styles": {"width": "matchParent", "height": "matchParent", "alignContent": "topStart"},
-        },
-        {
-            "id": PREFIX + "base",
-            "component": "Image",
-            "src": photo.get("src"),
-            "styles": {"width": "matchParent", "height": "matchParent", "objectFit": fit},
-        },
-    ]
-
-
 def fusion_background(theme: dict, task: dict) -> list[dict]:
-    background = theme.get("background", {})
-    colors = background.get("ballColors", {})
-    if not fusion_ball_enabled(task.get("appVersion")):
-        raise ValueError("Fusion theme is not enabled for this runtime")
-    palette = build_fusion_ball_palette(
-        colors.get("large"), colors.get("medium"), colors.get("small")
-    )
-    # 原算法只负责预置背景；不让旧展开器改动最终前景颜色或几何。
-    expanded = expand_fusion_ball_components(
-        [{"id": "root", "component": "Column", "children": [], "styles": {}}],
-        palette,
-        size=task.get("size"),
-    )
-    result = []
-    for item in expanded:
-        identity = item.get("id", "")
-        if not identity.startswith("fusionBall"):
-            continue
-        if identity == "fusionBallGlassLayer":
-            styles = item.get("styles", {})
-            styles["backgroundColor"] = background.get("glassColor")
-            styles["backdropBlur"] = {"radius": background.get("blurRadius")}
-        result.append(item)
-    return result
+    return build_fusion_background(theme, task, enabled=fusion_ball_enabled(task.get("appVersion")))
 
 
 def apply_photo_fallback(
     shell: dict, foreground: dict, layers: list[dict], task: dict, primary: str,
 ) -> None:
-    fallback = photo_fallback(primary)
-    background = fallback.get("background", {})
-    styles = shell.setdefault("styles", {})
-    if fallback.get("kind") == "gradient":
-        colors = background.get("colors", [])
-        styles["backgroundColor"] = colors[-1]
-        styles["linearGradient"] = {
-            "direction": background.get("direction"),
-            "colors": [[colors[0], 0], [colors[1], 1]],
-        }
-    else:
-        styles["backgroundColor"] = background.get("ballColors", {}).get("large")
-        if fusion_ball_enabled(task.get("appVersion")):
-            children = layers[0].get("children")
-            if not isinstance(children, list):
-                raise ValueError("Photo background requires a child list")
-            # 融球位于唯一图片下方，沿用端侧标记，避免球体参与前景尺寸适配。
-            foreground["id"] = FUSION_FOREGROUND_ID
-            shell["children"] = [PREFIX + "background", FUSION_FOREGROUND_ID]
-            children.insert(0, "fusionBallBackground")
-            layers.extend(fusion_background(fallback, task))
-
-
-def _has_content_surface(node: dict, legacy_panels: list[str]) -> bool:
-    if node.get("component") not in {"Row", "Column", "Stack", "Button"}:
-        return False
-    background = node.get("styles", {}).get("backgroundColor")
-    if is_role(background):
-        match = ROLE_PATTERN.fullmatch(background)
-        if match is None or float(match[2] or 1) == 0:
-            return False
-        if match[1] == "panel":
-            return True
-        return match[1] in {"componentSecondary", "componentTertiary"} and bool(node.get("onClick"))
-    if not isinstance(background, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", background):
-        return False
-    if int(background[1:3], 16) == 0:
-        return False
-    return background in legacy_panels or bool(node.get("onClick"))
+    apply_shared_photo_fallback(
+        shell, foreground, layers, task, primary, foreground_id=FUSION_FOREGROUND_ID,
+        enabled=fusion_ball_enabled(task.get("appVersion")),
+    )
 
 
 def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
@@ -340,36 +275,9 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
     photo_active = theme.get("kind") == "photo" and not requested_background
     surface_style = registry_config.get("photoSurfaceStyle", {}) if photo_active else {}
     root = next(node for node in nodes if node.get("id") == "root")
-    for node in nodes:
-        styles = node.setdefault("styles", {})
-        content_surface = bool(surface_style) and _has_content_surface(node, legacy_panels)
-        role_keys = set()
-        for key in COLOR_FIELDS:
-            if is_role(styles.get(key)):
-                styles[key] = resolve_role(styles[key], roles, panel)
-                role_keys.add(key)
-        for key in ("fontColor", "fillColor", "color", "borderColor"):
-            if key in styles and key not in role_keys:
-                old = styles.get(key)
-                is_secondary = isinstance(old, str) and old.startswith(("#99", "#66", "#CC"))
-                styles[key] = secondary if is_secondary else primary
-        if node.get("component") == "Text":
-            styles.setdefault("fontColor", primary)
-        if node is root:
-            styles.pop("linearGradient", None)
-            styles.pop("backgroundColor", None)
-            continue
-        if "backgroundColor" in styles and "backgroundColor" not in role_keys:
-            old = styles.get("backgroundColor")
-            if isinstance(old, str) and old.startswith("#00"):
-                continue
-            is_panel = old in legacy_panels
-            if is_panel:
-                styles["backgroundColor"] = panel
-            else:
-                styles["backgroundColor"] = roles.get("componentSecondary")
-        if content_surface and not styles.get("backgroundColor", "#00").startswith("#00"):
-            styles.update(copy.deepcopy(surface_style))
+    apply_content_palette(
+        nodes, roles, panel, surface_style=surface_style, legacy_panels=legacy_panels,
+    )
     root_styles = root.get("styles", {})
     background = overrides.get("background", {}).get("color")
     kind = theme.get("kind")
@@ -411,29 +319,6 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
     if foreground_signature(source) != foreground_signature(result):
         raise ValueError("Theme altered foreground layout, content or actions")
     return result
-
-
-def select_equivalent_photo(selected: str, candidates: list[dict]) -> tuple[str, dict]:
-    photos = [item for item in candidates if item.get("kind") == "photo"]
-    available = [item.get("id") for item in photos]
-    audit = {}
-    if available:
-        choices = available
-        audit = {"mode": "uniform", "eligible": available, "selected": selected}
-        if all(item.get("pool") == "texturePhotos" for item in photos):
-            families = []
-            for item in photos:
-                family = item.get("family")
-                if family not in families:
-                    families.append(family)
-            families.sort()
-            if len(families) > 1:
-                family = secrets.choice(families)
-                choices = [item.get("id") for item in photos if item.get("family") == family]
-                audit.update(mode="uniform-family-and-shape", families=families, family=family)
-        selected = secrets.choice(choices)
-        audit["selected"] = selected
-    return selected, audit
 
 
 def preference_fallback(task: dict, preferences: list[dict], overrides: dict) -> dict:
@@ -491,13 +376,13 @@ async def select_theme(
     fallback_id = fallback.get("id")
     rejected = {}
     native_subjectless = get_settings().enable_subjectless_wide_theme and task.get("size") == "2x4"
-    for photo in registered_themes("photos"):
-        reason = photo_reason(photo, task, evidence, final_layout=final_layout,
-                              business_context=final_business)
-        if reason:
-            rejected[photo.get("id")] = reason
-        else:
-            candidates.append({**photo, "kind": "photo"})
+    photo_facts = fusion_photo_facts(
+        task, evidence, final_layout, business_context=final_business,
+    )
+    registered_photos = [*registered_themes("photos"), *registered_themes("texturePhotos")]
+    photos, photo_rejected = eligible_photos(photo_facts, registered_photos)
+    candidates.extend(photos)
+    rejected.update(photo_rejected)
     wide_audit = None
     if native_subjectless:
         from services.subjectless_wide_theme import background_reason, wide_gate
@@ -519,13 +404,6 @@ async def select_theme(
                 rejected[photo.get("id")] = reason
             else:
                 candidates.append(photo)
-    for photo in registered_themes("texturePhotos"):
-        reason = photo_reason(photo, task, evidence, final_layout=final_layout,
-                              business_context=final_business)
-        if reason:
-            rejected[photo.get("id")] = reason
-        else:
-            candidates.append({**photo, "kind": "photo"})
     layout_reason = photo_layout_exclusion_reason(task, evidence, final_layout)
     if layout_reason:
         retained = []
@@ -732,14 +610,8 @@ async def theme_artifact(
         themed.cardSpec["suggestSize"] = "2x4"
         themed.taskSpec["size"] = "2x4"
     if theme.get("kind") == "photo":
-        src = theme.get("src")
-        address = theme.get("remoteUrl") or src
-        if address != src:
-            mapper = AssetUrlMapper({src: address}, {src})
-            themed.genui = mapper.rewrite_standard(themed.genui)
-        asset = {"id": theme.get("id"), "src": address, "description": "主题背景"}
-        themed.taskSpec.setdefault("assetCandidates", []).append(asset)
-        themed.effectiveCapabilities.setdefault("asset", []).append(asset.get("id"))
+        themed.genui = deliver_photo_source(themed.genui, theme)
+        themed = register_photo_asset(themed)
     errors = _validate_theme(themed, validator, profile, fallback=False)
     user_colors = audit.get("userColors", {})
     if "text" in user_colors:

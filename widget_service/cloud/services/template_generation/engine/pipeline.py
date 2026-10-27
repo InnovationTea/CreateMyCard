@@ -564,10 +564,10 @@ async def _generate_selected_templates(
         for source in projection.contract.allowed_asset_sources
         if source not in requested_asset_sources and source in compilation.a2ui
     )
-    photo = registry.require_theme(final_theme_id).photo_background_style
-    if photo is not None:
-        registered = next(item for item in registered_themes() if item.get("id") == final_theme_id)
-        address = registered.get("remoteUrl") or photo.src
+    registered = next((item for item in registered_themes()
+                       if item.get("id") == final_theme_id and item.get("kind") == "photo"), None)
+    if registered is not None:
+        address = registered.get("remoteUrl") or registered.get("src")
         if address not in requested_asset_sources and address not in trusted_sources:
             trusted_sources = (*trusted_sources, address)
     logger.info(

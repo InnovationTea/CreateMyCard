@@ -294,7 +294,7 @@
         "data.effectiveCapabilities": "object，最终进入 artifact 的有效 data、event、asset 能力集合。",
         "status": "string，旧完整出参调用状态；生成接口透传 data.status。",
         "errorCode": "string，旧完整出参错误码；生成接口透传 data.errorCode。",
-        "error": "object；参数错误提供 details.issues 的路径和修正说明、retryable 及 requiredActions；业务 failed/unsupported 提供停止指引，success/degraded 为空对象。"
+        "error": "object；参数错误提供 details.issues 的路径和修正说明、retryable 及 requiredActions；业务 failed/unsupported 提供停止指引，success/degraded 为空对象。 GENERATION_INPUT_INCOMPLETE 使用 details.stage=generationInput、modelCalled=true、retryable=true、requiredActions 与 issues；要求主Agent核对本轮可用能力、完整定义和权限后在原预算内补参重调，服务不自动补能力或保存产物。"
       }
     },
     "CandidateDataBinding": {

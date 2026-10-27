@@ -9,6 +9,8 @@ description: 工具字段、事实粒度、优先级与软候选；不重复组�
 # Compact Info Plan
 
 当前阶段为 plan 时，按本轮工具 Schema 提交一个完整 `{"name":"submit_card_plan","arguments":{...}}` 对象，不输出 DSL。仅填写 Schema 声明的字段。
+普通创建若明确需要的动态数据在本轮输入中缺失，按运行时另行提供的 `report_missing_data`
+合同报告缺口；不猜能力、字段或读数，不提交无来源事实。合法静态或仅动作需求仍按正常计划处理。
 
 ## 1. 必要事实 info_required
 
