@@ -2390,10 +2390,10 @@ def _weather_battery_card_spec() -> dict[str, Any]:
     ("with_actions", "expected_layout_id"),
     [
         (False, "WideTwoFocusLayout@1"),
-        (True, "WideTwoFocusTwoActionLayout@1"),
+        (True, "WideTwoHeroActionLayout@1"),
     ],
 )
-def test_weather_battery_2x4_composes_two_focus_panels(
+def test_weather_battery_2x4_composes_two_hero_panels(
     with_actions: bool,
     expected_layout_id: str,
 ) -> None:
@@ -2610,7 +2610,7 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
         registry=registry,
     )
 
-    assert projection.allowed_layout_ids == ("WideTwoFocusTwoActionLayout",)
+    assert projection.allowed_layout_ids == ("WideTwoHeroActionLayout",)
     candidate_groups_text = next(
         message.get("content", "")
         for message in projection.messages
@@ -2644,7 +2644,7 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
         for action in projection.contract.action_bindings
     )
     source = (
-        'Template("WideTwoFocusTwoActionLayout@1",{},'
+        'Template("WideTwoHeroActionLayout@1",{},'
         'Template("BluetoothDeviceOverviewCaseSettingsHero@1",{}),'
         'Template("BatteryOverviewChargeStatusHero@1",'
         '{"batteryIcon":"resources/base/media/icon_phone.svg"}),'

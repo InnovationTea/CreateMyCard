@@ -220,9 +220,9 @@ def test_wide_two_hero_action_keeps_a_small_hero_candidate() -> None:
     assert _layout_geometry_fits(layout, slots, registry)
 
 
-def test_wide_two_focus_two_action_rejects_the_taller_schedule_hero() -> None:
+def test_wide_two_hero_action_rejects_the_taller_schedule_hero() -> None:
     registry = get_cardplan_registry()
-    layout = next(item for item in _WIDE_LAYOUTS if item.layout_id == "WideTwoFocusTwoActionLayout")
+    layout = next(item for item in _WIDE_LAYOUTS if item.layout_id == "WideTwoHeroActionLayout")
     slots = (
         TemplatePlanBusinessSlot(
             position=0,

@@ -1265,7 +1265,6 @@ def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
         "WideHalfFourLargeActionLayout": ("2x4",),
         "WideTwoFocusLayout": ("2x4",),
         "WideTwoFocusActionLayout": ("2x4",),
-        "WideTwoFocusTwoActionLayout": ("2x4",),
         "WideTwoHeroActionLayout": ("2x4",),
     }
 

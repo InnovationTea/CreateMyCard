@@ -76,7 +76,6 @@ _LAYOUT_COMPONENTS = frozenset(
         "WideHalfFourLargeActionLayout",
         "WideTwoFocusLayout",
         "WideTwoFocusActionLayout",
-        "WideTwoFocusTwoActionLayout",
     }
 )
 _CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})

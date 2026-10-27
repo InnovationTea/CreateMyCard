@@ -117,11 +117,6 @@
       "templateId": "WideTwoFocusActionLayout@1",
       "description": "2x4 左右双焦点拼接布局，两个 2x2 风格圆角面板各承载一个 Hero 业务模板，左面板底部承载一个 PillAction。",
       "entry": "templates/layout.cardtpl"
-    },
-    {
-      "templateId": "WideTwoFocusTwoActionLayout@1",
-      "description": "2x4 左右双焦点拼接布局，两个 2x2 风格圆角面板各承载一个 Hero 业务模板和一个底部 PillAction。",
-      "entry": "templates/layout.cardtpl"
     }
   ],
   "compatibility": {
@@ -722,32 +717,6 @@
       },
       "maxActionChildrenBySize": {
         "2x4": 1
-      },
-      "parametersSchema": {
-        "type": "object",
-        "properties": {},
-        "additionalProperties": false
-      },
-      "loweringBySize": {
-        "2x4": "row"
-      }
-    },
-    {
-      "name": "WideTwoFocusTwoActionLayout",
-      "description": "仅用于 2x4；左右两个 2x2 风格圆角面板各承载一个 Hero 业务 child 和一个底部 PillAction child。",
-      "supportedCardSizes": [
-        "2x4"
-      ],
-      "minChildren": 2,
-      "maxChildrenBySize": {
-        "2x4": 2
-      },
-      "actionPolicy": "required",
-      "minActionChildrenBySize": {
-        "2x4": 2
-      },
-      "maxActionChildrenBySize": {
-        "2x4": 2
       },
       "parametersSchema": {
         "type": "object",

@@ -100,7 +100,7 @@ def test_wide_layout_fixed_slots_fit_content_budget(template_id, compact_rows):
     ],
 )
 def test_wide_full_hero_action_flexes_within_content_budget(template_id):
-    """Full+Hero+Action 两个半区与 WideTwoFocusTwoActionLayout 同构：弹性槽位吸收底板内边距。"""
+    """Full+Hero+Action 两个半区使用统一的 HeroAction 结构：弹性槽位吸收底板内边距。"""
     registry = CardPlanRegistry()
     definition = registry.require_template(template_id)
     child = Nested2Node("Text", ("content", {"height": 14}), ())

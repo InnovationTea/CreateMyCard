@@ -46,7 +46,7 @@
     （12vp「体感 N°」）展示；`/location/cityCode` 仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `WeatherOverviewFeelsLikeHero@1`：体感温度大字 Hero；顶部为“城市 + 天气”标题行，中部以
     大号数字展示体感温度并固定追加“°”，不展示天气现象、风力、天气预警和感冒风险（四个字段仅进入
-    字段覆盖契约）；用于 2x4 双焦点组合布局（含 `WideTwoFocusTwoActionLayout@1`）的天气槽位，
+    字段覆盖契约）；用于 2x4 双 Hero 组合布局（含 `WideTwoHeroActionLayout@1`）的天气槽位，
     底部按钮由布局 PillAction 槽位提供；可选内部事件 `actionId` 绑定根节点底板。
   - `WeatherOverviewWideFull@1`：左右分区的完整天气摘要，可展示体感、湿度、空气、风况和当日预报。
   - `WeatherOverviewWideHero@1`：以当前温度和天气现象为焦点，辅助展示体感与当日预报。

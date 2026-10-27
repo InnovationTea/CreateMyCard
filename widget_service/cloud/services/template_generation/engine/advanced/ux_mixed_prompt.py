@@ -65,7 +65,7 @@ _COMPACT_SUBTITLE_ACTION_TEMPLATE_ID = "CompactSubtitleAction@1"
 _ICON_ACTION_TEMPLATE_ID = "IconAction@1"
 _LARGE_ICON_ACTION_TEMPLATE_ID = "LargeIconAction@1"
 _TWO_FOCUS_LAYOUT_IDS = frozenset(
-    {"WideTwoFocusLayout", "WideTwoFocusActionLayout", "WideTwoFocusTwoActionLayout"}
+    {"WideTwoFocusLayout", "WideTwoFocusActionLayout"}
 )
 
 
@@ -897,7 +897,6 @@ def _layout_output_option(
         "WideHalfFourLargeActionLayout": "WideHalf",
         "WideTwoFocusLayout": ("Hero", "Hero"),
         "WideTwoFocusActionLayout": ("Hero", "Hero"),
-        "WideTwoFocusTwoActionLayout": ("Hero", "Hero"),
     }[layout_id]
     if layout_id == "WideFullTwoCompactLayout":
         business_template_ids = required_template_groups
@@ -950,7 +949,6 @@ def _layout_output_option(
         "WideHalfCompactTwoLargeActionLayout": _LARGE_ICON_ACTION_TEMPLATE_ID,
         "WideHalfFourLargeActionLayout": _LARGE_ICON_ACTION_TEMPLATE_ID,
         "WideTwoFocusActionLayout": _PILL_ACTION_TEMPLATE_ID,
-        "WideTwoFocusTwoActionLayout": _PILL_ACTION_TEMPLATE_ID,
     }.get(layout_id)
     if action_template_id not in action_template_ids:
         action_template_id = None
@@ -1436,7 +1434,7 @@ def _second_layer_layout_selection(
                 )
             elif "Hero" in group_kinds[0] and "Hero" in group_kinds[1]:
                 layout_id, kinds, actions = (
-                    "WideTwoFocusTwoActionLayout",
+                    "WideTwoHeroActionLayout",
                     ("Hero", "Hero"),
                     (_PILL_ACTION_TEMPLATE_ID,),
                 )

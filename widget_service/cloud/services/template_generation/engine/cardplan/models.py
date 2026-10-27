@@ -33,7 +33,6 @@ _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
     "WideHalfFourLargeActionLayout",
     "WideTwoFocusLayout",
     "WideTwoFocusActionLayout",
-    "WideTwoFocusTwoActionLayout",
 )
 
 

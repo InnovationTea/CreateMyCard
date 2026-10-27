@@ -985,7 +985,6 @@ def _expand_call(
             "WideHalfFourLargeActionLayout",
             "WideTwoFocusLayout",
             "WideTwoFocusActionLayout",
-            "WideTwoFocusTwoActionLayout",
         }
         and task_spec.size == "2x4"
         and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact", "Support"}
@@ -6762,10 +6761,6 @@ def _validate_provider_template_layout_action_requirements(
         ),
         "WideTwoFocusLayout": (("Hero", "Hero"), ()),
         "WideTwoFocusActionLayout": (("Hero", "Hero"), ("PillAction",)),
-        "WideTwoFocusTwoActionLayout": (
-            ("Hero", "Hero"),
-            ("PillAction", "PillAction"),
-        ),
     }
     wide_composition = wide_composition_contracts.get(layout_id)
     if (
