@@ -86,6 +86,12 @@ _SAMPLES: dict[str, str | int | bool] = {
 _GROUPED_REFERENCE = _Case(
     "ScheduleOverviewReminderWideFull@1", "2x4", ("dtStart", "remindTime/0"), ("title",)
 )
+_SOURCE_REMINDER = _Case(
+    "ScheduleOverviewSourceReminderFull@1", "2x2", ("senderName", "remindTime/0"), ("title",)
+)
+_REMINDER_SOURCE = _Case(
+    "ScheduleOverviewReminderSourceFull@1", "2x2", ("senderName", "remindTime/0")
+)
 
 
 def _path(field: str) -> str:
@@ -105,7 +111,7 @@ def _combinations() -> list[tuple[_Case, tuple[str, ...]]]:
 def registry() -> CardPlanRegistry:
     return CardPlanRegistry(
         enabled_calendar_fallback_template_ids=tuple(
-            case.template_id for case in (*_CASES, _GROUPED_REFERENCE)
+            case.template_id for case in (*_CASES, _GROUPED_REFERENCE, _SOURCE_REMINDER)
         ),
     )
 
@@ -302,7 +308,11 @@ def test_additional_templates_preserve_fields_and_fit_card(
         if component.get("component") == "Text":
             font = styles.get("fontSize")
             assert isinstance(font, (float, int)) and font <= 18
-            assert styles.get("maxLines") == 1
+            is_two_line_title = case.template_id == "ScheduleOverviewTitleStartFull@1"
+            is_two_line_title = is_two_line_title and "/events/0/title" in str(
+                component.get("content")
+            )
+            assert styles.get("maxLines") == (2 if is_two_line_title else 1)
     for field in (*case.required, *selected):
         assert _text_styles(content, _path(field))
     if "dtEnd" in case.optional and "dtEnd" not in selected:
@@ -390,6 +400,81 @@ def _visual_tree(
         _visual_tree(child, components) for child in _children(component, components)
     ]
     return result
+
+
+@pytest.mark.parametrize(
+    ("case", "selected"),
+    [
+        (_CASES[0], ()),
+        (_SOURCE_REMINDER, ()),
+        (_SOURCE_REMINDER, ("title",)),
+        (_REMINDER_SOURCE, ()),
+    ],
+    ids=["title-start", "source-no-title", "source-with-title", "reminder-source"],
+)
+def test_two_line_small_cards_preserve_fields_and_grouped_reference(
+    case: _Case, selected: tuple[str, ...], registry: CardPlanRegistry
+) -> None:
+    values = dict(_SAMPLES)
+    values.update(
+        {
+            "title": "跨部门联合项目评审及产品发布计划确认会议",
+            "senderName": "产品研发与质量管理联合项目团队",
+            "remindTime/0": "0",
+        }
+    )
+    components = _compile(case, selected, registry, values)
+    content = _subtree("template_root", components)
+    serialized = json.dumps(content, ensure_ascii=False)
+    actual = set(re.findall(r"/data/calendar(/[A-Za-z0-9/]+)", serialized))
+    assert actual == {_path(field) for field in (*case.required, *selected)}
+    assert _natural_height("template_root", components) <= 150
+    _check_widths("template_root", components, 150)
+    root = _business_column(components)
+    # 同时守住宽卡 Full 槽的 102vp 内高，不把当前字号推导值固定为实现快照。
+    assert _natural_height(str(root.get("id")), components) <= 102
+    assert _styles(root).get("justifyContent") == "spaceBetween"
+    assert _styles(root).get("alignItems") == "start"
+    assert root.get("itemMargin") == 2
+    upper, footer = _children(root, components)
+    header, main = _children(upper, components)
+    assert upper.get("itemMargin") == 4
+    assert _styles(header).get("height") == 24
+    assert main.get("component") == footer.get("component") == "Text"
+    main_style = _styles(main)
+    assert (main_style.get("fontSize"), main_style.get("fontWeight")) == (18, 700)
+    assert main_style.get("maxLines") == 2
+    assert "height" not in main_style
+    assert main_style.get("width") == "matchParent"
+    assert main_style.get("textOverflow") == "ellipsis"
+    footer_style = _styles(footer)
+    assert (footer_style.get("fontSize"), footer_style.get("fontWeight")) == (12, 400)
+    assert footer_style.get("height") == 16
+    reference = _compile(_CASES[2], ("startDate",), registry, dict(_SAMPLES))
+    reference_upper, reference_lower = _children(_business_column(reference), reference)
+    reference_header = _children(reference_upper, reference)[0]
+    assert _styles(header) == _styles(reference_header)
+    assert footer_style == _styles(_children(reference_lower, reference)[0])
+    header_text = _children(header, components)[0]
+    assert (_styles(header_text).get("fontSize"), _styles(header_text).get("fontWeight")) == (
+        12,
+        500,
+    )
+    if case == _SOURCE_REMINDER:
+        expected_header = "/data/calendar/events/0/title" if selected else "日程来源"
+        assert expected_header in str(header_text.get("content"))
+    for component in _subtree(str(root.get("id")), components):
+        assert component.get("component") not in {"Button", "Image", "Divider", "Stack"}
+        assert "onClick" not in component and "onClick" not in _styles(component)
+        assert "backgroundColor" not in _styles(component)
+    if "remindTime/0" in case.required:
+        ordinary = dict(values)
+        ordinary["remindTime/0"] = "15"
+        assert components == _compile(case, selected, registry, ordinary)
+        reminder = str(footer.get("content"))
+        assert "/events/0/remindTime/0" in reminder
+        assert "提前" in reminder and "分钟提醒" in reminder
+        assert "?" not in reminder
 
 
 @pytest.mark.parametrize(
