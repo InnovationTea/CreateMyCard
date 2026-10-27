@@ -269,6 +269,7 @@ def _title_only(root: dict, by_id: dict, excluded: set[str]) -> bool:
 
 
 def _main_scope(root: dict, by_id: dict, excluded: set[str]) -> tuple[dict | None, str | None]:
+    result: tuple[dict | None, str | None] = (None, None)
     visited = set()
     while root.get("id") not in visited:
         visited.add(root.get("id"))
@@ -282,16 +283,17 @@ def _main_scope(root: dict, by_id: dict, excluded: set[str]) -> tuple[dict | Non
         if not _neutral_alignment(root, child):
             break
         root = child
-    if root.get("component") not in {"Row", "Column"} or len(children) != 2:
-        return None, None
-    matches = []
-    for index, child in enumerate(children):
-        other = children[1 - index]
-        side_kind = "Column" if root.get("component") == "Row" else "Row"
-        if _surface(child) or other.get("component") != side_kind:
-            continue
-        if side_kind == "Column" and not _two_surfaces(other, by_id):
-            continue
-        directions = ("left", "right") if side_kind == "Column" else ("top", "bottom")
-        matches.append((child, directions[index]))
-    return matches[0] if len(matches) == 1 else (None, None)
+    if root.get("component") in {"Row", "Column"} and len(children) == 2:
+        matches: list[tuple[dict, str]] = []
+        for index, child in enumerate(children):
+            other = children[1 - index]
+            side_kind = "Column" if root.get("component") == "Row" else "Row"
+            if _surface(child) or other.get("component") != side_kind:
+                continue
+            if side_kind == "Column" and not _two_surfaces(other, by_id):
+                continue
+            directions = ("left", "right") if side_kind == "Column" else ("top", "bottom")
+            matches.append((child, directions[index]))
+        if len(matches) == 1:
+            result = matches[0]
+    return result
