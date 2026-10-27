@@ -80,7 +80,12 @@ class GenerationPreflightError(ValueError):
             "requiredActions": required_actions,
             "agentInstruction": (
                 "按 requiredActions 顺序处理，并结合本轮能力概述和数据 schema 修正全部 issues；"
-                "不得原样重试，不得交给模型 repair。候选数据集合变化后必须重新检查权限。"
+                "issues.path 用于定位，请在下一次 invoke.arguments 中提交修正后的完整业务对象，"
+                "不要只提交补丁或手工构造 content、顶层镜像、设备和会话包络。"
+                "保留原需求、模式、有效来源、用户尺寸要求及其它合法候选；"
+                "不得原样重试、猜值、清空核心候选或交给模型 repair。"
+                "候选数据集合或绑定变化后必须重新检查权限，缺必要业务值先澄清，"
+                "核心能力不支持时停止，不超过既有调用预算。"
             ),
             "issues": [
                 issue.model_dump(mode="json") for issue in self.result.blocking_issues

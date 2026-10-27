@@ -270,6 +270,9 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 - 纯视觉修改、已有数据参数调整的 edit 入参及删除数据的拒绝场景见[回归示例](references/examples.md)；执行时 sourceArtifactUrl 必须取真实最近有效结果。
 
 - **继续或停止：** 生成调用串行等待结果；仅 failed 按返回修正后重试，含首次最多 3 次，不重发 R01/R02；其它结果转步骤 8，异常用 R14，不本地生成。
+  create 的 `GENERATION_INPUT_INCOMPLETE` 仅在 details 明确允许时，按运行指南核对本轮能力、
+  加载数据定义、补齐绑定或字段并复查最终权限后重调；缺口说明不是能力或权限证明。
+  核心不支持、必要业务值缺失或权限问题分别沿原停止／澄清流程处理，不扩大三次总调用预算。
 
 ### 8. 判定卡片结果，按宿主规则反馈
 

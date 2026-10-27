@@ -32,7 +32,7 @@ def _content(registry):
         "candidateEventCandidates": [{
             "capabilityId": weather.id, "action": weather.actionTemplate.model_dump(mode="json"),
         }],
-        "candidateAssetIds": ["asset.ic_weather_color"],
+        "candidateAssetIds": ["asset.ic_weather_monochrome"],
     }
 
 
@@ -126,7 +126,7 @@ def test_action_repair_never_discards_or_substitutes_business_values(registry, k
     args = action.get("args")
     assert isinstance(args, dict)
     if kind == "unknown":
-        event["candidateAssetIds"] = ["asset.ic_weather_color"]
+        event["candidateAssetIds"] = ["asset.ic_weather_monochrome"]
     elif kind == "fixed":
         args["intentName"] = "wrong-intent"
     elif kind == "missing":
@@ -194,7 +194,10 @@ def test_model_fallback_retains_business_fields_present_only_outside_arguments(r
     source = _content(registry)
     source.pop("candidateAssetIds")
     raw = json.dumps(source)
-    outer = {"arguments": raw, "candidateAssetIds": ["asset.ic_weather_color", "asset.local_fill"]}
+    outer = {
+        "arguments": raw,
+        "candidateAssetIds": ["asset.ic_weather_monochrome", "asset.local_fill"],
+    }
     guard = repair._preserve_valid_fragments(raw, registry)
     normalized, _dropped, _warnings = repair._normalize_model_output(
         json.dumps(source), outer, _payload(outer), registry, preserved=guard,

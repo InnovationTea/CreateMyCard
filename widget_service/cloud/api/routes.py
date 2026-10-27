@@ -40,7 +40,11 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
-from services.agent_feedback import request_validation_feedback, terminal_feedback
+from services.agent_feedback import (
+    request_envelope_feedback,
+    request_validation_feedback,
+    terminal_feedback,
+)
 from services.artifact_store import ArtifactUploadError
 from services.capability_registry import CapabilityRegistry
 from services.compact_dsl_argument_repair import (
@@ -52,6 +56,7 @@ from services.compact_dsl_argument_repair import (
 )
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
 from services.daily_usage_limiter import DailyUsageError, DailyUsageLimiter, DailyUsageRecord
+from services.generation_input_feedback import MissingDataInputError
 from services.generation_retry_policy import retry_policy_details
 from services.generation_trace_recorder import (
     trace_increment_retry,
@@ -106,6 +111,10 @@ ERROR_EXPLANATIONS = {
     ErrorCode.INVALID_ARGUMENTS.value: (
         "工具参数传入有误，请按 details.issues 修正全部必填字段、类型和取值后再调用；"
         "不要只修第一项或原样重试。报错信息如下"
+    ),
+    ErrorCode.GENERATION_INPUT_INCOMPLETE.value: (
+        "生成所需的动态数据输入不完整，请按 details 中的结构化指引核对能力、"
+        "补齐参数并复查权限后，在原有调用预算内重调。报错信息如下"
     ),
     ErrorCode.UNKNOWN_CAPABILITY.value: (
         "工具参数中包含未注册的能力 ID；若 details 要求 STOP 则停止，"
@@ -209,8 +218,10 @@ class StringifiedToolArgumentsError(ValueError):
             "agentInstruction": (
                 "外层请求是合法 JSON，但工具调用的 arguments 被序列化成字符串，"
                 "导致传输包的 content 中出现多余的字符串字段 arguments。"
-                "请把该字符串反序列化为 JSON 对象，并将其业务字段直接作为"
-                " generateWidgetCardCompactDsl 的 arguments 重新调用。"
+                "请恢复完整业务对象，作为下一次 invoke.arguments 提交，保留原需求及全部合法候选；"
+                "issues.path 是服务端定位路径，不要求你手工构造 content 或顶层镜像。"
+                "调用元数据由当前工具调用约定及中间链路处理，不补造设备或会话字段；"
+                "仅在既有调用预算内修正重调，相同错误重复且无新修正依据时停止。"
             ),
             "issues": [
                 {
@@ -223,8 +234,10 @@ class StringifiedToolArgumentsError(ValueError):
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "反序列化 content.arguments，把恢复出的业务字段提升到 content，"
-                        "并移除 content.skillName、content.functionName 和 content.arguments。"
+                        "将原字符串恢复为完整业务 JSON 对象，检查括号、逗号、引号和转义；"
+                        "直接作为下一次 invoke.arguments，不再次包裹 arguments 或整个调用对象。"
+                        "保留原值、模式、来源、用户尺寸要求及合法候选，不通过清空数组过检；"
+                        "不要手工编辑 WebSocket content、顶层镜像或透传元数据。"
                     ),
                     "referenceSource": "generateWidgetCardCompactDsl tool schema",
                 }
@@ -245,9 +258,10 @@ class StringifiedToolArgumentsError(ValueError):
             "requiredActions": ["FIX_AND_RETRY"],
             "agentInstruction": (
                 "调用 generateWidgetCardCompactDsl 时，arguments 必须直接传合法的 "
-                "JSON 对象，不能把整个对象序列化成 JSON 字符串。请保持 arguments、"
-                "functionName、skillName 同层，并把 bundleName、userQuery、title、"
-                "description 等工具字段放入 arguments 对象后重新调用。"
+                "JSON 对象，不能把整个对象序列化成 JSON 字符串。"
+                "微服务仅看到透传字段，不能据此恢复原始业务内容；请从本轮原需求及已核对候选"
+                "恢复完整 invoke.arguments，缺必要内容时停止，不猜值。"
+                "不要手工补传输包络、顶层镜像、用户或设备字段；调用元数据按运行时约定处理。"
             ),
             "issues": [
                 {
@@ -260,8 +274,9 @@ class StringifiedToolArgumentsError(ValueError):
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "将 arguments 字符串反序列化为 JSON 对象；保留 functionName 和 skillName 为"
-                        " arguments 的同层字段，不要在 arguments 内再次嵌套工具调用外层。"
+                        "在下一次工具调用的 arguments 中直接提交完整业务对象，"
+                        "不序列化、不再次嵌套调用外层；检查全部必填及候选结构，"
+                        "保留原需求、模式和合法候选，在既有预算内重调。"
                     ),
                     "referenceSource": "generateWidgetCardCompactDsl tool schema",
                 }
@@ -705,6 +720,8 @@ def _error_details(
         details = exc.details()
     elif isinstance(exc, GenerationPreflightError):
         details = exc.details()
+    elif isinstance(exc, MissingDataInputError):
+        details = exc.details()
     elif isinstance(exc, ValidationError):
         # Pydantic 的 ctx 可能携带原生 ValueError，input 可能包含完整请求或注册表；
         # 二者既不适合对外返回，也可能导致错误响应再次序列化失败。
@@ -1043,8 +1060,8 @@ async def _serve_operation_websocket(
                     operation=operation,
                     errorCode=ErrorCode.INVALID_ARGUMENTS.value,
                     error={
-                        "message": "WebSocket request body must be valid JSON.",
-                        "details": str(exc),
+                        "message": "工具调用链路的请求未能解析为合法 JSON。",
+                        "details": request_envelope_feedback(),
                     },
                 )
                 streaming_text_id = uuid.uuid4().hex
@@ -1327,6 +1344,8 @@ async def _serve_operation_websocket(
                     )
                 if isinstance(exc, CompactDslArgumentRepairExhaustedError):
                     error_summary = "本次 DSL 生成失败，请提示用户重试一下。"
+                if isinstance(exc, MissingDataInputError):
+                    error_summary = str(exc)
                 logger.error(
                     f"{_MODULE} widget_operation_ws_invalid_arguments request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "

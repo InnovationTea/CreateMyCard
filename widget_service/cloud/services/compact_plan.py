@@ -491,6 +491,10 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
                     "minItems": 1,
                     "uniqueItems": True,
                     "items": {"type": "integer", "minimum": 0},
+                    "description": (
+                        "仅引用本次提交info_required的零起始索引，最大值小于事实数；"
+                        "不是来源条目编号。合并或删减事实后同步引用。"
+                    ),
                 },
             },
         },
@@ -588,12 +592,93 @@ def _normalize_static_omissions(
     return _StaticOmissionDeclarations(descriptions, candidates)
 
 
-def _normalize_static_plan(
-    arguments: dict[str, Any], task: dict[str, Any]
-) -> _StaticPlanNormalization:
+def _static_group_membership(
+    raw_groups: list[Any], fact_count: int, errors: list[str],
+) -> dict[int, str]:
+    """只收集本次展示事实的引用关系，不猜测来源条目到事实的映射。"""
+    membership: dict[int, str] = {}
+    identifiers: set[str] = set()
+    for group_index, group in enumerate(raw_groups):
+        path = f"contentGroups[{group_index}]"
+        if not isinstance(group, dict):
+            errors.append(f"{path}: contentGroups 必须为对象数组。")
+            continue
+        required_keys = {"id", "kind", "factIndexes"}
+        if not required_keys.issubset(group) or set(group) - (required_keys | {"identity"}):
+            errors.append(f"{path}: contentGroups 仅支持 id、kind、factIndexes、identity。")
+        object_name = group.get("identity")
+        if object_name is not None:
+            if not isinstance(object_name, str):
+                errors.append(f"{path}.identity: identity 必须为对象短名称或null。")
+            elif not object_name.strip() or len(object_name) > 120:
+                errors.append(f"{path}.identity: identity 必须为1–120字的对象短名称。")
+            if group.get("kind") == "shared":
+                errors.append(f"{path}.identity: shared的identity必须为null。")
+        identifier = group.get("id")
+        if not isinstance(identifier, str) or not identifier.strip():
+            errors.append(f"{path}.id: 内容组 ID 必须非空。")
+            continue
+        kind = group.get("kind")
+        if not isinstance(kind, str):
+            errors.append(f"{path}.kind: 内容组 kind 必须是字符串。")
+        elif kind not in {"object", "shared"}:
+            errors.append(f"{path}.kind: 内容组 kind 必须为object或shared。")
+        if identifier in identifiers:
+            errors.append(f"{path}.id: 内容组 ID 重复。")
+        identifiers.add(identifier)
+        indexes = group.get("factIndexes")
+        if not isinstance(indexes, list) or not indexes:
+            errors.append(f"{path}.factIndexes: 内容组必须引用至少一条静态事实。")
+            continue
+        for position, index in enumerate(indexes):
+            index_path = f"{path}.factIndexes[{position}]"
+            if type(index) is not int or not 0 <= index < fact_count:
+                errors.append(
+                    f"{index_path}: 内容组事实索引越界或类型错误。实际值={index!r}；"
+                    f"本次info_required共{fact_count}条，有效整数索引为0–{fact_count - 1}；"
+                    "不得使用来源条目编号，合并或删减事实后须同步引用。"
+                )
+                continue
+            if index in membership:
+                errors.append(
+                    f"{index_path}: 每条静态事实只能归属一个组，组内索引不得重复。"
+                    f"索引{index}已归属{membership.get(index)!r}。"
+                )
+            else:
+                membership[index] = identifier
+    return membership
+
+
+def _collect_static_source_errors(
+    raw_facts: list[Any], source: str, membership: dict[int, str], errors: list[str],
+) -> None:
     from config.config import get_settings
     from services.card_validation.compact_validation.semantic.cross_file import static_source_errors
 
+    reference_count = 0
+    for index, raw_fact in enumerate(raw_facts):
+        if not isinstance(raw_fact, dict) or "text" not in raw_fact:
+            continue
+        path = f"info_required[{index}]"
+        for error in static_source_errors(raw_fact, source):
+            errors.append(f"{path}: {error}")
+        if index not in membership:
+            errors.append(f"{path}: 每条静态text必须归属contentGroups。")
+        references = raw_fact.get("sourceTexts")
+        if isinstance(references, list):
+            reference_count += len(references)
+            if len(references) > 3:
+                errors.append(
+                    f"{path}.sourceTexts: 单事实最多引用三段来源。实际{len(references)}段；"
+                    "请引用1–3段连续原文上下文，或重新组织展示事实并同步分组索引。"
+                )
+    if reference_count > get_settings().static_content_max_source_references:
+        errors.append("info_required: 静态来源引用数量超过预算。")
+
+
+def _normalize_static_plan(
+    arguments: dict[str, Any], task: dict[str, Any]
+) -> _StaticPlanNormalization:
     raw_facts = arguments.get("info_required")
     raw_groups = arguments.get("contentGroups")
     source_query = task.get("userQuery")
@@ -616,47 +701,15 @@ def _normalize_static_plan(
         raw_groups = []
     if not isinstance(raw_groups, list) or len(raw_groups) > 24:
         raise CompactPlanValidationError(["静态计划必须包含 contentGroups，最多24组。"])
-    membership: dict[int, str] = {}
-    identifiers: set[str] = set()
-    for group in raw_groups:
-        if not isinstance(group, dict):
-            raise CompactPlanValidationError(["contentGroups 必须为对象数组。"])
-        required_keys = {"id", "kind", "factIndexes"}
-        if not required_keys.issubset(group) or set(group) - (required_keys | {"identity"}):
-            raise CompactPlanValidationError([
-                "contentGroups 仅支持 id、kind、factIndexes、identity。"
-            ])
-        object_name = group.get("identity")
-        if object_name is not None:
-            if not isinstance(object_name, str):
-                raise CompactPlanValidationError(["identity 必须为对象短名称或null。"])
-            if not object_name.strip() or len(object_name) > 120:
-                raise CompactPlanValidationError(["identity 必须为1–120字的对象短名称。"])
-            if group.get("kind") == "shared":
-                raise CompactPlanValidationError(["shared的identity必须为null。"])
-        identifier = group.get("id")
-        if not isinstance(identifier, str) or not identifier.strip():
-            raise CompactPlanValidationError(["内容组 ID 必须非空。"])
-        kind = group.get("kind")
-        if not isinstance(kind, str):
-            raise CompactPlanValidationError(["内容组 kind 必须是字符串。"])
-        if identifier in identifiers or kind not in {"object", "shared"}:
-            raise CompactPlanValidationError(["内容组 ID 重复或 kind 非法。"])
-        identifiers.add(identifier)
-        indexes = group.get("factIndexes")
-        if not isinstance(indexes, list) or not indexes:
-            raise CompactPlanValidationError(["内容组必须引用至少一条静态事实。"])
-        for index in indexes:
-            if type(index) is not int or not 0 <= index < len(raw_facts):
-                raise CompactPlanValidationError(["内容组事实索引越界或类型错误。"])
-            if index in membership:
-                raise CompactPlanValidationError(["每条静态事实只能归属一个组，组内索引不得重复。"])
-            membership[index] = identifier
+    errors: list[str] = []
+    membership = _static_group_membership(raw_groups, len(raw_facts), errors)
+    _collect_static_source_errors(raw_facts, source_query, membership, errors)
+    if errors:
+        raise CompactPlanValidationError(errors)
     facts: list[dict[str, Any]] = []
     warnings: list[str] = []
     old_to_new: dict[int, int] = {}
     identities: dict[tuple[str, str, str, str | None], int] = {}
-    reference_count = 0
     extras = {"sourceTexts", "protectedTexts", "preserveVerbatim", "displayRole"}
     for old_index, raw_fact in enumerate(raw_facts):
         if not isinstance(raw_fact, dict) or set(raw_fact) - (_FACT_KEYS | extras):
@@ -681,15 +734,6 @@ def _normalize_static_plan(
                 display_role = _STATIC_ROLE_ALIASES.get(display_role, display_role)
                 if display_role not in _STATIC_DISPLAY_ROLES:
                     raise CompactPlanValidationError(["静态 displayRole 不在已登记角色中。"])
-            source_errors = static_source_errors(raw_fact, source_query)
-            if source_errors:
-                raise CompactPlanValidationError(source_errors)
-            if old_index not in membership:
-                raise CompactPlanValidationError(["每条静态text必须归属contentGroups。"])
-            references = raw_fact.get("sourceTexts", [])
-            reference_count += len(references)
-            if len(references) > 3:
-                raise CompactPlanValidationError(["单事实最多引用三段来源。"])
         elif old_index in membership or extras.intersection(raw_fact):
             raise CompactPlanValidationError(["Action不得填写静态来源字段或加入正文组。"])
         accepted, notes = _validate_facts(
@@ -736,8 +780,6 @@ def _normalize_static_plan(
         old_to_new[old_index] = len(facts)
         identities[identity] = len(facts)
         facts.append(fact)
-    if reference_count > get_settings().static_content_max_source_references:
-        raise CompactPlanValidationError(["静态来源引用数量超过预算。"])
     groups = []
     for group in raw_groups:
         indexes = []
@@ -2753,7 +2795,11 @@ def _parse_json_object(
     except json.JSONDecodeError as exc:
         repaired = _recover_plan_closers(text)
         if repaired is None:
-            raise CompactPlanValidationError(["Plan output must be valid JSON."]) from exc
+            raise CompactPlanValidationError([
+                "Plan output must be valid JSON. "
+                f"line={exc.lineno}, column={exc.colno}, offset={exc.pos}: {exc.msg}. "
+                "只修复JSON结构，不猜补事实；数组须完整闭合，数组元素之间使用逗号。"
+            ]) from exc
         payload = repaired
         if warnings is not None:
             warnings.append("Plan JSON terminal closing delimiters recovered; facts unchanged.")

@@ -8,6 +8,8 @@ from dataclasses import dataclass
 
 PLAN_JSON_OUTPUT_INSTRUCTION = (
     '只输出一个纯 JSON 对象，结构为 {"name":"submit_card_plan","arguments":{...}}。'
+    "仅当本轮另行提供了 report_missing_data 合同且必要动态输入确实缺失时，"
+    "使用该名称及对应arguments报告缺口，不能同时提交两种结果。"
     "arguments 必须按本轮 Schema 填写完整对象，不是 JSON 字符串。"
     "这是文本 JSON 协议，不是原生工具调用；禁止 DSML/XML 标记、call 前缀、"
     "Markdown 代码围栏、解释和多个调用。第一个非空字符必须是 {，最后一个必须是 }。"
