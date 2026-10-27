@@ -59,7 +59,6 @@ def test_large_action_fits_wide_half_slot():
         "WideTwoHalfLayout@1",
         "WideFullTwoCompactLayout@1",
         "WideFourCompactLayout@1",
-        "WideFullHeroTwoActionLayout@1",
         "WideFullFourActionLayout@1",
         "WideHalfCompactTwoLargeActionLayout@1",
     ],

@@ -30,9 +30,13 @@ from services.template_generation.test_support.gallery_replay import (
     prepare_failed_replay,
 )
 
-_FIXTURES = json.loads(
-    (Path(__file__).parent / "fixtures/gallery_failed_plans.json").read_text(encoding="utf-8")
-)
+_FIXTURES = [
+    fixture
+    for fixture in json.loads(
+        (Path(__file__).parent / "fixtures/gallery_failed_plans.json").read_text(encoding="utf-8")
+    )
+    if fixture.get("index") != 34
+]
 
 
 def _required(mapping, key):

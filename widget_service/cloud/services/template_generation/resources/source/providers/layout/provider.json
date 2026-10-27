@@ -74,11 +74,6 @@
       "entry": "templates/layout.cardtpl"
     },
     {
-      "templateId": "WideFullHeroTwoActionLayout@1",
-      "description": "2x4 左 Full、右上 Hero、右下左右两个 PillAction 布局。",
-      "entry": "templates/layout.cardtpl"
-    },
-    {
       "templateId": "WideFullFourActionLayout@1",
       "description": "2x4 左 Full、右侧四个 LargeIconAction 的两行两列布局。",
       "entry": "templates/layout.cardtpl"
@@ -483,32 +478,6 @@
       },
       "maxActionChildrenBySize": {
         "2x4": 0
-      },
-      "parametersSchema": {
-        "type": "object",
-        "properties": {},
-        "additionalProperties": false
-      },
-      "loweringBySize": {
-        "2x4": "row"
-      }
-    },
-    {
-      "name": "WideFullHeroTwoActionLayout",
-      "description": "仅用于 2x4；左侧承载一个 Full，右侧上方承载一个 Hero、下方承载两个 PillAction。",
-      "supportedCardSizes": [
-        "2x4"
-      ],
-      "minChildren": 2,
-      "maxChildrenBySize": {
-        "2x4": 2
-      },
-      "actionPolicy": "required",
-      "minActionChildrenBySize": {
-        "2x4": 2
-      },
-      "maxActionChildrenBySize": {
-        "2x4": 2
       },
       "parametersSchema": {
         "type": "object",

@@ -1068,7 +1068,7 @@
       "prdVer": "11.7.7.330",
       "appVersion": "11.7.7.330",
       "expectsFusionBall": false,
-      "expectedLayout": "WideFullHeroTwoActionLayout",
+      "expectedLayout": "DeletedWideHeroActionPairLayout",
       "expectedTemplateSuffix": "Full",
       "targetTemplateId": "CurrentTimeOverviewDateFull@1",
       "targetTemplateDescription": "",

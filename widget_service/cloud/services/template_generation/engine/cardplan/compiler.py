@@ -977,7 +977,6 @@ def _expand_call(
             "WideHeroActionFullLayout",
             "WideFullTwoCompactLayout",
             "WideFourCompactLayout",
-            "WideFullHeroTwoActionLayout",
             "WideTwoHeroActionLayout",
             "WideFullFourActionLayout",
             "WideHalfTwoCompactLayout",
@@ -6740,10 +6739,6 @@ def _validate_provider_template_layout_action_requirements(
         "WideHeroActionFullLayout": (("Full", "Hero"), ("PillAction",)),
         "WideFullTwoCompactLayout": (("Full", "Compact", "Compact"), ()),
         "WideFourCompactLayout": (("Compact",) * 4, ()),
-        "WideFullHeroTwoActionLayout": (
-            ("Full", "Hero"),
-            ("PillAction", "PillAction"),
-        ),
         "WideFullFourActionLayout": (
             ("Full",),
             ("LargeIconAction",) * 4,

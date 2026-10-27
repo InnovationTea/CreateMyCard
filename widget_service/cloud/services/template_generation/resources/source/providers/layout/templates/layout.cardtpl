@@ -368,31 +368,6 @@ Row({
 )
 #End
 
-#Template WideFullHeroTwoActionLayout@1(props: {}, ...children)
-data = {}
-
-Row({
-  "width": "matchParent",
-  "height": "matchParent",
-  "itemMargin": 8
-},
-  Column({"layoutWeight": 1, "height": "matchParent"}, children[0]),
-  Column({
-    "layoutWeight": 1,
-    "height": "matchParent",
-    "padding": 12,
-    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
-    "borderRadius": $theme("supportContentStyle.borderRadius")
-  },
-    Column({"width": "matchParent", "layoutWeight": 1}, children[1]),
-    Row({"width": "matchParent", "height": 36, "itemMargin": 8},
-      Column({"layoutWeight": 1, "height": 36}, children[2]),
-      Column({"layoutWeight": 1, "height": 36}, children[3])
-    )
-  )
-)
-#End
-
 #Template WideFullFourActionLayout@1(props: {}, ...children)
 data = {
 }

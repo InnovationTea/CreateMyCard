@@ -325,7 +325,6 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
         "WideHeroActionFullLayout@1": 3,
         "WideFullTwoCompactLayout@1": 3,
         "WideFourCompactLayout@1": 4,
-        "WideFullHeroTwoActionLayout@1": 4,
         "WideFullFourActionLayout@1": 5,
         "WideTwoHalfLayout@1": 2,
         "WideHalfTwoCompactLayout@1": 3,
@@ -786,12 +785,6 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
             template("SleepOverviewCompact@1"),
         ),
         (),
-        "2x4",
-    )
-    _validate_provider_template_layout_action_requirements(
-        "WideFullHeroTwoActionLayout",
-        (template("WeatherOverviewFull@1"), template("BatteryOverviewNormalHero@1")),
-        (pill_one, pill_two),
         "2x4",
     )
     _validate_provider_template_layout_action_requirements(

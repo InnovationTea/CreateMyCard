@@ -888,7 +888,6 @@ def _layout_output_option(
         "WideHeroActionFullLayout": ("Full", "Hero"),
         "WideFullTwoCompactLayout": "Full",
         "WideFourCompactLayout": ("Compact",) * 4,
-        "WideFullHeroTwoActionLayout": ("Full", "Hero"),
         "WideTwoHeroActionLayout": ("Hero", "Hero"),
         "WideFullFourActionLayout": "Full",
         "WideTwoHalfLayout": "WideHalf",
@@ -943,7 +942,6 @@ def _layout_output_option(
             if "PlaylistCompactAction@1" in action_template_ids
             else _COMPACT_ACTION_TEMPLATE_ID
         ),
-        "WideFullHeroTwoActionLayout": _PILL_ACTION_TEMPLATE_ID,
         "WideTwoHeroActionLayout": _PILL_ACTION_TEMPLATE_ID,
         "WideFullFourActionLayout": _LARGE_ICON_ACTION_TEMPLATE_ID,
         "WideHalfCompactTwoLargeActionLayout": _LARGE_ICON_ACTION_TEMPLATE_ID,
@@ -1439,10 +1437,8 @@ def _second_layer_layout_selection(
                     (_PILL_ACTION_TEMPLATE_ID,),
                 )
             else:
-                layout_id, kinds, actions = (
-                    "WideFullHeroTwoActionLayout",
-                    ("Full", "Hero"),
-                    (_PILL_ACTION_TEMPLATE_ID,),
+                raise ValueError(
+                    "2x4 Full+Hero with two PillAction children has no supported layout"
                 )
         elif (component_count, action_count) == (1, 4):
             layout_id, kinds, actions = (

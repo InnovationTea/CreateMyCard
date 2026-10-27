@@ -104,7 +104,6 @@ _WIDE_LAYOUTS = (
         (0, 1),
         slot_height_budgets=(58, 58),
     ),
-    WideLayoutOption("WideFullHeroTwoActionLayout", ("Full", "Hero"), ("PillAction",) * 2, (1, 1)),
     WideLayoutOption("WideFullTwoCompactLayout", ("Full",), ("CompactAction",) * 2, (None, None)),
     WideLayoutOption(
         "WideHalfCompactTwoLargeActionLayout",
