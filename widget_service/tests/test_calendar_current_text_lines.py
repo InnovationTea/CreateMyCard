@@ -20,6 +20,9 @@ from test_uniform_photo_eligibility import rejection
 CALENDAR_ID = "photo-ux-texture-blue-diamond-square"
 CALENDAR_IDS = {
     "photo-ux-meeting-room-square",
+    "photo-ux-meeting-room-chairs-square",
+    "photo-ux-meeting-room-table-square",
+    "photo-ux-meeting-room-window-square",
 }
 
 
