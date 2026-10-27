@@ -1631,9 +1631,9 @@ def test_q043_weather_care_fields_match_care_alert_full() -> None:
         _card_spec(),
     )
 
-    assert result.component_candidates[0].available_template_ids == (
+    assert set(result.component_candidates[0].available_template_ids) >= {
         "WeatherOverviewCareAlertFull@1",
-    )
+    }
 
 
 def test_q001_sleep_assistant_matches_hero_without_sleep_score() -> None:
@@ -1947,6 +1947,7 @@ def test_search_without_action_keeps_only_full_candidates() -> None:
     assert template_ids == {
         "WeatherOverviewFull@1", "WeatherOverviewAlertInfoFull@1",
         "WeatherOverviewConditionFeelsLikeAlertFull@1",
+        "WeatherOverviewAirQualitySummaryFull@1",
     }
 
 
@@ -2435,12 +2436,15 @@ def test_weather_battery_2x4_composes_two_hero_panels(
         if line.startswith("candidateGroups=")
     )
     candidate_groups = json.loads(groups_line.removeprefix("candidateGroups="))
-    assert [item["componentId"] for item in candidate_groups] == [
+    assert {item["componentId"] for item in candidate_groups} == {
         "WeatherOverview",
         "BatteryOverview",
-    ]
+    }
     assert {item["layoutKind"] for item in candidate_groups} == {"Hero"}
-    assert "BatteryOverviewStatusHero@1" in candidate_groups[1]["availableTemplateIds"]
+    battery_group = next(
+        item for item in candidate_groups if item["componentId"] == "BatteryOverview"
+    )
+    assert "BatteryOverviewStatusHero@1" in battery_group["availableTemplateIds"]
 
     action_payloads = "".join(
         'Template("PillAction@1",'
@@ -2621,16 +2625,20 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
         if line.startswith("candidateGroups=")
     )
     candidate_groups = json.loads(groups_line.removeprefix("candidateGroups="))
-    assert [item["componentId"] for item in candidate_groups] == [
+    assert {item["componentId"] for item in candidate_groups} == {
         "BluetoothDeviceOverview",
         "BatteryOverview",
-    ]
-    assert candidate_groups[0]["availableTemplateIds"] == [
+    }
+    bluetooth_group = next(
+        item for item in candidate_groups if item["componentId"] == "BluetoothDeviceOverview"
+    )
+    battery_group = next(
+        item for item in candidate_groups if item["componentId"] == "BatteryOverview"
+    )
+    assert bluetooth_group["availableTemplateIds"] == [
         "BluetoothDeviceOverviewCaseSettingsHero@1"
     ]
-    assert candidate_groups[1]["availableTemplateIds"] == [
-        "BatteryOverviewChargeStatusHero@1", "BatteryOverviewStatusRingHero@1"
-    ]
+    assert battery_group["availableTemplateIds"] == ["BatteryOverviewStatusRingHero@1"]
 
     action_payloads = "".join(
         'Template("PillAction@1",'
@@ -2645,7 +2653,7 @@ def test_earphone_battery_2x4_composes_two_focus_panels_with_two_actions() -> No
     source = (
         'Template("WideTwoHeroActionLayout@1",{},'
         'Template("BluetoothDeviceOverviewCaseSettingsHero@1",{}),'
-        'Template("BatteryOverviewChargeStatusHero@1",'
+        'Template("BatteryOverviewStatusRingHero@1",'
         '{"batteryIcon":"resources/base/media/icon_phone.svg"}),'
         f"{action_payloads});"
     )

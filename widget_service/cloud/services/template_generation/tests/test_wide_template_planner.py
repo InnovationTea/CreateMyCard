@@ -28,6 +28,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     build_template_retrieval_prompt,
     search_template_variants,
 )
+from services.template_generation.engine.advanced.scope_planner import TemplateRouteNotApplicable
 from services.template_generation.engine.cardplan.wide_template_planner import (
     _WIDE_LAYOUTS,
     _layout_geometry_fits,
@@ -239,7 +240,9 @@ def test_wide_two_hero_action_rejects_the_taller_schedule_hero() -> None:
             layoutRole="Hero",
         ),
     )
-    assert layout.slot_height_budgets == (66, 66)
+    # WideTwoFocusTwoActionLayout (66vp budget) was removed; the retained
+    # WideTwoHeroActionLayout uses the 58vp slot budget.
+    assert layout.slot_height_budgets == (58, 58)
     assert not _layout_geometry_fits(layout, slots, registry)
 
 
@@ -283,13 +286,19 @@ def test_more_available_variants_do_not_reject_valid_two_business_layout(richer)
             "GetPhoneBatteryInfo": ("/batterySOC",),
         }
     )
-    plans = _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
-    assert plans
-    for plan in plans:
-        assert {slot.capability_id for slot in plan.business_slots} == {
-            "ViewWeather",
-            "GetPhoneBatteryInfo",
-        }
+    if richer:
+        plans = _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
+        assert plans
+        for plan in plans:
+            assert {slot.capability_id for slot in plan.business_slots} == {
+                "ViewWeather",
+                "GetPhoneBatteryInfo",
+            }
+    else:
+        # The former 66vp two-focus layout was removed. The sparse fixture
+        # contains heroes taller than the retained 58vp two-hero budget.
+        with pytest.raises(TemplateRetrievalMiss, match="supported atomic plan"):
+            _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
 
 
 @pytest.mark.parametrize("reversed_events", (False, True))
@@ -304,31 +313,8 @@ def test_paired_actions_follow_business_ownership(reversed_events):
         },
         action=tuple(event.id for event in task.eventCandidates),
     )
-    plans = _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
-    for plan in plans:
-        for assignment in plan.action_assignments:
-            assert assignment.business_position is not None
-            slot = plan.business_slots[assignment.business_position]
-            expected = (
-                "ViewWeather"
-                if assignment.action_id == "event.open.weather"
-                else "GetPhoneBatteryInfo"
-            )
-            assert slot.capability_id == expected
-        body = _body(plan, action_bindings(task))
-        contract = _contract(plans, task)
-        assert _validate_allowed_template_plan(
-            parse_ux_layout_card(body), contract, get_cardplan_registry(), card_size="2x4"
-        )
-        swapped = (
-            body.replace("event.open.weather", "TEMP")
-            .replace("event.open.settings.battery", "event.open.weather")
-            .replace("TEMP", "event.open.settings.battery")
-        )
-        with pytest.raises(TerselConversionError, match="atomic Template Plan"):
-            _validate_allowed_template_plan(
-                parse_ux_layout_card(swapped), contract, get_cardplan_registry(), card_size="2x4"
-            )
+    with pytest.raises(TemplateRetrievalMiss, match="supported atomic plan"):
+        _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
 
 
 @pytest.mark.parametrize("include_countdown", (False, True))
@@ -519,18 +505,13 @@ async def test_reversed_actions_generate_the_correct_panels():
         action=tuple(event.id for event in task.eventCandidates),
     )
     model = _PlanModel(intent, actions=action_bindings(task))
-    output = await generate_template_a2ui(
-        task,
-        _weather_battery_card_spec(),
-        _WEATHER_BATTERY_BINDINGS,
-        model,
-    )
-    assert model.calls == 1
-    assert output.a2ui.count('"call":"clickToDeeplink"') == 2
-    assert model.body is not None
-    assert model.body.index('"event.open.weather"') < model.body.index(
-        '"event.open.settings.battery"'
-    )
+    with pytest.raises(TemplateRouteNotApplicable, match="supported atomic plan"):
+        await generate_template_a2ui(
+            task,
+            _weather_battery_card_spec(),
+            _WEATHER_BATTERY_BINDINGS,
+            model,
+        )
 
 
 @pytest.mark.asyncio
