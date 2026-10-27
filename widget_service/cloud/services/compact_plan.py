@@ -461,7 +461,12 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
     }
     properties["presentationStyle"] = {
         "enum": ["auto", "content", "attributes", "records", "comparison"],
-        "description": "模型按用户用途选择结构；comparison仅2x4，普通偏好不替代实际容量校验。",
+        "description": (
+            "模型按用户用途选择结构；活动、日程等名称加时地的多条同构记录优先records，"
+            "每个object组对应一条真实记录，不按类别压成ContentBlock长值；"
+            "records最多三个object组；"
+            "comparison仅2x4，普通偏好不替代实际容量校验。"
+        ),
     }
     properties["paletteFamily"] = {
         "enum": ["auto", "blue", "purple", "warm"],
@@ -489,6 +494,11 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
     properties["contentGroups"] = {
         "type": "array",
         "maxItems": 24,
+        "description": (
+            "每条text归属唯一object或shared组。若presentationStyle为records"
+            "或对象首选RecordList，最多提交三个object组；活动、日程等多记录输入按"
+            "真实记录分组，不按类别合并多条记录；超额内容记入omittedContents。"
+        ),
         "items": {
             "type": "object",
             "additionalProperties": False,
@@ -2368,7 +2378,8 @@ def compact_plan_omitted_facts(
             optional = fact.get("priority") == "should"
             authorized = coverage.fact_index in allowed_omitted_fact_indexes or optional
             if authorized and not coverage.visible:
-                omitted_static.append({**fact, "omissionReason": "optional_omission"})
+                omission_reason = "optional_omission" if optional else "bounded_drop"
+                omitted_static.append({**fact, "omissionReason": omission_reason})
         return tuple(omitted_static)
     if not allowed_omitted_fact_indexes:
         return ()
@@ -2448,7 +2459,7 @@ def _drop_fact_matches(
     return matched, priorities, False
 
 
-def _secondary_body_partial_drop_candidate(
+def _item_partial_drop_candidate(
     row: ComponentRow,
     facts: list[Any],
     event_handlers: dict[str, dict[str, Any]],
@@ -2456,10 +2467,17 @@ def _secondary_body_partial_drop_candidate(
     max_fact_count: int | None,
     preserved_fact_indexes: set[int],
 ) -> CompactOptionalDropCandidate | None:
-    if row.component_type != "SecondaryBody" or allowed_fact_indexes is None:
+    """为 SecondaryBody 容量证据或三行 TableText 生成一个最小条目删减候选。"""
+    secondary_body_candidate = (
+        row.component_type == "SecondaryBody" and allowed_fact_indexes is not None
+    )
+    table_text_candidate = row.component_type == "TableText"
+    if not secondary_body_candidate and not table_text_candidate:
         return None
     items = row.props.get("items")
     if not isinstance(items, list):
+        return None
+    if table_text_candidate and len(items) != 3:
         return None
     candidates: list[CompactOptionalDropCandidate] = []
     for item_index, item in enumerate(items):
@@ -2484,7 +2502,10 @@ def _secondary_body_partial_drop_candidate(
         if not omission_pairs:
             continue
         omission_indexes = [index for index, _priority in omission_pairs]
-        if any(index not in allowed_fact_indexes for index in omission_indexes):
+        outside_allowed_scope = allowed_fact_indexes is not None and any(
+            index not in allowed_fact_indexes for index in omission_indexes
+        )
+        if outside_allowed_scope:
             continue
         if max_fact_count is not None and len(omission_indexes) > max_fact_count:
             continue
@@ -2538,7 +2559,12 @@ def compact_plan_optional_drop_candidate(
     if current_content_policy().is_static:
         if max_fact_count is not None and max_fact_count < 1:
             return None
-        return _static_optional_drop_candidate(compact_dsl, plan, allowed_fact_indexes)
+        return _static_optional_drop_candidate(
+            compact_dsl,
+            plan,
+            allowed_fact_indexes,
+            allow_must_fallback=allow_must_fallback,
+        )
     try:
         rows = parse_compact_dsl_rows(
             compact_dsl,
@@ -2586,7 +2612,7 @@ def compact_plan_optional_drop_candidate(
             continue
         if row.props.get("onClick"):
             continue
-        partial_candidate = _secondary_body_partial_drop_candidate(
+        partial_candidate = _item_partial_drop_candidate(
             row,
             facts,
             event_handlers,
@@ -2672,8 +2698,10 @@ def _static_optional_drop_candidate(
     source: str,
     plan: dict[str, Any],
     allowed_indexes: set[int] | None,
+    *,
+    allow_must_fallback: bool,
 ) -> CompactOptionalDropCandidate | None:
-    """静态删减按事实授权，混合组件保留核心；不复用整组件或must删除语义。"""
+    """静态删减按事实授权；优先 should，无候选时才允许 must 兜底。"""
     from services.card_validation.compact_validation.semantic.static_content import (
         static_fact_coverage,
     )
@@ -2685,15 +2713,37 @@ def _static_optional_drop_candidate(
         coverage_rows = static_fact_coverage(source, plan)
     except (TypeError, ValueError):
         return None
+    visible_indexes = {
+        coverage.fact_index for coverage in coverage_rows if coverage.visible
+    }
+    object_groups = []
+    for group in plan.get("contentGroups", []):
+        if group.get("kind") != "object":
+            continue
+        indexes = {
+            index
+            for index in group.get("factIndexes", [])
+            if type(index) is int and 0 <= index < len(facts)
+        }
+        if indexes:
+            object_groups.append(indexes)
+    should_candidates = []
+    must_candidates = []
     for coverage in coverage_rows:
         index = coverage.fact_index
         if allowed_indexes is not None and index not in allowed_indexes:
             continue
         fact = facts[index]
         protected = fact.get("protectedTexts") or fact.get("preserveVerbatim")
-        if fact.get("priority") != "should" or protected:
+        if protected:
             continue
         if not coverage.visible or coverage.component_id is None:
+            continue
+        retains_object = any(
+            any(other != index and other in visible_indexes for other in group_indexes)
+            for group_indexes in object_groups
+        )
+        if not retains_object:
             continue
         text = fact.get("text")
         if not isinstance(text, str):
@@ -2701,16 +2751,25 @@ def _static_optional_drop_candidate(
         requirement = fact.get("requirement")
         if not isinstance(requirement, str):
             requirement = text
-        return CompactOptionalDropCandidate(
+        candidate = CompactOptionalDropCandidate(
             component_id=coverage.component_id,
             component_type="static_content",
             fact_indexes=(index,),
             requirements=(requirement,),
-            contains_must_facts=False,
+            contains_must_facts=fact.get("priority") != "should",
             partial=True,
             display_texts=(text,),
         )
-    return None
+        if candidate.contains_must_facts:
+            must_candidates.append(candidate)
+        else:
+            should_candidates.append(candidate)
+    candidates = should_candidates
+    if not candidates and allow_must_fallback:
+        candidates = must_candidates
+    if not candidates:
+        return None
+    return max(candidates, key=lambda candidate: candidate.fact_indexes)
 
 
 def _required_anchor_layout(

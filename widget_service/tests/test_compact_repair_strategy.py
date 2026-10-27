@@ -417,41 +417,52 @@ def test_capacity_recovery_drops_should_only_candidate_on_first_layout_failure()
     assert directive.optional_drop.contains_must_facts is False
 
 
-def test_capacity_recovery_never_uses_must_fact_as_drop_fallback() -> None:
+def test_capacity_recovery_uses_must_fact_as_drop_fallback_after_preserving_core() -> None:
     tracker = CompactRepairStrategyTracker(capacity_recovery=True)
     errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
     plan = {
         "info_required": [
             {
-                "requirement": "核心状态",
+                "requirement": f"核心状态{index}",
                 "priority": "must",
-                "dataId": "/data/device/status",
+                "dataId": f"/data/device/status{index}",
             }
+            for index in range(3)
         ]
     }
     task_spec = {
         "size": "2x2",
-        "dataModelSchema": {"data": {"device": {"status": {"type": "string"}}}},
+        "dataModelSchema": {
+            "data": {
+                "device": {
+                    f"status{index}": {"type": "string"} for index in range(3)
+                }
+            }
+        },
         "eventCandidates": [],
     }
-    directives = []
-    for attempt in range(5):
-        source = (
-            f'["root","Column",{{"itemMargin":{attempt}}},["status"]]\n'
-            '["status","EmphasisText",{"mainText":'
-            '{"path":"/data/device/status"}}]'
-        )
-        directives.append(
-            tracker.next_directive(
-                source,
-                errors,
-                compact_plan=plan,
-                task_spec=task_spec,
-            )
-        )
+    source = (
+        '["root","Column",{},["status"]]\n'
+        '["status","TableText",{"items":['
+        '{"label":"状态0","value":{"path":"/data/device/status0"}},'
+        '{"label":"状态1","value":{"path":"/data/device/status1"}},'
+        '{"label":"状态2","value":{"path":"/data/device/status2"}}]}]'
+    )
 
-    assert all(item.repair_strategy != "drop_optional_component" for item in directives)
-    assert tracker.allowed_omitted_fact_indexes == ()
+    directive = tracker.next_directive(
+        source,
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert directive.repair_strategy == "drop_optional_component"
+    assert directive.optional_drop is not None
+    assert directive.optional_drop.component_id == "status"
+    assert directive.optional_drop.partial is True
+    assert directive.optional_drop.item_indexes == (2,)
+    assert directive.optional_drop.contains_must_facts is True
+    assert tracker.allowed_omitted_fact_indexes == (2,)
 
 
 def test_drop_uses_reachable_auxiliary_candidate_and_requires_core_reattach() -> None:

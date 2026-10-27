@@ -932,13 +932,24 @@ def _drop_optional_component_fallback_directive(
                 "组件行及其直接父级引用。不得删除其它组件、未授权事实或任何 Action；"
                 "整卡必须继续保留至少一个核心信息组件。"
             )
+        elif candidate.component_type == "TableText":
+            instruction = (
+                "已进入 TableText 条目级最小删减兜底。当前三行表格在目标布局中容量失败；"
+                "仅允许从 optionalDrop.componentId 指定的 TableText.items 删除 "
+                f"allowedItemIndexes={candidate.item_indexes!r} 对应且仍承载 "
+                "allowedOmittedFactIndexes 的一行。保留剩余两行及其顺序、绑定、字号和"
+                "父级引用，不得删除整个 TableText、其它组件、未授权事实或任何 Action。"
+            )
         else:
+            priority = "must" if candidate.contains_must_facts else "should"
             instruction = (
                 "已进入静态最小删减兜底。仅允许省略 allowedOmittedFactIndexes "
-                f"对应的should文字：{candidate.display_texts!r}。只修改其所在条目或字段；"
-                "不得删除仍承载must、保护原文或未授权should的整组件、整条目、整组。"
+                f"对应且由程序批准的{priority}文字：{candidate.display_texts!r}。"
+                "只修改其所在条目或字段；不得删除保护原文或任何未授权事实的整组件、"
+                "整条目、整组。"
                 "仅当条目或组已无剩余事实时才移除空条目或组，并重排余下内容。"
-                "保留全部Action、对象归属和未授权事实；不改写Plan、缩字、截断或隐藏。"
+                "保留全部Action、至少一个正文对象、对象归属和未授权事实；"
+                "不改写Plan、缩字、截断或隐藏。"
             )
     if candidate.requires_core_reattach:
         instruction += (
@@ -972,7 +983,7 @@ def _drop_candidate_is_fully_removed(
 ) -> bool:
     """候选行及全部父级引用均消失后，才允许选择下一个候选。"""
     if candidate.partial:
-        if candidate.component_type == "SecondaryBody":
+        if candidate.component_type in {"SecondaryBody", "TableText"}:
             try:
                 rows = parse_compact_dsl_rows(compact_dsl, expand_layouts=False)
             except (CompactDslConversionError, TypeError, ValueError):
@@ -1142,7 +1153,7 @@ class CompactRepairStrategyTracker:
             compact_dsl,
             compact_plan,
             task_spec,
-            allow_must_fallback=allow_must_fallback and not self._static_content,
+            allow_must_fallback=allow_must_fallback,
             max_fact_count=max_fact_count,
             allowed_fact_indexes=allowed_fact_indexes,
         )
@@ -1290,7 +1301,6 @@ class CompactRepairStrategyTracker:
                 invalid_source_dsl,
                 compact_plan,
                 task_spec,
-                allow_must_fallback=not self._capacity_recovery,
                 max_fact_count=max_fact_count,
                 allowed_fact_indexes=allowed_fact_indexes,
             )
@@ -1331,7 +1341,6 @@ class CompactRepairStrategyTracker:
                         invalid_source_dsl,
                         compact_plan,
                         task_spec,
-                        allow_must_fallback=not self._capacity_recovery,
                         max_fact_count=self._capacity_overflow_limit,
                         allowed_fact_indexes=(
                             self._capacity_overflow_fact_indexes or None
@@ -1415,7 +1424,6 @@ class CompactRepairStrategyTracker:
                         invalid_source_dsl,
                         compact_plan,
                         task_spec,
-                        allow_must_fallback=not self._capacity_recovery,
                     )
                 if candidate is None:
                     self._active_fallback = None
@@ -1590,7 +1598,7 @@ class CompactRepairStrategyTracker:
                 directive,
                 approved_omitted_fact_indexes=tuple(sorted(self._allowed_omitted_fact_indexes)),
             )
-        if self._static_content:
+        if self._static_content and directive.repair_strategy != "drop_optional_component":
             repeated = directive.consecutive_failures >= 2
             directive = replace(
                 directive,

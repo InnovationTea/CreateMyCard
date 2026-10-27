@@ -591,6 +591,8 @@ class WidgetGenerationService:
             is_edit=generation_mode == "edit",
             requested_data=bool(request.candidateDataBindings),
             effective_data=bool(effective_bindings),
+            requested_events=bool(request.candidateEventCandidates),
+            effective_events=bool(effective_events),
             single_step=policy.single_step,
         )
         activate_request_policy(content_policy)
@@ -615,6 +617,8 @@ class WidgetGenerationService:
                 "staticPolicyEnabled": settings.enable_static_content_generation_policy,
                 "requestedData": bool(request.candidateDataBindings),
                 "effectiveData": bool(effective_bindings),
+                "requestedEvents": bool(request.candidateEventCandidates),
+                "effectiveEvents": bool(effective_events),
             },
         )
         from services.prompt_builder import PromptBuilder

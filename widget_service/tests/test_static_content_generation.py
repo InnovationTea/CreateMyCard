@@ -105,6 +105,8 @@ def static_policy():
         {"is_edit": True},
         {"requested_data": True},
         {"effective_data": True},
+        {"requested_events": True},
+        {"effective_events": True},
         {"single_step": True},
         {"operation": "generateWidgetCard"},
     ],
@@ -116,6 +118,8 @@ def test_policy_only_enables_eligible_create(change: dict) -> None:
         "is_edit": False,
         "requested_data": False,
         "effective_data": False,
+        "requested_events": False,
+        "effective_events": False,
     }
     assert resolve_content_policy(**arguments).is_static
     arguments.update(change)
@@ -562,7 +566,7 @@ def test_minimal_should_drop_keeps_must_in_same_component() -> None:
     directive = tracker.next_directive(dsl, [issue], compact_plan=accepted, task_spec=task())
     assert directive.category == "layout_capacity"
     assert directive.optional_drop == candidate
-    assert "不得删除仍承载must" in directive.instruction
+    assert "由程序批准的should文字" in directive.instruction
     assert tracker.validation_omitted_fact_indexes(accepted, validate_drop_plan_facts=False) == (1,)
     repaired = source("ContentBlock", {"title": "带证件"})
     assert not static_group_errors(repaired, accepted, (1,))
@@ -573,18 +577,85 @@ def test_minimal_should_drop_keeps_must_in_same_component() -> None:
 @pytest.mark.parametrize(
     "extras",
     [
-        {"priority": "must"},
         {"priority": "should", "protectedTexts": ["带证件"]},
         {"priority": "should", "preserveVerbatim": True},
+        {"priority": "must", "protectedTexts": ["带证件"]},
     ],
 )
-def test_static_drop_never_authorizes_core_or_verbatim(extras) -> None:
+def test_static_drop_never_authorizes_protected_or_verbatim(extras) -> None:
     from services.compact_plan import compact_plan_optional_drop_candidate
 
     assert (
         compact_plan_optional_drop_candidate(
             source("ContentBlock", {"body": "带证件"}),
             plan([fact("带证件", **extras)]),
+            task(),
+            allow_must_fallback=True,
+        )
+        is None
+    )
+
+
+@pytest.mark.usefixtures("static_policy")
+def test_static_drop_uses_lowest_must_after_should_candidates_are_exhausted() -> None:
+    from services.compact_plan import (
+        compact_plan_omitted_facts,
+        compact_plan_optional_drop_candidate,
+    )
+    from services.compact_repair_strategy import CompactRepairStrategyTracker
+
+    facts = [fact("甲场周六19:30"), fact("乙场周日20:00")]
+    groups = [
+        {"id": "event0", "kind": "object", "factIndexes": [0]},
+        {"id": "event1", "kind": "object", "factIndexes": [1]},
+    ]
+    accepted = plan(facts, groups)
+    dsl = source(
+        "RecordList",
+        {
+            "items": [
+                {"title": "甲场周六19:30"},
+                {"title": "乙场周日20:00"},
+            ]
+        },
+    )
+    assert (
+        compact_plan_optional_drop_candidate(
+            dsl,
+            accepted,
+            task(),
+            allow_must_fallback=False,
+        )
+        is None
+    )
+    tracker = CompactRepairStrategyTracker(static_content=True, capacity_recovery=True)
+    issue = {
+        "stage": "validation",
+        "code": "COMPACT_STATIC_TEXT_CAPACITY",
+        "message": "COMPACT_STATIC_TEXT_CAPACITY: 完整文字超限",
+    }
+    directive = tracker.next_directive(dsl, [issue], compact_plan=accepted, task_spec=task())
+    candidate = directive.optional_drop
+    assert candidate is not None
+    assert candidate.fact_indexes == (1,)
+    assert candidate.contains_must_facts is True
+    assert "由程序批准的must文字" in directive.instruction
+    repaired = source("RecordList", {"items": [{"title": "甲场周六19:30"}]})
+    assert not static_group_errors(repaired, accepted, (1,))
+    omitted = compact_plan_omitted_facts(repaired, accepted, task(), (1,))
+    assert omitted[0].get("omissionReason") == "bounded_drop"
+
+
+@pytest.mark.usefixtures("static_policy")
+def test_static_drop_keeps_the_last_object() -> None:
+    from services.compact_plan import compact_plan_optional_drop_candidate
+
+    accepted = plan([fact("甲场周六19:30")])
+    dsl = source("RecordList", {"items": [{"title": "甲场周六19:30"}]})
+    assert (
+        compact_plan_optional_drop_candidate(
+            dsl,
+            accepted,
             task(),
             allow_must_fallback=True,
         )
@@ -848,6 +919,59 @@ def test_plan_does_not_confuse_list_limit_with_card_capacity(count) -> None:
     query = "完整展示：" + "；".join(item.get("text") for item in facts)
     accepted = accept(plan(facts, groups), query, "2x4")
     assert len(accepted.get("contentGroups", [])) == count
+
+
+@pytest.mark.usefixtures("static_policy")
+@pytest.mark.parametrize("records_style", [False, True])
+def test_record_list_plan_rejects_more_than_three_objects(records_style: bool) -> None:
+    facts = [fact("杭州周末活动汇总")]
+    groups = [
+        {
+            "id": "summary",
+            "kind": "shared",
+            "factIndexes": [0],
+        }
+    ]
+    for index in range(4):
+        text = f"演出{index}周六19:30"
+        hints = ["ContentBlock"] if records_style else ["RecordList"]
+        facts.append(fact(text, componentHints=hints))
+        groups.append(
+            {
+                "id": f"concert{index}",
+                "kind": "object",
+                "factIndexes": [index + 1],
+            }
+        )
+    value = plan(facts, groups)
+    if records_style:
+        value["presentationStyle"] = "records"
+    query = "；".join(item.get("text") for item in facts)
+
+    with pytest.raises(CompactPlanValidationError, match="RecordList最多承载3个对象"):
+        accept(value, query, "2x2")
+
+
+@pytest.mark.usefixtures("static_policy")
+def test_record_list_plan_accepts_three_objects() -> None:
+    facts = []
+    groups = []
+    for index in range(3):
+        text = f"演出{index}周六19:30"
+        facts.append(fact(text, componentHints=["RecordList"]))
+        groups.append(
+            {
+                "id": f"concert{index}",
+                "kind": "object",
+                "factIndexes": [index],
+            }
+        )
+    value = plan(facts, groups)
+    value["presentationStyle"] = "records"
+    query = "活动汇总：" + "；".join(item.get("text") for item in facts)
+
+    accepted = accept(value, query, "2x2")
+    assert len(accepted.get("contentGroups", [])) == 3
 
 
 @pytest.mark.usefixtures("static_policy")
