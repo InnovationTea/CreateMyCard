@@ -52,30 +52,74 @@ def collect_actions_only_plan_errors(
     if not actions_only and not title_action_only:
         return
     facts = compact_plan.get("info_required") if isinstance(compact_plan, dict) else None
-    action_ids: set[str] = set()
-    required_action_count = 1 if title_action_only else 2
-    valid = isinstance(facts, list) and len(facts) == required_action_count
-    if isinstance(facts, list):
-        for fact in facts:
-            if not isinstance(fact, dict):
-                valid = False
-                continue
-            action_id = fact.get("actionId")
-            if not isinstance(action_id, str) or not action_id:
-                valid = False
-                continue
-            if "dataId" in fact or "text" in fact:
-                valid = False
-            action_ids.add(action_id)
-    if not valid or len(action_ids) != required_action_count:
+    if title_action_only:
+        valid = _is_title_action_plan(facts)
+    else:
+        valid = _is_actions_only_plan(facts)
+    if not valid:
         layout_name = "S-title-content-action title-action" if title_action_only else (
             "S-content-dual-action actions-only"
         )
-        action_count = "exactly one action" if title_action_only else "exactly two distinct actions"
+        action_count = (
+            "exactly one action and at most one title fact"
+            if title_action_only
+            else "exactly two distinct actions"
+        )
         errors.append(
             f"{layout_name} requires an accepted Plan containing {action_count} and no "
-            "display facts; preserve all required content."
+            "body or data display facts; preserve all required content."
         )
+
+
+def _is_actions_only_plan(facts: Any) -> bool:
+    """确认双动作变体不夹带展示事实。"""
+    if not isinstance(facts, list) or len(facts) != 2:
+        return False
+    action_ids: set[str] = set()
+    for fact in facts:
+        if not isinstance(fact, dict):
+            return False
+        action_id = fact.get("actionId")
+        if not isinstance(action_id, str) or not action_id:
+            return False
+        if "dataId" in fact or "text" in fact:
+            return False
+        action_ids.add(action_id)
+    return len(action_ids) == 2
+
+
+def _is_title_action_plan(facts: Any) -> bool:
+    """确认标题加单动作变体只保留可见标题事实。"""
+    if not isinstance(facts, list) or len(facts) not in {1, 2}:
+        return False
+    action_ids: set[str] = set()
+    title_count = 0
+    for fact in facts:
+        if not isinstance(fact, dict):
+            return False
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id:
+            if "dataId" in fact or "text" in fact:
+                return False
+            action_ids.add(action_id)
+            continue
+        if not _is_title_fact(fact):
+            return False
+        title_count += 1
+    return len(action_ids) == 1 and title_count <= 1
+
+
+def _is_title_fact(fact: dict[str, Any]) -> bool:
+    """标题事实可由明确角色或首选标题组件标识。"""
+    if "actionId" in fact or "dataId" in fact:
+        return False
+    text = fact.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return False
+    if fact.get("displayRole") == "title":
+        return True
+    component_hints = fact.get("componentHints")
+    return isinstance(component_hints, list) and component_hints[:1] == ["SingleLineTitle"]
 
 
 def collect_plan_contract_errors(

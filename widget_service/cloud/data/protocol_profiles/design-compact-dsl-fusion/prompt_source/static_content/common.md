@@ -45,10 +45,10 @@ bottom-content仅在没有note且ContentBlock不是bottom-attributes时使用。
 有Action才开放兼容布局：2x2单动作S-title-content-action，双动作S-content-dual-action；
 2x4为W-split-panels及title-content-action Region，纯四动作可W-four-slots但四槽全部为CardButton。
 按钮和handler完整复制批准候选，不能给新内容组件加onClick。
-当已接受 Plan 恰好只有一个 Action、没有任何 text/dataId 展示事实且 contentGroups 为空时，2x2 单动作
+当已接受 Plan 恰好只有一个 Action、至多一个明确标题事实、没有正文/dataId 展示事实时，2x2 单动作
 必须使用 `S-title-content-action` 的 `variant:"title-action"`，children 恰好为 `[title, action]`：
 title 是稳定的 SingleLineTitle，action 是带完整 handler 的 PillButton。不得为看起来更完整而补造
-ContentBlock、SecondaryBody、说明性正文或空内容槽；只要 Plan 存在任一展示事实，即回到标准
+ContentBlock、SecondaryBody、说明性正文或空内容槽；只要 Plan 存在任一正文或 dataId 展示事实，即回到标准
 `[title, content, action]` 结构并完整展示该事实。
 
 按真实参考内宽和所需行盒核算：先扣安全区、标题、note、侧栏、分栏内边距和间距，再算文字。

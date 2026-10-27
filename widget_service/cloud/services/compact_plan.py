@@ -1621,6 +1621,40 @@ def _is_title_fact(fact: dict[str, Any]) -> bool:
     )
 
 
+def _is_title_action_plan(facts: list[Any]) -> bool:
+    """判断标题加单动作变体是否只含可见标题和一个动作。"""
+    if len(facts) not in {1, 2}:
+        return False
+    action_ids: set[str] = set()
+    title_count = 0
+    for fact in facts:
+        if not isinstance(fact, dict):
+            return False
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id:
+            if "dataId" in fact or "text" in fact:
+                return False
+            action_ids.add(action_id)
+            continue
+        if not _is_title_action_fact(fact):
+            return False
+        title_count += 1
+    return len(action_ids) == 1 and title_count <= 1
+
+
+def _is_title_action_fact(fact: dict[str, Any]) -> bool:
+    """标题加单动作变体的标题必须可由 Plan 明确识别。"""
+    if "actionId" in fact or "dataId" in fact:
+        return False
+    text = fact.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return False
+    if fact.get("displayRole") == "title":
+        return True
+    hints = fact.get("componentHints")
+    return isinstance(hints, list) and hints[:1] == ["SingleLineTitle"]
+
+
 def _composition_groups_freshness_with_core(
     composition: dict[str, Any],
     core_index: int,
@@ -1683,15 +1717,12 @@ def compact_plan_context(
                 "不生成内容槽、标题、占位正文、空容器或伪造状态。"
             )
     if fixed_title_action and isinstance(facts, list):
-        if len(facts) == 1 and isinstance(facts[0], dict):
-            fact = facts[0]
-            has_display_fact = "dataId" in fact or "text" in fact
-            title_action_only = isinstance(fact.get("actionId"), str) and not has_display_fact
+        title_action_only = _is_title_action_plan(facts)
         if title_action_only:
             pure_action_instruction = (
-                "本轮只有一个必要动作、没有展示事实，使用 S-title-content-action 的 "
+                "本轮只有一个必要动作，至多保留一个标题事实，使用 S-title-content-action 的 "
                 "title-action 变体，children 仅为 SingleLineTitle 和 PillButton；"
-                "保留稳定标题和真实动作，不生成内容槽、占位正文、空容器或伪造状态。"
+                "保留稳定标题和真实动作，不生成内容槽、正文、占位正文、空容器或伪造状态。"
             )
     if "assetAssignments" in context_plan:
         asset_instruction = (
@@ -1761,7 +1792,7 @@ def compact_plan_context(
         "首选组件不适配时重组选型，保留全部事实、两个动作及其完整参数，不缩字或补造正文。"
         if fixed_dual_action
         else (
-            "本轮唯一必要动作且没有展示事实时，S-title-content-action 必须使用 "
+            "本轮唯一必要动作且至多一个标题事实时，S-title-content-action 必须使用 "
             "title-action 变体，不得生成正文槽。"
             if title_action_only
             else "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"

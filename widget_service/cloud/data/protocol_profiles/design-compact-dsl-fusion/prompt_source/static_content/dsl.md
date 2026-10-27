@@ -12,9 +12,9 @@ staticPresentation存在时可复用，但仍须对照来源自查；它只通�
 
 正文只用ContentBlock、RecordList、ComparisonGroup；旧组件仅必要标题、共享说明和动作。
 无动作使用S-static-content/W-static-content；列表/对比最多三项，属性表最多六项。
-若已接受 Plan 只有一个 Action、没有 text/dataId 展示事实且没有 contentGroups，使用
+若已接受 Plan 只有一个 Action、至多一个明确标题事实、没有正文/dataId 展示事实，使用
 `S-title-content-action` 的 `title-action` 变体，直接输出 `[title, action]`。不得添加任何正文来填满卡片；
-action 必须是 PillButton 并完整复制候选 handler。只要 Plan 有展示事实，不能使用该变体。
+action 必须是 PillButton 并完整复制候选 handler。只要 Plan 有正文或 dataId 展示事实，不能使用该变体。
 优先全宽ContentBlock或plain RecordList；短键值用属性表，短且等权对比才用ComparisonGroup。
 空间不足先去装饰、切换合法组件、把侧栏移本条全宽，再整项省略无保护should；must完整保留。
 省略号使用Plan已有版本，不再自动截断；不能任意缩字、隐式裁切、扩尺寸或把核心搬note。

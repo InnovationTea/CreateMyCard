@@ -30,8 +30,12 @@ def _task() -> dict:
     }
 
 
-def _plan(with_display_fact: bool = False) -> dict:
+def _plan(with_display_fact: bool = False, title_marker: str | None = None) -> dict:
     facts = [{"requirement": "打开存储设置", "actionId": "storage", "priority": "must"}]
+    if title_marker is not None:
+        title_fact = {"requirement": "存储空间标题", "text": "存储空间", "priority": "must"}
+        title_fact[title_marker] = "title" if title_marker == "displayRole" else ["SingleLineTitle"]
+        facts.insert(0, title_fact)
     if with_display_fact:
         facts.append({"requirement": "存储状态", "text": "剩余空间", "priority": "must"})
     return {"info_required": facts, "layoutHints": ["S-title-content-action"]}
@@ -83,6 +87,16 @@ def test_title_action_rejects_plan_with_display_fact() -> None:
         )
 
 
+@pytest.mark.parametrize("title_marker", ["displayRole", "componentHints"])
+def test_title_action_accepts_one_identified_title_fact(title_marker: str) -> None:
+    validate_compact_dsl(
+        _source(),
+        task_spec=_task(),
+        card_spec={"suggestSize": "2x2"},
+        compact_plan=_plan(title_marker=title_marker),
+    )
+
+
 def test_title_action_requires_explicit_variant() -> None:
     with pytest.raises(CompactDslConversionError):
         convert_compact_dsl_to_a2ui(_source("standard"), size="2x2")
@@ -92,3 +106,8 @@ def test_title_action_plan_context_requires_the_explicit_variant() -> None:
     context = compact_plan_context(_plan(), execution_selected=True)
     assert "title-action 变体" in context
     assert "不生成内容槽" in context
+
+
+def test_title_action_plan_context_accepts_an_identified_title_fact() -> None:
+    context = compact_plan_context(_plan(title_marker="displayRole"), execution_selected=True)
+    assert "title-action 变体" in context
