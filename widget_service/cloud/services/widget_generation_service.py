@@ -12,7 +12,6 @@ from functools import partial
 from typing import Any
 
 from anyio import to_thread
-
 from api.schemas import (
     CapabilityOverviewRequest,
     CapabilityOverviewResponse,
@@ -58,6 +57,7 @@ from services.compact_repair_strategy import (
     CompactRepairStrategyTracker,
     compact_capacity_recovery_failure_category,
 )
+from services.compact_script_repair import ScriptRepairBudget, repair_static_errors
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_content_policy import (
@@ -865,6 +865,7 @@ class WidgetGenerationService:
             ),
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
+        script_budget = ScriptRepairBudget(settings.compact_script_max_candidates)
         source_generated_by_jsx = False
         source_generated_by_template = False
         validated_template_source: str | None = None
@@ -1304,6 +1305,7 @@ class WidgetGenerationService:
             nonlocal effective_generation_prompt
             nonlocal model_call_phase, quality_repair_attempt_count
             nonlocal source_generated_by_template
+            invalid_source_dsl = latest_processing_result.source_dsl
             # 模型修复阶段切换回模型组件规则。
             source_generated_by_template = False
             trace_phase("repair")
@@ -1464,8 +1466,7 @@ class WidgetGenerationService:
                 )
                 return require_generated_dsl(result)
 
-        def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
-            nonlocal latest_processing_result
+        def evaluate_source_dsl_sync(source_dsl: str) -> DslProcessingResult:
             if content_policy.is_static:
                 if len(source_dsl) > settings.static_content_max_output_chars:
                     issue = QualityIssue(
@@ -1473,8 +1474,7 @@ class WidgetGenerationService:
                         code="COMPACT_STATIC_TEXT_CAPACITY",
                         message="静态DSL输出超过本请求预算，请保留核心并减少非必要结构。",
                     )
-                    latest_processing_result = DslProcessingResult(source_dsl, issues=(issue,))
-                    return [issue.repair_message()]
+                    return DslProcessingResult(source_dsl, issues=(issue,))
             if task_spec.size == "2x2" and policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
                 from services.compact_composition_context import retain_original_small_display_roles
 
@@ -1494,11 +1494,10 @@ class WidgetGenerationService:
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=jsx_internal_validation"
                 )
-                latest_processing_result = DslProcessingResult(
+                return DslProcessingResult(
                     source_dsl=source_dsl,
                     standard_dsl=asset_mapper.rewrite_standard(source_dsl),
                 )
-                return []
             processing_context_for_source = replace(
                 processing_context,
                 skip_compact_dsl_validation=source_generated_by_template,
@@ -1588,7 +1587,6 @@ class WidgetGenerationService:
                             ),
                         ),
                     )
-            latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
                 for item in processing_result.issues
@@ -1606,25 +1604,11 @@ class WidgetGenerationService:
                     f"{_MODULE} dsl_conversion_failed operation={policy.operation} "
                     f"errors={json_for_log(conversion_errors)}"
                 )
-                self._append_repair_record(
-                    repair_records,
-                    model_call_phase,
-                    quality_repair_attempt_count,
-                    source_dsl,
-                    latest_processing_result,
-                )
-                return conversion_errors
+                return processing_result
             if not settings.enable_artifact_validation and not policy.single_step:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=enable_artifact_validation_false"
-                )
-                self._append_repair_record(
-                    repair_records,
-                    model_call_phase,
-                    quality_repair_attempt_count,
-                    source_dsl,
-                    latest_processing_result,
                 )
                 with trace_attempt(**validation_attempts):
                     trace_record(
@@ -1633,7 +1617,7 @@ class WidgetGenerationService:
                         status="skipped",
                         details={"reason": "enable_artifact_validation_false"},
                     )
-                return []
+                return processing_result
 
             standard_dsl = processing_result.standard_dsl
             artifact_build_started_at = time.perf_counter()
@@ -1735,21 +1719,13 @@ class WidgetGenerationService:
                     )
                 )
             validation_issues = tuple(validation_issues_list)
-            latest_processing_result = DslProcessingResult(
-                source_dsl=processing_result.source_dsl,
-                standard_dsl=processing_result.standard_dsl,
+            return replace(
+                processing_result,
                 issues=processing_result.issues + validation_issues,
             )
-            self._append_repair_record(
-                repair_records,
-                model_call_phase,
-                quality_repair_attempt_count,
-                source_dsl,
-                latest_processing_result,
-            )
-            return [item.repair_message() for item in validation_issues]
 
         async def evaluate_source_dsl(source_dsl: str) -> list[str]:
+            nonlocal latest_processing_result
             if source_generated_by_template and source_dsl == validated_template_source:
                 return []
             if quality_repair_attempt_count == 0:
@@ -1762,7 +1738,40 @@ class WidgetGenerationService:
                     kind="group",
                 ) as evaluation_span,
             ):
-                errors = await to_thread.run_sync(evaluate_source_dsl_sync, source_dsl)
+                async def evaluate_candidate(candidate: str) -> DslProcessingResult:
+                    return await to_thread.run_sync(evaluate_source_dsl_sync, candidate)
+
+                result = await evaluate_candidate(source_dsl)
+                compact_create = (
+                    policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
+                    and generation_mode == "create"
+                    and not policy.single_step
+                )
+                if (
+                    compact_create
+                    and not source_generated_by_template
+                    and not source_generated_by_jsx
+                ):
+                    result = await repair_static_errors(
+                        result,
+                        settings=settings,
+                        evaluate=evaluate_candidate,
+                        budget=script_budget,
+                        context=replace(
+                            processing_context,
+                            colorless_layout=colorless_source(),
+                            compact_plan=accepted_compact_plan,
+                        ),
+                    )
+                latest_processing_result = result
+                self._append_repair_record(
+                    repair_records,
+                    model_call_phase,
+                    quality_repair_attempt_count,
+                    source_dsl,
+                    result,
+                )
+                errors = [issue.repair_message() for issue in result.errors]
                 evaluation_span.outcome("failed" if errors else "success", errorCount=len(errors))
                 trace_phase_outcome("failed" if errors else "success", errorCount=len(errors))
                 return errors
@@ -1784,6 +1793,8 @@ class WidgetGenerationService:
                 "singleStep": policy.single_step,
                 "qualityRepairEnabled": retry_on_validation_failure,
                 "qualityRepairLimit": repair_limit if retry_on_validation_failure else 0,
+                "scriptRepairEnabled": settings.enable_compact_script_repair,
+                "scriptCandidateLimit": settings.compact_script_max_candidates,
                 "planFactValidationEnabled": settings.enable_drop_plan_fact_validation,
             },
         )
@@ -1853,7 +1864,7 @@ class WidgetGenerationService:
                 ),
             )
             return response
-        source_dsl = retry_result.result
+        source_dsl = latest_processing_result.source_dsl
         genui = latest_processing_result.standard_dsl
         errors = retry_result.errors
         model_failure_retry_count = model_client.model_failure_retry_count

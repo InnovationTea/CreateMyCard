@@ -1,6 +1,9 @@
 """操作标识与内容名称的中文语义，集中维护调试展示词汇。"""
 
 OPERATION_TITLES = {
+    "compact.script.candidate": "静态错误脚本候选复检",
+    "compact.script.decision": "静态脚本修复与模型交接",
+    "compact.script.parse_failed": "源文无法解析，交回原修复流程",
     "generation.branch": "生成分支",
     "fallback": "单步兜底阶段",
     "template.generate": "模板生成",
@@ -59,6 +62,9 @@ OPERATION_TITLES = {
 }
 
 CONTENT_LABELS = {
+    "compact_script_before": "脚本修复前 Compact",
+    "compact_script_candidate": "候选 Compact（是否采用见诊断）",
+    "compact_script_issues": "候选完整复检问题单",
     "theme_before": "主题处理前 A2UI",
     "theme_after": "主题处理后 A2UI",
     "theme_audit": "主题处理审计",
@@ -129,6 +135,7 @@ def operation_title(operation: str, attempts: dict) -> str:
         "repair.attempt": "qualityRepair",
         "model.physical_call": "modelPhysical",
         "validation.evaluate": "validation",
+        "compact.script.candidate": "scriptCandidate",
     }.get(operation)
     attempt = attempts.get(dimension) if dimension else None
     if isinstance(attempt, int):

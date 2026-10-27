@@ -57,6 +57,8 @@ class CompactDiagnostic:
     source_line: int | None = None
     fix_hint: str | None = None
     data_path: str | None = None
+    evidence_component_id: str | None = None
+    evidence_property_path: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         """创建可独立还原素材和序列化的副本。"""
@@ -81,6 +83,8 @@ class CompactDiagnostic:
             ("propertyPath", self.property_path),
             ("sourceLine", self.source_line),
             ("fixHint", self.fix_hint),
+            ("evidenceComponentId", self.evidence_component_id),
+            ("evidencePropertyPath", self.evidence_property_path),
         ):
             if value is not None:
                 payload[key] = value

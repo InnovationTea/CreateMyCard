@@ -40,6 +40,15 @@ ai_widget_data_huashan_enable: false
 enable_default_capability_registry_fallback: true
 enable_default_protocol_profile_fallback: true
 enable_validation_failure_retry: true
+# 普通 Fusion 创建：校验 error 后先脚本、再原模型修复；总开关显式开启。
+enable_compact_script_repair: false
+enable_compact_button_slot_repair: true
+enable_compact_parent_budget_repair: true
+enable_compact_sibling_space_repair: true
+enable_compact_duplicate_click_repair: true
+enable_compact_height_closure_repair: true
+enable_compact_semantic_layout_repair: true
+compact_script_max_candidates: 12
 # 融合实际修满5次仍失败后才可单步兜底；独立默认关闭，不改变原修复策略。
 enable_single_step_generation_fallback: false
 # 二次编辑默认走单步；关闭此项恢复原编辑路由，关闭总开关拒绝所有编辑。

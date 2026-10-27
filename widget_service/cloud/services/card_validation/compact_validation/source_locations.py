@@ -55,12 +55,18 @@ class SourceLocations:
                 return replace(
                     diagnostic, component_id=origin, property_path=None,
                     source_line=record.line, evidence_source="expanded",
+                    evidence_component_id=component_id,
+                    evidence_property_path=diagnostic.property_path,
                 )
         if component_id is not None and self._context.original_components is not None:
             original = component_index(self._context.original_components).get(component_id)
             expanded = component_index(self._context.components).get(component_id)
             if original != expanded:
-                return replace(result, evidence_source="expanded")
+                return replace(
+                    result, evidence_source="expanded",
+                    evidence_component_id=component_id,
+                    evidence_property_path=diagnostic.property_path,
+                )
         if component_id is not None:
             result = self._locate_component(diagnostic, result, component_id)
         elif diagnostic.data_path is not None:
