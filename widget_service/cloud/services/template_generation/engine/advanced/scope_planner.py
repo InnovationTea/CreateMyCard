@@ -1356,7 +1356,7 @@ def _layout_rank(layout_id: str, count: int, action_count: int) -> tuple[int, st
             "WideHeroActionFullLayout",
         ),
         (1, 2): ("CompactTwoActionLayout",),
-        (2, 0): ("TwoSupportLayout", "WideTwoFocusLayout"),
+        (2, 0): ("TwoSupportLayout",),
         (2, 1): (
             "HeroTitleContentActionLayout",
             "TwoSupportLayout",

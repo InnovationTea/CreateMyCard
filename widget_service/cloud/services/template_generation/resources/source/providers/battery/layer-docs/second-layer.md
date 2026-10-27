@@ -120,7 +120,7 @@
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个，用户显式要求电池健康和当前电量等级，且
   `/healthStatusDesc`、`/batteryCapacityLevelDesc` 均可用时，优先选择
   `BatteryOverviewHealthLevelHero@1`，并把动作作为末尾 `PillAction@1` 放入 `HeroActionLayout@1`。
-- 当目标尺寸为 `2x4`、与天气等其它业务组合进 `WideTwoFocusLayout@1`、`WideTwoFocusActionLayout@1` 或
+- 当目标尺寸为 `2x4`、与天气等其它业务组合进 `WideTwoFocusActionLayout@1` 或
   `WideTwoHeroActionLayout@1` 左右双 Hero 布局，且用户显式要求手机电量和充电状态（`/batterySOC`、
   `/chargingStatusDesc` 均可用）时，优先选择 `BatteryOverviewStatusHero@1` 占据一个 Hero 槽位；
   `batteryIcon` 为必选参数，必须传入本轮匹配的电量素材。
@@ -130,14 +130,14 @@
     底部按钮由布局 PillAction 槽位提供，不展示 `/chargingStatusDesc` 与 `/pluggedTypeDesc`
     （两个字段为可选数据，仅进入数据契约以保证字段覆盖）。
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /pluggedTypeDesc, /batteryTemperatureText。
-- 当目标尺寸为 `2x4`、与耳机仓等其它业务组合进 `WideTwoFocusLayout@1`、`WideTwoFocusActionLayout@1` 或
+- 当目标尺寸为 `2x4`、与耳机仓等其它业务组合进 `WideTwoFocusActionLayout@1` 或
   `WideTwoHeroActionLayout@1` 左右双 Hero 布局，且用户显式要求手机电量、充电状态和充电器类型
   （`/batterySOC` 可用即可选择，`/chargingStatusDesc`、`/pluggedTypeDesc` 可用时进入可选数据契约）时，
   优先选择 `BatteryOverviewChargeStatusHero@1` 占据一个 Hero 槽位；`batteryIcon` 为必选参数，必须传入本轮
   匹配的 `battery_leaf_fill.svg` 电池叶片素材，仅表示电量，不表示省电模式已开启；不得用耳机或动作图标替代。
   用户只显式要求手机电量（仅 `/batterySOC` 可用）时同样可以选择该模板，两个字段缺失不阻塞选择。
   `/batteryTemperatureText` 可用时替换顶部标题为电池温度文本，缺失时保留“手机”标题。
-- 当目标尺寸为 `2x4`、与天气等其它业务组合进 `WideTwoFocusLayout@1`、`WideTwoFocusActionLayout@1` 或
+- 当目标尺寸为 `2x4`、与天气等其它业务组合进 `WideTwoFocusActionLayout@1` 或
   `WideTwoHeroActionLayout@1` 左右双 Hero 布局，且用户显式要求手机电量和充电状态（`/batterySOC`、
   `/chargingStatusDesc` 均可用）时，优先选择 `BatteryOverviewStatusRingHero@1` 占据一个 Hero 槽位；
   `batteryIcon` 为必选参数，必须传入本轮匹配的手机设备素材，用手机图标标识电量所属设备，

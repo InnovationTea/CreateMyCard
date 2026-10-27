@@ -1251,7 +1251,6 @@ def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
         "WideSingleFocusLayout": ("2x4",),
         "WideFullOnlyLayout": ("2x4",),
         "WideTwoFullLayout": ("2x4",),
-        "WideHeroCompactLayout": ("2x4",),
         "WideFullHeroActionLayout": ("2x4",),
         "WideHeroActionFullLayout": ("2x4",),
         "WideFullTwoCompactLayout": ("2x4",),
@@ -1261,7 +1260,6 @@ def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
         "WideHalfTwoCompactLayout": ("2x4",),
         "WideHalfCompactTwoLargeActionLayout": ("2x4",),
         "WideHalfFourLargeActionLayout": ("2x4",),
-        "WideTwoFocusLayout": ("2x4",),
         "WideTwoFocusActionLayout": ("2x4",),
         "WideTwoHeroActionLayout": ("2x4",),
     }

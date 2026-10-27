@@ -330,7 +330,6 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
         "WideHalfTwoCompactLayout@1": 3,
         "WideHalfCompactTwoLargeActionLayout@1": 4,
         "WideHalfFourLargeActionLayout@1": 5,
-        "WideTwoFocusLayout@1": 2,
         "WideTwoFocusActionLayout@1": 3,
     }
     variable_children = {
@@ -718,25 +717,6 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         (),
         "2x4",
     )
-    _validate_provider_template_layout_action_requirements(
-        "WideTwoFocusLayout",
-        (
-            template("WeatherOverviewConditionHero@1"),
-            template("BatteryOverviewStatusHero@1"),
-        ),
-        (),
-        "2x4",
-    )
-    with pytest.raises(TerselConversionError, match="slot combination is invalid"):
-        _validate_provider_template_layout_action_requirements(
-            "WideTwoFocusLayout",
-            (
-                template("WeatherOverviewConditionHero@1"),
-                template("BatteryOverviewStatusHero@1"),
-            ),
-            (pill_one,),
-            "2x4",
-        )
     _validate_provider_template_layout_action_requirements(
         "WideTwoFocusActionLayout",
         (

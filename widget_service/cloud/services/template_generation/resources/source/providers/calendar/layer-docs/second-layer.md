@@ -163,7 +163,7 @@
   保留动态总数。明确完整列表、逐条、各自、固定多项、禁止只显示首项或排斥额外标题时不选此摘要。
   原有多项路线优先，不修改原模板布局、输入字段或总数样例。
 - `ScheduleOverviewTitleLocationHero@1` 仅用于已下发的日程天气无动作宽卡，与
-  `WeatherOverviewConditionHero@1` 组成 `WideTwoFocusLayout@1`；该受限组合不套用小卡 Hero 加按钮
+  `WeatherOverviewConditionHero@1` 组成 `WideTwoFocusActionLayout@1`；该受限组合不套用小卡 Hero 加按钮
   的说明，不添加日期、温度或任何动作。全部新增日程模板 Props 均为 `{}`。
   日程文字统一居中，标题区、主内容区、辅助区分别高 16/58/16vp，字号 12/24/12fp、间距 6vp。
   仅该精确组合且天气为三行基础信息、没有图标或动作时，天气沿用同样的居中排版，并将布局底板

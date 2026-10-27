@@ -49,11 +49,6 @@
       "entry": "templates/layout.cardtpl"
     },
     {
-      "templateId": "WideHeroCompactLayout@1",
-      "description": "2x4 左侧 Hero、右侧垂直居中的 Compact 组合布局。",
-      "entry": "templates/layout.cardtpl"
-    },
-    {
       "templateId": "WideFullHeroActionLayout@1",
       "description": "2x4 左 Full、右上 Hero、右下一个 PillAction 布局。",
       "entry": "templates/layout.cardtpl"
@@ -101,11 +96,6 @@
     {
       "templateId": "WideTwoHeroActionLayout@1",
       "description": "2x4 左右各一个 Hero，每个 Hero 下方各承载一个 PillAction。",
-      "entry": "templates/layout.cardtpl"
-    },
-    {
-      "templateId": "WideTwoFocusLayout@1",
-      "description": "2x4 左右双焦点拼接布局，两个 2x2 风格圆角面板各承载一个无独立动作的 Hero 业务模板。",
       "entry": "templates/layout.cardtpl"
     },
     {
@@ -331,32 +321,6 @@
     {
       "name": "WideTwoFullLayout",
       "description": "仅用于 2x4；左右各承载一个 Full 业务 child，由布局为两个槽位统一提供支撑背板；不接受独立动作 child，允许一个 Full 内嵌自身可信业务动作。",
-      "supportedCardSizes": [
-        "2x4"
-      ],
-      "minChildren": 2,
-      "maxChildrenBySize": {
-        "2x4": 2
-      },
-      "actionPolicy": "none",
-      "minActionChildrenBySize": {
-        "2x4": 0
-      },
-      "maxActionChildrenBySize": {
-        "2x4": 0
-      },
-      "parametersSchema": {
-        "type": "object",
-        "properties": {},
-        "additionalProperties": false
-      },
-      "loweringBySize": {
-        "2x4": "row"
-      }
-    },
-    {
-      "name": "WideHeroCompactLayout",
-      "description": "仅用于 2x4；依次承载一个 Hero 和一个 Compact，不接受独立动作。",
       "supportedCardSizes": [
         "2x4"
       ],
@@ -634,32 +598,6 @@
       },
       "maxActionChildrenBySize": {
         "2x4": 2
-      },
-      "parametersSchema": {
-        "type": "object",
-        "properties": {},
-        "additionalProperties": false
-      },
-      "loweringBySize": {
-        "2x4": "row"
-      }
-    },
-    {
-      "name": "WideTwoFocusLayout",
-      "description": "仅用于 2x4；左右两个 2x2 风格圆角面板各承载一个 Hero 业务 child，不接受独立动作。",
-      "supportedCardSizes": [
-        "2x4"
-      ],
-      "minChildren": 2,
-      "maxChildrenBySize": {
-        "2x4": 2
-      },
-      "actionPolicy": "none",
-      "minActionChildrenBySize": {
-        "2x4": 0
-      },
-      "maxActionChildrenBySize": {
-        "2x4": 0
       },
       "parametersSchema": {
         "type": "object",

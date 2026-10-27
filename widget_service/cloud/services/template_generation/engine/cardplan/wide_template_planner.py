@@ -41,7 +41,7 @@ _CALENDAR_COUNTDOWN_FULL_IDS = frozenset(
 )
 
 # 这些布局允许单动作内嵌进业务模板根节点（底板事件），不产生布局根的 Action 槽位。
-_EMBEDDED_ACTION_LAYOUT_IDS = frozenset({"WideFullOnlyLayout", "WideTwoFocusLayout"})
+_EMBEDDED_ACTION_LAYOUT_IDS = frozenset({"WideFullOnlyLayout"})
 
 
 @dataclass(frozen=True)
@@ -61,10 +61,8 @@ class WideLayoutOption:
 # 顺序只用于同分方案的稳定择优；不得因前一形态不成立而拒绝后续形态。
 _WIDE_LAYOUTS = (
     WideLayoutOption("WideFullOnlyLayout", ("WideFull",)),
-    WideLayoutOption("WideTwoFocusLayout", ("Hero", "Hero")),
     WideLayoutOption("WideTwoFullLayout", ("Full", "Full")),
     WideLayoutOption("WideTwoHalfLayout", ("WideHalf", "WideHalf")),
-    WideLayoutOption("WideHeroCompactLayout", ("Hero", "Compact")),
     # 2x4 的窄业务槽位语义是 Support。旧 Compact 形态保留在后面，
     # 仅用于兼容尚未迁移的历史 Provider。
     WideLayoutOption(

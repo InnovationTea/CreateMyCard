@@ -65,7 +65,7 @@ _COMPACT_SUBTITLE_ACTION_TEMPLATE_ID = "CompactSubtitleAction@1"
 _ICON_ACTION_TEMPLATE_ID = "IconAction@1"
 _LARGE_ICON_ACTION_TEMPLATE_ID = "LargeIconAction@1"
 _TWO_FOCUS_LAYOUT_IDS = frozenset(
-    {"WideTwoFocusLayout", "WideTwoFocusActionLayout"}
+    {"WideTwoFocusActionLayout"}
 )
 
 
@@ -883,7 +883,6 @@ def _layout_output_option(
         "WideSingleFocusLayout": "WideHero" if selected_actions else "WideFull",
         "WideFullOnlyLayout": "WideFull",
         "WideTwoFullLayout": "Full",
-        "WideHeroCompactLayout": ("Hero", "Compact"),
         "WideFullHeroActionLayout": ("Full", "Hero"),
         "WideHeroActionFullLayout": ("Full", "Hero"),
         "WideFullTwoCompactLayout": "Full",
@@ -894,7 +893,6 @@ def _layout_output_option(
         "WideHalfTwoCompactLayout": ("WideHalf", "Compact", "Compact"),
         "WideHalfCompactTwoLargeActionLayout": ("WideHalf", "Compact"),
         "WideHalfFourLargeActionLayout": "WideHalf",
-        "WideTwoFocusLayout": ("Hero", "Hero"),
         "WideTwoFocusActionLayout": ("Hero", "Hero"),
     }[layout_id]
     if layout_id == "WideFullTwoCompactLayout":
@@ -1347,8 +1345,9 @@ def _second_layer_layout_selection(
                         "use WideFullTwoCompactLayout with two Compact children"
                     )
                 elif "Hero" in group_kinds[0]:
-                    layout_id, kinds, actions = (
-                        "WideHeroCompactLayout", ("Hero", "Compact"), ()
+                    raise ValueError(
+                        "2x4 Hero + Compact composition is not supported; "
+                        "use a supported Full + Support composition"
                     )
                 else:
                     raise ValueError(
@@ -1358,7 +1357,10 @@ def _second_layer_layout_selection(
                 if has_half(0) and has_half(1):
                     layout_id, kinds, actions = "WideTwoHalfLayout", ("WideHalf", "WideHalf"), ()
                 elif "Hero" in group_kinds[0] and "Hero" in group_kinds[1]:
-                    layout_id, kinds, actions = "WideTwoFocusLayout", ("Hero", "Hero"), ()
+                    raise ValueError(
+                        "2x4 Hero + Hero composition is not supported; "
+                        "use a supported Full + Full composition"
+                    )
                 else:
                     layout_id, kinds, actions = "WideTwoFullLayout", ("Full", "Full"), ()
         elif (component_count, action_count) == (4, 0):

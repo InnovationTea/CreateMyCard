@@ -62,7 +62,6 @@ _LAYOUT_COMPONENTS = frozenset(
         "WideSingleFocusLayout",
         "WideFullOnlyLayout",
         "WideTwoFullLayout",
-        "WideHeroCompactLayout",
         "WideFullHeroActionLayout",
         "WideHeroActionFullLayout",
         "WideFullTwoCompactLayout",
@@ -73,7 +72,6 @@ _LAYOUT_COMPONENTS = frozenset(
         "WideHalfTwoCompactLayout",
         "WideHalfCompactTwoLargeActionLayout",
         "WideHalfFourLargeActionLayout",
-        "WideTwoFocusLayout",
         "WideTwoFocusActionLayout",
     }
 )

@@ -2389,7 +2389,6 @@ def _weather_battery_card_spec() -> dict[str, Any]:
 @pytest.mark.parametrize(
     ("with_actions", "expected_layout_id"),
     [
-        (False, "WideTwoFocusLayout@1"),
         (True, "WideTwoHeroActionLayout@1"),
     ],
 )

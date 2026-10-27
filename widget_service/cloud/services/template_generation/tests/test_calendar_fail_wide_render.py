@@ -89,7 +89,6 @@ _CASES = (
             "/events/2/description",
         ),
     ),
-    _Case("TitleLocationHero", ("/events/0/title", "/events/0/eventLocation"), mixed=True),
 )
 _SAMPLES: dict[str, str | int | bool] = {
     "startDate": "10月23日",
@@ -198,7 +197,7 @@ def _compile(
     plans = plan_template_candidates(intent, search, task, registry)
     assert plans
     plan = plans[0]
-    layout = "WideTwoFocusLayout@1" if case.mixed else "WideFullOnlyLayout@1"
+    layout = "WideFullOnlyLayout@1"
     assert plan.layout_template_id == layout
     assert set(slot.template_id for slot in plan.business_slots) == set(preferred)
     assert not plan.action_assignments
@@ -421,8 +420,6 @@ def test_three_details_has_three_separate_rows_without_losing_notes(
             assert style.get("fontWeight") == weight
             assert style.get("height") == 16
             assert style.get("maxLines") == 1
-
-
 @pytest.mark.parametrize("auxiliary_rows", (1, 2, 3))
 def test_two_events_preserve_two_equally_weighted_columns(
     registry: CardPlanRegistry, auxiliary_rows: int
@@ -476,22 +473,5 @@ def test_two_events_preserve_two_equally_weighted_columns(
             assert style.get("width") == "matchParent"
             assert style.get("maxLines") == 1
 
+# End of the wide schedule regression cases.
 
-def test_mixed_calendar_uses_centered_three_level_reference(registry: CardPlanRegistry) -> None:
-    case = _CASES[5]
-    components = _compile(case, (), registry)
-    root_id = _calendar_root(case, components)
-    root = components.get(root_id)
-    assert isinstance(root, dict)
-    assert root.get("itemMargin") == 6
-    assert _natural_height(root_id, components) == 102
-    content = _subtree(root_id, components)
-    texts = [component for component in content if component.get("component") == "Text"]
-    assert len(texts) == 3
-    for text, size, height in zip(texts, (12, 24, 12), (16, 58, 16), strict=True):
-        style = _styles(text)
-        assert style.get("fontSize") == size
-        assert style.get("height") == height
-        assert style.get("width") == "matchParent"
-        assert style.get("textAlign") == "center"
-        assert style.get("maxLines") == 1

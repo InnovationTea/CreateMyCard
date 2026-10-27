@@ -972,7 +972,6 @@ def _expand_call(
         ux_layout_id
         in {
             "WideTwoFullLayout",
-            "WideHeroCompactLayout",
             "WideFullHeroActionLayout",
             "WideHeroActionFullLayout",
             "WideFullTwoCompactLayout",
@@ -982,7 +981,6 @@ def _expand_call(
             "WideHalfTwoCompactLayout",
             "WideHalfCompactTwoLargeActionLayout",
             "WideHalfFourLargeActionLayout",
-            "WideTwoFocusLayout",
             "WideTwoFocusActionLayout",
         }
         and task_spec.size == "2x4"
@@ -6734,7 +6732,6 @@ def _validate_provider_template_layout_action_requirements(
         )
     wide_composition_contracts = {
         "WideTwoFullLayout": (("Full", "Full"), ()),
-        "WideHeroCompactLayout": (("Hero", "Compact"), ()),
         "WideFullHeroActionLayout": (("Full", "Hero"), ("PillAction",)),
         "WideHeroActionFullLayout": (("Full", "Hero"), ("PillAction",)),
         "WideFullTwoCompactLayout": (("Full", "Compact", "Compact"), ()),
@@ -6754,7 +6751,6 @@ def _validate_provider_template_layout_action_requirements(
             ("WideHalf",),
             ("LargeIconAction",) * 4,
         ),
-        "WideTwoFocusLayout": (("Hero", "Hero"), ()),
         "WideTwoFocusActionLayout": (("Hero", "Hero"), ("PillAction",)),
     }
     wide_composition = wide_composition_contracts.get(layout_id)

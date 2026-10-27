@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from collections import Counter
 from dataclasses import replace
 from typing import Any
 
@@ -14,9 +13,6 @@ from .parser import ParsedCall
 _LAYOUT = "WideTwoFullLayout@1"
 _WEATHER = "WeatherOverviewFull@1"
 _CALENDAR = "ScheduleOverviewDateTitleFull@1"
-_FOCUS_LAYOUT = "WideTwoFocusLayout@1"
-_CONDITION = "WeatherOverviewConditionHero@1"
-_TITLE_LOCATION = "ScheduleOverviewTitleLocationHero@1"
 _WEATHER_NODES = frozenset({"Row", "Column", "Stack", "Text"})
 _INTERACTIVE_NODES = frozenset(
     {"Button", "Checkbox", "PillAction", "IconAction", "LargeIconAction", "ActionTile"}
@@ -35,8 +31,6 @@ def center_calendar_weather_full(
     """准确命中且只有三个天气绑定时重排；其它已展开产物原样返回。"""
     if size != "2x4":
         return expanded
-    if is_calendar_condition_focus(expanded, composition):
-        return _center_condition_focus(expanded, composition)
     if not _is_target_composition(composition):
         return expanded
     if expanded.component_type != "WideTwoFullLayout" or len(expanded.children) != 2:
@@ -54,92 +48,6 @@ def center_calendar_weather_full(
     children = list(expanded.children)
     children[weather_index] = centered
     return replace(expanded, children=tuple(children))
-
-
-def is_calendar_condition_focus(expanded: Nested2Node, composition: ParsedCall) -> bool:
-    """受信模板身份及实际三文字结构同时满足，才应用专用排版和底板。"""
-    if composition.kind != "template" or composition.name != _FOCUS_LAYOUT:
-        return False
-    if len(composition.children) != 2 or len(expanded.children) != 2:
-        return False
-    if expanded.component_type != "WideTwoFocusLayout" or _has_image_or_action(expanded):
-        return False
-    for child in composition.children:
-        if child.kind != "template" or child.children:
-            return False
-    if {child.name for child in composition.children} != {_CONDITION, _TITLE_LOCATION}:
-        return False
-    weather_index = next(
-        index for index, child in enumerate(composition.children) if child.name == _CONDITION
-    )
-    return bool(_condition_weather_texts(expanded.children[weather_index]))
-
-
-def _condition_weather_texts(weather: Nested2Node) -> tuple[Nested2Node, ...]:
-    texts: list[Nested2Node] = []
-    all_paths: list[str] = []
-    text_paths: list[str] = []
-    for node in _walk(weather):
-        if node.component_type not in _WEATHER_NODES:
-            return ()
-        all_paths.extend(_binding_paths(node.values))
-        if node.component_type != "Text":
-            continue
-        if not node.values or not isinstance(node.values[0], str) or node.children:
-            return ()
-        texts.append(node)
-        text_paths.extend(_binding_paths(node.values[0]))
-    if len(texts) != 3 or Counter(all_paths) != Counter(text_paths):
-        return ()
-    city, condition, footer = texts
-    paths = _binding_paths(condition.values[0])
-    if len(paths) != 1 or footer.values[0] != "当前天气":
-        return ()
-    path = paths[0]
-    if not path.startswith("/data/") or not path.endswith("/current/condition"):
-        return ()
-    root = path.removesuffix("/current/condition")
-    city_paths = {root + "/location/districtName", root + "/location/prefectureName"}
-    if any(value not in city_paths for value in _binding_paths(city.values[0])):
-        return ()
-    return tuple(texts)
-
-
-def _center_condition_focus(expanded: Nested2Node, composition: ParsedCall) -> Nested2Node:
-    index = next(i for i, child in enumerate(composition.children) if child.name == _CONDITION)
-    weather = expanded.children[index]
-    texts = _condition_weather_texts(weather)
-    children = []
-    for text, height, font_size, weight in zip(
-        texts, (16, 58, 16), (12, 24, 12), (500, 700, 400), strict=True
-    ):
-        children.append(
-            _with_options(
-                text,
-                {
-                    "width": "matchParent",
-                    "height": height,
-                    "fontSize": font_size,
-                    "fontWeight": weight,
-                    "textAlign": "center",
-                    "maxLines": 1,
-                    "textOverflow": "ellipsis",
-                },
-            )
-        )
-    centered = _with_options(
-        weather,
-        {
-            "width": "matchParent",
-            "height": "matchParent",
-            "itemMargin": 6,
-            "justifyContent": "spaceBetween",
-            "alignItems": "center",
-        },
-    )
-    expanded_children = list(expanded.children)
-    expanded_children[index] = replace(centered, component_type="Column", children=tuple(children))
-    return replace(expanded, children=tuple(expanded_children))
 
 
 def _is_target_composition(composition: ParsedCall) -> bool:

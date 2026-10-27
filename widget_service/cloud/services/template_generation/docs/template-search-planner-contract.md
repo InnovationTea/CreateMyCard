@@ -356,7 +356,7 @@ Planner 原子 Plan 契约。
 - 根按钮声明 `actionTemplateId`；内置按钮声明业务位置且不占根动作槽位。每个动作实例只消费一次。
 - 单业务单动作若存在支持该事件、覆盖全部字段的 WideFull，优先使用 WideFullOnlyLayout 的内置按钮
   计划，继续执行 `supports_business_action` 的严格对象校验；未满足条件时继续枚举其它完整布局。
-- 双 Hero 双面板（WideTwoFocusLayout）同样允许单动作内嵌进语义匹配 Hero 的根节点底板，不产生根
+- 双 Hero 带动作布局（WideTwoFocusActionLayout）允许单动作内嵌进语义匹配 Hero 的根节点底板，不产生根
   Action 槽位；内嵌 Plan 与根按钮 Plan 同分时优先内嵌。只有 2x2 变体的标准 Hero 经 Wide 组合进入
   2x4 时仍按其 2x2 变体校验 `actionId`；已声明 2x4 变体的模板只按 2x4 变体判断。
 - 2x4 四个动作仅支持单业务 + 四个 LargeIconAction 的既有专用布局；三个动作或容量不足返回未命中。
