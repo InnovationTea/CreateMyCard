@@ -39,7 +39,7 @@
       "supportedEventIds": [],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "后日出行天气 Support，以双层信息块展示 daily[2] 的天气现象和温度范围；可选表达气温的温度计或与天气一致的状态图标。",
+      "description": "大后天出行天气 Support，以双层信息块展示 daily[2] 的天气现象和温度范围；可选表达气温的温度计或与天气一致的状态图标。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/2/condition"
@@ -81,7 +81,7 @@
       ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "出行天气 Support，参考 ConditionHero 以天气现象为主视觉，并辅助展示 daily[4] 的温度范围和降雨概率，或当前温度；可选表达气温的温度计或与天气一致的状态图标，可在胶囊内部绑定天气详情跳转。",
+      "description": "出行天气 Support，参考 ConditionHero 以天气现象为主视觉，并辅助展示 未来第5天 daily[4]（距刷新日5天） 的温度范围和降雨概率，或当前温度；可选表达气温的温度计或与天气一致的状态图标，可在胶囊内部绑定天气详情跳转。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [],
       "secondaryData": [],
@@ -262,7 +262,7 @@
       "templateId": "WeatherOverviewFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "温度天气 Full，展示城市、温度、天气现象、空气质量和感冒指数。",
+      "description": "温度天气 Full，展示城市、温度、天气现象、空气质量和感冒指数；可选明日温度范围（daily[0]）。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
@@ -394,7 +394,7 @@
       "templateId": "WeatherOverviewTargetDayHealthFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "当日健康指数 Full，上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量和感冒指数；城市区县可选。",
+      "description": "未来第5天健康指数 Full（daily[4]，距刷新日5天），上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量和感冒指数；城市区县可选。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/4/airQuality",
@@ -480,31 +480,31 @@
       "templateId": "WeatherOverviewDailyDateFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "明日天气 Full，12vp 地点标题下突出 20vp 天气现象，并以 12vp 展示日期和星期。",
+      "description": "明日天气 Full（daily[0]），12vp 地点标题下突出 20vp 天气现象，并以 12vp 展示日期和星期。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
-        "/daily/1/condition"
+        "/daily/0/condition"
       ],
       "secondaryData": [
-        "/daily/1/date",
-        "/daily/1/weekday"
+        "/daily/0/date",
+        "/daily/0/weekday"
       ],
       "optionalData": [
         "/location/districtName",
-        "/daily/1/temperatureRangeText"
+        "/daily/0/temperatureRangeText"
       ]
     },
     {
       "templateId": "WeatherOverviewDailyRainFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "明日降雨 Full，上组展示 30fp 降雨概率及 12fp 说明，主值高度为 40vp，下组以 12vp 展示温度范围；降雨概率不代表空气湿度。",
+      "description": "明日降雨 Full（daily[0]），上组展示 30fp 降雨概率及 12fp 说明，主值高度为 40vp，下组以 12vp 展示温度范围；降雨概率不代表空气湿度。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
-        "/daily/1/rainProbabilityPercent"
+        "/daily/0/rainProbabilityPercent"
       ],
       "secondaryData": [
-        "/daily/1/temperatureRangeText"
+        "/daily/0/temperatureRangeText"
       ],
       "optionalData": []
     },
@@ -512,7 +512,7 @@
       "templateId": "WeatherOverviewNextDayHealthFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "今日健康指数 Full（当日 daily[0] 形态），上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量、感冒指数，可选补充天气现象与气温范围。",
+      "description": "明日健康指数 Full（daily[0] 形态），上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量、感冒指数，可选补充天气现象与气温范围。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/uvIndex"
@@ -532,7 +532,7 @@
       "templateId": "WeatherOverviewDailyCompareFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "双日天气对比 Full，并列展示 daily[0]、daily[1] 的天气现象和空气质量。",
+      "description": "明后两日天气对比 Full，并列展示 daily[0]、daily[1] 的天气现象和空气质量。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/condition",
@@ -551,7 +551,7 @@
       ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "今明天气对比 WideFull，并列展示 daily[0] 和 daily[1] 的日期、天气现象、温度范围和空气质量；用于 2x4 卡片中需要完整对比两天预报信息的场景。",
+      "description": "明后天气对比 WideFull，并列展示 daily[0] 和 daily[1] 的日期、天气现象、温度范围和空气质量；用于 2x4 卡片中需要完整对比两天预报信息的场景。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/date",
@@ -571,14 +571,14 @@
       "templateId": "WeatherOverviewDailyHealthFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "明日健康指数 Full，上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量和感冒指数。",
+      "description": "明日健康指数 Full（daily[0]），上组突出 20vp 紫外线等级，下组以 12vp 展示空气质量和感冒指数。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
-        "/daily/1/uvIndex"
+        "/daily/0/uvIndex"
       ],
       "secondaryData": [
-        "/daily/1/airQuality",
-        "/daily/1/coldLevel"
+        "/daily/0/airQuality",
+        "/daily/0/coldLevel"
       ],
       "optionalData": []
     },
@@ -586,26 +586,26 @@
       "templateId": "WeatherOverviewDailyConditionWeekdayFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "明日天气现象星期 Full：突出 daily[1] 天气现象，并展示星期；温度范围和降雨概率可选。",
+      "description": "明日天气现象星期 Full：突出 daily[0] 天气现象，并展示星期；温度范围和降雨概率可选。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
-        "/daily/1/condition"
+        "/daily/0/condition"
       ],
       "secondaryData": [
-        "/daily/1/weekday"
+        "/daily/0/weekday"
       ],
       "optionalData": [
         "/location/prefectureName",
         "/location/districtName",
-        "/daily/1/temperatureRangeText",
-        "/daily/1/rainProbabilityPercent"
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent"
       ]
     },
     {
       "templateId": "WeatherOverviewDailyUvColdFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "今日健康指数精简 Full：突出 daily[0] 紫外线等级，并展示感冒指数；空气质量可选。",
+      "description": "明日健康指数精简 Full：突出 daily[0] 紫外线等级，并展示感冒指数；空气质量可选。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/uvIndex"
@@ -626,7 +626,7 @@
       ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "三日天气预报 Full，按三个双行条目展示 daily[0..2] 每天的完整日期、星期、天气现象、降雨概率和完整温度范围。适合与倒计时 Hero 及天气详情操作组成 2x4 卡片。",
+      "description": "从明天开始的三日天气预报 Full，按三个双行条目展示 daily[0..2] 每天的完整日期、星期、天气现象、降雨概率和完整温度范围。适合与倒计时 Hero 及天气详情操作组成 2x4 卡片。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/condition",
@@ -653,7 +653,7 @@
       "templateId": "WeatherOverviewDestinationDayFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "目的地出发日天气 Full，展示 daily[3] 的温度范围、降雨概率和空气质量，可补充可信目的地与目标日期；适合与出发倒计时 Hero 及操作组成 2x4 卡片。",
+      "description": "目的地出发日天气 Full，展示未来第4天 daily[3]（距刷新日4天） 的温度范围、降雨概率和空气质量，可补充可信目的地与目标日期；适合与出发倒计时 Hero 及操作组成 2x4 卡片。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/3/temperatureRangeText"
@@ -668,7 +668,7 @@
       "templateId": "WeatherOverviewWideFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气 WideFull，左右分区展示当前天气、体感、湿度、空气质量、风况和当日预报。",
+      "description": "天气 WideFull，左右分区展示当前天气、体感、湿度、空气质量、当前风况和明日预报（daily[0]）。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
@@ -720,7 +720,7 @@
       "templateId": "WeatherOverviewWideHero@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气 WideHero，突出当前温度和天气现象，辅助展示体感、温度范围和降雨概率。",
+      "description": "天气 WideHero，突出当前温度和天气现象，辅助展示当前体感、明日温度范围和降雨概率（daily[0]）。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
@@ -740,7 +740,7 @@
       "templateId": "WeatherOverviewCareWideHero@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气关怀 WideHero，突出当前天气预警主值及说明，辅助展示紫外线等级、空气质量和感冒指数；城市区县可选，用于 2x4 单焦点宽幅布局。",
+      "description": "天气关怀 WideHero，突出当前天气预警主值及说明，辅助展示明日紫外线等级、空气质量和感冒指数（daily[0]）；城市区县可选，用于 2x4 单焦点宽幅布局。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/alertLevel"
@@ -758,7 +758,7 @@
       "templateId": "WeatherOverviewWideHalf@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气 WideHalf，横向紧凑展示位置、当前温度、天气现象、空气质量和降雨概率。",
+      "description": "天气 WideHalf，横向紧凑展示位置、当前温度、天气现象、空气质量和明日降雨概率（daily[0]）。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
@@ -906,7 +906,7 @@
       "templateId": "WeatherOverviewDailySummaryFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "日期天气摘要 Full，展示城市、日期、温度范围、降雨概率和空气质量。",
+      "description": "后天天气摘要 Full（daily[1]），展示城市、日期、温度范围、降雨概率和空气质量。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/1/temperatureRangeText"
@@ -992,7 +992,7 @@
       "templateId": "WeatherOverviewRainWindFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "降水概率 Full：展示当天降水概率进度环与风力行，适配出行降雨摘要；底板由外层布局提供。",
+      "description": "降水概率 Full：展示明日降水概率（daily[0]）进度环与当前风力行，适配出行降雨摘要；底板由外层布局提供。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/daily/0/rainProbabilityPercent"

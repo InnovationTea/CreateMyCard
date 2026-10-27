@@ -2,6 +2,11 @@
 
 ## WeatherOverview
 
+- 预报以端侧每次刷新日期为基准，从明天开始，不包含今天；`daily[0]` 为明天、`daily[1]` 为后天、
+  `daily[2]` 为大后天，`daily[3]`、`daily[4]` 分别为距刷新日4天、5天。
+  `forecastDays` 是返回天数，不是日期偏移；仅展示明天时传1，日期、星期和天气使用同一第0项。
+  当前天气使用 `current`，不得将 `daily[0]` 解释为今天。
+
 - 支持的 TaskSpec 数据路径：
   - `{{dataRoot:ViewWeather}}/location/prefectureName`
   - `{{dataRoot:ViewWeather}}/location/districtName`
@@ -23,6 +28,8 @@
   - `{{dataRoot:ViewWeather}}/daily/0/temperatureRangeText`
   - `{{dataRoot:ViewWeather}}/daily/0/rainProbabilityPercent`
   - `{{dataRoot:ViewWeather}}/daily/0/airQuality`
+  - `{{dataRoot:ViewWeather}}/daily/0/uvIndex`
+  - `{{dataRoot:ViewWeather}}/daily/0/coldLevel`
   - `{{dataRoot:ViewWeather}}/daily/1/date`
   - `{{dataRoot:ViewWeather}}/daily/1/weekday`
   - `{{dataRoot:ViewWeather}}/daily/1/condition`
@@ -46,8 +53,8 @@
 - 用户只要求天气概览时，若本轮提供 `temperatureText` 则优先以温度为主焦点；仅提供 `condition` 时，
   使用天气现象 Hero。用户明确要求湿度、紫外线或空气质量时，切换到对应主数据模板。
 - 用户明确要求天气预警和更新时间，且 `alertLevel`、`updatedAt` 均可用时，使用天气预警 Full。
-- 用户请求的日期信息可由天气 `daily` 字段承载（如“明天日期/星期”对应 `daily[1]/date`、
-  `daily[1]/weekday`）时，`GetCurrentTime` 不纳入 `requiredOutputFieldsByCapability`——
+- 用户请求的日期信息可由天气 `daily` 字段承载（如“明天日期/星期”对应 `daily[0]/date`、
+  `daily[0]/weekday`）时，`GetCurrentTime` 不纳入 `requiredOutputFieldsByCapability`——
   “今天/当前日期星期”未被用户明确要求时同样不纳入。仅当用户明确要求“今天/当前”的日期、
   星期或时间且本轮提供 `GetCurrentTime` 候选时才纳入其字段；否则不得因该能力存在而增加
   必选业务，也不得为其编造展示字段。
