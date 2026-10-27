@@ -16,10 +16,11 @@ Fusion Info Plan 重新开始生成，不经由 JSX，也不重新调用模板�
 [流程架构](architecture.md)，验收覆盖成功结果复用、各失败阶段、质量修复与 JSX 开关组合、
 融合修复额度独立、融合失败终止以及专用入口不回退。
 
-## 2026-10 2×4 右侧底板例外
+## 2026-10 2×4 Hero 区域底板例外
 
-`WideFullHeroActionLayout@1` 默认保留右侧底板。编译器根据实际第二个业务子模板的完整 ID，
-对以下四种自带四行面板的电量 Hero 应用例外：
+`WideFullHeroActionLayout@1` 的右侧与 `WideHeroActionFullLayout@1` 的左侧共用例外名单。
+两个布局的输入子模板顺序均为 Full、Hero、Action；编译器根据实际第二个业务子模板的完整 ID
+识别 Hero，再按布局确定左右位置。下列四种自带面板和两种需要完整槽位空间的 Hero 适用：
 
 | 模板 | 内容高度 | 与按钮间距 |
 | --- | --- | --- |
@@ -27,14 +28,16 @@ Fusion Info Plan 重新开始生成，不经由 JSX，也不重新调用模板�
 | `BatteryOverviewStatusLevelSummaryHero@1` | 82vp | 8vp |
 | `BatteryOverviewChargingLevelSummaryHero@1` | 82vp | 8vp |
 | `BatteryOverviewChargingDiagnosticsHero@1` | 84vp | 6vp |
+| `BatteryOverviewTemperatureRingHero@1` | 弹性内容槽 | 8vp |
+| `BluetoothDeviceOverviewEarbudPairHero@1` | 弹性内容槽 | 8vp |
 
-移除该布局右侧父容器的 `backgroundColor`、`borderRadius`、`padding`，按名单设置 `itemMargin`。
+移除 Hero 所在父容器的 `backgroundColor`、`borderRadius`、`padding`，按名单设置 `itemMargin`。
 内部业务面板与动作子树原样保留；126vp 内容区按 `82 + 8 + 36` 或 `84 + 6 + 36` 分配，
-不缩小字号、删除字段或修改业务模板自身内边距。进度环轨道背景不属于整块业务面板，不据此加入名单。
+不缩小字号、删除字段或修改业务模板自身内边距。移除外层底板不影响进度环的轨道背景。
 名单统一维护于 `engine/cardplan/layout_surface_policy.py`，不新增可由模型填写的 Props。
-只在指定布局的右侧直接业务子模板命中时生效，镜像布局、其它组合以及 2×2 模板不受影响。
-测试覆盖四种例外的完整编译产物、普通模板保留底板、错误位置与布局隔离，以及模型伪造开关被拒绝。
-同时扫描电量 Hero 的容器底板，确保名单覆盖已登记的同类模板，并逐项验证四个数据绑定及高度预算。
+只在上述两个布局的 Hero 直接子模板命中时生效，另一侧 Full 区域、其它组合以及 2×2 模板不变。
+测试覆盖六种例外的左右完整编译产物、普通模板保留底板、错误位置与布局隔离，以及模型伪造开关被拒绝。
+同时验证按钮、业务数据绑定、两种主题及可选字段/素材的保留情况。
 
 ## 2026-10 双业务 Support 补充
 
@@ -289,7 +292,12 @@ EarbudPairFull 要求名称或连接状态至少一项可用，保留编译期�
 
 ### 充电状态 Hero 的纵向预算
 
-Q077、Q080 使用的 BatteryOverviewChargingProgressHero 在150vp卡片、上下各12vp内边距、36vp按钮及8vp区域间距下，业务区可用82vp。存在充电状态时，去掉数字行顶部6vp额外留白，使标题16vp、数字40vp、状态16vp及两个4vp间距合计80vp，避免状态行被父容器裁切。缺少状态时保留原6vp留白；不改变字号、按钮或主题。
+BatteryOverviewChargingProgressHero 顶部优先只显示健康状态；没有健康状态时使用非空title，
+未传或空标题回退“手机电量”。更新时间独占电量主值下方一行，排在可选状态行之前，
+状态行继续合并充电状态、短文案等级与温度。存在状态或更新时间时不保留主值额外顶部留白。
+时间和状态同时存在时采用16vp标题、32vp/28fp电量、12vp/10fp时间、16vp状态和三处2vp间距，
+合计82vp；其它情况保留40vp/30fp电量和4vp行间距。以显式150vp预览为例，
+上下12vp主题边距、36vp按钮和8vp区域间距后业务区为82vp；云侧不推断实际设备尺寸。
 
 ### 单手机电量的 query 字段筛选与模板参考
 
@@ -328,15 +336,15 @@ Q077、Q080 使用的 BatteryOverviewChargingProgressHero 在150vp卡片、上�
 不推断温度正常或快充；2x2使用SingleFocusLayout，保留原TemperatureStatusFull供温度居中场景使用。
 
 新增 `BatteryOverviewTemperatureStatusFull@1` 与 `BatteryOverviewPercentStatusFull@1`，
-温度Full改为居中三段式：16fp请求title（缺省手机电池）、30fp温度、12fp“电量: N%”；
-百分比Full仍复用充电状态Hero的标题／30fp百分比主值。
-两者均放入 `SingleFocusLayout@1`，不需要动作、素材或数值电量；中间内容区以 layoutWeight=1
-撑开完整 126vp 安全区域，有充电状态时作为最后一行左对齐固定在左下角，移除按钮区。
-温度模板只必需温度，电量文本、充电状态和充电器类型可选；电量在底行，
-仅有电量时居中，有辅助充电信息时放在底行右侧；辅助信息在左侧。
-中间弹性容器承载48vp温度文字，最小高度100vp；不显示“当前温度正常”等未经数据支持的结论。
-百分比模板只必需电量文本，充电状态、健康、等级、温度与更新时间均可选；
-健康和更新时间保持标题位置，等级与温度放在主值下方，充电状态单独留在左下角。
+两者均放入 `SingleFocusLayout@1`，不需要动作、素材或数值电量。
+TemperatureStatusFull 仅必需温度，按电量文本、充电状态、充电器类型的绑定数量切换布局：
+0/1项保持16fp居中标题、30fp温度与12fp居中底行；0项显示“温度状态”，1项显示对应字段。
+2项使用16fp左对齐标题、18fp温度和左下角两条独立信息；3项使用12fp标题、24fp温度和
+三条标签/数值明细行。优先使用title，缺省“手机电池”，不推断温度正常或异常。
+PercentStatusFull 仅必需电量文本，充电状态、健康、等级、温度与更新时间可选。
+有健康状态时顶部只显示该状态；没有健康时显示非空title，未传或空标题显示“手机电量”。
+没有时间/等级/温度/充电信息时，居中显示标题、30fp电量与“电池状态”标识；有辅助信息时
+左对齐展示标题和电量，底部按更新时间、等级/温度、充电状态排序，整组靠左贴底。
 沿用通用字段覆盖、显式主焦点及候选字段排序，不按 BAT 编号或特定 query 选择模板。
 
 ### 手机电量 Full 的可选图标
@@ -419,7 +427,18 @@ Q077、Q080 使用的 BatteryOverviewChargingProgressHero 在150vp卡片、上�
 
 ### 电流电压 Full
 
-新增 BatteryOverviewCurrentVoltageFull@1，仅电流 nowCurrentText 与电压 voltageText 必需，batterySOCText、batteryTemperatureText、healthStatusDesc 可选。标题“电池状态”12fp/400，电流、电压和可选详情均为12fp/500、各16vp高，所有行标签为12fp/400，统一4vp间距和12vp外边距，五行齐全时总内容高116vp，小于126vp可用高度。不假定读数正常、不生成诊断结论；原始含单位文本直接绑定，不重复加单位。不需要动作和素材，保留既有诊断模板。
+BatteryOverviewCurrentVoltageFull@1 仅电流 nowCurrentText 与电压 voltageText 必需，
+batterySOCText、batteryTemperatureText、healthStatusDesc 可选。优先显示传入title，未传或空时
+显示“电池状态”，标题12fp/400；详情组整体靠左贴底，按电流、电压、电量、温度、健康排序，
+省略未传的可选行。详情12fp/500、行高16vp，标签12fp/400，行间距4vp，底部沿用主题安全边距。
+五行齐全时最小内容高116vp；原始含单位文本直接绑定，不重复加单位，不生成诊断结论。
+CurrentVoltageFull 的textAlign使用start，PercentDetailsFull 的详情值使用end，保持当前中文对齐效果。
+
+### 睡眠与耳机仓 Compact 垂直居中
+
+SleepOverviewCompact 与 BluetoothDeviceOverviewEarphoneCaseCompact 保持height=matchParent，
+根Column改为justifyContent=center，使内容在2×4组合槽位内上下居中。横向对齐、图标、字号、
+间距及数据绑定均保持原样；高度由实际宿主布局提供。
 电量数据投影的已知字段补齐实时电流、电压、温度和电池在位状态。缺少百分比时仍保留实际输入的这些字段，避免合法诊断模板在正文生成前因旧字段清单不完整而失败；不补造缺失数据。
 
 ### 耳机名称与双环电量 Full

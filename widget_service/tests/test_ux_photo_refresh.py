@@ -70,7 +70,10 @@ def test_replaced_photos_are_removed_from_registry_and_assets(identity):
     assert not (Path(__file__).parents[2] / "resources/base/media" / name).exists()
 
 
-@pytest.mark.parametrize("selected", ["photo-ux-wave-square", WEATHER])
+@pytest.mark.parametrize("selected", [
+    "photo-ux-mountain-sunset-lake-square", "photo-ux-pink-sunset-lake-square",
+    "photo-ux-cumulus-blue-square",
+])
 def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, selected):
     calls = []
 
@@ -82,7 +85,10 @@ def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, sele
     saved = sample(PATHS.get("weather"), 3, button=False)
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
-    assert set(calls[0]) == {"photo-ux-wave-square", WEATHER}
+    assert set(calls[0]) == {
+        "photo-ux-mountain-sunset-lake-square", "photo-ux-pink-sunset-lake-square",
+        "photo-ux-cumulus-blue-square",
+    }
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -92,7 +98,10 @@ def test_calendar_no_longer_uses_arch_and_can_fall_back_to_abstract(monkeypatch)
     saved = sample(PATHS.get("calendar"), 2)
     assert rejection(saved, ARCH)
     _, audit = choose(saved, monkeypatch)
-    assert audit.get("candidates") == ["photo-ux-meeting-room-square"]
+    assert set(audit.get("candidates", [])) == {
+        "photo-ux-meeting-room-square", "photo-ux-meeting-room-chairs-square",
+        "photo-ux-meeting-room-table-square", "photo-ux-meeting-room-window-square",
+    }
     saved = sample(PATHS.get("calendar"), 2, align="center")
     _, audit = choose(saved, monkeypatch)
     candidates = audit.get("candidates", [])

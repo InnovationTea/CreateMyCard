@@ -19,8 +19,8 @@ from test_uniform_photo_eligibility import ACTION, PATHS, choose, evidence, reje
 from theme_preference_samples import preference, reply
 
 A19 = "photo-ux-digital-wave-wide"
-WAVE = "photo-ux-wave-wide"
-FUZZY = "photo-ux-fuzzy-wide"
+WAVE = "photo-ux-mountain-sunset-lake-wide"
+FUZZY = "photo-ux-pink-sunset-lake-wide"
 GRADIENT = "photo-ux-gradient-wide"
 BLUE = "photo-ux-texture-blue-diamond-wide"
 PURPLE = "photo-ux-texture-purple-diagonal-wide"
@@ -123,9 +123,10 @@ def test_only_approved_wide_configs_use_main_focus_and_circle_enablement_is_unch
             flexible.append(item.get("id"))
             assert item.get("size") == "2x4"
             assert item.get("pool") == "photos" and item.get("id") in {
-                A19, WAVE, FUZZY, GRADIENT,
+                A19, WAVE, FUZZY, GRADIENT, "photo-ux-cumulus-blue-wide",
+                "photo-ux-wave-wide", "photo-ux-fuzzy-wide",
             }
-    assert len(flexible) == 4
+    assert len(flexible) == 7
     for item in registry.registered_themes("texturePhotos", include_disabled=True):
         assert "wideLayout" not in item.get("contentEligibility", {})
         if item.get("id", "").endswith("circles-wide"):
@@ -235,7 +236,9 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
     if identity == ORANGE:
         config = registry.load_theme_registry()
         for item in config.get("themes", []):
-            if item.get("id") in {GRADIENT, "photo-ux-hourglass-wide"}:
+            if item.get("id") in {
+                GRADIENT, "photo-ux-hourglass-wide", "photo-ux-glass-hourglass-wide",
+            }:
                 item["enabled"] = False
         monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
     saved = focus_sample(business, 1 if identity == ORANGE else 4, layout)

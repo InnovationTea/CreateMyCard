@@ -633,7 +633,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "秋日飞鸟",
-      "description": "秋日飞鸟。仅2x2单业务节假日倒计时，所有实际展示对象均须属于节假日。不限制正文行数、对齐及背板数量；不依据用户问题或未展示字段放行。",
+      "description": "秋日飞鸟。仅2x2单业务节假日倒计时，所有实际展示对象均须属于节假日。不限制正文行数、对齐及背板数量；不依据用户问题或未展示字段放行。通过既有准入时优先于其它倒计时主体图。",
       "sizes": [
         "2x2"
       ],
@@ -693,7 +693,8 @@
           "secondary": 204,
           "tertiary": 153
         }
-      }
+      },
+      "selectionPriority": 10
     },
     {
       "id": "photo-ux-bedside-lamp-wide",
@@ -765,12 +766,12 @@
     },
     {
       "id": "photo-ux-clouds-weather-square",
-      "enabled": true,
+      "enabled": false,
       "selectionPriority": 1,
       "kind": "photo",
       "pool": "photos",
       "name": "蓝天白云",
-      "description": "蓝天白云天气图。仅2x2天气单业务，正文1至2行且集中居左居上，下方完全留空。标题和按钮文案不计正文行数；下方不得有文字、图标、按钮、进度条或背板，顶部标题图标和正文同行元素可保留。不移动或删减内容。统一白字；满足专属准入时优先于其它天气主体图。",
+      "description": "已停用，保留素材与原准入配置，不进入候选。蓝天白云天气图。仅2x2天气单业务，正文1至2行且集中居左居上，下方完全留空。标题和按钮文案不计正文行数；下方不得有文字、图标、按钮、进度条或背板，顶部标题图标和正文同行元素可保留。不移动或删减内容。统一白字；满足专属准入时优先于其它天气主体图。",
       "sizes": [
         "2x2"
       ],
@@ -1789,11 +1790,11 @@
     },
     {
       "id": "photo-ux-starfield-weather-square",
-      "enabled": true,
+      "enabled": false,
       "kind": "photo",
       "pool": "photos",
       "name": "蓝色星空天气",
-      "description": "蓝色星空天气。业务类别：weather。2x2同一业务，正文最多3行且整体居左。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
+      "description": "已停用，保留素材与原准入配置，不进入候选。蓝色星空天气。业务类别：weather。2x2同一业务，正文最多3行且整体居左。顶部标题和按钮文案不计行数；允许图标和按钮，不添加单图特殊限制。同级合格图片等概率选择。",
       "sizes": [
         "2x2"
       ],
@@ -2130,11 +2131,11 @@
     },
     {
       "id": "photo-ux-wave-square",
-      "enabled": true,
+      "enabled": false,
       "kind": "photo",
       "pool": "photos",
       "name": "蓝色波浪天气",
-      "description": "蓝色波浪天气。业务类别：weather。2x2同一业务，正文最多3行且整体居左。顶部标题和按钮文案不计行数；允许图标和按钮。与星空天气同级合格时等概率选择。",
+      "description": "已停用，保留素材与原准入配置，不进入候选。蓝色波浪天气。业务类别：weather。2x2同一业务，正文最多3行且整体居左。顶部标题和按钮文案不计行数；允许图标和按钮。与星空天气同级合格时等概率选择。",
       "sizes": [
         "2x2"
       ],
@@ -2198,11 +2199,11 @@
     },
     {
       "id": "photo-ux-wave-wide",
-      "enabled": true,
+      "enabled": false,
       "kind": "photo",
       "pool": "photos",
       "name": "蓝色波浪天气宽景",
-      "description": "蓝色波浪天气宽景。业务类别：weather。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。顶部标题和按钮文案不计行数；辅助区允许其它业务。不限制图标和按钮；双大背板和无主焦点布局不匹配。同级合格图片等概率选择。",
+      "description": "已停用，保留素材与原准入配置，不进入候选。蓝色波浪天气宽景。业务类别：weather。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。顶部标题和按钮文案不计行数；辅助区允许其它业务。不限制图标和按钮；双大背板和无主焦点布局不匹配。同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -2267,11 +2268,11 @@
     },
     {
       "id": "photo-ux-fuzzy-wide",
-      "enabled": true,
+      "enabled": false,
       "kind": "photo",
       "pool": "photos",
       "name": "朦胧天气宽景",
-      "description": "朦胧天气宽景。业务类别：weather。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标和按钮。白字100%/80%/60%，同级合格主体图等概率选择。",
+      "description": "已停用，保留素材与原准入配置，不进入候选。朦胧天气宽景。业务类别：weather。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标和按钮。白字100%/80%/60%，同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -4079,6 +4080,1233 @@
       "background": {
         "src": "resources/base/media/bg_ux_bed_wide.jpg",
         "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/71ea4ef9762840a3b71df36e6f4f1495/96e20efa1a7f4296a6ec52cd62560a0e.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-car-night-lake-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "夜湖汽车",
+      "description": "夜湖汽车。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "navigation",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "navigation"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/ab1b9e6b48f242a59545ffad2f61c4dc/0fff9de42ed34388ab815063a0db6492.png",
+        "sourceSha256": "40c491baf61c52f4d7add8222d550ea8d33415a458e52f56e3136b3f83b786e2",
+        "assetSha256": "40c491baf61c52f4d7add8222d550ea8d33415a458e52f56e3136b3f83b786e2",
+        "assetBytes": 147836,
+        "originalSize": [
+          450,
+          450
+        ],
+        "assetSize": [
+          450,
+          450
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_car_night_lake_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/ab1b9e6b48f242a59545ffad2f61c4dc/0fff9de42ed34388ab815063a0db6492.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-car-night-lake-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "夜湖汽车宽景",
+      "description": "夜湖汽车宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "navigation",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "navigation"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/d513182466044587b281c103678ad9d5/2749e93b2e134f448fe6ae891a4221e8.png",
+        "sourceSha256": "87950d1806d0ff6cba841ad1621e7068c7c315912a4bcd05a846e747f62cde9e",
+        "assetSha256": "87950d1806d0ff6cba841ad1621e7068c7c315912a4bcd05a846e747f62cde9e",
+        "assetBytes": 137797,
+        "originalSize": [
+          600,
+          300
+        ],
+        "assetSize": [
+          600,
+          300
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_car_night_lake_wide.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/d513182466044587b281c103678ad9d5/2749e93b2e134f448fe6ae891a4221e8.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-glass-hourglass-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "玻璃沙漏",
+      "description": "玻璃沙漏。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。秋日飞鸟通过节假日专属准入时优先，否则同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "countdown",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "countdown"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/84c4fe2fdc3e4e6f824bef0d266ceadc/74cb819aab6643ac8321814e123417e8.png",
+        "sourceSha256": "8d8462853e2bc92ba437a26768b454006c9665bb780ab00e16f3bb59d8df495b",
+        "assetSha256": "8d8462853e2bc92ba437a26768b454006c9665bb780ab00e16f3bb59d8df495b",
+        "assetBytes": 180541,
+        "originalSize": [
+          450,
+          450
+        ],
+        "assetSize": [
+          450,
+          450
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_glass_hourglass_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/84c4fe2fdc3e4e6f824bef0d266ceadc/74cb819aab6643ac8321814e123417e8.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-glass-hourglass-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "玻璃沙漏宽景",
+      "description": "玻璃沙漏宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。秋日飞鸟通过节假日专属准入时优先，否则同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "countdown",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "countdown"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/b43e6aea617e4214a1e39eb4ea9e47a7/a30b29dd26cb474a818a893e4bd72fcb.png",
+        "sourceSha256": "0b1af1554074a40efa5a23d03d64baa549bb07296020f6032fce9631cb14858d",
+        "assetSha256": "0b1af1554074a40efa5a23d03d64baa549bb07296020f6032fce9631cb14858d",
+        "assetBytes": 350198,
+        "originalSize": [
+          900,
+          450
+        ],
+        "assetSize": [
+          900,
+          450
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_glass_hourglass_wide.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/b43e6aea617e4214a1e39eb4ea9e47a7/a30b29dd26cb474a818a893e4bd72fcb.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-chairs-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "会议座椅",
+      "description": "会议座椅。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/a3472ebb318a4671a233fc72344d0a36/254c82e827d84bf49011515be5c011b2.png",
+        "sourceSha256": "db052288277078f53cf252f3183d267c8828baef5211059789dadb22d9cd6569",
+        "assetSha256": "db052288277078f53cf252f3183d267c8828baef5211059789dadb22d9cd6569",
+        "assetBytes": 155232,
+        "originalSize": [
+          450,
+          450
+        ],
+        "assetSize": [
+          450,
+          450
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_chairs_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/a3472ebb318a4671a233fc72344d0a36/254c82e827d84bf49011515be5c011b2.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#CCFFFFFF",
+          "componentTertiary": "#99FFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-chairs-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "会议座椅宽景",
+      "description": "会议座椅宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c2211194e5ac40aabcac673875239a6b/6aecdfee8b5944c499ea03715b2c919a.jpg",
+        "sourceSha256": "4f405b252908db6cff058cb48e1c42317bebfe93f7fa8de5d17b3e55b7e1e4b5",
+        "assetSha256": "4f405b252908db6cff058cb48e1c42317bebfe93f7fa8de5d17b3e55b7e1e4b5",
+        "assetBytes": 218503,
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_chairs_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c2211194e5ac40aabcac673875239a6b/6aecdfee8b5944c499ea03715b2c919a.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#CCFFFFFF",
+          "componentTertiary": "#99FFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#CCFFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-table-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "会议桌",
+      "description": "会议桌。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/046ab0711afa482780b54e2119ff3e38/3add260a7ae74d81bfd42b3a60c104d6.png",
+        "sourceSha256": "556482c0e622048cf9e82f535c7f78cf3dcbf361a82539f01a93f10961e75117",
+        "assetSha256": "556482c0e622048cf9e82f535c7f78cf3dcbf361a82539f01a93f10961e75117",
+        "assetBytes": 148156,
+        "originalSize": [
+          450,
+          450
+        ],
+        "assetSize": [
+          450,
+          450
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_table_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/046ab0711afa482780b54e2119ff3e38/3add260a7ae74d81bfd42b3a60c104d6.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#CCFFFFFF",
+          "componentTertiary": "#99FFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-table-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "会议桌宽景",
+      "description": "会议桌宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/1107bdc7fb804b5aaf74b3ce8b4a0294/b19c04c19d694b7089e3729c00871535.jpg",
+        "sourceSha256": "8da3ddab325febfde7ed434fa70cf3f8fe38e0b81e246b8e8302951555f3b0cc",
+        "assetSha256": "8da3ddab325febfde7ed434fa70cf3f8fe38e0b81e246b8e8302951555f3b0cc",
+        "assetBytes": 228029,
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_table_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/1107bdc7fb804b5aaf74b3ce8b4a0294/b19c04c19d694b7089e3729c00871535.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#CCFFFFFF",
+          "componentTertiary": "#99FFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#CCFFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-window-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "窗边会议室",
+      "description": "窗边会议室。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7d101950d60447ff9279896a4e3b55a6/1feadb6a8f834032abf7ce33f4353e32.png",
+        "sourceSha256": "7fb51fbeee5f4210963ab5fdc25c28a87afe36362cab0e35d071f0cd38d8b54c",
+        "assetSha256": "7fb51fbeee5f4210963ab5fdc25c28a87afe36362cab0e35d071f0cd38d8b54c",
+        "assetBytes": 150865,
+        "originalSize": [
+          450,
+          450
+        ],
+        "assetSize": [
+          450,
+          450
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_window_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7d101950d60447ff9279896a4e3b55a6/1feadb6a8f834032abf7ce33f4353e32.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#CCFFFFFF",
+          "componentTertiary": "#99FFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#CCFFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-meeting-room-window-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "窗边会议室宽景",
+      "description": "窗边会议室宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "calendar",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "calendar"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/0b405ef8c136493a9d9b67779d261204/72e87117545748f09b1ce42bc7addd7e.jpg",
+        "sourceSha256": "dbbd607576d99d3c2e3655e94ff274edb2990ae055c44aebd01e57cee55c8903",
+        "assetSha256": "dbbd607576d99d3c2e3655e94ff274edb2990ae055c44aebd01e57cee55c8903",
+        "assetBytes": 181045,
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_meeting_room_window_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/0b405ef8c136493a9d9b67779d261204/72e87117545748f09b1ce42bc7addd7e.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FF000000",
+          "secondary": "#CC000000",
+          "tertiary": "#99000000",
+          "graphicPrimary": "#FF000000",
+          "graphicSecondary": "#CC000000",
+          "graphicTertiary": "#99000000",
+          "componentSecondary": "#CCFFFFFF",
+          "componentTertiary": "#99FFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#CCFFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-metal-gear-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "金属齿轮",
+      "description": "金属齿轮。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "settings",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "settings"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/22657daf61a14b809bbff31a8dab1fac/638c2921bdc6482ea666fb4493dc4c2f.png",
+        "sourceSha256": "9381db0e4994ce225c40dee9279e34459546cc81df4fa075f5c6b76eb244a8ce",
+        "assetSha256": "9381db0e4994ce225c40dee9279e34459546cc81df4fa075f5c6b76eb244a8ce",
+        "assetBytes": 323206,
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_metal_gear_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/22657daf61a14b809bbff31a8dab1fac/638c2921bdc6482ea666fb4493dc4c2f.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-metal-gear-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "金属齿轮宽景",
+      "description": "金属齿轮宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "settings",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "settings"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/18c9b4025d7540b4b7f43ba7ea5dbbaf/ba181598ce8749d0a9534d3c987b8c31.jpg",
+        "sourceSha256": "0ae092a06afe1bbced07b3eda38e1eb4f524d51fa09443df209d2fd5b53cfd78",
+        "assetSha256": "0ae092a06afe1bbced07b3eda38e1eb4f524d51fa09443df209d2fd5b53cfd78",
+        "assetBytes": 204357,
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_metal_gear_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/18c9b4025d7540b4b7f43ba7ea5dbbaf/ba181598ce8749d0a9534d3c987b8c31.jpg",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-mountain-sunset-lake-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "山景夕阳湖泊",
+      "description": "山景夕阳湖泊。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/34042b4421a146f0b40a9f4421b47981/698e8447e7094291ae9f1f64b4977b6c.png",
+        "sourceSha256": "3c4882186784a0164a150950f40ce035853d214c1ed9db689e6a9d3940d56c99",
+        "assetSha256": "3c4882186784a0164a150950f40ce035853d214c1ed9db689e6a9d3940d56c99",
+        "assetBytes": 208251,
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_mountain_sunset_lake_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/34042b4421a146f0b40a9f4421b47981/698e8447e7094291ae9f1f64b4977b6c.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-mountain-sunset-lake-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "山景夕阳湖泊宽景",
+      "description": "山景夕阳湖泊宽景。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ],
+        "wideLayout": "main-focus"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/438fb1956b664a0cb54e3ee538f232b0/f53ebdb0e5de4b1492faef8bc2dab9d2.png",
+        "sourceSha256": "4ae6afe5f918faf2f9e65214433ee799d487d039ee35b5c51144c6a7c32cf9dd",
+        "assetSha256": "4ae6afe5f918faf2f9e65214433ee799d487d039ee35b5c51144c6a7c32cf9dd",
+        "assetBytes": 497846,
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_mountain_sunset_lake_wide.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/438fb1956b664a0cb54e3ee538f232b0/f53ebdb0e5de4b1492faef8bc2dab9d2.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-pink-sunset-lake-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "粉色夕阳湖泊",
+      "description": "粉色夕阳湖泊。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/318f310fe9134763b6769c24ea83a21e/de7821e4087041f9a69504e2918d8bdb.png",
+        "sourceSha256": "88057cde00d010a138bc3e4f81b0c1b11ac5c2dbe270856ed063d226b7199687",
+        "assetSha256": "88057cde00d010a138bc3e4f81b0c1b11ac5c2dbe270856ed063d226b7199687",
+        "assetBytes": 188828,
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_pink_sunset_lake_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/318f310fe9134763b6769c24ea83a21e/de7821e4087041f9a69504e2918d8bdb.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-pink-sunset-lake-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "粉色夕阳湖泊宽景",
+      "description": "粉色夕阳湖泊宽景。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ],
+        "wideLayout": "main-focus"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7f0fa51984e14f379a82a85416fb0b17/dd8d0671710d4498b402a8b4b1526e57.png",
+        "sourceSha256": "cff75987e996eb08724e1ce562c7a5d2fd9814ad562d28401ed77f9e500fcf2b",
+        "assetSha256": "cff75987e996eb08724e1ce562c7a5d2fd9814ad562d28401ed77f9e500fcf2b",
+        "assetBytes": 348652,
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_pink_sunset_lake_wide.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7f0fa51984e14f379a82a85416fb0b17/dd8d0671710d4498b402a8b4b1526e57.png",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x4": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-cumulus-blue-square",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "蓝底积云",
+      "description": "蓝底积云。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x2"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ]
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "C:/Users/dingdong/AppData/Roaming/WeLink/download/weather/2X2天气.jpg",
+        "sourceSha256": "ba72db145be759adecfb9238221d02555631f7fd054a0affca11dac05d4798bf",
+        "assetSha256": "ba72db145be759adecfb9238221d02555631f7fd054a0affca11dac05d4798bf",
+        "assetBytes": 90577,
+        "originalSize": [
+          600,
+          600
+        ],
+        "assetSize": [
+          600,
+          600
+        ],
+        "processing": "复制用户本地原图字节，OBS待补充"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_cumulus_blue_square.jpg",
+        "remoteUrl": "",
+        "objectFit": "fill",
+        "frame": {
+          "slotWidth": 1,
+          "slotHeight": 1,
+          "imageWidth": 1,
+          "imageHeight": 1,
+          "align": "topStart"
+        }
+      },
+      "content": {
+        "roles": {
+          "primary": "#FFFFFFFF",
+          "secondary": "#CCFFFFFF",
+          "tertiary": "#99FFFFFF",
+          "graphicPrimary": "#FFFFFFFF",
+          "graphicSecondary": "#CCFFFFFF",
+          "graphicTertiary": "#99FFFFFF",
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
+        },
+        "panelBySize": {
+          "2x2": "#33FFFFFF"
+        },
+        "explicitTextAlpha": {
+          "secondary": 204,
+          "tertiary": 153
+        }
+      }
+    },
+    {
+      "id": "photo-ux-cumulus-blue-wide",
+      "enabled": true,
+      "kind": "photo",
+      "pool": "photos",
+      "name": "蓝底积云宽景",
+      "description": "蓝底积云宽景。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "sizes": [
+        "2x4"
+      ],
+      "business": "weather",
+      "composition": "native",
+      "subjectless": false,
+      "contentEligibility": {
+        "kind": "uniform",
+        "businesses": [
+          "weather"
+        ],
+        "wideLayout": "main-focus"
+      },
+      "matchingPolicy": "layout-only",
+      "source": {
+        "provider": "UX",
+        "file": "C:/Users/dingdong/AppData/Roaming/WeLink/download/weather/2X4天气.jpg",
+        "sourceSha256": "a72228a56b2c899ee11f9952edafebaa767d0ffdc33d5371d5bd56f2d2d9e5db",
+        "assetSha256": "a72228a56b2c899ee11f9952edafebaa767d0ffdc33d5371d5bd56f2d2d9e5db",
+        "assetBytes": 145225,
+        "originalSize": [
+          1200,
+          600
+        ],
+        "assetSize": [
+          1200,
+          600
+        ],
+        "processing": "复制用户本地原图字节，OBS待补充"
+      },
+      "background": {
+        "src": "resources/base/media/bg_ux_cumulus_blue_wide.jpg",
+        "remoteUrl": "",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,

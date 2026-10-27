@@ -228,10 +228,14 @@ async def test_level_full_templates_without_actions_or_assets(
 @pytest.mark.parametrize("fusion", [False, True])
 @pytest.mark.parametrize("optional_fields", [
     (), ("/batterySOCText",), ("/batteryTemperatureText",), ("/healthStatusDesc",),
+    ("/batterySOCText", "/batteryTemperatureText"),
+    ("/batterySOCText", "/healthStatusDesc"),
+    ("/batteryTemperatureText", "/healthStatusDesc"),
     ("/batterySOCText", "/batteryTemperatureText", "/healthStatusDesc"),
 ])
+@pytest.mark.parametrize("template_title", [None, "", "电流电压监测"])
 async def test_current_voltage_full_displays_available_fields(
-    fusion: bool, optional_fields: tuple[str, ...],
+    fusion: bool, optional_fields: tuple[str, ...], template_title: str | None,
 ) -> None:
     required_fields = ("/nowCurrentText", "/voltageText")
     fields = (*required_fields, *optional_fields)
@@ -250,6 +254,10 @@ async def test_current_voltage_full_displays_available_fields(
     battery_schema.pop("updatedAt")
     binding = case.binding.model_copy(update={"candidateOutputFields": list(fields)})
 
+    parameters = {} if template_title is None else {"title": template_title}
+    encoded_parameters = json.dumps(parameters, ensure_ascii=False)
+    card = {**case.card, "title": template_title} if template_title else case.card
+
     class CurrentVoltageModel:
         async def generate_json(self, _prompt: Any, *, phase: str) -> dict[str, Any]:
             return intent.model_dump(mode="json", by_alias=True)
@@ -257,17 +265,17 @@ async def test_current_voltage_full_displays_available_fields(
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
             return (
                 'Template("SingleFocusLayout@1",{},'
-                'Template("BatteryOverviewCurrentVoltageFull@1",{}));'
+                f'Template("BatteryOverviewCurrentVoltageFull@1",{encoded_parameters}));'
             )
 
     output = await pipeline.generate_template_a2ui(
-        task, case.card, (binding,), CurrentVoltageModel(), enable_fusion_ball=fusion,
+        task, card, (binding,), CurrentVoltageModel(), enable_fusion_ball=fusion,
     )
     assert_template_compact_processing(
         convert_a2ui_to_compact_dsl(output.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=case.card,
+        task_spec=task.model_dump(mode="json"), card_spec=card,
     )
-    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), case.card)
+    _assert_public_template_processing(output.a2ui, task.model_dump(mode="json"), card)
     assert "BatteryOverviewCurrentVoltageFull@1" in output.template_ids
     assert not output.projected_task_spec.eventCandidates
     assert "clickToDeeplink" not in output.a2ui
@@ -283,20 +291,40 @@ async def test_current_voltage_full_displays_available_fields(
         styles = value.get("styles", {})
         assert styles.get("fontSize") == 12
         assert styles.get("fontWeight") == 500
+        assert styles.get("textAlign") == "start"
     for optional_path in ("/batterySOCText", "/batteryTemperatureText", "/healthStatusDesc"):
         assert (optional_path in output.a2ui) == (optional_path in optional_fields)
     assert "batteryCapacityLevelDesc" not in output.a2ui
     assert "isBatteryPresentText" not in output.a2ui
-    title = next(item for item in components.values() if item.get("content") == "电池状态")
+    expected_title = template_title or "电池状态"
+    title = next(item for item in components.values() if item.get("content") == expected_title)
+    assert title.get("styles", {}).get("height") == 16
+    assert title.get("styles", {}).get("fontSize") == 12
     body = next(
         item for item in components.values() if title.get("id") in item.get("children", [])
     )
     children = body.get("children", [])
-    assert len(children) == 3 + len(optional_fields)
-    height = (len(children) - 1) * body.get("itemMargin", 0)
-    for child_id in children:
+    assert len(children) == 2
+    details = components.get(children[1])
+    assert isinstance(details, dict)
+    detail_style = details.get("styles", {})
+    assert detail_style.get("layoutWeight") == 1
+    assert detail_style.get("justifyContent") == "end"
+    assert detail_style.get("alignItems") == "start"
+    assert "padding" not in detail_style
+    assert "margin" not in detail_style
+    rows = details.get("children", [])
+    assert len(rows) == 2 + len(optional_fields)
+    height = title.get("styles", {}).get("height", 0) + body.get("itemMargin", 0)
+    height += (len(rows) - 1) * details.get("itemMargin", 0)
+    for child_id, field_path in zip(rows, fields, strict=True):
         child = components.get(child_id)
         assert isinstance(child, dict)
+        assert child.get("component") == "Row"
+        value_id = child.get("children", [])[1]
+        value_node = components.get(value_id)
+        assert isinstance(value_node, dict)
+        assert field_path in str(value_node.get("content"))
         height += child.get("styles", {}).get("height", 0)
     assert height <= 150 - 24
 
@@ -663,7 +691,7 @@ async def test_percent_details_full_displays_four_fields(fusion: bool) -> None:
         value = next(item for item in components.values() if field in str(item.get("content", "")))
         assert value.get("styles", {}).get("fontWeight") == 700
         if field != "/batterySOCText":
-            assert value.get("styles", {}).get("textAlign") == "right"
+            assert value.get("styles", {}).get("textAlign") == "end"
     title = next(item for item in components.values() if item.get("content") == "手机电量")
     body = next(item for item in components.values() if title.get("id") in item.get("children", []))
     children = body.get("children", [])

@@ -80,13 +80,15 @@ def test_square_keeps_three_line_left_aligned_rule(identity, business, align, li
 def test_hourglass_allows_non_holiday_names_and_keeps_foreground(monkeypatch, title):
     saved = sample(PATHS.get("countdown"), 3, title=title)
     assert rejection(saved, HOURGLASS) is None
-    expected = {HOURGLASS}
+    expected = {HOURGLASS, "photo-ux-glass-hourglass-square"}
+    selected = HOURGLASS
     if title == "中秋节":
-        expected.add("photo-ux-birds-countdown-square")
-    monkeypatch.setattr(themes.secrets, "choice", lambda items: HOURGLASS)
+        selected = "photo-ux-birds-countdown-square"
+        expected = {selected}
+    monkeypatch.setattr(themes.secrets, "choice", lambda items: selected)
     result, audit = choose(saved, monkeypatch)
     assert set(audit.get("candidates", [])) == expected
-    assert audit.get("themeId") == HOURGLASS
+    assert audit.get("themeId") == selected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 
@@ -127,9 +129,12 @@ def test_wide_same_level_candidates_are_selected_without_weights(monkeypatch, bu
     saved = focus_sample(business, 4, "left")
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
-    assert len(calls[0]) == 2
-    assert set(calls[0]) == {new, old}
-    assert set(audit.get("candidates", [])) == {new, old}
+    expected = {new, old}
+    if business == "countdown":
+        expected.add("photo-ux-glass-hourglass-wide")
+    assert len(calls[0]) == len(expected)
+    assert set(calls[0]) == expected
+    assert set(audit.get("candidates", [])) == expected
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)

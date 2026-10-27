@@ -7,13 +7,148 @@ data = {
 }
 Column(
   {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
-   "padding": {"top": 4}, "itemMargin": 4, "justifyContent": "start", "alignItems": "center",
-   "clip": true,
+   "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true,
    "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  #if data.percentText && data.charging
+  #if data.pluggedType
   Text(#Expr(props.title ? props.title : "手机电池"),
-    {"width": "matchParent", "height": 24, "fontSize": 16, "fontWeight": 400,
-    "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1, "flexShrink": 0,
-    "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}}),
+    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+  Text(data.temperature,
+    {"width": "matchParent", "height": 32, "fontSize": 24, "fontWeight": 700,
+     "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "spaceBetween", "alignItems": "center", "flexShrink": 0},
+    Text("剩余电量", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.percentText, {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'), "textAlign": "end",
+      "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
+  ),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "spaceBetween", "alignItems": "center", "flexShrink": 0},
+    Text("充电状态", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.charging, {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'), "textAlign": "end",
+      "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
+  ),
+  Row(
+    {"width": "matchParent", "height": 16, "itemMargin": 4,
+     "justifyContent": "spaceBetween", "alignItems": "center", "flexShrink": 0},
+    Text("充电类型", {"width": 48, "height": 16, "fontSize": 12, "fontWeight": 400,
+      "fontColor": $theme('supportContentColor'), "maxLines": 1, "flexShrink": 0}),
+    Text(data.pluggedType, {"layoutWeight": 1, "height": 16, "fontSize": 12, "minFontSize": 10,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'), "textAlign": "end",
+      "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
+  )
+  #else
+  Column(
+    {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "start",
+     "flexShrink": 0, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(#Expr(props.title ? props.title : "手机电池"),
+      {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+    Text(data.temperature,
+      {"width": "matchParent", "height": 44, "fontSize": 18, "fontWeight": 700,
+       "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"})
+  ),
+  Column(
+    {"width": "matchParent", "layoutWeight": 1, "itemMargin": 2,
+     "justifyContent": "end", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    #if data.percentText
+    Text(`电量: ${data.percentText}`,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}),
+    #endif
+    #if data.charging
+    Text(data.charging,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}),
+    #endif
+    #if data.pluggedType
+    Text(`充电器: ${data.pluggedType}`,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0})
+    #endif
+  )
+  #endif
+  #elseif data.percentText && data.pluggedType
+  Column(
+    {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "start",
+     "flexShrink": 0, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(#Expr(props.title ? props.title : "手机电池"),
+      {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+    Text(data.temperature,
+      {"width": "matchParent", "height": 44, "fontSize": 18, "fontWeight": 700,
+       "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"})
+  ),
+  Column(
+    {"width": "matchParent", "layoutWeight": 1, "itemMargin": 2,
+     "justifyContent": "end", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    #if data.percentText
+    Text(`电量: ${data.percentText}`,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}),
+    #endif
+    #if data.charging
+    Text(data.charging,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}),
+    #endif
+    #if data.pluggedType
+    Text(`充电器: ${data.pluggedType}`,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0})
+    #endif
+  )
+  #elseif data.charging && data.pluggedType
+  Column(
+    {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "start",
+     "flexShrink": 0, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Text(#Expr(props.title ? props.title : "手机电池"),
+      {"width": "matchParent", "height": 20, "fontSize": 16, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
+    Text(data.temperature,
+      {"width": "matchParent", "height": 44, "fontSize": 18, "fontWeight": 700,
+       "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"})
+  ),
+  Column(
+    {"width": "matchParent", "layoutWeight": 1, "itemMargin": 2,
+     "justifyContent": "end", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    #if data.percentText
+    Text(`电量: ${data.percentText}`,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}),
+    #endif
+    #if data.charging
+    Text(data.charging,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0}),
+    #endif
+    #if data.pluggedType
+    Text(`充电器: ${data.pluggedType}`,
+      {"width": "matchParent", "height": 20, "fontSize": 12, "fontWeight": 400,
+       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
+       "textOverflow": "ellipsis", "flexShrink": 0})
+    #endif
+  )
+  #else
+  Text(#Expr(props.title ? props.title : "手机电池"),
+    {"width": "matchParent", "height": 24, "margin": {"top": 4}, "fontSize": 16, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1, "flexShrink": 0,
+     "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}}),
   Column(
     {"width": "matchParent", "layoutWeight": 1, "justifyContent": "center", "alignItems": "center",
      "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -21,36 +156,27 @@ Column(
       "fontWeight": 700, "fontColor": $theme('primaryColor'), "textAlign": "center", "maxLines": 1,
       "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
   ),
-  #if data.percentText || data.charging || data.pluggedType
-  Row(
-    {"width": "matchParent", "height": 16, "itemMargin": 4, "justifyContent": "spaceBetween",
-     "alignItems": "center", "flexShrink": 0, "constraintSize": {"minWidth": 0}},
-    #if data.charging
-    #if data.pluggedType
-    Text(`${data.charging} · ${data.pluggedType}`,
-      {"layoutWeight": 1, "height": 16, "fontSize": 12, "fontWeight": 400,
-       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
-       "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}}),
-    #else
-    Text(data.charging,
-      {"layoutWeight": 1, "height": 16, "fontSize": 12, "fontWeight": 400,
-       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
-       "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}}),
-    #endif
-    #elseif data.pluggedType
-    Text(`充电器 ${data.pluggedType}`,
-      {"layoutWeight": 1, "height": 16, "fontSize": 12, "fontWeight": 400,
-       "fontColor": $theme('supportContentColor'), "textAlign": "start", "maxLines": 1,
-       "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}}),
-    #endif
-    #if data.percentText
-    Text(`电量: ${data.percentText}`,
-      {"layoutWeight": 1, "height": 16, "fontSize": 12, "fontWeight": 400,
-       "fontColor": $theme('supportContentColor'),
-       "textAlign": #Expr(data.charging ? "end" : (data.pluggedType ? "end" : "center")),
-       "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0}})
-    #endif
-  )
+  #if data.percentText
+  Text(`电量: ${data.percentText}`,
+    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0, "constraintSize": {"minWidth": 0}})
+  #elseif data.charging
+  Text(data.charging,
+    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0, "constraintSize": {"minWidth": 0}})
+  #elseif data.pluggedType
+  Text(`充电器: ${data.pluggedType}`,
+    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0, "constraintSize": {"minWidth": 0}})
+  #else
+  Text("温度状态",
+    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1,
+     "textOverflow": "ellipsis", "flexShrink": 0, "constraintSize": {"minWidth": 0}})
+  #endif
   #endif
 )
 #End

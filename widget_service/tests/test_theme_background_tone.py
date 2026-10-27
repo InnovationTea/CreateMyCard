@@ -163,8 +163,10 @@ def test_no_model_preference_keeps_picture_priority_without_scanning_words(
     saved = sample(PATHS.get("weather"), 2, wide=wide)
     saved.task["userQuery"] = query
     result, audit = choose(saved, monkeypatch, reply([]))
-    expected = {"photo-ux-wave-wide", "photo-ux-fuzzy-wide"} if wide else {
-        "photo-ux-wave-square", "photo-ux-starfield-weather-square",
+    suffix = "wide" if wide else "square"
+    expected = {
+        "photo-ux-mountain-sunset-lake-" + suffix,
+        "photo-ux-pink-sunset-lake-" + suffix, "photo-ux-cumulus-blue-" + suffix,
     }
     assert set(audit.get("candidates")) == expected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"

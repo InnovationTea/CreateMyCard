@@ -52,7 +52,7 @@ def test_photo_gates_do_not_cross_size_pools(enabled, size, gate):
 
 def test_current_subject_and_texture_assets_are_active_and_present():
     root = Path(__file__).resolve().parents[2]
-    expected = {"photos": 25, "texturePhotos": 15,
+    expected = {"photos": 38, "texturePhotos": 15,
                 "subjectlessWidePhotos": 0, "squareExpansions": 0}
     for key, count in expected.items():
         entries = themes.registered_themes(key)
@@ -77,7 +77,7 @@ def test_photo_assets_match_delivery_hash_and_preserve_source_record(entry):
     src = entry.get("src")
     assert isinstance(src, str)
     payload = (Path(__file__).resolve().parents[2] / src).read_bytes()
-    assert payload.startswith(b"\xff\xd8\xff")
+    assert payload.startswith((b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n"))
     metadata = entry.get("source", {})
     assert hashlib.sha256(payload).hexdigest() == metadata.get("assetSha256")
     assert len(payload) == metadata.get("assetBytes")

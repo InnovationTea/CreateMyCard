@@ -19,7 +19,10 @@ from test_uniform_photo_eligibility import PATHS, choose, evidence, photo, rejec
 CASES = json.loads((Path(__file__).parent / "fixtures/photo_weather_q16_q1.json").read_text(
     encoding="utf-8",
 ))
-WEATHER = {"photo-ux-wave-square", "photo-ux-starfield-weather-square"}
+WEATHER = {
+    "photo-ux-mountain-sunset-lake-square",
+    "photo-ux-pink-sunset-lake-square", "photo-ux-cumulus-blue-square",
+}
 
 
 def weather_case(case):
@@ -78,7 +81,9 @@ def test_weather_subject_selection_and_final_obs_delivery_preserve_foreground(
     for node in themes.components(themes.decode(delivered.genui)):
         if node.get("component") == "Image" and node.get("id", "").startswith(themes.PREFIX):
             backgrounds.append(node.get("src"))
-    assert backgrounds == [photo(selected).get("remoteUrl")]
+    selected_photo = photo(selected)
+    expected_source = selected_photo.get("remoteUrl") or selected_photo.get("src")
+    assert backgrounds == [expected_source]
 
 
 @pytest.mark.parametrize("change", [

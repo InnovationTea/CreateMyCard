@@ -25,7 +25,10 @@ from test_uniform_photo_eligibility import (
     sample,
 )
 
-WEATHER_WIDE = {"photo-ux-wave-wide", "photo-ux-fuzzy-wide"}
+WEATHER_WIDE = {
+    "photo-ux-mountain-sunset-lake-wide",
+    "photo-ux-pink-sunset-lake-wide", "photo-ux-cumulus-blue-wide",
+}
 
 
 def q52_artifact(saved):
@@ -131,7 +134,8 @@ def test_q52_selects_existing_weather_pool_without_foreground_changes(monkeypatc
     assert themes.foreground_signature(delivered.genui) == (
         themes.foreground_signature(original.genui)
     )
-    address = photo(selected).get("remoteUrl")
+    selected_photo = photo(selected)
+    address = selected_photo.get("remoteUrl") or selected_photo.get("src")
     assert address
     backgrounds = []
     for node in themes.components(themes.decode(delivered.genui)):

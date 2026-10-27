@@ -14,6 +14,7 @@ from config.config import get_settings
 from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
+from services.capability_registry import CapabilityRegistry
 from services.theme_content_regions import photo_layout_evidence
 from services.theme_layout_summary import theme_description
 from test_photo_asset_delivery import artifact
@@ -46,6 +47,17 @@ PATHS = {
     "music": "/data/music/trackName", "information": "/data/news/title", "sleep": SLEEP,
     "sport": "/data/healthSport/dailySteps", "earphone": "/data/earphone/connectionState",
     "calendar": CALENDAR, "battery": "/data/phoneBattery/batteryLevel",
+}
+NEW_SUBJECT_FILES = {
+    "car_night_lake_square.png", "car_night_lake_wide.png",
+    "glass_hourglass_square.png", "glass_hourglass_wide.png",
+    "meeting_room_chairs_square.png", "meeting_room_chairs_wide.jpg",
+    "meeting_room_table_square.png", "meeting_room_table_wide.jpg",
+    "meeting_room_window_square.png", "meeting_room_window_wide.jpg",
+    "metal_gear_square.png", "metal_gear_wide.jpg",
+    "mountain_sunset_lake_square.png", "mountain_sunset_lake_wide.png",
+    "pink_sunset_lake_square.png", "pink_sunset_lake_wide.png",
+    "cumulus_blue_square.jpg", "cumulus_blue_wide.jpg",
 }
 PHOTOS = registry.registered_themes("photos") + registry.registered_themes("texturePhotos")
 
@@ -83,6 +95,24 @@ def sample(path=SLEEP, lines=3, *, wide=False, button=True, align="start", title
     return expanded(rows, task)
 
 
+def business_sample(business, lines=3, *, wide=False, button=True, title="状态"):
+    if business not in {"navigation", "settings"}:
+        return sample(PATHS.get(business), lines, wide=wide, button=button, title=title)
+    saved = sample(lines=lines, wide=wide)
+    event_id = "event.startNavigate" if business == "navigation" else "event.open.settings.storage"
+    capability = CapabilityRegistry(version="app-11.7.7.300_rom-7.0").get_event_capability(event_id)
+    assert capability is not None
+    rows = themes.decode(saved.compact)
+    rows = [row for row in rows if not row[0].startswith("/")]
+    reading = next(row for row in rows if row[0] == "reading")
+    reading[2]["content"] = "\n".join(["快捷入口"] * lines)
+    handler = capability.actionTemplate.model_dump(mode="json")
+    for row in rows:
+        if row[0] in {"button", "lower"}:
+            row[2]["onClick"] = [handler]
+    return expanded(rows, saved.task)
+
+
 def evidence(saved):
     data = themes.decode(saved.source)[-1].get("updateDataModel", {}).get("value")
     return photo_layout_evidence(saved.nodes, data, final_layout=saved.compact,
@@ -103,8 +133,9 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 33
+    assert len(subjects) == 51
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
+    expected.update("bg_ux_" + name for name in NEW_SUBJECT_FILES)
     expected.add("bg_ux_road_wide.JPG")
     actual = {Path(item.get("src", "")).name for item in subjects}
     assert actual == expected
@@ -113,7 +144,7 @@ def test_only_current_subject_and_abstract_assets_remain():
     expected.update(Path(item.get("src", "")).name for item in abstract)
     directory = Path(__file__).parents[2] / "resources/base/media"
     actual_files = {
-        path.name for path in directory.glob("bg_ux_*") if path.suffix.lower() == ".jpg"
+        path.name for path in directory.glob("bg_ux_*") if path.suffix.lower() in {".jpg", ".png"}
     }
     assert actual_files == expected
     for item in PHOTOS:
@@ -137,10 +168,8 @@ def test_only_current_subject_and_abstract_assets_remain():
 def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
     businesses = item.get("contentEligibility", {}).get("businesses", [])
     business = businesses[0]
-    path = PATHS.get(business)
     if business == "holiday":
-        path = PATHS.get("countdown")
-    assert path
+        business = "countdown"
     clouds = item.get("id") == "photo-ux-clouds-weather-square"
     wide_subject = item.get("size") == "2x4" and item.get("pool") == "photos"
     limit = 4 if wide_subject else 3
@@ -149,7 +178,9 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
     for count in (limit, limit + 1):
         placement = item.get("contentEligibility", {}).get("placement")
         button = not clouds and placement not in {"bottom-left", "bottom"}
-        saved = sample(path, count, wide=item.get("size") == "2x4", title="假期", button=button)
+        saved = business_sample(
+            business, count, wide=item.get("size") == "2x4", title="假期", button=button,
+        )
         if placement == "center":
             rows = themes.decode(saved.compact)
             rows[0][2].update(alignItems="center", justifyContent="center")
@@ -339,7 +370,8 @@ def test_explicit_preferences_and_disabled_switch_override_photos(
 def test_all_photos_preserve_role_opacity_and_use_matching_fallback(item):
     roles = item.get("content", {}).get("roles", {})
     rgb = "FFFFFF"
-    if item.get("id") in {
+    black_photo = item.get("id", "").startswith("photo-ux-meeting-room-")
+    if black_photo or item.get("id") in {
         "photo-ux-meeting-room-square", "photo-ux-meeting-room-wide", "photo-ux-gradient-wide",
     }:
         rgb = "000000"

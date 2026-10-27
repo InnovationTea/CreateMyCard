@@ -19,7 +19,7 @@ from services.theme_layout_summary import theme_description
 from services.validator import ArtifactValidator
 from test_photo_background_fallback import node_by_id, source
 
-PHOTO_ID = "photo-ux-clouds-weather-square"
+PHOTO_ID = "photo-ux-mountain-sunset-lake-square"
 ADDRESS = "https://hagres-drcn.dbankcdn.com/assets/theme-test.jpg?version=1"
 ICON = "resources/base/media/drop_1.svg"
 
@@ -50,18 +50,26 @@ def artifact():
     )
 
 
-@pytest.mark.parametrize(("pool", "count"), [("photos", 33), ("texturePhotos", 18)])
+@pytest.mark.parametrize(("pool", "count"), [("photos", 51), ("texturePhotos", 18)])
 def test_current_photos_have_obs_addresses(pool, count):
     photos = registry.registered_themes(pool, include_disabled=True)
     assert len(photos) == count
     addresses = set()
+    pending = set()
     for photo in photos:
         address = photo.get("remoteUrl")
         assert isinstance(address, str)
+        if not address:
+            pending.add(photo.get("id"))
+            continue
         assert address.startswith("https://lfcontentcenterdev.hwcloudtest.cn/")
-        assert address.lower().endswith(".jpg")
+        assert address.lower().endswith((".jpg", ".png"))
         addresses.add(address)
-    assert len(addresses) == len(photos)
+    expected_pending = set()
+    if pool == "photos":
+        expected_pending = {"photo-ux-cumulus-blue-square", "photo-ux-cumulus-blue-wide"}
+    assert pending == expected_pending
+    assert len(addresses) + len(pending) == len(photos)
 
 
 @pytest.mark.parametrize(("photo_id", "size"), [
@@ -193,7 +201,8 @@ def test_theme_prompt_never_receives_remote_url(monkeypatch, enabled):
     result, audit = asyncio.run(themes.select_theme(
         layout, task(), client, final_layout=sample.layout,
     ))
-    weather_photos = {PHOTO_ID, "photo-ux-starfield-weather-square", "photo-ux-wave-square"}
+    weather_photos = {PHOTO_ID, "photo-ux-pink-sunset-lake-square",
+                      "photo-ux-cumulus-blue-square"}
     assert (audit.get("themeId") in weather_photos) is enabled
     assert ADDRESS not in json.dumps(theme_description(photo))
     assert ADDRESS not in json.dumps(client.generate.call_args.args)

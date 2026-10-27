@@ -206,7 +206,8 @@ def test_shared_application_keeps_explicit_icon_color_and_root_while_using_regis
     nodes.append({"id": "art", "component": "Image", "src": "resources/base/media/art.svg",
                   "styles": {"fillColor": "#FF123456", "width": 20, "height": 20}})
     source = themes.encode(records)
-    photo = next(item for item in registry.registered_themes() if item.get("id") == photo_id)
+    photo = next(item for item in registry.registered_themes(include_disabled=True)
+                 if item.get("id") == photo_id)
     result = apply_template_photo(source, photo, saved.task, ownership)
     after = themes.components(themes.decode(result))
     art = next(node for node in after if node.get("id") == "art")
@@ -312,7 +313,7 @@ def test_real_template_uses_new_public_photo_without_mapping_or_theme_model(monk
 
 
 @pytest.mark.parametrize("business,photo_id", [
-    ("weather", "photo-ux-wave-wide"), ("calendar", "photo-ux-digital-wave-wide"),
+    ("weather", "photo-ux-mountain-sunset-lake-wide"), ("calendar", "photo-ux-digital-wave-wide"),
     ("countdown", "photo-ux-gradient-wide"),
 ])
 @pytest.mark.parametrize("lines", [2, 4, 5])
@@ -328,7 +329,8 @@ def test_template_top_bottom_main_focus_keeps_shared_line_gate(business, photo_i
     support = next(node for node in nodes if node.get("id") == root_children[1])
     support["component"] = "Row"
     facts = template_photo_facts(themes.encode(records), saved.task, "状态")
-    photo = next(item for item in registry.registered_themes() if item.get("id") == photo_id)
+    photo = next(item for item in registry.registered_themes(include_disabled=True)
+                 if item.get("id") == photo_id)
     assert (photo_reason(photo, facts) is None) is (lines <= 4)
     assert "side-focus" not in facts.scopes
     assert "left-main-dual" not in facts.scopes
@@ -363,13 +365,13 @@ def test_outer_alignment_remains_part_of_template_photo_facts(
     assert card is not None
     assert card.body_flow.get("leftAligned") is left
     assert facts.top_content.get("topOnly") is top
-    photo = next(item for item in registry.registered_themes()
+    photo = next(item for item in registry.registered_themes(include_disabled=True)
                  if item.get("id") == "photo-ux-clouds-weather-square")
     assert (photo_reason(photo, facts) is None) is (left and top)
 
 
 @pytest.mark.parametrize("business,photo_id", [
-    ("weather", "photo-ux-wave-wide"), ("calendar", "photo-ux-digital-wave-wide"),
+    ("weather", "photo-ux-mountain-sunset-lake-wide"), ("calendar", "photo-ux-digital-wave-wide"),
     ("countdown", "photo-ux-gradient-wide"),
 ])
 @pytest.mark.parametrize("variant", ["continuous", "bottom-details", "equal"])
@@ -382,7 +384,8 @@ def test_compiled_top_bottom_layout_matches_fusion_main_scope(
     source, _ = template_source(saved)
     facts = template_photo_facts(source, saved.task, "顶部标题")
     expected = fusion_photo_facts(saved.task, evidence(saved), saved.compact)
-    photo = next(item for item in registry.registered_themes() if item.get("id") == photo_id)
+    photo = next(item for item in registry.registered_themes(include_disabled=True)
+                 if item.get("id") == photo_id)
     assert photo_reason(photo, facts) == photo_reason(photo, expected)
     assert "main-focus" in facts.scopes
     assert "side-focus" not in facts.scopes
