@@ -185,11 +185,16 @@ export function mergeCommonStyles(styles?: Record<string, unknown>): CSSProperti
 
   if (styles.clip === true) {
     out.overflow = "hidden";
-    // Explicit compositor clipping also contains backdrop-filter layers in Chromium.
-    const radii = typeof br === "number" ? `${br}px` : br && typeof br === "object" ?
-      ["topLeft", "topRight", "bottomRight", "bottomLeft"].map(k => `${Number((br as Record<string, unknown>)[k]) || 0}px`).join(" ") : "0px";
-    out.clipPath = `inset(0 round ${radii})`;
-    out.isolation = "isolate";
+    // A nested wrapper that repeats an identical ancestor clip does not need its own
+    // clip-path: the outer one already rounds the composite, while an extra clip-path
+    // becomes a Chromium backdrop root that hides the photo behind glass children.
+    if (styles.__skipCompositorClip !== true) {
+      // Explicit compositor clipping also contains backdrop-filter layers in Chromium.
+      const radii = typeof br === "number" ? `${br}px` : br && typeof br === "object" ?
+        ["topLeft", "topRight", "bottomRight", "bottomLeft"].map(k => `${Number((br as Record<string, unknown>)[k]) || 0}px`).join(" ") : "0px";
+      out.clipPath = `inset(0 round ${radii})`;
+      out.isolation = "isolate";
+    }
   }
 
   const bgc = normalizeSchemaColor(
