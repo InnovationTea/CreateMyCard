@@ -48,6 +48,7 @@ from services.compact_dsl_argument_repair import (
     compact_dsl_argument_issue_tracker,
     has_explicit_stringified_arguments,
     recover_compact_dsl_content,
+    recover_deterministic_content,
 )
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
 from services.daily_usage_limiter import DailyUsageError, DailyUsageLimiter, DailyUsageRecord
@@ -601,7 +602,28 @@ async def _repair_compact_dsl_content_if_needed(
     request_id: str | None,
     model_runtime: ModelExecutionRuntime | None,
 ) -> bool:
-    """连续出现字符串化 arguments 时按配置调用模型恢复 content。"""
+    """先做一次确定性恢复，未能恢复的字符串参数再沿用有界模型兜底。"""
+    if operation == COMPACT_DSL_OPERATION:
+        try:
+            deterministic = recover_deterministic_content(payload)
+        except ValueError as exc:
+            logger.info(
+                f"{_MODULE} deterministic_argument_repair_rejected "
+                f"request_id={request_id} reason={type(exc).__name__}"
+            )
+        else:
+            if deterministic is not None:
+                payload["content"] = deterministic.content
+                compact_dsl_argument_issue_tracker.reset(request_id)
+                trace_record(
+                    "argument_repair.result", stage="argumentRepair", status="success",
+                    details={"mode": deterministic.mode, "attempts": 0, "modelCalled": False},
+                )
+                logger.info(
+                    f"{_MODULE} deterministic_argument_repair_completed "
+                    f"request_id={request_id} mode={deterministic.mode}"
+                )
+                return True
     has_issue = has_explicit_stringified_arguments(payload)
     if operation != COMPACT_DSL_OPERATION or not has_issue:
         compact_dsl_argument_issue_tracker.reset(request_id)

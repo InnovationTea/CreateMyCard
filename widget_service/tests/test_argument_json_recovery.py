@@ -125,7 +125,7 @@ def test_candidate_fragment_is_validated_before_locking(registry):
     assert "candidateAssetIds" not in guard.fields
 
 
-def test_intact_data_and_assets_survive_damaged_event_and_model_overwrite(registry):
+def test_intact_fragments_are_locked_but_unrecoverable_event_cannot_be_invented(registry):
     original = _content()
     raw = json.dumps(original).removesuffix("}") + ',"candidateEventCandidates":[broken'
     guard = repair._preserve_valid_fragments(raw, registry)
@@ -149,16 +149,13 @@ def test_intact_data_and_assets_survive_damaged_event_and_model_overwrite(regist
         "candidateAssetIds": [],
         "candidateEventCandidates": [event],
     }
-    normalized, dropped, _warnings = repair._normalize_model_output(
-        json.dumps(output),
-        {},
-        _payload(raw),
-        registry,
-        preserved=guard,
-    )
-    assert normalized.get("candidateDataBindings") == original.get("candidateDataBindings")
-    assert normalized.get("candidateAssetIds") == original.get("candidateAssetIds")
-    assert not dropped
+    merged = guard.merge(output)
+    assert merged.get("candidateDataBindings") == original.get("candidateDataBindings")
+    assert merged.get("candidateAssetIds") == original.get("candidateAssetIds")
+    with pytest.raises(repair.CompactDslArgumentRepairError):
+        repair._normalize_model_output(
+            json.dumps(output), {}, _payload(raw), registry, preserved=guard,
+        )
 
 
 @pytest.mark.parametrize("output", [{}, {"candidateEventCandidates": []}])
@@ -221,7 +218,7 @@ def test_losing_all_invalid_candidates_is_failure_not_static_success(registry):
     content = _content()
     content["candidateDataBindings"] = []
     content["candidateAssetIds"] = ["unknown.asset"]
-    with pytest.raises(repair.CompactDslArgumentRepairError, match="no usable candidates"):
+    with pytest.raises(repair.CompactDslArgumentRepairError, match="preflight rejected"):
         repair._normalize_model_output(json.dumps(content), {}, {}, registry)
 
 

@@ -52,6 +52,12 @@ def request_validation_feedback(exc: ValidationError, operation: str) -> dict[st
             instruction = "删除 dataCapabilityIds；" + _DATA_INSTRUCTION
         elif field_name == "eventCapabilityIds":
             instruction = "删除 eventCapabilityIds；" + _EVENT_INSTRUCTION
+        elif field_name == "actionTemplate":
+            instruction = (
+                "将本轮对应事件 actionTemplate 的完整值放入 action，保留 call、args 及固定值；"
+                "不提交 actionTemplate 字段名或 dynamicArguments 定义。"
+                "已有 action 时先核对冲突，不覆盖实际动作参数。"
+            )
         elif error_type == "extra_forbidden":
             message = "此位置包含未声明字段。"
             instruction = (

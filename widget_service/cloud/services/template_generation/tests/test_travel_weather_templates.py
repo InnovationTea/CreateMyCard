@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 import pytest
+
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine.pipeline import generate_template_a2ui
 

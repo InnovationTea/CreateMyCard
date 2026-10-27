@@ -3,6 +3,7 @@
 import re
 
 import pytest
+
 from services.template_generation.engine.cardplan.compiler import _instantiate_blueprint
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 

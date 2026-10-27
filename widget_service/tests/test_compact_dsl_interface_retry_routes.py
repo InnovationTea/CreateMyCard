@@ -189,28 +189,17 @@ def test_stringified_arguments_repaired_once_before_generation_retries(monkeypat
     monkeypatch.setattr(WidgetGenerationService, "generate_widget_card_compact_dsl", generate)
     interaction_id = "repair-once"
     malformed = _tool_payload(
-        {"arguments": '{"title":"天气","userQuery":"生成天气卡片"'}, interaction_id
+        {"arguments": json.dumps(_CONTENT, ensure_ascii=False).removesuffix("}")}, interaction_id,
     )
     request_id = _request_id(interaction_id)
     with TestClient(app).websocket_connect(_PATH) as websocket:
         websocket.send_json(malformed)
-        first = _receive_frames_until_final(websocket, request_id)
-        assert final_result(first).get("errorCode") == ErrorCode.INVALID_ARGUMENTS
-        assert not model_calls
-        assert not generation_calls
+        frames = _receive_frames_until_final(websocket, request_id)
+        assert_single_directive_pair(frames, succeeded=True)
 
-        websocket.send_json(malformed)
-        second = _receive_frames_until_final(websocket, request_id)
-        assert_single_directive_pair(second, succeeded=True)
-
-        # 生成的内部重试不累计 arguments 异常次数；收口后新请求从提醒重新开始。
-        websocket.send_json(malformed)
-        third = _receive_frames_until_final(websocket, request_id)
-        assert final_result(third).get("errorCode") == ErrorCode.INVALID_ARGUMENTS
-
-    assert model_calls == ["raw-json"]
+    assert model_calls == []
     assert len(generation_calls) == 2
-    assert recorded_issues == [request_id, request_id, request_id]
+    assert recorded_issues == []
 
 
 @pytest.mark.parametrize("bad_input", ["invalid-json", "missing-title", "repair-failed"])

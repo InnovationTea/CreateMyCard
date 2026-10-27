@@ -3,10 +3,11 @@
 import json
 
 import pytest
+from pydantic import ValidationError
+
 from api.schemas import CapabilityOverviewRequest, DataCapabilitySchemasRequest
 from config.config import get_settings
 from models.capability import AssetCapability
-from pydantic import ValidationError
 from services.capability_registry import CapabilityRegistry
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 from services.task_spec_builder import TaskSpecBuilder
