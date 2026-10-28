@@ -89,7 +89,9 @@ def test_compositions_stay_in_original_domain_and_preserve_existing_requests(
             assert domains[0] == provider.providerSlug
             assert len(domains) == len(set(domains))
     assert covered == set(layouts)
-    assert composition_count == 85
+    # 四个已删除的稀疏宽卡布局不再生成组合；其余布局仍需完整覆盖，
+    # 当前稳定组合数为 61（原 85 减去 24 个已移除布局组合）。
+    assert composition_count == 61
     audit = json.loads((tmp_path / "wide-composition-selection.json").read_text(encoding="utf-8"))
     excluded = audit.get("excluded")
     assert isinstance(excluded, list)
