@@ -7,10 +7,9 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
+from config.config_helper import ConfigHelper
 from pydantic import AliasChoices, AliasGenerator, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from config.config_helper import ConfigHelper
 
 
 def get_container_ip():
@@ -89,6 +88,38 @@ class Settings(BaseSettings):
     # src → 云侧 URL 映射；模型使用原始 src，标准 A2UI 生成后精确替换，未命中保留原路径。
     asset_src_url_mapping: dict = _parse_json_config(CONFIG.get("asset.src.url.mapping"), {})
     design_compact_profile_id: str = "design-compact-dsl"
+    enable_compact_script_repair: bool = (
+        CONFIG.get("enable_compact_script_repair", "false") == "true"
+    )
+    enable_compact_button_slot_repair: bool = (
+        CONFIG.get("enable_compact_button_slot_repair", "true") == "true"
+    )
+    enable_compact_parent_budget_repair: bool = (
+        CONFIG.get("enable_compact_parent_budget_repair", "true") == "true"
+    )
+    enable_compact_sibling_space_repair: bool = (
+        CONFIG.get("enable_compact_sibling_space_repair", "true") == "true"
+    )
+    enable_compact_duplicate_click_repair: bool = (
+        CONFIG.get("enable_compact_duplicate_click_repair", "true") == "true"
+    )
+    enable_compact_height_closure_repair: bool = (
+        CONFIG.get("enable_compact_height_closure_repair", "true") == "true"
+    )
+    enable_compact_semantic_layout_repair: bool = (
+        CONFIG.get("enable_compact_semantic_layout_repair", "true") == "true"
+    )
+    compact_script_max_candidates: int = Field(
+        default=int(CONFIG.get("compact_script_max_candidates", "12")), ge=0, le=32,
+    )
+
+    @field_validator("compact_script_max_candidates", mode="before")
+    @classmethod
+    def validate_script_candidate_count(cls, value: object) -> object:
+        if isinstance(value, bool | float):
+            raise ValueError("compact_script_max_candidates 必须是整数")
+        return value
+
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
     mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = CONFIG.get("ids_query_url")

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from services.card_validation.compact_validation.diagnostics import CompactDiagnostic, emit_error
 from services.card_validation.compact_validation.text import (
     _non_negative_number,
     _uses_visual_recipe_part,
@@ -139,7 +140,7 @@ def _collect_text_width_budget_errors(
                         "an ellipsis."
                     )
                 continue
-            errors.append(
+            message = (
                 f"component {row.component_id}: text width overflow; complete text {text!r} "
                 f"at original font {font:g} needs about {required:g}vp in one line, "
                 f"but its {width_description} is {available:g}vp. Keep every label, prefix, "
@@ -147,6 +148,19 @@ def _collect_text_width_budget_errors(
                 "region. A fixed single-line component needs same-font separate lines or a "
                 "different legal composition, not clipping, smaller secondary text or weight."
             )
+            emit_error(errors, CompactDiagnostic(
+                code="COMPACT_LAYOUT_WIDTH_OVERFLOW",
+                validation_class="semantic",
+                category="layout",
+                message=message,
+                legacy_message=message,
+                expected={"maximumWidth": available, "preserveFixedContent": True},
+                actual={"minimumRequiredWidth": required, "overflow": required - available,
+                        "text": text, "fontSize": font},
+                evidence_source="expanded",
+                component_id=row.component_id,
+                property_path="/content" if row.component_type == "Text" else "/label",
+            ))
 
 
 def _compound_duration_label_width_error(

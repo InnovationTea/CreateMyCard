@@ -1,5 +1,11 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-27 错误驱动脚本修复接入：候选生成及采用归生成修复编排
+`services/compact_script_repair.py`，完整复检仍委托原评估链。
+单行文字宽度判定继续归 `semantic/layout/text_width.py`，只补充既有宽度错误的结构化诊断，
+保留旧文案、阈值和 warning 分级；证据节点与可编辑源位置分别由 `diagnostics.py` 和
+`source_locations.py` 保存。不将候选选择逻辑加入校验器，不新增布局或放宽校验。
+
 2026-10-25 静态展示质量增量：`displayRole`、`presentationStyle`、`paletteFamily` 的静态专属形状与
 枚举检查归 `compact_plan.py` 的信息计划合同；动态 Plan 不接受这些字段。可省略属性标签的字段形状
 由 `static_content_components.py` 共享展开检查，归语法／组件；value 仍必填，显式 label 不得为空。

@@ -37,6 +37,13 @@ ALIASES = {
 PLATFORM_FIELDS = {"server_host", "server_port", "local_flag", "project_root", "config"}
 SECRET_FIELDS = {"hag_osms_ak", "ids_sign_secret", "ids_access_key", "deepseek_user"}
 GENERATION_OPTIONS = {
+    "enable_compact_script_repair": "校验错误后先尝试 Compact 脚本修复",
+    "enable_compact_button_slot_repair": "修复按钮容器空间",
+    "enable_compact_parent_budget_repair": "修复父容器预算",
+    "enable_compact_sibling_space_repair": "修复同级空间分配",
+    "enable_compact_duplicate_click_repair": "合并完全相同的重复点击",
+    "enable_compact_height_closure_repair": "补齐明确父区的高度继承",
+    "enable_compact_semantic_layout_repair": "尝试已登记布局（优先保持方向）",
     "enable_single_step_generation_fallback": "五次定向修复后允许单步新建兜底",
     "enable_single_step_widget_edit": "使用限定字段补丁编辑原卡",
     "enable_drop_plan_fact_validation": "修复后仍严格校验计划信息覆盖",
