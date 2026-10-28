@@ -5233,11 +5233,11 @@
           600,
           600
         ],
-        "processing": "复制用户本地原图字节，OBS待补充"
+        "processing": "使用用户提供的OBS原始字节，与本地原图一致，不裁切或重新编码"
       },
       "background": {
         "src": "resources/base/media/bg_ux_cumulus_blue_square.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/8db172e785824956a9f80195c1cf54c8/fd32f5c3ab47474e80facd7ae2d0dddc.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -5302,11 +5302,11 @@
           1200,
           600
         ],
-        "processing": "复制用户本地原图字节，OBS待补充"
+        "processing": "使用用户提供的OBS原始字节，与本地原图一致，不裁切或重新编码"
       },
       "background": {
         "src": "resources/base/media/bg_ux_cumulus_blue_wide.jpg",
-        "remoteUrl": "",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/984d7a4a6c8b43fab600de6c28f67166/1f4dbedc82e74de2959e7b9ca67063dd.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,

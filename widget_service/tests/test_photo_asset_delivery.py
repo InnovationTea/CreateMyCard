@@ -65,10 +65,7 @@ def test_current_photos_have_obs_addresses(pool, count):
         assert address.startswith("https://lfcontentcenterdev.hwcloudtest.cn/")
         assert address.lower().endswith((".jpg", ".png"))
         addresses.add(address)
-    expected_pending = set()
-    if pool == "photos":
-        expected_pending = {"photo-ux-cumulus-blue-square", "photo-ux-cumulus-blue-wide"}
-    assert pending == expected_pending
+    assert not pending
     assert len(addresses) + len(pending) == len(photos)
 
 
