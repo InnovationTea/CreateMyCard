@@ -301,7 +301,7 @@ def expand_high_level_component_rows(
         static_type = component.component_type in STATIC_COMPONENTS
         static_support = (
             current_content_policy().is_static
-            and component.component_type in {"SecondaryBody", "SingleLineTitle"}
+            and component.component_type in {"SingleLineTitle", "EmphasisText"}
         )
         if static_type or static_support:
             width = static_widths.get(component.component_id)
@@ -385,7 +385,8 @@ def _static_content_widths(components: list[ComponentRow], size: str) -> dict[st
         kind = component.component_type
         props = component.props
         static_support = (
-            current_content_policy().is_static and kind in {"SecondaryBody", "SingleLineTitle"}
+            current_content_policy().is_static
+            and kind in {"SingleLineTitle", "EmphasisText"}
         )
         if kind in STATIC_COMPONENTS or static_support:
             targets.append(component.component_id)

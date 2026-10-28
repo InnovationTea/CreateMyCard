@@ -1,4 +1,4 @@
-"""三类静态内容语义的受控展开；布局与文字规格统一读取增量合同。"""
+"""静态语义组件的受控展开；布局与文字规格统一读取增量合同。"""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from services.card_validation.compact_validation.semantic.layout.text_capacity i
 from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
 from services.static_text_capacity import (
     component_spec,
-    measure_text,
     number,
     text_spec,
     text_width,
@@ -33,6 +32,21 @@ def static_string(value: Any, location: str) -> str:
     return value
 
 
+def validate_static_model_props(component: Any) -> None:
+    """在主题注入前验证模型字段，避免把样式错误静默当作Runtime默认值。"""
+    allowed = {
+        "SingleLineTitle": {"title", "icon"},
+        "TextList": {"items"},
+        "SingleLineList": {"items"},
+        "ComparisonGroup": {"items"},
+        "EmphasisText": {"mainText", "secondaryText"},
+    }
+    fields = allowed.get(component.component_type)
+    if fields is None:
+        _fail(f"静态内容不支持 {component.component_type}。")
+    _fields(component.props, fields, component.component_id)
+
+
 def _fields(value: Any, allowed: set[str], location: str) -> dict[str, Any]:
     if not isinstance(value, dict) or set(value) - allowed:
         _fail(f"{location} 只允许字段 {sorted(allowed)}。")
@@ -46,24 +60,6 @@ def _color_alpha(color: str) -> str:
         return "#99" + color[3:]
     _fail("静态组件缺少合法主题文字色。")
     return color
-
-
-def _record_row_fits(
-    item: dict[str, Any], widths: dict[str, float], main_width: float, compact: bool
-) -> bool:
-    """侧栏导致主区不可读时改为本条目内纵排，不删字段或缩小文字。"""
-    styles = {"title": "compactTitle" if compact else "recordTitle"}
-    styles["description"] = "compactDescription" if compact else "recordDescription"
-    try:
-        for key, style in styles.items():
-            if key in item and not measure_text(item.get(key), main_width, text_spec(style)).fits:
-                return False
-        for key, extent in widths.items():
-            if not measure_text(item.get(key), extent, text_spec("side")).fits:
-                return False
-    except ValueError:
-        return False
-    return True
 
 
 class _Builder:
@@ -183,243 +179,120 @@ class _Builder:
             [title_id, icon_id],
         )
 
-    def block(self, props: dict[str, Any]) -> None:
-        values = _fields(props, {"title", "body", "attributes", "variant"}, "ContentBlock")
-        if not any(key in values for key in ("title", "body", "attributes")):
-            _fail("ContentBlock 至少包含标题、正文或属性。")
-        variant = values.get("variant", "flow")
-        if not isinstance(variant, str) or variant not in {"flow", "bottom-attributes"}:
-            _fail("ContentBlock.variant 未登记。")
-        spec = component_spec("ContentBlock")
-        gap = number(spec, "gap")
-        children: list[str] = []
-        heights: list[float] = []
-        for key in ("title", "body"):
-            if key not in values:
-                continue
-            identifier, height = self.text(key, values.get(key), self.width, key)
-            children.append(identifier)
-            heights.append(height)
-        attributes = values.get("attributes")
-        attribute_id = self.identifier("attributes")
-        if attributes is not None:
-            if not isinstance(attributes, list) or not attributes:
-                _fail("ContentBlock.attributes 必须是非空数组。")
-            if len(attributes) > number(spec, "maximumAttributes"):
-                _fail("ContentBlock.attributes 超过登记数量。")
-            attribute_children: list[str] = []
-            attribute_heights: list[float] = []
-            label_area = 0.0
-            for raw in attributes:
-                item = _fields(raw, {"label", "value", "valueRole"}, "属性行")
-                if "label" in item:
-                    label = static_string(item.get("label"), "属性标签")
-                    extent = text_width(label, number(self.spec("attribute"), "fontSize"))
-                    label_area = max(label_area, extent)
-            for index, raw in enumerate(attributes):
-                item = _fields(raw, {"label", "value", "valueRole"}, f"attributes[{index}]")
-                value = static_string(item.get("value"), "属性值")
-                value_role = item.get("valueRole", "body")
-                if value_role not in ("body", "value"):
-                    _fail("属性valueRole只允许body或value。")
-                if "label" not in item:
-                    value_id, value_height = self.text(
-                        f"attr{index}_value", value, self.width, "attributeBody"
-                    )
-                    attribute_children.append(value_id)
-                    attribute_heights.append(value_height)
-                    continue
-                label = static_string(item.get("label"), "属性标签")
-                value_width = text_width(value, number(self.spec("attribute"), "fontSize"))
-                inline = label_area + value_width + gap <= self.width
-                if inline:
-                    current_label_area = label_area
-                    value_area = self.width - current_label_area - gap
-                else:
-                    current_label_area = self.width
-                    value_area = self.width
-                label_id, label_height = self.text(
-                    f"attr{index}_label",
-                    label,
-                    current_label_area,
-                    "attribute",
-                    secondary=True,
-                )
-                value_id, value_height = self.text(
-                    f"attr{index}_value",
-                    value,
-                    value_area,
-                    "attribute",
-                )
-                row_id = self.identifier(f"attr{index}")
-                height = max(label_height, value_height) if inline else label_height + value_height
-                if inline:
-                    for row in self.rows[-2:]:
-                        row.props["width"] = (
-                            current_label_area if row.component_id == label_id else value_area
-                        )
-                        if row.component_id == value_id and value_role == "value":
-                            row.props["textAlign"] = "end"
-                    self.add(
-                        row_id,
-                        "Row",
-                        {
-                            "width": "matchParent",
-                            "height": height,
-                            "itemMargin": gap,
-                            "alignItems": "start",
-                        },
-                        [label_id, value_id],
-                    )
-                else:
-                    self.column(row_id, [label_id, value_id], height, 0.0)
-                attribute_children.append(row_id)
-                attribute_heights.append(height)
-            gap_key = "compactAttributeGap" if len(attributes) >= 4 else "attributeGap"
-            attribute_gap = number(spec, gap_key)
-            total = sum(attribute_heights) + attribute_gap * max(0, len(attribute_heights) - 1)
-            self.column(attribute_id, attribute_children, total, attribute_gap)
-            children.append(attribute_id)
-            heights.append(total)
-        if variant == "bottom-attributes" and attributes is None:
-            _fail("bottom-attributes 必须包含属性。")
-        total = sum(heights) + gap * max(0, len(heights) - 1)
-        extra = None
-        if variant == "bottom-attributes":
-            extra = {"height": "matchParent", "constraintSize": {"minHeight": total}}
-            if len(children) > 1:
-                top_id = self.identifier("top")
-                top_height = sum(heights[:-1]) + gap * max(0, len(heights) - 2)
-                self.column(top_id, children[:-1], top_height, gap, extra={"layoutWeight": 1})
-                children = [top_id, attribute_id]
-        self.column(self.component.component_id, children, total, gap, extra=extra)
+    def emphasis(self, props: dict[str, Any]) -> None:
+        values = _fields(props, {"mainText", "secondaryText"}, "EmphasisText")
+        main_id, height = self.text("mainText", values.get("mainText"), self.width, "emphasis")
+        children = [main_id]
+        gap = number(component_spec("EmphasisText"), "gap")
+        if "secondaryText" in values:
+            secondary_id, secondary_height = self.text(
+                "secondaryText", values.get("secondaryText"), self.width,
+                "emphasisSecondary", secondary=True,
+            )
+            children.append(secondary_id)
+            height += gap + secondary_height
+        self.column(self.component.component_id, children, height, gap)
 
-    def records(self, props: dict[str, Any]) -> None:
-        values = _fields(props, {"items", "variant"}, "RecordList")
+    def text_list(self, props: dict[str, Any]) -> None:
+        values = _fields(props, {"items"}, "TextList")
         items = values.get("items")
-        spec = component_spec("RecordList")
-        if not isinstance(items, list):
-            _fail("RecordList.items 必须为记录数组。")
-        if not number(spec, "minimumItems") <= len(items) <= number(spec, "maximumItems"):
-            _fail("RecordList.items 必须为 1–3 个记录。")
-        variant = values.get("variant", "plain")
-        if not isinstance(variant, str) or variant not in {"plain", "panel"}:
-            _fail("RecordList.variant 未登记。")
-        compact = len(items) == 3
-        gap = number(spec, "compactGap" if compact else "gap")
-        padding = number(spec, "panelPadding") if variant == "panel" else 0.0
-        children: list[str] = []
-        heights: list[float] = []
+        if not isinstance(items, list) or not 2 <= len(items) <= 3:
+            _fail("TextList.items 必须为2–3项；含标题时最多2项。")
+        spec = component_spec("TextList")
+        gap = number(spec, "threeItemGap" if len(items) == 3 else "twoItemGap")
+        inner_gap = number(spec, "innerGap")
+        children = []
+        heights = []
         for index, raw in enumerate(items):
-            item = _fields(raw, {"title", "description", "leading", "trailing"}, "记录")
-            width = self.width - padding * 2
-            side_widths: dict[str, float] = {}
-            for side in ("leading", "trailing"):
-                if side not in item:
-                    continue
-                content = static_string(item.get(side), f"记录 {side}")
-                desired = text_width(content, number(self.spec("side"), "fontSize"))
-                limit = number(spec, "leadingMax" if side == "leading" else "trailingMax")
-                side_widths[side] = min(desired, limit)
-            side_gap = number(spec, "sideGap")
-            main_width = width - sum(side_widths.values()) - side_gap * len(side_widths)
-            stacked = bool(side_widths) and not _record_row_fits(
-                item, side_widths, main_width, compact
+            item = _fields(raw, {"primaryText", "secondaryText", "value"}, "列表项")
+            value_width = 0.0
+            side_gap = 0.0
+            if "value" in item:
+                value = item.get("value")
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    value = str(value)
+                value = static_string(value, f"items[{index}].value")
+                value_width = text_width(value, number(self.spec("listValue"), "fontSize"))
+                side_gap = number(spec, "sideGap")
+            main_width = self.width - value_width - side_gap
+            primary, primary_height = self.text(
+                f"item{index}_primaryText", item.get("primaryText"), main_width, "listPrimary",
             )
-            if stacked:
-                main_width = width
-            title_id, title_height = self.text(
-                f"item{index}_title",
-                item.get("title"),
-                main_width,
-                "compactTitle" if compact else "recordTitle",
+            secondary, secondary_height = self.text(
+                f"item{index}_secondaryText", item.get("secondaryText"), main_width,
+                "listSecondary", secondary=True,
             )
-            main_children = [title_id]
-            main_height = title_height
-            if "description" in item:
-                description_id, description_height = self.text(
-                    f"item{index}_description",
-                    item.get("description"),
-                    main_width,
-                    "compactDescription" if compact else "recordDescription",
-                    secondary=True,
-                )
-                main_children.append(description_id)
-                main_height += description_height + number(spec, "innerGap")
-            if stacked:
-                for side in side_widths:
-                    side_id, side_height = self.text(
-                        f"item{index}_{side}", item.get(side), width, "side", secondary=True
-                    )
-                    main_children.append(side_id)
-                    main_height += side_height + number(spec, "innerGap")
-                side_widths = {}
             main_id = self.identifier(f"item{index}_main")
-            self.column(
-                main_id,
-                main_children,
-                main_height,
-                number(spec, "innerGap"),
-                extra={"layoutWeight": 1},
-            )
+            main_height = primary_height + inner_gap + secondary_height
+            self.column(main_id, [primary, secondary], main_height, inner_gap,
+                        extra={"layoutWeight": 1})
             row_children = [main_id]
-            height = main_height
-            for side, extent in side_widths.items():
-                side_id, side_height = self.text(
-                    f"item{index}_{side}",
-                    item.get(side),
-                    extent,
-                    "side",
-                    secondary=True,
+            if "value" in item:
+                value_id, value_height = self.text(
+                    f"item{index}_value", value, value_width, "listValue", secondary=True,
                 )
-                self.rows[-1].props["width"] = extent
-                height = max(height, side_height)
-                if side == "leading":
-                    row_children.insert(0, side_id)
-                else:
-                    row_children.append(side_id)
+                self.rows[-1].props.update(width=value_width, textAlign="end")
+                row_children.append(value_id)
+                main_height = max(main_height, value_height)
             row_id = self.identifier(f"item{index}")
-            if variant == "plain" and index:
+            self.add(row_id, "Row", {
+                "width": "matchParent", "height": main_height, "itemMargin": side_gap,
+                "alignItems": "center", "flexShrink": 0,
+            }, row_children)
+            children.append(row_id)
+            heights.append(main_height)
+            if index < len(items) - 1:
                 divider_id = self.identifier(f"divider{index}")
                 thickness = number(spec, "dividerWidth")
-                divider_color = "#1F" + self.ink[3:]
                 if is_role(self.ink):
-                    divider_color = alpha_role(self.ink, number(spec, "dividerAlpha"))
-                self.add(
-                    divider_id,
-                    "Divider",
-                    {
-                        "width": "matchParent",
-                        "height": thickness,
-                        "strokeWidth": thickness,
-                        "flexShrink": 0,
-                        "color": divider_color,
-                    },
-                    [],
-                )
+                    color = alpha_role(self.ink, number(spec, "dividerAlpha"))
+                else:
+                    color = "#1F" + self.ink[3:]
+                self.add(divider_id, "Divider", {
+                    "width": "matchParent", "height": thickness, "strokeWidth": thickness,
+                    "flexShrink": 0, "color": color,
+                }, [])
                 children.append(divider_id)
                 heights.append(thickness)
-            row_props = {
-                "width": "matchParent",
-                "height": height + padding * 2,
-                "padding": padding,
-                "itemMargin": side_gap,
-                "alignItems": "center",
-            }
-            if variant == "panel":
-                row_props.update(
-                    backgroundColor=self.panel, borderRadius=number(spec, "panelRadius")
-                )
-            self.add(row_id, "Row", row_props, row_children)
+        self.column(self.component.component_id, children,
+                    sum(heights) + gap * (len(children) - 1), gap)
+
+    def single_lines(self, props: dict[str, Any]) -> None:
+        values = _fields(props, {"items"}, "SingleLineList")
+        items = values.get("items")
+        if not isinstance(items, list) or not 1 <= len(items) <= 24:
+            _fail("SingleLineList.items 必须为非空条目数组，最多24项并须通过容量校验。")
+        spec = component_spec("SingleLineList")
+        gap = number(spec, "gap")
+        side_gap = number(spec, "sideGap")
+        children = []
+        heights = []
+        for index, raw in enumerate(items):
+            item = _fields(raw, {"text", "assist"}, "单行条目")
+            text = static_string(item.get("text"), f"items[{index}].text")
+            assist = item.get("assist")
+            if isinstance(assist, (int, float)) and not isinstance(assist, bool):
+                assist = str(assist)
+            assist = static_string(assist, f"items[{index}].assist")
+            extent = text_width(text, number(self.spec("singleText"), "fontSize"))
+            text_id, text_height = self.text(
+                f"item{index}_text", text, extent, "singleText", secondary=True,
+            )
+            self.rows[-1].props["width"] = extent
+            assist_id, assist_height = self.text(
+                f"item{index}_assist", assist, self.width - extent - side_gap, "singleAssist",
+            )
+            self.rows[-1].props.update(layoutWeight=1, textAlign="end")
+            row_id = self.identifier(f"item{index}")
+            height = max(text_height, assist_height)
+            self.add(row_id, "Row", {
+                "width": "matchParent", "height": height, "itemMargin": side_gap,
+                "alignItems": "center", "flexShrink": 0,
+            }, [text_id, assist_id])
             children.append(row_id)
-            heights.append(height + padding * 2)
-        outer_gap = gap / 2 if variant == "plain" else gap
-        self.column(
-            self.component.component_id,
-            children,
-            sum(heights) + outer_gap * max(0, len(heights) - 1),
-            outer_gap,
-        )
+            heights.append(height)
+        self.column(self.component.component_id, children,
+                    sum(heights) + gap * (len(items) - 1), gap)
 
     def comparison(self, props: dict[str, Any], size: str) -> None:
         values = _fields(props, {"items"}, "ComparisonGroup")
@@ -500,28 +373,6 @@ class _Builder:
             children,
         )
 
-    def support(self, props: dict[str, Any]) -> None:
-        values = _fields(props, {"items", "columns", "fontSize"}, "静态共享说明")
-        if values.get("columns", 1) != 1 or values.get("fontSize", 12) != 12:
-            _fail("静态共享说明使用单列12字号，不承担正文对象。")
-        items = values.get("items")
-        if not isinstance(items, list) or not 1 <= len(items) <= 2:
-            _fail("静态共享说明仅允许1–2条必要说明。")
-        children = []
-        heights = []
-        for index, raw in enumerate(items):
-            item = _fields(raw, {"label", "value", "maxLines"}, "静态共享说明条目")
-            maximum = item.get("maxLines", 3)
-            if type(maximum) is not int or maximum not in {1, 2, 3}:
-                _fail("静态共享说明最多三行，不能通过maxLines放宽容量。")
-            label = static_string(item.get("label"), "说明标签") if "label" in item else ""
-            value = static_string(item.get("value"), "说明文字")
-            identifier, height = self.text(
-                f"note{index}", label + value, self.width, "note", secondary=True
-            )
-            children.append(identifier)
-            heights.append(height)
-        self.column(self.component.component_id, children, sum(heights) + 4 * (len(items) - 1), 4)
 
 
 def expand_static_component(
@@ -529,28 +380,27 @@ def expand_static_component(
 ) -> list[Any]:
     if not current_content_policy().is_static:
         _fail("静态内容组件需要服务端请求上下文授权。")
-    if component.component_type not in STATIC_COMPONENTS | {"SecondaryBody", "SingleLineTitle"}:
+    if component.component_type not in STATIC_COMPONENTS | {
+        "SingleLineTitle", "EmphasisText",
+    }:
         _fail("静态组件未登记。")
     props = deepcopy(component.props)
-    if component.component_type in {"SecondaryBody", "SingleLineTitle"}:
+    if component.component_type in {"SingleLineTitle", "EmphasisText"}:
         props.pop("fontColor", None)
     for key in ("width", "height", "layoutWeight", "flexShrink"):
         props.pop(key, None)
-    font_size = props.pop("fontSize", 12)
-    if not isinstance(font_size, (int, float)) or font_size not in (12, 11, 10):
-        _fail("静态字号只允许12、11、10，最小为10。")
-    builder = _Builder(component, width, palette, int(font_size))
+    builder = _Builder(component, width, palette)
     try:
         if component.component_type == "SingleLineTitle":
             builder.header(props)
-        elif component.component_type == "ContentBlock":
-            builder.block(props)
-        elif component.component_type == "RecordList":
-            builder.records(props)
+        elif component.component_type == "EmphasisText":
+            builder.emphasis(props)
+        elif component.component_type == "TextList":
+            builder.text_list(props)
+        elif component.component_type == "SingleLineList":
+            builder.single_lines(props)
         elif component.component_type == "ComparisonGroup":
             builder.comparison(props, size)
-        else:
-            builder.support(props)
     except ValueError as exc:
         _fail(f"COMPACT_STATIC_TEXT_CAPACITY: {component.component_id}: {exc}")
     root_id = component.component_id

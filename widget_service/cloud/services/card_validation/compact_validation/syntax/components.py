@@ -199,7 +199,7 @@ def collect_model_component_errors(components: list[ComponentRow]) -> Diagnostic
 
     allowed_types = MODEL_COMPACT_INPUT_COMPONENT_TYPES
     if current_content_policy().is_static:
-        allowed_types = STATIC_COMPONENTS | STATIC_SUPPORT_COMPONENTS | {"Layout", "Region"}
+        allowed_types = STATIC_COMPONENTS | STATIC_SUPPORT_COMPONENTS | {"Layout"}
     errors = DiagnosticCollector()
     for row in components:
         if row.component_type in allowed_types:
@@ -212,7 +212,7 @@ def collect_model_component_errors(components: list[ComponentRow]) -> Diagnostic
         if current_content_policy().is_static:
             message = (
                 f"开域正文不允许 {row.component_type}；"
-                "仅使用三类静态正文及必要标题、说明和动作。"
+                "使用静态文本列表、单行列表、对比、强调文本及标题。"
             )
             legacy = message
         emit_error(

@@ -14,19 +14,11 @@ def static_plan_capacity_errors(plan: dict[str, Any], size: str) -> list[str]:
     objects = [group for group in groups if group.get("kind") == "object"]
     actions = [item for item in facts if "actionId" in item]
     prefix = "COMPACT_STATIC_TEXT_CAPACITY: "
-    maximum_actions = 4 if size == "2x4" and not objects else 2
-    if len(actions) > maximum_actions:
-        return [
-            prefix + f"当前静态布局最多承载{maximum_actions}个必要动作，不得删除动作以适配容量。"
-        ]
+    if actions:
+        return [prefix + "静态合同只展示内容，不支持Action；请使用能力型请求链路。"]
     record_groups = _record_list_object_groups(plan, objects, facts)
     if len(record_groups) > 3:
-        return [
-            prefix
-            + "单个RecordList最多承载3个对象；请在Plan中只保留最多3个"
-            + "object组，超额对象不要写入info_required/contentGroups，并记入"
-            + "omittedContents。"
-        ]
+        return [prefix + "TextList最多三项，含标题最多两项；请改用单行列表或在Plan重新组织。"]
     if not objects and not actions and any("text" in item for item in facts):
         return [prefix + "正文至少有一个object组，不能将全部正文移到shared标题或说明。"]
     return []
@@ -37,7 +29,7 @@ def _record_list_object_groups(
     objects: list[dict[str, Any]],
     facts: list[Any],
 ) -> list[dict[str, Any]]:
-    """识别已明确选择单个 RecordList 的对象组。"""
+    """识别已明确选择单个 TextList 的对象组。"""
     if plan.get("presentationStyle") == "records":
         return objects
     result = []
@@ -50,7 +42,7 @@ def _record_list_object_groups(
             if not isinstance(fact, dict):
                 continue
             hints = fact.get("componentHints")
-            if isinstance(hints, list) and hints and hints[0] == "RecordList":
+            if isinstance(hints, list) and hints and hints[0] == "TextList":
                 preferred_record_list = True
                 break
         if preferred_record_list:
@@ -68,7 +60,8 @@ def require_static_text_capacity(
     if not capacity.fits:
         message = (
             f"{location} 完整文字需要 {capacity.lines} 行，{width:g}vp 区域仅允许 "
-            f"{capacity.maximum_lines} 行；重组、精简补充或显式尾部省略，保留核心读数和保护文字。"
+            f"{capacity.maximum_lines} 行；请保持已接受文字与字号，换用更合适的组件；"
+            "Plan阶段才能忠实精简。"
         )
         diagnostic = static_capacity_diagnostic(message)
         raise ValueError(diagnostic.message)

@@ -1525,7 +1525,16 @@ class CompactRepairStrategyTracker:
             and self._repair_submission_count > 0
             and (is_layout_failure or capacity_regroup_contract_failure)
         )
-        early_drop_due = persistent_plan_coverage_followup or bounded_capacity_followup
+        static_capacity_followup = (
+            self._static_content
+            and category == "layout_capacity"
+            and self._repair_submission_count >= 1
+        )
+        early_drop_due = (
+            persistent_plan_coverage_followup
+            or bounded_capacity_followup
+            or static_capacity_followup
+        )
         allow_text_compaction = _capacity_text_compaction_relevant(
             invalid_source_dsl,
         )
@@ -1554,6 +1563,8 @@ class CompactRepairStrategyTracker:
             )
             if bounded_capacity_followup or recovery_item_drop:
                 allowed_fact_indexes = self._capacity_overflow_fact_indexes
+                if self._static_content and not allowed_fact_indexes:
+                    allowed_fact_indexes = None
             candidate = self._select_drop_candidate(
                 invalid_source_dsl,
                 compact_plan,
@@ -1890,13 +1901,13 @@ class CompactRepairStrategyTracker:
             directive = replace(
                 directive,
                 instruction=(
-                    "按当前静态合同修复完整源，正文仅用ContentBlock、RecordList、ComparisonGroup；"
-                    "保留must核心、保护片段、原文要求和动作；无保护should可省略并反馈取舍。"
+                    "按当前静态合同修复完整源，正文使用TextList、SingleLineList、ComparisonGroup或EmphasisText；固定标题和贴底内容区；"
+                    "保留must核心、保护片段和原文要求；无保护should可省略并反馈取舍。"
                     "不得删除仍承载must的组件；混合组件只删除可选补充片段。"
-                    "先修属性与布局，再去装饰标题、短键值改属性表，按实际行盒重组。"
+                    "先修语法与引用，再检查事实归属，最后调整组件；短键值可改SingleLineList。"
                     "对比对象名与主值分开，关键数值、日期时间、单位保持完整片段；"
                     "超宽时改全宽正文或列表；省略号只采用Plan已有展示版本，"
-                    "完整落实已接受核心文字；不再次摘要、缩字、隐式裁切或将核心移入note。"
+                    "主题放header，强调位置展示结论或读数；完整落实已接受文字，不缩字或隐式裁切。"
                     + (
                         "同一问题重复出现：必须切换组件形态，优先完整复制计划的staticPresentation；"
                         "若没有已验证候选，按试排容量重新分配主副字段，不能再次返回相同结构。"

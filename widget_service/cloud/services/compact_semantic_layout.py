@@ -935,18 +935,15 @@ def _compile_static_layout(
     layout = root.props.get("layout")
     if not isinstance(layout, str):
         _fail("root", "静态布局 ID 必须为字符串")
-    compiler.props(root, {"layout", "variant"})
-    variant = root.props.get("variant", "flow")
-    if not isinstance(variant, str) or variant not in {"flow", "compact", "bottom-content"}:
-        _fail("root", "静态布局 variant 未登记")
-    allowed = {"header", "body", "note"}
+    compiler.props(root, {"layout"})
+    allowed = {"header", "body"}
     if set(root.children) - allowed or "body" not in root.children:
-        _fail("root", "静态布局 children 必须为可选 header、body、可选 note")
+        _fail("root", "静态布局 children 必须为可选 header 与必填 body")
     expected = tuple(
-        role_name for role_name in ("header", "body", "note") if role_name in root.children
+        role_name for role_name in ("header", "body") if role_name in root.children
     )
     if root.children != expected:
-        _fail("root", "静态布局角色顺序必须为 header、body、note")
+        _fail("root", "静态布局角色顺序必须为 header、body")
     body = compiler.node("body")
     if body.component_type not in static_components_for_size(size):
         _fail("body", "静态正文组件与尺寸不匹配")
@@ -954,32 +951,30 @@ def _compile_static_layout(
         if compiler.node("header").component_type != "SingleLineTitle":
             _fail("header", "静态标题必须使用 SingleLineTitle")
         compiler.title("header")
-    if "note" in root.children and compiler.node("note").component_type != "SecondaryBody":
-        _fail("note", "静态说明必须使用 SecondaryBody")
-    if variant == "bottom-content":
-        if "note" in root.children or body.props.get("variant") == "bottom-attributes":
-            _fail("body", "根贴底不能与 note 或内部属性贴底同时使用")
+    if "header" in root.children and body.component_type == "TextList":
+        items = body.props.get("items")
+        if isinstance(items, list) and len(items) > 2:
+            _fail("body", "TextList 含标题区时最多两项；三项请改用单行列表或在Plan重新组织")
     spec = contract_section("layout")
     children = []
+    content_children = []
     for identifier in root.children:
+        from services.static_content_components import validate_static_model_props
+
+        validate_static_model_props(compiler.node(identifier))
         compiler.content(identifier, compact=size == "2x2")
-        if identifier == "body":
-            wrapper = compiler.generated("root", "static_body")
-            compiler.add(
-                wrapper,
-                "Column",
-                {
-                    "width": "matchParent",
-                    "layoutWeight": 1,
-                    "alignItems": "start",
-                    "justifyContent": "end" if variant == "bottom-content" else "start",
-                },
-                ("body",),
-                "root",
-            )
-            children.append(wrapper)
-        else:
+        if identifier == "header":
             children.append(identifier)
+        else:
+            content_children.append(identifier)
+    wrapper = compiler.generated("root", "static_body")
+    compiler.add(
+        wrapper, "Column",
+        {"width": "matchParent", "layoutWeight": 1, "alignItems": "start",
+         "justifyContent": "end", "itemMargin": number(spec, "gap")},
+        tuple(content_children), "root",
+    )
+    children.append(wrapper)
     compiler.add(
         "root",
         "Column",
@@ -987,7 +982,7 @@ def _compile_static_layout(
             "width": "matchParent",
             "height": "matchParent",
             "padding": number(spec, "padding"),
-            "itemMargin": number(spec, "compactGap" if variant == "compact" else "gap"),
+            "itemMargin": number(spec, "gap"),
             "borderRadius": number(spec, "radius"),
             "clip": True,
             "alignItems": "start",

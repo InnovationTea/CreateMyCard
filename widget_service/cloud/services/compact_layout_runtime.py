@@ -71,7 +71,7 @@ def load_layout_contract() -> dict[str, Any]:
     for size, identifier in STATIC_LAYOUTS.items():
         prefix = "S" if size == "2x2" else "W"
         patterns = []
-        for gap_name in ("gap", "compactGap"):
+        for gap_name in ("gap",):
             patterns.append({
                 "rules": [{
                     "path": [], "types": ["Column"],

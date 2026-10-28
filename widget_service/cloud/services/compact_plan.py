@@ -466,11 +466,11 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
         "description": "规划说明，不作为降级依据；实际删减另填omittedContents。",
     }
     properties["presentationStyle"] = {
-        "enum": ["auto", "content", "attributes", "records", "comparison"],
+        "enum": ["auto", "content", "rows", "records", "comparison"],
         "description": (
             "模型按用户用途选择结构；活动、日程等名称加时地的多条同构记录优先records，"
-            "每个object组对应一条真实记录，不按类别压成ContentBlock长值；"
-            "records最多三个object组；"
+            "每个object组对应一条真实记录，一项保留同一对象的主副信息；"
+            "records两到三项，含共同标题最多两项；rows为单行列表；"
             "comparison仅2x4，普通偏好不替代实际容量校验。"
         ),
     }
@@ -502,7 +502,7 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
         "maxItems": 24,
         "description": (
             "每条text归属唯一object或shared组。若presentationStyle为records"
-            "或对象首选RecordList，最多提交三个object组；活动、日程等多记录输入按"
+            "或对象首选TextList，两到三个object组，含共同标题最多两个；多记录输入按"
             "真实记录分组，不按类别合并多条记录；超额内容记入omittedContents。"
         ),
         "items": {
@@ -852,7 +852,7 @@ def _normalize_static_plan(
         if isinstance(hints, list):
             if any(hint not in _component_hints(task.get("size")) for hint in hints):
                 raise CompactPlanValidationError(
-                    ["静态计划仅允许三类新正文及必要标题、说明和动作组件。"]
+                    ["静态计划仅允许文本列表、单行列表、强调文本、宽卡对比及标题。"]
                 )
         basic = dict(raw_fact)
         for key in extras:
@@ -1450,7 +1450,7 @@ def parse_compact_plan_call(
                             "不能只把名称写在requirement或组ID中。"
                         ])
         for preference, choices in (
-            ("presentationStyle", {"auto", "content", "attributes", "records", "comparison"}),
+            ("presentationStyle", {"auto", "content", "rows", "records", "comparison"}),
             ("paletteFamily", {"auto", "blue", "purple", "warm"}),
         ):
             selected = arguments.get(preference, "auto")
@@ -2916,7 +2916,19 @@ def _static_optional_drop_candidate(
         candidates = must_candidates
     if not candidates:
         return None
-    return max(candidates, key=lambda candidate: candidate.fact_indexes)
+    shared_title_indexes = set()
+    for group in plan.get("contentGroups", []):
+        if group.get("kind") != "shared":
+            continue
+        for index in group.get("factIndexes", []):
+            if facts[index].get("displayRole") == "title":
+                shared_title_indexes.add(index)
+    return max(
+        candidates,
+        key=lambda candidate: (
+            not shared_title_indexes.intersection(candidate.fact_indexes), candidate.fact_indexes,
+        ),
+    )
 
 
 def _required_anchor_layout(

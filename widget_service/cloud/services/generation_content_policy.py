@@ -8,15 +8,12 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from functools import wraps
 
-STATIC_COMPONENTS = frozenset({"ContentBlock", "RecordList", "ComparisonGroup"})
+STATIC_COMPONENTS = frozenset({"TextList", "SingleLineList", "ComparisonGroup"})
 STATIC_LAYOUTS = {"2x2": "S-static-content", "2x4": "W-static-content"}
 STATIC_SUPPORT_COMPONENTS = frozenset(
-    {"SingleLineTitle", "SecondaryBody", "PillButton", "CardButton"}
+    {"SingleLineTitle", "EmphasisText"}
 )
-STATIC_ACTION_LAYOUTS = {
-    "2x2": ("S-title-content-action", "S-content-dual-action"),
-    "2x4": ("W-split-panels", "W-four-slots"),
-}
+STATIC_ACTION_LAYOUTS: dict[str, tuple[str, ...]] = {}
 
 
 @dataclass(frozen=True)
@@ -96,7 +93,7 @@ def effective_layout_scope(size: str) -> str:
 
 
 def static_components_for_size(size: str) -> tuple[str, ...]:
-    result = ("ContentBlock", "RecordList")
+    result = ("TextList", "SingleLineList", "EmphasisText")
     if size == "2x4":
         result += ("ComparisonGroup",)
     return result
@@ -110,4 +107,4 @@ def static_layout_ids(size: str) -> tuple[str, ...]:
     identifier = STATIC_LAYOUTS.get(size)
     if identifier is None:
         return ()
-    return (identifier, *STATIC_ACTION_LAYOUTS.get(size, ()))
+    return (identifier,)

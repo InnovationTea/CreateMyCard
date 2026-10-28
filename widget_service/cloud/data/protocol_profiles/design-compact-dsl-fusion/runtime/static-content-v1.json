@@ -3,69 +3,56 @@
   "layout": {
     "padding": 12,
     "gap": 6,
-    "compactGap": 4,
     "radius": 20
   },
   "text": {
-    "title": {
-      "fontSize": 16,
-      "lineHeight": 22,
-      "maxLines": 2,
-      "fontWeight": 700
-    },
-    "body": {
-      "fontSize": 12,
-      "lineHeight": 18,
-      "maxLines": 4,
-      "fontWeight": 400
-    },
-    "attribute": {
-      "fontSize": 12,
-      "lineHeight": 16,
-      "maxLines": 3,
-      "fontWeight": 400
-    },
-    "attributeBody": {
-      "fontSize": 12,
-      "lineHeight": 16,
-      "maxLines": 6,
-      "fontWeight": 400
-    },
-    "note": {
-      "fontSize": 12,
-      "lineHeight": 14,
-      "maxLines": 3,
-      "fontWeight": 400
-    },
-    "recordTitle": {
-      "fontSize": 14,
-      "lineHeight": 20,
-      "maxLines": 2,
-      "fontWeight": 700
-    },
-    "recordDescription": {
-      "fontSize": 12,
-      "lineHeight": 16,
-      "maxLines": 2,
-      "fontWeight": 400
-    },
-    "compactTitle": {
+    "header": {
       "fontSize": 12,
       "lineHeight": 16,
       "maxLines": 1,
       "fontWeight": 700
     },
-    "compactDescription": {
-      "fontSize": 12,
-      "lineHeight": 14,
+    "emphasis": {
+      "fontSize": 18,
+      "lineHeight": 18,
       "maxLines": 2,
-      "fontWeight": 400
+      "fontWeight": 700
     },
-    "side": {
+    "emphasisSecondary": {
       "fontSize": 12,
       "lineHeight": 16,
       "maxLines": 2,
       "fontWeight": 400
+    },
+    "listPrimary": {
+      "fontSize": 12,
+      "lineHeight": 16,
+      "maxLines": 1,
+      "fontWeight": 500
+    },
+    "listSecondary": {
+      "fontSize": 10,
+      "lineHeight": 13,
+      "maxLines": 1,
+      "fontWeight": 400
+    },
+    "listValue": {
+      "fontSize": 12,
+      "lineHeight": 16,
+      "maxLines": 1,
+      "fontWeight": 500
+    },
+    "singleText": {
+      "fontSize": 12,
+      "lineHeight": 16,
+      "maxLines": 1,
+      "fontWeight": 400
+    },
+    "singleAssist": {
+      "fontSize": 12,
+      "lineHeight": 16,
+      "maxLines": 1,
+      "fontWeight": 500
     },
     "comparisonPrimary": {
       "fontSize": 16,
@@ -84,33 +71,26 @@
       "lineHeight": 16,
       "maxLines": 3,
       "fontWeight": 400
-    },
-    "header": {
-      "fontSize": 12,
-      "lineHeight": 16,
-      "maxLines": 1,
-      "fontWeight": 700
     }
   },
   "components": {
-    "ContentBlock": {
-      "gap": 6,
-      "attributeGap": 4,
-      "compactAttributeGap": 2,
-      "maximumAttributes": 6
+    "StaticHeader": {
+      "iconSize": 12,
+      "iconGap": 4
     },
-    "RecordList": {
-      "minimumItems": 1,
-      "maximumItems": 3,
-      "gap": 6,
-      "compactGap": 4,
-      "panelPadding": 6,
-      "panelRadius": 8,
-      "innerGap": 2,
-      "sideGap": 6,
-      "leadingMax": 36,
-      "trailingMax": 84,
-      "dividerWidth": 0.5,
+    "EmphasisText": {
+      "gap": 2
+    },
+    "SingleLineList": {
+      "gap": 4,
+      "sideGap": 8
+    },
+    "TextList": {
+      "innerGap": 4,
+      "sideGap": 12,
+      "twoItemGap": 12,
+      "threeItemGap": 6,
+      "dividerWidth": 1,
       "dividerAlpha": 0.12
     },
     "ComparisonGroup": {
@@ -120,10 +100,6 @@
       "padding": 8,
       "innerGap": 4,
       "radius": 12
-    },
-    "StaticHeader": {
-      "iconSize": 12,
-      "iconGap": 4
     }
   },
   "measurement": {
@@ -134,84 +110,7 @@
     "wideEm": 1.0,
     "safetyFactor": 1.05
   },
-  "typography": {
-    "11": {
-      "body": {
-        "fontSize": 11,
-        "lineHeight": 17
-      },
-      "attribute": {
-        "fontSize": 11,
-        "lineHeight": 15
-      },
-      "attributeBody": {
-        "fontSize": 11,
-        "lineHeight": 15
-      },
-      "note": {
-        "fontSize": 11,
-        "lineHeight": 13
-      },
-      "recordDescription": {
-        "fontSize": 11,
-        "lineHeight": 15
-      },
-      "compactDescription": {
-        "fontSize": 11,
-        "lineHeight": 13
-      },
-      "side": {
-        "fontSize": 11,
-        "lineHeight": 15
-      },
-      "comparisonSecondary": {
-        "fontSize": 11,
-        "lineHeight": 15
-      },
-      "detail": {
-        "fontSize": 11,
-        "lineHeight": 15
-      }
-    },
-    "10": {
-      "body": {
-        "fontSize": 10,
-        "lineHeight": 16
-      },
-      "attribute": {
-        "fontSize": 10,
-        "lineHeight": 14
-      },
-      "attributeBody": {
-        "fontSize": 10,
-        "lineHeight": 14
-      },
-      "note": {
-        "fontSize": 10,
-        "lineHeight": 12
-      },
-      "recordDescription": {
-        "fontSize": 10,
-        "lineHeight": 14
-      },
-      "compactDescription": {
-        "fontSize": 10,
-        "lineHeight": 12
-      },
-      "side": {
-        "fontSize": 10,
-        "lineHeight": 14
-      },
-      "comparisonSecondary": {
-        "fontSize": 10,
-        "lineHeight": 14
-      },
-      "detail": {
-        "fontSize": 10,
-        "lineHeight": 14
-      }
-    }
-  },
+  "typography": {},
   "lineBreak": {
     "noLineStart": "，。、；：！？）》】〉」』”’!?;,:)]}",
     "noLineEnd": "（《【〈「『“‘([{"

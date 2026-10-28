@@ -212,7 +212,7 @@ def test_actions_cannot_be_grouped_or_omitted():
 
 @pytest.mark.parametrize("include_text", [False, True])
 @pytest.mark.parametrize("include_groups", [False, True])
-def test_action_normalizations_match_main_chain_and_are_not_blockers(include_text, include_groups):
+def test_action_reference_recovery_does_not_authorize_static_action(include_text, include_groups):
     action = {"requirement": "打开入口", "actionId": "event.open", "priority": "must"}
     if include_text:
         action.update(text="冲突文字", sourceTexts=["这不是需要保留的动作来源"])
@@ -220,10 +220,8 @@ def test_action_normalizations_match_main_chain_and_are_not_blockers(include_tex
     if include_groups:
         arguments["contentGroups"] = [_group(0, [0, 0]), _group(1, [0])]
     before = copy.deepcopy(arguments)
-    accepted = _parse_static(arguments)
-    assert accepted.plan.get("contentGroups") == []
-    facts = accepted.plan.get("info_required")
-    assert isinstance(facts, list) and "text" not in facts[0]
+    with pytest.raises(CompactPlanValidationError, match="静态合同只展示内容，不支持Action"):
+        _parse_static(arguments)
     feedback = static_plan_repair_feedback(_raw(arguments))
     if not include_text and not include_groups:
         assert feedback is None

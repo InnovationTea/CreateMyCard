@@ -4,6 +4,7 @@ import asyncio
 import copy
 import json
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -223,7 +224,10 @@ def test_explicit_static_fact_section_rejects_requested_device_status_as_source(
         "本轮卡片静态内容（用作展示的外部事实）：\n"
         "上海天气：多云，29°C。"
     )
-    weather = fact("上海多云，29°C", sourceTexts=["上海天气：多云，29°C。"])
+    weather = fact(
+        "上海多云，29°C", sourceTexts=["上海天气：多云，29°C。"],
+        componentHints=["EmphasisText"],
+    )
     accepted = accept(plan([weather]), query)
 
     assert accepted.get("info_required") == [weather]
@@ -241,7 +245,7 @@ def test_explicit_static_fact_section_rejects_requested_device_status_as_source(
         "requirement": "打开歌单",
         "priority": "must",
         "actionId": "event.openPlaylist",
-        "componentHints": ["CardButton"],
+        "componentHints": [],
     }
     with pytest.raises(CompactPlanValidationError, match="actionId is not present in TaskSpec"):
         accept(plan([weather, unregistered_action]), query)
@@ -387,7 +391,7 @@ def test_invalid_static_components_fail_without_truncation(component, props, siz
 def fewshot_cases() -> list[tuple[str, str, dict]]:
     cases = []
     for size in ("2x2", "2x4"):
-        text = (SOURCE_ROOT / f"fewshots_{size}.md").read_text(encoding="utf-8")
+        text = (SOURCE_ROOT / "fewshots" / f"{size}.md").read_text(encoding="utf-8")
         pairs = re.findall(r"```json\n(.*?)\n```\s+```genui\n(.*?)\n```", text, re.S)
         for query, dsl in pairs:
             cases.append((size, dsl, json.loads(query)))
@@ -881,11 +885,11 @@ def test_incomplete_static_recipe_is_rejected_before_enabling(
 def test_empty_static_prompt_does_not_fall_back_to_dynamic_prompt(tmp_path) -> None:
     from services.compact_prompt_loader import read_static_prompt
 
-    manifest = {"staticContent": {"version": "static-content-v1", "plan": ["plan.md"]}}
-    (tmp_path / "manifest.yaml").write_text(json.dumps(manifest), encoding="utf-8")
-    (tmp_path / "plan.md").write_text(" ", encoding="utf-8")
+    root = tmp_path / "source"
+    shutil.copytree(SOURCE_ROOT.parent, root)
+    (root / "static_content/plan.md").write_text(" ", encoding="utf-8")
     with pytest.raises(ValueError, match="静态提示词资源为空"):
-        read_static_prompt(tmp_path, "plan", "2x2")
+        read_static_prompt(root, "plan", "2x2")
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1709,12 +1713,14 @@ def test_summary_instructions_reuse_existing_stages_and_keep_semantic_responsibi
 
     plan_prompt = read_static_prompt(SOURCE_ROOT.parent, "plan", "2x2")
     dsl_prompt = read_static_prompt(SOURCE_ROOT.parent, "dsl", "2x2")
-    assert "不必照抄原文" in plan_prompt
-    assert "或/且" in plan_prompt
+    create_prompt = read_static_prompt(SOURCE_ROOT.parent, "create", "2x2")
+    assert "不必逐字提取" in plan_prompt
+    assert "或/且" in create_prompt
     assert "omittedContents" in plan_prompt
     assert "原始输入" in dsl_prompt
-    assert "title-action" in dsl_prompt
-    assert "不得添加任何正文来填满卡片" in dsl_prompt
+    assert "title-action" in create_prompt
+    assert "不得为看起来更完整而补造" in create_prompt
+    assert "title-action" not in dsl_prompt
     assert "不新增模型阶段" in plan_prompt
 
 
@@ -1772,12 +1778,16 @@ def test_plan_text_can_be_distributed_in_reordered_display_fields_without_semant
 @pytest.mark.usefixtures("static_policy")
 def test_plan_budget_is_loaded_from_shared_contract():
     from services.compact_prompt_loader import read_static_prompt
-    from services.static_text_capacity import static_content_contract
+    from services.static_text_capacity import static_capacity_prompt, static_content_contract
 
     prompt = read_static_prompt(SOURCE_ROOT.parent, "plan", "2x2")
     budget = json.loads(prompt.splitlines()[-1])
     contract = static_content_contract()
     assert budget.get("referenceOnly") is True
-    assert budget.get("text") == contract.get("text")
-    assert budget.get("layout") == contract.get("layout")
-    assert budget.get("components") == contract.get("components")
+    assert budget.get("width") == 150
+    assert budget.get("height") == 150
+    assert "text" not in budget
+    initial_budget = json.loads(static_capacity_prompt("2x2").splitlines()[-1])
+    assert initial_budget.get("text") == contract.get("text")
+    assert initial_budget.get("layout") == contract.get("layout")
+    assert initial_budget.get("components") == contract.get("components")

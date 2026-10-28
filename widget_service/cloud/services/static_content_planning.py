@@ -43,53 +43,5 @@ def select_static_plan_content(
 
 
 def normalize_static_record_table(source: str) -> str:
-    """四至六条带值的记录改为属性表；仅改形态，所有原文字和顺序保留。"""
-    import json
-
-    from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
-
-    rows = parse_compact_dsl_rows(source, expand_layouts=False)
-    changed = False
-    encoded = []
-    for row in rows:
-        if not isinstance(row, ComponentRow):
-            encoded.append([row.path, row.value])
-            continue
-        props = row.props
-        items = props.get("items")
-        eligible = row.component_type == "RecordList" and isinstance(items, list)
-        shape_allowed = not set(props) - {"items", "variant"} and not row.children
-        if eligible and shape_allowed and 4 <= len(items) <= 6:
-            attributes = _record_attributes(items)
-            if attributes is not None and props.get("variant", "plain") in {"plain", "panel"}:
-                row = ComponentRow(row.component_id, "ContentBlock", {"attributes": attributes}, ())
-                changed = True
-        output = [row.component_id, row.component_type, row.props]
-        if row.children:
-            output.append(list(row.children))
-        encoded.append(output)
-    return "\n".join(json.dumps(row, ensure_ascii=False) for row in encoded) if changed else source
-
-
-def _record_attributes(items: list[Any]) -> list[dict[str, str]] | None:
-    attributes = []
-    for item in items:
-        if not isinstance(item, dict):
-            return None
-        if set(item) - {"title", "description", "leading", "trailing"}:
-            return None
-        title = item.get("title")
-        if not isinstance(title, str) or not title.strip():
-            return None
-        values = []
-        for key in ("leading", "description", "trailing"):
-            if key not in item:
-                continue
-            value = item.get(key)
-            if not isinstance(value, str) or not value.strip():
-                return None
-            values.append(value)
-        if not values:
-            return None
-        attributes.append({"label": title, "value": " · ".join(values)})
-    return attributes
+    """新合同不再将模型超额记录静默转换为通用属性表。"""
+    return source

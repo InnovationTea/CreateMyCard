@@ -16,7 +16,8 @@ _TEXT_PREVIEW_CHARS = 120
 _REPAIR_INSTRUCTION = (
     "以下账本只描述这次失败提交，索引均来自本次info_required；不是新Plan或删除授权。"
     "下一次原子同步info_required、contentGroups及omittedContents：保留的每条text恰好归属一组，"
-    "Action不分组、不省略；合并或调整事实后重算全部索引。"
+    "Action不参与文本分组，准入仍由当前请求合同裁决；引用恢复不授权不支持的Action。"
+    "合并或调整事实后重算全部索引。"
     "空factIndexes的遗漏说明只记录未选输入，不能解除仍在info_required中的事实归属义务；"
     "不得仅删contentGroups或写一条遗漏说明就宣称事实已移除。"
     "计划内遗漏引用仅可指向无保护should，must、保护原文及用户要求完整的内容不得借此删除。"

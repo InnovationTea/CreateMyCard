@@ -177,45 +177,20 @@ def static_display_groups(
     for row in parse_compact_dsl_rows(source, expand_layouts=False):
         if not isinstance(row, ComponentRow):
             continue
-        if row.component_type == "ContentBlock":
-            title = row.props.get("title")
-            if isinstance(title, str):
-                shared.append(StaticDisplayGroup(row.component_id, [title]))
-            if "attributes" in row.props:
-                body = row.props.get("body")
-                if isinstance(body, str):
-                    shared.append(StaticDisplayGroup(row.component_id, [body]))
-            attributes = row.props.get("attributes")
-            if attribute_objects and isinstance(attributes, list):
-                for attribute in attributes:
-                    objects.append(
-                        StaticDisplayGroup(row.component_id, _attribute_parts(attribute))
-                    )
-                # 属性表的标题和导语是共同上下文，不替其它属性补数值。
-                shared.append(
-                    StaticDisplayGroup(
-                        row.component_id,
-                        _strings(row.props.get("title")) + _strings(row.props.get("body")),
-                    )
-                )
-                continue
-            parts = []
-            for key in ("title", "body", "attributes"):
-                if key == "attributes":
-                    for attribute in row.props.get(key, []):
-                        parts.extend(_attribute_parts(attribute))
-                else:
-                    parts.extend(_strings(row.props.get(key)))
+        if row.component_type == "EmphasisText":
+            parts = _strings(row.props.get("mainText")) + _strings(row.props.get("secondaryText"))
             objects.append(StaticDisplayGroup(row.component_id, parts))
-        elif row.component_type in {"RecordList", "ComparisonGroup"}:
+        elif row.component_type in {"TextList", "SingleLineList", "ComparisonGroup"}:
             items = row.props.get("items")
             if not isinstance(items, list):
                 continue
+            keys = ("primaryText", "secondaryText", "value")
+            if row.component_type == "ComparisonGroup":
+                keys = ("primaryText", "secondaryText", "details")
+            elif row.component_type == "SingleLineList":
+                keys = ("text", "assist")
             for item in items:
                 parts = []
-                keys = ("leading", "title", "description", "trailing")
-                if row.component_type == "ComparisonGroup":
-                    keys = ("primaryText", "secondaryText", "details")
                 if isinstance(item, dict):
                     for key in keys:
                         parts.extend(_strings(item.get(key)))
@@ -238,6 +213,10 @@ def static_fact_coverage(
     """按组报告事实实际可见性，省略反馈和最小删减共用本规则。"""
     object_count = sum(group.get("kind") == "object" for group in plan.get("contentGroups", []))
     objects, shared = static_display_groups(source, attribute_objects=object_count > 1)
+    heading = []
+    for display in shared:
+        if display.component_id == "header":
+            heading.extend(display.parts)
     facts = plan.get("info_required", [])
     result = []
     object_position = 0
@@ -263,9 +242,16 @@ def static_fact_coverage(
             text = fact.get("text")
             match = None
             if isinstance(text, str):
-                match = next(
-                    (display for display in displays if _fact_covered(fact, display.parts)), None
-                )
+                for display in displays:
+                    if _fact_covered(fact, display.parts):
+                        match = display
+                        break
+                    eligible_heading = (
+                        fact.get("displayRole") == "title" or text == group.get("identity")
+                    )
+                    if object_count == 1 and eligible_heading and _fact_covered(fact, heading):
+                        match = StaticDisplayGroup("header", heading)
+                        break
             result.append(
                 StaticFactCoverage(index, match.component_id if match else None, match is not None)
             )
@@ -293,8 +279,11 @@ def static_group_errors(
         source, attribute_objects=object_count > 1
     )
     shared = []
+    heading = []
     for group_display in shared_groups_display:
         shared.extend(group_display.parts)
+        if group_display.component_id == "header":
+            heading.extend(group_display.parts)
     object_groups = []
     shared_groups = []
     for group in plan.get("contentGroups", []):
@@ -321,12 +310,17 @@ def static_group_errors(
         matched = any(_fact_covered(facts[index], parts) for index in indexes)
         if not required and not matched:
             continue
-        if isinstance(identity, str) and not _identity_covered(identity, parts):
+        identity_parts = parts + heading if object_count == 1 else parts
+        if isinstance(identity, str) and not _identity_covered(identity, identity_parts):
             errors.append(
                 f"COMPACT_STATIC_CORE_MISSING: 组 {identifier} 缺少对象名称 {identity!r}；"
                 "名称必须在本对象内可见，不能只保留无归属数值。"
             )
-        errors.extend(_fact_errors(identifier, indexes, facts, parts))
+        for index in indexes:
+            fact = facts[index]
+            eligible_heading = fact.get("displayRole") == "title" or fact.get("text") == identity
+            fact_parts = parts + heading if object_count == 1 and eligible_heading else parts
+            errors.extend(_fact_errors(identifier, [index], facts, fact_parts))
         position += 1
     if position < len(objects):
         errors.append("COMPACT_STATIC_GROUP_MISMATCH: 正文存在未匹配计划的额外对象。")

@@ -60,19 +60,8 @@ def _contract() -> dict[str, Any]:
 
 def _validate_contract_fields(payload: dict[str, Any]) -> None:
     for name in (
-        "title",
-        "header",
-        "body",
-        "attribute",
-        "attributeBody",
-        "note",
-        "recordTitle",
-        "recordDescription",
-        "compactTitle",
-        "compactDescription",
-        "side",
-        "comparisonPrimary",
-        "comparisonSecondary",
+        "header", "emphasis", "emphasisSecondary", "listPrimary", "listSecondary",
+        "listValue", "singleText", "singleAssist", "comparisonPrimary", "comparisonSecondary",
         "detail",
     ):
         text_fields = payload.get("text", {}).get(name)
@@ -85,21 +74,10 @@ def _validate_contract_fields(payload: dict[str, Any]) -> None:
             raise ValueError(f"静态文字规格 {name}.maxLines 必须为整数。")
     required = {
         "StaticHeader": ("iconSize", "iconGap"),
-        "ContentBlock": ("gap", "attributeGap", "compactAttributeGap", "maximumAttributes"),
-        "RecordList": (
-            "minimumItems",
-            "maximumItems",
-            "gap",
-            "compactGap",
-            "panelPadding",
-            "panelRadius",
-            "innerGap",
-            "sideGap",
-            "leadingMax",
-            "trailingMax",
-            "dividerWidth",
-            "dividerAlpha",
-        ),
+        "EmphasisText": ("gap",),
+        "SingleLineList": ("gap", "sideGap"),
+        "TextList": ("innerGap", "sideGap", "twoItemGap", "threeItemGap",
+                     "dividerWidth", "dividerAlpha"),
         "ComparisonGroup": ("minimumItems", "maximumItems", "gap", "padding", "innerGap", "radius"),
     }
     for name, keys in required.items():
@@ -108,7 +86,7 @@ def _validate_contract_fields(payload: dict[str, Any]) -> None:
             raise ValueError(f"静态组件规格缺少 {name}。")
         for key in keys:
             number(component_fields, key)
-    for key in ("padding", "gap", "compactGap", "radius"):
+    for key in ("padding", "gap", "radius"):
         number(payload.get("layout", {}), key)
     for key in ("asciiEm", "wideAsciiEm", "digitEm", "narrowAsciiEm", "wideEm", "safetyFactor"):
         if number(payload.get("measurement", {}), key) <= 0:
@@ -118,21 +96,9 @@ def _validate_contract_fields(payload: dict[str, Any]) -> None:
 
 def _validate_typography(payload: dict[str, Any]) -> None:
     typography = payload.get("typography", {})
-    if set(typography) != {"11", "10"}:
-        raise ValueError("静态字号档位必须为12默认、11、10。")
-    for font_key, styles in typography.items():
-        if not isinstance(styles, dict):
-            raise ValueError("静态字号档位必须登记文字样式。")
-        for name, spec in styles.items():
-            baseline = payload.get("text", {}).get(name)
-            if not isinstance(baseline, dict) or not isinstance(spec, dict):
-                raise ValueError("静态字号档位引用未知样式。")
-            if baseline.get("fontSize") != 12 or name == "compactTitle":
-                raise ValueError("静态字号档位不能缩小标题或主值。")
-            if number(spec, "fontSize") != int(font_key):
-                raise ValueError("静态字号必须与登记档位一致且不小于10。")
-            if number(spec, "lineHeight") < number(spec, "fontSize"):
-                raise ValueError("静态行高不能小于所选字号。")
+    if typography:
+        raise ValueError("静态字号由组件语义角色固定，不登记自由缩字档位。")
+
 
 
 def static_content_contract() -> dict[str, Any]:
@@ -147,16 +113,11 @@ def contract_section(name: str) -> dict[str, Any]:
 
 
 def text_spec(name: str, font_size: int = 12) -> dict[str, Any]:
-    if isinstance(font_size, bool) or font_size not in (12, 11, 10):
-        raise ValueError("静态字号只允许12、11、10，最小为10。")
+    if isinstance(font_size, bool) or font_size != 12:
+        raise ValueError("静态文字规格由组件角色固定，不接受自由字号档位。")
     spec = contract_section("text").get(name)
     if not isinstance(spec, dict):
         raise ValueError(f"静态文字规格未登记：{name}。")
-    if font_size != 12:
-        overrides = contract_section("typography").get(str(font_size), {})
-        selected = overrides.get(name)
-        if isinstance(selected, dict):
-            spec.update(selected)
     return spec
 
 
@@ -292,13 +253,9 @@ def _wrap_paragraph(paragraph: str, width: float, font: float) -> list[str]:
 def static_capacity_prompt(size: str) -> str:
     """Plan 与 DSL 使用相同的有界文字规格，不打开闭域容量工作表。"""
     return (
-        "# 静态文字与容量合同\n"
-        f"当前尺寸 {size}；按公共参考画布扣除安全区、header、note及间距后验算正文。"
-        "以下字号与行高由程序拥有，maxLines是上限，不是必需行数；"
-        "先按可见版本、单栏实际参考宽度核算；空间紧张先去装饰标题和冗长来源，"
-        "再精简补充或显式尾部省略，保留已选读数、条件及保护片段。"
-        "RecordList/ComparisonGroup最多三项，短键值可用最多六项属性表；"
-        "两条带说明的记录通常比三条更易读。字号仅允许12→11→10，10为硬下限；"
-        "默认12放不下再逐档尝试完整内容，之后才省略should。标题和主值不缩小，仍检查整卡高度。\n"
-        + json.dumps(static_content_contract(), ensure_ascii=False, separators=(",", ":"))
+        "# 静态容量参考\n"
+        f"当前尺寸 {size}；先扣12vp安全区、优先保留的主题标题和6vp区块间距，再核算内容。"
+        "内容整体左下对齐；TextList为2–3项，含标题最多两项；SingleLineList按完整单行计算。"
+        "字体、行高及间距由Runtime固定，模型只生成组件语义字段。"
+        "过长内容在Plan阶段忠实总结，DSL阶段保持已接受的事实、名称与条件。\n"
     )

@@ -2,12 +2,159 @@
   "version": 1,
   "staticContent": {
     "version": "static-content-v1",
-    "exampleIds": {"2x2": ["2x2-V91", "2x2-V92", "2x2-V93", "2x2-V94", "2x2-V95", "2x2-V96", "2x2-V97"], "2x4": ["2x4-V91", "2x4-V92", "2x4-V93", "2x4-V94", "2x4-V95", "2x4-V96", "2x4-V97", "2x4-V98"]},
-    "create": ["core.md#identity", "core.md#goal", "core.md#jsonl", "core.md#binding-events", "core.md#palette", "static_content/common.md"],
-    "plan": ["static_content/plan.md"],
-    "dsl": ["static_content/dsl.md"],
-    "repair": ["static_content/repair.md"],
-    "fewshot": ["static_content/fewshots_{size}.md"]
+    "modules": [
+      {
+        "file": "core.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/core.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/information/common.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/components/common.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/components/2x4.md",
+        "sizes": [
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/layouts/common.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/layouts/2x2.md",
+        "sizes": [
+          "2x2"
+        ]
+      },
+      {
+        "file": "static_content/layouts/2x4.md",
+        "sizes": [
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/composition/common.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/composition/2x2.md",
+        "sizes": [
+          "2x2"
+        ]
+      },
+      {
+        "file": "static_content/composition/2x4.md",
+        "sizes": [
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/plan.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/dsl.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/repair.md",
+        "sizes": [
+          "2x2",
+          "2x4"
+        ]
+      },
+      {
+        "file": "static_content/fewshots/2x2.md",
+        "sizes": [
+          "2x2"
+        ]
+      },
+      {
+        "file": "static_content/fewshots/2x4.md",
+        "sizes": [
+          "2x4"
+        ]
+      }
+    ],
+    "exampleIds": {
+      "2x2": [
+        "2x2-V91",
+        "2x2-V92",
+        "2x2-V93",
+        "2x2-V94",
+        "2x2-V95",
+        "2x2-V97"
+      ],
+      "2x4": [
+        "2x4-V91",
+        "2x4-V92",
+        "2x4-V93",
+        "2x4-V94",
+        "2x4-V95",
+        "2x4-V96",
+        "2x4-V98"
+      ]
+    },
+    "create": [
+      "core.md#identity",
+      "core.md#goal",
+      "core.md#jsonl",
+      "core.md#palette",
+      "static_content/core.md",
+      "static_content/information/common.md",
+      "static_content/components/common.md",
+      "static_content/components/2x4.md",
+      "static_content/layouts/common.md",
+      "static_content/layouts/2x2.md",
+      "static_content/layouts/2x4.md",
+      "static_content/composition/common.md",
+      "static_content/composition/{size}.md"
+    ],
+    "plan": [
+      "static_content/plan.md"
+    ],
+    "dsl": [
+      "static_content/dsl.md"
+    ],
+    "repair": [
+      "static_content/repair.md"
+    ],
+    "fewshot": [
+      "static_content/fewshots/{size}.md"
+    ]
   },
   "protocol_id": "design-compact-dsl",
   "description": "YAML 1.2 JSON 子集；加载配置，不发送模型。prompts 中各数组顺序即唯一内存拼接顺序。",

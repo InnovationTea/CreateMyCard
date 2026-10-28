@@ -1698,9 +1698,6 @@ class PromptBuilder:
 
         if current_content_policy().is_static:
             root = A2UIProtocolRegistry.design_prompt_directory(DESIGN_COMPACT_PROFILE_ID)
-            for resource_size in ("2x2", "2x4"):
-                for resource in ("create", "plan", "dsl", "repair", "fewshot"):
-                    read_static_prompt(root, resource, resource_size)
             value = task_spec.model_dump(mode="json", exclude_none=True, exclude={"appVersion"})
             return [
                 {
