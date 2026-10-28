@@ -34,7 +34,12 @@ from services.compact_layout_runtime import (
     load_layout_contract,
     match_compact_layout,
 )
-from services.compact_plan_output import normalize_plan_output
+from services.compact_plan_output import (
+    PlanDuplicateKeyError,
+    decode_plan_json,
+    normalize_plan_output,
+    normalize_plan_root_arguments,
+)
 from services.compact_whole_card_click import WHOLE_CARD_LAYOUTS, select_whole_card_click
 from services.event_matching import event_handlers_match
 
@@ -1402,6 +1407,9 @@ def parse_compact_plan_call(
         syntax_warnings.extend(envelope.warnings)
         raw_output = envelope.text
     payload = _parse_json_object(raw_output, syntax_warnings)
+    normalized_envelope = normalize_plan_root_arguments(payload)
+    payload = normalized_envelope.payload
+    syntax_warnings.extend(normalized_envelope.warnings)
     if set(payload) != {"name", "arguments"}:
         raise CompactPlanValidationError(["Plan output must contain only name and arguments."])
     if payload.get("name") != SUBMIT_CARD_PLAN:
@@ -1778,7 +1786,11 @@ def compact_plan_context(
             "根内部不再生成按钮或其它点击节点，不预留按钮高度，不补动作提示文字；"
             "不能删动作、改为子节点点击或因修复补回按钮。该动作没有按钮图标。"
         )
-    fixed_dual_action = plan.get("layoutHints") == ["S-content-dual-action"]
+    facts = plan.get("info_required")
+    fixed_dual_action = (
+        plan.get("layoutHints") == ["S-content-dual-action"]
+        and _has_two_distinct_actions(facts)
+    )
     fixed_title_action = plan.get("layoutHints") == ["S-title-content-action"]
     if conflicts:
         context_plan.pop("composition", None)
@@ -1786,7 +1798,6 @@ def compact_plan_context(
     asset_instruction = ""
     pure_action_instruction = ""
     title_action_only = False
-    facts = plan.get("info_required")
     if fixed_dual_action and isinstance(facts, list):
         if len(facts) == 2 and all("actionId" in fact for fact in facts):
             pure_action_instruction = (
@@ -3373,6 +3384,13 @@ def _normalize_dual_action_plan(
 ) -> tuple[list[str], list[str]]:
     """统一 2x2 双必要动作的布局和按钮，保留内容事实与软候选。"""
     if not _is_two_by_two_dual_action_plan(facts, size):
+        if size == "2x2" and "S-content-dual-action" in layout_hints:
+            accepted = [hint for hint in layout_hints if hint != "S-content-dual-action"]
+            return accepted, [
+                "S-content-dual-action was removed from layoutHints because the Plan "
+                "does not contain exactly two distinct actions; preserve the actual facts "
+                "and actions without inventing a second action."
+            ]
         return layout_hints, []
 
     warnings: list[str] = []
@@ -3396,11 +3414,21 @@ def _is_two_by_two_dual_action_plan(
 ) -> bool:
     if size != "2x2":
         return False
-    action_count = 0
+    return _has_two_distinct_actions(facts)
+
+
+def _has_two_distinct_actions(facts: Any) -> bool:
+    """固定双动作约束来自事实，不把模型候选或重复动作当作两个动作。"""
+    if not isinstance(facts, list):
+        return False
+    action_ids: list[str] = []
     for fact in facts:
-        if isinstance(fact.get("actionId"), str):
-            action_count += 1
-    return action_count == 2
+        if not isinstance(fact, dict):
+            return False
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id.strip():
+            action_ids.append(action_id)
+    return len(action_ids) == 2 and len(set(action_ids)) == 2
 
 
 def _parse_json_object(
@@ -3414,7 +3442,9 @@ def _parse_json_object(
     if match is not None:
         text = match.group(1).strip()
     try:
-        payload = json.loads(text)
+        payload = decode_plan_json(text)
+    except PlanDuplicateKeyError as exc:
+        raise CompactPlanValidationError([str(exc)]) from exc
     except json.JSONDecodeError as exc:
         repaired = _recover_plan_closers(text)
         if repaired is None:
@@ -3468,8 +3498,8 @@ def _recover_plan_closers(text: str) -> dict[str, Any] | None:
         if char not in cursor:
             return None
     try:
-        payload = json.loads(prefix + expected)
-    except json.JSONDecodeError:
+        payload = decode_plan_json(prefix + expected)
+    except (json.JSONDecodeError, PlanDuplicateKeyError):
         return None
     return payload if isinstance(payload, dict) else None
 

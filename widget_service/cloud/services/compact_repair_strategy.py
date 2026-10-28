@@ -263,6 +263,58 @@ def _duplicate_plan_fact_excess_count(quality_errors: list[dict[str, Any]]) -> i
     return message_count if message_count else None
 
 
+def _display_position_key(position: Any) -> tuple[str, str] | None:
+    key = None
+    if isinstance(position, dict):
+        component_id = position.get("componentId")
+        property_name = position.get("property")
+        if isinstance(component_id, str) and isinstance(property_name, str):
+            if component_id.strip() and property_name.strip():
+                key = (component_id, property_name)
+    return key
+
+
+def _has_required_slot_conflict(fact: Any) -> bool:
+    if not isinstance(fact, dict):
+        return False
+    data_id = fact.get("dataId")
+    if not isinstance(data_id, str) or not data_id.startswith("/data/"):
+        return False
+    actual_count = fact.get("actualVisibleCount")
+    if type(actual_count) is not int or actual_count < 2:
+        return False
+    expected_count = fact.get("expectedVisibleCount")
+    if type(expected_count) is not int or expected_count != 1:
+        return False
+    positions = fact.get("requiredDisplayPositions")
+    occurrences = fact.get("occurrences")
+    if not isinstance(positions, list) or not isinstance(occurrences, list):
+        return False
+    occurrence_keys = set()
+    for occurrence in occurrences:
+        key = _display_position_key(occurrence)
+        if key is not None:
+            occurrence_keys.add(key)
+    required_keys = set()
+    for position in positions:
+        key = _display_position_key(position)
+        if key is not None and key in occurrence_keys:
+            required_keys.add(key)
+    return len(required_keys) >= 2
+
+
+def _has_duplicate_required_slot_conflict(quality_errors: list[dict[str, Any]]) -> bool:
+    """只接受同一已报重复事实中至少两个独立必填展示位置的诊断。"""
+    for issue in quality_errors:
+        duplicate_facts = issue.get("duplicateFacts")
+        if not isinstance(duplicate_facts, list):
+            continue
+        for fact in duplicate_facts:
+            if _has_required_slot_conflict(fact):
+                return True
+    return False
+
+
 def _has_missing_plan_fact_error(quality_errors: list[dict[str, Any]]) -> bool:
     """只识别非 Action 事实缺失；重复事实与动作缺失不能授权 Drop。"""
     for issue in quality_errors:
@@ -377,6 +429,18 @@ def _duplicate_fact_instruction(*, duplicate_count_not_reduced: bool) -> str:
             "不得迁移、复制或新增该 dataId 的可见绑定。"
         )
     return instruction
+
+
+def _duplicate_required_slot_instruction() -> str:
+    return (
+        "duplicateFacts.requiredDisplayPositions 已确认同一事实占据至少两个必填展示位置。"
+        "本轮只调整这些冲突槽所在的必要父布局及信息组，为每个报错 dataId 保留唯一完整展示；"
+        "允许重新分配已有独立事实或采用合同允许的组合，不无条件重建整卡。"
+        "不能清空必填属性、仅删除固定槽、放置占位文字或虚构事实填槽；"
+        "不得删除独有事实、标签、单位、数据行或 Action，不修改 accepted Plan、字号及组件内部UX。"
+        "冲突父布局外的正确内容与结构保持不变。重复引用应减少，但不能用局部硬删破坏必填合同；"
+        "修改后完整复检覆盖、动作、组件、结构和容量，未闭合继续返回真实错误。"
+    )
 
 
 def _fixed_side_slot_text_overflow(
@@ -794,7 +858,12 @@ def _non_layout_directive(
 ) -> CompactRepairDirective:
     repeated_root_cause = consecutive_failures >= 2 or no_progress
     duplicate_plan_facts = category == "plan_coverage" and _has_duplicate_plan_facts(quality_errors)
-    if duplicate_plan_facts:
+    if duplicate_plan_facts and _has_duplicate_required_slot_conflict(quality_errors):
+        scope = "parent_layout"
+        strategy = "parent_layout_recompose"
+        retry_target = "dsl_recompose"
+        instruction = _duplicate_required_slot_instruction()
+    elif duplicate_plan_facts:
         scope = "information_group"
         strategy = "deduplicate_visible_facts"
         retry_target = "dsl_local_repair"
@@ -1275,6 +1344,9 @@ class CompactRepairStrategyTracker:
         duplicate_plan_coverage = (
             category == "plan_coverage" and _has_duplicate_plan_facts(quality_errors)
         )
+        duplicate_required_slot_conflict = (
+            duplicate_plan_coverage and _has_duplicate_required_slot_conflict(quality_errors)
+        )
         previous_category = self._joint_categories[-1] if self._joint_categories else None
         previous_layout_failure = self._layout_failure_seen
         has_plan_coverage_error = _has_missing_plan_fact_error(quality_errors)
@@ -1332,6 +1404,8 @@ class CompactRepairStrategyTracker:
                     else None
                 ),
             )
+            if duplicate_required_slot_conflict:
+                directive = replace(directive, scope="parent_layout")
             if self._allowed_omitted_fact_indexes:
                 directive = replace(
                     directive,
@@ -1409,7 +1483,17 @@ class CompactRepairStrategyTracker:
                 self._fallback_submission_limit = (
                     self._max_repair_attempts - self._repair_submission_count
                 )
-        if self._active_fallback == "drop_optional_component":
+        if duplicate_required_slot_conflict:
+            directive = _non_layout_directive(
+                category=category,
+                quality_errors=quality_errors,
+                fingerprint=fingerprint,
+                consecutive_failures=self._consecutive_failures,
+                category_attempt=category_attempt,
+                no_progress=no_progress,
+                duplicate_count_not_reduced=duplicate_count_not_reduced,
+            )
+        elif self._active_fallback == "drop_optional_component":
             if self._optional_drop_candidate is None:
                 raise RuntimeError("optional drop fallback has no selected candidate")
             candidate_was_removed = _drop_candidate_is_fully_removed(

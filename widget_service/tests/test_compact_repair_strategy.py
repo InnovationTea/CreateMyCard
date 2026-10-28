@@ -1,5 +1,7 @@
 """验证 Design Compact 修复路由的失败指纹与逐级升级。"""
 
+import copy
+
 import pytest
 
 from services.compact_repair_strategy import (
@@ -259,6 +261,173 @@ def test_duplicate_plan_fact_does_not_trigger_prior_layout_recomposition() -> No
     assert directive.repair_strategy == "deduplicate_visible_facts"
     assert directive.scope == "information_group"
     assert directive.retry_target == "dsl_local_repair"
+
+
+def _required_duplicate_issue() -> dict:
+    issue = _issue(
+        "Plan fact is displayed more than once in visible DSL: 当前温度 "
+        "(/data/weather/current/temperatureText); expected 1, got 2.",
+        code="COMPACT_PLAN_COVERAGE_FAILED",
+    )
+    positions = [
+        {"componentId": "main", "componentType": "EmphasisText", "property": "mainText"},
+        {"componentId": "side", "componentType": "InfoBlock", "property": "primaryText"},
+    ]
+    issue["duplicateFacts"] = [{
+        "dataId": "/data/weather/current/temperatureText",
+        "expectedVisibleCount": 1,
+        "actualVisibleCount": 2,
+        "occurrences": copy.deepcopy(positions),
+        "requiredDisplayPositions": positions,
+    }]
+    return issue
+
+
+def test_required_duplicate_slots_recompose_only_necessary_parent_with_global_budget() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=3)
+    issue = _required_duplicate_issue()
+    original_issue = copy.deepcopy(issue)
+
+    directives = [tracker.next_directive("same-dsl", [issue]) for _ in range(3)]
+    exhausted = tracker.next_directive("same-dsl", [issue])
+
+    for directive in directives:
+        assert directive.scope == "parent_layout"
+        assert directive.repair_strategy == "parent_layout_recompose"
+        assert directive.retry_target == "dsl_recompose"
+        assert directive.retryable is True
+        assert "同一事实占据至少两个必填展示位置" in directive.instruction
+        assert "冲突父布局外的正确内容与结构保持不变" in directive.instruction
+        assert "不修改 accepted Plan、字号及组件内部UX" in directive.instruction
+        assert "不得删除独有事实" in directive.instruction
+        assert "不得迁移" not in directive.instruction
+        assert directive.optional_drop is None
+        assert directive.approved_omitted_fact_indexes == ()
+    assert directives[1].no_progress is True
+    assert exhausted.scope == "parent_layout"
+    assert exhausted.repair_strategy == "exhausted"
+    assert exhausted.retry_target == "stop"
+    assert exhausted.retryable is False
+    assert exhausted.to_prompt_payload().get("stopReason") == "global_attempt_limit"
+    assert issue == original_issue
+
+
+@pytest.mark.parametrize(
+    "changed_fact",
+    [
+        {"requiredDisplayPositions": []},
+        {"requiredDisplayPositions": [{"componentId": "main", "property": "mainText"}]},
+        {"requiredDisplayPositions": [
+            {"componentId": "main", "property": "mainText"},
+            {"componentId": "main", "property": "mainText"},
+        ]},
+        {"requiredDisplayPositions": [
+            {"componentId": "main", "property": "mainText"},
+            {"componentId": "unknown", "property": "primaryText"},
+        ]},
+        {"requiredDisplayPositions": [None, {"componentId": "main"}]},
+        {"occurrences": []},
+        {"occurrences": None},
+        {"expectedVisibleCount": 2},
+        {"expectedVisibleCount": True},
+        {"actualVisibleCount": 1},
+        {"actualVisibleCount": True},
+        {"dataId": None},
+    ],
+)
+def test_duplicate_without_two_confirmed_required_slots_keeps_local_route(
+    changed_fact: dict,
+) -> None:
+    issue = _required_duplicate_issue()
+    facts = issue.get("duplicateFacts")
+    assert isinstance(facts, list)
+    facts[0].update(changed_fact)
+    tracker = CompactRepairStrategyTracker()
+
+    for _ in range(3):
+        directive = tracker.next_directive("same-dsl", [issue])
+        assert directive.scope == "information_group"
+        assert directive.repair_strategy == "deduplicate_visible_facts"
+        assert directive.retry_target == "dsl_local_repair"
+
+
+def test_required_positions_from_different_facts_do_not_authorize_parent_recompose() -> None:
+    issue = _required_duplicate_issue()
+    facts = issue.get("duplicateFacts")
+    assert isinstance(facts, list)
+    first = facts[0]
+    second = copy.deepcopy(first)
+    second["dataId"] = "/data/weather/current/condition"
+    first["requiredDisplayPositions"] = [{"componentId": "main", "property": "mainText"}]
+    second["requiredDisplayPositions"] = [{"componentId": "side", "property": "primaryText"}]
+    facts.append(second)
+
+    directive = CompactRepairStrategyTracker().next_directive("dsl", [issue])
+
+    assert directive.scope == "information_group"
+    assert directive.retry_target == "dsl_local_repair"
+
+
+def test_required_duplicate_after_layout_failure_does_not_recompose_entire_card() -> None:
+    tracker = CompactRepairStrategyTracker()
+    tracker.next_directive("dsl-layout", [
+        _issue("component body: vertical layout requires at least 142vp within 126vp."),
+    ])
+
+    directive = tracker.next_directive(
+        "dsl-duplicate", [_required_duplicate_issue()], compact_plan={}, task_spec={},
+    )
+
+    assert directive.scope == "parent_layout"
+    assert directive.repair_strategy == "parent_layout_recompose"
+    assert "不无条件重建整卡" in directive.instruction
+
+
+def test_required_duplicate_route_returns_to_local_after_slot_conflict_is_removed() -> None:
+    tracker = CompactRepairStrategyTracker()
+    issue = _required_duplicate_issue()
+    first = tracker.next_directive("dsl-required", [issue])
+    facts = issue.get("duplicateFacts")
+    assert isinstance(facts, list)
+    facts[0]["requiredDisplayPositions"] = []
+
+    local = tracker.next_directive("dsl-optional", [issue])
+
+    assert first.scope == "parent_layout"
+    assert local.scope == "information_group"
+    assert local.repair_strategy == "deduplicate_visible_facts"
+    assert local.retry_target == "dsl_local_repair"
+
+
+def test_required_duplicate_conflict_does_not_continue_unrelated_previous_drop() -> None:
+    tracker = CompactRepairStrategyTracker(capacity_recovery=True, max_repair_attempts=3)
+    plan = {"info_required": [{
+        "requirement": "补充开始时间", "priority": "should", "dataId": "/data/calendar/start",
+    }]}
+    task_spec = {
+        "size": "2x2", "eventCandidates": [],
+        "dataModelSchema": {"data": {"calendar": {"start": {"type": "string"}}}},
+    }
+    source = (
+        '["root","Column",{},["main","time"]]\n'
+        '["main","EmphasisText",{"mainText":"日程"}]\n'
+        '["time","SecondaryBody",{"items":'
+        '[{"value":{"path":"/data/calendar/start"}}]}]'
+    )
+    drop = tracker.next_directive(
+        source, [_issue("component body: vertical layout requires at least 142vp within 126vp")],
+        compact_plan=plan, task_spec=task_spec,
+    )
+    approved_before = tracker.allowed_omitted_fact_indexes
+
+    conflict = tracker.next_directive(source, [_required_duplicate_issue()])
+
+    assert drop.repair_strategy == "drop_optional_component"
+    assert conflict.scope == "parent_layout"
+    assert conflict.repair_strategy == "parent_layout_recompose"
+    assert conflict.optional_drop is None
+    assert tracker.allowed_omitted_fact_indexes == approved_before
+    assert conflict.approved_omitted_fact_indexes == approved_before
 
 
 def test_info_block_progress_value_error_gets_precise_non_degrading_repair() -> None:

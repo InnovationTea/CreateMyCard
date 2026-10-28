@@ -20,6 +20,11 @@ from services.compact_dsl_a2ui_converter import (
     expand_compact_semantic_layout,
     repair_compact_dsl_binding_paths,
     repair_compact_dsl_safe_structure,
+    serialize_compact_dsl_source,
+)
+from services.compact_duplicate_display import (
+    duplicate_display_candidates,
+    duplicate_display_feedback,
 )
 from services.compact_outer_recomposition import recompose_small_card
 from services.compact_plan import (
@@ -185,6 +190,10 @@ class DesignCompactProcessor:
             layout_phase(context.colorless_layout, context.task_spec),
         ):
             result = self._process(source_dsl, context)
+            enabled = get_settings().enable_design_compact_deterministic_repair
+            if enabled and result.errors and not context.skip_compact_dsl_validation:
+                if not context.content_policy.is_static:
+                    result = self._repair_duplicate_display(result, context)
             if context.content_policy.is_static and result.errors:
                 static_recovery_started_at = time.perf_counter()
                 from services.static_content_presentation import static_presentation_candidates
@@ -215,7 +224,6 @@ class DesignCompactProcessor:
                         text_artifacts={"static_presentation_source": candidate_source},
                     )
                     return candidate_result
-            enabled = get_settings().enable_design_compact_deterministic_repair
             eligible = context.size == "2x4" and not context.skip_compact_dsl_validation
             eligible = eligible and not context.content_policy.is_static
             if not enabled or not eligible or not result.errors:
@@ -263,6 +271,48 @@ class DesignCompactProcessor:
                 artifact_roles=artifact_roles,
             )
             return result
+
+    def _repair_duplicate_display(
+        self, original: DslProcessingResult, context: DslProcessingContext,
+    ) -> DslProcessingResult:
+        duplicates = ()
+        for issue in original.errors:
+            facts = issue.prompt_context.get("duplicateFacts")
+            if isinstance(facts, list) and facts:
+                duplicates = tuple(facts)
+                break
+        candidates = duplicate_display_candidates(original.source_dsl, duplicates)
+        if not candidates:
+            return original
+        started_at = time.perf_counter()
+        for index, candidate in enumerate(candidates, 1):
+            validated = self._process(candidate.source_dsl, context)
+            if validated.errors or not validated.standard_dsl:
+                continue
+            # 完整复检不得趁去重改动固定骨架或其它 Props；不进入 process 的恢复循环。
+            candidate_source = serialize_compact_dsl_source(candidate.source_dsl)
+            validated_source = serialize_compact_dsl_source(validated.source_dsl)
+            if candidate_source != validated_source:
+                continue
+            trace_step(
+                "dsl.duplicate_display.recovered",
+                stage="dsl.duplicateDisplay",
+                status="success",
+                duration_ms=_elapsed_ms(started_at),
+                details={
+                    "candidateCount": index,
+                    "removedPositions": list(candidate.removed_positions),
+                },
+                text_artifacts={
+                    "duplicate_display_input": original.source_dsl,
+                    "duplicate_display_output": validated.source_dsl,
+                },
+                artifact_roles={
+                    "duplicate_display_input": "input", "duplicate_display_output": "output",
+                },
+            )
+            return validated
+        return original
 
     def _process(
         self,
@@ -393,7 +443,9 @@ class DesignCompactProcessor:
         )
         duplicate_fact_context: dict[str, Any] = {}
         if plan_coverage.duplicate_facts:
-            duplicate_fact_context["duplicateFacts"] = list(plan_coverage.duplicate_facts)
+            duplicate_fact_context["duplicateFacts"] = duplicate_display_feedback(
+                plan_coverage.duplicate_facts,
+            )
         plan_issues = tuple(
             QualityIssue(
                 stage="validation",
