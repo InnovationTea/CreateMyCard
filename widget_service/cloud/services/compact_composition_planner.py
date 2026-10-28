@@ -775,7 +775,9 @@ def _action_groups(
     unresolved: list[str],
     *, action_labels: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
-    candidates = {item.get("id"): item for item in task.get("eventCandidates", [])}
+    from services.compact_action_instances import plan_action_candidates
+
+    candidates = plan_action_candidates(task)
     assigned_assets: dict[str, Any] = {}
     assignments = plan.get("assetAssignments")
     if isinstance(assignments, dict):
