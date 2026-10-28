@@ -104,44 +104,40 @@ def _component_map(source):
     return result
 
 
-def test_full_processor_removes_only_optional_duplicate_and_preserves_dynamic_uri(monkeypatch):
-    rows, context = _case()
+@pytest.mark.parametrize("fixed_slots", [False, True])
+@pytest.mark.parametrize("deterministic_repair", [False, True])
+def test_full_processor_reports_duplicates_without_rewriting_buttons(
+    monkeypatch, fixed_slots, deterministic_repair,
+):
+    rows, context = _case(fixed_slots=fixed_slots)
     source = _source(rows)
-    monkeypatch.setattr(get_settings(), "enable_design_compact_deterministic_repair", False)
-    original = DesignCompactProcessor().process(source, context)
-    assert original.errors
-    monkeypatch.setattr(get_settings(), "enable_design_compact_deterministic_repair", True)
+    monkeypatch.setattr(get_settings(), "enable_design_compact_deterministic_repair",
+                        deterministic_repair)
     result = DesignCompactProcessor().process(source, context)
-    assert not result.errors, [issue.repair_message() for issue in result.errors]
-    assert result.standard_dsl
+    assert result.errors
+    duplicate_issues = []
+    for issue in result.errors:
+        if issue.prompt_context.get("duplicateActions"):
+            duplicate_issues.append(issue.to_prompt_payload())
+    assert len(duplicate_issues) == 1
 
-    before = _component_map(original.source_dsl)
+    before = _component_map(source)
     after = _component_map(result.source_dsl)
-    removed = set(before) - set(after)
-    assert len(removed) == 1
-    removed_id = next(iter(removed))
-    assert removed_id in {"left_action", "right_action"}
-    parent_id = removed_id.removesuffix("_action")
-    for identifier, row in after.items():
-        expected = before.get(identifier)
-        assert expected is not None
-        if identifier == parent_id:
-            expected = replace(expected, props={"variant": "title-content"},
-                               children=expected.children[:2])
-        assert row == expected
-    buttons = [row for row in after.values() if row.component_type == "PillButton"]
-    assert len(buttons) == 1
-    assert buttons[0].props.get("onClick") == [_HANDLER]
-    assert _URI in result.standard_dsl
-    before_rows = parse_compact_dsl_rows(source)
-    after_rows = parse_compact_dsl_rows(result.source_dsl)
-    data_before = [row for row in before_rows if not isinstance(row, ComponentRow)]
-    data_after = [row for row in after_rows if not isinstance(row, ComponentRow)]
-    assert data_before == data_after
+    assert after == before
+    assert serialize_compact_dsl_source(result.source_dsl) == serialize_compact_dsl_source(source)
+    button_type = "CardButton" if fixed_slots else "PillButton"
+    buttons = [row for row in after.values() if row.component_type == button_type]
+    assert len(buttons) == 2
+    for button in buttons:
+        assert button.props.get("onClick") == [_HANDLER]
+    strategy = CompactRepairStrategyTracker().next_directive(source, duplicate_issues)
+    expected = "parent_layout_recompose" if fixed_slots else "deduplicate_visible_actions"
+    assert strategy.repair_strategy == expected
+    assert strategy.retryable is True
+    assert strategy.optional_drop is None
     again = DesignCompactProcessor().process(result.source_dsl, context)
-    assert not again.errors
+    assert again.errors == result.errors
     assert again.source_dsl == result.source_dsl
-    assert again.standard_dsl == result.standard_dsl
 
 
 def test_different_content_regions_are_diagnosed_without_automatic_action_removal():
@@ -154,7 +150,7 @@ def test_different_content_regions_are_diagnosed_without_automatic_action_remova
     assert serialize_compact_dsl_source(result.source_dsl) == serialize_compact_dsl_source(source)
 
 
-def test_real_candidate_failing_other_contract_is_not_adopted():
+def test_duplicate_action_and_other_contract_failures_are_both_reported():
     rows, context = _case()
     for index in (4, 8):
         rows[index][2]["label"] = "查看当前天气详情"
@@ -231,7 +227,7 @@ def test_two_distinct_registered_actions_succeed_without_recovery(monkeypatch):
     def forbidden(*_args, **_kwargs):
         pytest.fail("valid distinct actions must not enter recovery")
 
-    monkeypatch.setattr("services.generation_pipeline.duplicate_action_candidates", forbidden)
+    monkeypatch.setattr(DesignCompactProcessor, "_repair_duplicate_display", forbidden)
     source = _source(rows)
     result = DesignCompactProcessor().process(source, context)
     assert not result.errors, [issue.repair_message() for issue in result.errors]
@@ -248,7 +244,7 @@ def test_template_skip_does_not_apply_duplicate_action_gate_or_recovery(monkeypa
     def forbidden(*_args, **_kwargs):
         pytest.fail("template skip must not enter duplicate action recovery")
 
-    monkeypatch.setattr("services.generation_pipeline.duplicate_action_candidates", forbidden)
+    monkeypatch.setattr(DesignCompactProcessor, "_repair_duplicate_display", forbidden)
     source = _source(rows)
     result = DesignCompactProcessor().process(source, context)
     assert not result.errors, [issue.repair_message() for issue in result.errors]

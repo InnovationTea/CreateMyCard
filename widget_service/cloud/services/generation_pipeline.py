@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import copy
 import time
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
@@ -21,10 +22,6 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
     repair_compact_dsl_safe_structure,
     serialize_compact_dsl_source,
-)
-from services.compact_duplicate_actions import (
-    duplicate_action_candidates,
-    duplicate_action_feedback,
 )
 from services.compact_duplicate_display import (
     duplicate_display_candidates,
@@ -280,18 +277,12 @@ class DesignCompactProcessor:
         self, original: DslProcessingResult, context: DslProcessingContext,
     ) -> DslProcessingResult:
         duplicates = ()
-        duplicate_actions = ()
         for issue in original.errors:
             facts = issue.prompt_context.get("duplicateFacts")
-            if isinstance(facts, list) and facts and not duplicates:
+            if isinstance(facts, list) and facts:
                 duplicates = tuple(facts)
-            actions = issue.prompt_context.get("duplicateActions")
-            if isinstance(actions, list) and actions and not duplicate_actions:
-                duplicate_actions = tuple(actions)
-        candidates = (
-            *duplicate_display_candidates(original.source_dsl, duplicates),
-            *duplicate_action_candidates(original.source_dsl, duplicate_actions),
-        )
+                break
+        candidates = duplicate_display_candidates(original.source_dsl, duplicates)
         if not candidates:
             return original
         started_at = time.perf_counter()
@@ -458,8 +449,8 @@ class DesignCompactProcessor:
                 plan_coverage.duplicate_facts,
             )
         if plan_coverage.duplicate_actions:
-            duplicate_fact_context["duplicateActions"] = duplicate_action_feedback(
-                plan_coverage.duplicate_actions,
+            duplicate_fact_context["duplicateActions"] = copy.deepcopy(
+                list(plan_coverage.duplicate_actions),
             )
         plan_issues = tuple(
             QualityIssue(

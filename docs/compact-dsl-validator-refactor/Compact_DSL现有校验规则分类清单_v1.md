@@ -2,8 +2,8 @@
 
 2026-10-28 重复动作补漏：重复按钮属于语义／展示，由
 `semantic/action_display.py` 基于原始可达树、完整事件数组及已接受 Action 判定；Plan 覆盖编排
-携带独立 `duplicateActions` 定位，沿用 `COMPACT_PLAN_COVERAGE_FAILED`。候选生成与所有权说明
-放在 `compact_duplicate_actions.py`，`generation_pipeline.py` 复用候选完整复检与 Trace；
+携带独立 `duplicateActions` 定位，沿用 `COMPACT_PLAN_COVERAGE_FAILED`；
+`generation_pipeline.py` 只传递诊断，不构造按钮自动删除或布局变体调整候选。
 `compact_repair_strategy.py` 负责局部／必要父布局路由，`prompt_builder.py` 格式化动作反馈。
 不恢复旧 W9 特例，不修改候选事件匹配、组件合同、容量门禁、模板豁免或重试预算。
 

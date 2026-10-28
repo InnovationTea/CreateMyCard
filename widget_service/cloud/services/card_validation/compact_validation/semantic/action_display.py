@@ -5,13 +5,11 @@ from __future__ import annotations
 
 import copy
 import json
-from dataclasses import dataclass
 from typing import Any
 
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
-    DataRow,
     parse_compact_dsl_rows,
 )
 from services.event_matching import event_handlers_match
@@ -29,15 +27,7 @@ _REGION_ROLES = {
 }
 
 
-@dataclass(frozen=True)
-class ActionDisplayTree:
-    rows: tuple[ComponentRow | DataRow, ...]
-    nodes: dict[str, ComponentRow]
-    parents: dict[str, str]
-    occurrences: tuple[dict[str, Any], ...]
-
-
-def strict_action_identity(value: Any) -> str | None:
+def _strict_action_identity(value: Any) -> str | None:
     """保留数组顺序和 JSON 参数类型，不归一化开关值或动态表达式。"""
     result = None
     try:
@@ -96,10 +86,9 @@ def _button_occurrence(
 
 def _walk_actions(
     nodes: dict[str, ComponentRow],
-) -> tuple[dict[str, str], tuple[dict[str, Any], ...]] | None:
+) -> tuple[dict[str, Any], ...]:
     if "root" not in nodes:
-        return None
-    parents: dict[str, str] = {}
+        return ()
     occurrences = []
     seen: set[str] = set()
     pending = [("root", None, 0, False)]
@@ -107,14 +96,13 @@ def _walk_actions(
         identifier, parent_id, index, blocked = pending.pop()
         node = nodes.get(identifier)
         if node is None or identifier in seen:
-            return None
+            return ()
         seen.add(identifier)
         in_list = blocked or _list_context(node)
         if parent_id is not None:
             parent = nodes.get(parent_id)
             if parent is None:
-                return None
-            parents[identifier] = parent_id
+                return ()
             if not in_list:
                 occurrence = _button_occurrence(node, parent, index)
                 if occurrence is not None:
@@ -123,29 +111,24 @@ def _walk_actions(
         for child_index in range(len(node.children) - 1, -1, -1):
             child = node.children[child_index]
             pending.append((child, identifier, child_index, descendants_blocked))
-    return parents, tuple(occurrences)
+    return tuple(occurrences)
 
 
-def read_action_display_tree(source_dsl: str) -> ActionDisplayTree | None:
+def _read_action_occurrences(source_dsl: str) -> tuple[dict[str, Any], ...]:
     """只看原始可达树；多父引用或环没有安全的入口归属，交原树校验处理。"""
     try:
         rows = parse_compact_dsl_rows(
             source_dsl, expand_layouts=False, preserve_unreachable=True,
         )
     except CompactDslConversionError:
-        return None
+        return ()
     nodes: dict[str, ComponentRow] = {}
     for row in rows:
         if isinstance(row, ComponentRow):
             if row.component_id in nodes:
-                return None
+                return ()
             nodes[row.component_id] = row
-    walked = _walk_actions(nodes)
-    result = None
-    if walked is not None:
-        parents, occurrences = walked
-        result = ActionDisplayTree(rows, nodes, parents, occurrences)
-    return result
+    return _walk_actions(nodes)
 
 
 def _accepted_actions(plan: Any, handlers: dict[str, Any]) -> dict[str, tuple[int, dict[str, Any]]]:
@@ -193,13 +176,10 @@ def find_duplicate_actions(
     accepted = _accepted_actions(plan, event_handlers_by_id)
     if not accepted:
         return ()
-    tree = read_action_display_tree(source_dsl)
-    if tree is None:
-        return ()
     groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    for occurrence in tree.occurrences:
+    for occurrence in _read_action_occurrences(source_dsl):
         action_id = _matching_action(occurrence, accepted)
-        identity = strict_action_identity(occurrence.get("onClick"))
+        identity = _strict_action_identity(occurrence.get("onClick"))
         if action_id is not None and identity is not None:
             groups.setdefault((action_id, identity), []).append(occurrence)
     result = []

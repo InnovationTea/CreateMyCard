@@ -2295,7 +2295,7 @@ class PromptBuilder:
             payload["duplicateActions"] = duplicate_actions
             payload["instruction"] += (
                 " duplicateActions 是完整执行参数相同的重复按钮清单，不是缺失动作。"
-                "读取 occurrences 的父角色及 fixedRequiredSlot，并遵循 ownershipInstruction；"
+                "读取 occurrences 的父角色及 fixedRequiredSlot，并遵循 repairStrategy；"
                 "保留每种完整事件数组的唯一入口，不合并不同参数、开关值或绑定。"
                 "固定槽不得直接删除或填入重复内容，只在 repairStrategy 允许的必要父布局内"
                 "重新分配已有独立信息和动作；可选动作删除后同步合法父变体。"
