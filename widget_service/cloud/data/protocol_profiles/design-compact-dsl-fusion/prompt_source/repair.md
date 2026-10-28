@@ -28,6 +28,7 @@ Plan 恰好仅含一个必要动作且至多一个明确标题事实时，保持
 | category/validatorStage/fileKind/line/jsonPointer | 结合 invalidSourceDsl 定位原组件或 Prop；不猜不存在的行号 |
 | actual/expected/fixHint | 核对实际值及约束；建议不能覆盖合同和删除授权 |
 | duplicateFacts/occurrences | 报错 dataId 的重复可见位置，逐项定位，不当成缺失事实 |
+| duplicateActions/occurrences | 同一完整事件数组的重复按钮及父角色；固定槽不直接删，按 repairStrategy 调整必要父布局，保留唯一动作入口和全部独立信息 |
 | Occupancy | 子区实际最小占高及间距，找到共同超预算来源 |
 | Alternatives | 一个完整合法变体的全部不匹配项，不能只修 closest 的几项或混用变体 |
 | previousFailures/noProgress/consecutiveFailures | 判断是否重复根因；noProgress 或连续失败≥2时不只改 ID、颜色或无关属性 |
@@ -38,6 +39,7 @@ Plan 恰好仅含一个必要动作且至多一个明确标题事实时，保持
 expanded 位置来自模板展开，不是模型 Props。回到原语义 Layout/Region/Group 或业务组件修复，不输出自动生成节点，不修改模板宽高、间距、padding、权重或对齐。一个展开错误可能来自同一上游绑定或容量根因，先合并分析再修改。
 
 展示事实重复时，每个报错 dataId 只保留一个具有明确对象、标签、完整值和单位的位置，不因字号更大保留含义不清的裸值。SecondaryBody 仅删重复 item；多字段 Expression 仅移除重复引用，保留其它事实。组件仍有内容则保留，变空才删除组件行及直接父引用。不得改 Plan、删唯一展示或数据行、静态化动态值、影响未报错事实与 Action。去重后确认报错字段各出现一次、无空组件或孤立引用，核心组件及信息组语义仍成立。
+普通重复保持信息组内修复。只有 requiredDisplayPositions 确认同一事实占据至少两个不同必填展示槽时，才按 repairStrategy 的范围调整必要父布局和合法组合；不能清空必填槽、虚构新事实或无条件重建整卡。
 
 ## 2. 按 scope 控制改动
 
@@ -90,10 +92,10 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 | TextBlock 项目被拆散或超出槽宽 | 恢复全部分配的事实并按当前容量合同重组选型；不强塞四项，不留下单项占位，不删项或丢失绑定 |
 | EventCard 缺 title / 地点超宽 / 时间序列过长 | 无真实事件标题则普通属性合组，不伪造名称；长地点用普通密度或更宽合法内容区。多事件默认合并一实例；仅W-top-bottom可将同一序列有序分入primary/details两个EventCard，但不因分段跳过总高校验 |
 | EventCard 总高超出父槽 | 若 accepted Plan 只保留 2–3 条同级短事件，且每条的 title、time 和可选 location 合并后仍能单行完整显示，优先比较改用 `SummaryList`：按原顺序将同一 item 的完整文本合为一个显示值，动态字段用 Expression 保留全部 PathBinding。2项按64vp、3项按102vp重算高度并复查单行宽度。超过3项、存在多行长地点，或任一事实未获准省略时，不得借此删项、截断或改写事实；继续比较 compact EventCard、更宽合法区域或父布局重组 |
-| CardButton 标签过长 | labelLines:2，保留原字号、槽位和完整动作目标；仍不够换合法动作组合 |
+| PillButton/CardButton 标签超过5个字符 | 只缩短可见label为最多5个字符，使用“动作+必要目标”，例如“一键导航去公司”改为“导航去公司”；完整保留onClick、参数、真实目标、图标和唯一Action，不靠labelLines绕过 |
 | CardButton 图标不一致 | accepted Plan 已为动作分配素材时，恢复对应原始 src；Plan 为 null 或没有素材候选时保留 CardButton 也合法，原始 DSL 必须省略业务 icon，由转换器展示固定回退图标 `resources/base/media/ic_fallback_light.svg` |
 
-InfoBlock.secondaryText、TextBlock 的 label/value、CardButton.label 允许其合同的单行省略并只产生 warning；其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
+InfoBlock.secondaryText、TextBlock 的 label/value，以及不超过5个字符但仍因固定槽宽溢出的 CardButton.label，允许其合同的单行省略并只产生 warning；按钮label超过5个字符仍须先缩短。其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
 2x4 强调读数组合确实放不下、整卡其它地方已有核心组件且用户未要求大号强调/进度/事件形式时，可把该读数与同对象短补充无损合为一个 SecondaryBody.items。保留全部值、标签、单位和绑定，采用该组件合法单/多行规格，不补造核心组件；纯绑定/Props 错误不启用此容量例外。
 
 ## 5. 后段策略及删除权限

@@ -24,6 +24,7 @@ from services.card_validation.compact_validation.semantic.cross_file import (
     _unused_data_capability_warnings,
 )
 from services.card_validation.compact_validation.semantic.display import (
+    _collect_action_label_length_errors,
     _collect_ambiguous_metric_text_errors,
     _collect_compound_duration_component_errors,
     _collect_progress_readout_object_errors,
@@ -190,6 +191,7 @@ def validate_compact_dsl(
             original_errors,
             allowed_omitted_fact_indexes,
         )
+    _collect_action_label_length_errors(components, original_errors)
     _collect_model_asset_source_errors(components, task_spec, original_errors)
     _collect_asset_color_errors(components, task_spec, original_errors)
     _collect_numeric_component_errors(components, task_spec, original_errors)

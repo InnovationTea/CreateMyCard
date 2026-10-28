@@ -105,24 +105,26 @@ EXPECTED_TEMPLATES = {
     "layouts/2x2.md:5":
         "cc7c79120a32fd83aebbd1b00d379539316c99c00550355fc7f419dfc918d712",
     "layouts/2x2.md:6":
-        "6f18a090027ef1103bb69d7b205dc9eab7c44b395c6760f9c0d58c60d1686291",
+        "c65d58db613e34432afa43aaf41d1a9c7a32c0d22dbcbb6c4e787f39634d520f",
     "layouts/2x2.md:7":
-        "ebcf247f4a18b5a123d274c47e8e0060f17269b9dcfebbf3b6dbed22f75176fc",
+        "6f18a090027ef1103bb69d7b205dc9eab7c44b395c6760f9c0d58c60d1686291",
     "layouts/2x2.md:8":
-        "f7fb199a89643121d47a19a27f0374c4bbb88b3155bcaa670badd4f98c467042",
+        "ebcf247f4a18b5a123d274c47e8e0060f17269b9dcfebbf3b6dbed22f75176fc",
     "layouts/2x2.md:9":
-        "39cecb07f0ba976c6093d4fb4e032f75cb1fe861a380de79e4bffc2e045a6dbb",
+        "f7fb199a89643121d47a19a27f0374c4bbb88b3155bcaa670badd4f98c467042",
     "layouts/2x2.md:10":
-        "b1481322d92c862fe087f3a6879ed735fd043ef79999e9aca4c34e4976c22242",
+        "39cecb07f0ba976c6093d4fb4e032f75cb1fe861a380de79e4bffc2e045a6dbb",
     "layouts/2x2.md:11":
-        "7f5da60b6d01132ae926ce43d7506ad6cd534e682c8c9990ad5377aeb21ca95f",
+        "b1481322d92c862fe087f3a6879ed735fd043ef79999e9aca4c34e4976c22242",
     "layouts/2x2.md:12":
         "7f5da60b6d01132ae926ce43d7506ad6cd534e682c8c9990ad5377aeb21ca95f",
     "layouts/2x2.md:13":
-        "9294d95d0c97f8227105debb1c5e5a64a743571a8de64de65ea6801131b12138",
+        "7f5da60b6d01132ae926ce43d7506ad6cd534e682c8c9990ad5377aeb21ca95f",
     "layouts/2x2.md:14":
-        "c9ef8e5461560a8605eb121452e94b21f23818c53c5b8ebaaef2d1bc7d1b27da",
+        "9294d95d0c97f8227105debb1c5e5a64a743571a8de64de65ea6801131b12138",
     "layouts/2x2.md:15":
+        "c9ef8e5461560a8605eb121452e94b21f23818c53c5b8ebaaef2d1bc7d1b27da",
+    "layouts/2x2.md:16":
         "45b40231b9f11af8f878af7e18472e97eb99713a6460887193d947986d602ec5",
     "layouts/2x4.md:1":
         "0a15f996539bd82bf3e2b4df81b9d44ac0a4c0f0ecd9cbd78d7c0c5887ad3189",
@@ -178,6 +180,8 @@ def _roles(row):
         if layout == "S-content-dual-action":
             roles = ("first_action", "second_action")
             return roles if props.get("variant") == "actions-only" else ("content", *roles)
+        if layout == "S-title-content-action" and props.get("variant") == "title-action":
+            return ("title", "action")
         mapping = {
             "S-center": ("content",),
             "S-title-content": ("title", "content"),
@@ -328,7 +332,7 @@ def test_template_structure_unchanged_except_component_names(filename, index, so
 
 
 def test_core_owns_reference_rules_and_only_complete_demonstration():
-    assert len(_examples()) == 30 and len(_templates()) == 33
+    assert len(_examples()) == 30 and len(_templates()) == 34
     core = (SOURCE / "core.md").read_text(encoding="utf-8")
     assert "children 中每个 ID 必须与本次输出某一组件行的第一项逐字一致" in core
     assert "组件 ID 引用不同于显示值的数据路径绑定" in core

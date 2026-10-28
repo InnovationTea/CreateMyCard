@@ -42,7 +42,12 @@ from services.compact_layout_runtime import (
     load_layout_contract,
     match_compact_layout,
 )
-from services.compact_plan_output import normalize_plan_output
+from services.compact_plan_output import (
+    PlanDuplicateKeyError,
+    decode_plan_json,
+    normalize_plan_output,
+    normalize_plan_root_arguments,
+)
 from services.compact_whole_card_click import WHOLE_CARD_LAYOUTS, select_whole_card_click
 from services.event_matching import event_handlers_match
 
@@ -60,6 +65,7 @@ _STATIC_ROLE_ALIASES = {
     "secondaryText": "title",
     "details": "detail",
 }
+_STATIC_FACT_SECTION_MARKER = "本轮卡片静态内容（用作展示的外部事实）："
 _MAX_MUST_FACTS_BY_SIZE = {"2x2": 6, "2x4": 10}
 _FRESHNESS_METADATA_NAMES = frozenset(
     {
@@ -734,6 +740,8 @@ def _collect_static_source_errors(
     membership: dict[int, str],
     errors: list[str],
     warnings: list[str],
+    *,
+    require_references: bool,
 ) -> None:
     from config.config import get_settings
     from services.card_validation.compact_validation.semantic.cross_file import static_source_errors
@@ -747,7 +755,11 @@ def _collect_static_source_errors(
         missing_references = references is None or references == []
         protected = raw_fact.get("protectedTexts") or raw_fact.get("preserveVerbatim") is True
         if missing_references:
-            if protected:
+            if require_references:
+                errors.append(
+                    f"{path}: 提供了静态事实段时，每条静态 text 必须引用该段中的非空 sourceTexts。"
+                )
+            elif protected:
                 errors.append(f"{path}: 受保护或要求原文展示的静态 text 必须提交非空 sourceTexts。")
             else:
                 warnings.append(f"静态 text 事实索引 {index} 缺少 sourceTexts，已保留为 warning。")
@@ -767,14 +779,23 @@ def _collect_static_source_errors(
         errors.append("info_required: 静态来源引用数量超过预算。")
 
 
+def _static_fact_source(user_query: str) -> tuple[str, bool]:
+    """提取显式附加的静态事实段，避免把用户期望误作已获事实。"""
+    _, marker, fact_source = user_query.partition(_STATIC_FACT_SECTION_MARKER)
+    if not marker:
+        return user_query, False
+    return fact_source.strip(), True
+
+
 def _normalize_static_plan(
     arguments: dict[str, Any], task: dict[str, Any]
 ) -> _StaticPlanNormalization:
     raw_facts = arguments.get("info_required")
     raw_groups = arguments.get("contentGroups")
-    source_query = task.get("userQuery")
-    if not isinstance(source_query, str):
+    user_query = task.get("userQuery")
+    if not isinstance(user_query, str):
         raise CompactPlanValidationError(["静态来源需求必须是字符串。"])
+    source_query, has_explicit_fact_source = _static_fact_source(user_query)
     if not isinstance(raw_facts, list) or not 1 <= len(raw_facts) <= 24:
         raise CompactPlanValidationError(["静态计划必须包含 1–24 条事实或动作。"])
     warnings: list[str] = []
@@ -817,7 +838,14 @@ def _normalize_static_plan(
     group_normalization = _normalize_static_groups(raw_groups, raw_facts, errors, warnings)
     membership = group_normalization.membership
     raw_groups = group_normalization.groups
-    _collect_static_source_errors(raw_facts, source_query, membership, errors, warnings)
+    _collect_static_source_errors(
+        raw_facts,
+        source_query,
+        membership,
+        errors,
+        warnings,
+        require_references=has_explicit_fact_source,
+    )
     if errors:
         raise CompactPlanValidationError(errors)
     facts: list[dict[str, Any]] = []
@@ -1388,6 +1416,9 @@ def parse_compact_plan_call(
         syntax_warnings.extend(envelope.warnings)
         raw_output = envelope.text
     payload = _parse_json_object(raw_output, syntax_warnings)
+    normalized_envelope = normalize_plan_root_arguments(payload)
+    payload = normalized_envelope.payload
+    syntax_warnings.extend(normalized_envelope.warnings)
     if set(payload) != {"name", "arguments"}:
         raise CompactPlanValidationError(["Plan output must contain only name and arguments."])
     if payload.get("name") != SUBMIT_CARD_PLAN:
@@ -1764,7 +1795,11 @@ def compact_plan_context(
             "根内部不再生成按钮或其它点击节点，不预留按钮高度，不补动作提示文字；"
             "不能删动作、改为子节点点击或因修复补回按钮。该动作没有按钮图标。"
         )
-    fixed_dual_action = plan.get("layoutHints") == ["S-content-dual-action"]
+    facts = plan.get("info_required")
+    fixed_dual_action = (
+        plan.get("layoutHints") == ["S-content-dual-action"]
+        and _has_two_distinct_actions(facts)
+    )
     fixed_title_action = plan.get("layoutHints") == ["S-title-content-action"]
     if conflicts:
         context_plan.pop("composition", None)
@@ -1772,7 +1807,6 @@ def compact_plan_context(
     asset_instruction = ""
     pure_action_instruction = ""
     title_action_only = False
-    facts = plan.get("info_required")
     if fixed_dual_action and isinstance(facts, list):
         if len(facts) == 2 and all("actionId" in fact for fact in facts):
             pure_action_instruction = (
@@ -1980,6 +2014,7 @@ class CompactPlanCoverageResult:
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     duplicate_facts: tuple[dict[str, Any], ...] = ()
+    duplicate_actions: tuple[dict[str, Any], ...] = ()
 
 
 def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleState:
@@ -2204,6 +2239,7 @@ def evaluate_compact_plan_coverage(
     *,
     allowed_omitted_fact_indexes: tuple[int, ...] = (),
     information_errors_as_warnings: bool = False,
+    check_duplicate_actions: bool = True,
 ) -> CompactPlanCoverageResult:
     """检查 Plan 覆盖；修复后可仅放宽非 Action 展示事实。"""
     from services.generation_content_policy import current_content_policy
@@ -2237,6 +2273,22 @@ def evaluate_compact_plan_coverage(
             errors=("Accepted Compact Plan has no info_required facts.",),
             warnings=(),
         )
+    duplicate_actions = ()
+    if check_duplicate_actions:
+        from services.card_validation.compact_validation.semantic.action_display import (
+            find_duplicate_actions,
+        )
+
+        duplicate_actions = find_duplicate_actions(compact_dsl, plan, event_handlers)
+        for action in duplicate_actions:
+            positions = ", ".join(
+                item.get("componentId", "") for item in action.get("occurrences", [])
+            )
+            errors.append(
+                "Plan action is displayed more than once in visible DSL: "
+                f"{action.get('actionId')}; expected 1, got {action.get('actualVisibleCount')}; "
+                f"occurrences: {positions}."
+            )
     for index, fact in enumerate(facts):
         if not isinstance(fact, dict):
             continue
@@ -2294,6 +2346,7 @@ def evaluate_compact_plan_coverage(
         errors=tuple(errors),
         warnings=tuple(warnings),
         duplicate_facts=tuple(duplicate_facts),
+        duplicate_actions=duplicate_actions,
     )
 
 
@@ -2575,7 +2628,7 @@ def _item_partial_drop_candidate(
     max_fact_count: int | None,
     preserved_fact_indexes: set[int],
 ) -> CompactOptionalDropCandidate | None:
-    """为 SecondaryBody 容量证据或三行 TableText 生成一个最小条目删减候选。"""
+    """为 SecondaryBody 容量证据或至少三行 TableText 生成最小条目删减候选。"""
     secondary_body_candidate = (
         row.component_type == "SecondaryBody" and allowed_fact_indexes is not None
     )
@@ -2585,7 +2638,7 @@ def _item_partial_drop_candidate(
     items = row.props.get("items")
     if not isinstance(items, list):
         return None
-    if table_text_candidate and len(items) != 3:
+    if table_text_candidate and len(items) < 3:
         return None
     candidates: list[CompactOptionalDropCandidate] = []
     for item_index, item in enumerate(items):
@@ -2655,6 +2708,7 @@ def compact_plan_optional_drop_candidate(
     allow_must_fallback: bool = True,
     max_fact_count: int | None = None,
     allowed_fact_indexes: set[int] | None = None,
+    allow_invalid_table_text: bool = False,
 ) -> CompactOptionalDropCandidate | None:
     """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
@@ -2677,6 +2731,7 @@ def compact_plan_optional_drop_candidate(
         rows = parse_compact_dsl_rows(
             compact_dsl,
             expand_layouts=False,
+            skip_compact_dsl_validation=allow_invalid_table_text,
             preserve_unreachable=True,
         )
     except (TypeError, ValueError):
@@ -2714,6 +2769,12 @@ def compact_plan_optional_drop_candidate(
             continue
         if row.component_id not in reachable_component_ids:
             continue
+        if allow_invalid_table_text:
+            items = row.props.get("items")
+            if row.component_type != "TableText" or not isinstance(items, list):
+                continue
+            if len(items) <= 3:
+                continue
         if row.component_type in {"Row", "Column", "Stack"}:
             continue
         if row.component_type in _ACTION_FACT_COMPONENTS:
@@ -3365,6 +3426,13 @@ def _normalize_dual_action_plan(
 ) -> tuple[list[str], list[str]]:
     """统一 2x2 双必要动作的布局和按钮，保留内容事实与软候选。"""
     if not _is_two_by_two_dual_action_plan(facts, size):
+        if size == "2x2" and "S-content-dual-action" in layout_hints:
+            accepted = [hint for hint in layout_hints if hint != "S-content-dual-action"]
+            return accepted, [
+                "S-content-dual-action was removed from layoutHints because the Plan "
+                "does not contain exactly two distinct actions; preserve the actual facts "
+                "and actions without inventing a second action."
+            ]
         return layout_hints, []
 
     warnings: list[str] = []
@@ -3388,11 +3456,23 @@ def _is_two_by_two_dual_action_plan(
 ) -> bool:
     if size != "2x2":
         return False
-    action_count = 0
+    return _has_two_distinct_actions(facts)
+
+
+def _has_two_distinct_actions(facts: Any) -> bool:
+    """固定双动作约束来自事实，不把模型候选或重复动作当作两个动作。"""
+    if not isinstance(facts, list):
+        return False
+    action_ids: list[str] = []
     for fact in facts:
-        if _requires_action_button(fact):
-            action_count += 1
-    return action_count == 2
+        if not isinstance(fact, dict):
+            return False
+        if not _requires_action_button(fact):
+            continue
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id.strip():
+            action_ids.append(action_id)
+    return len(action_ids) == 2 and len(set(action_ids)) == 2
 
 
 def _requires_action_button(fact: dict[str, Any]) -> bool:
@@ -3413,7 +3493,9 @@ def _parse_json_object(
     if match is not None:
         text = match.group(1).strip()
     try:
-        payload = json.loads(text)
+        payload = decode_plan_json(text)
+    except PlanDuplicateKeyError as exc:
+        raise CompactPlanValidationError([str(exc)]) from exc
     except json.JSONDecodeError as exc:
         repaired = _recover_plan_closers(text)
         if repaired is None:
@@ -3467,8 +3549,8 @@ def _recover_plan_closers(text: str) -> dict[str, Any] | None:
         if char not in cursor:
             return None
     try:
-        payload = json.loads(prefix + expected)
-    except json.JSONDecodeError:
+        payload = decode_plan_json(prefix + expected)
+    except (json.JSONDecodeError, PlanDuplicateKeyError):
         return None
     return payload if isinstance(payload, dict) else None
 

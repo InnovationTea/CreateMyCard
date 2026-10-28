@@ -476,7 +476,9 @@ async def test_compact_mock_flow_records_intermediate_artifacts(
         "artifact.upload",
         "request.completed",
     }.issubset(events)
-    artifact_names = {name for record in records for name in record.get("artifacts", {})}
+    artifact_names = set()
+    for record in records:
+        artifact_names.update(record.get("artifacts", {}))
     assert "initial_assistant_raw" in artifact_names
     assert "compact_dsl_binding_repaired" in artifact_names
     assert "standard_a2ui_before_unit_repair" in artifact_names
@@ -666,7 +668,9 @@ async def test_plan_contract_retry_has_independent_trace_counts(
     assert summary["retryCounts"]["planContractRetries"] == 1
     plan_results = [record for record in records if record["event"] == "plan.validation.completed"]
     assert [record["status"] for record in plan_results] == ["failed", "success"]
-    artifact_names = {name for record in records for name in record.get("artifacts", {})}
+    artifact_names = set()
+    for record in records:
+        artifact_names.update(record.get("artifacts", {}))
     assert "plan_validation_errors" in artifact_names
     assert "plan_validation_input" in artifact_names
     assert "accepted_plan" in artifact_names
@@ -768,6 +772,8 @@ async def test_quality_repair_records_prompt_model_and_revalidation(
     assert summary["attemptCounts"]["qualityRepairAttempts"] == 1
     assert summary["attemptCounts"]["validationEvaluations"] == 2
     assert summary["retryCounts"]["qualityRepairRetries"] == 1
+    assert "planContractAttempts" not in summary["attemptCounts"]
+    assert summary["retryCounts"].get("planContractRetries", 0) == 0
     repair_events = {
         record["event"]: record for record in records if record["event"].startswith("repair.")
     }

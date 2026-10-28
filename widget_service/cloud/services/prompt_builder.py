@@ -28,6 +28,7 @@ from services.compact_plan import (
     compact_plan_context,
     compact_plan_required_route,
 )
+from services.compact_plan_feedback import static_plan_repair_feedback
 from services.compact_plan_output import (
     PLAN_JSON_OUTPUT_INSTRUCTION,
     plan_output_format_feedback,
@@ -154,6 +155,24 @@ def _duplicate_facts(quality_errors: list[dict[str, Any]]) -> list[dict[str, Any
                 continue
             seen_data_ids.add(data_id)
             result.append(copy.deepcopy(fact))
+    return result
+
+
+def _duplicate_actions(quality_errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """保留独立的动作诊断，不按动作 ID 折叠不同参数的执行身份。"""
+    result = []
+    seen = set()
+    for issue in quality_errors:
+        actions = issue.get("duplicateActions")
+        if not isinstance(actions, list):
+            continue
+        for action in actions:
+            if not isinstance(action, dict):
+                continue
+            key = json.dumps(action, ensure_ascii=False, sort_keys=True)
+            if key not in seen:
+                seen.add(key)
+                result.append(copy.deepcopy(action))
     return result
 
 
@@ -1876,12 +1895,19 @@ class PromptBuilder:
         from services.generation_content_policy import current_content_policy
 
         text_instruction = "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
+        reference_feedback = None
         if current_content_policy().is_static:
+            reference_feedback = static_plan_repair_feedback(invalid_output)
             text_instruction = (
                 "静态text仍允许忠于sourceTexts的摘要、合并和简洁表达，不要求逐字提取。"
                 "修正全部已报告的结构问题；contentGroups.factIndexes只引用本次提交的"
-                "info_required零起始索引，不引用来源条目；合并或删减展示事实后同步所有引用。"
-                "sourceTexts每条事实引用1至3段连续原文，必要时引用完整连续上下文，不能编造引用。"
+                "info_required零起始索引，不引用来源条目；合并或删减展示事实后，"
+                "须原子同步info_required、contentGroups及omittedContents全部引用。"
+                "若输入含“本轮卡片静态内容（用作展示的外部事实）”段，"
+                "每条text须以sourceTexts引用该段内1至3段连续原文，不引用段前的用户期望。"
+                "没有显式事实段时，受保护或要求原文的text仍须有非空来源引用；"
+                "普通未保护text缺少引用仅为warning，不单独要求重修。"
+                "已提供的引用仍须来自本轮有效输入，不能编造。"
                 "selectionNotes为一个字符串数组，不在每项外另加数组。"
                 "对照来源自查对象名称、日期、数值与单位、否定、范围、冲突来源和必要限定；"
                 "用户要求原文或全部展示时仍须遵守，不得为修复结构改变含义或删除核心。"
@@ -1896,26 +1922,27 @@ class PromptBuilder:
         )
         if not latest_is_submission:
             repaired.append({"role": "assistant", "content": invalid_output})
+        feedback_payload = {
+            "toolResult": {
+                "name": "submit_card_plan", "ok": False, "errors": list(errors),
+            },
+            "outputFormat": plan_output_format_feedback(invalid_output),
+            "instruction": (
+                PLAN_JSON_OUTPUT_INSTRUCTION + " "
+                "按本轮提供的合同修正计划或必要数据缺口报告，不得新增未开放的调用。"
+                "不得删除用户要求来规避错误，"
+                "但应移除模型自行新增且用户未要求的装饰标题事实。"
+                f"{text_instruction}"
+                "不得生成 Compact DSL、Markdown 或解释。"
+            ),
+        }
+        if reference_feedback is not None:
+            feedback_payload["staticPlanReferences"] = reference_feedback
         repaired.append(
             {
                 "role": "user",
                 "content": json.dumps(
-                    {
-                        "toolResult": {
-                            "name": "submit_card_plan",
-                            "ok": False,
-                            "errors": list(errors),
-                        },
-                        "outputFormat": plan_output_format_feedback(invalid_output),
-                        "instruction": (
-                            PLAN_JSON_OUTPUT_INSTRUCTION + " "
-                            "按本轮提供的合同修正计划或必要数据缺口报告，不得新增未开放的调用。"
-                            "不得删除用户要求来规避错误，"
-                            "但应移除模型自行新增且用户未要求的装饰标题事实。"
-                            f"{text_instruction}"
-                            "不得生成 Compact DSL、Markdown 或解释。"
-                        ),
-                    },
+                    feedback_payload,
                     ensure_ascii=False,
                     separators=(",", ":"),
                 ),
@@ -2263,6 +2290,17 @@ class PromptBuilder:
         duplicate_facts = _duplicate_facts(quality_errors)
         if duplicate_facts:
             payload["duplicateFacts"] = duplicate_facts
+        duplicate_actions = _duplicate_actions(quality_errors)
+        if duplicate_actions:
+            payload["duplicateActions"] = duplicate_actions
+            payload["instruction"] += (
+                " duplicateActions 是完整执行参数相同的重复按钮清单，不是缺失动作。"
+                "读取 occurrences 的父角色及 fixedRequiredSlot，并遵循 repairStrategy；"
+                "保留每种完整事件数组的唯一入口，不合并不同参数、开关值或绑定。"
+                "固定槽不得直接删除或填入重复内容，只在 repairStrategy 允许的必要父布局内"
+                "重新分配已有独立信息和动作；可选动作删除后同步合法父变体。"
+                "保留所有独立事实、标签、字号、绑定和动作，不改 accepted Plan，不授权 Drop。"
+            )
         if not is_design_compact:
             payload["originalUserContent"] = initial_prompt[1]["content"]
         if previous_failures is not None and not is_design_compact:
@@ -2386,7 +2424,12 @@ class PromptBuilder:
             elif duplicate_fact:
                 payload["instruction"] += (
                     "duplicateFacts 是本轮必须消除的重复可见绑定清单。逐项读取 dataId、"
-                    "actualVisibleCount 和 occurrences；每个报错 dataId 修复后只能保留一个"
+                    "actualVisibleCount 和 occurrences，并核对 requiredDisplayPositions 与"
+                    " ownershipInstruction。必填属性不能直接清空，固定槽不能仅删除children，"
+                    "同一事实占据至少两个不同必填槽时，才按repairStrategy允许范围"
+                    "重分配已有事实或调整必要父布局的合法组合，不造事实填槽；"
+                    "普通重复保持信息组内修复，不无条件重建整卡。"
+                    "每个报错 dataId 修复后只能保留一个"
                     "可见位置。优先保留具有明确对象、标签、完整值和单位的语义表达，不因"
                     "字号更大就保留含义不清的裸值或生硬拼接。重复位于 SecondaryBody 单个"
                     "item 时只删除该 item；表达式含多个 dataId 时只移除报错的重复引用，"

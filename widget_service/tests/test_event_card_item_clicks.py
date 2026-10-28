@@ -16,6 +16,7 @@ from services.compact_dsl_a2ui_converter import (
 from services.compact_plan import (
     build_compact_plan_tool,
     compact_plan_action_ids,
+    compact_plan_context,
     compact_plan_coverage_errors,
     parse_compact_plan_call,
 )
@@ -204,6 +205,28 @@ def test_item_details_do_not_force_independent_action_layout(size: str) -> None:
     actions = assignments.get("actions")
     assert isinstance(actions, list)
     assert all(action.get("assetId") is None for action in actions)
+
+
+@pytest.mark.parametrize("item_count", [1, 2])
+@pytest.mark.parametrize("with_button", [False, True])
+def test_stale_dual_action_hint_does_not_count_item_clicks_as_buttons(
+    item_count: int, with_button: bool,
+) -> None:
+    task = _task()
+    task["size"] = "2x2"
+    plan = _plan(task, "2x2", item_count)
+    facts = plan.get("info_required")
+    assert isinstance(facts, list)
+    if with_button:
+        facts.append({
+            "requirement": "独立操作",
+            "actionId": "event.independent",
+            "componentHints": ["CardButton"],
+        })
+    plan["layoutHints"] = ["S-content-dual-action"]
+    context = compact_plan_context(plan, implementation_conflicts=[])
+    assert "成为固定布局" not in context
+    assert "actions-only 变体" not in context
 
 
 def test_item_clicks_fulfill_only_selected_instances_and_survive_pipeline() -> None:
