@@ -31,7 +31,7 @@
       }
     ],
     "candidateAssetIds": [
-      "asset.ic_weather_color"
+      "asset.ic_weather_monochrome"
     ]
   },
   "deviceInfo": {
@@ -62,7 +62,7 @@
   },
   "version": "1.0",
   "assetCandidateIds": [
-    "asset.ic_weather_color"
+    "asset.ic_weather_monochrome"
   ],
   "functionName": "generateWidgetCardCompactDsl",
   "romVersion": "HOP-AL00 7.0.0.113",

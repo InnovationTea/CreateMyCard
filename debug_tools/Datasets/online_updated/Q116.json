@@ -29,7 +29,7 @@
     "candidateEventCandidates": [],
     "description": "显示当前天气和时间信息。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.emoji_time"
     ]
   },
@@ -91,7 +91,7 @@
   "candidateEventCandidates": [],
   "description": "显示当前天气和时间信息。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.emoji_time"
   ]
 }

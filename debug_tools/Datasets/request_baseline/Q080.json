@@ -34,7 +34,7 @@
     "candidateAssetIds": [
       "asset.battery_leaf_fill",
       "asset.bolt_fill",
-      "asset.emoji_temperature_orange"
+      "asset.icon_weather_thermometer_medium"
     ],
     "bundleName": "com.omega_w_0823.hmservice"
   },
@@ -92,6 +92,6 @@
   "candidateAssetIds": [
     "asset.battery_leaf_fill",
     "asset.bolt_fill",
-    "asset.emoji_temperature_orange"
+    "asset.icon_weather_thermometer_medium"
   ]
 }

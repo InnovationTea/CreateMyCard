@@ -47,7 +47,7 @@
     "description": "回石家庄倒计时、当地天气与空气质量，一键拨号给妈妈。",
     "candidateAssetIds": [
       "asset.ic_calender",
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.phone_fill"
     ]
   },
@@ -127,7 +127,7 @@
   "description": "回石家庄倒计时、当地天气与空气质量，一键拨号给妈妈。",
   "candidateAssetIds": [
     "asset.ic_calender",
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.phone_fill"
   ]
 }

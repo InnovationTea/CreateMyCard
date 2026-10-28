@@ -25,7 +25,7 @@
     "candidateEventCandidates": [],
     "description": "显示信阳市的天气信息。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_uv_color",
       "asset.ic_purification"
     ]
@@ -84,7 +84,7 @@
   "candidateEventCandidates": [],
   "description": "显示信阳市的天气信息。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_uv_color",
     "asset.ic_purification"
   ]

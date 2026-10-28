@@ -39,7 +39,7 @@
       }
     ],
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_purification",
       "asset.phone_fill"
     ]
@@ -75,7 +75,7 @@
   "functionName": "generateWidgetCardCompactDsl",
   "romVersion": "CMU-AL10 7.0.0.115",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_purification",
     "asset.phone_fill"
   ],

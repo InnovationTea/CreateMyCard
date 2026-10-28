@@ -35,7 +35,7 @@
     "candidateEventCandidates": [],
     "description": "天气卡片同时包含当天的日程提醒。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.calendar_fill"
     ]
   },
@@ -103,7 +103,7 @@
   "candidateEventCandidates": [],
   "description": "天气卡片同时包含当天的日程提醒。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.calendar_fill"
   ]
 }

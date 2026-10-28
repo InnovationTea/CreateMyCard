@@ -32,7 +32,6 @@
     "candidateAssetIds": [
       "asset.icon_weather_thermometer_medium",
       "asset.battery_leaf_fill",
-      "asset.emoji_temperature_orange",
       "asset.phone_fill"
     ]
   },
@@ -97,7 +96,6 @@
   "candidateAssetIds": [
     "asset.icon_weather_thermometer_medium",
     "asset.battery_leaf_fill",
-    "asset.emoji_temperature_orange",
     "asset.phone_fill"
   ]
 }

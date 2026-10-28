@@ -59,7 +59,7 @@
     "description": "午休步数和天气",
     "candidateAssetIds": [
       "asset.sun_max",
-      "asset.emoji_temperature_orange",
+      "asset.icon_weather_thermometer_medium",
       "asset.bell_fill",
       "asset.figure_run"
     ]
@@ -152,7 +152,7 @@
   "description": "午休步数和天气",
   "candidateAssetIds": [
     "asset.sun_max",
-    "asset.emoji_temperature_orange",
+    "asset.icon_weather_thermometer_medium",
     "asset.bell_fill",
     "asset.figure_run"
   ]
