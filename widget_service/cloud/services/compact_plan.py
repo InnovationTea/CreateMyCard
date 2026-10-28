@@ -550,6 +550,7 @@ class _StaticPlanNormalization:
     presentation: str | None
     presentation_feedback: tuple[str, ...]
     index_map: dict[int, int]
+    presentation_selection: dict[str, Any] | None = None
 
 
 
@@ -916,6 +917,7 @@ def _normalize_static_plan(
     return _StaticPlanNormalization(
         facts, warnings, groups, selection.notes, selection.omitted_contents,
         selection.presentation, selection.trial_errors, old_to_new,
+        selection.presentation_selection,
     )
 
 
@@ -1466,6 +1468,8 @@ def parse_compact_plan_call(
             plan["staticPresentationFeedback"] = list(normalized_static.presentation_feedback)
         if normalized_static.presentation is not None:
             plan["staticPresentation"] = normalized_static.presentation
+        if normalized_static.presentation_selection is not None:
+            plan["staticPresentationSelection"] = normalized_static.presentation_selection
         from services.card_validation.compact_validation.semantic.layout.text_capacity import (
             static_plan_capacity_errors,
         )

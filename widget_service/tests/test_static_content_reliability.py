@@ -240,7 +240,7 @@ def test_unenumerated_structure_remains_feedback_not_permission_to_drop_core():
 
 
 @pytest.mark.asyncio
-async def test_wrong_stage_output_recovers_via_existing_candidates_without_extra_model_calls(
+async def test_selected_presentation_prevents_wrong_stage_dsl_model_output(
     monkeypatch, isolated_theme_stage,
 ):
     from api.schemas import GenerateWidgetCardRequest
@@ -279,4 +279,4 @@ async def test_wrong_stage_output_recovers_via_existing_candidates_without_extra
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
     assert response.status == GenerationStatus.SUCCESS
     assert len(saved) == 1
-    assert calls == ["raw-json", "compact-dsl"]
+    assert calls == ["raw-json"]

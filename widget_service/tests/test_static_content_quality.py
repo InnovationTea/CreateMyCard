@@ -219,7 +219,7 @@ def test_static_panels_use_light_theme_surface_and_freeze_geometry(family):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("refinement", ["valid", "invalid", "unfit"])
+@pytest.mark.parametrize("refinement", ["valid", "invalid", "unfit", "no_candidate"])
 async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
     monkeypatch, refinement,
 ):
@@ -268,13 +268,22 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
     from services.prompt_builder import PromptBuilder
 
     original_continuation = PromptBuilder.build_compact_dsl_continuation
+    from services.static_content_presentation import StaticPresentationTrial
+
+    selected_source = '\n'.join([
+        '["root","Layout",{"layout":"S-static-content"},["body"]]',
+        '["body","ContentBlock",{"body":"带证件"}]',
+        '["/state/ready",true]',
+    ])
 
     def trial(*_args):
         trial_calls.append(True)
         candidate = None
-        if refinement == "unfit" and len(trial_calls) == 1:
-            candidate = "此前可行候选"
-        return SimpleNamespace(source=candidate, errors=("有限候选未通过",))
+        if refinement in {"unfit", "invalid"} and len(trial_calls) == 1:
+            candidate = selected_source
+        if refinement == "valid" and len(trial_calls) == 2:
+            candidate = selected_source
+        return StaticPresentationTrial(candidate, 1, ("有限候选未通过",))
 
     def continuation(conversation, task, accepted_plan, **kwargs):
         continuation_plans.append(accepted_plan)
@@ -293,11 +302,18 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
         userQuery="制作带证件的提醒卡", size="2x2", title="出发前", description="出发前提醒",
     )
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
+    if refinement == "no_candidate":
+        assert response.status.value == "failed"
+        assert response.errorCode == "VALIDATION_FAILED"
+        assert calls == ["raw-json", "raw-json"]
+        assert not saved
+        assert not continuation_plans
+        return
     assert response.status.value == "success"
-    assert calls == ["raw-json", "raw-json", "compact-dsl"]
+    assert calls == ["raw-json", "raw-json"]
     assert len(saved) == 1
     if refinement == "unfit":
-        assert continuation_plans[0].get("staticPresentation") == "此前可行候选"
+        assert continuation_plans[0].get("staticPresentation") == selected_source
     assert theme_tasks[0].get("staticPaletteFamily") == "warm"
     assert "staticPaletteFamily" not in saved[0].taskSpec
 
@@ -316,3 +332,207 @@ def test_component_field_roles_normalize_without_query_heuristics(alias, canonic
     actual = accepted.get("info_required")
     assert actual
     assert actual[0].get("displayRole") == canonical
+
+
+def _rank_source(text, font=12):
+    rows = [
+        ["root", "Layout", {"layout": "S-static-content"}, ["body"]],
+        ["body", "ContentBlock", {"body": text, "fontSize": font}],
+        ["/state/ready", True],
+    ]
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+
+@pytest.mark.usefixtures("static_scope")
+@pytest.mark.parametrize("reverse", [False, True])
+def test_layout_selection_compares_legal_candidates_instead_of_first_fit(monkeypatch, reverse):
+    value = {
+        "info_required": [_fact("出门带证件", "body")],
+        "contentGroups": [{"id": "a", "kind": "object", "factIndexes": [0]}],
+    }
+    preferred = _rank_source("出门带证件")
+    candidates = [_rank_source("出门带证件", 10), preferred]
+    if reverse:
+        candidates.reverse()
+    monkeypatch.setattr(
+        "services.static_content_presentation.static_presentation_candidates",
+        lambda *_args: tuple(candidates),
+    )
+    before = copy.deepcopy(value)
+    trial = trial_static_presentation(value, "制作备忘", "2x2")
+    assert trial.source == preferred
+    assert trial.attempted == 2
+    selection = trial.selection
+    assert selection is not None
+    assert selection.get("validCandidateCount") == 2
+    assert value == before
+
+
+@pytest.mark.usefixtures("static_scope")
+def test_information_coverage_precedes_visual_score_and_invalid_core_is_excluded(monkeypatch):
+    value = {
+        "info_required": [_fact("带证件", "body"), _fact("带雨伞", "body", priority="should")],
+        "contentGroups": [{"id": "a", "kind": "object", "factIndexes": [0, 1]}],
+    }
+    complete = _rank_source("带证件；带雨伞", 10)
+    candidates = [_rank_source("带雨伞"), _rank_source("带证件"), complete]
+    monkeypatch.setattr(
+        "services.static_content_presentation.static_presentation_candidates",
+        lambda *_args: tuple(candidates),
+    )
+    trial = trial_static_presentation(value, "出门准备", "2x2")
+    assert trial.source == complete
+    selection = trial.selection
+    assert selection is not None
+    assert selection.get("omittedFactIndexes") == []
+    assert selection.get("validCandidateCount") == 2
+
+
+@pytest.mark.usefixtures("static_scope")
+def test_equal_score_is_stable_and_duplicate_candidates_are_not_evaluated_twice(monkeypatch):
+    value = {
+        "info_required": [_fact("带证件", "body")],
+        "contentGroups": [{"id": "a", "kind": "object", "factIndexes": [0]}],
+    }
+    first = _rank_source("带证件")
+    second = first.replace('"/state/ready"', '"/state/loaded"')
+    results = []
+    for candidates in [(second, first, second), (first, second, first)]:
+        monkeypatch.setattr(
+            "services.static_content_presentation.static_presentation_candidates",
+            lambda *_args, current=candidates: current,
+        )
+        trial = trial_static_presentation(value, "制作备忘", "2x2")
+        assert trial.attempted == 2
+        results.append(trial.source)
+    assert results == [min(first, second), min(first, second)]
+
+
+def _logged_case_plan(case):
+    if case == "K015":
+        entries = [
+            ("Charlie Puth Whatever's Clever世界巡演·上海站", "title"),
+            ("主办方：10月31日", "value"),
+            ("票务平台：11月1日", "value"),
+            ("地点：虹口足球场", "value"),
+            ("两来源均未标注改期说明", "body"),
+        ]
+        groups = [{
+            "id": "event", "kind": "object", "identity": "Whatever's Clever世界巡演·上海站",
+            "factIndexes": [0, 1, 2, 3, 4],
+        }]
+        size = "2x2"
+    else:
+        entries = [
+            ("未来一周（9月30日—10月6日）空气质量变化趋势", "title"),
+            ("9月30日 良 62", "title"), ("10月1日 轻度污染 108", "title"),
+            ("10月2日 良 85", "title"), ("10月3日—5日 良 55~78", "title"),
+            ("10月6日 优 42", "title"), ("首要污染物：前期臭氧，后期PM2.5", "body"),
+        ]
+        groups = [{"id": "header", "kind": "shared", "identity": None, "factIndexes": [0]}]
+        for index in range(1, 6):
+            groups.append({
+                "id": f"day{index}", "kind": "object", "identity": None, "factIndexes": [index],
+            })
+        groups.append({"id": "note", "kind": "shared", "identity": None, "factIndexes": [6]})
+        size = "2x4"
+    facts = []
+    for text, display_role in entries:
+        facts.append(_fact(text, display_role))
+    return {
+        "info_required": facts, "contentGroups": groups, "presentationStyle": "attributes",
+        "omittedContents": [],
+    }, size
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
+@pytest.mark.parametrize("case", ["K015", "K036"])
+@pytest.mark.parametrize("fail_final_validation", [False, True])
+async def test_logged_static_cases_compile_selected_layout_without_dsl_model(
+    monkeypatch, case, fail_final_validation,
+):
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from api.schemas import GenerateWidgetCardRequest
+    from config.config import get_settings
+    from custom.a2ui_model_client import A2UIModelClient
+    from services.artifact_store import ArtifactStore
+    from services.generation_pipeline import DesignCompactProcessor, QualityIssue
+    from services.prompt_builder import PromptBuilder
+    from services.widget_generation_service import WidgetGenerationService
+
+    value, size = _logged_case_plan(case)
+    calls = []
+    saved = []
+    accepted = []
+    processed = []
+    texts = []
+    for fact in value.get("info_required", []):
+        texts.append(fact.get("text", ""))
+
+    async def generate(_client, _prompt, profile=None, **_kwargs):
+        calls.append((profile or {}).get("format"))
+        assert calls[-1] == "raw-json", "已选合法布局不应再调用DSL模型"
+        return json.dumps({"name": "submit_card_plan", "arguments": value}, ensure_ascii=False)
+
+    def save(_store, artifact):
+        saved.append(artifact)
+        return SimpleNamespace(artifactUrl="https://artifact.test/selected", artifactDigest="local")
+
+    original = PromptBuilder.build_compact_dsl_continuation
+
+    def continuation(conversation, task, accepted_plan, **kwargs):
+        accepted.append(accepted_plan)
+        return original(conversation, task, accepted_plan, **kwargs)
+
+    original_process = DesignCompactProcessor._process
+
+    def process(processor, source, context):
+        assert context.static_presentation_selected
+        processed.append(source)
+        result = original_process(processor, source, context)
+        assert not result.errors
+        if fail_final_validation:
+            result = replace(result, issues=(QualityIssue(
+                stage="validation", code="TEST_FINAL_FAILURE", message="最终校验失败",
+            ),))
+        return result
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", True)
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate)
+    monkeypatch.setattr(ArtifactStore, "save", save)
+    monkeypatch.setattr(DesignCompactProcessor, "_process", process)
+    monkeypatch.setattr(PromptBuilder, "build_compact_dsl_continuation", continuation)
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        GenerateWidgetCardRequest(
+            uid="static-selection", prdVer="11.7.7.331", device={"romVersion": "7.0"},
+            userQuery="；".join(texts), size=size, title="信息速览", description="静态布局优选",
+        )
+    )
+    assert calls == ["raw-json"]
+    assert len(processed) == 1 and len(accepted) == 1
+    if fail_final_validation:
+        assert response.status.value == "failed", response
+        assert not saved
+        return
+    assert response.status.value == "success", response
+    assert len(saved) == 1
+    selected = accepted[0].get("staticPresentation")
+    selection = accepted[0].get("staticPresentationSelection")
+    assert isinstance(selected, str) and isinstance(selection, dict)
+    assert selection.get("validCandidateCount", 0) > 1
+    assert selection.get("omittedFactIndexes") == []
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        from services.card_validation.compact_validation.semantic.static_content import (
+            static_group_errors,
+        )
+
+        assert not static_group_errors(selected, accepted[0])
+    for text in texts:
+        assert text in selected
+    assert "staticPresentationSelection" not in saved[0].taskSpec

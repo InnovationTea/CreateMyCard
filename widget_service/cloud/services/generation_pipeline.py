@@ -97,6 +97,7 @@ class DslProcessingContext:
     repair_context: RepairGuidanceContext | None = None
     colorless_layout: bool = False
     content_policy: GenerationContentPolicy = EXISTING_CONTENT_POLICY
+    static_presentation_selected: bool = False
 
 
 @dataclass(frozen=True)
@@ -185,7 +186,10 @@ class DesignCompactProcessor:
             layout_phase(context.colorless_layout, context.task_spec),
         ):
             result = self._process(source_dsl, context)
-            if context.content_policy.is_static and result.errors:
+            if (
+                context.content_policy.is_static and result.errors
+                and not context.static_presentation_selected
+            ):
                 static_recovery_started_at = time.perf_counter()
                 from services.static_content_presentation import static_presentation_candidates
 

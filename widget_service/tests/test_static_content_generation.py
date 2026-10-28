@@ -497,7 +497,7 @@ async def test_formal_service_uses_static_plan_and_real_processor(
     result = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
     assert result.status == GenerationStatus.SUCCESS, result
     assert len(saved) == 1
-    assert [call[0] for call in calls] == ["raw-json", "compact-dsl"]
+    assert [call[0] for call in calls] == ["raw-json"]
     assert not current_content_policy().is_static
     assert "contentGroups" in calls[0][1][0].get("content", "")
     assert "FEWSHOT" not in calls[0][1][0].get("content", "")
@@ -1135,7 +1135,7 @@ async def test_four_short_objects_deliver_as_attributes_without_plan_rejection(m
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
     assert response.status.value == "success", response
     assert len(saved) == 1
-    assert calls == ["raw-json", "compact-dsl"]
+    assert calls == ["raw-json"]
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1325,6 +1325,9 @@ async def test_static_content_reduction_is_delivered_as_degraded(monkeypatch, mo
     from services.widget_generation_service import WidgetGenerationService
 
     text = "周末带证件出门顺便去公园散步"
+    optional_text = "带雨伞"
+    if mode in {"should", "referenced_dropped"}:
+        optional_text += "；可选的详细出行背景" * 70
     value = plan([fact(text)])
     if mode == "planning":
         value["selectionNotes"] = ["全部内容保留，使用正文排版，无素材"]
@@ -1332,7 +1335,7 @@ async def test_static_content_reduction_is_delivered_as_degraded(monkeypatch, mo
         value["selectionNotes"] = ["只保留备忘核心，省略背景"]
         value["omittedContents"] = ["其余非必要背景"]
     if mode in {"should", "referenced_kept", "referenced_dropped"}:
-        value = plan([fact(text), fact("带雨伞", priority="should")])
+        value = plan([fact(text), fact(optional_text, priority="should")])
     if mode in {"referenced_kept", "referenced_dropped"}:
         value["omittedContents"] = [{"description": "可选补充", "factIndexes": [1]}]
     visible = "周末带证件出门顺便…" if mode == "ellipsis" else text
@@ -1370,7 +1373,7 @@ async def test_static_content_reduction_is_delivered_as_degraded(monkeypatch, mo
             uid="static-reduction-test",
             prdVer="11.7.7.331",
             device={"romVersion": "7.0"},
-            userQuery=text + "；带雨伞",
+            userQuery=text + "；" + optional_text,
             size="2x2",
             title="备忘",
             description="精简反馈回归",
@@ -1385,7 +1388,8 @@ async def test_static_content_reduction_is_delivered_as_degraded(monkeypatch, mo
     assert response.artifactUrl
     if expected == "degraded":
         assert "空间限制" in response.message
-    assert calls == ["raw-json", "compact-dsl"]
+    expected_calls = 2 if mode in {"should", "referenced_dropped"} else 1
+    assert calls == ["raw-json"] * expected_calls
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1560,7 +1564,10 @@ def test_capacity_trial_uses_real_geometry_and_finds_full_width_commute_table():
     assert trial.source is not None
     assert "ContentBlock" in trial.source
     assert not static_group_errors(trial.source, value)
-    assert trial.attempted <= 3
+    selection = trial.selection
+    assert selection is not None
+    assert selection.get("candidateCount") == trial.attempted
+    assert selection.get("validCandidateCount", 0) > 1
 
 
 @pytest.mark.usefixtures("static_policy")

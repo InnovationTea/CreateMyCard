@@ -877,6 +877,7 @@ class WidgetGenerationService:
             ),
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
+        source_generated_by_static = False
         source_generated_by_jsx = False
         source_generated_by_template = False
         validated_template_source: str | None = None
@@ -1226,9 +1227,11 @@ class WidgetGenerationService:
             nonlocal effective_generation_prompt
             nonlocal model_call_phase
             nonlocal source_generated_by_jsx, source_generated_by_template
+            nonlocal source_generated_by_static
             nonlocal validated_template_source, latest_processing_result
             source_generated_by_jsx = False
             source_generated_by_template = False
+            source_generated_by_static = False
             original_small_display_roles.clear()
             source_fallback_started = template_source_generator is not None or try_jsx
             if source_fallback_started:
@@ -1331,6 +1334,21 @@ class WidgetGenerationService:
                     trace_phase_outcome("degraded", reason="fallback_to_model")
                 accepted_compact_plan = await generate_compact_plan()
                 trace_phase("dsl")
+                static_direct = content_policy.is_static and not any(
+                    "actionId" in fact for fact in accepted_compact_plan.get("info_required", [])
+                )
+                if static_direct:
+                    selected_source = accepted_compact_plan.get("staticPresentation")
+                    if not isinstance(selected_source, str) or not selected_source.strip():
+                        feedback = accepted_compact_plan.get("staticPresentationFeedback", [])
+                        capacity_errors = [
+                            "COMPACT_STATIC_TEXT_CAPACITY: 当前有限候选未找到可直接编译的布局；"
+                            "请在Plan中重新组织展示文字或字段，保留核心及必要条件。",
+                            *feedback,
+                        ]
+                        raise A2UIModelGenerationError(
+                            "Static presentation selection failed within the Plan budget"
+                        ) from CompactPlanValidationError(capacity_errors)
                 if compact_agent_messages is None:
                     raise RuntimeError("Compact Agent conversation is missing after Plan")
                 compact_agent_messages = PromptBuilder.build_compact_dsl_continuation(
@@ -1347,6 +1365,23 @@ class WidgetGenerationService:
                     details={"compactPlanApplied": True},
                     json_artifacts={"dsl_prompt_final": effective_generation_prompt},
                 )
+                if static_direct:
+                    model_call_phase = "static_presentation"
+                    source_generated_by_static = True
+                    compact_agent_messages.append({"role": "assistant", "content": selected_source})
+                    selection = accepted_compact_plan.get("staticPresentationSelection", {})
+                    trace_record(
+                        "static_content.presentation.selected",
+                        stage="dsl.staticPresentation",
+                        status="success",
+                        details={"dslModelSkipped": True, **selection},
+                        text_artifacts={"static_presentation_source": selected_source},
+                    )
+                    logger.info(
+                        f"{_MODULE} static_presentation_selected dsl_model_skipped=true "
+                        f"selection={json_for_log(selection)}"
+                    )
+                    return require_generated_dsl(selected_source)
             elif uses_compact_plan:
                 if not source_fallback_started:
                     trace_phase("dsl")
@@ -1399,6 +1434,15 @@ class WidgetGenerationService:
             nonlocal effective_generation_prompt
             nonlocal model_call_phase, quality_repair_attempt_count
             nonlocal source_generated_by_template
+            if source_generated_by_static:
+                trace_record(
+                    "static_content.presentation.validation_failed",
+                    stage="repair.strategy",
+                    status="stopped",
+                    details={"reason": "selected_layout_failed_final_validation"},
+                    json_artifacts={"validation_errors": quality_errors},
+                )
+                return None
             # 模型修复阶段切换回模型组件规则。
             source_generated_by_template = False
             trace_phase("repair")
@@ -1599,6 +1643,7 @@ class WidgetGenerationService:
                 skip_compact_dsl_validation=source_generated_by_template,
                 colorless_layout=colorless_source(),
                 compact_plan=accepted_compact_plan,
+                static_presentation_selected=source_generated_by_static,
                 plan_information_coverage_as_warning=(
                     quality_repair_attempt_count > 0
                     and not settings.enable_drop_plan_fact_validation
