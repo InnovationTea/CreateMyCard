@@ -89,9 +89,10 @@
   真实城市或区县名（来自请求参数，如 `深圳市`）；标题、描述等其他可信文案不是城市，
   不得当作 `location` 传入。可信文案中没有城市名时不传 `location`，保留模板默认文案。
 - Compact 只用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`；Hero 只用于
-  `HeroActionLayout@1` 加一个 `PillAction@1`，或在 2x4 双焦点 `WideTwoFocusActionLayout@1` 中把已批准
-  天气事件写入内部 `actionId` Prop 由根节点底板承载，该布局不生成 Action child；Full 用于无
-  Action，或搭配一个语义匹配的 `IconAction@1`。
+  `HeroActionLayout@1` 加一个 `PillAction@1`，或在 2x4 双焦点 `WideTwoFocusActionLayout@1` 中
+  配合一个由布局提供的独立 `PillAction@1`。该布局必须生成且只生成一个 Action child；不要把天气事件
+  写入业务模板内部 `actionId` 来替代布局 Action。Full 用于无 Action，或搭配一个语义匹配的
+  `IconAction@1`。
 - 2x4 中，`WeatherOverviewThreeDayForecastFull@1` 与一个倒计时 Hero 组合时使用
   `WideHeroActionFullLayout@1`，天气 Full 放在右侧支撑背板内；已批准的 `event.open.weather` 必须由
   布局中的 `PillAction@1` 消费，按钮文案使用可信的“查看详情”，不得给天气 Full 增加内部点击事件。

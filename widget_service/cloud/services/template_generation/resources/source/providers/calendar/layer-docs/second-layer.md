@@ -162,9 +162,10 @@
   新入口要求首项标题也在真实 schema 和候选范围内，沿用模板固定的“首项”“首项备注”范围标识，
   保留动态总数。明确完整列表、逐条、各自、固定多项、禁止只显示首项或排斥额外标题时不选此摘要。
   原有多项路线优先，不修改原模板布局、输入字段或总数样例。
-- `ScheduleOverviewTitleLocationHero@1` 仅用于已下发的日程天气无动作宽卡，与
-  `WeatherOverviewConditionHero@1` 组成 `WideTwoFocusActionLayout@1`；该受限组合不套用小卡 Hero 加按钮
-  的说明，不添加日期、温度或任何动作。全部新增日程模板 Props 均为 `{}`。
+- `ScheduleOverviewTitleLocationHero@1` 可与 `WeatherOverviewConditionHero@1` 组成
+  `WideTwoFocusActionLayout@1`；该布局必须提供且只提供一个独立 `PillAction@1`，由布局槽位承载，
+  不要把动作嵌入日程或天气业务模板。该受限组合不套用小卡 Hero 的内部布局说明，不添加日期或温度。
+  全部新增日程模板 Props 均为 `{}`。
   日程文字统一居中，标题区、主内容区、辅助区分别高 16/58/16vp，字号 12/24/12fp、间距 6vp。
   仅该精确组合且天气为三行基础信息、没有图标或动作时，天气沿用同样的居中排版，并将布局底板
   间距与圆角设为 12vp；底板保持主题 RGB，使用约 10% 不透明度。额外天气字段及其他组合保持原排版。
