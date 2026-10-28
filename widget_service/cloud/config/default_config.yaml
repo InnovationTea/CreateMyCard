@@ -48,6 +48,14 @@ enable_compact_sibling_space_repair: true
 enable_compact_duplicate_click_repair: true
 enable_compact_height_closure_repair: true
 enable_compact_semantic_layout_repair: true
+enable_compact_known_component_repair: true
+enable_compact_primary_content_repair: true
+enable_compact_action_slot_repair: true
+enable_compact_asset_reference_repair: true
+enable_compact_plan_fact_repair: true
+enable_compact_fixed_slot_repair: true
+enable_compact_numeric_label_repair: true
+enable_compact_event_target_repair: true
 compact_script_max_candidates: 12
 # 融合实际修满5次仍失败后才可单步兜底；独立默认关闭，不改变原修复策略。
 enable_single_step_generation_fallback: false

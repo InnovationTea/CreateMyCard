@@ -7,9 +7,10 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
-from config.config_helper import ConfigHelper
 from pydantic import AliasChoices, AliasGenerator, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from config.config_helper import ConfigHelper
 
 
 def get_container_ip():
@@ -108,6 +109,30 @@ class Settings(BaseSettings):
     )
     enable_compact_semantic_layout_repair: bool = (
         CONFIG.get("enable_compact_semantic_layout_repair", "true") == "true"
+    )
+    enable_compact_known_component_repair: bool = (
+        CONFIG.get("enable_compact_known_component_repair", "true") == "true"
+    )
+    enable_compact_primary_content_repair: bool = (
+        CONFIG.get("enable_compact_primary_content_repair", "true") == "true"
+    )
+    enable_compact_action_slot_repair: bool = (
+        CONFIG.get("enable_compact_action_slot_repair", "true") == "true"
+    )
+    enable_compact_asset_reference_repair: bool = (
+        CONFIG.get("enable_compact_asset_reference_repair", "true") == "true"
+    )
+    enable_compact_plan_fact_repair: bool = (
+        CONFIG.get("enable_compact_plan_fact_repair", "true") == "true"
+    )
+    enable_compact_fixed_slot_repair: bool = (
+        CONFIG.get("enable_compact_fixed_slot_repair", "true") == "true"
+    )
+    enable_compact_numeric_label_repair: bool = (
+        CONFIG.get("enable_compact_numeric_label_repair", "true") == "true"
+    )
+    enable_compact_event_target_repair: bool = (
+        CONFIG.get("enable_compact_event_target_repair", "true") == "true"
     )
     compact_script_max_candidates: int = Field(
         default=int(CONFIG.get("compact_script_max_candidates", "12")), ge=0, le=32,

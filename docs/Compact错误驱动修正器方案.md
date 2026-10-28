@@ -4,7 +4,7 @@
 
 修正器接收原校验器报告的 error，先使用确定性脚本修改 Compact DSL；脚本无法消除的错误，交回原模型修复流程。校验通过或只有 warning 时，不启动脚本优化。
 
-本方案在现有处理与校验之后补充六类脚本规则，保留主线已有的重组与候选搜索。不修改校验器判定、严重程度、模型重试次数，也不增加评分或审美优化。
+本方案在现有处理与校验之后补充空间与组件合同修复规则，保留主线已有的重组与候选搜索。不修改校验器判定、严重程度、模型重试次数，也不增加评分或审美优化。
 
 修正对象是 Compact 源码，而不是最终 A2UI。每次候选都重新转换和校验，采用版本的 Compact、A2UI 和诊断共同传递。
 
@@ -26,7 +26,7 @@
 
 “静态评估”不需要截图，不启动浏览器。程序根据 DSL、协议、数据定义和参考布局计算可确定的问题；该过程不是实际端侧排版。
 
-## 3. 六类脚本规则
+## 3. 脚本规则
 
 | 规则 | 输入依据 | 修改动作 | 不处理的情况 |
 | --- | --- | --- | --- |
@@ -38,6 +38,24 @@
 | 语义布局 `semantic-layout` | 已有宽高超限诊断和本轮处理上下文 | 尝试登记的动作／上下变体、只读 Group 横纵重组、主辅内容分组、SecondaryBody 列数 | 不删减内容，不调整字号，不移动固定 InfoBlock 槽或动作，不改展开节点；原校验不通过则拒绝 |
 
 前三类空间规则处理源文件中显式存在的 Row/Column；语义布局规则处理 Layout、Region、Group 及其关联辅助内容。只处理报错子树及祖先，原文字、表达式、数据行和动作保留。无法从诊断定位源节点时不改内部展开节点。
+
+### 3.1 组件与内容合同扩展
+
+| 规则 | 修改依据与范围 |
+| --- | --- |
+| `known-component` | 仅识别已知的纯正文 ContentBlock.body 形状，转换为登记的 EmphasisText；未知字段不丢弃、不通用猜测组件名 |
+| `primary-content` | 辅助信息是唯一信息主体时，将完整标签／值条目放入登记的 TableText 或其只读分组，不删条目、不压小字号 |
+| `action-slot` | 已有完整点击动作的按钮类型与声明槽位不符时，只改为该槽位要求的按钮类型；不生成 Intent 或 onClick |
+| `asset-reference` | 素材 ID 精确映射本轮候选 src；已接受 Plan 分配的标题图标未落实且标题唯一时补齐，不做相近名替换 |
+| `plan-fact` | 仅补至多两项可从 Plan 精确定位、已授权且已初始化的缺失事实；字符串使用原绑定，布尔值按“是／否”展示；不写入或虚构数据。无标题且 Plan 指定标题组件时可补单项标题 |
+| `fixed-slot` | 宽卡内容区误嵌一个固定 InfoBlock 时，将完整原组件移至已登记四槽布局；其余标题、信息和动作全部保留 |
+| `numeric-label` | DataDisplay 绑定 Schema 中的数值且缺 label 时，使用一至八字的 CardSpec 标题补标签；图标已由标题承载时才可在数值区转用文字标签 |
+| `event-target` | Plan 动作在 TaskSpec 中仅对应一个精确候选时，纠正同 Intent 的已有 handler；多个候选或缺动作时不猜改 |
+
+各规则独立开关与 `enable_compact_*_repair` 配置一一对应，新增规则仍受脚本总开关控制。
+确定性组件修复可能先解除早期合同阻断、再暴露布局错误。初始候选后允许最多追加三步前瞻，所有候选复检均
+计入原预算；未满足 `_improved()` 的中间版本只保存在 Trace，不作为当前采用源传给下游。
+前瞻最终结果仍与本轮采用源比较，不用“错误层级向后移动”冒充修复成功。
 
 ## 4. 候选采用标准
 
@@ -72,6 +90,14 @@
 | `enable_compact_duplicate_click_repair` | `true` | 完全重复点击去重 |
 | `enable_compact_height_closure_repair` | `true` | 高度关系闭合 |
 | `enable_compact_semantic_layout_repair` | `true` | 尝试已登记布局，优先保持方向 |
+| `enable_compact_known_component_repair` | `true` | 纠正已知正文组件形状 |
+| `enable_compact_primary_content_repair` | `true` | 辅助信息的主体合同 |
+| `enable_compact_action_slot_repair` | `true` | 已有按钮槽位角色 |
+| `enable_compact_asset_reference_repair` | `true` | 本轮素材 ID 精确映射与标题分配 |
+| `enable_compact_plan_fact_repair` | `true` | 至多两项已初始化的缺失事实 |
+| `enable_compact_fixed_slot_repair` | `true` | 固定信息组件移入登记槽位 |
+| `enable_compact_numeric_label_repair` | `true` | 补数值标签，不丢唯一图标 |
+| `enable_compact_event_target_repair` | `true` | 唯一动作候选的参数纠正 |
 | `compact_script_max_candidates` | `12` | 单次生成流程的累计脚本候选上限；模型质量重试不重置 |
 | `enable_validation_failure_retry` | 沿用原配置 | 是否允许剩余 error 进入模型修复 |
 | `validation_failure_max_repair_attempts` | 沿用原配置 | 模型质量修复次数，不被脚本候选次数占用 |
@@ -84,7 +110,8 @@
 | --- | --- |
 | `widget_service/cloud/services/widget_generation_service.py`：`evaluate_source_dsl_sync` | 原静态评估，返回源文、A2UI 和完整诊断 |
 | 同文件：`evaluate_source_dsl` | 有 error 时调用脚本，更新当前采用版本与剩余错误 |
-| `widget_service/cloud/services/compact_script_repair.py`：`static_candidates` | 根据结构化诊断生成候选，不按错误文案猜字段 |
+| `widget_service/cloud/services/compact_script_repair.py`：`static_candidates` | 调度合同候选，并根据结构化诊断生成结构及空间候选 |
+| `widget_service/cloud/services/compact_contract_repair.py` | 结合明确报错、登记合同与本轮上下文生成八类组件／内容候选 |
 | 同文件：`repair_static_errors`、`_improved` | 管理候选预算、复检、采用与拒绝 |
 | `widget_service/cloud/services/widget_generation_service.py`：`repair_source_dsl` | 将当前采用的 Compact 和对应错误交给原模型修复 |
 | `debug_tools/batch_testing/trace_semantics.py` | 调试记录的中文名称 |
@@ -112,7 +139,7 @@ uv run python -m debug_tools --mode frontend
 
 1. 选择一个实际数据集，先取少量样本探测服务与模型连通性。
 2. 固定样本、请求版本、模型参数及原校验配置。
-3. 基线任务关闭脚本总开关；实验任务开启脚本及六类规则；两边均开启 Trace。
+3. 基线任务关闭脚本总开关；实验任务开启脚本及目标规则；两边均开启 Trace。
 4. 每个任务产生新的执行目录，保留全部原始输入和历史产物。
 5. 先检查模型是否确实返回 DSL，再统计脚本是否命中、修改是否采用，以及错误是否消除。
 6. 需要看卡片时，再显式执行浏览器画廊后处理并查看最终 DSL、图片和 Trace。
@@ -143,8 +170,8 @@ uv run python -m debug_tools --mode frontend
 验证命令在 `widget_service/` 下执行：
 
 ```bash
-python -m pytest tests/test_compact_script_repair.py tests/test_compact_script_extensions.py tests/test_compact_semantic_repair.py tests/test_compact_repair_progress.py tests/test_compact_script_main_chain.py -q
-python -m ruff check cloud/services/compact_script_repair.py cloud/services/widget_generation_service.py cloud/config/config.py
+python -m pytest tests/test_compact_contract_repair.py tests/test_compact_script_repair.py tests/test_compact_script_extensions.py tests/test_compact_semantic_repair.py tests/test_compact_repair_progress.py tests/test_compact_script_main_chain.py -q
+python -m ruff check cloud/services/compact_contract_repair.py cloud/services/compact_script_repair.py cloud/services/widget_generation_service.py cloud/config/config.py
 git diff --check
 ```
 

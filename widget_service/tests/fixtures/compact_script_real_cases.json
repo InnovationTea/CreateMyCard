@@ -1,0 +1,827 @@
+{
+  "source": "Debug Tools online_updated/v4; 2026-10-28 real model output; no golden result",
+  "runs": [
+    "batch_20261028_103411_35570923",
+    "batch_20261028_103645_9aa31717"
+  ],
+  "cases": [
+    {
+      "id": "Q017",
+      "source": "[\"root\",\"Layout\",{\"layout\":\"S-content-dual-action\"},[\"content\",\"daily\",\"favorite\"]]\r\n[\"content\",\"SecondaryBody\",{\"items\":[{\"label\":\"耳机\",\"value\":{\"path\":\"/data/earphone/earphoneName\"}},{\"label\":\"电量\",\"value\":\"{{ ${/data/earphone/batteryLevel} + '%' }}\"}],\"columns\":1,\"fontSize\":12}]\r\n[\"daily\",\"CardButton\",{\"label\":\"每日推荐\",\"icon\":\"resources/base/media/music_fill.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Music\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4\"}}]}]\r\n[\"favorite\",\"CardButton\",{\"label\":\"收藏歌单\",\"icon\":\"resources/base/media/icon_music.svg\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Music\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412\"}}]}]\r\n[\"/data/earphone/earphoneName\",\"示例耳机\"]\r\n[\"/data/earphone/batteryLevel\",80]",
+      "context": {
+        "task": {
+          "appVersion": "11.9.9.300",
+          "assetCandidates": [
+            {
+              "description": "样式：默认黑色的单色左右分体式开放耳机，局部通过镂空表现高光与分隔，支持通过 fillColor 与卡片配色统一；适用：无线耳机本体、耳机连接、左右耳设备状态。",
+              "id": "asset.icon_earphone",
+              "src": "resources/base/media/icon_earphone.svg"
+            },
+            {
+              "description": "样式：默认黑色的单色蓝牙标志图标，原始尺寸为 24×24；适用：蓝牙设备连接卡片中配合 GetEarphoneInfo 展示蓝牙耳机连接状态，也可作为 event.open.settings.bluetooth 或 event.setBluetoothMode 的蓝牙设置与开关入口。图标本身不表示当前已连接、已开启或已关闭状态。",
+              "id": "asset.ic_Bluetooth",
+              "src": "resources/base/media/ic_Bluetooth.svg"
+            },
+            {
+              "description": "样式：默认黑色的单色实心双音符图标，内部通过镂空分隔形成音符结构，支持通过 fillColor 与卡片配色统一；适用：音乐、歌曲、歌单或音频内容。",
+              "id": "asset.icon_music",
+              "src": "resources/base/media/icon_music.svg"
+            },
+            {
+              "description": "样式：音乐音符实心图标，默认黑色，图形为双音符连接造型；适用：音乐播放卡片、音频功能入口、歌单展示。",
+              "id": "asset.music_fill",
+              "src": "resources/base/media/music_fill.svg"
+            },
+            {
+              "description": "样式：黑色高光材质的写实 3D 双八分音符，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：音乐播放、歌曲、歌单或音频内容相关卡片。",
+              "id": "asset.emoji_music",
+              "src": "resources/base/media/emoji_music.png"
+            }
+          ],
+          "dataModelSchema": {
+            "data": {
+              "earphone": {
+                "batteryLevel": {
+                  "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+                  "sampleValue": 80,
+                  "type": "integer"
+                },
+                "chargingStatusDesc": {
+                  "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+                  "sampleValue": "未充电",
+                  "type": "string"
+                },
+                "earphoneName": {
+                  "description": "耳机的设备广播名称，如果未连接则返回'未连接耳机'。如: 'FreeBuds Pro 3'。",
+                  "sampleValue": "示例耳机",
+                  "type": "string"
+                },
+                "isConnected": {
+                  "description": "当前是否有蓝牙耳机处于连接活跃状态。",
+                  "sampleValue": true,
+                  "type": "boolean"
+                },
+                "leftBatteryLevel": {
+                  "description": "左耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+                  "sampleValue": 76,
+                  "type": "integer"
+                },
+                "leftChargingStatusDesc": {
+                  "description": "左耳机当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+                  "sampleValue": "未充电",
+                  "type": "string"
+                },
+                "rightBatteryLevel": {
+                  "description": "右耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+                  "sampleValue": 78,
+                  "type": "integer"
+                },
+                "rightChargingStatusDesc": {
+                  "description": "右耳机当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+                  "sampleValue": "未充电",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "eventCandidates": [
+            {
+              "args": {
+                "abilityName": "",
+                "bundleName": "",
+                "intentName": "Music",
+                "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+              },
+              "call": "clickToDeeplink",
+              "description": "打开华为音乐应用的每日30首歌单，uri为固定值勿更改。",
+              "id": "event.open.music.daily"
+            },
+            {
+              "args": {
+                "abilityName": "",
+                "bundleName": "",
+                "intentName": "Music",
+                "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+              },
+              "call": "clickToDeeplink",
+              "description": "打开华为音乐应用的收藏歌单/心动歌单，uri为固定值勿更改。",
+              "id": "event.open.music.favorite"
+            }
+          ],
+          "size": "2x2",
+          "userQuery": "生成一个连接蓝牙快速听歌的卡片，可以播放本地音乐的每日推荐和收藏歌单"
+        },
+        "card": {
+          "dataBindings": [
+            {
+              "arguments": {},
+              "capabilityId": "GetEarphoneInfo",
+              "writeResultTo": "/data/earphone"
+            }
+          ],
+          "description": "连接蓝牙快速听歌，可播放本地音乐每日推荐和收藏歌单。",
+          "imageDomainWhitelist": [
+            "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+            "lfcontentcenterdev.hwcloudtest.cn",
+            "hagres-drcn.dbankcdn.com"
+          ],
+          "suggestSize": "2x2",
+          "title": "蓝牙听歌"
+        },
+        "plan": {
+          "assetAssignments": {
+            "actions": [
+              {
+                "actionId": "event.open.music.daily",
+                "assetId": "asset.music_fill"
+              },
+              {
+                "actionId": "event.open.music.favorite",
+                "assetId": "asset.icon_music"
+              }
+            ],
+            "title": {
+              "assetId": null,
+              "reason": "S-content-dual-action has no title slot."
+            }
+          },
+          "info_required": [
+            {
+              "componentHints": [
+                "EmphasisText",
+                "InfoBlock"
+              ],
+              "dataId": "/data/earphone/earphoneName",
+              "priority": "must",
+              "requirement": "耳机连接状态与设备名称"
+            },
+            {
+              "componentHints": [
+                "SecondaryBody",
+                "InfoBlock"
+              ],
+              "dataId": "/data/earphone/batteryLevel",
+              "priority": "should",
+              "requirement": "耳机整体剩余电量"
+            },
+            {
+              "actionId": "event.open.music.daily",
+              "componentHints": [
+                "CardButton"
+              ],
+              "priority": "must",
+              "requirement": "打开华为音乐每日推荐歌单"
+            },
+            {
+              "actionId": "event.open.music.favorite",
+              "componentHints": [
+                "CardButton"
+              ],
+              "priority": "must",
+              "requirement": "打开华为音乐收藏歌单"
+            }
+          ],
+          "layoutHints": [
+            "S-content-dual-action"
+          ]
+        },
+        "designProfile": "design-compact-dsl",
+        "standardProfile": "a2ui-form-rom6.0-v1",
+        "layoutScope": "S-plan-guided"
+      }
+    },
+    {
+      "id": "Q037",
+      "source": "[\"root\",\"Layout\",{\"layout\":\"W-content-side-slots\",\"orientation\":\"content-left\"},[\"content\",\"upper\",\"lower\"]]\r\n[\"content\",\"Region\",{\"variant\":\"title-hero-support\"},[\"content_title\",\"content_primary\",\"content_support\"]]\r\n[\"content_title\",\"SingleLineTitle\",{\"title\":\"今日风力\",\"fontSize\":12}]\r\n[\"content_primary\",\"InfoBlock\",{\"variant\":\"slot\",\"primaryText\":\"{{ ${/data/weather/current/windLevel} + '级' }}\",\"secondaryText\":\"当前风力等级\",\"visual\":{\"type\":\"icon\",\"icon\":\"resources/base/media/icon_weather_wind.svg\"}}]\r\n[\"content_support\",\"SecondaryBody\",{\"items\":[{\"label\":\"降雨概率 \",\"value\":\"{{ ${/data/weather/daily/0/rainProbabilityPercent} + '%' }}\"}],\"fontSize\":14}]\r\n[\"upper\",\"InfoBlock\",{\"variant\":\"slot\",\"primaryText\":\"{{ ${/data/earphone/batteryLevel} + '%' }}\",\"secondaryText\":\"耳机仓电量\",\"visual\":{\"type\":\"icon\",\"icon\":\"resources/base/media/emoji_earbud_case_black.png\"}}]\r\n[\"lower\",\"CardButton\",{\"label\":\"打开歌单\",\"onClick\":[{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Music\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4\"}}]}]\r\n[\"/data/weather/current/windLevel\",2]\r\n[\"/data/weather/daily/0/rainProbabilityPercent\",20]\r\n[\"/data/earphone/batteryLevel\",80]\r\n[\"/data/earphone/isConnected\",true]\r\n[\"/data/earphone/chargingStatusDesc\",\"未充电\"]",
+      "context": {
+        "task": {
+          "appVersion": "11.9.9.300",
+          "assetCandidates": [
+            {
+              "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
+              "id": "asset.icon_weather_wind",
+              "src": "resources/base/media/icon_weather_wind.svg"
+            },
+            {
+              "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+              "id": "asset.drop_1",
+              "src": "resources/base/media/drop_1.svg"
+            },
+            {
+              "description": "样式：默认黑色的单色左右分体式开放耳机，局部通过镂空表现高光与分隔，支持通过 fillColor 与卡片配色统一；适用：无线耳机本体、耳机连接、左右耳设备状态。",
+              "id": "asset.icon_earphone",
+              "src": "resources/base/media/icon_earphone.svg"
+            },
+            {
+              "description": "样式：深灰到黑色渐变的封闭式蓝牙耳机充电盒，盒体呈圆润横向椭圆并带高光，透明背景，原始尺寸为 64×64，PNG 位图需保留原色；适用：蓝牙耳机盒或整体电量与充电状态卡片，可结合 GetEarphoneInfo 的 batteryLevel 和 chargingStatusDesc 展示，也可作为 event.open.settings.bluetooth 的蓝牙设置入口。图标不表示耳机盒当前正在充电、已经打开或具有特定电量。",
+              "id": "asset.emoji_earbud_case_black",
+              "src": "resources/base/media/emoji_earbud_case_black.png"
+            }
+          ],
+          "dataModelSchema": {
+            "data": {
+              "earphone": {
+                "batteryLevel": {
+                  "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+                  "sampleValue": 80,
+                  "type": "integer"
+                },
+                "chargingStatusDesc": {
+                  "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+                  "sampleValue": "未充电",
+                  "type": "string"
+                },
+                "earphoneName": {
+                  "description": "耳机的设备广播名称，如果未连接则返回'未连接耳机'。如: 'FreeBuds Pro 3'。",
+                  "sampleValue": "示例耳机",
+                  "type": "string"
+                },
+                "isConnected": {
+                  "description": "当前是否有蓝牙耳机处于连接活跃状态。",
+                  "sampleValue": true,
+                  "type": "boolean"
+                },
+                "leftBatteryLevel": {
+                  "description": "左耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+                  "sampleValue": 76,
+                  "type": "integer"
+                },
+                "leftChargingStatusDesc": {
+                  "description": "左耳机当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+                  "sampleValue": "未充电",
+                  "type": "string"
+                },
+                "rightBatteryLevel": {
+                  "description": "右耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+                  "sampleValue": 78,
+                  "type": "integer"
+                },
+                "rightChargingStatusDesc": {
+                  "description": "右耳机当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+                  "sampleValue": "未充电",
+                  "type": "string"
+                }
+              },
+              "weather": {
+                "current": {
+                  "condition": {
+                    "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+                    "sampleValue": "多云",
+                    "type": "string"
+                  },
+                  "temperatureText": {
+                    "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+                    "sampleValue": "29℃",
+                    "type": "string"
+                  },
+                  "windLevel": {
+                    "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+                    "sampleValue": 2,
+                    "type": "integer"
+                  }
+                },
+                "daily": [
+                  {
+                    "condition": {
+                      "description": "白天天气现象，来源于weather_icon。",
+                      "sampleValue": "多云",
+                      "type": "string"
+                    },
+                    "date": {
+                      "description": "预报日期，来源于 day_time。以端侧本次刷新日期为基准，daily[0]为明天日期，daily[1]为后天日期，不包含今天。",
+                      "sampleValue": "2026-08-06",
+                      "type": "string"
+                    },
+                    "rainProbabilityPercent": {
+                      "description": "白天降雨概率的百分数数值，返回值不包含单位，例如 20 表示 20%；文本展示必须追加一个“%”，进度组件直接使用数值。",
+                      "sampleValue": 20,
+                      "type": "number"
+                    },
+                    "temperatureRangeText": {
+                      "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                      "sampleValue": "25℃ / 32℃",
+                      "type": "string"
+                    },
+                    "weekday": {
+                      "description": "星期文本，例如“星期日”。",
+                      "sampleValue": "星期四",
+                      "type": "string"
+                    }
+                  }
+                ],
+                "location": {
+                  "cityCode": {
+                    "description": "城市代码，如60814代表青浦区",
+                    "sampleValue": "60814",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "eventCandidates": [
+            {
+              "args": {
+                "abilityName": "",
+                "bundleName": "",
+                "intentName": "Music",
+                "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+              },
+              "call": "clickToDeeplink",
+              "description": "打开华为音乐应用的每日30首歌单，uri为固定值勿更改。",
+              "id": "event.open.music.daily"
+            }
+          ],
+          "size": "2x4",
+          "userQuery": "生成一个2x4的鸿蒙桌面卡片，显示今天的风力等级和降水概率，耳机是否连接、耳机仓的电量、耳机仓是否连接，并且点击打开歌单"
+        },
+        "card": {
+          "dataBindings": [
+            {
+              "arguments": {},
+              "capabilityId": "ViewWeather",
+              "writeResultTo": "/data/weather"
+            },
+            {
+              "arguments": {},
+              "capabilityId": "GetEarphoneInfo",
+              "writeResultTo": "/data/earphone"
+            }
+          ],
+          "description": "显示风力等级、降水概率及耳机连接与电量，点击打开歌单。",
+          "imageDomainWhitelist": [
+            "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+            "lfcontentcenterdev.hwcloudtest.cn",
+            "hagres-drcn.dbankcdn.com"
+          ],
+          "suggestSize": "2x4",
+          "title": "风况·耳机"
+        },
+        "plan": {
+          "assetAssignments": {
+            "actions": [
+              {
+                "actionId": "event.open.music.daily",
+                "assetId": null,
+                "reason": "候选素材均为天气与耳机图标，没有与打开歌单动作语义匹配的图标"
+              }
+            ],
+            "title": {
+              "assetId": null,
+              "reason": "候选素材语义均指向天气或耳机业务，无概括整卡主题的匹配图标"
+            }
+          },
+          "info_required": [
+            {
+              "componentHints": [
+                "InfoBlock",
+                "EmphasisText"
+              ],
+              "dataId": "/data/weather/current/windLevel",
+              "priority": "must",
+              "requirement": "当前风力等级"
+            },
+            {
+              "componentHints": [
+                "InfoBlock",
+                "ProgressLine2"
+              ],
+              "dataId": "/data/weather/daily/0/rainProbabilityPercent",
+              "priority": "must",
+              "requirement": "明天白天降雨概率"
+            },
+            {
+              "componentHints": [
+                "InfoBlock",
+                "EmphasisText"
+              ],
+              "dataId": "/data/earphone/isConnected",
+              "priority": "must",
+              "requirement": "耳机是否连接"
+            },
+            {
+              "componentHints": [
+                "InfoBlock",
+                "ProgressCircleSingle"
+              ],
+              "dataId": "/data/earphone/batteryLevel",
+              "priority": "must",
+              "requirement": "耳机仓电量"
+            },
+            {
+              "componentHints": [
+                "InfoBlock",
+                "SecondaryBody"
+              ],
+              "dataId": "/data/earphone/chargingStatusDesc",
+              "priority": "must",
+              "requirement": "耳机仓是否连接"
+            },
+            {
+              "actionId": "event.open.music.daily",
+              "componentHints": [
+                "CardButton",
+                "PillButton"
+              ],
+              "priority": "must",
+              "requirement": "点击打开每日30首歌单"
+            }
+          ],
+          "layoutHints": [
+            "W-content-side-slots",
+            "W-four-slots"
+          ]
+        },
+        "designProfile": "design-compact-dsl",
+        "standardProfile": "a2ui-form-rom6.0-v1",
+        "layoutScope": "W-plan-guided"
+      }
+    },
+    {
+      "id": "Q059",
+      "source": "[\"root\",\"Layout\",{\"layout\":\"S-title-content-action\"},[\"title\",\"content\",\"action\"]]\r\n[\"title\",\"SingleLineTitle\",{\"title\":\"通勤助手\",\"fontSize\":12}]\r\n[\"content\",\"ContentBlock\",{\"body\":\"导航到公司\"}]\r\n[\"action\",\"CardButton\",{\"label\":\"导航到公司\",\"icon\":\"asset.location_north_up_right_fill\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"StartNavigate\",\"params\":{\"dstLocation\":{\"location\":\"company\",\"latitude\":\"\",\"longitude\":\"\"}}}}]}]\r\n[\"/state/ready\",true]",
+      "context": {
+        "task": {
+          "appVersion": "11.7.8.301",
+          "assetCandidates": [
+            {
+              "description": "样式：默认黑色的单色汽车正视图，带前窗、车灯和车轮；适用：汽车、打车、驾车出行或车辆状态。",
+              "id": "asset.icon_car",
+              "src": "resources/base/media/icon_car.svg"
+            },
+            {
+              "description": "样式：方向导航实心图标，默认黑色，图形为指向右上方的导航箭头；适用：地图导航、方向指引、路线规划。",
+              "id": "asset.location_north_up_right_fill",
+              "src": "resources/base/media/location_north_up_right_fill.svg"
+            },
+            {
+              "description": "样式：默认黑色的单色实心地图定位针，中央为圆形留白；适用：当前位置、地点、地图标记、位置服务。",
+              "id": "asset.local_fill",
+              "src": "resources/base/media/local_fill.svg"
+            }
+          ],
+          "dataModelSchema": {
+            "data": {}
+          },
+          "eventCandidates": [
+            {
+              "args": {
+                "intentName": "StartNavigate",
+                "params": {
+                  "dstLocation": {
+                    "latitude": "",
+                    "location": "company",
+                    "longitude": ""
+                  }
+                }
+              },
+              "call": "clickToIntent",
+              "description": "点击导航按钮，跳转到华为地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航。",
+              "id": "event.startNavigate"
+            }
+          ],
+          "size": "2x2",
+          "userQuery": "创建一张通勤助手小卡片，支持一键导航到公司"
+        },
+        "card": {
+          "description": "支持一键导航到公司。",
+          "imageDomainWhitelist": [
+            "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+            "lfcontentcenterdev.hwcloudtest.cn",
+            "hagres-drcn.dbankcdn.com"
+          ],
+          "suggestSize": "2x2",
+          "title": "通勤助手"
+        },
+        "plan": {
+          "assetAssignments": {
+            "actions": [
+              {
+                "actionId": "event.startNavigate",
+                "assetId": "asset.location_north_up_right_fill"
+              }
+            ],
+            "title": {
+              "assetId": "asset.icon_car"
+            }
+          },
+          "contentGroups": [],
+          "info_required": [
+            {
+              "actionId": "event.startNavigate",
+              "componentHints": [
+                "CardButton"
+              ],
+              "priority": "must",
+              "requirement": "一键导航到公司"
+            }
+          ],
+          "layoutHints": [
+            "S-title-content-action"
+          ],
+          "omittedContents": [],
+          "paletteFamily": "auto",
+          "presentationStyle": "content",
+          "selectionNotes": [
+            "小卡仅承载一个核心动作：导航到公司",
+            "未新增装饰标题，目的地由按钮动作承载",
+            "按钮使用导航箭头图标"
+          ]
+        },
+        "designProfile": "design-compact-dsl",
+        "standardProfile": "a2ui-form-rom6.0-v1",
+        "layoutScope": "S-plan-guided"
+      }
+    },
+    {
+      "id": "Q105",
+      "source": "[\"root\",\"Layout\",{\"layout\":\"S-center\"},[\"content\"]]\r\n[\"content\",\"DataDisplay\",{\"icon\":\"resources/base/media/ic_calender.svg\",\"value\":{\"path\":\"/data/countdown/countdownDays\"},\"supportingText\":\"天\"}]\r\n[\"/data/countdown/countdownDays\",30]",
+      "context": {
+        "task": {
+          "appVersion": "11.7.8.339",
+          "assetCandidates": [
+            {
+              "description": "样式：黄色到橙色渐变的日历图标，带顶部装订环、分隔栏与日期圆点，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：日程概览、近期日历事项或日期倒计时卡片，可结合 GetCalendarEvents 展示日程，也可结合 GetCountdownDays 展示目标日期倒计时，并可作为 event.viewCalendarEvent 的辅助入口图标。图标不表示存在日程、日程已完成或倒计时具体天数。",
+              "id": "asset.ic_calender",
+              "src": "resources/base/media/ic_calender.svg"
+            }
+          ],
+          "dataModelSchema": {
+            "data": {
+              "countdown": {
+                "countdownDays": {
+                  "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+                  "sampleValue": 30,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "eventCandidates": [],
+          "size": "2x2",
+          "userQuery": "生成一张周日约饭倒计时卡片，目标日期为本周日（2026年10月18日），使用GetCountdownDays数据能力计算倒计时天数，展示约饭倒计时"
+        },
+        "card": {
+          "dataBindings": [
+            {
+              "arguments": {
+                "targetDate": "2026-10-18"
+              },
+              "capabilityId": "GetCountdownDays",
+              "writeResultTo": "/data/countdown"
+            }
+          ],
+          "description": "倒计时到本周日（10月18日）约饭，展示约饭倒计时。",
+          "imageDomainWhitelist": [
+            "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+            "lfcontentcenterdev.hwcloudtest.cn",
+            "hagres-drcn.dbankcdn.com"
+          ],
+          "suggestSize": "2x2",
+          "title": "周日约饭倒计时"
+        },
+        "plan": {
+          "assetAssignments": {
+            "actions": [],
+            "title": {
+              "assetId": "asset.ic_calender"
+            }
+          },
+          "info_required": [
+            {
+              "componentHints": [
+                "DataDisplay",
+                "EmphasizedData",
+                "EmphasisText"
+              ],
+              "dataId": "/data/countdown/countdownDays",
+              "priority": "must",
+              "requirement": "约饭倒计时天数，数值后追加“天”"
+            }
+          ],
+          "layoutHints": [
+            "S-center"
+          ]
+        },
+        "designProfile": "design-compact-dsl",
+        "standardProfile": "a2ui-form-rom6.0-v1",
+        "layoutScope": "S-plan-guided"
+      }
+    },
+    {
+      "id": "Q031",
+      "source": "[\"root\",\"Layout\",{\"layout\":\"S-title-content-action\"},[\"title\",\"content\",\"action\"]]\r\n[\"title\",\"SingleLineTitle\",{\"title\":\"日程\",\"icon\":\"resources/base/media/calendar_fill.svg\",\"fontSize\":12}]\r\n[\"content\",\"EventCard\",{\"items\":[{\"title\":{\"path\":\"/data/calendar/events/0/title\"},\"time\":\"{{ ${/data/calendar/events/0/startDate} + ' ' + ${/data/calendar/events/0/dtStart} + ' – ' + ${/data/calendar/events/0/dtEnd} }}\",\"location\":{\"path\":\"/data/calendar/events/0/eventLocation\"}}]}]\r\n[\"action\",\"PillButton\",{\"label\":\"查看日程详情\",\"icon\":\"resources/base/media/icon_schedule.svg\",\"onClick\":[{\"call\":\"clickToIntent\",\"args\":{\"intentName\":\"ViewCalendarEvent\",\"params\":{\"entityId\":\"{{ ${/data/calendar/events/0/entityId} }}\"}}}]}]\r\n[\"/data/calendar/events/0/title\",\"项目例会\"]\r\n[\"/data/calendar/events/0/startDate\",\"08-06\"]\r\n[\"/data/calendar/events/0/dtStart\",\"14:00\"]\r\n[\"/data/calendar/events/0/dtEnd\",\"15:00\"]\r\n[\"/data/calendar/events/0/eventLocation\",\"会议室\"]\r\n[\"/data/calendar/events/0/entityId\",\"example-event-001\"]",
+      "context": {
+        "task": {
+          "appVersion": "11.7.7.323",
+          "assetCandidates": [
+            {
+              "description": "样式：日历实心图标，默认黑色，图形为带格线的日历本造型；适用：日程管理、日历事件查看、当日安排。",
+              "id": "asset.calendar_fill",
+              "src": "resources/base/media/calendar_fill.svg"
+            },
+            {
+              "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。",
+              "id": "asset.icon_schedule",
+              "src": "resources/base/media/icon_schedule.svg"
+            },
+            {
+              "description": "样式：红白配色的写实 3D 线圈日历，带金属装订环、浅灰日期网格和卷起页角，透明背景，原始尺寸为 512×512，PNG 位图需保留原色；适用：日历事项、明确会议或计划相关卡片，不因普通时间字段匹配。",
+              "id": "asset.emoji_calendar2",
+              "src": "resources/base/media/emoji_calendar2.png"
+            }
+          ],
+          "dataModelSchema": {
+            "data": {
+              "calendar": {
+                "eventCount": {
+                  "description": "查询到的日程记录总数量。",
+                  "sampleValue": 1,
+                  "type": "integer"
+                },
+                "events": [
+                  {
+                    "countdownDays": {
+                      "description": "距离日程开始的自然日天数纯整数，返回值不包含“天”。0 表示今天发生或已经发生，正整数表示距离开始还有多少天；若直接用于文本展示，必须在数值后追加“天”。",
+                      "sampleValue": 0,
+                      "type": "integer"
+                    },
+                    "dtEnd": {
+                      "description": "格式化后的日程结束时间短文本，如 '05:00'。",
+                      "sampleValue": "15:00",
+                      "type": "string"
+                    },
+                    "dtStart": {
+                      "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                      "sampleValue": "14:00",
+                      "type": "string"
+                    },
+                    "entityId": {
+                      "description": "系统日程的全局唯一实体ID。",
+                      "sampleValue": "example-event-001",
+                      "type": "string"
+                    },
+                    "eventLocation": {
+                      "description": "日程的具体地点描述，若未填写则为空字符串。",
+                      "sampleValue": "会议室",
+                      "type": "string"
+                    },
+                    "startDate": {
+                      "description": "日程开始日期格式化文本，例如 '07-03'。",
+                      "sampleValue": "08-06",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或“项目进展会”。",
+                      "sampleValue": "项目例会",
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "entityId": {
+                      "description": "系统日程的全局唯一实体ID。",
+                      "sampleValue": "example-event-001",
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "entityId": {
+                      "description": "系统日程的全局唯一实体ID。",
+                      "sampleValue": "example-event-001",
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "eventCandidates": [
+            {
+              "args": {
+                "intentName": "ViewCalendarEvent",
+                "params": {
+                  "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+                }
+              },
+              "call": "clickToIntent",
+              "description": "点击日程卡片 or 日程按钮，跳转到华为日历应用 查看该日程的详情。",
+              "id": "event.viewCalendarEvent"
+            },
+            {
+              "args": {
+                "intentName": "ViewCalendarEvent",
+                "params": {
+                  "entityId": "{{ ${/data/calendar/events/1/entityId} }}"
+                }
+              },
+              "call": "clickToIntent",
+              "description": "点击日程卡片 or 日程按钮，跳转到华为日历应用 查看该日程的详情。",
+              "id": "event.viewCalendarEvent"
+            },
+            {
+              "args": {
+                "intentName": "ViewCalendarEvent",
+                "params": {
+                  "entityId": "{{ ${/data/calendar/events/2/entityId} }}"
+                }
+              },
+              "call": "clickToIntent",
+              "description": "点击日程卡片 or 日程按钮，跳转到华为日历应用 查看该日程的详情。",
+              "id": "event.viewCalendarEvent"
+            }
+          ],
+          "size": "2x2",
+          "userQuery": "帮我做一个日程卡片，可以显示我所有的日程"
+        },
+        "card": {
+          "dataBindings": [
+            {
+              "arguments": {},
+              "capabilityId": "GetCalendarEvents",
+              "writeResultTo": "/data/calendar"
+            }
+          ],
+          "description": "展示我所有的日程安排。",
+          "imageDomainWhitelist": [
+            "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+            "lfcontentcenterdev.hwcloudtest.cn",
+            "hagres-drcn.dbankcdn.com"
+          ],
+          "suggestSize": "2x2",
+          "title": "日程"
+        },
+        "plan": {
+          "assetAssignments": {
+            "actions": [
+              {
+                "actionId": "event.viewCalendarEvent",
+                "assetId": "asset.icon_schedule"
+              }
+            ],
+            "title": {
+              "assetId": "asset.calendar_fill"
+            }
+          },
+          "info_required": [
+            {
+              "componentHints": [
+                "EventCard"
+              ],
+              "dataId": "/data/calendar/events/0/title",
+              "priority": "must",
+              "requirement": "日程标题"
+            },
+            {
+              "componentHints": [
+                "EventCard"
+              ],
+              "dataId": "/data/calendar/events/0/dtStart",
+              "priority": "must",
+              "requirement": "日程开始时间"
+            },
+            {
+              "componentHints": [
+                "EventCard"
+              ],
+              "dataId": "/data/calendar/events/0/dtEnd",
+              "priority": "must",
+              "requirement": "日程结束时间"
+            },
+            {
+              "componentHints": [
+                "EventCard"
+              ],
+              "dataId": "/data/calendar/events/0/startDate",
+              "priority": "must",
+              "requirement": "日程日期"
+            },
+            {
+              "componentHints": [
+                "EventCard"
+              ],
+              "dataId": "/data/calendar/events/0/eventLocation",
+              "priority": "should",
+              "requirement": "日程地点"
+            },
+            {
+              "actionId": "event.viewCalendarEvent",
+              "componentHints": [
+                "CircleButton",
+                "PillButton"
+              ],
+              "priority": "must",
+              "requirement": "查看该日程详情"
+            }
+          ],
+          "layoutHints": [
+            "S-title-content",
+            "S-title-content-action"
+          ]
+        },
+        "designProfile": "design-compact-dsl",
+        "standardProfile": "a2ui-form-rom6.0-v1",
+        "layoutScope": "S-plan-guided"
+      }
+    }
+  ]
+}

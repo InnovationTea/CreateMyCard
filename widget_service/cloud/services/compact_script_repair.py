@@ -1,13 +1,16 @@
 """按已有静态 error 执行确定性修复；无 error 不生成候选，不调用渲染器或模型。"""
 
 import json
+from collections import deque
 from collections.abc import Awaitable, Callable, Iterator
 from dataclasses import dataclass, replace
+from itertools import islice
 from typing import Any
 
 from services.card_validation.compact_validation.semantic.layout.geometry import (
     _single_line_title_height,
 )
+from services.compact_contract_repair import CONTRACT_RULES, contract_candidates
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ComponentRow,
@@ -29,6 +32,7 @@ class ScriptRepairBudget:
 
 
 _RULE_NAMES = {
+    **CONTRACT_RULES,
     "semantic-layout": "语义布局重排",
     "duplicate-click": "完全重复点击动作去重",
     "height-closure": "明确父区的高度继承补齐",
@@ -399,7 +403,11 @@ def static_candidates(
 ) -> Iterator[tuple[str, str]]:
     if not result.errors:
         return
-    rows = parse_compact_dsl_rows(result.source_dsl, expand_layouts=False)
+    yield from contract_candidates(result, settings, context)
+    try:
+        rows = parse_compact_dsl_rows(result.source_dsl, expand_layouts=False)
+    except CompactDslConversionError:
+        return
     nodes: dict[str, ComponentRow] = {}
     parents: dict[str, str] = {}
     for row in rows:
@@ -519,12 +527,22 @@ async def repair_static_errors(
         return result
     original = result
     attempted = 0
+    seen_sources = {result.source_dsl}
     while result.errors and budget.candidates_used < budget.max_candidates:
         accepted = False
+        remaining = budget.max_candidates - budget.candidates_used
+        pending = deque()
+        for rule, source in islice(static_candidates(result, settings, context=context), remaining):
+            pending.append((rule, source, (), result.source_dsl))
         try:
-            for rule, source in static_candidates(result, settings, context=context):
+            while pending:
                 if budget.candidates_used >= budget.max_candidates:
                     break
+                rule, source, ancestors, parent_source = pending.popleft()
+                if source in seen_sources:
+                    continue
+                seen_sources.add(source)
+                chain = (*ancestors, rule)
                 budget.candidates_used += 1
                 attempted += 1
                 with (
@@ -536,6 +554,7 @@ async def repair_static_errors(
                             "rule": rule,
                             "ruleName": _RULE_NAMES.get(rule),
                             "candidate": budget.candidates_used,
+                            "ruleChain": list(chain),
                         },
                     ) as span,
                 ):
@@ -545,6 +564,7 @@ async def repair_static_errors(
                         {
                             "compact_script_before": result.source_dsl,
                             "compact_script_candidate": source,
+                            "compact_script_parent": parent_source,
                         }
                     )
                     span.json_artifacts["compact_script_issues"] = [
@@ -554,6 +574,7 @@ async def repair_static_errors(
                         {
                             "compact_script_before": "input",
                             "compact_script_candidate": "output",
+                            "compact_script_parent": "input",
                             "compact_script_issues": "diagnostic",
                         }
                     )
@@ -567,6 +588,17 @@ async def repair_static_errors(
                 if accepted:
                     result = candidate
                     break
+                # ponytail: 初始候选后最多追加三步；需比较多条改善分支时再扩为有预算束搜索。
+                if len(ancestors) >= 3 or not any(name in CONTRACT_RULES for name in chain):
+                    continue
+                remaining = budget.max_candidates - budget.candidates_used
+                followups = []
+                for child_rule, child_source in islice(
+                    static_candidates(candidate, settings, context=context),
+                    remaining,
+                ):
+                    followups.append((child_rule, child_source, chain, source))
+                pending.extendleft(reversed(followups))
         except CompactDslConversionError as exc:
             trace_record(
                 "compact.script.parse_failed",

@@ -19,6 +19,14 @@ def options(**changes):
         "enable_compact_duplicate_click_repair": True,
         "enable_compact_height_closure_repair": True,
         "enable_compact_semantic_layout_repair": True,
+        "enable_compact_known_component_repair": True,
+        "enable_compact_primary_content_repair": True,
+        "enable_compact_action_slot_repair": True,
+        "enable_compact_asset_reference_repair": True,
+        "enable_compact_plan_fact_repair": True,
+        "enable_compact_fixed_slot_repair": True,
+        "enable_compact_numeric_label_repair": True,
+        "enable_compact_event_target_repair": True,
     }
     return SimpleNamespace(**{**flags, **changes})
 
