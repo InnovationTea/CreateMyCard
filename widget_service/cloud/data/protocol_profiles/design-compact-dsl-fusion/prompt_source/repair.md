@@ -15,6 +15,8 @@ description: 反馈定位、修复范围和有界删除；保留内容与固定�
 
 Plan 仅含两个必要动作且无展示事实时，保持 S-content-dual-action 的 actions-only 变体，
 直接引用两个 CardButton，不补内容槽、标题、占位正文或伪造状态；有展示事实时不能使用该变体。
+Plan 恰好仅含一个必要动作且至多一个明确标题事实时，保持 S-title-content-action 的 title-action 变体，
+直接引用 SingleLineTitle 和 PillButton，不补内容槽、占位正文或伪造状态；有展示事实时不能使用该变体。
 已登记 SetSettingSwitch 设置开关的整数 switchFlag 0/1 等价，不为切换这两个值触发修复；
 目标应用、配置项、其它参数和原参数类型仍须匹配候选。
 
@@ -79,9 +81,10 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 
 | 实际问题 | 最小合法处理 |
 |---|---|
-| InfoBlock 的 progressCircle 主值格式错误 | 若存在已登记的有效数值来源则绑定该数值并保留 visual/icon；只有文本时保留完整文字，不生成首帧数值副本 |
+| InfoBlock 的 progressCircle 主值格式错误 | 错误反馈给出 `expected.numericSource` 时，直接把报错组件的 `primaryText` 改绑该数值路径，保留 `visual.type:"progressCircle"`、icon、fillColor、secondaryText；格式化值中的单位改为静态 `unit`，例如 `68%` 使用 `unit:"%"`。不得删除 progressCircle、解析首帧字符串或借用其它对象数值。只有未登记数值来源时才保留完整文字并改用非进度表达 |
 | InfoBlock 主文本超宽 | 先按组件合同恢复读数与静态说明的分工；不得覆盖动态辅助值。完整读数仍放不下时才在scope内重选合法组合，不因可移出的静态前缀直接退化为表格或主辅混搭 |
 | SecondaryBody 动态 label | 保留静态标签；动态部分与原 value 按显示顺序合入同项完整 value Expression，保留全部绑定 |
+| SecondaryBody 是整卡唯一业务正文 | 同一对象有 2–3 项同级等权的短标签—值时，优先改为可承担核心角色的 TableText；两项高 38vp/fontSize 12，三项高 52vp/fontSize 10。逐项保留 label、value 和绑定，按父区剩余高度核算；事件、比例、强调主值不表格化，超出项不得未授权删除 |
 | SecondaryBody 项数/字号/宽度 | 最多6项，只移除未被 Plan 要求的重复或可选项；必要项改组合。按最终单/多行使用规定字号；长值可 columns:1、maxLines:2并计新增行高 |
 | EmphasizedData 误装多段时长 | 完整绑定迁入 EmphasisText.mainText 固定18fp，辅助时长保持正文规格；不截数字或删单位 |
 | TextBlock 项目被拆散或超出槽宽 | 恢复全部分配的事实并按当前容量合同重组选型；不强塞四项，不留下单项占位，不删项或丢失绑定 |
@@ -108,6 +111,9 @@ drop_optional_component 从第4次修复起且当前有结构/容量错误和合
 - approvedOmissions 是累计批准省略项，后续保持不可见，不能换 ID、组件或写静态文本加回。
 - 每轮仅删当轮指定一个组件；仍不闭合时等待下一轮明确授权，再合法重排。不能将一次授权理解为批量删除。
 - 若上一轮原样返回，本轮必须实际删除指定组件及父引用；已不存在则保持删除并闭合剩余结构。
+- optionalDrop.requiresCoreReattach=true 时，核心组件只是暂时不可达。必须把
+  protectedCoreComponentIds 中至少一个组件重新挂到合法内容角色；不得删除、替换或静态化这些核心组件。
+- Drop 阶段仍只能主动删除 allowedOmittedFactIndexes 指定的事实；未授权缺失在修复过程中会被记录为降级 warning，不等于新的删除授权，不得据此继续扩大删减。
 
 除明确授权省略项外，全部 Plan must/should 在生成、局部修复、重组和无损紧凑阶段都必须保留。最后输出完整修复 DSL，不原样重交已知失败候选。
 动态进度类型错误时，绑定展示字段 numericSource 指向的有效数值字段；未登记关系时不猜测，不把字符串样例解析为常数或私有数据。若仅能展示文字，保留全部事实并改用文字组件。

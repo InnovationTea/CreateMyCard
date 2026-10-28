@@ -389,11 +389,13 @@ _DESIGN_ALIASES: dict[str, dict[str, str]] = {}
 def parse_compact_dsl_rows(
     compact_dsl: str, *, expand_layouts: bool = True, size: str | None = None,
     skip_compact_dsl_validation: bool = False,
+    preserve_unreachable: bool = False,
 ) -> tuple[CompactRow, ...]:
     """Parse Design Compact DSL into the row model shared with validation."""
     from services.compact_semantic_layout import expand_semantic_layout_rows
     rows = _parse_compact_rows(
         compact_dsl, skip_compact_dsl_validation=skip_compact_dsl_validation,
+        preserve_unreachable=preserve_unreachable,
     )
     if expand_layouts:
         expansion = expand_semantic_layout_rows(rows, size=size)
@@ -1138,6 +1140,7 @@ def _parse_compact_rows(
     compact_dsl: str,
     *,
     drop_unreachable: bool = False,
+    preserve_unreachable: bool = False,
     skip_compact_dsl_validation: bool = False,
 ) -> list[CompactRow]:
     body = _repair_compact_json_rows(compact_dsl)
@@ -1154,13 +1157,18 @@ def _parse_compact_rows(
 
     if not rows:
         raise CompactDslConversionError("Compact DSL output is empty.")
-    return _canonicalize_component_order(rows, drop_unreachable=drop_unreachable)
+    return _canonicalize_component_order(
+        rows,
+        drop_unreachable=drop_unreachable,
+        preserve_unreachable=preserve_unreachable,
+    )
 
 
 def _canonicalize_component_order(
     rows: list[CompactRow],
     *,
     drop_unreachable: bool = False,
+    preserve_unreachable: bool = False,
 ) -> list[CompactRow]:
     components_by_id: dict[str, ComponentRow] = {}
     data_rows: list[DataRow] = []
@@ -1198,6 +1206,8 @@ def _canonicalize_component_order(
     if unreachable_ids:
         if drop_unreachable:
             return [*ordered_components, *data_rows]
+        if preserve_unreachable:
+            return rows
         unreachable_text = ", ".join(unreachable_ids)
         raise CompactDslConversionError(
             "Component rows must form one tree rooted at root. "

@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import json
 import traceback
 from typing import Any
 
 from app.logger import json_for_log, logger
 from config.config import get_settings
 from models.artifact import WidgetArtifact
+from models.capability import DataCapability
 from services.card_validation import ValidationOptions, validate_card
-from services.card_validation.diagnostics import Diagnostic
+from services.card_validation.diagnostics import Diagnostic, Reporter
+from services.card_validation.display_unit_rules import collect_bound_display_unit_rules
+from services.card_validation.display_unit_validator import DisplayUnitValidator
+from services.card_validation.source_parser import SourceParser
 from services.card_validation.theme_phase_validator import theme_phase_errors
 from services.theme_style_roles import in_layout_phase
 
@@ -15,6 +20,32 @@ _MODULE = "[Validator]"
 
 
 class ArtifactValidator:
+    def validate_display_units(
+        self, artifact: WidgetArtifact, data_capabilities: list[DataCapability]
+    ) -> list[str]:
+        """完整校验关闭时复用单位规则及修复上下文，不执行其它产物门禁。"""
+        self.error_categories = []
+        self.error_prompt_contexts = []
+        if not collect_bound_display_unit_rules(artifact.cardSpec, data_capabilities):
+            return []
+        reporter = Reporter()
+        context = SourceParser().parse(
+            artifact.genui, json.dumps(artifact.cardSpec, ensure_ascii=False), reporter
+        )
+        for capability in data_capabilities:
+            context.effective_data_capabilities[capability.id] = capability.model_dump(mode="json")
+        if not reporter.error_count:
+            DisplayUnitValidator().validate(context, {}, reporter)
+        errors, self.error_prompt_contexts = self._normalize_diagnostics(
+            reporter.diagnostics, "error"
+        )
+        warnings, _ = self._normalize_diagnostics(reporter.diagnostics, "warning")
+        logger.info(
+            f"{_MODULE} display_unit_validation_completed errors={json_for_log(errors)} "
+            f"warnings={json_for_log(warnings)}"
+        )
+        return errors
+
     def validate_layout(self, artifact: WidgetArtifact, protocol_profile: dict) -> list[str]:
         """内部定稿门禁：保留结构、能力和语义检查，不提前解析色值。"""
         from services.theme_style_roles import layout_phase

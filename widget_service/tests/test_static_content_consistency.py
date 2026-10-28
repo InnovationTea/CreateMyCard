@@ -203,8 +203,25 @@ def test_unselected_input_loss_and_legacy_declarations_remain_conservative():
 
 
 @pytest.mark.usefixtures("static_scope")
-@pytest.mark.parametrize("indexes", [[True], [-1], [2], [0], [1, 1], "1"])
-def test_omission_references_cannot_authorize_core_or_invalid_indexes(indexes):
+@pytest.mark.parametrize("indexes", [[True], [-1], [2], [0]])
+def test_omission_references_downgrade_core_or_invalid_indexes(indexes):
+    value = {
+        "info_required": [fact("核心"), fact("补充", "should")],
+        "contentGroups": [
+            {"id": "a", "kind": "object", "identity": None, "factIndexes": [0, 1]},
+        ],
+        "omittedContents": [{"description": "说明", "factIndexes": indexes}],
+    }
+    raw = json.dumps({"name": "submit_card_plan", "arguments": value})
+    result = parse_compact_plan_call(raw, {"userQuery": "核心；补充", "size": "2x4"})
+    assert result.plan.get("omittedContents") == ["说明"]
+    assert not result.plan.get("omissionCandidates")
+    assert any("已撤销删除授权" in warning for warning in result.warnings)
+
+
+@pytest.mark.usefixtures("static_scope")
+@pytest.mark.parametrize("indexes", [[1, 1], "1"])
+def test_omission_reference_shape_errors_remain_blocking(indexes):
     value = {
         "info_required": [fact("核心"), fact("补充", "should")],
         "contentGroups": [
@@ -214,6 +231,22 @@ def test_omission_references_cannot_authorize_core_or_invalid_indexes(indexes):
     }
     with pytest.raises(CompactPlanValidationError):
         accept(value, "核心；补充")
+
+
+@pytest.mark.usefixtures("static_scope")
+def test_protected_should_omission_is_downgraded():
+    value = {
+        "info_required": [fact("核心"), fact("原文补充", "should", protectedTexts=["原文补充"])],
+        "contentGroups": [
+            {"id": "a", "kind": "object", "identity": None, "factIndexes": [0, 1]},
+        ],
+        "omittedContents": [{"description": "不删除原文补充", "factIndexes": [1]}],
+    }
+    raw = json.dumps({"name": "submit_card_plan", "arguments": value})
+    result = parse_compact_plan_call(raw, {"userQuery": "核心；原文补充", "size": "2x4"})
+    assert result.plan.get("omittedContents") == ["不删除原文补充"]
+    assert not result.plan.get("omissionCandidates")
+    assert any("受保护事实" in warning for warning in result.warnings)
 
 
 @pytest.mark.usefixtures("static_scope")
@@ -345,8 +378,11 @@ def test_omission_reference_cannot_hide_a_core_fact_after_deduplication():
         ],
         "omittedContents": [{"description": "补充", "factIndexes": [1]}],
     }
-    with pytest.raises(CompactPlanValidationError, match="去重后的核心"):
-        accept(value, "相同文字")
+    raw = json.dumps({"name": "submit_card_plan", "arguments": value})
+    result = parse_compact_plan_call(raw, {"userQuery": "相同文字", "size": "2x4"})
+    assert result.plan.get("omittedContents") == ["补充"]
+    assert not result.plan.get("omissionCandidates")
+    assert any("去重后指向 must" in warning for warning in result.warnings)
 
 
 @pytest.mark.usefixtures("static_scope")

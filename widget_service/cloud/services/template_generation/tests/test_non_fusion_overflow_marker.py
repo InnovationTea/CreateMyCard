@@ -17,6 +17,7 @@ from services.template_generation.engine.cardplan.registry import get_cardplan_r
 from services.template_generation.engine.cardplan.template_retrieval import TemplateSearchIntent
 from services.template_generation.engine.pipeline import generate_template_a2ui
 from services.template_generation.engine.tersel_converter import Nested2Node, convert_tersel_to_a2ui
+from services.template_generation.tests.photo_assertions import capture_template_photos
 from services.template_generation.tests.test_template_generation import (
     _FixedTemplateModel,
     _provider_field,
@@ -118,11 +119,14 @@ def test_unsupported_size_layout_is_unchanged() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("photo_enabled", [False, True])
 @pytest.mark.parametrize("enable_fusion_ball", [False, True])
 @pytest.mark.parametrize("scenario", ["single", "two_businesses", "two_actions"])
 async def test_wide_pipeline_marks_shared_content_without_enabling_fusion(
     enable_fusion_ball: bool, scenario: str,
+    monkeypatch: pytest.MonkeyPatch, photo_enabled: bool,
 ) -> None:
+    photos = capture_template_photos(monkeypatch, enabled=photo_enabled)
     task = _weather_battery_task(scenario == "two_actions")
     data = task.dataModelSchema.get("data")
     assert isinstance(data, dict)
@@ -141,6 +145,8 @@ async def test_wide_pipeline_marks_shared_content_without_enabling_fusion(
         task, _weather_battery_card_spec(), _WEATHER_BATTERY_BINDINGS, model,
         enable_fusion_ball=enable_fusion_ball,
     )
+    expect_photo = photo_enabled and scenario != "single"
+    photos.assert_output(output, expect_photo=expect_photo)
 
     assert model.calls == 1
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
@@ -172,7 +178,8 @@ async def test_wide_pipeline_marks_shared_content_without_enabling_fusion(
             "__genui_render_component__template_root",
         ]
     else:
-        assert root.get("children") == ["template_root"]
+        if not expect_photo:
+            assert root.get("children") == ["template_root"]
         skeleton = by_id.get(_SKELETON_ID)
         assert isinstance(skeleton, dict)
         assert foreground.get("children") == [_SKELETON_ID]
@@ -180,20 +187,22 @@ async def test_wide_pipeline_marks_shared_content_without_enabling_fusion(
         assert [key for key in by_id if key.startswith("__genui_render_component__")] == [
             _SKELETON_ID,
         ]
-        assert "fusionBallBackground" not in by_id
-    theme = get_cardplan_registry(enable_fusion_ball).require_theme(output.theme_id)
-    assert (theme.fusion_ball_style is not None) is enable_fusion_ball
-    if enable_fusion_ball and scenario == "single":
-        # 融球模式下 root 背景让位给融球背景层，使用透明底色。
-        assert root.get("styles", {}).get("backgroundColor") == "#00000000"
-        assert "linearGradient" not in root.get("styles", {})
-    else:
-        assert root.get("styles", {}).get("backgroundColor") == theme.root_style.get(
-            "backgroundColor"
-        )
-        assert root.get("styles", {}).get("linearGradient") == theme.root_style.get(
-            "linearGradient"
-        )
+        if not expect_photo:
+            assert "fusionBallBackground" not in by_id
+    if not expect_photo:
+        theme = get_cardplan_registry(enable_fusion_ball).require_theme(output.theme_id)
+        assert (theme.fusion_ball_style is not None) is enable_fusion_ball
+        if enable_fusion_ball and scenario == "single":
+            # 融球模式下 root 背景让位给融球背景层，使用透明底色。
+            assert root.get("styles", {}).get("backgroundColor") == "#00000000"
+            assert "linearGradient" not in root.get("styles", {})
+        else:
+            assert root.get("styles", {}).get("backgroundColor") == theme.root_style.get(
+                "backgroundColor"
+            )
+            assert root.get("styles", {}).get("linearGradient") == theme.root_style.get(
+                "linearGradient"
+            )
     assert "/data/phoneBattery/batterySOC" in output.a2ui
     assert "/data/phoneBattery/chargingStatusDesc" in output.a2ui
     if scenario != "single":

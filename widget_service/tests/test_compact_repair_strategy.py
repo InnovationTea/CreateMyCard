@@ -57,6 +57,32 @@ def test_capacity_recovery_keeps_layout_cause_after_bounded_fallback_omits_fact(
     assert category == "layout_capacity"
 
 
+def test_text_only_secondary_body_repair_suggests_bounded_table_text() -> None:
+    tracker = CompactRepairStrategyTracker()
+    source = "\n".join(
+        [
+            '["root","Layout",{"layout":"W-split-panels"},["left"]]',
+            '["left","SecondaryBody",{"items":['
+            '{"label":"温度","value":"29℃"},'
+            '{"label":"天气","value":"多云"}]}]',
+        ]
+    )
+    errors = [
+        _issue(
+            "component left: SecondaryBody is auxiliary and cannot be the only "
+            "information component in the card."
+        )
+    ]
+
+    directive = tracker.next_directive(source, errors)
+
+    assert directive.repair_strategy == "component_contract_repair"
+    assert "TableText" in directive.instruction
+    assert "38vp" in directive.instruction
+    assert "52vp" in directive.instruction
+    assert "optionalDrop或approvedOmissions" in directive.instruction
+
+
 def test_height_overflow_diagnostic_code_enters_layout_capacity_repair() -> None:
     tracker = CompactRepairStrategyTracker()
     errors = [
@@ -372,7 +398,8 @@ def test_capacity_recovery_drops_should_only_candidate_on_first_layout_failure()
         "eventCandidates": [],
     }
     source = (
-        '["root","Column",{},["time"]]\n'
+        '["root","Column",{},["main","time"]]\n'
+        '["main","EmphasisText",{"mainText":"日程"}]\n'
         '["time","SecondaryBody",{"items":'
         '[{"value":{"path":"/data/calendar/start"}}]}]'
     )
@@ -390,41 +417,135 @@ def test_capacity_recovery_drops_should_only_candidate_on_first_layout_failure()
     assert directive.optional_drop.contains_must_facts is False
 
 
-def test_capacity_recovery_never_uses_must_fact_as_drop_fallback() -> None:
+def test_capacity_recovery_uses_must_fact_as_drop_fallback_after_preserving_core() -> None:
     tracker = CompactRepairStrategyTracker(capacity_recovery=True)
     errors = [_issue("component body: vertical layout requires at least 142vp within 126vp")]
     plan = {
         "info_required": [
             {
-                "requirement": "核心状态",
+                "requirement": f"核心状态{index}",
                 "priority": "must",
-                "dataId": "/data/device/status",
+                "dataId": f"/data/device/status{index}",
             }
+            for index in range(3)
         ]
     }
     task_spec = {
         "size": "2x2",
-        "dataModelSchema": {"data": {"device": {"status": {"type": "string"}}}},
+        "dataModelSchema": {
+            "data": {
+                "device": {
+                    f"status{index}": {"type": "string"} for index in range(3)
+                }
+            }
+        },
         "eventCandidates": [],
     }
-    directives = []
-    for attempt in range(5):
-        source = (
-            f'["root","Column",{{"itemMargin":{attempt}}},["status"]]\n'
-            '["status","EmphasisText",{"mainText":'
-            '{"path":"/data/device/status"}}]'
-        )
-        directives.append(
-            tracker.next_directive(
-                source,
-                errors,
-                compact_plan=plan,
-                task_spec=task_spec,
-            )
-        )
+    source = (
+        '["root","Column",{},["status"]]\n'
+        '["status","TableText",{"items":['
+        '{"label":"状态0","value":{"path":"/data/device/status0"}},'
+        '{"label":"状态1","value":{"path":"/data/device/status1"}},'
+        '{"label":"状态2","value":{"path":"/data/device/status2"}}]}]'
+    )
 
-    assert all(item.repair_strategy != "drop_optional_component" for item in directives)
-    assert tracker.allowed_omitted_fact_indexes == ()
+    directive = tracker.next_directive(
+        source,
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert directive.repair_strategy == "drop_optional_component"
+    assert directive.optional_drop is not None
+    assert directive.optional_drop.component_id == "status"
+    assert directive.optional_drop.partial is True
+    assert directive.optional_drop.item_indexes == (2,)
+    assert directive.optional_drop.contains_must_facts is True
+    assert tracker.allowed_omitted_fact_indexes == (2,)
+
+
+def test_drop_uses_reachable_auxiliary_candidate_and_requires_core_reattach() -> None:
+    tracker = CompactRepairStrategyTracker(max_repair_attempts=6)
+    errors = [_issue("Unreachable component(s): core")]
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "must",
+                "dataId": "/data/calendar/title",
+            },
+            {
+                "requirement": "会议地点",
+                "priority": "should",
+                "dataId": "/data/calendar/location",
+            },
+        ]
+    }
+    task_spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "calendar": {
+                    "title": {"type": "string"},
+                    "location": {"type": "string"},
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["core","EmphasisText",{"mainText":'
+            '{"path":"/data/calendar/title"}}]',
+            '["details","SecondaryBody",{"items":['
+            '{"label":"标题 ","value":{"path":"/data/calendar/title"}},'
+            '{"label":"地点 ","value":{"path":"/data/calendar/location"}}]}]',
+        ]
+    )
+
+    for _ in range(3):
+        directive = tracker.next_directive(
+            source,
+            errors,
+            compact_plan=plan,
+            task_spec=task_spec,
+        )
+        assert directive.repair_strategy != "drop_optional_component"
+    drop = tracker.next_directive(
+        source,
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert drop.repair_strategy == "drop_optional_component"
+    assert drop.optional_drop is not None
+    assert drop.optional_drop.component_id == "details"
+    assert drop.optional_drop.fact_indexes == (1,)
+    assert drop.optional_drop.requires_core_reattach is True
+    payload = drop.to_prompt_payload()["optionalDrop"]
+    assert payload["requiresCoreReattach"] is True
+    assert payload["protectedCoreComponentIds"] == ["core"]
+    assert "至少一个组件重新挂到 root 可达" in drop.instruction
+
+    removed_without_reattach = "\n".join(
+        [
+            '["root","Column",{},[]]',
+            '["core","EmphasisText",{"mainText":'
+            '{"path":"/data/calendar/title"}}]',
+        ]
+    )
+    repeated_drop = tracker.next_directive(
+        removed_without_reattach,
+        errors,
+        compact_plan=plan,
+        task_spec=task_spec,
+    )
+
+    assert repeated_drop.repair_strategy == "drop_optional_component"
+    assert repeated_drop.optional_drop == drop.optional_drop
 
 
 def test_multi_region_overflow_with_missing_fact_recomposes_parent_immediately() -> None:
@@ -678,7 +799,8 @@ def test_compact_fallback_bridges_contract_repair_then_resumes_drop() -> None:
         "eventCandidates": [],
     }
     source = (
-        '["root","Column",{},["time"]]\n'
+        '["root","Column",{},["main","time"]]\n'
+        '["main","EmphasisText",{"mainText":"日程"}]\n'
         '["time","SecondaryBody",{"role":"metadata","items":'
         '[{"value":{"path":"/data/calendar/start"}}]}]'
     )
@@ -744,7 +866,8 @@ def test_fourth_repair_can_drop_should_component_only_with_layout_error_and_budg
     }
     source = "\n".join(
         [
-            '["root","Column",{},["time"]]',
+            '["root","Column",{},["main","time"]]',
+            '["main","EmphasisText",{"mainText":"日程"}]',
             '["time","SecondaryBody",{"role":"metadata","items":'
             '[{"value":{"path":"/data/calendar/start"}}]}]',
         ]
@@ -805,7 +928,8 @@ def test_compact_fallback_can_drop_one_program_selected_must_component() -> None
         "eventCandidates": [],
     }
     source = (
-        '["root","Column",{},["time"]]\n'
+        '["root","Column",{},["main","time"]]\n'
+        '["main","EmphasisText",{"mainText":"日程"}]\n'
         '["time","SecondaryBody",{"role":"metadata","items":'
         '[{"value":{"path":"/data/calendar/start"}}]}]'
     )
@@ -849,7 +973,8 @@ def test_drop_no_progress_counts_toward_global_limit_without_early_stop() -> Non
         "eventCandidates": [],
     }
     source = (
-        '["root","Column",{},["time"]]\n'
+        '["root","Column",{},["main","time"]]\n'
+        '["main","EmphasisText",{"mainText":"日程"}]\n'
         '["time","SecondaryBody",{"role":"metadata","items":'
         '[{"value":{"path":"/data/calendar/start"}}]}]'
     )
@@ -933,7 +1058,8 @@ def test_drop_selects_next_candidate_after_previous_candidate_is_removed() -> No
     }
     source = "\n".join(
         [
-            '["root","Column",{},["time","title"]]',
+            '["root","Column",{},["main","time","title"]]',
+            '["main","EmphasisText",{"mainText":"日程"}]',
             '["time","SecondaryBody",{"role":"metadata","items":'
             '[{"value":{"path":"/data/calendar/start"}}]}]',
             '["title","SingleLineTitle",{"title":{"path":"/data/calendar/title"}}]',
@@ -957,7 +1083,8 @@ def test_drop_selects_next_candidate_after_previous_candidate_is_removed() -> No
 
     source_after_first_drop = "\n".join(
         [
-            '["root","Column",{},["title"]]',
+            '["root","Column",{},["main","title"]]',
+            '["main","EmphasisText",{"mainText":"日程"}]',
             '["title","SingleLineTitle",{"title":{"path":"/data/calendar/title"}}]',
         ]
     )
@@ -975,7 +1102,8 @@ def test_drop_selects_next_candidate_after_previous_candidate_is_removed() -> No
     assert second_drop.to_prompt_payload()["approvedOmittedFactIndexes"] == [0, 1]
 
     transition = tracker.next_directive(
-        '["root","Column",{},[]]',
+        '["root","Column",{},["main"]]\n'
+        '["main","EmphasisText",{"mainText":"日程"}]',
         errors,
         compact_plan=plan,
         task_spec=task_spec,
@@ -1104,6 +1232,61 @@ def test_bounded_component_overflow_reports_exact_fit_and_overflow_items() -> No
     assert capacity_fit["doesNotFit"][0]["planFacts"][0]["factIndex"] == 3
 
 
+def test_secondary_body_height_overflow_reports_item_level_capacity() -> None:
+    tracker = CompactRepairStrategyTracker()
+    source = "\n".join(
+        [
+            '["root","Column",{},["main","details"]]',
+            '["main","EmphasisText",{"mainText":{"path":"/data/main"}}]',
+            '["details","SecondaryBody",{"columns":1,"items":['
+            '{"value":{"path":"/data/a"}},'
+            '{"value":{"path":"/data/b"}},'
+            '{"value":{"path":"/data/c"}}]}]',
+        ]
+    )
+    plan = {
+        "info_required": [
+            {"requirement": "核心", "priority": "must", "dataId": "/data/main"},
+            {"requirement": "信息A", "priority": "must", "dataId": "/data/a"},
+            {"requirement": "信息B", "priority": "must", "dataId": "/data/b"},
+            {"requirement": "信息C", "priority": "should", "dataId": "/data/c"},
+        ]
+    }
+    errors = [
+        {
+            **_issue("当前父区域高度不足。"),
+            "compactDiagnostics": [
+                {
+                    "code": "COMPACT_LAYOUT_HEIGHT_OVERFLOW",
+                    "actual": {
+                        "secondaryBodyFits": [
+                            {
+                                "componentId": "details",
+                                "parentId": "root",
+                                "actualRowCount": 3,
+                                "maxRetainedRowCount": 2,
+                                "effectiveColumnCount": 1,
+                                "rowHeights": [12, 12, 12],
+                                "rowSpacing": 2,
+                                "directlyFitsItemIndexes": [0, 1],
+                                "doesNotFitItemIndexes": [2],
+                                "parentAvailableHeight": 40,
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+    ]
+
+    directive = tracker.next_directive(source, errors, compact_plan=plan)
+    capacity_fit = directive.to_prompt_payload()["capacityFits"][0]
+
+    assert capacity_fit["maxRetainedRowCount"] == 2
+    assert capacity_fit["doesNotFit"][0]["itemIndex"] == 2
+    assert capacity_fit["doesNotFit"][0]["planFacts"][0]["factIndex"] == 3
+
+
 def test_capacity_overflow_allows_bounded_drop_after_one_lossless_repair() -> None:
     tracker = CompactRepairStrategyTracker(max_repair_attempts=5)
     plan = {
@@ -1140,7 +1323,8 @@ def test_capacity_overflow_allows_bounded_drop_after_one_lossless_repair() -> No
     overflow_errors = [_issue("details: SummaryList.items requires 2 to 3 entries.")]
     regrouped_source = "\n".join(
         [
-            '["root","Column",{},["details"]]',
+            '["root","Column",{},["main","details"]]',
+            '["main","EmphasisText",{"mainText":"事项"}]',
             '["details","SecondaryBody",{"items":['
             '{"value":{"path":"/data/items/3"}},'
             '{"value":{"path":"/data/items/4"}}]}]',
@@ -1170,7 +1354,9 @@ def test_capacity_overflow_allows_bounded_drop_after_one_lossless_repair() -> No
     assert drop.repair_strategy == "drop_optional_component"
     assert drop.optional_drop is not None
     assert drop.optional_drop.component_id == "details"
-    assert drop.optional_drop.fact_indexes == (3, 4)
+    assert drop.optional_drop.fact_indexes == (4,)
+    assert drop.optional_drop.item_indexes == (1,)
+    assert drop.optional_drop.partial is True
     assert "不再等待固定第四轮" in drop.instruction
 
 
@@ -1194,7 +1380,8 @@ def test_plan_coverage_does_not_carry_early_drop_into_layout_only_failures() -> 
     }
     source = "\n".join(
         [
-            '["root","Column",{},["time"]]',
+            '["root","Column",{},["main","time"]]',
+            '["main","EmphasisText",{"mainText":"日程"}]',
             '["time","SecondaryBody",{"items":['
             '{"value":{"path":"/data/calendar/start"}}]}]',
         ]
@@ -1274,7 +1461,8 @@ def test_repeated_plan_coverage_failure_gets_two_lossless_repairs_before_drop() 
     }
     source = "\n".join(
         [
-            '["root","Column",{},["time"]]',
+            '["root","Column",{},["main","time"]]',
+            '["main","EmphasisText",{"mainText":"日程"}]',
             '["time","SecondaryBody",{"items":['
             '{"value":{"path":"/data/calendar/start"}}]}]',
         ]

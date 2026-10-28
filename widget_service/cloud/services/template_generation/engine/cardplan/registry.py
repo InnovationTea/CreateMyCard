@@ -167,11 +167,6 @@ class CardPlanRegistry:
         )
         self.photo_themes: dict[str, ThemeDefinition] = {}
         self._validate_distributed_resources()
-        from .photo_theme import load_template_photo_themes
-
-        self.photo_themes = load_template_photo_themes(
-            self.templates, self.source_root / "themes" / "photo-template-mappings.json",
-        )
 
     def _validate_manifest_metadata(self) -> None:
         if self.manifest.get("catalogId") != "ohos.a2ui.extended.catalog.form":

@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"通勤助手","icon":"resources/base/media/icon_car.svg","fontSize":12}]
+["content","EmphasisText",{"mainText":"去公司","fontSize":18}]
+["action","PillButton",{"label":"去公司导航","icon":"resources/base/media/location_north_up_right_fill.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"StartNavigate","params":{"dstLocation":{"location":"company","latitude":"","longitude":""}}}}]}]
+["/state/ready",true]

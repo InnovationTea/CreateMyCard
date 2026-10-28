@@ -25,6 +25,12 @@ selectionNotes只提交一个字符串数组，例如["结构选择说明","取�
 object是一条记录、一栏或一个内容块；shared是共同标题、范围、计价口径或说明。
 属性表可一表一组或每行一组；同一事实的字段按展示顺序组织，不能靠其它对象补本对象信息。
 RecordList/ComparisonGroup各最多三项，ContentBlock属性表最多六项。
+活动、日程、演出、行程等由“对象名称 + 日期/时间/地点”构成的多条同构记录，
+优先选择records/RecordList；每个object组只对应一条真实记录，不按类别把多条记录塞进一个长value，
+也不改用content/attributes规避RecordList的条目上限。
+一旦选择records或以RecordList为对象的首选组件，最多只提交3个object组；
+第4个及后续对象不得进入info_required/contentGroups，应写入omittedContents。
+先保留用户点名或明确优先的对象；没有优先级时保留输入原顺序前3项。
 正文componentHints只用三个新组件，layoutHints只用当前尺寸合法静态布局，动作才用兼容布局。
 小卡优先一个重点或两条短记录；宽卡优先两条带说明记录或三条短记录。
 长条件放全宽，不挤侧栏或对比窄栏；用短标签、简洁完整结论减少密度，不任意缩字。
@@ -48,12 +54,16 @@ selectionNotes最多8条规划说明；omittedContents最多24条实际遗漏的
 
 可选presentationStyle:auto/content/attributes/records/comparison；它表达信息结构，不是业务场景。
 单对象结论选content，真正键值集合选attributes，多对象名称与说明选records，等权短指标比较选comparison。
+活动或日程清单属于多对象记录，不是单对象属性表；每条活动/日程的名称放title，短日期、时间或地点放
+description/leading/trailing。不要以“演唱会/话剧/体育”等类别为属性标签，把多个独立场次压进同一value。
 comparison只在2x4使用，2–3个对象；不能为做三栏而新增、删除对象。
 每条text可选displayRole:title/body/label/value/leading/trailing/detail。
 对象名称或可识别主体放title，完整结论放body，属性键和值分别用label/value，侧边只放短leading/trailing。
 多对象必须有可见的对象名称，不能只在requirement或组ID写名称；对比value是主读数，title是对象名。
-列表最多3项。对象超过3个时，应在本阶段按用途选出代表条目并记录遗漏，或选择确实能容纳的短键值表，
-不能提交5条长记录再要求DSL全部放进最多3条的列表；用户明确完整要求时保留并如实说明容量。
+列表最多3项。对象超过3个且选择RecordList时，应在本阶段按用途选出最多3个代表条目，
+将其余对象记入omittedContents，不得把它们留在info_required再等DSL修复删除。
+若用户明确要求完整展示全部对象，则不能选择RecordList；应改用实际容量成立的短键值表，
+无合法结构时如实失败，不通过超限Plan将矛盾后移。
 先把一条过长事实总结为能独立理解的短展示版本；再按角色拆成多条text并归入同一object组，
 不要把名称、时间、数值、条件全部塞进一个text后期待程序自动拆句。拆分不能超过24事实总预算。
 同对象的替代/并列关系和必要限定必须在展示文字中保留，不得仅放requirement或分组ID。

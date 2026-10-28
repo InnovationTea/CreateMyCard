@@ -249,10 +249,36 @@ test("ProgressCircle 沿用运行态环样式并支持模型控制外框宽高",
 
 });
 
-test("圆角裁剪覆盖模糊合成层，融球预览保留色彩变化且不改写 A2UI", () => {
-  const style = mergeCommonStyles({ clip: true, borderRadius: 20 });
-  assert.equal(style.clipPath, "inset(0 round 20px)");
-  assert.equal(style.isolation, "isolate");
+test("重合的嵌套裁剪不生成第二层合成裁剪，融球预览保留色彩变化且不改写 A2UI", () => {
+  const plain = mergeCommonStyles({ clip: true, borderRadius: 20 });
+  assert.equal(plain.overflow, "hidden");
+  assert.equal(plain.borderRadius, 20);
+  assert.equal(plain.clipPath, "inset(0 round 20px)");
+  assert.equal(plain.isolation, "isolate");
+  const nested = mergeCommonStyles({ clip: true, borderRadius: 20, __skipCompositorClip: true });
+  assert.equal(nested.overflow, "hidden");
+  assert.equal(nested.clipPath, undefined);
+  assert.equal(nested.isolation, undefined);
+
+  const source = '["root","Stack",{"width":"matchParent","height":"matchParent","clip":true,"borderRadius":20},["wrapper"]]\n'
+    + '["wrapper","Stack",{"width":"matchParent","height":"matchParent","clip":true,"borderRadius":20},["glass"]]\n'
+    + '["glass","Row",{"width":"matchParent","height":"matchParent","clip":true,"borderRadius":16,"backdropBlur":{"radius":20}}]';
+  const { graph: nestedGraph } = compileMiniDsl(source, { size: "2x4" });
+  const nestedTree = renderTree(nestedGraph, defaultRegistry) as any;
+  const collect = (node: any, out: Record<string, any> = {}): Record<string, any> => {
+    const id = node?.props?.["data-node-id"];
+    if (typeof id === "string") out[id] = node;
+    const children = node?.props?.children;
+    for (const child of (Array.isArray(children) ? children : [children])) {
+      if (child) collect(child, out);
+    }
+    return out;
+  };
+  const rendered = collect(nestedTree);
+  assert.equal(rendered.root.props.__skipCompositorClip, undefined);
+  assert.equal(rendered.wrapper.props.__skipCompositorClip, true);
+  assert.equal(rendered.glass.props.__skipCompositorClip, undefined);
+
   const { graph } = compileMiniDsl('["root","Column",{"design":"fusion-ball-sport-orange"}]');
   const tree = renderTree(graph, defaultRegistry) as any;
   const find = (node: any): any => {

@@ -95,6 +95,16 @@ _CAPACITY_TEXT_COMPACTION_INSTRUCTION = (
     "不得补造核心组件、拆成多个单项SecondaryBody或删除事实来满足条件。"
 )
 
+_TEXT_ONLY_TABLE_REPAIR_INSTRUCTION = (
+    " 当前可见业务正文只有SecondaryBody等普通标签—值文本，没有可承担核心信息的组件。"
+    "若同一对象内有2–3项同级、等权、无事件／比例／强调语义的短标签—值，"
+    "优先按TableText合同重组该组，由TableText承担核心信息角色；"
+    "两项使用fontSize 12并预留38vp，三项使用fontSize 10并预留52vp。"
+    "逐项保留label、value、完整动态绑定与对象归属；不能只把组件改名，"
+    "不能将事件、比例或应强调的主值表格化。超出TableText容量的事实继续放入其它合法内容角色，"
+    "只有optionalDrop或approvedOmissions明确授权的事实才能省略。"
+)
+
 _PILL_ACTION_ANCHOR_MIGRATION_INSTRUCTION = (
     " 当前是2×2文字动作布局，且全宽PillButton参与了容量压力。"
     "可把S-title-anchor作为同级合法布局候选，但不能只把PillButton改名为CircleButton。"
@@ -172,6 +182,15 @@ class CompactRepairDirective:
             if self.optional_drop.partial:
                 payload["optionalDrop"]["partial"] = True
                 payload["optionalDrop"]["displayTexts"] = list(self.optional_drop.display_texts)
+                if self.optional_drop.item_indexes:
+                    payload["optionalDrop"]["allowedItemIndexes"] = list(
+                        self.optional_drop.item_indexes
+                    )
+            if self.optional_drop.requires_core_reattach:
+                payload["optionalDrop"]["requiresCoreReattach"] = True
+                payload["optionalDrop"]["protectedCoreComponentIds"] = list(
+                    self.optional_drop.protected_core_component_ids
+                )
         if self.approved_omitted_fact_indexes:
             payload["approvedOmittedFactIndexes"] = list(self.approved_omitted_fact_indexes)
         if self.stop_reason is not None:
@@ -256,7 +275,9 @@ def _capacity_overflow_limit(capacity_fits: list[dict[str, Any]]) -> int | None:
     """返回本轮已证明的最小溢出事实数，用于限制提前 Drop 的损失。"""
     counts: list[int] = []
     for capacity_fit in capacity_fits:
-        value = capacity_fit.get("overflowItemCount")
+        value = capacity_fit.get("overflowFactCount")
+        if value is None:
+            value = capacity_fit.get("overflowItemCount")
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             continue
         counts.append(value)
@@ -902,12 +923,40 @@ def _drop_optional_component_fallback_directive(
             "改变动态绑定、缩字、裁切或隐藏内容。"
         )
     if candidate.partial:
-        instruction = (
-            "已进入静态最小删减兜底。仅允许省略 allowedOmittedFactIndexes 对应的should文字："
-            f"{candidate.display_texts!r}。只修改其所在条目或字段；"
-            "不得删除仍承载must、保护原文或未授权should的整组件、整条目、整组。"
-            "仅当条目或组已无剩余事实时才移除空条目或组，并重排余下内容。"
-            "保留全部Action、对象归属和未授权事实；不改写Plan、缩字、截断或隐藏。"
+        if candidate.component_type == "SecondaryBody":
+            instruction = (
+                "已进入条目级最小删减兜底。仅允许从 optionalDrop.componentId 指定的 "
+                f"SecondaryBody.items 删除 allowedItemIndexes={candidate.item_indexes!r} "
+                "对应且仍承载 allowedOmittedFactIndexes 的 doesNotFit 条目；保留该组件的"
+                "其余 items、顺序、绑定、字号和父级引用。仅当删除后 items 为空时才删除"
+                "组件行及其直接父级引用。不得删除其它组件、未授权事实或任何 Action；"
+                "整卡必须继续保留至少一个核心信息组件。"
+            )
+        elif candidate.component_type == "TableText":
+            instruction = (
+                "已进入 TableText 条目级最小删减兜底。当前三行表格在目标布局中容量失败；"
+                "仅允许从 optionalDrop.componentId 指定的 TableText.items 删除 "
+                f"allowedItemIndexes={candidate.item_indexes!r} 对应且仍承载 "
+                "allowedOmittedFactIndexes 的一行。保留剩余两行及其顺序、绑定、字号和"
+                "父级引用，不得删除整个 TableText、其它组件、未授权事实或任何 Action。"
+            )
+        else:
+            priority = "must" if candidate.contains_must_facts else "should"
+            instruction = (
+                "已进入静态最小删减兜底。仅允许省略 allowedOmittedFactIndexes "
+                f"对应且由程序批准的{priority}文字：{candidate.display_texts!r}。"
+                "只修改其所在条目或字段；不得删除保护原文或任何未授权事实的整组件、"
+                "整条目、整组。"
+                "仅当条目或组已无剩余事实时才移除空条目或组，并重排余下内容。"
+                "保留全部Action、至少一个正文对象、对象归属和未授权事实；"
+                "不改写Plan、缩字、截断或隐藏。"
+            )
+    if candidate.requires_core_reattach:
+        instruction += (
+            " 当前 DSL 的核心信息组件只是暂时未挂到 root，并非不存在。"
+            "本轮必须把 protectedCoreComponentIds 中至少一个组件重新挂到 root 可达的"
+            "合法 Region/Group 内容角色；保留这些核心组件承载的事实，不得把它们作为"
+            "Drop 对象或用标题、按钮、SecondaryBody替代。"
         )
     return CompactRepairDirective(
         category=category,
@@ -934,6 +983,32 @@ def _drop_candidate_is_fully_removed(
 ) -> bool:
     """候选行及全部父级引用均消失后，才允许选择下一个候选。"""
     if candidate.partial:
+        if candidate.component_type in {"SecondaryBody", "TableText"}:
+            try:
+                rows = parse_compact_dsl_rows(compact_dsl, expand_layouts=False)
+            except (CompactDslConversionError, TypeError, ValueError):
+                return False
+            for row in rows:
+                if not isinstance(row, ComponentRow):
+                    continue
+                if row.component_id != candidate.component_id:
+                    continue
+                items = row.props.get("items")
+                if not isinstance(items, list):
+                    return False
+                signatures = {
+                    json.dumps(
+                        item,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    for item in items
+                }
+                return not any(
+                    signature in signatures for signature in candidate.item_signatures
+                )
+            return True
         from services.card_validation.compact_validation.semantic.static_content import (
             display_text,
             static_display_groups,
@@ -958,6 +1033,41 @@ def _drop_candidate_is_fully_removed(
     if any(row.component_id == candidate.component_id for row in components):
         return False
     return not any(candidate.component_id in row.children for row in components)
+
+
+def _protected_core_is_reattached(
+    compact_dsl: str,
+    candidate: CompactOptionalDropCandidate,
+) -> bool:
+    """核心暂时不可达时，Drop 只有在至少恢复一个保护节点后才算执行完成。"""
+    if not candidate.requires_core_reattach:
+        return True
+    try:
+        rows = parse_compact_dsl_rows(
+            compact_dsl,
+            expand_layouts=False,
+            preserve_unreachable=True,
+        )
+    except (CompactDslConversionError, TypeError, ValueError):
+        return False
+    components = {
+        row.component_id: row for row in rows if isinstance(row, ComponentRow)
+    }
+    pending = ["root"]
+    reachable: set[str] = set()
+    while pending:
+        component_id = pending.pop()
+        if component_id in reachable:
+            continue
+        component = components.get(component_id)
+        if component is None:
+            continue
+        reachable.add(component_id)
+        pending.extend(component.children)
+    return any(
+        component_id in reachable
+        for component_id in candidate.protected_core_component_ids
+    )
 
 
 class CompactRepairStrategyTracker:
@@ -1008,26 +1118,20 @@ class CompactRepairStrategyTracker:
         """当前完整生成内是否已出现布局容量或结构失败。"""
         return self._layout_failure_seen
 
+    @property
+    def drop_active(self) -> bool:
+        """当前是否已进入程序授权的 Drop 阶段。"""
+        return self._active_fallback == "drop_optional_component"
+
     def validation_omitted_fact_indexes(
         self,
         compact_plan: dict[str, Any] | None,
         *,
         validate_drop_plan_facts: bool,
     ) -> tuple[int, ...]:
-        """仅在已进入Drop且开关关闭时放宽展示事实，保留Action检查。"""
+        """Drop 只豁免程序明确批准的非 Action 事实。"""
         explicitly_allowed = self.allowed_omitted_fact_indexes
-        if self._static_content:
-            return explicitly_allowed
-        if validate_drop_plan_facts or not explicitly_allowed:
-            return explicitly_allowed
-        facts = compact_plan.get("info_required") if compact_plan is not None else None
-        if not isinstance(facts, list):
-            return explicitly_allowed
-        allowed: list[int] = []
-        for index, fact in enumerate(facts):
-            if isinstance(fact, dict) and "actionId" not in fact:
-                allowed.append(index)
-        return tuple(allowed)
+        return explicitly_allowed
 
     @property
     def optional_drop_candidate(self) -> CompactOptionalDropCandidate | None:
@@ -1049,7 +1153,7 @@ class CompactRepairStrategyTracker:
             compact_dsl,
             compact_plan,
             task_spec,
-            allow_must_fallback=allow_must_fallback and not self._static_content,
+            allow_must_fallback=allow_must_fallback,
             max_fact_count=max_fact_count,
             allowed_fact_indexes=allowed_fact_indexes,
         )
@@ -1164,10 +1268,13 @@ class CompactRepairStrategyTracker:
             and self._plan_coverage_repair_submission_count
             >= PLAN_COVERAGE_EARLY_DROP_MIN_REPAIR_ATTEMPTS
         )
+        capacity_regroup_contract_failure = _capacity_regroup_contract_failure(
+            quality_errors,
+        )
         bounded_capacity_followup = (
             self._capacity_pressure_repair_submitted
             and self._repair_submission_count > 0
-            and (is_layout_failure or _capacity_regroup_contract_failure(quality_errors))
+            and (is_layout_failure or capacity_regroup_contract_failure)
         )
         early_drop_due = persistent_plan_coverage_followup or bounded_capacity_followup
         allow_text_compaction = _capacity_text_compaction_relevant(
@@ -1194,7 +1301,6 @@ class CompactRepairStrategyTracker:
                 invalid_source_dsl,
                 compact_plan,
                 task_spec,
-                allow_must_fallback=not self._capacity_recovery,
                 max_fact_count=max_fact_count,
                 allowed_fact_indexes=allowed_fact_indexes,
             )
@@ -1210,6 +1316,13 @@ class CompactRepairStrategyTracker:
             candidate_was_removed = _drop_candidate_is_fully_removed(
                 invalid_source_dsl,
                 self._optional_drop_candidate,
+            )
+            candidate_was_removed = (
+                candidate_was_removed
+                and _protected_core_is_reattached(
+                    invalid_source_dsl,
+                    self._optional_drop_candidate,
+                )
             )
             if candidate_was_removed and not is_layout_failure:
                 directive = _non_layout_directive(
@@ -1228,7 +1341,10 @@ class CompactRepairStrategyTracker:
                         invalid_source_dsl,
                         compact_plan,
                         task_spec,
-                        allow_must_fallback=not self._capacity_recovery,
+                        max_fact_count=self._capacity_overflow_limit,
+                        allowed_fact_indexes=(
+                            self._capacity_overflow_fact_indexes or None
+                        ),
                     )
                 if candidate is None:
                     directive = _full_dsl_transition_directive(
@@ -1308,7 +1424,6 @@ class CompactRepairStrategyTracker:
                         invalid_source_dsl,
                         compact_plan,
                         task_spec,
-                        allow_must_fallback=not self._capacity_recovery,
                     )
                 if candidate is None:
                     self._active_fallback = None
@@ -1445,6 +1560,16 @@ class CompactRepairStrategyTracker:
                 directive,
                 instruction=(f"{directive.instruction}\n\n{semantic_layout_guidance}"),
             )
+        if (
+            capacity_regroup_contract_failure
+            and directive.repair_strategy != "drop_optional_component"
+        ):
+            directive = replace(
+                directive,
+                instruction=(
+                    f"{directive.instruction}{_TEXT_ONLY_TABLE_REPAIR_INSTRUCTION}"
+                ),
+            )
         if directive.retryable:
             self._repair_submission_count += 1
             if has_plan_coverage_error and directive.repair_strategy != "drop_optional_component":
@@ -1473,7 +1598,7 @@ class CompactRepairStrategyTracker:
                 directive,
                 approved_omitted_fact_indexes=tuple(sorted(self._allowed_omitted_fact_indexes)),
             )
-        if self._static_content:
+        if self._static_content and directive.repair_strategy != "drop_optional_component":
             repeated = directive.consecutive_failures >= 2
             directive = replace(
                 directive,

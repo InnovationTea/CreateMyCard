@@ -22,6 +22,7 @@ from repair_compact_dsl import (
 from services import widget_generation_service
 from services.artifact_store import ArtifactStore, RepairArtifactRecord
 from services.asset_url_mapper import AssetUrlMapper
+from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessorKind,
@@ -185,6 +186,12 @@ async def test_online_restores_nested_facts_before_formatting_and_preserves_reco
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
     monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    # Drop 只限制模型可主动删除的事实，不应把修复后的覆盖缺失重新升为 error。
+    monkeypatch.setattr(
+        CompactRepairStrategyTracker,
+        "drop_active",
+        property(lambda _tracker: True),
+    )
     monkeypatch.setattr(
         WidgetGenerationService, "_enable_card_template", staticmethod(lambda: False)
     )

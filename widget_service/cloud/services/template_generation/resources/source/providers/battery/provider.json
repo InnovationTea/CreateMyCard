@@ -137,7 +137,7 @@
       "templateId": "BatteryOverviewChargingProgressHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机充电状态 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量百分比文本、充电状态和电池健康；可选电量等级、温度与充电状态以 · 拼成同一行，等级使用短文案，不展示进度条或充电器类型。 组件形态：chargingProgressHero。",
+      "description": "手机充电状态 Hero；顶部优先仅显示健康状态，无健康时显示title，title缺省或为空回退手机电量；电量主值下方依次为更新时间、状态行，状态行合并充电状态、短文案等级与温度；时间与状态同时存在时使用紧凑行高和间距以保留外层PillAction按钮空间；不展示进度条或充电器类型。",
       "optionalData": [
         "/chargingStatusDesc",
         "/healthStatusDesc",
@@ -615,7 +615,7 @@
       "templateId": "BatteryOverviewTemperatureStatusFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "BAT020式居中三段温度Full：顶部16fp请求title，无title用手机电池，中间30fp温度，底部12fp“电量: N%”。仅温度必需；电量文本、充电状态和充电器类型可选，无素材或按钮。仅电量时底行居中；有充电信息时左侧保留辅助信息、右侧展示电量。请求标题非空时逐字传入title。不推断温度正常。",
+      "description": "温度Full，按电量文本、充电状态、充电器类型的传入数量切换布局：0项为居中标题/温度/温度状态标识，1项为底部居中单项，2项参考天气更新时间Full将两项独立成行放左下角，3项参考电量健康明细Full展示温度主值和三行标签/数值。仅温度必需，无素材或按钮。请求标题非空时逐字传入title，缺省手机电池。不推断温度正常。",
       "entry": "templates/battery-temperature-status-full.cardtpl",
       "primaryData": [
         "/batteryTemperatureText"
@@ -631,7 +631,7 @@
       "templateId": "BatteryOverviewPercentStatusFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "充电状态 Hero 对应的无按钮 Full：顶部手机电量和可选健康、更新时间，30fp百分比大字，可选等级与温度在主值下方，充电状态独立固定在左下角；仅需电量文本，无图标或数值电量要求。",
+      "description": "无按钮 Full：有健康状态时顶部只显示健康状态；无健康状态时显示title，title未传或空字符串回退手机电量；无底部辅助信息时居中展示标题、30fp电量和电池状态标识；有辅助信息时靠左贴底依次展示更新时间、等级/温度、充电状态，更新时间独占一行；仅需电量文本，无图标或数值电量要求。",
       "entry": "templates/battery-percent-status-full.cardtpl",
       "primaryData": [
         "/batterySOCText"
@@ -725,7 +725,7 @@
       "templateId": "BatteryOverviewCurrentVoltageFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电池电流电压 Full，2x2 无按钮、无需图标。实时电流、电池电压及可选的剩余电量、温度、健康状态统一为12fp详情行，数值统一500字重。只要求电流与电压，不依赖电量等级或电池在位状态。",
+      "description": "手机电池电流电压 Full，2x2 无按钮、无需图标。可选 title 参数优先展示传入标题，未传或为空时显示电池状态。实时电流、电池电压及可选的剩余电量、温度、健康状态按此顺序整体左下对齐，统一为12fp详情行，数值500字重、行间距4vp，底部沿用外层主题安全边距。只要求电流与电压，不依赖电量等级或电池在位状态。",
       "entry": "templates/battery-current-voltage-full.cardtpl",
       "primaryData": [
         "/nowCurrentText",

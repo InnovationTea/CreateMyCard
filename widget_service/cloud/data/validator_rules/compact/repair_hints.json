@@ -13,6 +13,7 @@
   "COMPACT_LAYOUT_WIDTH_OVERFLOW": "根据子项占用与可用宽度调整区域分配，或改用合法组合。保留全部必要读数、标签、绑定和动作；尺寸与字号调整须遵守对应组件的设计约束和最小可读尺寸。调整后重新校验，不能依靠裁切、遮挡或丢失内容消除报错。",
   "COMPACT_LAYOUT_HEIGHT_UNRESOLVED": "先闭合承载列与祖先的高度关系；横排中的列需要填满高度时显式声明 height=matchParent 并确认祖先高度已确定，再扣除固定内容和间距，为伸缩区分配剩余高度并复算。保留事实、动作、字号和固定设计尺寸，不用裁剪或缩字掩盖溢出。",
   "COMPACT_BINDING_DATA_MISSING": "检查绑定路径与本轮允许的数据声明，使用有对应首帧数据的合法路径；不要编造动态数据。",
+  "COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE": "将 InfoBlock 进度主值改绑诊断 expected.numericSource 指定的数值路径；保留进度视觉和其它属性，展示单位放入静态 unit，不解析格式化字符串或借用其它对象数值。",
   "COMPACT_BINDING_PROGRESS_TYPE": "检查进度组件的绑定是否指向已声明的数值字段；不要仅为通过校验而将字符串或布尔值强制转成数值。",
   "COMPACT_CROSS_FILE_UNDECLARED_PATH": "对照本轮已声明的数据字段修正引用，保留用户必需内容；不要改写服务端的数据声明。"
 }

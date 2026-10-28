@@ -59,14 +59,43 @@ _REPAIR_CONTRACT_OPEN = "<repair_contract>"
 
 _CAPACITY_RECOVERY_PLAN_INSTRUCTION = (
     "<interface_retry_context>上一轮完整生成已经耗尽布局容量/结构修复预算。"
-    "本轮重新制定 Plan：先按同一对象和语义关系合并信息，优先选择占位更小且语义兼容的"
+    "本轮重新规划上一轮最后一次失败 DSL 中仍然可见的信息和全部 Action；"
+    "不要依据该轮 capacityFits.doesNotFit 再删除仍然可见的信息。"
+    "上一轮最终已经缺失的非 Action 信息不再加入。"
+    "先按同一对象和语义关系合并信息，优先选择占位更小且语义兼容的"
     "文本类组件；普通状态和辅助短信息可合入 SecondaryBody 或 TextBlock，格式化文本主结论"
     "可用 EmphasisText。核心数值、EventCard、进度/比较信息和 Action 仍使用对应语义组件，"
-    "SecondaryBody 不得成为整卡唯一核心。重新评估 priority：只有省略后不改变卡片主要用途的"
-    "补充事实可以标为 should；用户明确要求、核心事实和全部 Action 必须保持 must，禁止仅为"
-    "通过容量校验而降级。Plan 仍须覆盖全部事实，DSL 阶段再按受控策略处理 should。"
+    "SecondaryBody 不得成为整卡唯一核心。保留信息的 priority 不得修改，全部 Action 始终保留。"
     "</interface_retry_context>"
 )
+
+
+def _capacity_recovery_plan_instruction(retry_context: CompactDslRetryContext) -> str:
+    """把第一轮最终事实边界加入容量恢复上下文。"""
+    retained = [
+        {
+            fact.target: fact.value,
+            "requirement": fact.requirement,
+            "priority": fact.priority,
+        }
+        for fact in retry_context.retained_facts
+    ]
+    omitted = [
+        {
+            fact.target: fact.value,
+            "requirement": fact.requirement,
+        }
+        for fact in retry_context.omitted_facts
+    ]
+    scope = json.dumps(
+        {"requiredFacts": retained, "excludedFacts": omitted},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return (
+        f"{_CAPACITY_RECOVERY_PLAN_INSTRUCTION}\n"
+        f"<recovery_fact_scope>{scope}</recovery_fact_scope>"
+    )
 
 
 def _repair_target_instruction(repair_strategy: dict[str, Any] | None) -> str:
@@ -1762,13 +1791,22 @@ class PromptBuilder:
         )
         from services.generation_content_policy import current_content_policy
 
+        content_policy = current_content_policy()
         runtime_prompt_context_enabled = get_settings().enable_design_compact_runtime_prompt_context
         runtime_prompt_context_enabled = (
-            runtime_prompt_context_enabled and not current_content_policy().is_static
+            runtime_prompt_context_enabled and not content_policy.is_static
         )
+        recovery_facts = ()
+        if retry_context is not None and retry_context.capacity_recovery:
+            if not content_policy.is_static:
+                recovery_facts = retry_context.retained_facts
+        allowed_fact_targets = None
+        if recovery_facts:
+            allowed_fact_targets = tuple((fact.target, fact.value) for fact in recovery_facts)
         tool = build_compact_plan_tool(
             task_spec_value,
             include_composition=runtime_prompt_context_enabled,
+            allowed_fact_targets=allowed_fact_targets,
         )
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
         input_contract = "\n本轮不允许 report_missing_data，编辑不得扩大数据集合。"
@@ -1784,8 +1822,8 @@ class PromptBuilder:
             capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
         recovery_context = ""
         if retry_context is not None and retry_context.capacity_recovery:
-            recovery_context = f"\n\n{_CAPACITY_RECOVERY_PLAN_INSTRUCTION}"
-            if current_content_policy().is_static:
+            recovery_context = f"\n\n{_capacity_recovery_plan_instruction(retry_context)}"
+            if content_policy.is_static:
                 recovery_context = (
                     "\n\n上一轮容量未闭合。本轮重新选择分组、组件和布局；"
                     "保留must、保护原文、全部Action，不以扩尺寸、改写或省略核心解决容量。"
@@ -2247,10 +2285,11 @@ class PromptBuilder:
             capacity_fits = strategy.get("capacityFits")
             if isinstance(capacity_fits, list) and capacity_fits:
                 payload["instruction"] += (
-                    " capacityFits 给出当前固定容量组件的精确切分：directlyFits 是按当前顺序"
-                    "可直接放入该组件的条目，doesNotFit 是超出该组件合同的条目。先用它重选"
-                    "合法组件和布局，不要反复提交相同超限组合；它本身不授权删事实，只有"
-                    "optionalDrop 或 approvedOmissions 明确列出的非 Action 事实才允许省略。"
+                    " capacityFits 给出当前组件按固定上限或父区高度计算的精确切分："
+                    "directlyFits 是可直接保留的条目，doesNotFit 是当前组件放不下的条目。"
+                    "先用它重选合法组件和布局，不要反复提交相同超限组合；它本身不授权删"
+                    "事实，只有 optionalDrop 或 approvedOmissions 明确列出的非 Action 事实"
+                    "才允许省略。"
                 )
         if is_design_compact:
             omissions = _approved_omissions(compact_plan, repair_strategy)

@@ -33,8 +33,8 @@ description: 工具字段、事实粒度、优先级与软候选；不重复组�
 ### 2x4 有序列表的 Plan 容量例外
 
 当同一有序列表有超过 3 个可见成员，且计划使用单个 `EventCard` 或 `SummaryList`
-承载时，可在 Plan 阶段只选入最多 3 个完整成员进入 `info_required`，不必先将全部
-成员冻结为 `must` 后再等 DSL 修复删除。先保留用户单独点名或明确排序的成员；
+承载时，必须在 Plan 阶段只选入最多 3 个完整成员进入 `info_required`，不得将第 4 个及
+后续成员写入 Plan，也不得先将全部成员冻结为 `must` 后再等 DSL 修复删除。先保留用户单独点名或明确排序的成员；
 没有额外优先级时，按输入原始顺序保留前 3 个，不随机抽取或改变相对顺序。
 
 每个成员仍必须保持完整语义：`EventCard` 的同一 item 内 title、time 和可选 location
@@ -82,6 +82,7 @@ componentHints应反映已成立的组合：双信息块组合的事实首选 In
 dataId/text 不推荐按钮，actionId 仅推荐合法动作组件。标题按标题合同，事件要素合到一个 EventCard item，多事件默认合一实例；仅当 2x4 选用 W-top-bottom，且同一时间序列需按前后顺序分入 primary/details 时，可规划两个 EventCard，两段必须无重复并共同通过容量校验；不向 location 塞状态。比例、多段时长、完整单焦点、正文辅助等选择执行组件合同，不用大数值组件承载普通长文本。2x2 无动作且只有一个1–8字短文本结论和一条紧密支撑时，可推荐 DataDisplay 与 S-center；不要把更长正文、独立补充或多个结论压入该组件。
 2x4 含 actionId 时不推荐无合法动作槽的 W-top-bottom。2x2 图标操作只有满足 CircleButton 的全部条件才首选 S-title-anchor，缺独立支撑事实时排除它；不能为偏好某布局增造事实。
 2x2 两个入选 Action 使用 S-content-dual-action，两个按钮均为 CardButton。先扣除动作与固定间距，再核算完整内容组合；不因非 Action 事实至少两项就推荐 TableText。表格仍须满足等权语义，按实际条数、行数与 Recipe 高度核算；有明确核心时按核心与补充关系选型。不得把三个事实机械变成三行表格，不用 SecondaryBody 独自承担整卡核心，也不为纯动作需求补造展示事实。
+2x2 恰好一个入选 Action，且至多一个标记 displayRole:title 或首选 SingleLineTitle 的标题事实时，使用 S-title-content-action 的 title-action 变体：保留请求可得的稳定标题和一个 PillButton，不补造正文事实；只要有任一正文或 dataId 展示事实，就必须使用该布局的标准三角色结构。
 
 ## 3. 素材分配（仅 Schema 含 assetAssignments 时）
 

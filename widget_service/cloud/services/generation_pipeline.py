@@ -484,9 +484,11 @@ class DesignCompactProcessor:
                     exc.errors,
                     groups=exc.groups,
                 ).issues
+                capacity_evidence: list[Any] = list(exc.errors)
+                capacity_evidence.extend(item.to_payload() for item in exc.diagnostics)
                 capacity_contexts = bounded_component_capacity_contexts(
                     source_dsl,
-                    exc.errors,
+                    capacity_evidence,
                     context.compact_plan,
                 )
                 if capacity_contexts and compact_issues:

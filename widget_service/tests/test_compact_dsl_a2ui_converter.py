@@ -381,6 +381,28 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 protocol_profile=self.profile,
             )
 
+    def test_parser_only_preserves_unreachable_rows_when_explicitly_requested(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {}, ["details"]],
+                ["details", "SecondaryBody", {"items": [{"value": "详情"}]}],
+                ["core", "EmphasisText", {"mainText": "核心信息"}],
+            ]
+        )
+
+        with self.assertRaisesRegex(CompactDslConversionError, "Unreachable component"):
+            parse_compact_dsl_rows(compact_dsl, expand_layouts=False)
+
+        rows = parse_compact_dsl_rows(
+            compact_dsl,
+            expand_layouts=False,
+            preserve_unreachable=True,
+        )
+        component_ids = [
+            row.component_id for row in rows if isinstance(row, ComponentRow)
+        ]
+        self.assertEqual(component_ids, ["root", "details", "core"])
+
     def test_rejects_removed_direct_input_components(self) -> None:
         for component_type in (
             "ActionUnit",

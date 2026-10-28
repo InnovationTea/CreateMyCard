@@ -42,7 +42,7 @@
       }
     ],
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_call_bule"
     ]
   },
@@ -77,7 +77,7 @@
   "functionName": "generateWidgetCardCompactDsl",
   "romVersion": "NJL-AL20 6.0.0.111",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_call_bule"
   ],
   "candidateEventCandidates": [

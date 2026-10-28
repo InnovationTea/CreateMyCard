@@ -3,6 +3,13 @@
   "sites": [
     {
       "module": "semantic/bindings.py",
+      "function": "_info_block_progress_binding_diagnostic",
+      "code": "COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE",
+      "class": "semantic",
+      "category": "binding"
+    },
+    {
+      "module": "semantic/bindings.py",
       "function": "_collect_progress_value_errors",
       "code": "COMPACT_BINDING_PROGRESS_TYPE",
       "class": "semantic",

@@ -36,7 +36,7 @@
     ],
     "description": "监控天气并一键导航到公司。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.icon_car",
       "asset.local_fill"
     ]
@@ -106,7 +106,7 @@
   ],
   "description": "监控天气并一键导航到公司。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.icon_car",
     "asset.local_fill"
   ]

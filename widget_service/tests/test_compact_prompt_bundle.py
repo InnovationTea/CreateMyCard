@@ -175,7 +175,9 @@ def test_owned_action_layout_comparison_is_size_scoped_and_reaches_plan(size: st
     assert (rule in system) == (size == "2x4")
     assert "先判断事实在同组中是主值、标签、单位、补充还是事件要素" in system
     if size == "2x4":
-        assert "紧凑区容量不成立时仍比较其它合法布局，不强行分区" in system
+        assert "左右Region容量不成立时仍比较其它合法布局，不强行分区" in system
+
+
 def test_secondary_body_repair_does_not_add_non_core_companions() -> None:
     repair_prompt = read_prompt(DEFAULT_SOURCE, "repair", size="2x2")
     assert "SecondaryBody 不能成为整卡唯一正文核心" in repair_prompt
@@ -202,11 +204,13 @@ def test_plan_prompt_contains_only_incremental_contract(size: str) -> None:
     assert "## 2x4 组件选型" not in plan_prompt
 
 
-def test_plan_prompt_allows_bounded_three_item_list_selection_without_runtime_cap() -> None:
+def test_plan_prompt_requires_bounded_three_item_list_selection_without_runtime_cap() -> None:
     plan_prompt = read_prompt(DEFAULT_SOURCE, "plan", size="2x4")
 
     assert "2x4 有序列表的 Plan 容量例外" in plan_prompt
-    assert "只选入最多 3 个完整成员进入 `info_required`" in plan_prompt
+    assert "必须在 Plan 阶段只选入最多 3 个完整成员进入 `info_required`" in plan_prompt
+    assert "不得将第 4 个及" in plan_prompt
+    assert "后续成员写入 Plan" in plan_prompt
     assert "没有额外优先级时，按输入原始顺序保留前 3 个" in plan_prompt
     assert "Action 及其完整参数不适用此例外" in plan_prompt
     assert "不是 Runtime 对 `EventCard.items` 新增最多 3 项的硬上限" in plan_prompt
@@ -320,8 +324,8 @@ def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() ->
         "132×126vp",
         "132×57vp",
         "116×110vp",
-        "紧凑版主要角色间距6vp",
-        "宽版8vp",
+        "W-split-panels.left/right Region主要角色间距6vp",
+        "W-content-side-slots.content Region为8vp",
         '"Layout"',
         '"Region"',
     ):
@@ -355,13 +359,31 @@ def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() ->
         "先选父区，再按直属角色选variant",
         "第二、第三个是固定槽，不是另外两个Region",
         "children数量按直属组件ID计",
-        "紧凑与宽版都支持的四种Region结构",
-        "仅宽版支持的四种Region结构",
+        "W-split-panels.left/right 与 W-content-side-slots.content 都支持",
+        "仅 W-content-side-slots.content 支持",
         "四行SecondaryBody至少占70vp",
         "四格，不是父布局W-four-slots",
     ):
         assert example_rule in layouts
         assert example_rule in create_prompt
+
+    for parent_specific_rule in (
+        "两个：left、right都是Region",
+        "一个：只有content是Region",
+        "upper/lower不能放Region、标题、详情组或PillButton",
+        "禁止直接使用title-hero-support-action",
+        "hero-support Group作为唯一content",
+        "唯一content使用Group.hero-support",
+        "不选择Region variant；直接使用InfoBlock或CardButton",
+    ):
+        assert parent_specific_rule in layouts
+        assert parent_specific_rule in create_prompt
+
+    combinations = (DEFAULT_SOURCE / "combinations/2x4.md").read_text(encoding="utf-8")
+    assert "紧凑版" not in layouts
+    assert "宽版" not in layouts
+    assert "紧凑/宽版" not in combinations
+    assert "W-content-side-slots.content独有的结构" in combinations
 
     for removed_preset in (
         "neutral-footer",

@@ -8,6 +8,7 @@ from typing import Any
 from services.card_validation.compact_validation.constants import _NUMERIC_SCHEMA_TYPES
 from services.card_validation.compact_validation.diagnostics import (
     CompactDiagnostic,
+    DiagnosticCollector,
     emit_error,
 )
 from services.card_validation.compact_validation.schema import (
@@ -24,22 +25,30 @@ from services.compact_dsl_a2ui_converter import (
 
 def _compact_component_binding_errors(
     components: list[ComponentRow], data_model_schema: Any
-) -> list[str]:
+) -> DiagnosticCollector:
 
     def schema_type_for_path(path: str) -> str | None:
         return _schema_type(_schema_node_at_path(data_model_schema, path))
 
-    errors: list[str] = []
+    errors = DiagnosticCollector()
     resolver = schema_type_for_path if isinstance(data_model_schema, dict) else None
     for component in components:
-        errors.extend(
-            collect_compact_component_binding_errors(
-                component.component_id,
-                component.component_type,
-                component.props,
-                schema_type_resolver=resolver,
-            )
+        component_errors = collect_compact_component_binding_errors(
+            component.component_id,
+            component.component_type,
+            component.props,
+            schema_type_resolver=resolver,
         )
+        progress_diagnostic = _info_block_progress_binding_diagnostic(
+            component,
+            data_model_schema,
+        )
+        for message in component_errors:
+            if progress_diagnostic is not None and message == progress_diagnostic.legacy_message:
+                continue
+            errors.append(message)
+        if progress_diagnostic is not None:
+            errors.emit(progress_diagnostic)
         if component.component_type not in {"ProgressCircleSingle", "ProgressLine2"}:
             continue
         readout = _pure_binding_path(component.props.get("displayValue"))
@@ -65,6 +74,76 @@ def _compact_component_binding_errors(
                 f"numeric source {expected_path} for readout {readout}, not {actual_path}."
             )
     return errors
+
+
+def _info_block_progress_binding_diagnostic(
+    component: ComponentRow,
+    data_model_schema: Any,
+) -> CompactDiagnostic | None:
+    if component.component_type != "InfoBlock":
+        return None
+    visual = component.props.get("visual")
+    if not isinstance(visual, dict) or visual.get("type") != "progressCircle":
+        return None
+    binding_path = _pure_binding_path(component.props.get("primaryText"))
+    if binding_path is None:
+        return None
+    schema_node = _schema_node_at_path(data_model_schema, binding_path)
+    schema_type = _schema_type(schema_node)
+    if schema_type in _NUMERIC_SCHEMA_TYPES:
+        return None
+
+    numeric_source: str | None = None
+    numeric_source_type: str | None = None
+    if isinstance(schema_node, dict):
+        candidate = schema_node.get("numericSource")
+        if isinstance(candidate, str):
+            candidate_node = _schema_node_at_path(data_model_schema, candidate)
+            candidate_type = _schema_type(candidate_node)
+            if candidate_type in _NUMERIC_SCHEMA_TYPES:
+                numeric_source = candidate
+                numeric_source_type = candidate_type
+
+    expected: dict[str, Any] = {
+        "schemaTypes": ["integer", "number"],
+        "preserveVisual": True,
+        "unitProperty": "unit",
+    }
+    if numeric_source is not None:
+        expected["numericSource"] = numeric_source
+        expected["numericSourceType"] = numeric_source_type
+    actual = {
+        "path": binding_path,
+        "schemaType": schema_type,
+        "visualType": "progressCircle",
+    }
+    expected_types = "integer, number"
+    legacy_message = (
+        f"component {component.component_id}.props.primaryText: PathBinding {binding_path} "
+        f"has schema type {schema_type}; expected one of {expected_types}."
+    )
+    if numeric_source is not None:
+        message = (
+            f"InfoBlock {component.component_id} 的 progressCircle 主值绑定了字符串字段 "
+            f"{binding_path}；请改用该字段已登记的数值来源 {numeric_source}。"
+        )
+    else:
+        message = (
+            f"InfoBlock {component.component_id} 的 progressCircle 主值绑定了非数值字段 "
+            f"{binding_path}，且没有可验证的数值来源。"
+        )
+    return CompactDiagnostic(
+        code="COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE",
+        validation_class="semantic",
+        category="binding",
+        component_id=component.component_id,
+        property_path="/primaryText",
+        data_path=binding_path,
+        actual=actual,
+        expected=expected,
+        message=message,
+        legacy_message=legacy_message,
+    )
 
 
 def _collect_progress_value_errors(

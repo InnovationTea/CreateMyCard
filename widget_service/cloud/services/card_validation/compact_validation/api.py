@@ -166,7 +166,14 @@ def validate_compact_dsl(
         collect_secondary_body_context_errors(components, binding_contract_errors)
     _collect_compound_duration_component_errors(components, task_spec, binding_contract_errors)
     if binding_contract_errors:
-        raise CompactDslValidationError([*layout_errors, *binding_contract_errors])
+        combined_errors = DiagnosticCollector()
+        combined_errors.extend(layout_errors)
+        for record in binding_contract_errors.records:
+            if isinstance(record, CompactDiagnostic):
+                combined_errors.emit(record)
+            else:
+                combined_errors.append(record)
+        raise _validation_error(combined_errors, context, repair_context)
     original_errors = DiagnosticCollector()
     from services.generation_content_policy import current_content_policy
 
