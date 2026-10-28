@@ -120,6 +120,8 @@ def test_duplicate_display_fact_receives_structured_targeted_guidance() -> None:
     assert feedback.get("duplicateFacts") == [duplicate_fact]
     assert isinstance(instruction, str)
     assert "每个报错 dataId 修复后只能保留一个可见位置" in instruction
+    assert "requiredDisplayPositions" in instruction
+    assert "固定槽不能仅删除children" in instruction
     assert "只删除该 item" in instruction
     assert "同步删除直接父级 children 引用" in instruction
     assert "SecondaryBody 仍只能作为辅助信息" in instruction

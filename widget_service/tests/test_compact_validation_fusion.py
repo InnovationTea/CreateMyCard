@@ -356,7 +356,12 @@ def test_duplicate_plan_fact_context_reaches_repair_issue(
     plan_issue = next(
         item for item in result.errors if item.code == "COMPACT_PLAN_COVERAGE_FAILED"
     )
-    assert plan_issue.prompt_context == {"duplicateFacts": [duplicate_fact]}
+    feedback = plan_issue.prompt_context.get("duplicateFacts")
+    assert isinstance(feedback, list) and len(feedback) == 1
+    for key, value in duplicate_fact.items():
+        assert feedback[0].get(key) == value
+    assert feedback[0].get("requiredDisplayPositions") == []
+    assert "不能清空属性" in feedback[0].get("ownershipInstruction", "")
 
 
 @pytest.mark.parametrize("runtime_context", [False, True])

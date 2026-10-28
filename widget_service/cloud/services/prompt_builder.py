@@ -28,6 +28,7 @@ from services.compact_plan import (
     compact_plan_context,
     compact_plan_required_route,
 )
+from services.compact_plan_feedback import static_plan_repair_feedback
 from services.compact_plan_output import (
     PLAN_JSON_OUTPUT_INSTRUCTION,
     plan_output_format_feedback,
@@ -1838,11 +1839,14 @@ class PromptBuilder:
         from services.generation_content_policy import current_content_policy
 
         text_instruction = "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
+        reference_feedback = None
         if current_content_policy().is_static:
+            reference_feedback = static_plan_repair_feedback(invalid_output)
             text_instruction = (
                 "静态text仍允许忠于sourceTexts的摘要、合并和简洁表达，不要求逐字提取。"
                 "修正全部已报告的结构问题；contentGroups.factIndexes只引用本次提交的"
-                "info_required零起始索引，不引用来源条目；合并或删减展示事实后同步所有引用。"
+                "info_required零起始索引，不引用来源条目；合并或删减展示事实后，"
+                "须原子同步info_required、contentGroups及omittedContents全部引用。"
                 "sourceTexts每条事实引用1至3段连续原文，必要时引用完整连续上下文，不能编造引用。"
                 "selectionNotes为一个字符串数组，不在每项外另加数组。"
                 "对照来源自查对象名称、日期、数值与单位、否定、范围、冲突来源和必要限定；"
@@ -1858,26 +1862,27 @@ class PromptBuilder:
         )
         if not latest_is_submission:
             repaired.append({"role": "assistant", "content": invalid_output})
+        feedback_payload = {
+            "toolResult": {
+                "name": "submit_card_plan", "ok": False, "errors": list(errors),
+            },
+            "outputFormat": plan_output_format_feedback(invalid_output),
+            "instruction": (
+                PLAN_JSON_OUTPUT_INSTRUCTION + " "
+                "按本轮提供的合同修正计划或必要数据缺口报告，不得新增未开放的调用。"
+                "不得删除用户要求来规避错误，"
+                "但应移除模型自行新增且用户未要求的装饰标题事实。"
+                f"{text_instruction}"
+                "不得生成 Compact DSL、Markdown 或解释。"
+            ),
+        }
+        if reference_feedback is not None:
+            feedback_payload["staticPlanReferences"] = reference_feedback
         repaired.append(
             {
                 "role": "user",
                 "content": json.dumps(
-                    {
-                        "toolResult": {
-                            "name": "submit_card_plan",
-                            "ok": False,
-                            "errors": list(errors),
-                        },
-                        "outputFormat": plan_output_format_feedback(invalid_output),
-                        "instruction": (
-                            PLAN_JSON_OUTPUT_INSTRUCTION + " "
-                            "按本轮提供的合同修正计划或必要数据缺口报告，不得新增未开放的调用。"
-                            "不得删除用户要求来规避错误，"
-                            "但应移除模型自行新增且用户未要求的装饰标题事实。"
-                            f"{text_instruction}"
-                            "不得生成 Compact DSL、Markdown 或解释。"
-                        ),
-                    },
+                    feedback_payload,
                     ensure_ascii=False,
                     separators=(",", ":"),
                 ),
@@ -2347,7 +2352,10 @@ class PromptBuilder:
             elif duplicate_fact:
                 payload["instruction"] += (
                     "duplicateFacts 是本轮必须消除的重复可见绑定清单。逐项读取 dataId、"
-                    "actualVisibleCount 和 occurrences；每个报错 dataId 修复后只能保留一个"
+                    "actualVisibleCount 和 occurrences，并核对 requiredDisplayPositions 与"
+                    " ownershipInstruction。必填属性不能直接清空，固定槽不能仅删除children，"
+                    "须重分配已有事实或改用合法骨架闭合，不造事实填槽。"
+                    "每个报错 dataId 修复后只能保留一个"
                     "可见位置。优先保留具有明确对象、标签、完整值和单位的语义表达，不因"
                     "字号更大就保留含义不清的裸值或生硬拼接。重复位于 SecondaryBody 单个"
                     "item 时只删除该 item；表达式含多个 dataId 时只移除报错的重复引用，"

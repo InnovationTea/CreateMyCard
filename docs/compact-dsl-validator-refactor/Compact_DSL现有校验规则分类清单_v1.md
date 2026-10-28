@@ -1,5 +1,12 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-28 非容量修复：Plan 单调用包装、参数层级及重复 JSON 键由 `compact_plan_output.py`
+解析规范化，`compact_plan.py` 保留本轮字段与事实校验，并依据真实不同动作数约束双动作候选。
+静态分组／省略账本由 `compact_plan_feedback.py` 格式化已有关系错误，`prompt_builder.py` 只在
+失败静态 Plan 的原修复轮次注入，不猜补事实归属或改变省略许可。动态重复事实仍由原 Plan 覆盖规则判定；
+`compact_duplicate_display.py` 只构造独立重复项的有界去重候选及说明，`generation_pipeline.py`
+通过原完整处理链复检后才采用。不新增容量规则或错误码，不修改宽高、字体、组件合同与成功源。
+
 2026-10-25 静态展示质量增量：`displayRole`、`presentationStyle`、`paletteFamily` 的静态专属形状与
 枚举检查归 `compact_plan.py` 的信息计划合同；动态 Plan 不接受这些字段。可省略属性标签的字段形状
 由 `static_content_components.py` 共享展开检查，归语法／组件；value 仍必填，显式 label 不得为空。
