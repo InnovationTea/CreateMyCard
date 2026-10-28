@@ -36,15 +36,15 @@ class DisplayUnitValidator(BaseValidator):
             content = component.get("content")
             if not isinstance(component_id, str) or not isinstance(content, str):
                 continue
-            matched_rules = [
-                unit_rule_for_path(path, unit_rules)
-                for path in expression_references(content)
-            ]
-            matched_rules = [rule for rule in matched_rules if rule is not None]
+            matched_rules = []
+            for path in expression_references(content):
+                rule = unit_rule_for_path(path, unit_rules)
+                if rule is not None:
+                    matched_rules.append((path, rule))
             if len(matched_rules) != 1:
                 continue
-            rule = matched_rules[0]
-            inline_count = matching_unit_literal_count(content, rule)
+            path, rule = matched_rules[0]
+            inline_count = matching_unit_literal_count(content, rule, path)
             sibling_count = self._matching_sibling_count(
                 component_id,
                 rule,

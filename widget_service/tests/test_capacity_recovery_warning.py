@@ -1,6 +1,7 @@
 """省略warning必须参与接口恢复证据，不能覆盖Action或重复事实硬错误。"""
 
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -8,6 +9,7 @@ from api.schemas import GenerateWidgetCardRequest
 from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
+from services.artifact_store import ArtifactStore
 from services.compact_repair_strategy import compact_capacity_recovery_failure_category
 from services.generation_pipeline import (
     DslProcessingResult,
@@ -68,6 +70,7 @@ def test_actual_layout_error_cannot_override_action_or_duplicate_failure(kind):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
 @pytest.mark.parametrize("kind,prior_layout,expected", [
     ("props", True, True), ("props", False, False),
     ("action", True, False), ("duplicate", True, False),
@@ -133,5 +136,32 @@ async def test_service_passes_warning_evidence_to_interface_retry_context(
     assert (retry is not None) is expected
     if retry is not None:
         assert retry.capacity_recovery is True
+        assert retry.recovery_plan is not None
     assert len(process_calls) == 2
     assert formats == ["raw-json", "compact-dsl", "compact-dsl"]
+    if retry is None:
+        return
+
+    def accept_recovery(source_dsl, context):
+        assert context.compact_plan == retry.recovery_plan
+        return DslProcessingResult(
+            source_dsl=source_dsl,
+            standard_dsl='{"createSurface":{"surfaceId":"surface_card"}}',
+        )
+
+    monkeypatch.setattr(processor, "process", accept_recovery)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: SimpleNamespace(
+            artifactUrl="https://artifact.test/recovery-plan",
+            artifactDigest="sha256:recovery-plan",
+        ),
+    )
+    formats.clear()
+    retry_request = request.model_copy(deep=True)
+    retry_request._compact_dsl_retry_context = retry
+    recovered = await WidgetGenerationService().generate_widget_card_compact_dsl(retry_request)
+
+    assert recovered.status == GenerationStatus.SUCCESS
+    assert formats == ["compact-dsl"]

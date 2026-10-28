@@ -41,7 +41,7 @@
     "candidateEventCandidates": [],
     "description": "展示上海与河南平顶山两地当前与未来天气。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_uv_color"
     ]
   },
@@ -115,7 +115,7 @@
   "candidateEventCandidates": [],
   "description": "展示上海与河南平顶山两地当前与未来天气。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_uv_color"
   ]
 }

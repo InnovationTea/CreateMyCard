@@ -66,7 +66,7 @@
     ],
     "description": "漠河当前天气与手机电量、充电状态等信息（2x4）。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.battery_leaf_fill"
     ]
   },
@@ -165,7 +165,7 @@
   ],
   "description": "漠河当前天气与手机电量、充电状态等信息（2x4）。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.battery_leaf_fill"
   ]
 }

@@ -34,7 +34,7 @@
     "description": "电量+健康+温度",
     "candidateAssetIds": [
       "asset.battery_leaf_fill",
-      "asset.emoji_temperature_orange",
+      "asset.icon_weather_thermometer_medium",
       "asset.gearshape_fill"
     ]
   },
@@ -92,7 +92,7 @@
   "description": "电量+健康+温度",
   "candidateAssetIds": [
     "asset.battery_leaf_fill",
-    "asset.emoji_temperature_orange",
+    "asset.icon_weather_thermometer_medium",
     "asset.gearshape_fill"
   ]
 }

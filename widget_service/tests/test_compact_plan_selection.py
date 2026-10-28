@@ -5,10 +5,14 @@ import json
 
 import pytest
 
+from models.generation import CompactDslRecoveryFact
 from services.compact_plan import (
     build_compact_plan_tool,
+    build_compact_recovery_plan,
     compact_plan_context,
     compact_plan_coverage_errors,
+    compact_plan_recovery_facts,
+    compact_recovery_plan_errors,
     parse_compact_plan_call,
 )
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
@@ -66,6 +70,137 @@ def _parse(facts: list[dict], task: dict, layouts: list[str]) -> dict:
         ensure_ascii=False,
     )
     return parse_compact_plan_call(output, task).plan
+
+
+def test_capacity_recovery_uses_final_visible_facts_and_all_actions() -> None:
+    task = _selection_task("2x4")
+    facts = [
+        *_content_facts(2),
+        _action_fact("action.first"),
+    ]
+    plan = _parse(facts, task, ["W-content-side-slots"])
+    source = "\n".join(
+        [
+            (
+                '["root","Layout",{"layout":"W-content-side-slots",'
+                '"orientation":"content-left"},["content","upper","lower"]]'
+            ),
+            (
+                '["content","Region",{"variant":"title-hero-support"},'
+                '["title","main","support"]]'
+            ),
+            '["title","SingleLineTitle",{"title":"设备","fontSize":12}]',
+            (
+                '["main","EmphasisText",{"mainText":{"path":"/data/device/field0"},'
+                '"fontSize":18}]'
+            ),
+            (
+                '["support","SecondaryBody",{"items":[{"value":"设备状态"}],'
+                '"fontSize":14}]'
+            ),
+            (
+                '["upper","CardButton",{"label":"操作",'
+                '"onClick":[{"call":"clickToDeeplink","args":{"uri":"app://one"}}]}]'
+            ),
+            (
+                '["lower","CardButton",{"label":"详情",'
+                '"onClick":[{"call":"clickToDeeplink","args":{"uri":"app://two"}}]}]'
+            ),
+            '["/data/device/field0","读数0"]',
+        ]
+    )
+
+    retained, omitted = compact_plan_recovery_facts(source, plan, task)
+    plan["composition"] = {"layout": "W-content-side-slots"}
+    plan["compositionNotes"] = ["旧布局不可继续使用"]
+    recovery_plan = build_compact_recovery_plan(plan, retained)
+
+    assert [(fact.target, fact.value) for fact in retained] == [
+        ("dataId", "/data/device/field0"),
+        ("actionId", "action.first"),
+    ]
+    assert [(fact.target, fact.value) for fact in omitted] == [
+        ("dataId", "/data/device/field1"),
+    ]
+    assert recovery_plan is not None
+    assert recovery_plan["info_required"] == [facts[0], facts[2]]
+    assert "composition" not in recovery_plan
+    assert "compositionNotes" not in recovery_plan
+
+
+def test_capacity_recovery_retains_all_facts_visible_in_final_failed_dsl() -> None:
+    task = _selection_task("2x4")
+    facts = [*_content_facts(2), _action_fact("action.first")]
+    plan = _parse(facts, task, ["W-content-side-slots"])
+    source = "\n".join(
+        [
+            (
+                '["root","Layout",{"layout":"W-content-side-slots",'
+                '"orientation":"content-left"},["content","upper","lower"]]'
+            ),
+            (
+                '["content","Region",{"variant":"title-hero-support"},'
+                '["title","main","support"]]'
+            ),
+            '["title","SingleLineTitle",{"title":"设备","fontSize":12}]',
+            (
+                '["main","EmphasisText",{"mainText":{"path":"/data/device/field0"},'
+                '"fontSize":18}]'
+            ),
+            (
+                '["support","SecondaryBody",{"items":['
+                '{"value":{"path":"/data/device/field1"}}],"fontSize":12}]'
+            ),
+            '["upper","CardButton",{"label":"操作"}]',
+            '["lower","CardButton",{"label":"详情"}]',
+            '["/data/device/field0","读数0"]',
+            '["/data/device/field1","读数1"]',
+        ]
+    )
+    retained, omitted = compact_plan_recovery_facts(source, plan, task)
+
+    assert [(fact.target, fact.value) for fact in retained] == [
+        ("dataId", "/data/device/field0"),
+        ("dataId", "/data/device/field1"),
+        ("actionId", "action.first"),
+    ]
+    assert omitted == ()
+
+
+def test_capacity_recovery_plan_rejects_reintroduced_or_missing_facts() -> None:
+    required = (
+        CompactDslRecoveryFact(
+            target="dataId",
+            value="/data/device/field0",
+            requirement="用户要求的指标0",
+            priority="must",
+        ),
+        CompactDslRecoveryFact(
+            target="actionId",
+            value="action.first",
+            requirement="用户要求的操作",
+            priority="must",
+        ),
+    )
+    invalid = {
+        "info_required": [
+            {
+                "requirement": "用户要求的指标1",
+                "priority": "must",
+                "dataId": "/data/device/field1",
+            },
+            {
+                "requirement": "用户要求的操作",
+                "priority": "must",
+                "actionId": "action.first",
+            },
+        ]
+    }
+
+    errors = compact_recovery_plan_errors(invalid, required)
+
+    assert any("缺少第一轮最终保留的信息" in error for error in errors)
+    assert any("不得重新加入" in error for error in errors)
 
 
 @pytest.mark.parametrize("content_count", [0, 1, 2, 3, 5])

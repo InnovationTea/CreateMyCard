@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from services.card_validation.compact_validation.constants import _NON_EMPTY_CONTAINER_TYPES
@@ -85,7 +86,7 @@ def _collect_height_budget_errors(
         required_height = _column_children_minimum_height(
             component, components_by_id, measure_content_overflow=size == "2x2"
         )
-        height_tolerance = 2.0 if size == "2x2" else 0.0
+        height_tolerance = 2.0 if size in {"2x2", "2x4"} else 0.0
         if required_height <= available_height + height_tolerance + 1e-07:
             continue
         overflow = required_height - available_height
@@ -118,6 +119,15 @@ def _collect_height_budget_errors(
         }
         if removable_title_icon is not None:
             actual["removableTitleIcon"] = removable_title_icon
+        secondary_body_fits = _secondary_body_height_fits(
+            component,
+            components_by_id,
+            available_height=available_height,
+            height_tolerance=height_tolerance,
+            measure_content_overflow=size == "2x2",
+        )
+        if secondary_body_fits:
+            actual["secondaryBodyFits"] = secondary_body_fits
         emit_error(
             errors,
             CompactDiagnostic(
@@ -139,6 +149,146 @@ def _collect_height_budget_errors(
                 component_id=component.component_id,
             ),
         )
+
+
+def _secondary_body_height_fits(
+    parent: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    *,
+    available_height: float,
+    height_tolerance: float,
+    measure_content_overflow: bool,
+) -> list[dict[str, Any]]:
+    """用父区完整高度预算证明 SecondaryBody 最多可保留的展开行。"""
+    results: list[dict[str, Any]] = []
+    for component_id in _descendant_component_ids(parent, components_by_id):
+        component = components_by_id.get(component_id)
+        if component is None:
+            continue
+        row_item_indexes = _secondary_body_row_item_indexes(component, components_by_id)
+        if not row_item_indexes:
+            continue
+        retained_row_count = _maximum_retained_secondary_rows(
+            parent,
+            component,
+            components_by_id,
+            available_height=available_height,
+            height_tolerance=height_tolerance,
+            measure_content_overflow=measure_content_overflow,
+        )
+        if retained_row_count is None:
+            continue
+        if retained_row_count >= len(row_item_indexes):
+            continue
+        retained_item_indexes: list[int] = []
+        overflow_item_indexes: list[int] = []
+        for row_index, item_indexes in enumerate(row_item_indexes):
+            target = retained_item_indexes
+            if row_index >= retained_row_count:
+                target = overflow_item_indexes
+            target.extend(item_indexes)
+        row_heights = _secondary_body_row_heights(component, components_by_id)
+        results.append(
+            {
+                "componentId": component.component_id,
+                "parentId": parent.component_id,
+                "actualRowCount": len(row_item_indexes),
+                "maxRetainedRowCount": retained_row_count,
+                "effectiveColumnCount": max(map(len, row_item_indexes)),
+                "rowHeights": row_heights,
+                "rowSpacing": _non_negative_number(component.props.get("itemMargin")) or 0.0,
+                "directlyFitsItemIndexes": retained_item_indexes,
+                "doesNotFitItemIndexes": overflow_item_indexes,
+                "parentAvailableHeight": available_height,
+            }
+        )
+    return results
+
+
+def _descendant_component_ids(
+    parent: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> tuple[str, ...]:
+    pending = list(parent.children)
+    visited: set[str] = set()
+    result: list[str] = []
+    while pending:
+        component_id = pending.pop(0)
+        if component_id in visited:
+            continue
+        visited.add(component_id)
+        result.append(component_id)
+        component = components_by_id.get(component_id)
+        if component is not None:
+            pending.extend(component.children)
+    return tuple(result)
+
+
+def _secondary_body_row_item_indexes(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> tuple[tuple[int, ...], ...]:
+    if component.component_type != "Column" or not component.children:
+        return ()
+    row_pattern = re.compile(rf"^{re.escape(component.component_id)}_row\d+$")
+    item_pattern = re.compile(rf"^{re.escape(component.component_id)}_item(\d+)$")
+    result: list[tuple[int, ...]] = []
+    for row_id in component.children:
+        if row_pattern.fullmatch(row_id) is None:
+            return ()
+        row = components_by_id.get(row_id)
+        if row is None or row.component_type != "Row":
+            return ()
+        indexes: list[int] = []
+        for child_id in row.children:
+            match = item_pattern.fullmatch(child_id)
+            if match is not None:
+                indexes.append(int(match.group(1)))
+        if not indexes:
+            return ()
+        result.append(tuple(indexes))
+    return tuple(result)
+
+
+def _maximum_retained_secondary_rows(
+    parent: ComponentRow,
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    *,
+    available_height: float,
+    height_tolerance: float,
+    measure_content_overflow: bool,
+) -> int | None:
+    for retained_count in range(len(component.children) - 1, -1, -1):
+        candidate_components = dict(components_by_id)
+        candidate_components[component.component_id] = ComponentRow(
+            component.component_id,
+            component.component_type,
+            component.props,
+            component.children[:retained_count],
+        )
+        required_height = _column_children_minimum_height(
+            parent,
+            candidate_components,
+            measure_content_overflow=measure_content_overflow,
+        )
+        if required_height <= available_height + height_tolerance + 1e-07:
+            return retained_count
+    return None
+
+
+def _secondary_body_row_heights(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> list[float]:
+    heights: list[float] = []
+    for row_id in component.children:
+        row = components_by_id.get(row_id)
+        if row is None:
+            continue
+        heights.append(_minimum_outer_height(row, components_by_id, set()))
+    return heights
+
 
 def _collect_unresolved_height_error(
     component: ComponentRow,

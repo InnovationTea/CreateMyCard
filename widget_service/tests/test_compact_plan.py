@@ -1346,7 +1346,6 @@ def test_two_by_four_plan_without_action_keeps_top_bottom_layout_hint() -> None:
     [
         ("dataId", "/data/calendar/events/0/missing", "not present in TaskSpec"),
         ("actionId", "event.missing", "not present in TaskSpec"),
-        ("text", "模型自行增加的文案", "must be copied from userQuery"),
     ],
 )
 def test_plan_rejects_invented_targets(field: str, value: str, message: str) -> None:
@@ -1363,6 +1362,30 @@ def test_plan_rejects_invented_targets(field: str, value: str, message: str) -> 
     )
     with pytest.raises(CompactPlanValidationError, match=message):
         parse_compact_plan_call(raw, task_spec())
+
+
+def test_plan_warns_when_text_is_not_copied_from_user_query() -> None:
+    raw = json.dumps(
+        {
+            "name": "submit_card_plan",
+            "arguments": {
+                "info_required": [
+                    {
+                        "requirement": "带日期上下文的行程",
+                        "text": "Day1 11:30-13:00 知竹素菜馆午餐",
+                    },
+                ]
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    result = parse_compact_plan_call(raw, task_spec())
+
+    assert result.plan["info_required"][0]["text"] == "Day1 11:30-13:00 知竹素菜馆午餐"
+    assert result.warnings == (
+        "info_required[0].text must be copied from userQuery.",
+    )
 
 
 def test_compact_dsl_must_cover_plan_data_and_action() -> None:
@@ -1416,6 +1439,77 @@ def test_static_plan_fact_can_span_label_and_value_in_same_item(
     result = evaluate_compact_plan_coverage(source, plan, task_spec())
 
     assert result.errors == ()
+
+
+def test_third_missing_action_is_warning_after_two_valid_buttons() -> None:
+    daily = {"call": "openDaily", "args": {"target": "daily"}}
+    favorite = {"call": "openFavorite", "args": {"target": "favorite"}}
+    bluetooth = {"call": "setBluetooth", "args": {"enabled": True}}
+    spec = {
+        "size": "2x4",
+        "eventCandidates": [
+            {"id": "event.daily", **daily},
+            {"id": "event.favorite", **favorite},
+            {"id": "event.bluetooth", **bluetooth},
+        ],
+        "dataModelSchema": {"data": {}},
+    }
+    plan = {
+        "info_required": [
+            {"requirement": "每日推荐", "actionId": "event.daily"},
+            {"requirement": "收藏歌单", "actionId": "event.favorite"},
+            {"requirement": "蓝牙开关", "actionId": "event.bluetooth"},
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["daily","bluetooth"]]',
+            '["daily","CardButton",{"label":"每日推荐",'
+            f'"onClick":[{json.dumps(daily)}]' + "}]",
+            '["bluetooth","CardButton",{"label":"蓝牙开关",'
+            f'"onClick":[{json.dumps(bluetooth)}]' + "}]",
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, spec)
+
+    assert result.errors == ()
+    assert len(result.warnings) == 1
+    assert "event.favorite" in result.warnings[0]
+
+
+def test_missing_actions_remain_errors_when_only_one_button_is_visible() -> None:
+    daily = {"call": "openDaily", "args": {"target": "daily"}}
+    favorite = {"call": "openFavorite", "args": {"target": "favorite"}}
+    bluetooth = {"call": "setBluetooth", "args": {"enabled": True}}
+    spec = {
+        "size": "2x4",
+        "eventCandidates": [
+            {"id": "event.daily", **daily},
+            {"id": "event.favorite", **favorite},
+            {"id": "event.bluetooth", **bluetooth},
+        ],
+        "dataModelSchema": {"data": {}},
+    }
+    plan = {
+        "info_required": [
+            {"requirement": "每日推荐", "actionId": "event.daily"},
+            {"requirement": "收藏歌单", "actionId": "event.favorite"},
+            {"requirement": "蓝牙开关", "actionId": "event.bluetooth"},
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["daily"]]',
+            '["daily","CardButton",{"label":"每日推荐",'
+            f'"onClick":[{json.dumps(daily)}]' + "}]",
+        ]
+    )
+
+    result = evaluate_compact_plan_coverage(source, plan, spec)
+
+    assert len(result.errors) == 2
+    assert result.warnings == ()
 
 
 def test_static_plan_fact_cannot_span_different_structured_items() -> None:
@@ -1725,9 +1819,10 @@ def test_optional_drop_candidate_prefers_should_only_component() -> None:
     }
     source = "\n".join(
         [
-            '["root","Column",{},["title","time","action"]]',
+            '["root","Column",{},["title","main","time","action"]]',
             '["title","SingleLineTitle",{"title":{"path":'
             '"/data/calendar/events/0/title"}}]',
+            '["main","EmphasisText",{"mainText":"日程"}]',
             '["time","SecondaryBody",{"role":"metadata","items":'
             '[{"value":{"path":"/data/calendar/events/0/start"}}]}]',
             '["action","PillButton",{"label":"打开日历","onClick":'
@@ -1811,7 +1906,8 @@ def test_optional_drop_candidate_can_select_component_that_carries_must_fact() -
         ]
     }
     source = (
-        '["root","Column",{},["event"]]\n'
+        '["root","Column",{},["summary","event"]]\n'
+        '["summary","EmphasisText",{"mainText":"日程"}]\n'
         '["event","EventCard",{"items":[{"title":{"path":'
         '"/data/calendar/events/0/title"},"time":{"path":'
         '"/data/calendar/events/0/start"}}]}]'
@@ -1845,6 +1941,135 @@ def test_optional_drop_candidate_can_select_component_that_carries_must_fact() -
         candidate.fact_indexes,
     )
     assert [fact["requirement"] for fact in omitted] == ["会议标题", "会议开始时间"]
+
+
+def test_optional_drop_keeps_at_least_one_core_information_component() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/title",
+            }
+        ]
+    }
+    source = (
+        '["root","Column",{},["event"]]\n'
+        '["event","EventCard",{"items":[{"title":{"path":'
+        '"/data/calendar/events/0/title"}}]}]'
+    )
+
+    assert compact_plan_optional_drop_candidate(source, plan, spec) is None
+
+
+def test_optional_drop_can_recover_defined_but_unreachable_core_component() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "must",
+                "dataId": "/data/calendar/events/0/title",
+            },
+            {
+                "requirement": "会议开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/start",
+            },
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["core","EmphasisText",{"mainText":{"path":'
+            '"/data/calendar/events/0/title"}}]',
+            '["details","SecondaryBody",{"items":['
+            '{"label":"标题 ","value":{"path":'
+            '"/data/calendar/events/0/title"}},'
+            '{"label":"时间 ","value":{"path":'
+            '"/data/calendar/events/0/start"}}]}]',
+            '["dangling","SecondaryBody",{"items":['
+            '{"value":{"path":"/data/calendar/events/0/start"}}]}]',
+        ]
+    )
+
+    candidate = compact_plan_optional_drop_candidate(source, plan, spec)
+
+    assert candidate is not None
+    assert candidate.component_id == "details"
+    assert candidate.fact_indexes == (1,)
+    assert candidate.requires_core_reattach is True
+    assert candidate.protected_core_component_ids == ("core",)
+
+
+def test_optional_drop_still_rejects_source_without_any_defined_core_component() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议开始时间",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/start",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["details","SecondaryBody",{"items":['
+            '{"value":{"path":"/data/calendar/events/0/start"}}]}]',
+        ]
+    )
+
+    assert compact_plan_optional_drop_candidate(source, plan, spec) is None
+
+
+def test_secondary_body_partial_drop_prefers_should_does_not_fit_item() -> None:
+    spec = task_spec()
+    plan = {
+        "info_required": [
+            {
+                "requirement": "会议标题",
+                "priority": "must",
+                "dataId": "/data/calendar/events/0/title",
+            },
+            {
+                "requirement": "会议时间",
+                "priority": "must",
+                "dataId": "/data/calendar/events/0/start",
+            },
+            {
+                "requirement": "会议地点",
+                "priority": "should",
+                "dataId": "/data/calendar/events/0/location",
+            },
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["main","details"]]',
+            '["main","EventCard",{"items":[{"title":{"path":'
+            '"/data/calendar/events/0/title"}}]}]',
+            '["details","SecondaryBody",{"items":['
+            '{"label":"时间 ","value":{"path":"/data/calendar/events/0/start"}},'
+            '{"label":"地点 ","value":{"path":"/data/calendar/events/0/location"}}]}]',
+        ]
+    )
+
+    candidate = compact_plan_optional_drop_candidate(
+        source,
+        plan,
+        spec,
+        allowed_fact_indexes={1, 2},
+    )
+
+    assert candidate is not None
+    assert candidate.component_id == "details"
+    assert candidate.fact_indexes == (2,)
+    assert candidate.item_indexes == (1,)
+    assert candidate.partial is True
+    assert candidate.contains_must_facts is False
 
 
 def test_optional_drop_never_allows_action_fact_to_be_omitted() -> None:
@@ -2009,11 +2234,11 @@ def test_progress_driver_and_readout_count_as_one_visible_fact() -> None:
     assert compact_plan_coverage_errors(source, plan, spec) == ()
 
 
-@pytest.mark.parametrize("validate_drop_facts", [False, True])
 @pytest.mark.parametrize("drop_entered", [False, True])
 @pytest.mark.parametrize("missing_action", [False, True])
-def test_drop_fact_validation_switch_keeps_normal_coverage_and_action_checks(
-    validate_drop_facts: bool, drop_entered: bool, missing_action: bool,
+def test_drop_only_allows_explicit_omissions_and_keeps_action_checks(
+    drop_entered: bool,
+    missing_action: bool,
 ) -> None:
     spec = task_spec()
     spec["size"] = "2x4"
@@ -2052,7 +2277,8 @@ def test_drop_fact_validation_switch_keeps_normal_coverage_and_action_checks(
         assert directive.repair_strategy == "drop_optional_component"
         assert tracker.allowed_omitted_fact_indexes == (1,)
     allowed = tracker.validation_omitted_fact_indexes(
-        plan, validate_drop_plan_facts=validate_drop_facts,
+        plan,
+        validate_drop_plan_facts=False,
     )
     source_rows[2] = ["main", "EmphasisText", {"mainText": "日程概览"}]
     source_rows[5] = ["guide", "EmphasisText", {"mainText": "日程信息"}]
@@ -2068,14 +2294,10 @@ def test_drop_fact_validation_switch_keeps_normal_coverage_and_action_checks(
         protocol_profile={}, compact_plan=plan, allowed_omitted_plan_fact_indexes=allowed,
     ))
     messages = [issue.message for issue in result.errors]
-    expect_missing_facts = not drop_entered or validate_drop_facts
-    assert any("Plan fact is missing" in message for message in messages) == expect_missing_facts
+    assert any("Plan fact is missing" in message for message in messages)
     assert any("Plan action is missing" in message for message in messages) == missing_action
-    if not expect_missing_facts and not missing_action:
-        assert result.errors == ()
-        assert result.standard_dsl
     omitted = compact_plan_omitted_facts(source, plan, spec, allowed)
-    expected_omitted = 0 if not drop_entered else 1 if validate_drop_facts else 2
+    expected_omitted = 1 if drop_entered else 0
     assert len(omitted) == expected_omitted
     assert all("actionId" not in fact for fact in omitted)
 

@@ -15,6 +15,8 @@ description: 反馈定位、修复范围和有界删除；保留内容与固定�
 
 Plan 仅含两个必要动作且无展示事实时，保持 S-content-dual-action 的 actions-only 变体，
 直接引用两个 CardButton，不补内容槽、标题、占位正文或伪造状态；有展示事实时不能使用该变体。
+Plan 恰好仅含一个必要动作且至多一个明确标题事实时，保持 S-title-content-action 的 title-action 变体，
+直接引用 SingleLineTitle 和 PillButton，不补内容槽、占位正文或伪造状态；有展示事实时不能使用该变体。
 已登记 SetSettingSwitch 设置开关的整数 switchFlag 0/1 等价，不为切换这两个值触发修复；
 目标应用、配置项、其它参数和原参数类型仍须匹配候选。
 
@@ -26,6 +28,7 @@ Plan 仅含两个必要动作且无展示事实时，保持 S-content-dual-actio
 | category/validatorStage/fileKind/line/jsonPointer | 结合 invalidSourceDsl 定位原组件或 Prop；不猜不存在的行号 |
 | actual/expected/fixHint | 核对实际值及约束；建议不能覆盖合同和删除授权 |
 | duplicateFacts/occurrences | 报错 dataId 的重复可见位置，逐项定位，不当成缺失事实 |
+| duplicateActions/occurrences | 同一完整事件数组的重复按钮及父角色；固定槽不直接删，按 repairStrategy 调整必要父布局，保留唯一动作入口和全部独立信息 |
 | Occupancy | 子区实际最小占高及间距，找到共同超预算来源 |
 | Alternatives | 一个完整合法变体的全部不匹配项，不能只修 closest 的几项或混用变体 |
 | previousFailures/noProgress/consecutiveFailures | 判断是否重复根因；noProgress 或连续失败≥2时不只改 ID、颜色或无关属性 |
@@ -36,6 +39,7 @@ Plan 仅含两个必要动作且无展示事实时，保持 S-content-dual-actio
 expanded 位置来自模板展开，不是模型 Props。回到原语义 Layout/Region/Group 或业务组件修复，不输出自动生成节点，不修改模板宽高、间距、padding、权重或对齐。一个展开错误可能来自同一上游绑定或容量根因，先合并分析再修改。
 
 展示事实重复时，每个报错 dataId 只保留一个具有明确对象、标签、完整值和单位的位置，不因字号更大保留含义不清的裸值。SecondaryBody 仅删重复 item；多字段 Expression 仅移除重复引用，保留其它事实。组件仍有内容则保留，变空才删除组件行及直接父引用。不得改 Plan、删唯一展示或数据行、静态化动态值、影响未报错事实与 Action。去重后确认报错字段各出现一次、无空组件或孤立引用，核心组件及信息组语义仍成立。
+普通重复保持信息组内修复。只有 requiredDisplayPositions 确认同一事实占据至少两个不同必填展示槽时，才按 repairStrategy 的范围调整必要父布局和合法组合；不能清空必填槽、虚构新事实或无条件重建整卡。
 
 ## 2. 按 scope 控制改动
 
@@ -79,18 +83,19 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 
 | 实际问题 | 最小合法处理 |
 |---|---|
-| InfoBlock 的 progressCircle 主值格式错误 | 若存在已登记的有效数值来源则绑定该数值并保留 visual/icon；只有文本时保留完整文字，不生成首帧数值副本 |
+| InfoBlock 的 progressCircle 主值格式错误 | 错误反馈给出 `expected.numericSource` 时，直接把报错组件的 `primaryText` 改绑该数值路径，保留 `visual.type:"progressCircle"`、icon、fillColor、secondaryText；格式化值中的单位改为静态 `unit`，例如 `68%` 使用 `unit:"%"`。不得删除 progressCircle、解析首帧字符串或借用其它对象数值。只有未登记数值来源时才保留完整文字并改用非进度表达 |
 | InfoBlock 主文本超宽 | 先按组件合同恢复读数与静态说明的分工；不得覆盖动态辅助值。完整读数仍放不下时才在scope内重选合法组合，不因可移出的静态前缀直接退化为表格或主辅混搭 |
 | SecondaryBody 动态 label | 保留静态标签；动态部分与原 value 按显示顺序合入同项完整 value Expression，保留全部绑定 |
+| SecondaryBody 是整卡唯一业务正文 | 同一对象有 2–3 项同级等权的短标签—值时，优先改为可承担核心角色的 TableText；两项高 38vp/fontSize 12，三项高 52vp/fontSize 10。逐项保留 label、value 和绑定，按父区剩余高度核算；事件、比例、强调主值不表格化，超出项不得未授权删除 |
 | SecondaryBody 项数/字号/宽度 | 最多6项，只移除未被 Plan 要求的重复或可选项；必要项改组合。按最终单/多行使用规定字号；长值可 columns:1、maxLines:2并计新增行高 |
 | EmphasizedData 误装多段时长 | 完整绑定迁入 EmphasisText.mainText 固定18fp，辅助时长保持正文规格；不截数字或删单位 |
 | TextBlock 项目被拆散或超出槽宽 | 恢复全部分配的事实并按当前容量合同重组选型；不强塞四项，不留下单项占位，不删项或丢失绑定 |
 | EventCard 缺 title / 地点超宽 / 时间序列过长 | 无真实事件标题则普通属性合组，不伪造名称；长地点用普通密度或更宽合法内容区。多事件默认合并一实例；仅W-top-bottom可将同一序列有序分入primary/details两个EventCard，但不因分段跳过总高校验 |
 | EventCard 总高超出父槽 | 若 accepted Plan 只保留 2–3 条同级短事件，且每条的 title、time 和可选 location 合并后仍能单行完整显示，优先比较改用 `SummaryList`：按原顺序将同一 item 的完整文本合为一个显示值，动态字段用 Expression 保留全部 PathBinding。2项按64vp、3项按102vp重算高度并复查单行宽度。超过3项、存在多行长地点，或任一事实未获准省略时，不得借此删项、截断或改写事实；继续比较 compact EventCard、更宽合法区域或父布局重组 |
-| CardButton 标签过长 | labelLines:2，保留原字号、槽位和完整动作目标；仍不够换合法动作组合 |
+| PillButton/CardButton 标签超过5个字符 | 只缩短可见label为最多5个字符，使用“动作+必要目标”，例如“一键导航去公司”改为“导航去公司”；完整保留onClick、参数、真实目标、图标和唯一Action，不靠labelLines绕过 |
 | CardButton 图标不一致 | accepted Plan 已为动作分配素材时，恢复对应原始 src；Plan 为 null 或没有素材候选时保留 CardButton 也合法，原始 DSL 必须省略业务 icon，由转换器展示固定回退图标 `resources/base/media/ic_fallback_light.svg` |
 
-InfoBlock.secondaryText、TextBlock 的 label/value、CardButton.label 允许其合同的单行省略并只产生 warning；其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
+InfoBlock.secondaryText、TextBlock 的 label/value，以及不超过5个字符但仍因固定槽宽溢出的 CardButton.label，允许其合同的单行省略并只产生 warning；按钮label超过5个字符仍须先缩短。其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
 2x4 强调读数组合确实放不下、整卡其它地方已有核心组件且用户未要求大号强调/进度/事件形式时，可把该读数与同对象短补充无损合为一个 SecondaryBody.items。保留全部值、标签、单位和绑定，采用该组件合法单/多行规格，不补造核心组件；纯绑定/Props 错误不启用此容量例外。
 
 ## 5. 后段策略及删除权限
@@ -108,6 +113,9 @@ drop_optional_component 从第4次修复起且当前有结构/容量错误和合
 - approvedOmissions 是累计批准省略项，后续保持不可见，不能换 ID、组件或写静态文本加回。
 - 每轮仅删当轮指定一个组件；仍不闭合时等待下一轮明确授权，再合法重排。不能将一次授权理解为批量删除。
 - 若上一轮原样返回，本轮必须实际删除指定组件及父引用；已不存在则保持删除并闭合剩余结构。
+- optionalDrop.requiresCoreReattach=true 时，核心组件只是暂时不可达。必须把
+  protectedCoreComponentIds 中至少一个组件重新挂到合法内容角色；不得删除、替换或静态化这些核心组件。
+- Drop 阶段仍只能主动删除 allowedOmittedFactIndexes 指定的事实；未授权缺失在修复过程中会被记录为降级 warning，不等于新的删除授权，不得据此继续扩大删减。
 
 除明确授权省略项外，全部 Plan must/should 在生成、局部修复、重组和无损紧凑阶段都必须保留。最后输出完整修复 DSL，不原样重交已知失败候选。
 动态进度类型错误时，绑定展示字段 numericSource 指向的有效数值字段；未登记关系时不猜测，不把字符串样例解析为常数或私有数据。若仅能展示文字，保留全部事实并改用文字组件。

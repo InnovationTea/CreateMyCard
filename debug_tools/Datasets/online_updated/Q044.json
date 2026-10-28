@@ -36,7 +36,7 @@
     "candidateEventCandidates": [],
     "description": "显示临汾市尧都区的天气和手机电池电量。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.battery_leaf_fill"
     ]
   },
@@ -105,7 +105,7 @@
   "candidateEventCandidates": [],
   "description": "显示临汾市尧都区的天气和手机电池电量。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.battery_leaf_fill"
   ]
 }

@@ -51,7 +51,10 @@ from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
 from services.compact_plan import (
     CompactPlanValidationError,
     CompactPlanValidationResult,
+    build_compact_recovery_plan,
     compact_plan_omitted_facts,
+    compact_plan_recovery_facts,
+    compact_recovery_plan_errors,
     parse_compact_plan_call,
 )
 from services.compact_repair_strategy import (
@@ -593,6 +596,8 @@ class WidgetGenerationService:
             is_edit=generation_mode == "edit",
             requested_data=bool(request.candidateDataBindings),
             effective_data=bool(effective_bindings),
+            requested_events=bool(request.candidateEventCandidates),
+            effective_events=bool(effective_events),
             single_step=policy.single_step,
         )
         activate_request_policy(content_policy)
@@ -617,6 +622,8 @@ class WidgetGenerationService:
                 "staticPolicyEnabled": settings.enable_static_content_generation_policy,
                 "requestedData": bool(request.candidateDataBindings),
                 "effectiveData": bool(effective_bindings),
+                "requestedEvents": bool(request.candidateEventCandidates),
+                "effectiveEvents": bool(effective_events),
             },
         )
         from services.prompt_builder import PromptBuilder
@@ -940,12 +947,71 @@ class WidgetGenerationService:
                 details={
                     "messageCount": len(plan_prompt),
                     "capacityRecovery": capacity_recovery,
+                    "retainedFactCount": len(
+                        compact_retry_context.retained_facts
+                        if compact_retry_context is not None
+                        else ()
+                    ),
+                    "omittedFactCount": len(
+                        compact_retry_context.omitted_facts
+                        if compact_retry_context is not None
+                        else ()
+                    ),
                     "promptSha256": hashlib.sha256(
                         json.dumps(plan_prompt, ensure_ascii=False).encode("utf-8")
                     ).hexdigest(),
                 },
                 json_artifacts={"plan_prompt": plan_prompt},
             )
+            if capacity_recovery and compact_retry_context is not None:
+                recovery_plan = compact_retry_context.recovery_plan
+                if recovery_plan is not None:
+                    recovery_started_at = time.perf_counter()
+                    recovery_errors = compact_recovery_plan_errors(
+                        recovery_plan,
+                        compact_retry_context.retained_facts,
+                    )
+                    if not recovery_errors:
+                        accepted_plan = copy.deepcopy(recovery_plan)
+                        plan_arguments = copy.deepcopy(accepted_plan)
+                        plan_arguments.pop("wholeCardActionId", None)
+                        raw_plan = json.dumps(
+                            {
+                                "name": "submit_card_plan",
+                                "arguments": plan_arguments,
+                            },
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        )
+                        plan_prompt.append({"role": "assistant", "content": raw_plan})
+                        compact_agent_messages = plan_prompt
+                        accepted_compact_plan_warnings = ()
+                        trace_step(
+                            "plan.validation.completed",
+                            stage="plan.parseValidate",
+                            status="success",
+                            duration_ms=self._elapsed_ms(recovery_started_at),
+                            details={
+                                "warningCount": 0,
+                                "source": "deterministic_recovery",
+                                "modelCallSkipped": True,
+                            },
+                            json_artifacts={"accepted_plan": accepted_plan},
+                            artifact_roles={"accepted_plan": "output"},
+                        )
+                        logger.info(
+                            f"{_MODULE} compact_recovery_plan_accepted "
+                            f"fact_count={len(accepted_plan['info_required'])} "
+                            "model_call_skipped=true"
+                        )
+                        return accepted_plan
+                    trace_record(
+                        "plan.recovery.fallback",
+                        stage="plan",
+                        status="failed",
+                        details={"reason": "invalid_recovery_plan"},
+                        json_artifacts={"plan_validation_errors": recovery_errors},
+                    )
             plan_profile = {"id": "compact-info-plan", "format": "raw-json"}
             max_plan_attempts = 2
             refinement_plan: CompactPlanValidationResult | None = None
@@ -1014,6 +1080,13 @@ class WidgetGenerationService:
                             ),
                             **static_contract_options,
                         )
+                        if capacity_recovery and compact_retry_context is not None:
+                            recovery_errors = compact_recovery_plan_errors(
+                                validation.plan,
+                                compact_retry_context.retained_facts,
+                            )
+                            if recovery_errors:
+                                raise CompactPlanValidationError(recovery_errors)
                     except (CompactPlanValidationError, MissingDataReportValidationError) as exc:
                         plan_span.outcome("failed", errorCount=len(exc.errors))
                         parse_duration_ms = self._elapsed_ms(parse_started_at)
@@ -1636,17 +1709,13 @@ class WidgetGenerationService:
                     latest_processing_result,
                 )
                 return conversion_errors
-            if not settings.enable_artifact_validation and not policy.single_step:
+            unit_validation_only = (
+                not settings.enable_artifact_validation and not policy.single_step
+            )
+            if unit_validation_only:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=enable_artifact_validation_false"
-                )
-                self._append_repair_record(
-                    repair_records,
-                    model_call_phase,
-                    quality_repair_attempt_count,
-                    source_dsl,
-                    latest_processing_result,
                 )
                 with trace_attempt(**validation_attempts):
                     trace_record(
@@ -1655,7 +1724,15 @@ class WidgetGenerationService:
                         status="skipped",
                         details={"reason": "enable_artifact_validation_false"},
                     )
-                return []
+                if policy.processor_kind != DslProcessorKind.DESIGN_COMPACT:
+                    self._append_repair_record(
+                        repair_records,
+                        model_call_phase,
+                        quality_repair_attempt_count,
+                        source_dsl,
+                        latest_processing_result,
+                    )
+                    return []
 
             standard_dsl = processing_result.standard_dsl
             artifact_build_started_at = time.perf_counter()
@@ -1695,7 +1772,11 @@ class WidgetGenerationService:
             artifact_validator = ArtifactValidator(asset_mapper.mapping)
             artifact_validation_started_at = time.perf_counter()
             colorless = colorless_source() or single_step_theme
-            if colorless:
+            if unit_validation_only:
+                validation_errors = artifact_validator.validate_display_units(
+                    artifact, effective_data_capabilities
+                )
+            elif colorless:
                 validation_errors = artifact_validator.validate_layout(artifact, protocol_profile)
             else:
                 validation_errors = artifact_validator.validate(artifact, protocol_profile)
@@ -1723,11 +1804,15 @@ class WidgetGenerationService:
                 )
             with trace_attempt(**validation_attempts):
                 trace_step(
-                    "artifact_validation.completed",
+                    "display_unit_validation.completed"
+                    if unit_validation_only else "artifact_validation.completed",
                     stage="artifactValidation",
                     status="failed" if validation_errors else "success",
                     duration_ms=self._elapsed_ms(artifact_validation_started_at),
-                    details={"errorCount": len(validation_errors)},
+                    details={
+                        "errorCount": len(validation_errors),
+                        "scope": "display_units" if unit_validation_only else "full",
+                    },
                     json_artifacts={
                         "artifact_validation_input": artifact.model_dump(
                             mode="json",
@@ -1971,9 +2056,26 @@ class WidgetGenerationService:
                     ),
                 )
                 if issue_category is not None:
+                    retained_facts = ()
+                    omitted_facts = ()
+                    recovery_plan = None
+                    if accepted_compact_plan is not None:
+                        retained_facts, omitted_facts = compact_plan_recovery_facts(
+                            latest_processing_result.source_dsl,
+                            accepted_compact_plan,
+                            task_spec.model_dump(mode="json", exclude_none=True),
+                        )
+                        if not content_policy.is_static:
+                            recovery_plan = build_compact_recovery_plan(
+                                accepted_compact_plan,
+                                retained_facts,
+                            )
                     response._compact_dsl_retry_context = CompactDslRetryContext(
                         failure_category=issue_category,
                         capacity_recovery=True,
+                        retained_facts=retained_facts,
+                        omitted_facts=omitted_facts,
+                        recovery_plan=recovery_plan,
                     )
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
             self._log_generation_summary(

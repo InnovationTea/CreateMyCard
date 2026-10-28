@@ -6,12 +6,17 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
 from .base import expression_body, expression_references
 
 _STRING_LITERAL_RE = re.compile(r"^'(?P<value>(?:[^'\\]|\\.)*)'$")
+_DISPLAY_TOKEN_RE = re.compile(
+    r"\$\{(?P<path>[^}]+)\}|(?P<literal>'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\")"
+)
+_CONCAT_GAP_RE = re.compile(r"[\s()]*\+[\s()]*")
 _ARRAY_INDEX_RE = re.compile(r"/(?P<index>\d+)(?=/|$)")
 _UNIT_TEXT_SUFFIXES = frozenset(
     ("", "前", "后", "前开始", "后开始", "前结束", "后结束", "已使用", "已完成", "已消耗", "剩余")
@@ -107,15 +112,31 @@ def unit_rule_for_path(
     return rules.get(canonical_path)
 
 
-def matching_unit_literal_count(expression: Any, rule: DisplayUnitRule) -> int:
-    """统计表达式任意分支中与展示单位匹配的字符串字面量。"""
+def matching_unit_literal_count(expression: Any, rule: DisplayUnitRule, path: str) -> int:
+    """只统计当前绑定后连续拼接的单位，不跨过其它动态值或业务文字。"""
     if not isinstance(expression, str):
         return 0
-    return sum(
-        1
-        for literal in _string_literal_values(expression_body(expression))
-        if _value_matches_rule(literal, rule)
-    )
+    body = expression_body(expression)
+    count = 0
+    owner: str | None = None
+    previous_end = 0
+    for token in _DISPLAY_TOKEN_RE.finditer(body):
+        bound_path = token.group("path")
+        if bound_path is not None:
+            owner = bound_path
+        else:
+            start = token.start()
+            gap = body[previous_end:start]
+            if owner != path or _CONCAT_GAP_RE.fullmatch(gap) is None:
+                owner = None
+            else:
+                literals = _string_literal_values(token.group())
+                if literals and _value_matches_rule(literals[0], rule):
+                    count += 1
+                else:
+                    owner = None
+        previous_end = token.end()
+    return count
 
 
 def static_text_contains_rule(value: Any, rule: DisplayUnitRule) -> bool:
@@ -285,18 +306,23 @@ def _literal_matches_rule(term: str, rule: DisplayUnitRule) -> bool:
 
 
 def _value_matches_rule(value: str, rule: DisplayUnitRule) -> bool:
-    normalized_literal = _normalized_unit(value)
+    """只将独立单位、受控后缀或分隔符归属到当前动态数值字段。"""
+    normalized_literal = value.lstrip().casefold()
     for unit in rule.units:
         for alias in _normalized_aliases(unit):
-            for match in re.finditer(re.escape(alias), normalized_literal):
-                before = normalized_literal[:match.start()]
-                after = normalized_literal[match.end():]
-                if before and before[-1].isalpha():
-                    continue
-                if after and after[0].isalpha() and after not in _UNIT_TEXT_SUFFIXES:
-                    continue
+            if not normalized_literal.startswith(alias):
+                continue
+            suffix = normalized_literal.removeprefix(alias)
+            if _normalized_unit(suffix) in _UNIT_TEXT_SUFFIXES:
+                return True
+            if suffix and _unit_separator(suffix[0]):
                 return True
     return False
+
+
+def _unit_separator(char: str) -> bool:
+    """通用排版边界；竖线在 Unicode 中为数学符号，另行支持。"""
+    return char.isspace() or unicodedata.category(char).startswith("P") or char == "|"
 
 
 def _string_literal_values(expression: str) -> list[str]:

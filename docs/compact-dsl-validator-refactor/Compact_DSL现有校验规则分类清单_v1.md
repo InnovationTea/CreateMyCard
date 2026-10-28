@@ -1,5 +1,40 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-28 重复动作补漏：重复按钮属于语义／展示，由
+`semantic/action_display.py` 基于原始可达树、完整事件数组及已接受 Action 判定；Plan 覆盖编排
+携带独立 `duplicateActions` 定位，沿用 `COMPACT_PLAN_COVERAGE_FAILED`；
+`generation_pipeline.py` 只传递诊断，不构造按钮自动删除或布局变体调整候选。
+`compact_repair_strategy.py` 负责局部／必要父布局路由，`prompt_builder.py` 格式化动作反馈。
+不恢复旧 W9 特例，不修改候选事件匹配、组件合同、容量门禁、模板豁免或重试预算。
+
+2026-10-27 单位校验补充：缺失、重复单位归语义／展示语义，继续由公共
+`card_validation/display_unit_validator.py` 判定，`display_unit_rules.py` 提供绑定单位与相邻拼接匹配。
+单位后允许空白或标点分隔，不跨动态字段借用单位，不按业务文案新增后缀特例。
+缺失与重复单位在既有检查范围内统一为 error，删除百分比缺失降为 warning 的符号特例。
+自动去重仍只删除独立纯单位片段，不删除带业务文案的字符串；判定归展示语义，修复边界保持不变。
+`validator.py` 适配专项结果；`widget_generation_service.py` 仅编排：Compact 创建关闭完整产物校验时仍执行
+同一单位检查，使错误进入已有质量修复。开启完整校验时不重复调用专项检查；模板豁免保持不变。
+不新增 Compact 转换前检查、不移动既有规则、不增加重试预算。回归见 `test_display_units.py` 与
+`test_generation_unit_validation.py`；复杂表达式仍沿用现有支持范围，不引入通用解析器。
+
+2026-10-27：Plan Action 覆盖仍由 `compact_plan.py` 的生成编排层检查，动作素材履约仍归
+语义／跨文件一致性的 `semantic/plan_contracts.py`。已接受 Plan 含至少三个不同 Action，且 DSL
+已从 root 可达地保留至少两个不同、handler 精确匹配的合法按钮时，未落位的第三个及
+后续 Action 覆盖缺失降为 warning，对应素材“无匹配按钮”不重复阻断。这是生成阶段的容量降级，
+不迁移校验归属，不放宽单按钮合同、事件参数、可达性、重复动作或布局槽位检查。
+
+2026-10-26：动态 `info_required[].text` 是否为 `userQuery` 连续原文片段，归信息计划合同，判定位于
+`compact_plan.py`，不迁入 Compact DSL 校验目录。该来源不匹配由阻断错误调整为 warning，保留模型提交的
+事实，不单独触发 Plan 修复；初始 Plan 提示仍要求优先逐字引用。`dataId`、`actionId` 来源、Action 合同及
+后续 Plan 覆盖、绑定、协议和布局容量检查不受影响。
+
+2026-10-28 非容量修复：Plan 单调用包装、参数层级及重复 JSON 键由 `compact_plan_output.py`
+解析规范化，`compact_plan.py` 保留本轮字段与事实校验，并依据真实不同动作数约束双动作候选。
+静态分组／省略账本由 `compact_plan_feedback.py` 格式化已有关系错误，`prompt_builder.py` 只在
+失败静态 Plan 的原修复轮次注入，不猜补事实归属或改变省略许可。动态重复事实仍由原 Plan 覆盖规则判定；
+`compact_duplicate_display.py` 只构造独立重复项的有界去重候选及说明，`generation_pipeline.py`
+通过原完整处理链复检后才采用。不新增容量规则或错误码，不修改宽高、字体、组件合同与成功源。
+
 2026-10-25 静态展示质量增量：`displayRole`、`presentationStyle`、`paletteFamily` 的静态专属形状与
 枚举检查归 `compact_plan.py` 的信息计划合同；动态 Plan 不接受这些字段。可省略属性标签的字段形状
 由 `static_content_components.py` 共享展开检查，归语法／组件；value 仍必填，显式 label 不得为空。
@@ -89,7 +124,7 @@ Plan候选标准化只改动作组件，不删除事实或改变事件/素材授
 | 检查项 | 分类与实际落点 | 归属理由及边界 |
 |---|---|---|
 | actions-only 结构与几何 | 共享语义布局编译 `compact_semantic_layout.py`、布局合同 | 只增加同名布局的无内容变体，按钮尺寸与标准内容变体不变 |
-| actions-only 必要事实授权 | 语义／跨文件一致性，`semantic/plan_contracts.py` | 已接受 Plan 必须恰好两个不同动作且无展示事实，不豁免覆盖检查 |
+| 无正文动作变体必要事实授权 | 语义／跨文件一致性，`semantic/plan_contracts.py` | `actions-only` 必须恰好两个不同动作；`title-action` 必须恰好一个动作；两者均不得含展示事实，不豁免覆盖检查 |
 | 组件槽位角色与确定容量下界 | 生成侧共享 `compact_slot_compatibility.py`，组合候选复用 | 读取既有布局和 Recipe；未知不判可行，不新增发布错误码或复制几何校验 |
 | 已登记开关历史标记兼容 | 语义／有效能力，`semantic/effective.py`；共享规范化与比较 `event_matching.py` | 2026-10-20 覆盖八类已登记开关；注册表不声明历史标记，预检仅在 schema 校验副本中处理，Plan、素材与最终产物共用省略和整数 0/1 等价规则；其它参数精确比较，非法显式值不通过转换修正放行 |
 
@@ -150,6 +185,12 @@ enable_drop_plan_fact_validation 默认关闭；开启时在 Repair 阶段恢复
 2026-10-15：SecondaryBody.items数量上限由4改为6，归属语法／组件合同，仍委托
 compact_high_level_components.py的共享组件校验，不在分类入口重复实现。实际数量超过6时进入
 既有组件修复，由compact_repair_strategy.py说明可选补充项清理与Plan保护；容量归属与Drop授权不变。
+`COMPACT_LAYOUT_HEIGHT_OVERFLOW` 可附带 `SecondaryBody` 可保留行与 `doesNotFit` 条目证据；
+该证据仍归属语义／布局几何，Drop 选择与核心组件保护仍归属修复编排，不在校验入口重复判定。
+
+2026-10-28：`TableText.items` 的 2–3 项限制继续归共享语法／组件合同；当既有诊断明确表明条目超过
+三项时，`compact_repair_strategy.py` 仅消费该诊断并直接路由到条目级有界 Drop，逐项删至三项。
+此变更不复制组件判定、不改变错误严重等级；事实优先级、Action 保护和核心组件保护仍归修复编排。
 
 2026-10-14 单例检视补充：2×4 SecondaryBody 单行的完整值与静态标签共同核算宽度。
 归属语义／布局与视觉约束，落点 semantic/layout/text_width.py，复用现有同行压力函数及建议；
@@ -191,6 +232,7 @@ warning；共享 Runtime 继续确定性展开原顺序，版本化物理布局�
 | 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | CardButton 图标字段合法性 | 共享高阶组件合同，语法／组件 | `CardButton.icon` 可省略；存在时必须是非空静态字符串。省略业务 icon 时，转换器注入固定回退图标 `resources/base/media/ic_fallback_light.svg`，保留图标槽及对应文字宽度预算；不生成额外圆形、分隔线等占位视觉 |
 | CardButton 与 Plan 素材分配一致性 | `semantic/plan_contracts.py`，语义／跨文件一致性 | Plan 为动作分配非空素材时，DSL 继续使用该 ID 的原始 `src`；Plan 为空或没有素材候选时允许 DSL 省略业务 icon，由转换器注入固定回退图标，不得伪造业务素材或额外占位视觉 |
+| 按钮可见文案长度 | `semantic/display.py`，语义／展示，`COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG` | 原始 `PillButton`、`CardButton` 的静态 `label` 最多5个非空白字符；超限只授权缩短可见文案，完整保留 `onClick`、动作目标、组件与布局；由既有 DSL 质量修复处理，不占 Plan 重试预算 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -1281,6 +1323,7 @@ BASE-02 至 BASE-04 同样不在本次文档更新中修正规则。新反馈涉
 | 检查项 | 分类与实际落点 | 归属理由 |
 | --- | --- | --- |
 | 动态进度必须为已声明数值类型 | 语义／数据绑定，`semantic/bindings.py`；复用 `compact_component_bindings.py` 的组件绑定合同 | 检查绑定源类型；去除 `/__display` 私有路径豁免，沿用 `COMPACT_BINDING_PROGRESS_TYPE` |
+| InfoBlock 进度主值的数值来源 | 语义／数据绑定，`semantic/bindings.py` | 复用既有类型检查，以 `COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE` 携带展示路径、登记的 `numericSource` 和精确修复建议；不新增拒绝条件 |
 | 进度驱动与展示文字的登记关系 | 语义／数据绑定，`semantic/bindings.py` | 检查同对象同指标关系，不扩展布局或 Plan 编排职责 |
 | 完整产物进度引用首帧副本或非数值来源 | 公共绑定校验，`card_validation/progress_sources.py`，由公共 `BindingValidator` 调用 | 基于原始依赖和声明判断动态来源；代码 `BINDING_PROGRESS_SOURCE_INVALID`；转换后及保存前复用同一判定 |
 

@@ -391,7 +391,8 @@ def test_invalid_hint_configuration_is_rejected(tmp_path: Path, text: str) -> No
 
 def test_shipping_hint_configuration_and_registration() -> None:
     assert load_default_hints(repair_guidance.DEFAULT_HINT_PATH)
-    assert validate_builders(repair_guidance.HINT_BUILDERS) == {}
+    builders = validate_builders(repair_guidance.HINT_BUILDERS)
+    assert set(builders) == {"COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE"}
 
     def builder(diagnostic: CompactDiagnostic, context: RepairGuidanceContext | None) -> None:
         return None

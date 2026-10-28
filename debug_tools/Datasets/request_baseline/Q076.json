@@ -47,7 +47,7 @@
     "description": "日出天气+手机电池温度",
     "candidateAssetIds": [
       "asset.sun_max",
-      "asset.emoji_temperature_orange",
+      "asset.icon_weather_thermometer_medium",
       "asset.icon_weather_wind",
       "asset.bell_fill"
     ]
@@ -128,7 +128,7 @@
   "description": "日出天气+手机电池温度",
   "candidateAssetIds": [
     "asset.sun_max",
-    "asset.emoji_temperature_orange",
+    "asset.icon_weather_thermometer_medium",
     "asset.icon_weather_wind",
     "asset.bell_fill"
   ]

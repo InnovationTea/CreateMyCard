@@ -36,7 +36,7 @@
     "description": "包含当天主要日程，并可查看天气。",
     "candidateAssetIds": [
       "asset.calendar_fill",
-      "asset.ic_weather_color"
+      "asset.ic_weather_monochrome"
     ]
   },
   "deviceInfo": {
@@ -104,6 +104,6 @@
   "description": "包含当天主要日程，并可查看天气。",
   "candidateAssetIds": [
     "asset.calendar_fill",
-    "asset.ic_weather_color"
+    "asset.ic_weather_monochrome"
   ]
 }

@@ -25,8 +25,34 @@ class RepairGuidanceContext:
 
 
 HintBuilder = Callable[[CompactDiagnostic, RepairGuidanceContext | None], str | None]
+
+
+def _progress_binding_hint(
+    diagnostic: CompactDiagnostic,
+    _context: RepairGuidanceContext | None,
+) -> str | None:
+    expected = diagnostic.expected
+    actual = diagnostic.actual
+    if not isinstance(expected, dict) or not isinstance(actual, dict):
+        return None
+    numeric_source = expected.get("numericSource")
+    binding_path = actual.get("path")
+    if not isinstance(numeric_source, str) or not isinstance(binding_path, str):
+        return None
+    component_id = diagnostic.component_id or "报错组件"
+    return (
+        f"只把 {component_id}.primaryText 从格式化字符串路径 {binding_path} 改为 "
+        f'{{"path":"{numeric_source}"}}；保留 visual.type:"progressCircle"、icon、'
+        "fillColor、secondaryText 和其它合法属性。若原展示值含单位，把单位作为静态 unit "
+        '单独保留，例如“68%”使用 unit:"%"；不要删除 progressCircle、解析首帧字符串为'
+        "常量，或借用其它对象的数值字段。"
+    )
+
+
 # 只有真实条件来源已接通时才在此显式登记；不从配置导入函数。
-HINT_BUILDERS: tuple[tuple[str, HintBuilder], ...] = ()
+HINT_BUILDERS: tuple[tuple[str, HintBuilder], ...] = (
+    ("COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE", _progress_binding_hint),
+)
 DEFAULT_HINT_PATH = (
     Path(__file__).resolve().parents[3] / "data/validator_rules/compact/repair_hints.json"
 )
