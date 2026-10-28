@@ -12,6 +12,7 @@ class StaticPresentationTrial:
     source: str | None
     attempted: int
     errors: tuple[str, ...]
+    selection: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +122,7 @@ def _variants(objects: list[_DisplayObject], size: str, presentation: str):
         if body:
             props["body"] = body
         variants.append(("content", "ContentBlock", props))
+        variants.extend(_single_object_details(item))
     if len(objects) <= 6:
         attributes = []
         for item in objects:
@@ -147,6 +149,33 @@ def _variants(objects: list[_DisplayObject], size: str, presentation: str):
         variants.append(("comparison", "ComparisonGroup", {"items": items}))
     if presentation == "comparison":
         variants = [variant for variant in variants if variant[0] == "comparison"]
+    return variants
+
+
+def _single_object_details(item: _DisplayObject) -> list[tuple[str, str, dict]]:
+    """仅重新放置完整字段；长名称不被强制锁入大字号标题。"""
+    attributes = []
+    for fact in item.facts:
+        text = fact.get("text")
+        if isinstance(text, str):
+            attributes.append({"value": text})
+    if not 1 <= len(attributes) <= 6:
+        return []
+    props: dict[str, Any] = {"attributes": attributes}
+    if item.identity and item.identity not in item.text():
+        props["body"] = item.identity
+    variants = [("attributes", "ContentBlock", props)]
+    title = item.caption()
+    if title:
+        details = []
+        for fact in item.facts:
+            if fact.get("displayRole") in {"title", "label"}:
+                continue
+            text = fact.get("text")
+            if isinstance(text, str):
+                details.append({"value": text})
+        if details:
+            variants.append(("attributes", "ContentBlock", {"body": title, "attributes": details}))
     return variants
 
 
@@ -282,7 +311,14 @@ def trial_static_presentation(
         return StaticPresentationTrial(None, 0, ())
     errors = []
     attempted = 0
-    for source in static_presentation_candidates(plan, size):
+    valid_count = 0
+    best_source = None
+    best_score = None
+    objects, _shared = _display_objects(plan, ())
+    preferred = _preferred_style(objects, plan.get("presentationStyle", "auto"))
+    from services.static_presentation_ranking import score_static_presentation
+
+    for source in dict.fromkeys(static_presentation_candidates(plan, size)):
         attempted += 1
         try:
             validate_compact_dsl(
@@ -308,15 +344,24 @@ def trial_static_presentation(
             for coverage in static_fact_coverage(source, plan):
                 if not coverage.visible:
                     omitted.append(coverage.fact_index)
-            feedback: tuple[str, ...] = ()
-            if omitted:
-                message = (
-                    f"完整内容尚未排下，当前合法候选省略了事实索引{omitted}。"
-                    "请优先精简冗余措辞以保留这些信息；必要适用范围、条件和例外不能降为可选。"
-                    "原候选保留供后续DSL使用，不代表必须接受信息损失。"
-                )
-                feedback = (message, *errors)
-            return StaticPresentationTrial(source, attempted, feedback)
+            score = score_static_presentation(source, plan, size, preferred, tuple(omitted))
+            valid_count += 1
+            if best_source is None or best_score is None:
+                best_source, best_score = source, score
+            elif score.order_key(source) < best_score.order_key(best_source):
+                best_source, best_score = source, score
+    if best_source is not None and best_score is not None:
+        feedback: tuple[str, ...] = ()
+        if best_score.omitted_indexes:
+            message = (
+                f"完整内容尚未排下，当前合法候选省略了事实索引{list(best_score.omitted_indexes)}。"
+                "请优先精简冗余措辞以保留这些信息；必要适用范围、条件和例外不能降为可选。"
+                "原候选保留供直接编译，不代表必须接受信息损失。"
+            )
+            feedback = (message, *errors)
+        selection = best_score.summary(best_source)
+        selection.update(candidateCount=attempted, validCandidateCount=valid_count)
+        return StaticPresentationTrial(best_source, attempted, feedback, selection)
     if not attempted:
         count = sum(group.get("kind") == "object" for group in plan.get("contentGroups", []))
         errors.append(

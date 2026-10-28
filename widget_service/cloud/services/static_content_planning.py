@@ -14,6 +14,7 @@ class StaticPlanSelection:
     omitted_contents: tuple[str, ...] = ()
     presentation: str | None = None
     trial_errors: tuple[str, ...] = ()
+    presentation_selection: dict[str, Any] | None = None
 
 
 def select_static_plan_content(
@@ -24,7 +25,7 @@ def select_static_plan_content(
     *,
     presentation_style: str = "auto",
 ) -> StaticPlanSelection:
-    """有界候选只作为排版参考，未找到不证明所有合法排版不可行。"""
+    """优选合法候选供直接编译；未找到不证明所有合法排版不可行。"""
     from services.static_content_presentation import trial_static_presentation
 
     trial = trial_static_presentation(
@@ -39,6 +40,7 @@ def select_static_plan_content(
     feedback = tuple(error[:900] for error in trial.errors[:3])
     return StaticPlanSelection(
         facts, groups, [], presentation=trial.source, trial_errors=feedback,
+        presentation_selection=trial.selection,
     )
 
 
