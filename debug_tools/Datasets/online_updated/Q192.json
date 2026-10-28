@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "新年倒计时",
+    "description": "距离新年还有",
+    "userQuery": "帮我生成一张新年卡片，展示距离2027年1月1日新年的倒计时天数。\n\n本轮卡片静态内容（用作展示的外部事实）：\n距离2027年1月1日新年倒计时",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2027-01-01"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025000445868"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "8d90c97c-773b-4a32-953b-96ff50f40e7e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL00 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "距离新年还有",
+  "userQuery": "帮我生成一张新年卡片，展示距离2027年1月1日新年的倒计时天数。\n\n本轮卡片静态内容（用作展示的外部事实）：\n距离2027年1月1日新年倒计时",
+  "title": "新年倒计时",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2027-01-01"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "content": {
+    "title": "每日早报",
+    "description": "每日早报速览",
+    "userQuery": "做一张每日早报卡片，展示今日天气、当前时间、日程安排和手机电量等信息。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "芙蓉区",
+          "forecastDays": 1,
+          "prefectureName": "长沙市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/location/districtName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/time"
+      },
+      {
+        "arguments": {
+          "futureDays": 1
+        },
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/eventLocation"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027000126080"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "73f5c8ed-6619-4222-a2d4-1431a82b84d0"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "每日早报速览",
+  "userQuery": "做一张每日早报卡片，展示今日天气、当前时间、日程安排和手机电量等信息。",
+  "title": "每日早报",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "芙蓉区",
+        "forecastDays": 1,
+        "prefectureName": "长沙市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName",
+        "/location/districtName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ],
+      "capabilityId": "GetCurrentTime",
+      "writeResultTo": "/data/time"
+    },
+    {
+      "arguments": {
+        "futureDays": 1
+      },
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/eventLocation"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    },
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ]
+}

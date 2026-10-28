@@ -1,0 +1,125 @@
+{
+  "content": {
+    "title": "今明天气",
+    "description": "今明两天天气速览",
+    "userQuery": "做一张小艺天气卡片，显示今天和明天两天的天气内容。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今天（10月25日）巢湖市小雨转晴，气温14℃~23℃，东北风3级，空气质量优。\n明天（10月26日）巢湖市晴转阴，气温16℃~23℃，东北风1级，空气质量轻度污染。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "巢湖市",
+          "forecastDays": 2,
+          "prefectureName": "合肥市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/daily/0/date",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/date",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/location/prefectureName",
+          "/location/districtName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025122426790"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "f075ba27-40e1-42d8-8c51-327fa9b458da"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "今明两天天气速览",
+  "userQuery": "做一张小艺天气卡片，显示今天和明天两天的天气内容。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今天（10月25日）巢湖市小雨转晴，气温14℃~23℃，东北风3级，空气质量优。\n明天（10月26日）巢湖市晴转阴，气温16℃~23℃，东北风1级，空气质量轻度污染。",
+  "title": "今明天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "巢湖市",
+        "forecastDays": 2,
+        "prefectureName": "合肥市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/daily/0/date",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/date",
+        "/daily/1/weekday",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText",
+        "/location/prefectureName",
+        "/location/districtName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

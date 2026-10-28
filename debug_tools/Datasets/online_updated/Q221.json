@@ -1,0 +1,173 @@
+{
+  "content": {
+    "title": "日历天气",
+    "description": "日历与天气小挂件",
+    "userQuery": "设置日历的天气的小挂件，做一个同时显示日历日程和天气的桌面卡片。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 3
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/daily/0/weekday",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/weekday",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/weekday",
+          "/daily/2/temperatureRangeText",
+          "/location/prefectureName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/startDate",
+          "/events/0/countdownDays"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_calendar2",
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261024121957943"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "31c90e20-bf63-452d-8cb6-7b26977eb42f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.emoji_calendar2",
+    "asset.ic_weather_monochrome"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "日历与天气小挂件",
+  "userQuery": "设置日历的天气的小挂件，做一个同时显示日历日程和天气的桌面卡片。",
+  "title": "日历天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "forecastDays": 3
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/daily/0/weekday",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/weekday",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/weekday",
+        "/daily/2/temperatureRangeText",
+        "/location/prefectureName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {
+        "futureDays": 7
+      },
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/startDate",
+        "/events/0/countdownDays"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    }
+  ]
+}

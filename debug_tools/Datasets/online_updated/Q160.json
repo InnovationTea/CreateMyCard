@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "当前时间",
+    "description": "日期星期农历",
+    "userQuery": "做一张时间卡片，显示当前日期、星期和农历。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/time"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027074601499"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "367a2d72-520e-4e59-aa3f-9ab4d166e57f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "日期星期农历",
+  "userQuery": "做一张时间卡片，显示当前日期、星期和农历。",
+  "title": "当前时间",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ],
+      "capabilityId": "GetCurrentTime",
+      "writeResultTo": "/data/time"
+    }
+  ]
+}

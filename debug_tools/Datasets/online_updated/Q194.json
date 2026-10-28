@@ -1,0 +1,111 @@
+{
+  "content": {
+    "title": "睡眠卡片",
+    "description": "运动健康睡眠数据展示",
+    "userQuery": "把这个睡眠小卡片改成2×2的，小一点，我好放在右下角。\n\n本轮卡片静态内容（用作展示的外部事实）：\n睡眠数据来自运动健康应用，包含睡眠得分、睡眠状态、睡眠时长等科学睡眠分析信息。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/sleepScore",
+          "/sleepStatus",
+          "/nightSleepDurationText",
+          "/targetDateText"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sleep"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.moon_circle_fill",
+      "asset.figure_sleeping_bed_side_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027090406232"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "c509d406-e963-4aef-b7d7-d47a3d6df13b"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.moon_circle_fill",
+    "asset.figure_sleeping_bed_side_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sleep"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "运动健康睡眠数据展示",
+  "userQuery": "把这个睡眠小卡片改成2×2的，小一点，我好放在右下角。\n\n本轮卡片静态内容（用作展示的外部事实）：\n睡眠数据来自运动健康应用，包含睡眠得分、睡眠状态、睡眠时长等科学睡眠分析信息。",
+  "title": "睡眠卡片",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "candidateOutputFields": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/nightSleepDurationText",
+        "/targetDateText"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ]
+}

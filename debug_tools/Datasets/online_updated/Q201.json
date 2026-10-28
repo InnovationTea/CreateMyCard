@@ -1,0 +1,123 @@
+{
+  "content": {
+    "title": "我的待办",
+    "description": "备忘录待办速览",
+    "userQuery": "我要设置备忘录中的待办为桌面卡片，展示我的待办事项。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/todoTotalCount",
+          "/todoPendingCount",
+          "/todoCompletedCount",
+          "/todos/0/title",
+          "/todos/0/isComplete",
+          "/todos/0/reminderTimeText",
+          "/todos/1/title",
+          "/todos/1/isComplete",
+          "/todos/1/reminderTimeText",
+          "/todos/2/title",
+          "/todos/2/isComplete",
+          "/todos/2/reminderTimeText"
+        ],
+        "capabilityId": "GetMemoData",
+        "writeResultTo": "/data/memo"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewNote"
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025093310033"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "79ddc1b0-7563-4e62-bf7a-f1eea05c4029"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewNote"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "备忘录待办速览",
+  "userQuery": "我要设置备忘录中的待办为桌面卡片，展示我的待办事项。",
+  "title": "我的待办",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/todoTotalCount",
+        "/todoPendingCount",
+        "/todoCompletedCount",
+        "/todos/0/title",
+        "/todos/0/isComplete",
+        "/todos/0/reminderTimeText",
+        "/todos/1/title",
+        "/todos/1/isComplete",
+        "/todos/1/reminderTimeText",
+        "/todos/2/title",
+        "/todos/2/isComplete",
+        "/todos/2/reminderTimeText"
+      ],
+      "capabilityId": "GetMemoData",
+      "writeResultTo": "/data/memo"
+    }
+  ]
+}

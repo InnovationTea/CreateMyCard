@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "停车卡片",
+    "description": "停车信息速览",
+    "userQuery": "打开停车卡片",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/pluggedTypeDesc"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025054908372"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "81f31308-da51-4fc1-a6dd-44d55da33ea8"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "停车信息速览",
+  "userQuery": "打开停车卡片",
+  "title": "停车卡片",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/pluggedTypeDesc"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ]
+}

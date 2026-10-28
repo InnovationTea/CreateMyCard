@@ -1,0 +1,51 @@
+{
+  "content": {
+    "title": "执业医师考试知识点",
+    "description": "核心考点梳理",
+    "userQuery": "帮我生成执业医师考试核心知识点卡片，帮我梳理好生成卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n执业医师考试核心知识点梳理：\n一、医学基础：人体解剖学、生理学、生物化学、病理学、药理学、医学微生物学、医学免疫学\n二、临床医学：内科学、外科学、妇产科学、儿科学、神经病学、精神病学\n三、预防医学：流行病学、卫生统计学、环境卫生学\n四、医学人文：医学伦理学、卫生法规、医学心理学",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026060111125"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "c3664188-7112-46a2-84dc-af19878db4f0"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "核心考点梳理",
+  "userQuery": "帮我生成执业医师考试核心知识点卡片，帮我梳理好生成卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n执业医师考试核心知识点梳理：\n一、医学基础：人体解剖学、生理学、生物化学、病理学、药理学、医学微生物学、医学免疫学\n二、临床医学：内科学、外科学、妇产科学、儿科学、神经病学、精神病学\n三、预防医学：流行病学、卫生统计学、环境卫生学\n四、医学人文：医学伦理学、卫生法规、医学心理学",
+  "title": "执业医师考试知识点",
+  "candidateDataBindings": []
+}

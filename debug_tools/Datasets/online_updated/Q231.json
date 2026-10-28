@@ -1,0 +1,77 @@
+{
+  "content": {
+    "title": "思念爷爷",
+    "description": "爷爷离开的天数",
+    "userQuery": "爷爷是2025年12月10日过世的，做一个和日历相关的卡片提醒我爷爷过世了多久，并且要随着时间更新。\n\n本轮卡片静态内容（用作展示的外部事实）：\n爷爷于2025年12月10日过世，卡片需实时显示爷爷离开的天数并随时间自动更新。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2025-12-10"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027154019154"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "2b160162-9af7-481f-bfad-e910a205d245"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.calendar_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "爷爷离开的天数",
+  "userQuery": "爷爷是2025年12月10日过世的，做一个和日历相关的卡片提醒我爷爷过世了多久，并且要随着时间更新。\n\n本轮卡片静态内容（用作展示的外部事实）：\n爷爷于2025年12月10日过世，卡片需实时显示爷爷离开的天数并随时间自动更新。",
+  "title": "思念爷爷",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2025-12-10"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

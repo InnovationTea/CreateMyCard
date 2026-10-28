@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "驾驶卡",
+    "description": "手机电量速览",
+    "userQuery": "做一张驾驶卡，显示手机当前电量信息。\n\n本轮卡片静态内容（用作展示的外部事实）：\n手机当前电量",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryCapacityLevelDesc"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026202501076"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "6fae3a9f-9c38-4f45-a2a7-8d8adaf554e5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "手机电量速览",
+  "userQuery": "做一张驾驶卡，显示手机当前电量信息。\n\n本轮卡片静态内容（用作展示的外部事实）：\n手机当前电量",
+  "title": "驾驶卡",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ]
+}

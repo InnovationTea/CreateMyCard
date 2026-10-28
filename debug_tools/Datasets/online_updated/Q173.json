@@ -1,0 +1,139 @@
+{
+  "content": {
+    "title": "日历日程",
+    "description": "日历日程小组件，展示近期日程和倒计时",
+    "userQuery": "制作一个日历小组件，展示最近的日程安排和倒计时信息，方便随时查看。\n\n本轮卡片静态内容（用作展示的外部事实）：\n日历小组件，展示近期日程安排和重要日期倒计时。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "futureDays": 30
+        },
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/countdownDays",
+          "/events/1/title",
+          "/events/1/startDate",
+          "/events/1/countdownDays"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "arguments": {
+          "targetDate": "2026-11-08"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.bell_fill",
+      "asset.house_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025035512364"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "38a0e9e3-535b-4ec0-809c-a58b9cc97628"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.bell_fill",
+    "asset.house_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "日历日程小组件，展示近期日程和倒计时",
+  "userQuery": "制作一个日历小组件，展示最近的日程安排和倒计时信息，方便随时查看。\n\n本轮卡片静态内容（用作展示的外部事实）：\n日历小组件，展示近期日程安排和重要日期倒计时。",
+  "title": "日历日程",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "futureDays": 30
+      },
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/countdownDays",
+        "/events/1/title",
+        "/events/1/startDate",
+        "/events/1/countdownDays"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    },
+    {
+      "arguments": {
+        "targetDate": "2026-11-08"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

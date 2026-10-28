@@ -1,0 +1,55 @@
+{
+  "content": {
+    "title": "谢霆锋演唱会倒计时",
+    "description": "距离谢霆锋进化巡回演唱会各站还有多少天",
+    "userQuery": "谢霆锋进化巡回演唱会即将举办场次倒计时卡片，温州10月31日、佛山11月8日、杭州11月14日、福州11月28日、广州12月18日",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "ICL-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ICL-AL10",
+    "prdVer": "11.7.8.340",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026025745294"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "8",
+    "isNew": false,
+    "sessionId": "2703f37f-9144-461e-8c1e-75fe03659cf1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "ICL-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "距离谢霆锋进化巡回演唱会各站还有多少天",
+  "userQuery": "谢霆锋进化巡回演唱会即将举办场次倒计时卡片，温州10月31日、佛山11月8日、杭州11月14日、福州11月28日、广州12月18日",
+  "title": "谢霆锋演唱会倒计时",
+  "dataCapabilityIds": [
+    "GetCountdownDays"
+  ]
+}
