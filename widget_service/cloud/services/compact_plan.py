@@ -52,6 +52,7 @@ _STATIC_ROLE_ALIASES = {
     "secondaryText": "title",
     "details": "detail",
 }
+_STATIC_FACT_SECTION_MARKER = "本轮卡片静态内容（用作展示的外部事实）："
 _MAX_MUST_FACTS_BY_SIZE = {"2x2": 6, "2x4": 10}
 _FRESHNESS_METADATA_NAMES = frozenset(
     {
@@ -725,6 +726,8 @@ def _collect_static_source_errors(
     membership: dict[int, str],
     errors: list[str],
     warnings: list[str],
+    *,
+    require_references: bool,
 ) -> None:
     from config.config import get_settings
     from services.card_validation.compact_validation.semantic.cross_file import static_source_errors
@@ -738,7 +741,11 @@ def _collect_static_source_errors(
         missing_references = references is None or references == []
         protected = raw_fact.get("protectedTexts") or raw_fact.get("preserveVerbatim") is True
         if missing_references:
-            if protected:
+            if require_references:
+                errors.append(
+                    f"{path}: 提供了静态事实段时，每条静态 text 必须引用该段中的非空 sourceTexts。"
+                )
+            elif protected:
                 errors.append(f"{path}: 受保护或要求原文展示的静态 text 必须提交非空 sourceTexts。")
             else:
                 warnings.append(f"静态 text 事实索引 {index} 缺少 sourceTexts，已保留为 warning。")
@@ -758,14 +765,23 @@ def _collect_static_source_errors(
         errors.append("info_required: 静态来源引用数量超过预算。")
 
 
+def _static_fact_source(user_query: str) -> tuple[str, bool]:
+    """提取显式附加的静态事实段，避免把用户期望误作已获事实。"""
+    _, marker, fact_source = user_query.partition(_STATIC_FACT_SECTION_MARKER)
+    if not marker:
+        return user_query, False
+    return fact_source.strip(), True
+
+
 def _normalize_static_plan(
     arguments: dict[str, Any], task: dict[str, Any]
 ) -> _StaticPlanNormalization:
     raw_facts = arguments.get("info_required")
     raw_groups = arguments.get("contentGroups")
-    source_query = task.get("userQuery")
-    if not isinstance(source_query, str):
+    user_query = task.get("userQuery")
+    if not isinstance(user_query, str):
         raise CompactPlanValidationError(["静态来源需求必须是字符串。"])
+    source_query, has_explicit_fact_source = _static_fact_source(user_query)
     if not isinstance(raw_facts, list) or not 1 <= len(raw_facts) <= 24:
         raise CompactPlanValidationError(["静态计划必须包含 1–24 条事实或动作。"])
     warnings: list[str] = []
@@ -808,7 +824,14 @@ def _normalize_static_plan(
     group_normalization = _normalize_static_groups(raw_groups, raw_facts, errors, warnings)
     membership = group_normalization.membership
     raw_groups = group_normalization.groups
-    _collect_static_source_errors(raw_facts, source_query, membership, errors, warnings)
+    _collect_static_source_errors(
+        raw_facts,
+        source_query,
+        membership,
+        errors,
+        warnings,
+        require_references=has_explicit_fact_source,
+    )
     if errors:
         raise CompactPlanValidationError(errors)
     facts: list[dict[str, Any]] = []
@@ -2553,7 +2576,7 @@ def _item_partial_drop_candidate(
     max_fact_count: int | None,
     preserved_fact_indexes: set[int],
 ) -> CompactOptionalDropCandidate | None:
-    """为 SecondaryBody 容量证据或三行 TableText 生成一个最小条目删减候选。"""
+    """为 SecondaryBody 容量证据或至少三行 TableText 生成最小条目删减候选。"""
     secondary_body_candidate = (
         row.component_type == "SecondaryBody" and allowed_fact_indexes is not None
     )
@@ -2563,7 +2586,7 @@ def _item_partial_drop_candidate(
     items = row.props.get("items")
     if not isinstance(items, list):
         return None
-    if table_text_candidate and len(items) != 3:
+    if table_text_candidate and len(items) < 3:
         return None
     candidates: list[CompactOptionalDropCandidate] = []
     for item_index, item in enumerate(items):
@@ -2633,6 +2656,7 @@ def compact_plan_optional_drop_candidate(
     allow_must_fallback: bool = True,
     max_fact_count: int | None = None,
     allowed_fact_indexes: set[int] | None = None,
+    allow_invalid_table_text: bool = False,
 ) -> CompactOptionalDropCandidate | None:
     """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
@@ -2655,6 +2679,7 @@ def compact_plan_optional_drop_candidate(
         rows = parse_compact_dsl_rows(
             compact_dsl,
             expand_layouts=False,
+            skip_compact_dsl_validation=allow_invalid_table_text,
             preserve_unreachable=True,
         )
     except (TypeError, ValueError):
@@ -2692,6 +2717,12 @@ def compact_plan_optional_drop_candidate(
             continue
         if row.component_id not in reachable_component_ids:
             continue
+        if allow_invalid_table_text:
+            items = row.props.get("items")
+            if row.component_type != "TableText" or not isinstance(items, list):
+                continue
+            if len(items) <= 3:
+                continue
         if row.component_type in {"Row", "Column", "Stack"}:
             continue
         if row.component_type in _ACTION_FACT_COMPONENTS:

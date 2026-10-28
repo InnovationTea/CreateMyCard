@@ -43,6 +43,56 @@ def _errors(source: str, **kwargs: object) -> CompactDslValidationError:
     return captured.value
 
 
+@pytest.mark.parametrize("component_type", ["PillButton", "CardButton"])
+def test_button_label_is_limited_to_five_visible_characters(component_type: str) -> None:
+    handler = {"call": "startNavigate", "args": {"location": "company"}}
+    task_spec = {
+        "size": "2x2",
+        "eventCandidates": [handler],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [],
+    }
+
+    def source(label: str) -> str:
+        return "\n".join(
+            [
+                '["root","Column",{},["action"]]',
+                f'["action","{component_type}",'
+                + json.dumps(
+                    {"label": label, "onClick": [handler]},
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+                + "]",
+            ]
+        )
+
+    validate_compact_dsl(
+        source("导航去公司"),
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x2", "dataBindings": []},
+    )
+
+    with pytest.raises(CompactDslValidationError) as captured:
+        validate_compact_dsl(
+            source("一键导航去公司"),
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+    diagnostic = next(
+        item
+        for item in captured.value.diagnostics
+        if item.code == "COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG"
+    )
+    assert diagnostic.component_id == "action"
+    assert diagnostic.property_path == "/label"
+    assert diagnostic.expected.get("maxVisibleCharacters") == 5
+    assert diagnostic.actual.get("visibleCharacterCount") == 7
+    hint = resolve_fix_hint(diagnostic)
+    assert hint is not None and "一键导航去公司”改为“导航去公司" in hint
+
+
 def test_two_by_four_height_over_126_is_blocking_error() -> None:
     items = [
         {

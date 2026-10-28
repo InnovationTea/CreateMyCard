@@ -52,6 +52,13 @@
     },
     {
       "module": "semantic/display.py",
+      "function": "_collect_action_label_length_errors",
+      "code": "COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG",
+      "class": "semantic",
+      "category": "display"
+    },
+    {
+      "module": "semantic/display.py",
       "function": "_collect_raw_boolean_text_errors",
       "code": "COMPACT_DISPLAY_RAW_BOOLEAN",
       "class": "semantic",

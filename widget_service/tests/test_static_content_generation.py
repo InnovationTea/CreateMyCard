@@ -217,6 +217,37 @@ def test_missing_source_texts_is_warning_for_unprotected_static_text() -> None:
 
 
 @pytest.mark.usefixtures("static_policy")
+def test_explicit_static_fact_section_rejects_requested_device_status_as_source() -> None:
+    query = (
+        "展示今天是否下雨、耳机是否连接和耳机仓电量，点击打开歌单。\n\n"
+        "本轮卡片静态内容（用作展示的外部事实）：\n"
+        "上海天气：多云，29°C。"
+    )
+    weather = fact("上海多云，29°C", sourceTexts=["上海天气：多云，29°C。"])
+    accepted = accept(plan([weather]), query)
+
+    assert accepted.get("info_required") == [weather]
+
+    unsupported_status = fact("耳机已连接", sourceTexts=["耳机是否连接"])
+    with pytest.raises(CompactPlanValidationError, match="来源引用不在本轮有效输入中"):
+        accept(plan([weather, unsupported_status]), query)
+
+    missing_source = fact("耳机仓电量充足")
+    missing_source.pop("sourceTexts")
+    with pytest.raises(CompactPlanValidationError, match="必须引用该段中的非空 sourceTexts"):
+        accept(plan([weather, missing_source]), query)
+
+    unregistered_action = {
+        "requirement": "打开歌单",
+        "priority": "must",
+        "actionId": "event.openPlaylist",
+        "componentHints": ["CardButton"],
+    }
+    with pytest.raises(CompactPlanValidationError, match="actionId is not present in TaskSpec"):
+        accept(plan([weather, unregistered_action]), query)
+
+
+@pytest.mark.usefixtures("static_policy")
 def test_action_group_membership_is_removed_with_warning() -> None:
     value = plan(
         [

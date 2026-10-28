@@ -768,6 +768,8 @@ async def test_quality_repair_records_prompt_model_and_revalidation(
     assert summary["attemptCounts"]["qualityRepairAttempts"] == 1
     assert summary["attemptCounts"]["validationEvaluations"] == 2
     assert summary["retryCounts"]["qualityRepairRetries"] == 1
+    assert "planContractAttempts" not in summary["attemptCounts"]
+    assert summary["retryCounts"].get("planContractRetries", 0) == 0
     repair_events = {
         record["event"]: record for record in records if record["event"].startswith("repair.")
     }

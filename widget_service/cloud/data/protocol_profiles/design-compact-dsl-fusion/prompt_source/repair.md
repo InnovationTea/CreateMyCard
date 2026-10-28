@@ -90,10 +90,10 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 | TextBlock 项目被拆散或超出槽宽 | 恢复全部分配的事实并按当前容量合同重组选型；不强塞四项，不留下单项占位，不删项或丢失绑定 |
 | EventCard 缺 title / 地点超宽 / 时间序列过长 | 无真实事件标题则普通属性合组，不伪造名称；长地点用普通密度或更宽合法内容区。多事件默认合并一实例；仅W-top-bottom可将同一序列有序分入primary/details两个EventCard，但不因分段跳过总高校验 |
 | EventCard 总高超出父槽 | 若 accepted Plan 只保留 2–3 条同级短事件，且每条的 title、time 和可选 location 合并后仍能单行完整显示，优先比较改用 `SummaryList`：按原顺序将同一 item 的完整文本合为一个显示值，动态字段用 Expression 保留全部 PathBinding。2项按64vp、3项按102vp重算高度并复查单行宽度。超过3项、存在多行长地点，或任一事实未获准省略时，不得借此删项、截断或改写事实；继续比较 compact EventCard、更宽合法区域或父布局重组 |
-| CardButton 标签过长 | labelLines:2，保留原字号、槽位和完整动作目标；仍不够换合法动作组合 |
+| PillButton/CardButton 标签超过5个字符 | 只缩短可见label为最多5个字符，使用“动作+必要目标”，例如“一键导航去公司”改为“导航去公司”；完整保留onClick、参数、真实目标、图标和唯一Action，不靠labelLines绕过 |
 | CardButton 图标不一致 | accepted Plan 已为动作分配素材时，恢复对应原始 src；Plan 为 null 或没有素材候选时保留 CardButton 也合法，原始 DSL 必须省略业务 icon，由转换器展示固定回退图标 `resources/base/media/ic_fallback_light.svg` |
 
-InfoBlock.secondaryText、TextBlock 的 label/value、CardButton.label 允许其合同的单行省略并只产生 warning；其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
+InfoBlock.secondaryText、TextBlock 的 label/value，以及不超过5个字符但仍因固定槽宽溢出的 CardButton.label，允许其合同的单行省略并只产生 warning；按钮label超过5个字符仍须先缩短。其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
 2x4 强调读数组合确实放不下、整卡其它地方已有核心组件且用户未要求大号强调/进度/事件形式时，可把该读数与同对象短补充无损合为一个 SecondaryBody.items。保留全部值、标签、单位和绑定，采用该组件合法单/多行规格，不补造核心组件；纯绑定/Props 错误不启用此容量例外。
 
 ## 5. 后段策略及删除权限

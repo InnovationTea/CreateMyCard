@@ -433,6 +433,19 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     assert "| `items[].label` | 显示值 |" in catalog
 
 
+def test_button_label_contract_preserves_action_while_limiting_visible_text() -> None:
+    common = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+    wide = (DEFAULT_SOURCE / "components/2x4.md").read_text(encoding="utf-8")
+    plan = (DEFAULT_SOURCE / "plan.md").read_text(encoding="utf-8")
+    repair = (DEFAULT_SOURCE / "repair.md").read_text(encoding="utf-8")
+
+    assert common.count("最多5个可见字符") >= 2
+    assert "最多5个可见字符，保留动作与必要目标" in wide
+    assert "Plan 中 Action 的 requirement 保留完整操作语义" in plan
+    assert "一键导航去公司”改为“导航去公司" in repair
+    assert "完整保留onClick、参数、真实目标" in repair
+
+
 def test_two_peer_facts_use_equal_info_blocks_instead_of_fake_primary_support() -> None:
     common_components = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
     small_components = (DEFAULT_SOURCE / "components/2x2.md").read_text(encoding="utf-8")
