@@ -158,6 +158,24 @@ def _duplicate_facts(quality_errors: list[dict[str, Any]]) -> list[dict[str, Any
     return result
 
 
+def _duplicate_actions(quality_errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """保留独立的动作诊断，不按动作 ID 折叠不同参数的执行身份。"""
+    result = []
+    seen = set()
+    for issue in quality_errors:
+        actions = issue.get("duplicateActions")
+        if not isinstance(actions, list):
+            continue
+        for action in actions:
+            if not isinstance(action, dict):
+                continue
+            key = json.dumps(action, ensure_ascii=False, sort_keys=True)
+            if key not in seen:
+                seen.add(key)
+                result.append(copy.deepcopy(action))
+    return result
+
+
 SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_prompt(DESIGN_COMPACT_PROFILE_ID)
 EDIT_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_edit_prompt(DESIGN_COMPACT_PROFILE_ID)
 REPAIR_SYSTEM_PROMPT = A2UIProtocolRegistry.read_design_repair_prompt(DESIGN_COMPACT_PROFILE_ID)
@@ -2272,6 +2290,17 @@ class PromptBuilder:
         duplicate_facts = _duplicate_facts(quality_errors)
         if duplicate_facts:
             payload["duplicateFacts"] = duplicate_facts
+        duplicate_actions = _duplicate_actions(quality_errors)
+        if duplicate_actions:
+            payload["duplicateActions"] = duplicate_actions
+            payload["instruction"] += (
+                " duplicateActions 是完整执行参数相同的重复按钮清单，不是缺失动作。"
+                "读取 occurrences 的父角色及 fixedRequiredSlot，并遵循 ownershipInstruction；"
+                "保留每种完整事件数组的唯一入口，不合并不同参数、开关值或绑定。"
+                "固定槽不得直接删除或填入重复内容，只在 repairStrategy 允许的必要父布局内"
+                "重新分配已有独立信息和动作；可选动作删除后同步合法父变体。"
+                "保留所有独立事实、标签、字号、绑定和动作，不改 accepted Plan，不授权 Drop。"
+            )
         if not is_design_compact:
             payload["originalUserContent"] = initial_prompt[1]["content"]
         if previous_failures is not None and not is_design_compact:

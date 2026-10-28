@@ -2004,6 +2004,7 @@ class CompactPlanCoverageResult:
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     duplicate_facts: tuple[dict[str, Any], ...] = ()
+    duplicate_actions: tuple[dict[str, Any], ...] = ()
 
 
 def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleState:
@@ -2216,6 +2217,7 @@ def evaluate_compact_plan_coverage(
     *,
     allowed_omitted_fact_indexes: tuple[int, ...] = (),
     information_errors_as_warnings: bool = False,
+    check_duplicate_actions: bool = True,
 ) -> CompactPlanCoverageResult:
     """检查 Plan 覆盖；修复后可仅放宽非 Action 展示事实。"""
     from services.generation_content_policy import current_content_policy
@@ -2249,6 +2251,22 @@ def evaluate_compact_plan_coverage(
             errors=("Accepted Compact Plan has no info_required facts.",),
             warnings=(),
         )
+    duplicate_actions = ()
+    if check_duplicate_actions:
+        from services.card_validation.compact_validation.semantic.action_display import (
+            find_duplicate_actions,
+        )
+
+        duplicate_actions = find_duplicate_actions(compact_dsl, plan, event_handlers)
+        for action in duplicate_actions:
+            positions = ", ".join(
+                item.get("componentId", "") for item in action.get("occurrences", [])
+            )
+            errors.append(
+                "Plan action is displayed more than once in visible DSL: "
+                f"{action.get('actionId')}; expected 1, got {action.get('actualVisibleCount')}; "
+                f"occurrences: {positions}."
+            )
     for index, fact in enumerate(facts):
         if not isinstance(fact, dict):
             continue
@@ -2306,6 +2324,7 @@ def evaluate_compact_plan_coverage(
         errors=tuple(errors),
         warnings=tuple(warnings),
         duplicate_facts=tuple(duplicate_facts),
+        duplicate_actions=duplicate_actions,
     )
 
 

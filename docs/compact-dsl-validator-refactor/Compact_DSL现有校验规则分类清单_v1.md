@@ -1,5 +1,12 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-28 重复动作补漏：重复按钮属于语义／展示，由
+`semantic/action_display.py` 基于原始可达树、完整事件数组及已接受 Action 判定；Plan 覆盖编排
+携带独立 `duplicateActions` 定位，沿用 `COMPACT_PLAN_COVERAGE_FAILED`。候选生成与所有权说明
+放在 `compact_duplicate_actions.py`，`generation_pipeline.py` 复用候选完整复检与 Trace；
+`compact_repair_strategy.py` 负责局部／必要父布局路由，`prompt_builder.py` 格式化动作反馈。
+不恢复旧 W9 特例，不修改候选事件匹配、组件合同、容量门禁、模板豁免或重试预算。
+
 2026-10-27 单位校验补充：缺失、重复单位归语义／展示语义，继续由公共
 `card_validation/display_unit_validator.py` 判定，`display_unit_rules.py` 提供绑定单位与相邻拼接匹配。
 单位后允许空白或标点分隔，不跨动态字段借用单位，不按业务文案新增后缀特例。

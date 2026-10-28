@@ -28,6 +28,7 @@ Plan 恰好仅含一个必要动作且至多一个明确标题事实时，保持
 | category/validatorStage/fileKind/line/jsonPointer | 结合 invalidSourceDsl 定位原组件或 Prop；不猜不存在的行号 |
 | actual/expected/fixHint | 核对实际值及约束；建议不能覆盖合同和删除授权 |
 | duplicateFacts/occurrences | 报错 dataId 的重复可见位置，逐项定位，不当成缺失事实 |
+| duplicateActions/occurrences | 同一完整事件数组的重复按钮及父角色；固定槽不直接删，按 repairStrategy 调整必要父布局，保留唯一动作入口和全部独立信息 |
 | Occupancy | 子区实际最小占高及间距，找到共同超预算来源 |
 | Alternatives | 一个完整合法变体的全部不匹配项，不能只修 closest 的几项或混用变体 |
 | previousFailures/noProgress/consecutiveFailures | 判断是否重复根因；noProgress 或连续失败≥2时不只改 ID、颜色或无关属性 |

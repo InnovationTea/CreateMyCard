@@ -82,6 +82,7 @@ _SECONDARY_BODY_FONT_SIZE_MARKERS = ("secondarybody.fontsize must be the fixed r
 _CAPACITY_REGROUP_CONTRACT_MARKERS = ("is auxiliary and cannot be the only information component",)
 _TABLE_TEXT_ITEM_RANGE_MARKER = "tabletext.items requires 2 to 3 entries"
 _DUPLICATE_PLAN_FACT_PREFIX = "plan fact is displayed more than once in visible dsl:"
+_DUPLICATE_PLAN_ACTION_PREFIX = "plan action is displayed more than once in visible dsl:"
 COMPACT_COMPONENT_FALLBACK_MAX_ATTEMPTS = 2
 DROP_OPTIONAL_COMPONENT_MIN_REPAIR_ATTEMPT = 4
 PLAN_COVERAGE_EARLY_DROP_MIN_REPAIR_ATTEMPTS = 2
@@ -227,13 +228,29 @@ def _contains_marker(messages: str, markers: tuple[str, ...]) -> bool:
     return any(marker in messages for marker in markers)
 
 
+def _duplicate_entries(issue: dict[str, Any]) -> list[dict[str, Any]]:
+    entries = []
+    for name in ("duplicateFacts", "duplicateActions"):
+        values = issue.get(name)
+        if isinstance(values, list):
+            entries.extend(value for value in values if isinstance(value, dict))
+    return entries
+
+
+def _has_duplicate_actions(quality_errors: list[dict[str, Any]]) -> bool:
+    for issue in quality_errors:
+        actions = issue.get("duplicateActions")
+        if isinstance(actions, list) and actions:
+            return True
+    return False
+
+
 def _has_duplicate_plan_facts(quality_errors: list[dict[str, Any]]) -> bool:
     for issue in quality_errors:
-        duplicate_facts = issue.get("duplicateFacts")
-        if isinstance(duplicate_facts, list) and duplicate_facts:
+        if _duplicate_entries(issue):
             return True
         message = str(issue.get("message") or "").strip().lower()
-        if message.startswith(_DUPLICATE_PLAN_FACT_PREFIX):
+        if message.startswith((_DUPLICATE_PLAN_FACT_PREFIX, _DUPLICATE_PLAN_ACTION_PREFIX)):
             return True
     return False
 
@@ -244,8 +261,8 @@ def _duplicate_plan_fact_excess_count(quality_errors: list[dict[str, Any]]) -> i
     has_structured_facts = False
     message_count = 0
     for issue in quality_errors:
-        duplicate_facts = issue.get("duplicateFacts")
-        if isinstance(duplicate_facts, list) and duplicate_facts:
+        duplicate_facts = _duplicate_entries(issue)
+        if duplicate_facts:
             has_structured_facts = True
             for fact in duplicate_facts:
                 if not isinstance(fact, dict):
@@ -256,7 +273,7 @@ def _duplicate_plan_fact_excess_count(quality_errors: list[dict[str, Any]]) -> i
                     structured_count += max(0, actual_count - expected_count)
             continue
         message = str(issue.get("message") or "").strip().lower()
-        if message.startswith(_DUPLICATE_PLAN_FACT_PREFIX):
+        if message.startswith((_DUPLICATE_PLAN_FACT_PREFIX, _DUPLICATE_PLAN_ACTION_PREFIX)):
             message_count += 1
     if has_structured_facts:
         return structured_count
@@ -306,6 +323,8 @@ def _has_required_slot_conflict(fact: Any) -> bool:
 def _has_duplicate_required_slot_conflict(quality_errors: list[dict[str, Any]]) -> bool:
     """只接受同一已报重复事实中至少两个独立必填展示位置的诊断。"""
     for issue in quality_errors:
+        if _has_duplicate_action_slot_conflict(issue):
+            return True
         duplicate_facts = issue.get("duplicateFacts")
         if not isinstance(duplicate_facts, list):
             continue
@@ -313,6 +332,54 @@ def _has_duplicate_required_slot_conflict(quality_errors: list[dict[str, Any]]) 
             if _has_required_slot_conflict(fact):
                 return True
     return False
+
+
+def _has_duplicate_action_slot_conflict(issue: dict[str, Any]) -> bool:
+    actions = issue.get("duplicateActions")
+    if not isinstance(actions, list):
+        return False
+    for action in actions:
+        if not isinstance(action, dict) or not isinstance(action.get("actionId"), str):
+            continue
+        actual_count = action.get("actualVisibleCount")
+        expected_count = action.get("expectedVisibleCount")
+        if type(actual_count) is not int or actual_count < 2:
+            continue
+        if type(expected_count) is not int or expected_count != 1:
+            continue
+        occurrences = action.get("occurrences")
+        if not isinstance(occurrences, list):
+            continue
+        positions = set()
+        fixed_slot = False
+        for occurrence in occurrences:
+            key = _display_position_key(occurrence)
+            if key is None or key[1] != "onClick":
+                continue
+            positions.add(key)
+            if occurrence.get("fixedRequiredSlot") is True:
+                fixed_slot = True
+        if len(positions) >= 2 and fixed_slot:
+            return True
+    return False
+
+
+def _duplicate_action_instruction(*, duplicate_count_not_reduced: bool) -> str:
+    instruction = (
+        "逐项修复 duplicateActions 中同一完整 onClick 的重复入口，核对 occurrences、父角色和"
+        "fixedRequiredSlot；最终保留一个完整入口以及原事件数组、参数、动态绑定、标签和图标。"
+        "不同参数、开关值或绑定的动作不得合并；不得删除任何独立 Action。"
+        "可选动作移除后同步合法父变体；固定槽不能直接删 children、清空事件或放入占位内容，"
+        "按 repairStrategy.scope 调整必要父布局和已有独立信息的落位，不复制信息或虚构动作填槽。"
+        "保留字号、独立事实和数据行，冲突父区外不变；完整复查动作、信息、组件、结构及容量。"
+        "不新增重试额度。"
+    )
+    if duplicate_count_not_reduced:
+        instruction += (
+            "上一轮重复超额数量没有减少；本轮须减少重复入口，不能只改 ID 或按钮名，"
+            "不得新增、复制或换位置保留同一完整动作的重复入口。"
+        )
+    return instruction
 
 
 def _has_missing_plan_fact_error(quality_errors: list[dict[str, Any]]) -> bool:
@@ -613,6 +680,8 @@ def _component_contract_instruction(quality_errors: list[dict[str, Any]]) -> str
 
 
 def _issue_category(quality_errors: list[dict[str, Any]]) -> str:
+    if _has_duplicate_actions(quality_errors):
+        return "plan_coverage"
     codes = {str(issue.get("code") or "") for issue in quality_errors}
     messages = "\n".join(str(issue.get("message") or "").lower() for issue in quality_errors)
     for issue in quality_errors:
@@ -858,7 +927,20 @@ def _non_layout_directive(
 ) -> CompactRepairDirective:
     repeated_root_cause = consecutive_failures >= 2 or no_progress
     duplicate_plan_facts = category == "plan_coverage" and _has_duplicate_plan_facts(quality_errors)
-    if duplicate_plan_facts and _has_duplicate_required_slot_conflict(quality_errors):
+    duplicate_actions = _has_duplicate_actions(quality_errors)
+    if duplicate_plan_facts and duplicate_actions:
+        fixed_slots = _has_duplicate_required_slot_conflict(quality_errors)
+        scope = "parent_layout" if fixed_slots else "information_group"
+        strategy = "parent_layout_recompose" if fixed_slots else "deduplicate_visible_actions"
+        retry_target = "dsl_recompose" if fixed_slots else "dsl_local_repair"
+        instruction = _duplicate_action_instruction(
+            duplicate_count_not_reduced=duplicate_count_not_reduced,
+        )
+        if any(issue.get("duplicateFacts") for issue in quality_errors):
+            instruction += _duplicate_fact_instruction(
+                duplicate_count_not_reduced=duplicate_count_not_reduced,
+            )
+    elif duplicate_plan_facts and _has_duplicate_required_slot_conflict(quality_errors):
         scope = "parent_layout"
         strategy = "parent_layout_recompose"
         retry_target = "dsl_recompose"
@@ -1334,7 +1416,7 @@ class CompactRepairStrategyTracker:
                 quality_errors,
                 compact_plan,
             )
-        if capacity_fits:
+        if capacity_fits and not _has_duplicate_actions(quality_errors):
             category = "layout_capacity"
             self._latest_capacity_fits = copy.deepcopy(capacity_fits)
             overflow_limit = _capacity_overflow_limit(capacity_fits)
@@ -1406,6 +1488,8 @@ class CompactRepairStrategyTracker:
             )
             if duplicate_required_slot_conflict:
                 directive = replace(directive, scope="parent_layout")
+            elif _has_duplicate_actions(quality_errors):
+                directive = replace(directive, scope="information_group")
             if self._allowed_omitted_fact_indexes:
                 directive = replace(
                     directive,
@@ -1461,6 +1545,7 @@ class CompactRepairStrategyTracker:
             or persistent_plan_coverage_followup
             or bounded_capacity_followup
         )
+        drop_entry_due = drop_entry_due and not _has_duplicate_actions(quality_errors)
         if drop_entry_due and drop_relevant_failure and task_spec is not None:
             max_fact_count = self._capacity_overflow_limit if early_drop_due else None
             allowed_fact_indexes = None
@@ -1483,7 +1568,7 @@ class CompactRepairStrategyTracker:
                 self._fallback_submission_limit = (
                     self._max_repair_attempts - self._repair_submission_count
                 )
-        if duplicate_required_slot_conflict:
+        if duplicate_required_slot_conflict or _has_duplicate_actions(quality_errors):
             directive = _non_layout_directive(
                 category=category,
                 quality_errors=quality_errors,
@@ -1769,10 +1854,15 @@ class CompactRepairStrategyTracker:
             )
         if directive.retryable:
             self._repair_submission_count += 1
-            if has_plan_coverage_error and directive.repair_strategy != "drop_optional_component":
-                self._plan_coverage_repair_submission_count += 1
-            if capacity_fits and directive.repair_strategy != "drop_optional_component":
-                self._capacity_pressure_repair_submitted = True
+            # 去重轮消耗总修复预算，但不能冒充容量／缺失事实修复来提前授权 Drop。
+            if not _has_duplicate_actions(quality_errors):
+                if (
+                    has_plan_coverage_error
+                    and directive.repair_strategy != "drop_optional_component"
+                ):
+                    self._plan_coverage_repair_submission_count += 1
+                if capacity_fits and directive.repair_strategy != "drop_optional_component":
+                    self._capacity_pressure_repair_submitted = True
             if joint_inputs_available and directive.repair_strategy == "plan_guided_recompose":
                 self._joint_full_recompose_seen = True
         if joint_inputs_available and relevant:
