@@ -80,12 +80,14 @@ def test_assets_have_exact_delivery_bytes_in_both_copies(filename):
     assert len(data) == source.get("assetBytes")
     assert hashlib.sha256(data).hexdigest() == source.get("assetSha256")
     remote = item.get("remoteUrl")
-    if filename.startswith("cumulus_blue"):
-        assert remote == ""
-    else:
-        assert remote == source.get("file")
-        assert remote.startswith("https://lfcontentcenterdev.hwcloudtest.cn/")
-        assert "[" not in remote and "]" not in remote
+    # 本地来源上传OBS后仍保留原始来源路径，交付地址必须已配置。
+    source_file = source.get("file")
+    assert isinstance(source_file, str)
+    if source_file.startswith("https://"):
+        assert remote == source_file
+    assert isinstance(remote, str)
+    assert remote.startswith("https://lfcontentcenterdev.hwcloudtest.cn/")
+    assert "[" not in remote and "]" not in remote
     assert item.get("enabled") is True
 
 
