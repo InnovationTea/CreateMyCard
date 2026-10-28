@@ -159,7 +159,9 @@ def collect_compact_component_binding_errors(
     for prop_name, value in props.items():
         if prop_name == "onClick":
             continue
-        for prop_path, mode, binding_path in _walk_bindings(value, prop_name):
+        for prop_path, mode, binding_path in _walk_bindings(
+            value, prop_name, skip_item_click=component_type == "EventCard",
+        ):
             contract = contracts.get(prop_path)
             location = f"component {component_id}.props.{prop_path}"
             if contract is None:
@@ -190,6 +192,8 @@ def collect_compact_component_binding_errors(
 def _walk_bindings(
     value: Any,
     prop_path: str,
+    *,
+    skip_item_click: bool = False,
 ) -> Iterator[tuple[str, BindingMode, str]]:
     binding_path = _path_binding(value)
     if binding_path is not None:
@@ -200,12 +204,16 @@ def _walk_bindings(
         return
     if isinstance(value, dict):
         for key, child in value.items():
-            yield from _walk_bindings(child, f"{prop_path}.{key}")
+            if skip_item_click and prop_path == "items[]" and key == "onClick":
+                continue
+            yield from _walk_bindings(
+                child, f"{prop_path}.{key}", skip_item_click=skip_item_click,
+            )
         return
     if isinstance(value, list):
         item_path = f"{prop_path}[]"
         for child in value:
-            yield from _walk_bindings(child, item_path)
+            yield from _walk_bindings(child, item_path, skip_item_click=skip_item_click)
 
 
 def _path_binding(value: Any) -> str | None:

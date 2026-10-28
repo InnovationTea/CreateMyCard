@@ -13,6 +13,7 @@ from services.card_validation.compact_validation.semantic.asset_references impor
 from services.card_validation.compact_validation.syntax.expressions import (
     _collect_binding_context,
 )
+from services.compact_action_instances import event_card_item_handlers, plan_action_handlers
 from services.compact_component_semantics import CORE_INFORMATION_COMPONENT_TYPES
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_plan import compact_plan_overflow_action_ids
@@ -290,6 +291,17 @@ def _collect_plan_asset_assignment_errors(
             handler = event_handlers.get(action_id)
             if handler is None:
                 continue
+            item_detail = False
+            for component in components:
+                if component.component_type != "EventCard":
+                    continue
+                for item_handler in event_card_item_handlers(component.props):
+                    if event_handlers_match(item_handler, handler):
+                        item_detail = True
+            if item_detail:
+                if assignment.get("assetId") is not None:
+                    errors.append("EventCard item detail must not reserve a button icon.")
+                continue
             matching_buttons = [
                 button for button in buttons if _component_uses_handler(button, handler)
             ]
@@ -543,21 +555,7 @@ def _asset_sources_by_id(task_spec: dict[str, Any]) -> dict[str, str]:
 
 
 def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    result: dict[str, dict[str, Any]] = {}
-    candidates = task_spec.get("eventCandidates")
-    if not isinstance(candidates, list):
-        return result
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        identifier = candidate.get("id")
-        call = candidate.get("call")
-        args = candidate.get("args")
-        valid_identifier = isinstance(identifier, str)
-        valid_handler = isinstance(call, str) and isinstance(args, dict)
-        if valid_identifier and valid_handler:
-            result[identifier] = {"call": call, "args": args}
-    return result
+    return plan_action_handlers(task_spec)
 
 
 def _component_uses_handler(component: ComponentRow, handler: dict[str, Any]) -> bool:
