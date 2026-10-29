@@ -41,6 +41,7 @@ class CompactDslRetryContext:
     retained_facts: tuple[CompactDslRecoveryFact, ...] = ()
     omitted_facts: tuple[CompactDslRecoveryFact, ...] = ()
     recovery_plan: dict[str, Any] | None = None
+    omission_plan: dict[str, Any] | None = None
 
 
 class DeviceContext(BaseModel):

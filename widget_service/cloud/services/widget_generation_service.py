@@ -102,7 +102,7 @@ from services.protocol_registry import (
     A2UIProtocolRegistry,
     ProtocolProfileSelection,
 )
-from services.response_planner import ResponsePlanner
+from services.response_planner import ResponsePlanner, merge_static_recovery_omissions
 from services.retry_controller import RetryController
 from services.single_step_edit import EDIT_FORMAT, SingleStepEditProcessor, source_digest
 from services.single_step_processor import SingleStepFallbackProcessor
@@ -112,7 +112,11 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.static_plan_review import StaticPlanReviewError, parse_static_plan_review
+from services.static_plan_review import (
+    StaticPlanReviewError,
+    parse_static_plan_review,
+    static_review_lost_must_indexes,
+)
 from services.template_generation import TemplateSourceGenerator
 from services.validator import ArtifactValidator
 from services.widget_edit_protocol.resources import MODEL_FORMAT as SINGLE_STEP_MODEL_FORMAT
@@ -1204,6 +1208,25 @@ class WidgetGenerationService:
                             )
                             continue
                     if review_fallback and review_plan is not None:
+                        lost_indexes = static_review_lost_must_indexes(
+                            review_plan.plan, validation.plan,
+                        )
+                        if lost_indexes:
+                            validation = review_plan
+                            if review_source is not None:
+                                raw_plan = review_source
+                            logger.warning(
+                                f"{_MODULE} static_review_preserved_fact_loss "
+                                f"fact_indexes={json_for_log(lost_indexes)} "
+                                "action=keep_original_plan"
+                            )
+                            trace_record(
+                                "static_content.plan.review.fallback", stage="plan",
+                                status="success", details={
+                                    "reason": "容量改排缺少原must展示文字，保留已确认原计划",
+                                    "factIndexes": list(lost_indexes),
+                                },
+                            )
                         previous_candidate = review_plan.plan.get("staticPresentation")
                         if previous_candidate and not validation.plan.get("staticPresentation"):
                             validation = review_plan
@@ -2184,6 +2207,10 @@ class WidgetGenerationService:
                         retained_facts=retained_facts,
                         omitted_facts=omitted_facts,
                         recovery_plan=recovery_plan,
+                        omission_plan=(
+                            copy.deepcopy(accepted_compact_plan)
+                            if content_policy.is_static else None
+                        ),
                     )
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
             self._log_generation_summary(
@@ -2350,6 +2377,11 @@ class WidgetGenerationService:
         omitted_requirements = [
             str(fact.get("requirement") or "") for fact in omitted_facts if fact.get("requirement")
         ]
+        omitted_requirements = merge_static_recovery_omissions(
+            omitted_requirements,
+            latest_processing_result.source_dsl,
+            compact_retry_context,
+        )
         if omitted_requirements:
             trace_record(
                 "response.plan_facts_omitted",

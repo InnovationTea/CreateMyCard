@@ -80,6 +80,76 @@ def static_plan_display_evidence(plan: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _group_visible_parts(group: dict[str, Any], facts: list[dict[str, Any]]) -> list[str]:
+    parts = []
+    identity = group.get("identity")
+    if isinstance(identity, str):
+        parts.append(identity)
+    for index in group.get("factIndexes", []):
+        text = facts[index].get("text")
+        if isinstance(text, str):
+            parts.append(text)
+    return parts
+
+
+def _group_sources(group: dict[str, Any], facts: list[dict[str, Any]]) -> set[str]:
+    sources = set()
+    for index in group.get("factIndexes", []):
+        sources.update(facts[index].get("sourceTexts", []))
+    return sources
+
+
+def static_review_lost_must_indexes(
+    original: dict[str, Any], corrected: dict[str, Any],
+) -> tuple[int, ...]:
+    """仅核已解析的preserved改排；不从引用、说明或其它对象补展示文字。"""
+    from services.card_validation.compact_validation.semantic.static_content import (
+        _fact_covered,
+        _identity_covered,
+    )
+
+    old_facts = original.get("info_required", [])
+    new_facts = corrected.get("info_required", [])
+    new_groups = corrected.get("contentGroups", [])
+    shared_parts = []
+    for group in new_groups:
+        if group.get("kind") == "shared":
+            shared_parts.extend(_group_visible_parts(group, new_facts))
+    missing = []
+    for group in original.get("contentGroups", []):
+        matches = []
+        for candidate in new_groups:
+            if candidate.get("kind") != group.get("kind"):
+                continue
+            if group.get("kind") == "shared":
+                matches.append(candidate)
+                continue
+            identity = group.get("identity")
+            if isinstance(identity, str):
+                same_object = _identity_covered(
+                    identity, _group_visible_parts(candidate, new_facts),
+                )
+            else:
+                same_object = bool(
+                    _group_sources(group, old_facts) & _group_sources(candidate, new_facts)
+                )
+            if same_object:
+                matches.append(candidate)
+        parts = []
+        if group.get("kind") == "shared" or len(matches) == 1:
+            for candidate in matches:
+                parts.extend(_group_visible_parts(candidate, new_facts))
+            if group.get("kind") == "object":
+                parts.extend(shared_parts)
+        for index in group.get("factIndexes", []):
+            fact = old_facts[index]
+            protected = fact.get("protectedTexts") or fact.get("preserveVerbatim")
+            required = fact.get("priority") == "must" or protected
+            if required and not _fact_covered(fact, parts):
+                missing.append(index)
+    return tuple(missing)
+
+
 def _decode_review(raw_output: str) -> tuple[Any, tuple[str, ...]]:
     """仅恢复缺失的最外层闭合符，不补值、内部结构或重复键。"""
     text = raw_output.strip()

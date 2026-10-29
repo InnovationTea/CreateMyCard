@@ -175,6 +175,7 @@ def build_compact_plan_tool(
     include_composition: bool = False,
     layout_scope: str | None = None,
     allowed_fact_targets: tuple[tuple[str, str], ...] | None = None,
+    static_recovery_facts: tuple[CompactDslRecoveryFact, ...] = (),
 ) -> dict[str, Any]:
     """根据本次 TaskSpec 构造 submit_card_plan 的动态工具合同。"""
     size = task_spec.get("size")
@@ -423,11 +424,14 @@ def build_compact_plan_tool(
     from services.generation_content_policy import current_content_policy
 
     if current_content_policy().is_static:
-        _extend_static_plan_tool(tool, task_spec)
+        _extend_static_plan_tool(tool, task_spec, static_recovery_facts)
     return tool
 
 
-def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None:
+def _extend_static_plan_tool(
+    tool: dict[str, Any], task: dict[str, Any],
+    recovery_facts: tuple[CompactDslRecoveryFact, ...] = (),
+) -> None:
     function = tool.get("function")
     if not isinstance(function, dict):
         raise ValueError("Plan 工具缺少 function。")
@@ -465,6 +469,21 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
             "归一为body，在object组保留原title语义；显式title不改。"
         ),
     }
+    priority = fields.get("priority")
+    if not isinstance(priority, dict):
+        raise ValueError("Plan 工具缺少事实优先级合同。")
+    priority["description"] = (
+        "must 是本次选入的核心信息及使其独立可理解的主体、条件和范围；"
+        "should 是可省略的入选补充。普通摘要按用途合理选择完整记录，"
+        "不因输入提供了全部记录就全部标 must；未选内容记 omittedContents。"
+        "用户明确要求全部、完整或逐字展示时不得擅自省略。"
+        "计划接受后，不能为 DSL 容量任意把 must 降为 should。"
+    )
+    facts["description"] = (
+        "本次选择的展示清单，不是全部原文清单。保留核心结论、必要主体与共同条件；"
+        "普通摘要可按容量合理未选完整记录，并用 omittedContents 的空 factIndexes 记录。"
+        "明确要求全部、完整或逐字展示的内容除外；未选内容不要放进无归属的事实条目。"
+    )
     fields["text"] = {
         "type": "string",
         "minLength": 1,
@@ -472,6 +491,8 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
             "模型按用途与容量总结后的最终展示版本，语义忠于sourceTexts，不要求逐字匹配。"
         ),
     }
+    if recovery_facts:
+        _restrict_static_recovery_facts(facts, item, fields, recovery_facts)
     properties["selectionNotes"] = {
         "type": "array",
         "maxItems": 8,
@@ -561,6 +582,36 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
         "允许等义改写而不改变数值和关系含义；必要范围须进入展示文字，不能只写在规划中。"
         "用户要求完整或原文时不得省略；普通摘要不要求匹配原文片段。"
     )
+
+
+def _restrict_static_recovery_facts(
+    facts: dict[str, Any], item: dict[str, Any], fields: dict[str, Any],
+    recovery_facts: tuple[CompactDslRecoveryFact, ...],
+) -> None:
+    """恢复阶段沿用已接受账本，Schema 与最终精确核对使用同一范围。"""
+    variants = []
+    texts = []
+    for fact in recovery_facts:
+        variants.append({
+            "properties": {
+                fact.target: {"const": fact.value},
+                "priority": {"const": fact.priority},
+            },
+            "required": [fact.target, "priority"],
+        })
+        if fact.target == "text" and fact.value not in texts:
+            texts.append(fact.value)
+    fields["text"] = {
+        "type": "string", "enum": texts,
+        "description": "逐条复制 requiredFacts 的完整 text，不摘要、拆分或移入内部说明。",
+    }
+    facts["minItems"] = len(recovery_facts)
+    facts["maxItems"] = len(recovery_facts)
+    facts["description"] = (
+        "逐项保留 requiredFacts 的 text 及其对应 priority；仅重新选择分组和展示组件。"
+        "不得重加 excludedFacts，不能以同值重复条目替代其它事实。"
+    )
+    item["allOf"] = [{"anyOf": variants}]
 
 
 @dataclass(frozen=True)

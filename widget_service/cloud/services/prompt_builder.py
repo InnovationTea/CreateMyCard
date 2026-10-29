@@ -1832,8 +1832,11 @@ class PromptBuilder:
             runtime_prompt_context_enabled and not content_policy.is_static
         )
         recovery_facts = ()
+        static_recovery_facts = ()
         if retry_context is not None and retry_context.capacity_recovery:
-            if not content_policy.is_static:
+            if content_policy.is_static:
+                static_recovery_facts = retry_context.retained_facts
+            else:
                 recovery_facts = retry_context.retained_facts
         allowed_fact_targets = None
         if recovery_facts:
@@ -1842,6 +1845,7 @@ class PromptBuilder:
             task_spec_value,
             include_composition=runtime_prompt_context_enabled,
             allowed_fact_targets=allowed_fact_targets,
+            static_recovery_facts=static_recovery_facts,
         )
         tool_payload = json.dumps(tool, ensure_ascii=False, separators=(",", ":"))
         input_contract = "\n本轮不允许 report_missing_data，编辑不得扩大数据集合。"
@@ -2095,6 +2099,9 @@ class PromptBuilder:
                     "facts、分组、真实遗漏声明必须原子同步，不能只修改规划说明。"
                     "原计划完整且无容量问题时应keep；只有容量问题才在preserved下改排，"
                     "使用correct+preserved+空findings。"
+                    "preserved改排须保留已确认must的可见文字，可拆入同对象不同text字段；"
+                    "例如说明要移入value槽时，必须提交对应展示事实，不能只写selectionNotes。"
+                    "未落实的移槽会保留原计划进入既有排版修复；不从规划说明补造字段。"
                     "先保全语义，再结合capacityReference组织短标签、正文和布局；"
                     "不靠放宽原合同、缩字或新增删除许可凑容量。"
                     "这是本阶段最后一次提交，不会再增加Plan调用；不返回解释或Markdown。"

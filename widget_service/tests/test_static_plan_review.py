@@ -28,6 +28,7 @@ from services.static_plan_review import (
     StaticPlanReviewError,
     parse_static_plan_review,
     static_plan_unreferenced_source,
+    static_review_lost_must_indexes,
 )
 from services.widget_generation_service import WidgetGenerationService
 
@@ -138,6 +139,101 @@ def test_keep_has_no_rewritten_plan():
     result = _parse(_keep())
     assert result.decision == "keep"
     assert result.corrected_source is None
+
+
+def test_preserved_reflow_does_not_count_notes_or_source_quotes_as_visible_values():
+    original = _plan("通勤43分钟")
+    corrected = _plan("通勤", "通勤43分钟")
+    corrected["selectionNotes"] = ["将43分钟移入value槽"]
+    assert static_review_lost_must_indexes(original, corrected) == (0,)
+
+
+def test_preserved_reflow_allows_visible_field_split_and_layout_punctuation():
+    original = _plan("地铁：43分钟，含换乘")
+    corrected = _plan("地铁：43分钟，含换乘")
+    facts = corrected.get("info_required")
+    groups = corrected.get("contentGroups")
+    assert isinstance(facts, list) and isinstance(groups, list)
+    facts[0]["text"] = "含换乘"
+    facts.append({**facts[0], "text": "43分钟"})
+    groups[0]["identity"] = "地铁"
+    groups[0]["factIndexes"] = [0, 1]
+    old_groups = original.get("contentGroups")
+    assert isinstance(old_groups, list)
+    old_groups[0]["identity"] = "地铁"
+    assert static_review_lost_must_indexes(original, corrected) == ()
+    assert static_review_lost_must_indexes(original, original) == ()
+
+
+def test_preserved_reflow_cannot_borrow_values_from_a_different_object():
+    original = _plan("43分钟")
+    corrected = _plan("路线甲")
+    facts = corrected.get("info_required")
+    groups = corrected.get("contentGroups")
+    assert isinstance(facts, list) and isinstance(groups, list)
+    facts.append({**facts[0], "text": "43分钟"})
+    groups.append({"id": "other", "kind": "object", "identity": "路线乙", "factIndexes": [1]})
+    assert static_review_lost_must_indexes(original, corrected) == (0,)
+
+
+def test_preserved_reflow_does_not_turn_optional_omission_into_a_new_gate():
+    original = _plan("可选说明")
+    facts = original.get("info_required")
+    assert isinstance(facts, list)
+    facts[0]["priority"] = "should"
+    assert static_review_lost_must_indexes(original, _plan("主要内容")) == ()
+
+
+@pytest.mark.parametrize("old_identity,new_identity", [
+    (None, None), ("地铁", "地铁通勤"),
+])
+def test_preserved_reflow_does_not_use_layout_id_as_business_identity(old_identity, new_identity):
+    original = _plan("地铁通勤43分钟")
+    corrected = copy.deepcopy(original)
+    old_groups = original.get("contentGroups")
+    new_groups = corrected.get("contentGroups")
+    assert isinstance(old_groups, list) and isinstance(new_groups, list)
+    old_groups[0]["identity"] = old_identity
+    new_groups[0].update({"id": "changed_layout_id", "identity": new_identity})
+    assert static_review_lost_must_indexes(original, corrected) == ()
+
+
+def test_preserved_reflow_may_move_common_unit_to_shared_visible_slot():
+    original = _plan("电价0.5元/度")
+    corrected = _plan("电价0.5", "电价0.5元/度")
+    facts = corrected.get("info_required")
+    groups = corrected.get("contentGroups")
+    assert isinstance(facts, list) and isinstance(groups, list)
+    facts.append({**facts[0], "text": "元/度"})
+    groups.append({"id": "unit", "kind": "shared", "identity": None, "factIndexes": [1]})
+    assert static_review_lost_must_indexes(original, corrected) == ()
+
+
+@pytest.mark.parametrize("protection", [
+    {"protectedTexts": ["明确原文"]}, {"preserveVerbatim": True},
+])
+def test_preserved_reflow_protects_explicit_original_text_even_if_should(protection):
+    original = _plan("明确原文")
+    facts = original.get("info_required")
+    assert isinstance(facts, list)
+    facts[0].update({"priority": "should", **protection})
+    assert static_review_lost_must_indexes(original, _plan("摘要", "明确原文")) == (0,)
+
+
+@pytest.mark.asyncio
+async def test_preserved_reflow_loss_keeps_original_plan_without_extra_call(monkeypatch):
+    original = _plan("通勤43分钟")
+    corrected = _plan("通勤", "通勤43分钟")
+    corrected["selectionNotes"] = ["将43分钟移入value槽"]
+    service, calls, saved = _service(monkeypatch, [
+        _call(original), _correct(corrected),
+    ], display="通勤43分钟")
+    response = await service.generate_widget_card_compact_dsl(_request("通勤43分钟"))
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(calls) == 3 and len(saved) == 1
+    accepted = _accepted_plan(calls[-1].get("messages", []))
+    assert accepted.get("info_required", [])[0].get("text") == "通勤43分钟"
+    assert "43分钟" in saved[0].genui
 
 
 def test_correct_preserves_original_plan_envelope_for_existing_validator():
@@ -630,7 +726,8 @@ async def test_capacity_recovery_does_not_review_or_rewrite_frozen_facts(monkeyp
     )
     service, calls, saved = _service(monkeypatch, [_call(_plan())])
     response = await service.generate_widget_card_compact_dsl(request)
-    assert response.status == GenerationStatus.SUCCESS
+    assert response.status == GenerationStatus.DEGRADED
+    assert response.omittedRequirements == ["带雨伞"]
     assert len(saved) == 1 and len(calls) == 2
     assert [call.get("format") for call in calls] == ["raw-json", "compact-dsl"]
     messages = json.dumps(calls[0].get("messages"), ensure_ascii=False)

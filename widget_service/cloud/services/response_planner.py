@@ -1,8 +1,69 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+from typing import Any
+
 from core.errors import ErrorCode, GenerationStatus
 from models.capability import RemovedCapability
+from models.generation import CompactDslRecoveryFact, CompactDslRetryContext
 from models.service import ResponsePlan
+
+
+def _recovered_static_omission(
+    source: str, fact: CompactDslRecoveryFact, plan: dict[str, Any] | None,
+) -> bool:
+    """只有原对象归属与完整事实都可验证时，才撤销前轮实际省略记录。"""
+    if not plan or fact.target != "text":
+        return False
+    facts = plan.get("info_required")
+    groups = plan.get("contentGroups")
+    if not isinstance(facts, list) or not isinstance(groups, list):
+        return False
+    matching_indexes = []
+    for index, original in enumerate(facts):
+        if not isinstance(original, dict):
+            continue
+        same_value = original.get(fact.target) == fact.value
+        if same_value and original.get("requirement") == fact.requirement:
+            matching_indexes.append(index)
+    if len(matching_indexes) != 1:
+        return False
+    target_index = matching_indexes[0]
+    from services.card_validation.compact_validation.semantic.static_content import (
+        static_fact_coverage,
+        static_group_errors,
+    )
+
+    # 其它旧事实可能在后续轮次合法省略；只复核本条和原对象身份，不借其它对象同值。
+    allowed = tuple(index for index in range(len(facts)) if index != target_index)
+    if static_group_errors(source, plan, allowed):
+        return False
+    for coverage in static_fact_coverage(source, plan, allowed):
+        if coverage.fact_index == target_index:
+            return coverage.visible
+    return False
+
+
+def merge_static_recovery_omissions(
+    current: list[str], source: str, retry_context: CompactDslRetryContext | None,
+) -> list[str]:
+    """最终反馈承接前轮实际取舍，不改 Plan、DSL、发布校验或修复预算。"""
+    from services.generation_content_policy import current_content_policy
+
+    if not current_content_policy().is_static or retry_context is None:
+        return current
+    if not retry_context.capacity_recovery or not retry_context.omitted_facts:
+        return current
+    omitted = []
+    for fact in retry_context.omitted_facts:
+        if fact.target == "actionId":
+            continue
+        if not _recovered_static_omission(source, fact, retry_context.omission_plan):
+            omitted.append(fact.requirement)
+    result = []
+    for requirement in omitted + current:
+        if requirement and requirement not in result:
+            result.append(requirement)
+    return result
 
 
 class ResponsePlanner:

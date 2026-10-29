@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import asyncio
+import json
 
 import pytest
 from pydantic import ValidationError
@@ -10,10 +11,12 @@ from config.config import Settings, get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelGenerationError
 from models.artifact import ArtifactMeta, WidgetArtifact
-from models.generation import CompactDslRetryContext, ModelRequestContext
+from models.generation import CompactDslRecoveryFact, CompactDslRetryContext, ModelRequestContext
 from services import artifact_store
 from services.artifact_store import ArtifactStore, ArtifactUploadError
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
+from services.generation_content_policy import STATIC_CONTENT_POLICY, content_policy_scope
+from services.response_planner import ResponsePlanner, merge_static_recovery_omissions
 
 
 def make_request(**overrides) -> GenerateWidgetCardRequest:
@@ -42,6 +45,101 @@ def make_response(
         message="测试",
         artifactUrl=artifact_url,
     )
+
+
+def recovery_omission_plan() -> dict:
+    return {
+        "info_required": [
+            {"requirement": "甲院名称", "text": "甲院", "priority": "must"},
+            {"requirement": "甲院时长", "text": "10分钟", "priority": "must"},
+            {"requirement": "乙院名称", "text": "乙院", "priority": "must"},
+            {"requirement": "乙院时长", "text": "10分钟", "priority": "must"},
+        ],
+        "contentGroups": [
+            {"id": "first", "kind": "object", "identity": "甲院", "factIndexes": [0, 1]},
+            {"id": "second", "kind": "object", "identity": "乙院", "factIndexes": [2, 3]},
+        ],
+    }
+
+
+def recovery_omission_source(*items: dict) -> str:
+    rows = [
+        ["root", "Layout", {"template": "W-static-content"}, ["content"]],
+        ["content", "TextList", {"items": list(items)}],
+        ["/state/ready", True],
+    ]
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+
+@pytest.mark.parametrize("include_plan", [False, True])
+def test_static_interface_recovery_keeps_previous_actual_omissions(include_plan):
+    context = CompactDslRetryContext(
+        "layout_capacity",
+        capacity_recovery=True,
+        omitted_facts=(CompactDslRecoveryFact("text", "10分钟", "甲院时长", "must"),),
+        omission_plan=recovery_omission_plan() if include_plan else None,
+    )
+    source = recovery_omission_source(
+        {"primaryText": "甲院"}, {"primaryText": "乙院", "secondaryText": "10分钟"},
+    )
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        omitted = merge_static_recovery_omissions(["饮食说明", "甲院时长"], source, context)
+    assert omitted == ["甲院时长", "饮食说明"]
+    assert ResponsePlanner().plan(0, 0, [], True, omitted_requirements=omitted).status == (
+        GenerationStatus.DEGRADED
+    )
+
+
+def test_static_interface_recovery_does_not_borrow_another_object_equal_value():
+    context = CompactDslRetryContext(
+        "layout_capacity",
+        capacity_recovery=True,
+        omitted_facts=(CompactDslRecoveryFact("text", "10分钟", "甲院时长", "must"),),
+        omission_plan=recovery_omission_plan(),
+    )
+    source = recovery_omission_source({"primaryText": "乙院", "secondaryText": "10分钟"})
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        assert merge_static_recovery_omissions([], source, context) == ["甲院时长"]
+
+
+def test_static_interface_recovery_clears_only_a_fully_restored_fact():
+    context = CompactDslRetryContext(
+        "layout_capacity",
+        capacity_recovery=True,
+        omitted_facts=(CompactDslRecoveryFact("text", "10分钟", "甲院时长", "must"),),
+        omission_plan=recovery_omission_plan(),
+    )
+    snapshot = json.dumps(context.omission_plan, ensure_ascii=False)
+    source = recovery_omission_source(
+        {"primaryText": "甲院", "secondaryText": "10分钟"},
+        {"primaryText": "乙院", "secondaryText": "10分钟"},
+    )
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        assert merge_static_recovery_omissions(["饮食说明"], source, context) == ["饮食说明"]
+    assert json.dumps(context.omission_plan, ensure_ascii=False) == snapshot
+
+
+@pytest.mark.parametrize("capacity_recovery", [False, True])
+def test_existing_route_omission_feedback_is_unchanged(capacity_recovery):
+    current = ["本轮省略"]
+    context = CompactDslRetryContext(
+        "layout_capacity",
+        capacity_recovery=capacity_recovery,
+        omitted_facts=(CompactDslRecoveryFact("text", "10分钟", "甲院时长", "must"),),
+        omission_plan=recovery_omission_plan(),
+    )
+    assert merge_static_recovery_omissions(current, "", context) is current
+
+
+def test_static_first_attempt_and_non_capacity_result_are_unchanged():
+    current = ["本轮省略"]
+    context = CompactDslRetryContext(
+        "validation",
+        omitted_facts=(CompactDslRecoveryFact("text", "10分钟", "甲院时长", "must"),),
+    )
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        assert merge_static_recovery_omissions(current, "", None) is current
+        assert merge_static_recovery_omissions(current, "", context) is current
 
 
 @pytest.mark.asyncio
