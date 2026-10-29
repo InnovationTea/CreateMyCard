@@ -145,7 +145,16 @@ def test_three_records_shared_note_passes_real_processor_and_artifact_with_compl
     assert accepted == _accept(canonical)
     source = accepted.get("staticPresentation")
     assert isinstance(source, str)
-    assert "SingleLineTitle" not in source
+    rows = [json.loads(line) for line in source.splitlines()]
+    header = next((row for row in rows if row[0] == "header"), None)
+    body = next((row for row in rows if row[0] == "body"), None)
+    assert header is not None and body is not None
+    assert header[1] == "SingleLineTitle"
+    assert header[2].get("title") == "服务费另收0.55元/度"
+    assert "服务费另收0.55元/度" not in json.dumps(body, ensure_ascii=False)
+    accepted_facts = accepted.get("info_required")
+    assert accepted_facts
+    assert accepted_facts[6].get("displayRole") == "body"
     task = _task(plan, "2x4")
     card = {"suggestSize": "2x4", "title": "充电电价", "description": "完整时段及公共费用"}
     profile = A2UIProtocolRegistry().get_profile()

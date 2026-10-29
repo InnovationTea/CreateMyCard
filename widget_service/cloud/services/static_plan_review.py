@@ -22,6 +22,64 @@ class StaticPlanReview:
     warnings: tuple[str, ...] = ()
 
 
+def static_plan_unreferenced_source(plan: dict[str, Any], source: str) -> list[str]:
+    """机械列出未被来源引用覆盖的原文，不把引用缺口推断为展示遗漏。"""
+    normalized_source = source.replace("\r\n", "\n").replace("\r", "\n")
+    ranges: list[tuple[int, int]] = []
+    for fact in plan.get("info_required", []):
+        for quote in fact.get("sourceTexts", []):
+            if not isinstance(quote, str) or not quote:
+                continue
+            normalized_quote = quote.replace("\r\n", "\n").replace("\r", "\n")
+            start = normalized_source.find(normalized_quote)
+            while start >= 0:
+                ranges.append((start, start + len(normalized_quote)))
+                start = normalized_source.find(normalized_quote, start + 1)
+    fragments = []
+    cursor = 0
+    for start, end in sorted(ranges):
+        if start > cursor:
+            fragments.append(normalized_source[cursor:start])
+        cursor = max(cursor, end)
+    if cursor < len(normalized_source):
+        fragments.append(normalized_source[cursor:])
+    return [fragment for fragment in fragments if fragment.strip(" \t\n，。；;、,.：:")]
+
+
+def _display_text_slots(groups: list[Any]) -> list[dict[str, Any]]:
+    result = []
+    for group in groups:
+        fields = {}
+        for name, values in group.property_parts:
+            if values:
+                fields[name] = list(values)
+        result.append({"texts": list(group.parts), "fields": fields})
+    return result
+
+
+def static_plan_display_evidence(plan: dict[str, Any]) -> dict[str, Any]:
+    """复用展示读取器，只提供候选文字及其分区，不向模型注入重排 DSL。"""
+    from services.card_validation.compact_validation.semantic.static_content import (
+        static_display_groups,
+    )
+    from services.compact_dsl_a2ui_converter import CompactDslConversionError
+
+    source = plan.get("staticPresentation")
+    if not isinstance(source, str) or not source.strip():
+        return {"status": "unknown", "reason": "no_candidate"}
+    try:
+        objects, shared = static_display_groups(source)
+    except CompactDslConversionError:
+        return {"status": "unknown", "reason": "unreadable_candidate"}
+    if not objects and not shared:
+        return {"status": "unknown", "reason": "no_display_text"}
+    return {
+        "status": "available",
+        "objects": _display_text_slots(objects),
+        "shared": _display_text_slots(shared),
+    }
+
+
 def _decode_review(raw_output: str) -> tuple[Any, tuple[str, ...]]:
     """仅恢复缺失的最外层闭合符，不补值、内部结构或重复键。"""
     text = raw_output.strip()

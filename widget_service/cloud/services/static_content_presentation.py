@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 import json
 from dataclasses import dataclass
 from typing import Any
@@ -153,7 +152,6 @@ def _encode(
     size: str,
     *,
     heading: str = "",
-    note_index: int | None = None,
     shared_header: bool = False,
     include_titles: bool = True,
 ) -> str | None:
@@ -168,7 +166,7 @@ def _encode(
             target.append(fact.get("text", ""))
             shared_texts.append(fact.get("text", ""))
     if shared_header:
-        if not titles or not notes:
+        if not notes:
             return None
         titles = shared_texts
         notes = []
@@ -184,21 +182,8 @@ def _encode(
             values = [supplemental] if supplemental else []
             props = {**props, "secondaryText": "；".join([*values, *notes])}
         else:
-            if not isinstance(items, list) or note_index is None:
-                return None
-            if not 0 <= note_index < len(items):
-                return None
-            item = items[note_index]
-            if not isinstance(item, dict):
-                return None
-            key = "assist" if component == "SingleLineList" else "secondaryText"
-            supplemental = item.get(key)
-            if supplemental is not None and not isinstance(supplemental, str):
-                return None
-            values = [supplemental] if supplemental else []
-            updated_items = copy.deepcopy(items)
-            updated_items[note_index][key] = "；".join([*values, *notes])
-            props = {**props, "items": updated_items}
+            # 公共说明不能借某个对象的字段承载，避免把共同条件变成该对象专属。
+            return None
     children = []
     rows = []
     if titles and include_titles:
@@ -261,14 +246,6 @@ def _candidate_sources(
         )
         if source is not None:
             sources.append(source)
-        elif fallback and component != "EmphasisText" and not shared_header:
-            items = props.get("items")
-            if not isinstance(items, list):
-                continue
-            for index in reversed(range(len(items))):
-                source = _encode(component, props, shared, size, note_index=index)
-                if source is not None:
-                    sources.append(source)
     return sources
 
 
@@ -295,7 +272,7 @@ def static_presentation_candidates(
         sources.extend(_candidate_sources(plan, size, omitted_indexes, fallback=True))
         if len(optional) > len(omitted_indexes):
             sources.extend(_candidate_sources(plan, size, tuple(optional), fallback=True))
-        # 公共说明只能在所有旧候选之后尝试已有标题；完整字号容量检查仍由调用方执行。
+        # 公共原文可使用独立标题槽；已有主题一起保留，完整字号容量仍由调用方检查。
         sources.extend(_candidate_sources(
             plan, size, omitted_indexes, fallback=True, shared_header=True,
         ))

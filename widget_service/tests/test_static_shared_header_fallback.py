@@ -1,4 +1,4 @@
-"""共享说明仅在既有候选失败后尝试标题承载，原合同与内容保持不变。"""
+"""共享说明使用独立承载，不能在试排时变成某一对象的专属条件。"""
 
 import copy
 import json
@@ -51,6 +51,26 @@ def _plan():
     }
 
 
+def _tariff_plan():
+    facts = [
+        _fact("谷段 23:00–次日7:00，0.42元/度", "value"),
+        _fact("平段 7:00–10:00、15:00–18:00，0.78元/度", "value"),
+        _fact("峰段 11:00–14:00、18:00–21:00，1.16元/度", "value"),
+        _fact("另收服务费0.55元/度"),
+    ]
+    groups = []
+    for index, name in enumerate(("谷段", "平段", "峰段")):
+        groups.append({
+            "id": f"object{index}", "kind": "object", "identity": name,
+            "factIndexes": [index],
+        })
+    groups.append({"id": "note", "kind": "shared", "identity": None, "factIndexes": [3]})
+    return {
+        "info_required": facts, "contentGroups": groups, "presentationStyle": "records",
+        "layoutHints": ["W-static-content"], "omittedContents": [],
+    }
+
+
 def _task(plan):
     query = "；".join(fact.get("text", "") for fact in plan.get("info_required", []))
     return {
@@ -81,36 +101,51 @@ def _static_scope(monkeypatch):
         yield
 
 
-def test_old_candidates_keep_order_and_header_candidate_is_last():
+def test_shared_notes_are_not_inserted_into_individual_object_candidates():
     plan = _plan()
     assert static_presentation_candidates(plan, "2x4") == ()
     sources = static_presentation_candidates(plan, "2x4", include_fallback=True)
-    assert len(sources) == 5
+    assert len(sources) == 1
     assert len(set(sources)) == len(sources)
-    for source in sources[:-1]:
-        assert _header(source) == "猫咪分龄每日喂食量"
-        with pytest.raises((CompactDslValidationError, CompactDslConversionError)):
-            _validate(source, plan)
-    for index, source in zip((3, 2, 1, 0), sources[:-1], strict=True):
-        rows = [json.loads(line) for line in source.splitlines()]
-        body = next(row for row in rows if row[0] == "body")
-        items = body[2].get("items")
-        assert isinstance(items, list)
-        assert items[index].get("assist", "").endswith("各阶段均保证自由饮水")
+    rows = [json.loads(line) for line in sources[0].splitlines()]
+    body = next(row for row in rows if row[0] == "body")
+    assert "各阶段均保证自由饮水" not in json.dumps(body, ensure_ascii=False)
     assert _header(sources[-1]) == "猫咪分龄每日喂食量；各阶段均保证自由饮水"
     _validate(sources[-1], plan)
 
 
-def test_complete_trial_and_processor_restore_without_omission_or_font_change():
-    plan = _plan()
+def test_three_records_with_shared_fee_choose_legal_independent_header_layout():
+    plan = _tariff_plan()
+    before = copy.deepcopy(plan)
+    trial = trial_static_presentation(plan, _task(plan).get("userQuery"), "2x4")
+    assert trial.source is not None
+    assert trial.errors == ()
+    assert _header(trial.source) == "另收服务费0.55元/度"
+    rows = [json.loads(line) for line in trial.source.splitlines()]
+    body = next(row for row in rows if row[0] == "body")
+    assert body[1] == "SingleLineList"
+    assert body[2].get("items") == [
+        {"text": "谷段", "assist": "23:00–次日7:00，0.42元/度"},
+        {"text": "平段", "assist": "7:00–10:00、15:00–18:00，0.78元/度"},
+        {"text": "峰段", "assist": "11:00–14:00、18:00–21:00，1.16元/度"},
+    ]
+    coverage = static_fact_coverage(trial.source, plan)
+    assert len(coverage) == 4
+    assert all(item.visible for item in coverage)
+    _validate(trial.source, plan)
+    assert plan == before
+
+
+@pytest.mark.parametrize("plan_factory", [_plan, _tariff_plan])
+def test_complete_trial_and_processor_restore_without_omission_or_font_change(plan_factory):
+    plan = plan_factory()
     before = copy.deepcopy(plan)
     task = _task(plan)
     trial = trial_static_presentation(plan, task.get("userQuery"), "2x4")
     assert trial.source is not None
-    assert trial.attempted == 5
     assert trial.errors == ()
     coverage = static_fact_coverage(trial.source, plan)
-    assert len(coverage) == 6
+    assert len(coverage) == len(plan.get("info_required", []))
     assert all(item.visible for item in coverage)
     profile = A2UIProtocolRegistry().get_profile()
     card = {"suggestSize": "2x4", "title": "分龄喂食", "description": "完整展示喂食量和共同说明"}
@@ -163,27 +198,45 @@ def test_overlong_shared_header_is_rejected_instead_of_clipped():
 
 
 @pytest.mark.parametrize("role", ["value", "label", "leading", "trailing", "detail"])
-def test_other_shared_roles_are_not_reclassified_into_header(role):
+def test_other_shared_roles_are_not_moved_to_an_object_or_reclassified_into_header(role):
     plan = _plan()
     facts = plan.get("info_required")
     assert isinstance(facts, list)
     facts[5]["displayRole"] = role
     sources = static_presentation_candidates(plan, "2x4", include_fallback=True)
-    assert sources
-    assert all(_header(source) == "猫咪分龄每日喂食量" for source in sources)
+    assert sources == ()
 
 
-def test_shared_note_without_existing_title_does_not_manufacture_header():
+def test_shared_note_without_existing_title_uses_its_original_text_as_header():
     plan = _plan()
     sources = static_presentation_candidates(plan, "2x4", (0,), include_fallback=True)
     assert sources
-    assert all(_header(source) is None for source in sources)
+    assert all(_header(source) == "各阶段均保证自由饮水" for source in sources)
 
 
 def test_title_without_shared_notes_keeps_only_existing_candidate():
     sources = static_presentation_candidates(_plan(), "2x4", (5,), include_fallback=True)
     assert len(sources) == 1
     assert _header(sources[0]) == "猫咪分龄每日喂食量"
+
+
+def test_single_object_emphasis_keeps_shared_note_in_existing_secondary_field():
+    plan = {
+        "info_required": [_fact("当前19度", "value"), _fact("体感舒适")],
+        "contentGroups": [
+            {"id": "reading", "kind": "object", "identity": None, "factIndexes": [0]},
+            {"id": "note", "kind": "shared", "identity": None, "factIndexes": [1]},
+        ],
+        "presentationStyle": "content", "layoutHints": ["W-static-content"],
+    }
+    sources = static_presentation_candidates(plan, "2x4")
+    assert len(sources) == 1
+    rows = [json.loads(line) for line in sources[0].splitlines()]
+    assert rows == [
+        ["root", "Layout", {"layout": "W-static-content"}, ["body"]],
+        ["body", "EmphasisText", {"mainText": "当前19度", "secondaryText": "体感舒适"}],
+        ["/state/ready", True],
+    ]
 
 
 def test_shared_header_preserves_declared_group_order():

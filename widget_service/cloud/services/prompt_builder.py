@@ -39,6 +39,10 @@ from services.compact_structural_fewshots import select_structural_fewshots
 from services.content_business import BusinessContext
 from services.generation_input_feedback import MISSING_DATA_PLAN_INSTRUCTION, missing_data_tool
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
+from services.static_plan_review import (
+    static_plan_display_evidence,
+    static_plan_unreferenced_source,
+)
 
 _MODULE = "[Prompt Builder]"
 
@@ -2005,6 +2009,8 @@ class PromptBuilder:
                     "originalFactSource": source,
                     "hasExplicitFactSection": explicit_source,
                     "capacityReference": plan.get("staticPresentationFeedback", []),
+                    "unreferencedSourceFragments": static_plan_unreferenced_source(plan, source),
+                    "candidateDisplayText": static_plan_display_evidence(plan),
                 },
                 "reviewOutput": {
                     "type": "object",
@@ -2057,7 +2063,14 @@ class PromptBuilder:
                     "不得把omissionCandidates等程序字段抄入correctedPlan；"
                     "新omittedContents须按原合同提交description/factIndexes对象，"
                     "索引对应修正后的事实数组，不得从归一化说明猜造遗漏许可。"
-                    "先按原始事实源核对用户要求的必要对象、地点、条件、时间范围、数值单位、"
+                    "先从originalFactSource检查整卡共同主体、年份、时间范围和公共条件，再逐项核对。"
+                    "unreferencedSourceFragments只是原文未被sourceTexts引用的片段，"
+                    "可能包含制作指令、无关背景或已合法省略内容，不是必须全部展示的清单；"
+                    "也不能只检查candidatePlan已有事实而漏掉未进入Plan的公共背景。"
+                    "candidateDisplayText是实际候选的文字槽位，objects按显示项排列，shared为共享区；"
+                    "它不是新的事实源或DSL蓝图，也不证明文字像素可见。status为unknown时没有可核对"
+                    "的候选，不得据此推断缺失或新增失败。"
+                    "按原始事实源核对用户要求的必要对象、地点、条件、时间范围、数值单位、"
                     "否定和替代关系是否在最终可见内容中完整表达；"
                     "requirement/sourceTexts/selectionNotes有记载不等于最终可见。"
                     "复核完整事实及对象、条件、范围关系，不要求每个字段逐字重复。"
@@ -2066,6 +2079,12 @@ class PromptBuilder:
                     "共同标题或说明中的年份，不因没有逐项重复单位、年份或原文数量用语"
                     "而判为缺失。不要把原文全部逐字搬入卡片，允许忠实摘要；"
                     "但不能把必要场景或限定改成更宽泛的结论。按已有合同核对真实遗漏申请。"
+                    "放不下允许按原合同合理省略，不要求把所有场次或背景硬挤进卡片；"
+                    "已声明且不改变剩余内容含义的合法省略不单独构成needs_correction。"
+                    "公共主体或范围未进入Plan、且使剩余内容身份或适用范围不明时，才以原文证据"
+                    "和空factIndexes报告漏项，在现有合法展示位置补足必要上下文。"
+                    "shared声明不等于实际仍共同适用；若candidateDisplayText把共同条件只放进一个"
+                    "对象字段而造成归属歧义，也应修正。"
                     "仅真实丢失、改变、编造或错误归属才标needs_correction；"
                     "排版偏好、措辞美化、重复标注不构成语义纠错。"
                     "存在显式事实段时，只把originalFactSource作为事实依据，不把段前期望当事实。"

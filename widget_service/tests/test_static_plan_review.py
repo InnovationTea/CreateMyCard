@@ -24,7 +24,11 @@ from services.generation_content_policy import (
     content_policy_scope,
 )
 from services.prompt_builder import PromptBuilder
-from services.static_plan_review import StaticPlanReviewError, parse_static_plan_review
+from services.static_plan_review import (
+    StaticPlanReviewError,
+    parse_static_plan_review,
+    static_plan_unreferenced_source,
+)
 from services.widget_generation_service import WidgetGenerationService
 
 
@@ -239,6 +243,9 @@ def test_prompt_reviews_visible_group_with_original_source_without_dsl_blueprint
     assert data.get("originalFactSource") == query
     assert data.get("capacityReference") == ["需要调整容量"]
     assert data.get("originalSubmission") == original_submission
+    assert data.get("candidateDisplayText") == {
+        "status": "unknown", "reason": "unreadable_candidate",
+    }
     assert "forbidden-dsl-blueprint" not in json.dumps(reviewed)
     assert "requirement/sourceTexts/selectionNotes" in payload.get("instruction", "")
     assert messages == original
@@ -266,6 +273,84 @@ def test_review_output_is_a_typed_schema_not_string_placeholder_examples():
     string_indexes = _correct(_plan(), [{**_finding(), "factIndexes": "[0]"}])
     with pytest.raises(ValidationError):
         validator.validate(string_indexes)
+
+
+def test_review_focuses_on_uncited_context_without_treating_it_as_required_display():
+    source = "制作静态卡：2028城市联赛5月至6月赛程，5月9日甲队对乙队。场馆尚未确认。"
+    plan = _plan("甲队对乙队 5月9日", "5月9日甲队对乙队")
+    plan["omittedContents"] = ["场馆尚未确认"]
+    payload = _review_payload(plan, source)
+    evidence = payload.get("staticPlanReview", {})
+    assert evidence.get("unreferencedSourceFragments") == [
+        "制作静态卡：2028城市联赛5月至6月赛程，", "。场馆尚未确认。",
+    ]
+    assert evidence.get("candidateDisplayText", {}).get("status") == "unknown"
+    instruction = payload.get("instruction", "")
+    assert "公共主体或范围未进入Plan" in instruction
+    assert "不是必须全部展示的清单" in instruction
+    assert "已声明且不改变剩余内容含义的合法省略不单独构成needs_correction" in instruction
+    # 这些证据不会在本地强行把原 keep 改成错误，也不修改已有省略声明。
+    reviewed = parse_static_plan_review(json.dumps(_keep()), source=source, fact_count=1)
+    assert reviewed.decision == "keep"
+    assert plan.get("omittedContents") == ["场馆尚未确认"]
+
+
+@pytest.mark.parametrize("source,quotes,expected", [
+    ("主体甲乙丙丁", ["甲乙丙", "乙丙丁", "甲乙丙"], ["主体"]),
+    ("标题，甲说明；甲说明。", ["甲说明"], ["标题，"]),
+    ("上文\r\n甲说明\r\n下文", ["甲说明"], ["上文\n", "\n下文"]),
+    ("甲说明", ["甲说明"], []),
+    ("主体与说明", [], ["主体与说明"]),
+])
+def test_source_fragments_merge_overlaps_and_repeated_quotes(source, quotes, expected):
+    plan = _plan()
+    facts = plan.get("info_required")
+    assert isinstance(facts, list)
+    facts[0]["sourceTexts"] = quotes
+    before = copy.deepcopy(plan)
+    assert static_plan_unreferenced_source(plan, source) == expected
+    assert plan == before
+
+
+def test_review_source_fragments_do_not_promote_expectation_before_explicit_fact_section():
+    query = "想看完整国际联赛；本轮卡片静态内容（用作展示的外部事实）：城市赛2028，甲队获胜"
+    payload = _review_payload(_plan("甲队获胜"), query)
+    evidence = payload.get("staticPlanReview", {})
+    assert evidence.get("hasExplicitFactSection") is True
+    assert evidence.get("unreferencedSourceFragments") == ["城市赛2028，"]
+    fragments = json.dumps(evidence.get("unreferencedSourceFragments"), ensure_ascii=False)
+    assert "国际联赛" not in fragments
+
+
+def test_review_reads_actual_text_slots_without_injecting_candidate_dsl():
+    plan = _plan("各档均收服务费0.5元")
+    rows = [
+        ["root", "Layout", {"layout": "W-static-content"}, ["header", "body"]],
+        ["header", "SingleLineTitle", {"title": "2028计费规则"}],
+        ["body", "TextList", {"items": [
+            {"primaryText": "甲档", "secondaryText": "1元；各档均收服务费0.5元"},
+            {"primaryText": "乙档", "secondaryText": "2元"},
+        ]}],
+        ["/state/ready", True],
+    ]
+    candidate = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    plan["staticPresentation"] = candidate
+    before = copy.deepcopy(plan)
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        payload = _review_payload(plan, "2028计费规则，甲档1元，乙档2元，各档均收服务费0.5元")
+    evidence = payload.get("staticPlanReview", {})
+    display = evidence.get("candidateDisplayText", {})
+    assert display.get("status") == "available"
+    objects = display.get("objects", [])
+    assert len(objects) == 2
+    assert objects[0].get("fields", {}).get("secondaryText") == ["1元；各档均收服务费0.5元"]
+    assert objects[1].get("fields", {}).get("secondaryText") == ["2元"]
+    assert display.get("shared", [])[0].get("texts") == ["2028计费规则"]
+    # 清单只表达可核对的文字落点，不带布局树、字号、尺寸或完整候选协议。
+    assert "W-static-content" not in json.dumps(display)
+    assert "staticPresentation" not in evidence.get("candidatePlan", {})
+    assert "只放进一个对象字段而造成归属歧义" in payload.get("instruction", "")
+    assert plan == before
 
 
 def test_review_allows_shared_units_and_visible_identity_without_new_plan_gate():
