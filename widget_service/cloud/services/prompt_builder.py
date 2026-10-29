@@ -1995,34 +1995,75 @@ class PromptBuilder:
                     "capacityReference": plan.get("staticPresentationFeedback", []),
                 },
                 "reviewOutput": {
-                    "decision": "keep | correct",
-                    "sourceFidelity": "preserved | needs_correction",
-                    "findings": [{
-                        "sourceText": "原始事实源中的连续原文证据",
-                        "factIndexes": "首份candidatePlan中受影响的索引数组，完全漏项用[]",
-                        "issue": "原始事实与同组最终展示的具体差异",
-                    }],
-                    "correctedPlan": "仅correct时填写完整{name:submit_card_plan,arguments:{...}}",
+                    "type": "object",
+                    "required": ["decision", "sourceFidelity", "findings"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "decision": {"type": "string", "enum": ["keep", "correct"]},
+                        "sourceFidelity": {
+                            "type": "string", "enum": ["preserved", "needs_correction"],
+                        },
+                        "findings": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": ["sourceText", "factIndexes", "issue"],
+                                "additionalProperties": False,
+                                "properties": {
+                                    "sourceText": {"type": "string", "minLength": 1},
+                                    "factIndexes": {
+                                        "type": "array",
+                                        "items": {"type": "integer", "minimum": 0},
+                                        "uniqueItems": True,
+                                        "description": "首份candidatePlan的索引，完全漏项用[]",
+                                    },
+                                    "issue": {"type": "string", "minLength": 1},
+                                },
+                            },
+                        },
+                        "correctedPlan": {
+                            "type": "object", "required": ["name", "arguments"],
+                            "additionalProperties": False,
+                            "description": "correct时必填、keep时禁止；不得JSON序列化成字符串",
+                            "properties": {
+                                "name": {"const": "submit_card_plan"},
+                                "arguments": {
+                                    "type": "object",
+                                    "description": "完整遵守系统submit_card_plan工具的参数Schema",
+                                },
+                            },
+                        },
+                    },
                 },
                 "instruction": (
-                    "这是冻结前的明确复核，不是已接受结果。只输出一个纯JSON对象。"
+                    "这是冻结前的明确复核，不是已接受结果。reviewOutput是JSON Schema，"
+                    "只输出符合它的一个纯JSON对象，不输出Schema本身。"
+                    "correctedPlan与其arguments必须是真实JSON对象，factIndexes必须是数组，"
+                    "都不能序列化成字符串。"
                     "candidatePlan是程序归一化后的对照对象，不是新提交格式；"
                     "originalSubmission保留原提交作格式参考，实际仍以系统中的工具Schema为准。"
                     "不得把omissionCandidates等程序字段抄入correctedPlan；"
                     "新omittedContents须按原合同提交description/factIndexes对象，"
                     "索引对应修正后的事实数组，不得从归一化说明猜造遗漏许可。"
                     "先按原始事实源核对用户要求的必要对象、地点、条件、时间范围、数值单位、"
-                    "否定和替代关系是否在同组最终text与identity中完整表达；"
+                    "否定和替代关系是否在最终可见内容中完整表达；"
                     "requirement/sourceTexts/selectionNotes有记载不等于最终可见。"
-                    "不要把原文全部逐字搬入卡片；允许同组标签与正文共同表达及忠实摘要，"
+                    "复核完整事实及对象、条件、范围关系，不要求每个字段逐字重复。"
+                    "同一对象的identity标签、同组text及确实共同适用的shared内容可共同表达；"
+                    "跨不同对象不能借值。共同单位限定明确的数字列表、无歧义分隔、"
+                    "共同标题或说明中的年份，不因没有逐项重复单位、年份或原文数量用语"
+                    "而判为缺失。不要把原文全部逐字搬入卡片，允许忠实摘要；"
                     "但不能把必要场景或限定改成更宽泛的结论。按已有合同核对真实遗漏申请。"
+                    "仅真实丢失、改变、编造或错误归属才标needs_correction；"
+                    "排版偏好、措辞美化、重复标注不构成语义纠错。"
                     "存在显式事实段时，只把originalFactSource作为事实依据，不把段前期望当事实。"
                     "确认无语义问题且无需改排时返回"
                     '{"decision":"keep","sourceFidelity":"preserved","findings":[]}，'
                     "不要重抄计划。语义有丢失、改变或编造时返回correct+needs_correction，"
                     "逐条给出有效原文证据、首份索引和差异，并在correctedPlan修正完整计划；"
                     "facts、分组、真实遗漏声明必须原子同步，不能只修改规划说明。"
-                    "若仅优化容量且原计划语义完整，使用correct+preserved+空findings。"
+                    "原计划完整且无容量问题时应keep；只有容量问题才在preserved下改排，"
+                    "使用correct+preserved+空findings。"
                     "先保全语义，再结合capacityReference组织短标签、正文和布局；"
                     "不靠放宽原合同、缩字或新增删除许可凑容量。"
                     "这是本阶段最后一次提交，不会再增加Plan调用；不返回解释或Markdown。"

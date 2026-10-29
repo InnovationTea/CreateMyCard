@@ -5,6 +5,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from jsonschema import Draft202012Validator, ValidationError
 
 from api.schemas import GenerateWidgetCardRequest
 from config.config import get_settings
@@ -137,6 +138,13 @@ def test_correct_preserves_original_plan_envelope_for_existing_validator():
     assert json.loads(result.corrected_source or "null") == _call(plan)
 
 
+def test_string_corrected_plan_is_still_rejected_without_implicit_decoding():
+    payload = _correct(_plan())
+    payload["correctedPlan"] = json.dumps(_call(_plan()), ensure_ascii=False)
+    with pytest.raises(StaticPlanReviewError, match="完整 correctedPlan 对象"):
+        _parse(payload)
+
+
 @pytest.mark.parametrize("indexes", [[], [0]])
 def test_source_evidence_allows_completely_missing_fact(indexes):
     result = _parse(_correct(_plan(), [_finding(indexes=indexes)]))
@@ -203,6 +211,50 @@ def test_prompt_reviews_visible_group_with_original_source_without_dsl_blueprint
     assert "forbidden-dsl-blueprint" not in json.dumps(reviewed)
     assert "requirement/sourceTexts/selectionNotes" in payload.get("instruction", "")
     assert messages == original
+
+
+def _review_payload(plan, query):
+    messages = [{"role": "system", "content": "原合同"}]
+    reviewed = PromptBuilder.build_static_plan_review(
+        messages, plan, query, original_submission=json.dumps(_call(plan), ensure_ascii=False),
+    )
+    return json.loads(reviewed[-1].get("content", ""))
+
+
+def test_review_output_is_a_typed_schema_not_string_placeholder_examples():
+    payload = _review_payload(_plan(), "带证件")
+    schema = payload.get("reviewOutput")
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema)
+    validator.validate(_keep())
+    validator.validate(_correct(_plan(), [_finding()]))
+    string_plan = _correct(_plan())
+    string_plan["correctedPlan"] = json.dumps(_call(_plan()))
+    with pytest.raises(ValidationError):
+        validator.validate(string_plan)
+    string_indexes = _correct(_plan(), [{**_finding(), "factIndexes": "[0]"}])
+    with pytest.raises(ValidationError):
+        validator.validate(string_indexes)
+
+
+def test_review_allows_shared_units_and_visible_identity_without_new_plan_gate():
+    source = "甲套餐价格分380元、680元两档"
+    plan = _plan("380/680元", source)
+    groups = plan.get("contentGroups")
+    assert isinstance(groups, list) and groups
+    groups[0]["identity"] = "甲套餐"
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        parsed = parse_compact_plan_call(json.dumps(_call(plan)), {
+            "userQuery": source, "size": "2x2",
+        }).plan
+    assert parsed.get("info_required", [])[0].get("text") == "380/680元"
+    assert parsed.get("contentGroups", [])[0].get("identity") == "甲套餐"
+    instruction = _review_payload(parsed, source).get("instruction", "")
+    assert "identity标签、同组text及确实共同适用的shared内容可共同表达" in instruction
+    assert "跨不同对象不能借值" in instruction
+    assert "没有逐项重复单位、年份或原文数量用语" in instruction
+    assert "必要场景或限定改成更宽泛的结论" in instruction
+    assert "排版偏好、措辞美化、重复标注不构成语义纠错" in instruction
 
 
 @pytest.mark.asyncio
