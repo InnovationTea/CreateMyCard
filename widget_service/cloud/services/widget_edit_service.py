@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import copy
 import inspect
+import re
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
 from anyio import to_thread
+from pydantic import ValidationError
 
 from api.schemas import GenerateWidgetCardRequest, GenerateWidgetCardResponse
-from app.logger import logger
+from app.logger import json_for_log, logger
 from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient, A2UIModelGenerationError
@@ -44,6 +46,18 @@ if TYPE_CHECKING:
 _PROFILE = {"id": "semantic-widget-edit", "format": "raw-json", "singleStepOutput": False}
 
 
+def _log_edit(event: str, *, level: str = "INFO", **details: Any) -> None:
+    """关键编辑事件独立于开发 Trace，结构化诊断保持单行。"""
+    logger.log(level, f"[Widget Edit] {event} details={json_for_log(details)}")
+
+
+def _exception_details(exc: Exception) -> dict[str, Any]:
+    reason = str(exc)
+    if isinstance(exc, ValidationError):
+        reason = json_for_log(exc.errors(include_input=False, include_context=False))
+    return {"exceptionType": type(exc).__name__, "reason": reason}
+
+
 class WidgetEditService:
     def __init__(self, host: WidgetGenerationService) -> None:
         self.host = host
@@ -60,15 +74,19 @@ class WidgetEditService:
             return self._response(request, GenerationStatus.UNSUPPORTED,
                                   "当前协议不支持继续编辑。", ErrorCode.WIDGET_EDIT_UNSUPPORTED)
         try:
+            _log_edit("source_load_started")
             loaded = await to_thread.run_sync(SourceArtifactRepository().load,
                                              request.sourceArtifactUrl or "")
         except SourceArtifactError as exc:
+            _log_edit("source_load_failed", level="WARNING", errorCode=exc.error_code.value)
             return self._response(request, GenerationStatus.FAILED,
                                   "上一版卡片无法安全读取，原卡片不受影响。", exc.error_code)
         original = loaded.artifact.model_copy(deep=True)
+        _log_edit("source_loaded", sourceDigest=loaded.artifact_digest)
         try:
             validate_edit_source_structure(original.genui)
         except (ValueError, TypeError, RecursionError) as exc:
+            _log_edit("source_structure_failed", level="WARNING", **_exception_details(exc))
             trace_record("edit.source.structure.failed", stage="edit.source", status="failed",
                          details={"reason": str(exc)})
             return self._response(request, GenerationStatus.FAILED,
@@ -103,6 +121,8 @@ class WidgetEditService:
             "sourceDigest": loaded.artifact_digest, "sourceSize": source_size,
             "explicitSize": explicit_size,
         })
+        _log_edit("started", sourceSize=source_size, explicitSize=explicit_size,
+                  maxRepairAttempts=settings.widget_edit_max_repair_attempts)
         try:
             with trace_span("edit.intent", stage="edit.intent"):
                 intent = await self._intent(
@@ -128,6 +148,8 @@ class WidgetEditService:
                     result = await to_thread.run_sync(
                         validate_edit_artifact, original, candidate, intent,
                     )
+                    _log_edit("runtime_validation_completed", errors=result.errors,
+                              warnings=result.warnings)
                     if result.errors:
                         raise ValueError("; ".join(result.errors))
                     final = candidate
@@ -135,12 +157,14 @@ class WidgetEditService:
                     final = await self._execute(
                         client, original, candidate, normalized.userQuery, intent,
                     )
-        except A2UIModelGenerationError:
+        except A2UIModelGenerationError as exc:
+            _log_edit("model_failed", level="WARNING", **_exception_details(exc))
             return self._response(
                 normalized, GenerationStatus.FAILED,
                 "编辑模型调用失败，原卡片不受影响。", ErrorCode.A2UI_GENERATION_FAILED,
             )
         except (ValueError, TypeError, RecursionError) as exc:
+            _log_edit("validation_failed", level="WARNING", **_exception_details(exc))
             trace_record("edit.validation.failed", stage="edit.validation", status="failed",
                          details={"reason": str(exc)})
             return self._response(
@@ -149,11 +173,14 @@ class WidgetEditService:
             )
         # 保存/上传失败向外传播，不通过重新生成卡片处理存储问题。
         store = ArtifactStore(request_body=self.host._request_body_for_artifact(request))
+        _log_edit("save_started", targetSize=intent.targetSize, mode=intent.mode)
         saved = store.save(final)
         if inspect.isawaitable(saved):
             saved = await saved
         if not saved.artifactUrl or saved.artifactUrl == request.sourceArtifactUrl:
             raise ArtifactUploadError("编辑保存必须产生独立的新产物地址")
+        _log_edit("completed", targetSize=intent.targetSize, mode=intent.mode,
+                  artifactDigest=saved.artifactDigest)
         trace_record("edit.completed", stage="edit", status="success", details={
             "targetSize": intent.targetSize, "mode": intent.mode,
         }, json_artifacts={"edit_final_artifact": final.model_dump(mode="json", exclude_none=True)})
@@ -169,6 +196,7 @@ class WidgetEditService:
         messages = intent_prompt(original, query, source_size, explicit_size, runtime_changes)
         budget = get_settings().widget_edit_max_repair_attempts
         for attempt in range(budget + 1):
+            _log_edit("intent_attempt_started", attempt=attempt + 1, maxAttempts=budget + 1)
             output = await self._call(client, messages, "edit_intent")
             try:
                 intent = EditIntent.model_validate(_load_json(output))
@@ -178,12 +206,17 @@ class WidgetEditService:
                     if unmet:
                         raise ValueError("; ".join(unmet))
             except (ValueError, TypeError, RecursionError) as exc:
+                _log_edit("intent_validation_failed", level="WARNING", attempt=attempt + 1,
+                          maxAttempts=budget + 1, willRetry=attempt < budget,
+                          **_exception_details(exc))
                 messages.extend(repair_feedback(output, [str(exc)], "intent"))
                 if attempt == budget:
                     raise ValueError("编辑意图合同修复次数耗尽") from exc
                 continue
             trace_record("edit.intent.accepted", stage="edit.intent", status=intent.outcome,
                          json_artifacts={"edit_intent": intent.model_dump(mode="json")})
+            _log_edit("intent_accepted", attempt=attempt + 1, outcome=intent.outcome,
+                      mode=intent.mode, targetSize=intent.targetSize)
             return intent
         raise AssertionError("编辑意图循环异常结束")
 
@@ -192,6 +225,7 @@ class WidgetEditService:
         messages = execution_prompt(original.genui, query, intent)
         budget = get_settings().widget_edit_max_repair_attempts
         for attempt in range(budget + 1):
+            _log_edit("execute_attempt_started", attempt=attempt + 1, maxAttempts=budget + 1)
             output = await self._call(client, messages, "edit_execute")
             current = candidate.model_copy(deep=True)
             errors: list[str] = []
@@ -202,6 +236,8 @@ class WidgetEditService:
                         raise ValueError("尺寸适配必须实际调整布局，不能只改变颜色或元信息")
                 result = await to_thread.run_sync(validate_edit_artifact, original, current, intent)
                 errors = result.errors
+                _log_edit("execute_validation_completed", attempt=attempt + 1,
+                          errors=errors, warnings=result.warnings)
                 trace_record("edit.validation.completed", stage="edit.validation",
                              status="failed" if errors else "success", details={"attempt": attempt},
                              json_artifacts={"edit_diagnostics": {
@@ -210,8 +246,10 @@ class WidgetEditService:
             except (ValueError, TypeError, RecursionError) as exc:
                 errors.append(str(exc))
             if not errors:
+                _log_edit("execute_accepted", attempt=attempt + 1)
                 return current
-            logger.warning(f"[Widget Edit] validation_failed attempt={attempt} errors={errors}")
+            _log_edit("execute_validation_failed", level="WARNING", attempt=attempt + 1,
+                      maxAttempts=budget + 1, willRetry=attempt < budget, errors=errors)
             messages.extend(repair_feedback(output, errors, "execute"))
         raise ValueError("编辑执行修复次数耗尽")
 
@@ -220,6 +258,12 @@ class WidgetEditService:
         output = client.generate(messages, _PROFILE, phase=phase, suppress_prompt_log=True)
         if inspect.isawaitable(output):
             output = await output
+        # 只识别整个响应的完整围栏；非法 JSON、重复键及合同仍由后续严格检查拒绝。
+        text = output.strip()
+        match = re.fullmatch(r"```(?:json|jsonl|genui)?[ \t]*\r?\n([\s\S]*?)\r?\n```", text, re.I)
+        if match is not None:
+            output = match.group(1).strip()
+            _log_edit("output_fence_removed", phase=phase, outputChars=len(output))
         return output
 
     def _candidate(self, original: WidgetArtifact, request: GenerateWidgetCardRequest,
@@ -263,6 +307,8 @@ class WidgetEditService:
         request: GenerateWidgetCardRequest, status: GenerationStatus, message: str,
         error: ErrorCode | None, *, feedback: bool = False,
     ) -> GenerateWidgetCardResponse:
+        _log_edit("finished", outcome=status.value,
+                  errorCode=error.value if error is not None else None, saved=False)
         return GenerateWidgetCardResponse(
             status=status, suggestSize=request.size or "2x2", message=message,
             errorCode=error.value if error is not None else "",
