@@ -285,6 +285,7 @@ class Settings(BaseSettings):
     )
     enable_daily_usage_limit: bool = CONFIG.get("enable_daily_usage_limit", "false") == "true"
     daily_usage_limit: int = Field(default=CONFIG.get("daily_usage_limit", 20), gt=0)
+    daily_usage_uid_whitelist: str = CONFIG.get("daily_usage_uid_whitelist", "")
     daily_usage_limit_exceeded_message: str = CONFIG.get(
         "daily_usage_limit_exceeded_message", "今日 AI 卡片生成次数已达上限，请明天再尝试。"
     )
