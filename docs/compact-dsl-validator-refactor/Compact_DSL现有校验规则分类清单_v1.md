@@ -82,7 +82,8 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | 同组已选读数、单位及相应分句限定词完整性 | 语义／跨文件，semantic/cross_file.py | 核对来源与计划，允许同对象跨事实拆分，不跨对象借用 |
 | Plan 动作数量与正文角色 | 语义／布局，semantic/layout/text_capacity.py，由 compact_plan.py 委托 | 不以记录数替代全卡容量，不承担布局选择 |
 | 关键片段换行与详细文字容量 | 语义／布局，共享 static_text_capacity.py；text_capacity.py 发布原容量诊断 | 展开与校验同一度量，语义组件负责生成固定行 |
-| 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 只对请求授权及静态生成标记采用共享度量，闭域原判定不变 |
+| 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 静态生成标记继续采用共享静态文字度量和省略号合同，不改静态字号与行数 |
+| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 与compact_composition_planner._text_width共用压力估算；静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy，不在校验器改写文字或授权省略 |
 
 以上沿用已登记诊断，不新增规则码，不迁移其它检查或更改闭域严重程度。
 
@@ -91,7 +92,7 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | 检查项 | 分类与实际文件 | 归属理由 |
 | --- | --- | --- |
 | sourceTexts 当前输入引用、连续片段与完整数字词 | 语义／跨文件一致性，`semantic/cross_file.py` | 比较静态 Plan 与本轮来源，不能靠来源存在证明自由摘要正确 |
-| 对象顺序、同组覆盖、shared 位置、核心和原文保护 | 语义／展示，`semantic/static_content.py` | 比较已接受分组与原语义条目；同对象连续属性行及合法组件内完整公共说明共用归属映射，覆盖、最小删减和实际省略反馈共用判定；不调整几何和容量 |
+| 对象顺序、同组覆盖、shared 位置、核心和原文保护 | 语义／展示，`semantic/static_content.py` | 比较已接受分组与原语义条目；同对象连续属性行及合法组件内完整公共说明共用归属映射。多对象续行仅在对象名唯一、首行和续行明示本对象、完整补足本组新事实且不覆盖别组名称或事实时成立；同值或同名歧义、残词、未知文字及重复条目仍拒绝。覆盖、最小删减和实际省略反馈共用判定；不调整几何和容量 |
 | 静态上下文缺失 | 语义／跨文件一致性，`semantic/static_content.py` | 缺少受信服务上下文时拒绝，不能由模型标记授权 |
 | 单字宽、完整行数及固定行高 | 语义／布局，`semantic/layout/text_capacity.py`；度量合同 `static_text_capacity.py` | 共享文字度量及参数，不在入口复制容量判断；总高、横向预算仍委托原布局校验 |
 | 新组件属性与静态值形状 | 共享展开 `static_content_components.py`、组件／绑定准入模块 | 新组件展开为原 Text / Row / Column / Divider，保留旧组件默认合同 |

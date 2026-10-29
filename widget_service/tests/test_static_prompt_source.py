@@ -136,10 +136,22 @@ def test_comparison_group_guidance_requires_title_for_two_or_three_items():
         assert required in read_static_prompt(SOURCE, stage, "2x4")
 
 
-def test_single_line_list_capacity_repair_recommends_text_list_before_drop():
-    repair = read_static_prompt(SOURCE, "repair", "2x4")
-    assert "SingleLineList的text或assist无法完整单行展示时，改用TextList" in repair
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_single_line_list_capacity_repair_requires_legal_text_list(size):
+    repair = read_static_prompt(SOURCE, "repair", size)
+    assert "仅在记录数为2–3、含标题最多两项且主副字段均能承载时，才改用TextList" in repair
+    assert "先在同对象内重新分配主副字段，保持已接受分组和必要公共标题" in repair
+    assert "不得删header或合并不同对象来凑项数" in repair
     assert "未收到optionalDrop时保留全部事实" in repair
+    assert "SingleLineList的text或assist无法完整单行展示时，改用TextList" not in repair
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_component_guidance_only_switches_lists_with_matching_capacity(size):
+    prompt = read_static_prompt(SOURCE, "create", size)
+    assert "仅在记录数为2–3、含标题最多两项且主副字段均能承载时，才改用TextList" in prompt
+    assert "修复时保持已接受分组及必要公共标题" in prompt
+    assert "使用TextList的主副记录结构，不继续选择SingleLineList" not in prompt
 
 
 def test_small_fewshots_expand_under_current_static_contract():
@@ -256,4 +268,7 @@ def test_complete_capacity_and_shared_rules_are_loaded_once_across_history(monke
     assert history.count("# 静态Plan提交") == 1
     assert history.count("## 2x2-V91") == 1
     assert "# 静态修复" in history
+    assert history.count("仅在记录数为2–3、含标题最多两项且主副字段均能承载时") == 2
+    assert "不得删header或合并不同对象来凑项数" in history
+    assert "使用TextList的主副记录结构，不继续选择SingleLineList" not in history
     assert "description: 静态" not in history

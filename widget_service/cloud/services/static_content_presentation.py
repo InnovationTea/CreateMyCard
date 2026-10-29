@@ -268,6 +268,35 @@ def static_presentation_candidates(
     return tuple(dict.fromkeys(sources))
 
 
+def _complete_text_feedback(
+    source: str, plan: dict[str, Any], query: str, size: str,
+) -> tuple[str, ...]:
+    from services.card_validation import CompactDslValidationError, validate_compact_dsl
+    from services.compact_high_level_components import CompactDslConversionError
+    from services.static_content_components import complete_static_text_trial
+
+    feedback: tuple[str, ...] = ()
+    try:
+        with complete_static_text_trial():
+            validate_compact_dsl(
+                source,
+                task_spec={
+                    "userQuery": query, "size": size,
+                    "dataModelSchema": {"data": {}},
+                    "eventCandidates": [], "assetCandidates": [],
+                },
+                card_spec={"suggestSize": size}, compact_plan=plan,
+                layout_scope=f"{'S' if size == '2x2' else 'W'}-static-content-guided",
+            )
+    except (CompactDslValidationError, CompactDslConversionError) as exc:
+        feedback = (
+            "正式组件UX允许省略号，原候选仍可用；以下仅为完整文字展示压力，"
+            "不是新增发布门禁或事实删减授权。请在既有Plan机会中核对必要信息的完整展示：\n"
+            f"{exc}",
+        )
+    return feedback
+
+
 def trial_static_presentation(
     plan: dict[str, Any], query: str, size: str
 ) -> StaticPresentationTrial:
@@ -315,6 +344,8 @@ def trial_static_presentation(
                     "原候选保留供后续DSL使用，不代表必须接受信息损失。"
                 )
                 feedback = (message, *errors)
+            if source in original_sources:
+                feedback += _complete_text_feedback(source, plan, query, size)
             return StaticPresentationTrial(source, attempted, feedback)
     if not attempted:
         count = sum(group.get("kind") == "object" for group in plan.get("contentGroups", []))

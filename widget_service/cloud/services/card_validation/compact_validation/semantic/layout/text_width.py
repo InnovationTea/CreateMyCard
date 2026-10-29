@@ -99,8 +99,10 @@ def _collect_text_width_budget_errors(
         maximum = _non_negative_number(props.get("maxWidth"))
         if maximum is not None:
             available = min(available, maximum)
-        # 只反馈明显冲突，不把字符压力估计作为精确字体测量门禁。
-        required = sum(font * (0.5 if ch.isascii() else 1.0) for ch in text)
+        # 与组合规划共用完整单行压力；仍是估算，不冒充端侧字体测量。
+        from services.compact_composition_planner import _text_width
+
+        required = _text_width(text, font)
         from services.generation_content_policy import current_content_policy
 
         marker = props.get("_visualRecipe")

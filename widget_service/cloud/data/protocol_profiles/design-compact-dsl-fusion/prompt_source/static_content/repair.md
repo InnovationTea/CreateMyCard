@@ -14,8 +14,8 @@ description: 按真实诊断修复语法、引用、信息落实和组件容量�
 TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无标题。
 较多短键值用SingleLineList，长段落不硬塞单行。
 SingleLineList必须与SingleLineTitle标题配套使用；修复时不得删除header后只保留body列表。
-SingleLineList的text或assist无法完整单行展示时，改用TextList承载长记录的主副信息；
-含标题的TextList最多两项；不要把超过两条的完整记录原样换成带标题TextList制造新的项数冲突。
+SingleLineList的text或assist无法完整单行展示时，仅在记录数为2–3、含标题最多两项且主副字段均能承载时，才改用TextList。
+不满足时先在同对象内重新分配主副字段，保持已接受分组和必要公共标题；不得删header或合并不同对象来凑项数。
 未收到optionalDrop时保留全部事实；仍放不下时只删除后续明确授权的超出信息。
 ComparisonGroup为2或3项时必须与SingleLineTitle标题配套使用；4项宫格允许无标题。
 已接受核心的改写或删除只在程序明确授权的既有Drop阶段执行；按本轮明确索引处理。

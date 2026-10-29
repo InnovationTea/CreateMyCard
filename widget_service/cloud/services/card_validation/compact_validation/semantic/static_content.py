@@ -228,6 +228,31 @@ def _extends_object(
     return False
 
 
+def _unambiguous_object_continuation(
+    first: StaticDisplayGroup, following: StaticDisplayGroup, identity: str | None,
+    original_groups: list[dict[str, Any]], facts: list[dict[str, Any]], group_index: int,
+) -> bool:
+    if not isinstance(identity, str) or not identity.strip():
+        return False
+    for display in (first, following):
+        if not _identity_covered(identity, display.parts):
+            return False
+    for other_index, group in enumerate(original_groups):
+        if other_index == group_index or group.get("kind") != "object":
+            continue
+        other_identity = group.get("identity")
+        if isinstance(other_identity, str):
+            if _comparison_text(other_identity) == _comparison_text(identity):
+                return False
+        for display in (first, following):
+            if isinstance(other_identity, str) and _identity_covered(other_identity, display.parts):
+                return False
+            for fact in _group_facts(group, facts):
+                if _fact_covered(fact, display.parts):
+                    return False
+    return True
+
+
 def _display_mapping(
     source: str, plan: dict[str, Any], allowed: set[int],
 ) -> StaticDisplayMapping:
@@ -280,9 +305,21 @@ def _display_mapping(
         identity = group.get("identity")
         current = [candidate]
         position += 1
-        while object_count == 1 and position < len(objects):
+        extension_facts = own_facts
+        if object_count != 1:
+            original = plan.get("contentGroups", [])[group_index]
+            extension_facts = _group_facts(original, facts)
+        while position < len(objects):
             following = objects[position]
-            if not _extends_object(current, following, own_facts, shared_facts, identity):
+            if object_count != 1:
+                if not _parts_explained(current[0], extension_facts + shared_facts, identity):
+                    break
+                if not _unambiguous_object_continuation(
+                    current[0], following, identity, plan.get("contentGroups", []),
+                    facts, group_index,
+                ):
+                    break
+            if not _extends_object(current, following, extension_facts, shared_facts, identity):
                 break
             current.append(following)
             position += 1

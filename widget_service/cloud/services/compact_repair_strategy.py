@@ -119,11 +119,23 @@ _PILL_ACTION_ANCHOR_MIGRATION_INSTRUCTION = (
     "改选其它能够闭合容量的合法组件组合或父布局。"
 )
 
-_ANCHOR_MIGRATION_SOURCE_LAYOUTS = frozenset(
+_PILL_ACTION_SOURCE_LAYOUTS = frozenset(
     {
         "S-title-content-action",
         "S-title-primary-secondary-action",
     }
+)
+
+_FIXED_EMPHASIS_WIDTH_INSTRUCTION = (
+    " 当前报错定位到EmphasisText的固定18fp单行主文本，不能通过增大height、"
+    "添加maxLines或在同一单行属性内插入换行来获得两行，也不能把读数降到12fp次文本。"
+    "按原文已有语义边界，用同字号合法组件及Group完整分行；保留所有字符、空格、"
+    "标签、值、单位、绑定和原动作，不自动改写受保护原文或拆开动态值。"
+    "分行后按完整正文高度选择当前尺寸已登记的父布局及变体。"
+    "S-title-primary-secondary-action只有standard/dense，不接受direct变体；"
+    "若该结构仍放不下，可保持标题及原PillButton，整体改为S-title-content-action，"
+    "以合法Group承载完整正文，再核算其已登记direct系列变体。"
+    "只调整报错信息组和必要父布局，保留其它已正确区域及组件内部UX，不省略事实。"
 )
 
 
@@ -590,13 +602,24 @@ def _duplicate_required_slot_instruction() -> str:
     )
 
 
+def _text_width_overflow_components(
+    quality_errors: list[dict[str, Any]],
+) -> set[str]:
+    """复用已有宽度诊断格式，定位实际报错的展开文字节点。"""
+    messages = "\n".join(str(issue.get("message") or "") for issue in quality_errors)
+    identifiers = set()
+    for match in re.finditer(r"component\s+([^:\s]+):\s+text width overflow", messages, re.I):
+        identifiers.add(match.group(1))
+    return identifiers
+
+
 def _fixed_side_slot_text_overflow(
     invalid_source_dsl: str,
     quality_errors: list[dict[str, Any]],
 ) -> bool:
     """识别侧双槽固定信息槽无法容纳完整单行内容的容量错误。"""
-    messages = "\n".join(str(issue.get("message") or "") for issue in quality_errors)
-    if "text width overflow" not in messages.lower():
+    overflow_components = _text_width_overflow_components(quality_errors)
+    if not overflow_components:
         return False
     fixed_slots: list[str] = []
     for line in invalid_source_dsl.splitlines():
@@ -618,11 +641,56 @@ def _fixed_side_slot_text_overflow(
         break
     if len(fixed_slots) != 2:
         return False
-    for match in re.finditer(r"component\s+([^:\s]+):\s+text width overflow", messages, re.I):
-        component_id = match.group(1)
+    for component_id in overflow_components:
         for slot_id in fixed_slots:
             if component_id == slot_id or component_id.startswith(f"{slot_id}_"):
                 return True
+    return False
+
+
+def _fixed_emphasis_text_overflow(
+    invalid_source_dsl: str,
+    quality_errors: list[dict[str, Any]],
+    task_spec: dict[str, Any] | None,
+) -> bool:
+    """小卡文字动作骨架中，真实主文本宽度错误才允许必要父级重组。"""
+    if task_spec is None or task_spec.get("size") != "2x2":
+        return False
+    overflow_components = _text_width_overflow_components(quality_errors)
+    if not overflow_components:
+        return False
+    try:
+        rows = parse_compact_dsl_rows(
+            invalid_source_dsl, expand_layouts=False, skip_compact_dsl_validation=True,
+        )
+    except (CompactDslConversionError, TypeError, ValueError):
+        return False
+    components = {}
+    for row in rows:
+        if isinstance(row, ComponentRow):
+            components[row.component_id] = row
+    root = components.get("root")
+    if root is None or root.component_type != "Layout":
+        return False
+    if root.props.get("layout") not in _PILL_ACTION_SOURCE_LAYOUTS:
+        return False
+    action = components.get(root.children[-1]) if root.children else None
+    if action is None or action.component_type != "PillButton" or not action.props.get("onClick"):
+        return False
+    seen = set()
+    pending = list(root.children)
+    while pending:
+        identifier = pending.pop()
+        if identifier in seen:
+            continue
+        seen.add(identifier)
+        row = components.get(identifier)
+        if row is None:
+            continue
+        if row.component_type == "EmphasisText":
+            if f"{identifier}_main" in overflow_components:
+                return True
+        pending.extend(row.children)
     return False
 
 
@@ -653,7 +721,7 @@ def _pill_action_anchor_migration_relevant(
     root = components.get("root")
     if root is None or root.component_type != "Layout" or not root.children:
         return False
-    if root.props.get("layout") not in _ANCHOR_MIGRATION_SOURCE_LAYOUTS:
+    if root.props.get("layout") not in _PILL_ACTION_SOURCE_LAYOUTS:
         return False
     action = components.get(root.children[-1])
     return action is not None and action.component_type == "PillButton"
@@ -922,6 +990,7 @@ def _layout_directive(
     force_parent_layout: bool = False,
     allow_text_compaction: bool = False,
     offer_anchor_action_migration: bool = False,
+    fixed_emphasis_text: bool = False,
 ) -> CompactRepairDirective:
     split_panels_instruction = ""
     if prefer_split_panels:
@@ -940,6 +1009,10 @@ def _layout_directive(
             "从已接受 Plan 的全部硬事实和动作重新构造完整 DSL。"
             f"{split_panels_instruction}"
         )
+    elif fixed_emphasis_text:
+        scope = "parent_layout"
+        strategy = "parent_layout_recompose"
+        instruction = "完整强调文字在当前单行槽超宽；按原字号分行后重新核算必要父布局。"
     elif force_parent_layout:
         scope = "parent_layout"
         strategy = "parent_layout_recompose"
@@ -978,7 +1051,9 @@ def _layout_directive(
         instruction += _TREE_RECOMPOSE_INSTRUCTION
     if category == "layout_capacity" and allow_text_compaction:
         instruction += _CAPACITY_TEXT_COMPACTION_INSTRUCTION
-    if category == "layout_capacity" and offer_anchor_action_migration:
+    if category == "layout_capacity" and fixed_emphasis_text:
+        instruction += _FIXED_EMPHASIS_WIDTH_INSTRUCTION
+    elif category == "layout_capacity" and offer_anchor_action_migration:
         instruction += _PILL_ACTION_ANCHOR_MIGRATION_INSTRUCTION
     return CompactRepairDirective(
         category=category,
@@ -1959,6 +2034,11 @@ class CompactRepairStrategyTracker:
                 invalid_source_dsl,
                 task_spec,
             )
+            fixed_emphasis_text = False
+            if category == "layout_capacity" and not self._static_content:
+                fixed_emphasis_text = _fixed_emphasis_text_overflow(
+                    invalid_source_dsl, quality_errors, task_spec,
+                )
             directive = _layout_directive(
                 category=category,
                 fingerprint=fingerprint,
@@ -1969,6 +2049,7 @@ class CompactRepairStrategyTracker:
                 force_parent_layout=force_parent_layout,
                 allow_text_compaction=allow_text_compaction,
                 offer_anchor_action_migration=offer_anchor_action_migration,
+                fixed_emphasis_text=fixed_emphasis_text,
             )
         else:
             directive = _non_layout_directive(
