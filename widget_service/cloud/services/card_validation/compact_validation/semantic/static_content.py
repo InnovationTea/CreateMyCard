@@ -156,9 +156,12 @@ class StaticDisplayGroup:
 
 @dataclass(frozen=True)
 class StaticFactCoverage:
+    """归组覆盖与保守存在性分开；text_present仅用于阻止恢复阶段误排除。"""
+
     fact_index: int
     component_id: str | None
     visible: bool
+    text_present: bool = False
 
 
 @dataclass(frozen=True)
@@ -383,8 +386,12 @@ def static_fact_coverage(
                     if object_count == 1 and eligible_heading and _fact_covered(fact, heading):
                         match = StaticDisplayGroup("header", heading)
                         break
+            text_present = match is not None or _matching_display(fact, mapping.shared) is not None
             result.append(
-                StaticFactCoverage(index, match.component_id if match else None, match is not None)
+                StaticFactCoverage(
+                    index, match.component_id if match else None, match is not None,
+                    text_present=text_present,
+                )
             )
     return result
 

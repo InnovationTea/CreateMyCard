@@ -573,6 +573,32 @@ class _StaticGroupNormalization:
     groups: list[dict[str, Any]]
 
 
+def _static_omission_references_are_known(
+    indexes: list[Any], raw_facts: list[Any], index_map: dict[int, int],
+    accepted_facts: list[dict[str, Any]],
+) -> bool:
+    """拒绝授权后仍检查整条引用，不能把尾部未知内容当作已计划事实。"""
+    if not indexes:
+        return False
+    seen: set[int] = set()
+    for index in indexes:
+        if type(index) is not int or not 0 <= index < len(raw_facts):
+            return False
+        if index in seen:
+            return False
+        seen.add(index)
+        original = raw_facts[index]
+        if not isinstance(original, dict) or not isinstance(original.get("text"), str):
+            return False
+        mapped = index_map.get(index)
+        if type(mapped) is not int or not 0 <= mapped < len(accepted_facts):
+            return False
+        accepted = accepted_facts[mapped]
+        if not isinstance(accepted, dict) or not isinstance(accepted.get("text"), str):
+            return False
+    return True
+
+
 def _normalize_static_omissions(
     raw: Any, raw_facts: list[Any], index_map: dict[int, int], accepted_facts: list[dict[str, Any]],
     *, allow_legacy: bool = True,
@@ -603,6 +629,7 @@ def _normalize_static_omissions(
         selected = []
         seen: set[int] = set()
         invalid_reason = None
+        authorization_denied = False
         for index in indexes:
             if type(index) is not int or not 0 <= index < len(raw_facts):
                 invalid_reason = "事实索引越界或类型错误"
@@ -616,6 +643,7 @@ def _normalize_static_omissions(
             protected = original.get("protectedTexts") or original.get("preserveVerbatim")
             if original.get("priority") != "should" or protected:
                 invalid_reason = "引用了 must 或受保护事实"
+                authorization_denied = True
                 break
             mapped = index_map.get(index)
             if mapped is None:
@@ -627,14 +655,22 @@ def _normalize_static_omissions(
             )
             if accepted_fact.get("priority") != "should" or merged_protected:
                 invalid_reason = "去重后指向 must 或受保护事实"
+                authorization_denied = True
                 break
             if mapped not in selected:
                 selected.append(mapped)
         if invalid_reason is not None:
-            descriptions.append(description)
+            known_references = authorization_denied and _static_omission_references_are_known(
+                indexes, raw_facts, index_map, accepted_facts,
+            )
+            if known_references:
+                consequence = "已撤销删除授权；实际遗漏由最终覆盖核对。"
+            else:
+                descriptions.append(description)
+                consequence = "已撤销删除授权并按未选入的 query 内容记录。"
             warnings.append(
                 f"omittedContents「{description}」的 factIndexes {invalid_reason}，"
-                "已撤销删除授权并按未选入的 query 内容记录。"
+                f"{consequence}"
             )
             continue
         if selected:
@@ -2392,7 +2428,7 @@ def _static_recovery_omitted_indexes(
     omitted = set()
     for coverage in static_fact_coverage(compact_dsl, plan, allowed_indexes):
         fact = facts[coverage.fact_index]
-        if coverage.visible or "actionId" in fact:
+        if coverage.visible or coverage.text_present or "actionId" in fact:
             continue
         if fact.get("protectedTexts") or fact.get("preserveVerbatim"):
             continue

@@ -6,6 +6,10 @@ import socket
 
 import pytest
 
+from services.card_validation.compact_validation.semantic.static_content import (
+    static_fact_coverage,
+    static_group_errors,
+)
 from services.compact_plan import (
     compact_plan_recovery_facts,
     compact_recovery_plan_errors,
@@ -103,12 +107,10 @@ def test_previously_authorized_but_restored_facts_are_not_omitted():
     assert not omitted
 
 
-@pytest.mark.parametrize("mode", ["partial", "wrong_owner"])
-def test_incomplete_or_other_object_value_is_not_complete_restoration(mode):
+def test_incomplete_value_is_not_complete_restoration():
     plan, task = inputs()
-    first_assist = "周一开门；周二开门" if mode == "wrong_owner" else "周一开门"
     dsl = source([
-        {"text": "对象甲", "assist": first_assist},
+        {"text": "对象甲", "assist": "周一开门"},
         {"text": "对象乙", "assist": "周二"},
         {"text": "对象丙", "assist": "周三开门"},
     ])
@@ -122,6 +124,107 @@ def test_incomplete_or_other_object_value_is_not_complete_restoration(mode):
     )
     assert len(retained_without_permission) == 6
     assert not omitted_without_permission
+
+
+def test_complete_value_under_wrong_owner_stays_required_but_not_valid():
+    plan, task = inputs()
+    dsl = source([
+        {"text": "对象甲", "assist": "周一开门；周二开门"},
+        {"text": "对象乙", "assist": "周二"},
+        {"text": "对象丙", "assist": "周三开门"},
+    ])
+    before_errors = static_group_errors(dsl, plan)
+    coverage = static_fact_coverage(dsl, plan, (3,))
+    assert not coverage[3].visible
+    assert coverage[3].text_present
+    retained, omitted = compact_plan_recovery_facts(
+        dsl, plan, task, allowed_omitted_fact_indexes=(3,),
+    )
+    assert len(retained) == 6
+    assert not omitted
+    assert before_errors
+    assert static_group_errors(dsl, plan) == before_errors
+
+
+def test_split_schedule_does_not_turn_visible_status_into_recovery_omission():
+    texts = [
+        "演出安排", "11月7日–9日 上海体育场 每日19:30开演", "票价", "380/680元",
+        "11月7日场次", "已售罄", "11月8日、9日场次", "余票紧张",
+    ]
+    plan = {
+        "info_required": [fact(text) for text in texts],
+        "contentGroups": [
+            {"id": "title", "kind": "shared", "identity": None, "factIndexes": [0]},
+            {"id": "schedule", "kind": "object", "identity": "演出安排", "factIndexes": [1]},
+            {"id": "price", "kind": "object", "identity": "票价", "factIndexes": [2, 3]},
+            {"id": "sold", "kind": "object", "identity": "11月7日场次", "factIndexes": [4, 5]},
+            {
+                "id": "tight", "kind": "object", "identity": "11月8日、9日场次",
+                "factIndexes": [6, 7],
+            },
+        ],
+    }
+    dsl = source([
+        {"text": "时间地点", "assist": "11月7日–9日"},
+        {"text": "开演", "assist": "每日19:30 上海体育场"},
+        {"text": "票价", "assist": "380/680元"},
+        {"text": "11月7日场次", "assist": "已售罄"},
+        {"text": "11月8日、9日场次", "assist": "余票紧张"},
+    ])
+    coverage = static_fact_coverage(dsl, plan, (7,))
+    assert not coverage[7].visible
+    assert coverage[7].text_present
+    retained, omitted = compact_plan_recovery_facts(
+        dsl, plan, {}, allowed_omitted_fact_indexes=(7,),
+    )
+    assert len(retained) == 8
+    assert not omitted
+    assert static_group_errors(dsl, plan)
+
+
+@pytest.mark.parametrize("text,first_fragment,last_fragment", [
+    ("周二开门", "周二", "开门"), ("380", "1380", "其它"),
+])
+def test_cross_item_fragments_and_longer_number_do_not_prove_presence(
+    text, first_fragment, last_fragment,
+):
+    plan, task = inputs()
+    facts = plan.get("info_required")
+    assert isinstance(facts, list)
+    facts[3] = fact(text)
+    dsl = source([
+        {"text": "对象甲", "assist": first_fragment},
+        {"text": "对象乙", "assist": "未知"},
+        {"text": "对象丙", "assist": last_fragment},
+    ])
+    coverage = static_fact_coverage(dsl, plan, (3,))
+    assert not coverage[3].text_present
+    _, omitted = compact_plan_recovery_facts(
+        dsl, plan, task, allowed_omitted_fact_indexes=(3,),
+    )
+    assert values(omitted) == [("text", text)]
+
+
+def test_unreachable_text_preserves_parser_failure_instead_of_guessing_omission():
+    plan, task = inputs()
+    dsl = visible_first_only() + '\n["orphan","EmphasisText",{"mainText":"周二开门"}]'
+    with pytest.raises(ValueError, match="Unreachable component"):
+        compact_plan_recovery_facts(dsl, plan, task, allowed_omitted_fact_indexes=(3,))
+
+
+def test_equal_text_in_another_object_conservatively_keeps_authorized_fact():
+    plan, task = inputs()
+    facts = plan.get("info_required")
+    assert isinstance(facts, list)
+    facts[1] = fact("营业时间待定")
+    facts[3] = fact("营业时间待定")
+    dsl = source([{"text": "对象甲", "assist": "营业时间待定"}])
+    retained, omitted = compact_plan_recovery_facts(
+        dsl, plan, task, allowed_omitted_fact_indexes=(3,),
+    )
+    assert len(retained) == 6
+    assert not omitted
+    assert static_group_errors(dsl, plan)
 
 
 def test_missing_action_is_always_retained():

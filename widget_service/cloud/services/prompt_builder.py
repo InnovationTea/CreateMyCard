@@ -71,7 +71,9 @@ _CAPACITY_RECOVERY_PLAN_INSTRUCTION = (
 )
 
 
-def _capacity_recovery_plan_instruction(retry_context: CompactDslRetryContext) -> str:
+def _capacity_recovery_plan_instruction(
+    retry_context: CompactDslRetryContext, *, static_content: bool = False,
+) -> str:
     """把第一轮最终事实边界加入容量恢复上下文。"""
     retained = [
         {
@@ -93,8 +95,20 @@ def _capacity_recovery_plan_instruction(retry_context: CompactDslRetryContext) -
         ensure_ascii=False,
         separators=(",", ":"),
     )
+    instruction = _CAPACITY_RECOVERY_PLAN_INSTRUCTION
+    if static_content:
+        instruction = (
+            "<interface_retry_context>上一轮容量未闭合。本轮重新选择分组、组件和布局；"
+            "下面requiredFacts是本轮必须保留的已接受事实，包括上一轮未授权遗漏的内容。"
+            "逐条保持text和priority原样，不合并或改写事实条目；可通过contentGroups"
+            "重新组织同对象事实，不重复展示，不以扩尺寸、省略核心解决容量。"
+            "excludedFacts是程序已确认可省略且未完整展示的事实，本轮不得重新加入。"
+            "这份恢复范围优先于普通Plan的摘要或装饰标题取舍；不删除保留清单中的标题。"
+            "保护原文和全部Action继续保留，不生成DSL或恢复蓝图。"
+            "</interface_retry_context>"
+        )
     return (
-        f"{_CAPACITY_RECOVERY_PLAN_INSTRUCTION}\n"
+        f"{instruction}\n"
         f"<recovery_fact_scope>{scope}</recovery_fact_scope>"
     )
 
@@ -1838,12 +1852,9 @@ class PromptBuilder:
             capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
         recovery_context = ""
         if retry_context is not None and retry_context.capacity_recovery:
-            recovery_context = f"\n\n{_capacity_recovery_plan_instruction(retry_context)}"
-            if content_policy.is_static:
-                recovery_context = (
-                    "\n\n上一轮容量未闭合。本轮重新选择分组、组件和布局；"
-                    "保留must、保护原文、全部Action，不以扩尺寸、改写或省略核心解决容量。"
-                )
+            recovery_context = "\n\n" + _capacity_recovery_plan_instruction(
+                retry_context, static_content=content_policy.is_static,
+            )
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}{recovery_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"

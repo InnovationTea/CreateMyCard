@@ -15,7 +15,9 @@ from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.compact_high_level_components import CompactDslConversionError
 from services.compact_plan import (
     CompactPlanValidationError,
+    _normalize_static_omissions,
     compact_plan_omitted_facts,
+    evaluate_compact_plan_coverage,
     parse_compact_plan_call,
 )
 from services.generation_content_policy import (
@@ -203,8 +205,11 @@ def test_unselected_input_loss_and_legacy_declarations_remain_conservative():
 
 
 @pytest.mark.usefixtures("static_scope")
-@pytest.mark.parametrize("indexes", [[True], [-1], [2], [0]])
-def test_omission_references_downgrade_core_or_invalid_indexes(indexes):
+@pytest.mark.parametrize(
+    "indexes,expected_notes",
+    [([True], ["说明"]), ([-1], ["说明"]), ([2], ["说明"]), ([0], [])],
+)
+def test_omission_references_downgrade_core_or_invalid_indexes(indexes, expected_notes):
     value = {
         "info_required": [fact("核心"), fact("补充", "should")],
         "contentGroups": [
@@ -214,9 +219,132 @@ def test_omission_references_downgrade_core_or_invalid_indexes(indexes):
     }
     raw = json.dumps({"name": "submit_card_plan", "arguments": value})
     result = parse_compact_plan_call(raw, {"userQuery": "核心；补充", "size": "2x4"})
-    assert result.plan.get("omittedContents") == ["说明"]
+    assert result.plan.get("omittedContents") == expected_notes
     assert not result.plan.get("omissionCandidates")
     assert any("已撤销删除授权" in warning for warning in result.warnings)
+
+
+def _single_line_omission_source(text):
+    rows = [
+        ["root", "Layout", {"layout": "W-static-content"}, ["body"]],
+        ["body", "SingleLineList", {"items": [{"text": text}]}],
+        ["/state/ready", True],
+    ]
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+
+@pytest.mark.usefixtures("static_scope")
+@pytest.mark.parametrize("restored", [True, False])
+def test_denied_known_omission_reports_only_actual_authorized_loss(restored):
+    value = {
+        "info_required": [fact("核心"), fact("补充")],
+        "contentGroups": [
+            {"id": "a", "kind": "object", "identity": None, "factIndexes": [0, 1]},
+        ],
+        "omittedContents": [{"description": "整组未展示", "factIndexes": [0, 1]}],
+    }
+    original = copy.deepcopy(value)
+    accepted = accept(value, "核心；补充")
+    text = "核心；补充" if restored else "核心"
+    dsl = _single_line_omission_source(text)
+    allowed = () if restored else (1,)
+    omitted = compact_plan_omitted_facts(dsl, accepted, {}, allowed)
+    assert value == original
+    assert accepted.get("omittedContents") == []
+    assert not accepted.get("omissionCandidates")
+    assert len(omitted) == (0 if restored else 1)
+    if not restored:
+        assert omitted[0].get("requirement") == "补充"
+        assert omitted[0].get("omissionReason") == "bounded_drop"
+    coverage = evaluate_compact_plan_coverage(
+        dsl, accepted, {}, allowed_omitted_fact_indexes=allowed,
+    )
+    assert not coverage.errors
+
+
+@pytest.mark.usefixtures("static_scope")
+def test_denied_known_omission_does_not_authorize_missing_core():
+    value = {
+        "info_required": [fact("核心"), fact("补充")],
+        "contentGroups": [
+            {"id": "a", "kind": "object", "identity": None, "factIndexes": [0, 1]},
+        ],
+        "omittedContents": [{"description": "补充未展示", "factIndexes": [1]}],
+    }
+    accepted = accept(value, "核心；补充")
+    dsl = _single_line_omission_source("核心")
+    coverage = evaluate_compact_plan_coverage(dsl, accepted, {})
+    assert coverage.errors
+    assert any("补充" in error for error in coverage.errors)
+    assert not compact_plan_omitted_facts(dsl, accepted, {}, ())
+
+
+@pytest.mark.usefixtures("static_scope")
+@pytest.mark.parametrize("indexes", [[0, 99], [0, True], [0, -1], [0, 0]])
+def test_denied_omission_with_unknown_tail_keeps_conservative_feedback(indexes):
+    value = {
+        "info_required": [fact("核心")],
+        "contentGroups": [
+            {"id": "a", "kind": "object", "identity": None, "factIndexes": [0]},
+        ],
+        "omittedContents": [{"description": "独立补充未展示", "factIndexes": indexes}],
+    }
+    accepted = accept(value, "核心；独立补充")
+    dsl = _single_line_omission_source("核心")
+    omitted = compact_plan_omitted_facts(dsl, accepted, {}, ())
+    assert accepted.get("omittedContents") == ["独立补充未展示"]
+    assert not accepted.get("omissionCandidates")
+    assert len(omitted) == 1
+    assert omitted[0].get("omissionReason") == "plan_selection"
+
+
+@pytest.mark.parametrize("mapping", [{0: 0}, {0: 0, 1: 99}, {0: 0, 1: True}])
+def test_denied_omission_with_unknown_mapping_keeps_description(mapping):
+    facts = [fact("核心"), fact("补充", "should")]
+    declaration = [{"description": "补充未展示", "factIndexes": [0, 1]}]
+    result = _normalize_static_omissions(declaration, facts, mapping, facts)
+    assert result.descriptions == ["补充未展示"]
+    assert not result.candidates
+    assert any("已撤销删除授权" in warning for warning in result.warnings)
+
+
+@pytest.mark.usefixtures("static_scope")
+@pytest.mark.parametrize("restored", [True, False])
+def test_known_should_omission_still_uses_actual_visible_list(restored):
+    value = {
+        "info_required": [fact("核心"), fact("补充", "should")],
+        "contentGroups": [
+            {"id": "a", "kind": "object", "identity": None, "factIndexes": [0, 1]},
+        ],
+        "omittedContents": [{"description": "可能省略补充", "factIndexes": [1]}],
+    }
+    accepted = accept(value, "核心；补充")
+    dsl = _single_line_omission_source("核心；补充" if restored else "核心")
+    omitted = compact_plan_omitted_facts(dsl, accepted, {}, ())
+    assert accepted.get("omissionCandidates")
+    assert accepted.get("omittedContents") == []
+    assert len(omitted) == (0 if restored else 1)
+    if not restored:
+        assert omitted[0].get("omissionReason") == "optional_omission"
+
+
+@pytest.mark.usefixtures("static_scope")
+@pytest.mark.parametrize(
+    "declaration", [{"description": "独立补充", "factIndexes": []}, "独立补充"],
+)
+def test_unmapped_omission_description_is_not_guessed_from_visible_core(declaration):
+    value = {
+        "info_required": [fact("核心")],
+        "contentGroups": [
+            {"id": "a", "kind": "object", "identity": None, "factIndexes": [0]},
+        ],
+        "omittedContents": [declaration],
+    }
+    accepted = accept(value, "核心；独立补充")
+    omitted = compact_plan_omitted_facts(_single_line_omission_source("核心"), accepted, {}, ())
+    assert accepted.get("omittedContents") == ["独立补充"]
+    assert len(omitted) == 1
+    assert omitted[0].get("omissionReason") == "plan_selection"
 
 
 @pytest.mark.usefixtures("static_scope")
@@ -244,7 +372,7 @@ def test_protected_should_omission_is_downgraded():
     }
     raw = json.dumps({"name": "submit_card_plan", "arguments": value})
     result = parse_compact_plan_call(raw, {"userQuery": "核心；原文补充", "size": "2x4"})
-    assert result.plan.get("omittedContents") == ["不删除原文补充"]
+    assert result.plan.get("omittedContents") == []
     assert not result.plan.get("omissionCandidates")
     assert any("受保护事实" in warning for warning in result.warnings)
 
@@ -380,7 +508,7 @@ def test_omission_reference_cannot_hide_a_core_fact_after_deduplication():
     }
     raw = json.dumps({"name": "submit_card_plan", "arguments": value})
     result = parse_compact_plan_call(raw, {"userQuery": "相同文字", "size": "2x4"})
-    assert result.plan.get("omittedContents") == ["补充"]
+    assert result.plan.get("omittedContents") == []
     assert not result.plan.get("omissionCandidates")
     assert any("去重后指向 must" in warning for warning in result.warnings)
 
