@@ -1,0 +1,105 @@
+{
+  "content": {
+    "title": "双城天气",
+    "description": "上海武汉天气速览",
+    "userQuery": "帮我生成桌面卡片，显示上海天气和武汉天气。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日上海市阴有时有阵雨，受台风蔷琵影响，今明天累积雨量可达暴雨，最高气温22~23℃。今日武汉市阴天间多云转晴，气温13~21℃，空气质量良。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VNE-AL00 6.1.0.110",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather/shanghai"
+      },
+      {
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "武汉市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather/wuhan"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VNE-AL00",
+    "prdVer": "11.7.8.371",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023091255387"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": false,
+    "sessionId": "0515e398-0e28-481f-9dde-70b1087dd00e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VNE-AL00 6.1.0.110",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "上海武汉天气速览",
+  "userQuery": "帮我生成桌面卡片，显示上海天气和武汉天气。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日上海市阴有时有阵雨，受台风蔷琵影响，今明天累积雨量可达暴雨，最高气温22~23℃。今日武汉市阴天间多云转晴，气温13~21℃，空气质量良。",
+  "title": "双城天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "forecastDays": 1,
+        "prefectureName": "上海市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather/shanghai"
+    },
+    {
+      "arguments": {
+        "forecastDays": 1,
+        "prefectureName": "武汉市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather/wuhan"
+    }
+  ]
+}

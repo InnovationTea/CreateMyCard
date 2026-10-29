@@ -1,0 +1,127 @@
+{
+  "content": {
+    "title": "数字孪生学习打卡",
+    "description": "4个月学习计划进度追踪",
+    "userQuery": "把备忘录里的数字孪生学习打卡计划制作成一张桌面卡片，展示学习计划进度和打卡状态。\n\n本轮卡片静态内容（用作展示的外部事实）：\n数字孪生学习打卡计划（4个月），总投入每周6~8小时，共16周任务，分为4个阶段：第1月数字孪生基础（W1-W4）、第2月CPS+闭环控制补强（W5-W8）、第3月国际孪生框架+模型可信性（W9-W12）、第4月大模型+具身智能+全文定稿（W13-W16）。每周任务完成后打☑标记，每周产出笔记文档。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/noteCount",
+          "/favoriteNoteCount",
+          "/notes/0/title",
+          "/notes/0/content",
+          "/notes/0/modifiedTimeText",
+          "/todoTotalCount",
+          "/todoCompletedCount",
+          "/todoPendingCount",
+          "/todos/0/title",
+          "/todos/0/content",
+          "/todos/0/isComplete",
+          "/todos/0/reminderTimeText"
+        ],
+        "capabilityId": "GetMemoData",
+        "writeResultTo": "/data/memo"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewNote"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.checkmark_calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028030910425"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "4af3dbcf-8be3-413d-8cad-9487d39b4b8f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.checkmark_calendar_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewNote"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "4个月学习计划进度追踪",
+  "userQuery": "把备忘录里的数字孪生学习打卡计划制作成一张桌面卡片，展示学习计划进度和打卡状态。\n\n本轮卡片静态内容（用作展示的外部事实）：\n数字孪生学习打卡计划（4个月），总投入每周6~8小时，共16周任务，分为4个阶段：第1月数字孪生基础（W1-W4）、第2月CPS+闭环控制补强（W5-W8）、第3月国际孪生框架+模型可信性（W9-W12）、第4月大模型+具身智能+全文定稿（W13-W16）。每周任务完成后打☑标记，每周产出笔记文档。",
+  "title": "数字孪生学习打卡",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/noteCount",
+        "/favoriteNoteCount",
+        "/notes/0/title",
+        "/notes/0/content",
+        "/notes/0/modifiedTimeText",
+        "/todoTotalCount",
+        "/todoCompletedCount",
+        "/todoPendingCount",
+        "/todos/0/title",
+        "/todos/0/content",
+        "/todos/0/isComplete",
+        "/todos/0/reminderTimeText"
+      ],
+      "capabilityId": "GetMemoData",
+      "writeResultTo": "/data/memo"
+    }
+  ]
+}

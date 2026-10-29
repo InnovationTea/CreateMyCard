@@ -1,0 +1,115 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "天气速览",
+    "userQuery": "创建一个天气小卡片",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "上海市",
+          "districtName": "青浦区",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/airQuality",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/daily/0/temperatureRangeText",
+          "/location/cityCode"
+        ]
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026183209140"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "fa3d4c10-50e8-4586-bf1c-7e196e869b70"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "天气速览",
+  "userQuery": "创建一个天气小卡片",
+  "title": "今日天气",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "上海市",
+        "districtName": "青浦区",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/temperatureRangeText",
+        "/location/cityCode"
+      ]
+    }
+  ]
+}

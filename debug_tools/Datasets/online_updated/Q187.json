@@ -1,0 +1,135 @@
+{
+  "content": {
+    "title": "房租收租提醒",
+    "description": "房租收租提醒卡片，支持多个租客管理",
+    "userQuery": "制作一个房租收租提醒卡片，按照参考图的格式。包含：提醒周期（每X个月提醒一次）、下次提醒日期（显示具体日期）、提醒时间（可设置具体时间点）、应收金额（显示本次应收的房租数额）。支持添加多个访客/租客信息，每个租客可以设置各自的收租日期、金额和提醒时间。\n\n本轮卡片静态内容（用作展示的外部事实）：\n房租收租提醒卡片，支持多个租客管理，包含提醒周期、下次提醒日期、提醒时间和应收金额等核心信息。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2026-11-08"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/noteCount",
+          "/todoPendingCount",
+          "/todos/0/title",
+          "/todos/0/reminderTimeText"
+        ],
+        "capabilityId": "GetMemoData",
+        "writeResultTo": "/data/memo"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewNote"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.house_fill",
+      "asset.calendar_fill",
+      "asset.bell_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025035705183"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "3505fbad-b8b5-4f32-aee3-27e8bf6f637a"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.house_fill",
+    "asset.calendar_fill",
+    "asset.bell_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewNote"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "房租收租提醒卡片，支持多个租客管理",
+  "userQuery": "制作一个房租收租提醒卡片，按照参考图的格式。包含：提醒周期（每X个月提醒一次）、下次提醒日期（显示具体日期）、提醒时间（可设置具体时间点）、应收金额（显示本次应收的房租数额）。支持添加多个访客/租客信息，每个租客可以设置各自的收租日期、金额和提醒时间。\n\n本轮卡片静态内容（用作展示的外部事实）：\n房租收租提醒卡片，支持多个租客管理，包含提醒周期、下次提醒日期、提醒时间和应收金额等核心信息。",
+  "title": "房租收租提醒",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2026-11-08"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    },
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/noteCount",
+        "/todoPendingCount",
+        "/todos/0/title",
+        "/todos/0/reminderTimeText"
+      ],
+      "capabilityId": "GetMemoData",
+      "writeResultTo": "/data/memo"
+    }
+  ]
+}

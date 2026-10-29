@@ -1,0 +1,167 @@
+{
+  "content": {
+    "title": "日程天气",
+    "description": "日程与天气速览",
+    "userQuery": "生成一张桌面卡片，显示最近的日程安排和天气状况",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VNE-AL00 6.1.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 1
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/districtName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/countdownDays",
+          "/events/1/title",
+          "/events/1/startDate",
+          "/events/1/dtStart",
+          "/events/1/countdownDays"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_default_weather_blue",
+      "asset.ic_calender"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VNE-AL00",
+    "prdVer": "11.7.9.222",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028025620035"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "7",
+    "isNew": false,
+    "sessionId": "956d2f91-7f61-4e8e-9184-ce9686c6e7c1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VNE-AL00 6.1.0.115",
+  "candidateAssetIds": [
+    "asset.emoji_default_weather_blue",
+    "asset.ic_calender"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "日程与天气速览",
+  "userQuery": "生成一张桌面卡片，显示最近的日程安排和天气状况",
+  "title": "日程天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "forecastDays": 1
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/districtName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {
+        "futureDays": 7
+      },
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/countdownDays",
+        "/events/1/title",
+        "/events/1/startDate",
+        "/events/1/dtStart",
+        "/events/1/countdownDays"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    }
+  ]
+}

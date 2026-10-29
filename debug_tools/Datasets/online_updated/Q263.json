@@ -1,0 +1,135 @@
+{
+  "content": {
+    "title": "多日天气",
+    "description": "多日天气预报",
+    "userQuery": "把天气多日天气的卡片放桌面上",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "东港区",
+          "forecastDays": 5,
+          "prefectureName": "日照市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/weekday",
+          "/daily/2/condition",
+          "/daily/2/temperatureRangeText",
+          "/daily/3/weekday",
+          "/daily/3/condition",
+          "/daily/3/temperatureRangeText",
+          "/daily/4/weekday",
+          "/daily/4/condition",
+          "/daily/4/temperatureRangeText"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026134419118"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "69a19b1d-d643-45d1-88c8-1acb46f96abe"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "多日天气预报",
+  "userQuery": "把天气多日天气的卡片放桌面上",
+  "title": "多日天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "东港区",
+        "forecastDays": 5,
+        "prefectureName": "日照市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/weekday",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/weekday",
+        "/daily/2/condition",
+        "/daily/2/temperatureRangeText",
+        "/daily/3/weekday",
+        "/daily/3/condition",
+        "/daily/3/temperatureRangeText",
+        "/daily/4/weekday",
+        "/daily/4/condition",
+        "/daily/4/temperatureRangeText"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "天气速览",
+    "userQuery": "桌面第二屏中，生成一个2*4的天气卡片",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "romVersion": "CMS-AL20 7.0.0.115",
+    "functionName": "generateWidgetCardCompactDsl",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 3
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/weekday",
+          "/daily/2/condition",
+          "/daily/2/temperatureRangeText"
+        ]
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.9.216",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023092204330"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "0e824a5e-751e-4ad0-9518-d7453974498d"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "skillName": "harmony-card-generation-online",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.115",
+  "arguments": "{\"bundleName\": \"com.huawei.genui\", \"userQuery\": \"桌面第二屏中，生成一个2*4的天气卡片\", \"title\": \"今日天气\", \"description\": \"天气速览\", \"size\": \"2x4\", \"candidateDataBindings\": [{\"capabilityId\": \"ViewWeather\", \"arguments\": {\"forecastDays\": 3}, \"writeResultTo\": \"/data/weather\", \"candidateOutputFields\": [\"/current/temperatureText\", \"/current/condition\", \"/daily/0/weekday\", \"/daily/0/condition\", \"/daily/0/temperatureRangeText\", \"/daily/1/weekday\", \"/daily/1/condition\", \"/daily/1/temperatureRangeText\", \"/daily/2/weekday\", \"/daily/2/condition\", \"/daily/2/temperatureRangeText\"]}], \"candidateEventCandidates\": [{\"actionTemplate\": {\"call\": \"clickToDeeplink\", \"args\": {\"intentName\": \"Weather_CityCode\", \"bundleName\": \"\", \"abilityName\": \"\", \"uri\": \"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}\"}, \"dynamicArguments\": [{\"path\": \"/uri\", \"description\": \"cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。\", \"type\": \"string\"}]}], \"candidateAssetIds\": []}"
+}

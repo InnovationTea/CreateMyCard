@@ -1,0 +1,77 @@
+{
+  "content": {
+    "title": "我的生日",
+    "description": "12月31日生日卡片",
+    "userQuery": "生成一张卡片，显示我的生日1231，即12月31日。\n\n本轮卡片静态内容（用作展示的外部事实）：\n我的生日是12月31日",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2026-12-31"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.cake_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027133826375"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "e1c0420d-783f-452a-8c4f-304908804578"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.cake_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "12月31日生日卡片",
+  "userQuery": "生成一张卡片，显示我的生日1231，即12月31日。\n\n本轮卡片静态内容（用作展示的外部事实）：\n我的生日是12月31日",
+  "title": "我的生日",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2026-12-31"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

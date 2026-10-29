@@ -1,0 +1,56 @@
+{
+  "content": {
+    "title": "2027年陕西省考倒计时",
+    "description": "2027年陕西省考笔试倒计时卡片，显示距离考试还有多少天",
+    "userQuery": "创建2027年陕西省考倒计时卡片，目标日期2027年3月13日，使用GetCountdownDays数据能力计算距离考试还有多少天",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026112005835"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "f8278c3c-032c-43d6-b7c7-09a94cd97356"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "2027年陕西省考笔试倒计时卡片，显示距离考试还有多少天",
+  "userQuery": "创建2027年陕西省考倒计时卡片，目标日期2027年3月13日，使用GetCountdownDays数据能力计算距离考试还有多少天",
+  "title": "2027年陕西省考倒计时",
+  "dataCapabilityIds": [
+    "GetCountdownDays"
+  ],
+  "toolName": "generateWidgetCardCompactDsl"
+}

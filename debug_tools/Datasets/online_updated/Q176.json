@@ -1,0 +1,127 @@
+{
+  "content": {
+    "title": "耳机音乐",
+    "description": "耳机电量与歌单入口",
+    "userQuery": "做一张耳机音乐卡片，显示耳机名称和左右耳电量，提供\"推荐歌单\"和\"收藏歌单\"两个入口。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VYG-AL00 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/earphoneName",
+          "/leftBatteryLevel",
+          "/rightBatteryLevel"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.daily"
+      },
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.favorite"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_bluetooth_earbuds_black"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VYG-AL00",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027085244096"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "b0e76737-16b1-47ce-9d14-6b93d57af63a"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VYG-AL00 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.emoji_bluetooth_earbuds_black"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.daily"
+    },
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.favorite"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "耳机电量与歌单入口",
+  "userQuery": "做一张耳机音乐卡片，显示耳机名称和左右耳电量，提供\"推荐歌单\"和\"收藏歌单\"两个入口。",
+  "title": "耳机音乐",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/earphoneName",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ],
+      "capabilityId": "GetEarphoneInfo",
+      "writeResultTo": "/data/earphone"
+    }
+  ]
+}

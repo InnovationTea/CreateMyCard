@@ -1,0 +1,115 @@
+{
+  "content": {
+    "title": "心脏健康",
+    "description": "一键直达心脏健康，展示当天心电图记录",
+    "userQuery": "在这个卡片上直接展示当天心电图的记录。\n\n本轮卡片静态内容（用作展示的外部事实）：\n心脏健康入口卡片，点击直达运动健康app心脏健康功能，卡片上展示当天心电图记录。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/sleepScore",
+          "/sleepStatus",
+          "/nightSleepDurationText",
+          "/dailySteps",
+          "/dailyTotalCaloriesText",
+          "/exerciseTypeName",
+          "/exerciseHeartRateAvg"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sport"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_heartRate"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027085059161"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "1de708ee-8f69-4911-a29c-86f9946f07ce"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.emoji_heartRate"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sport"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "一键直达心脏健康，展示当天心电图记录",
+  "userQuery": "在这个卡片上直接展示当天心电图的记录。\n\n本轮卡片静态内容（用作展示的外部事实）：\n心脏健康入口卡片，点击直达运动健康app心脏健康功能，卡片上展示当天心电图记录。",
+  "title": "心脏健康",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "candidateOutputFields": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/nightSleepDurationText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/exerciseTypeName",
+        "/exerciseHeartRateAvg"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ]
+}
