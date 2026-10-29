@@ -561,6 +561,58 @@ _STATIC_FIELD_STYLES = {
 }
 
 
+def _static_field_value(
+    component: dict[str, Any], item_index: int | None, field: str,
+) -> str | None:
+    values = component.get("props", {})
+    if not isinstance(values, dict):
+        return None
+    if item_index is not None:
+        items = values.get("items")
+        if not isinstance(items, list) or not 0 <= item_index < len(items):
+            return None
+        values = items[item_index]
+    if not isinstance(values, dict):
+        return None
+    value = values.get(field)
+    if not isinstance(value, str) or not value.strip():
+        return None
+    if "{{" in value or "${" in value:
+        return None
+    return value
+
+
+def _static_readout_targets(
+    component_id: str, component: dict[str, Any], message: str,
+) -> list[tuple[int | None, str]]:
+    """只有同一字段重新产生相同关键读数错误，才补充容量归属。"""
+    from services.static_text_capacity import measure_text, text_spec
+
+    styles = _STATIC_FIELD_STYLES.get(component.get("type"), {})
+    pattern = (
+        r"(?<![\w./-])" + re.escape(component_id)
+        + r"\.(?:item(\d+)_)?([A-Za-z]+) 关键读数 (.+?) 超过 ([\d.]+)vp；"
+    )
+    result = []
+    for match in re.finditer(pattern, message):
+        item_number, field, token, width = match.groups()
+        style = styles.get(field)
+        if style is None:
+            continue
+        item_index = int(item_number) if item_number is not None else None
+        value = _static_field_value(component, item_index, field)
+        if value is None:
+            continue
+        try:
+            reference_width = float(width)
+            measure_text(value, reference_width, text_spec(style))
+        except ValueError as exc:
+            expected = f"COMPACT_STATIC_TEXT_CAPACITY: 关键读数 {token} 超过 {width}vp；"
+            if str(exc).startswith(expected):
+                result.append((item_index, field))
+    return result
+
+
 def _static_width_targets(
     component_id: str, component: dict[str, Any], message: str,
 ) -> list[tuple[int | None, str]]:
@@ -568,7 +620,6 @@ def _static_width_targets(
     from services.static_text_capacity import measure_text, text_spec
 
     styles = _STATIC_FIELD_STYLES.get(component.get("type"), {})
-    props = component.get("props", {})
     pattern = (
         r"(?<![\w./-])" + re.escape(component_id)
         + r"\.(?:item(\d+)_)?([A-Za-z]+) 完整文字需要 "
@@ -577,24 +628,15 @@ def _static_width_targets(
     result = []
     if "COMPACT_STATIC_TEXT_CAPACITY:" not in message:
         return result
+    result.extend(_static_readout_targets(component_id, component, message))
     for match in re.finditer(pattern, message):
         item_number, field, lines, width, maximum = match.groups()
         style = styles.get(field)
         if style is None or int(lines) <= int(maximum):
             continue
         item_index = int(item_number) if item_number is not None else None
-        values = props
-        if item_index is not None:
-            items = props.get("items")
-            if not isinstance(items, list) or not 0 <= item_index < len(items):
-                continue
-            values = items[item_index]
-        if not isinstance(values, dict):
-            continue
-        value = values.get(field)
-        if not isinstance(value, str) or not value.strip():
-            continue
-        if "{{" in value or "${" in value:
+        value = _static_field_value(component, item_index, field)
+        if value is None:
             continue
         try:
             capacity = measure_text(value, float(width), text_spec(style))

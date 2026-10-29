@@ -2064,6 +2064,11 @@ class WidgetGenerationService:
                             latest_processing_result.source_dsl,
                             accepted_compact_plan,
                             task_spec.model_dump(mode="json", exclude_none=True),
+                            allowed_omitted_fact_indexes=(
+                                compact_repair_tracker.allowed_omitted_fact_indexes
+                                if compact_repair_tracker is not None
+                                else ()
+                            ),
                         )
                         if not content_policy.is_static:
                             recovery_plan = build_compact_recovery_plan(

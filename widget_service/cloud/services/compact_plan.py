@@ -2379,43 +2379,73 @@ def _recovery_fact(fact: dict[str, Any]) -> CompactDslRecoveryFact | None:
     return None
 
 
+def _static_recovery_omitted_indexes(
+    compact_dsl: str,
+    plan: dict[str, Any],
+    allowed_indexes: tuple[int, ...],
+) -> set[int]:
+    from services.card_validation.compact_validation.semantic.static_content import (
+        static_fact_coverage,
+    )
+
+    facts = plan.get("info_required", [])
+    omitted = set()
+    for coverage in static_fact_coverage(compact_dsl, plan, allowed_indexes):
+        fact = facts[coverage.fact_index]
+        if coverage.visible or "actionId" in fact:
+            continue
+        if fact.get("protectedTexts") or fact.get("preserveVerbatim"):
+            continue
+        optional = fact.get("priority") == "should"
+        if optional or coverage.fact_index in allowed_indexes:
+            omitted.add(coverage.fact_index)
+    return omitted
+
+
 def compact_plan_recovery_facts(
     compact_dsl: str,
     plan: dict[str, Any] | None,
     task_spec: dict[str, Any],
+    *,
+    allowed_omitted_fact_indexes: tuple[int, ...] = (),
 ) -> tuple[tuple[CompactDslRecoveryFact, ...], tuple[CompactDslRecoveryFact, ...]]:
-    """按第一轮最后一次失败 DSL 的可见结果划分第二轮 Plan 事实。"""
+    """划分恢复事实；静态链路不能把失败源的未授权遗漏固化为取舍。"""
     if not plan:
         return (), ()
     facts = plan.get("info_required")
     if not isinstance(facts, list):
         return (), ()
-    non_action_indexes = tuple(
-        index
-        for index, fact in enumerate(facts)
-        if isinstance(fact, dict) and "actionId" not in fact
-    )
-    omitted = compact_plan_omitted_facts(
-        compact_dsl,
-        plan,
-        task_spec,
-        non_action_indexes,
-    )
+    from services.generation_content_policy import current_content_policy
+
+    is_static = current_content_policy().is_static
+    omitted_indexes: set[int] = set()
     omitted_targets = set()
-    for fact in omitted:
-        recovery_fact = _recovery_fact(fact)
-        if recovery_fact is not None:
-            omitted_targets.add((recovery_fact.target, recovery_fact.value))
+    if is_static:
+        omitted_indexes = _static_recovery_omitted_indexes(
+            compact_dsl, plan, allowed_omitted_fact_indexes,
+        )
+    else:
+        non_action_indexes = []
+        for index, fact in enumerate(facts):
+            if isinstance(fact, dict) and "actionId" not in fact:
+                non_action_indexes.append(index)
+        omitted = compact_plan_omitted_facts(
+            compact_dsl, plan, task_spec, tuple(non_action_indexes),
+        )
+        for fact in omitted:
+            recovery_fact = _recovery_fact(fact)
+            if recovery_fact is not None:
+                omitted_targets.add((recovery_fact.target, recovery_fact.value))
     retained_facts: list[CompactDslRecoveryFact] = []
     omitted_facts: list[CompactDslRecoveryFact] = []
-    for fact in facts:
+    for index, fact in enumerate(facts):
         if not isinstance(fact, dict):
             continue
         recovery_fact = _recovery_fact(fact)
         if recovery_fact is None:
             continue
         target = (recovery_fact.target, recovery_fact.value)
-        should_omit = target in omitted_targets
+        should_omit = index in omitted_indexes if is_static else target in omitted_targets
         if recovery_fact.target != "actionId" and should_omit:
             omitted_facts.append(recovery_fact)
         else:

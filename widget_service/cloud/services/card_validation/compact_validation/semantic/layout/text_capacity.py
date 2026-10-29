@@ -58,7 +58,14 @@ def require_static_text_capacity(
     spec: dict[str, Any],
     location: str,
 ) -> TextCapacity:
-    capacity = measure_text(text, width, spec)
+    try:
+        capacity = measure_text(text, width, spec)
+    except ValueError as exc:
+        prefix = "COMPACT_STATIC_TEXT_CAPACITY: "
+        if not str(exc).startswith(prefix + "关键读数 "):
+            raise
+        message = prefix + location + " " + str(exc).removeprefix(prefix)
+        raise ValueError(message) from exc
     if not capacity.fits:
         message = (
             f"{location} 完整文字需要 {capacity.lines} 行，{width:g}vp 区域仅允许 "

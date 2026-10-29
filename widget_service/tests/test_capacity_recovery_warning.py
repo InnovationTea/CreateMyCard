@@ -165,3 +165,86 @@ async def test_service_passes_warning_evidence_to_interface_retry_context(
 
     assert recovered.status == GenerationStatus.SUCCESS
     assert formats == ["compact-dsl"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("isolated_theme_stage")
+async def test_static_service_recovery_preserves_unapproved_missing_must(monkeypatch):
+    from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
+
+    settings = get_settings()
+    for name, value in {
+        "enable_a2ui_model_mock": False, "enable_artifact_validation": False,
+        "enable_validation_failure_retry": True, "validation_failure_max_repair_attempts": 2,
+        "enable_design_compact_runtime_prompt_context": False,
+        "enable_drop_plan_fact_validation": True, "enable_single_step_generation_fallback": False,
+        "enable_static_content_generation_policy": True, "enable_ids_mock": True,
+    }.items():
+        monkeypatch.setattr(settings, name, value)
+    for name in ("_enable_card_template", "_enable_jsx_generation"):
+        monkeypatch.setattr(WidgetGenerationService, name, staticmethod(lambda: False))
+
+    details = ["完整的必要说明" * 12, "周二开门", "周三开门"]
+    names = ["对象甲", "对象乙", "对象丙"]
+    facts, groups, items = [], [], []
+    for index, name in enumerate(names):
+        for text in (name, details[index]):
+            facts.append({
+                "requirement": text, "text": text, "sourceTexts": [text], "priority": "must",
+            })
+        groups.append({
+            "id": str(index), "kind": "object", "identity": name,
+            "factIndexes": [index * 2, index * 2 + 1],
+        })
+        items.append({"primaryText": name, "secondaryText": details[index]})
+    plan = {"info_required": facts, "contentGroups": groups, "omittedContents": []}
+    initial = "\n".join(json.dumps(row, ensure_ascii=False) for row in [
+        ["root", "Layout", {"layout": "W-static-content"}, ["header", "body"]],
+        ["header", "SingleLineTitle", {"title": "对象摘要"}],
+        ["body", "TextList", {"items": items}],
+    ])
+    final = "\n".join(json.dumps(row, ensure_ascii=False) for row in [
+        ["root", "Layout", {"layout": "W-static-content"}, ["body"]],
+        ["body", "SingleLineList", {"items": [{"text": names[0], "assist": details[0]}]}],
+    ])
+    sources = iter((initial, initial, final))
+    formats = []
+
+    async def generate(_client, _prompt, profile=None, **_kwargs):
+        model_format = (profile or {}).get("format")
+        formats.append(model_format)
+        if model_format == "raw-json":
+            return json.dumps({"name": "submit_card_plan", "arguments": plan}, ensure_ascii=False)
+        return next(sources)
+
+    def process(source_dsl, _context):
+        with pytest.raises(ValueError) as caught:
+            convert_compact_dsl_to_a2ui(source_dsl, size="2x4")
+        issues = [QualityIssue(
+            stage="validation", code="COMPACT_DSL_VALIDATION_FAILED", message=str(caught.value),
+        )]
+        if source_dsl == final:
+            issues.append(QualityIssue(
+                stage="validation", code="COMPACT_PLAN_FACT_OMITTED", severity="warning",
+                message="Plan fact was omitted by the bounded fallback: 周三开门.",
+            ))
+        return DslProcessingResult(source_dsl=source_dsl, issues=tuple(issues))
+
+    monkeypatch.setattr(A2UIModelClient, "generate", generate)
+    monkeypatch.setattr(get_dsl_processor(DslProcessorKind.DESIGN_COMPACT), "process", process)
+    request = GenerateWidgetCardRequest(
+        uid="offline-static-recovery", prdVer="11.7.8.320", device={"romVersion": "7.0"},
+        userQuery="；".join(fact.get("text", "") for fact in facts),
+        title="对象摘要", description="静态正式授权透传回归", size="2x4",
+    )
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
+    assert response.status == GenerationStatus.FAILED
+    retry = response._compact_dsl_retry_context
+    assert retry is not None
+    assert retry.capacity_recovery
+    assert retry.recovery_plan is None
+    assert [fact.value for fact in retry.omitted_facts] == ["周三开门"]
+    assert [fact.value for fact in retry.retained_facts] == [
+        "对象甲", details[0], "对象乙", "周二开门", "对象丙",
+    ]
+    assert formats == ["raw-json", "compact-dsl", "compact-dsl", "compact-dsl"]

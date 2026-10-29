@@ -204,3 +204,76 @@ def test_affected_protected_fact_cannot_be_dropped(protection):
     assert compact_plan_optional_drop_candidate(
         dsl, plan, task(), allowed_fact_indexes={0},
     ) is None
+
+
+def pending_count_drop(*, limit=5, protected_target=False):
+    initial, plan = list_case("TextList", count=3, header=True, long_first=True)
+    current, _ = list_case(count=3, long_first=True)
+    if protected_target:
+        facts = plan.get("info_required")
+        assert isinstance(facts, list)
+        facts[0]["protectedTexts"] = ["对象0"]
+    tracker = CompactRepairStrategyTracker(static_content=True, max_repair_attempts=limit)
+    issue = real_issue(initial)
+    next_repair(tracker, initial, issue, plan)
+    directive = next_repair(tracker, initial, issue, plan)
+    assert directive.optional_drop is not None
+    assert directive.optional_drop.fact_indexes == (2,)
+    return tracker, plan, initial, current
+
+
+@pytest.mark.parametrize("previously_missing", [False, True])
+def test_restored_unaffected_permission_is_replaced_not_accumulated(previously_missing):
+    tracker, plan, _, current = pending_count_drop()
+    if previously_missing:
+        incomplete = source("SingleLineList", [{"text": "对象0", "assist": "完整说明很长" * 12}])
+        issue = {"stage": "validation", "code": "COMPACT_PLAN_COVERAGE_FAILED",
+                 "message": "COMPACT_STATIC_CORE_MISSING: 未授权事实缺失"}
+        next_repair(tracker, incomplete, issue, plan)
+    directive = next_repair(tracker, current, real_issue(current), plan)
+    assert directive.optional_drop is not None
+    assert directive.optional_drop.fact_indexes == (0,)
+    assert tracker.allowed_omitted_fact_indexes == (0,)
+
+
+@pytest.mark.parametrize("mode", ["missing", "partial", "other_owner"])
+def test_incomplete_pending_fact_keeps_its_existing_permission(mode):
+    tracker, plan, _, current = pending_count_drop()
+    rows = [json.loads(line) for line in current.splitlines()]
+    body = next(row for row in rows if row[0] == "body")
+    items = body[2].get("items")
+    assert isinstance(items, list)
+    if mode == "missing":
+        items.pop()
+    elif mode == "partial":
+        items[2]["assist"] = "短"
+    else:
+        items[2]["text"] = "其它对象"
+    changed = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    next_repair(tracker, changed, real_issue(current), plan)
+    assert 2 in tracker.allowed_omitted_fact_indexes
+
+
+def test_pending_fact_still_affected_by_count_is_not_released():
+    tracker, plan, initial, _ = pending_count_drop()
+    directive = next_repair(tracker, initial, real_issue(initial), plan)
+    assert directive.optional_drop is not None
+    assert directive.optional_drop.fact_indexes == (2,)
+    assert tracker.allowed_omitted_fact_indexes == (2,)
+
+
+def test_retarget_cannot_add_budget_or_revoke_after_exhaustion():
+    tracker, plan, _, current = pending_count_drop(limit=2)
+    directive = next_repair(tracker, current, real_issue(current), plan)
+    assert not directive.retryable
+    assert directive.stop_reason == "global_attempt_limit"
+    assert tracker.allowed_omitted_fact_indexes == (2,)
+
+
+def test_released_candidate_without_legal_replacement_never_reappears():
+    tracker, plan, _, current = pending_count_drop(protected_target=True)
+    for _ in range(2):
+        directive = next_repair(tracker, current, real_issue(current), plan)
+        assert directive.optional_drop is None
+        assert tracker.optional_drop_candidate is None
+        assert tracker.allowed_omitted_fact_indexes == ()
