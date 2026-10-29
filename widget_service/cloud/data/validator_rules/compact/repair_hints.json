@@ -7,6 +7,7 @@
   "COMPACT_STATIC_TEXT_CAPACITY": "按共同文字合同和每栏可用宽度重组完整内容；静态正文仅按12→11→10登记档位调整，最小10；保留限定词和对象归属，不靠maxLines截断、裁切或任意缩字通过。",
   "COMPACT_ASSET_NOT_ALLOWED": "从本轮素材候选中选择与原意相符的资源路径，修正对应素材属性；不要编造路径或用网络地址替代。",
   "COMPACT_SVG_FILL_COLOR_MISSING": "为该图标补充符合组件合同和当前配色的 fillColor（#AARRGGBB）；保留原素材，不修改组件内部尺寸或字号。",
+  "COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG": "只缩短报错按钮的可见label至最多5个字符，使用简洁的“动作+必要目标”文案，例如“一键导航去公司”改为“导航去公司”；完整保留onClick的call、args、目标、所属Action、图标、组件和布局，不复制、删除或虚构Action。",
   "COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE": "保留完整内容及原绑定，改用适合该信息角色的 EmphasisText 或正文组件；不要截取样例数字、强转数值或伪造字段。",
   "COMPACT_DISPLAY_PROGRESS_OBJECT_MISMATCH": "将进度与同组读数对应到同一对象；该对象没有合法数值字段时，省略其进度并保留完整文本，不借用其它对象的值。",
   "COMPACT_LAYOUT_HEIGHT_OVERFLOW": "根据占用明细重新组合完整信息或选择合法布局，保留必要事实、动作、字号和固定设计高度；不能靠裁剪、收缩或调整权重消除负预算。",

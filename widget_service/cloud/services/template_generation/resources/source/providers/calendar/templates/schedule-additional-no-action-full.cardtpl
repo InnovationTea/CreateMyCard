@@ -5,24 +5,24 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "ScheduleOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-    {"width": "matchParent", "height": 20, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Text(
-      "日程详情",
-      {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-  ),
+  {"_advancedComponent": "ScheduleOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Column(
-    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "height": 48, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Text(
-      data.title,
-      {"width": "matchParent", "height": 28, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+      {"width": "matchParent", "height": 24, "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+        "日程详情",
+        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
     ),
     Text(
-      data.start,
-      {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      data.title,
+      {"width": "matchParent", "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 2, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
+  ),
+  Text(
+    data.start,
+    {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
   )
 )
 #End

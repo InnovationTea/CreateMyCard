@@ -136,7 +136,7 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 ```json
 {"onClick":[{"call":"候选call","args":{}}]}
 ```
-恰好一个 handler，完整保留候选中的静态值、Expression 或 PathBinding，无 condition、as、$context 或动作链。动作文字简洁保留真实行为与必要目标；不生成无事件按钮，不重复入口。
+恰好一个 handler，完整保留候选中的静态值、Expression 或 PathBinding，无 condition、as、$context 或动作链。PillButton/CardButton 的可见 `label` 最多5个字符，使用简洁的“动作+必要目标”文案，例如“一键导航去公司”写为“导航去公司”；只缩短显示文案，不删减或改写 handler、参数和真实目标。不生成无事件按钮，不重复入口。
 
 ### 动态图形的数值来源
 
