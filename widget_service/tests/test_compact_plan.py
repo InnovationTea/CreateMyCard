@@ -4,7 +4,10 @@ import json
 
 import pytest
 
-from services.compact_dsl_a2ui_converter import MODEL_COMPACT_INPUT_COMPONENT_TYPES
+from services.compact_dsl_a2ui_converter import (
+    MODEL_COMPACT_INPUT_COMPONENT_TYPES,
+    CompactDslConversionError,
+)
 from services.compact_plan import (
     CompactPlanValidationError,
     _secondary_body_composition_errors,
@@ -1536,6 +1539,113 @@ def test_static_plan_fact_cannot_span_different_structured_items() -> None:
     assert result.errors == (
         "Plan static text is not fully visible in DSL: Day1 09:00-11:30 灵隐寺祈福.",
     )
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected_text"),
+    [
+        ("8,642", "步", "8,642 步"),
+        (8642, "步", "8642 步"),
+        (5.8, "公里", "5.8 公里"),
+        (0, "%", "0 %"),
+    ],
+)
+def test_static_plan_fact_matches_same_emphasized_data_value_and_unit(
+    value: str | int | float, unit: str, expected_text: str,
+) -> None:
+    plan = {"info_required": [{"requirement": "主读数", "text": expected_text}]}
+    rows = [
+        ["root", "Column", {}, ["primary"]],
+        ["primary", "EmphasizedData", {"value": value, "unit": unit}],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == ()
+    assert result.warnings == ()
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected_text"),
+    [
+        ("18,642", "步", "8,642 步"),
+        ("8,642", "步数", "8,642 步"),
+        ("8,642", "公里", "8,642 步"),
+        ("8,642", "步", "8642 步"),
+        ("8,642", None, "8,642 步"),
+        ("8,642", "", "8,642 步"),
+        (None, "步", "None步"),
+        (True, "步", "True步"),
+        (False, "步", "False步"),
+        (float("inf"), "步", "inf步"),
+        (float("-inf"), "步", "-inf步"),
+        (float("nan"), "步", "nan步"),
+        ({"path": "/data/steps"}, "步", "8,642 步"),
+        ("{{ ${/data/steps} }}", "步", "8,642 步"),
+        ("8,642", {"path": "/data/unit"}, "8,642 步"),
+        ("8,642", "{{ ${/data/unit} }}", "8,642 步"),
+    ],
+)
+def test_static_plan_fact_rejects_inexact_or_nonstatic_value_unit_pair(
+    value: object, unit: object, expected_text: str,
+) -> None:
+    plan = {"info_required": [{"requirement": "主读数", "text": expected_text}]}
+    rows = [
+        ["root", "Column", {}, ["primary"]],
+        ["primary", "EmphasizedData", {"value": value, "unit": unit}],
+        ["/data/steps", "8,642"],
+        ["/data/unit", "步"],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == ("Plan static text is not fully visible in DSL: 主读数.",)
+
+
+@pytest.mark.parametrize("reachable", [True, False])
+def test_static_plan_value_unit_cannot_borrow_other_or_unreachable_component(
+    reachable: bool,
+) -> None:
+    plan = {"info_required": [{"requirement": "主读数", "text": "8,642 步"}]}
+    children = ["primary", "other"] if reachable else ["other"]
+    primary_unit = "公里" if reachable else "步"
+    rows = [
+        ["root", "Column", {}, children],
+        ["primary", "EmphasizedData", {"value": "8,642", "unit": primary_unit}],
+        ["other", "EmphasizedData", {"value": "312", "unit": "步"}],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+    if not reachable:
+        with pytest.raises(CompactDslConversionError, match=r"Unreachable component\(s\): primary"):
+            evaluate_compact_plan_coverage(source, plan, task_spec())
+        return
+
+    result = evaluate_compact_plan_coverage(source, plan, task_spec())
+
+    assert result.errors == ("Plan static text is not fully visible in DSL: 主读数.",)
+
+
+def test_emphasized_value_unit_does_not_mask_duplicate_dynamic_fact() -> None:
+    plan = {"info_required": [{"requirement": "步数", "dataId": "/data/steps"}]}
+    rows = [
+        ["root", "Column", {}, ["primary", "other"]],
+        ["primary", "EmphasizedData", {"value": {"path": "/data/steps"}, "unit": "步"}],
+        ["other", "EmphasizedData", {"value": "{{ ${/data/steps} }}", "unit": "步"}],
+        ["/data/steps", 8642],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+    result = evaluate_compact_plan_coverage(
+        source, plan, task_spec(), information_errors_as_warnings=True,
+    )
+
+    assert len(result.errors) == 1
+    assert "displayed more than once" in result.errors[0]
+    assert len(result.duplicate_facts) == 1
+    assert result.duplicate_facts[0].get("actualVisibleCount") == 2
 
 
 @pytest.mark.parametrize(

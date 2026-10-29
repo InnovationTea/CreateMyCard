@@ -283,6 +283,102 @@ def static_presentation_candidates(
     return tuple(dict.fromkeys(sources))
 
 
+def missing_shared_header_candidate(
+    source: str, plan: dict[str, Any], size: str, omitted_indexes: tuple[int, ...] = (),
+) -> str | None:
+    """只为无标题失败源补已接受的公共原文，正文和数据行保持原样。"""
+    from services.card_validation.compact_validation.semantic.static_content import (
+        static_fact_coverage,
+        static_group_errors,
+    )
+    from services.compact_dsl_a2ui_converter import ComponentRow, parse_compact_dsl_rows
+
+    if size not in {"2x2", "2x4"}:
+        return None
+    try:
+        rows = parse_compact_dsl_rows(source, expand_layouts=False)
+        components = [row for row in rows if isinstance(row, ComponentRow)]
+        if {row.component_id for row in components} != {"root", "body"}:
+            return None
+        if len(components) != 2:
+            return None
+        root = next(row for row in components if row.component_id == "root")
+        expected_layout = f"{'S' if size == '2x2' else 'W'}-static-content"
+        if root.component_type != "Layout" or root.props != {"layout": expected_layout}:
+            return None
+        if root.children != ("body",):
+            return None
+        errors = static_group_errors(source, plan, omitted_indexes)
+        missing_only = all(error.startswith("COMPACT_STATIC_CORE_MISSING:") for error in errors)
+        if not errors or not missing_only:
+            return None
+        coverage = static_fact_coverage(source, plan, omitted_indexes)
+        visible = {item.fact_index for item in coverage if item.visible}
+        texts = _missing_shared_header_texts(plan, visible, set(omitted_indexes))
+        if not texts:
+            return None
+        output = []
+        for line in source.splitlines():
+            if not line.strip():
+                output.append(line)
+                continue
+            value = json.loads(line)
+            if isinstance(value, list) and value[0] == "root":
+                value[3] = ["header", "body"]
+                output.append(json.dumps(value, ensure_ascii=False))
+                output.append(json.dumps(
+                    ["header", "SingleLineTitle", {"title": "；".join(texts)}],
+                    ensure_ascii=False,
+                ))
+            else:
+                output.append(line)
+        candidate = "\n".join(output)
+        if static_group_errors(candidate, plan, omitted_indexes):
+            return None
+    except (ValueError, TypeError, IndexError, StopIteration):
+        return None
+    return candidate
+
+
+def _missing_shared_header_texts(plan: dict, visible: set[int], omitted: set[int]) -> list[str]:
+    facts = plan.get("info_required", [])
+    texts = []
+    for group in plan.get("contentGroups", []):
+        if group.get("kind") != "shared":
+            continue
+        for index in group.get("factIndexes", []):
+            if index in visible or index in omitted:
+                continue
+            fact = facts[index]
+            if fact.get("displayRole", "body") not in {"title", "body"}:
+                return []
+            text = fact.get("text")
+            if not isinstance(text, str) or not text.strip() or "actionId" in fact:
+                return []
+            if "{{" in text or "${" in text:
+                return []
+            texts.append(text)
+    return texts
+
+
+def static_candidate_expansion_error(source: str, size: str) -> str | None:
+    """复用原展开器确认单个异常原文，避免把合并或未知错误当作纯容量。"""
+    from services.compact_dsl_a2ui_converter import parse_compact_dsl_rows
+    from services.compact_high_level_components import (
+        CompactDslConversionError,
+        ComponentRow,
+        expand_high_level_component_rows,
+    )
+
+    try:
+        rows = parse_compact_dsl_rows(source, size=size)
+        components = [row for row in rows if isinstance(row, ComponentRow)]
+        expand_high_level_component_rows(components, size=size, data_model={})
+    except CompactDslConversionError as exc:
+        return str(exc)
+    return None
+
+
 def _complete_text_feedback(
     source: str, plan: dict[str, Any], query: str, size: str,
 ) -> tuple[str, ...]:

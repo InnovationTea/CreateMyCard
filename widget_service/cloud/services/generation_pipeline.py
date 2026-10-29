@@ -6,6 +6,7 @@ from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any, Literal, Protocol
 
+from app.logger import logger
 from config.config import get_settings
 from custom.model_transport import ModelBackend
 from services.card_validation import (
@@ -112,6 +113,7 @@ class DslProcessingResult:
     source_dsl: str
     standard_dsl: str = ""
     issues: tuple[QualityIssue, ...] = ()
+    repair_source_dsl: str | None = None
 
     @property
     def errors(self) -> tuple[QualityIssue, ...]:
@@ -232,6 +234,7 @@ class DesignCompactProcessor:
                         text_artifacts={"static_presentation_source": candidate_source},
                     )
                     return candidate_result
+                result = self._repair_missing_shared_header(result, context)
             eligible = context.size == "2x4" and not context.skip_compact_dsl_validation
             eligible = eligible and not context.content_policy.is_static
             if not enabled or not eligible or not result.errors:
@@ -279,6 +282,84 @@ class DesignCompactProcessor:
                 artifact_roles=artifact_roles,
             )
             return result
+
+    def _repair_missing_shared_header(
+        self, original: DslProcessingResult, context: DslProcessingContext,
+    ) -> DslProcessingResult:
+        from services.static_content_presentation import missing_shared_header_candidate
+
+        if context.skip_compact_dsl_validation or not context.compact_plan:
+            return original
+        for issue in original.errors:
+            if not issue.message.startswith("COMPACT_STATIC_CORE_MISSING:"):
+                return original
+        started_at = time.perf_counter()
+        candidate = missing_shared_header_candidate(
+            original.source_dsl, context.compact_plan, context.size,
+            context.allowed_omitted_plan_fact_indexes,
+        )
+        if candidate is None:
+            return original
+        validated = self._process(candidate, context)
+        if serialize_compact_dsl_source(candidate) != serialize_compact_dsl_source(
+            validated.source_dsl,
+        ):
+            return original
+        if validated.errors and not self._shared_header_capacity_only(validated, context):
+            return original
+        if validated.errors:
+            validated = replace(validated, repair_source_dsl=validated.source_dsl)
+        logger.info(
+            "[Generation Pipeline] static_shared_header_prepared body_changed=false "
+            "requires_model_repair={} error_count={}",
+            bool(validated.errors), len(validated.errors),
+        )
+        trace_step(
+            "static_content.shared_header.prepared",
+            stage="dsl.staticPresentation",
+            status="failed" if validated.errors else "success",
+            duration_ms=_elapsed_ms(started_at),
+            details={"candidateCount": 1, "bodyChanged": False,
+                     "requiresModelRepair": bool(validated.errors)},
+            text_artifacts={"shared_header_input": original.source_dsl,
+                            "shared_header_candidate": validated.source_dsl},
+            json_artifacts={"shared_header_issues": [
+                issue.to_diagnostic_payload() for issue in validated.issues
+            ]},
+            artifact_roles={"shared_header_input": "input", "shared_header_candidate": "output",
+                            "shared_header_issues": "diagnostic"},
+        )
+        return validated
+
+    @staticmethod
+    def _shared_header_capacity_only(
+        result: DslProcessingResult, context: DslProcessingContext,
+    ) -> bool:
+        from services.compact_repair_context import static_component_capacity_contexts
+        from services.static_content_presentation import static_candidate_expansion_error
+
+        if len(result.errors) != 1:
+            return False
+        issue = result.errors[0]
+        diagnostics = issue.prompt_context.get("compactDiagnostics", [])
+        if not isinstance(diagnostics, list):
+            return False
+        for diagnostic in diagnostics:
+            if not isinstance(diagnostic, dict):
+                return False
+            if diagnostic.get("code") != "COMPACT_STATIC_TEXT_CAPACITY":
+                return False
+            if diagnostic.get("legacyMessage") != issue.message:
+                return False
+            if diagnostic.get("message") != issue.message:
+                return False
+        actual_error = static_candidate_expansion_error(result.source_dsl, context.size)
+        if issue.message != actual_error:
+            return False
+        return bool(static_component_capacity_contexts(
+            result.source_dsl, [issue.to_prompt_payload()], context.compact_plan,
+            context.allowed_omitted_plan_fact_indexes,
+        ))
 
     def _repair_duplicate_display(
         self, original: DslProcessingResult, context: DslProcessingContext,

@@ -2171,6 +2171,7 @@ class _CompactVisibleState:
     literals: tuple[str, ...]
     item_literals: tuple[str, ...]
     handlers: tuple[dict[str, Any], ...]
+    value_unit_literals: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2203,7 +2204,9 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
     path_occurrences: list[_CompactVisiblePathOccurrence] = []
     visible_literals: list[str] = []
     item_literals: list[str] = []
+    value_unit_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
+    reachable_ids = _reachable_component_ids(tuple(components))
     for component in components:
         from services.generation_content_policy import current_content_policy
 
@@ -2229,7 +2232,13 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         if has_separate_progress_readout:
             visible_props.pop("value", None)
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
-        _collect_structured_item_literals(component, item_literals)
+        _collect_structured_item_literals(
+            component,
+            item_literals,
+            value_unit_literals=(
+                value_unit_literals if component.component_id in reachable_ids else None
+            ),
+        )
         for property_name, value in visible_props.items():
             _collect_visible_path_occurrences(
                 value,
@@ -2247,6 +2256,7 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         literals=tuple(_normalize_text(value) for value in visible_literals),
         item_literals=tuple(_normalize_text(value) for value in item_literals),
         handlers=tuple(handlers),
+        value_unit_literals=tuple(_normalize_text(value) for value in value_unit_literals),
     )
 
 
@@ -2311,8 +2321,14 @@ def compact_plan_overflow_action_ids(
 def _collect_structured_item_literals(
     component: ComponentRow,
     literals: list[str],
+    *,
+    value_unit_literals: list[str] | None = None,
 ) -> None:
     """补充同一结构化条目内共同呈现的静态文本。"""
+    if component.component_type == "EmphasizedData":
+        if value_unit_literals is not None:
+            _collect_emphasized_data_value_unit_literals(component, value_unit_literals)
+        return
     items = component.props.get("items")
     if not isinstance(items, list):
         return
@@ -2331,6 +2347,28 @@ def _collect_structured_item_literals(
         if _BINDING_PATH.search(label) or _BINDING_PATH.search(value):
             continue
         literals.append(f"{label}{value}")
+
+
+def _collect_emphasized_data_value_unit_literals(
+    component: ComponentRow,
+    literals: list[str],
+) -> None:
+    """只合并同一主读数的合法静态值与单位，供完整文字精确比较。"""
+    value = component.props.get("value")
+    unit = component.props.get("unit")
+    if not isinstance(unit, str) or not unit.strip():
+        return
+    if "${" in unit or "{{" in unit:
+        return
+    valid_number = isinstance(value, (int, float)) and not isinstance(value, bool)
+    if isinstance(value, float) and not math.isfinite(value):
+        return
+    if not valid_number:
+        if not isinstance(value, str) or not value.strip():
+            return
+        if "${" in value or "{{" in value:
+            return
+    literals.append(f"{value}{unit}")
 
 
 def _collect_event_card_item_literals(
@@ -2405,7 +2443,9 @@ def _compact_fact_coverage_result(
     if isinstance(text, str):
         expected_text = _normalize_text(text)
         literal_candidates = (*state.literals, *state.item_literals)
-        if not expected_text or not any(expected_text in actual for actual in literal_candidates):
+        literal_match = any(expected_text in actual for actual in literal_candidates)
+        value_unit_match = expected_text in state.value_unit_literals
+        if not expected_text or not (literal_match or value_unit_match):
             return CompactPlanCoverageResult(
                 errors=(f"Plan static text is not fully visible in DSL: {label}.",),
                 warnings=(),

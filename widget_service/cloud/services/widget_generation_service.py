@@ -1275,7 +1275,7 @@ class WidgetGenerationService:
                             refinement_plan = validation
                             refinement_source = raw_plan
                             plan_prompt = PromptBuilder.build_static_plan_refinement(
-                                plan_prompt, feedback,
+                                plan_prompt, feedback, retry_context=compact_retry_context,
                             )
                             trace_increment_retry("planCapacityRefinements")
                             trace_record(
@@ -1529,6 +1529,14 @@ class WidgetGenerationService:
             # 模型修复阶段切换回模型组件规则。
             source_generated_by_template = False
             trace_phase("repair")
+            prepared_source = latest_processing_result.repair_source_dsl
+            if content_policy.is_static and prepared_source is not None:
+                logger.info(
+                    f"{_MODULE} repair_source_selected origin=static_shared_header "
+                    f"quality_repair_attempt={quality_repair_attempt_count + 1} "
+                    f"quality_error_count={len(latest_processing_result.errors)}"
+                )
+                invalid_source_dsl = prepared_source
             quality_error_payloads = [
                 asset_mapper.restore_diagnostic_values(item.to_prompt_payload())
                 for item in latest_processing_result.errors

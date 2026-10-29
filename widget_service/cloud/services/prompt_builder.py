@@ -2139,8 +2139,37 @@ class PromptBuilder:
     @staticmethod
     def build_static_plan_refinement(
         conversation: list[dict[str, str]], feedback: list[str],
+        *, retry_context: CompactDslRetryContext | None = None,
     ) -> list[dict[str, str]]:
         """在已有Plan预算内反馈有限试排参考，不宣称所有合法布局无解。"""
+        instruction = (
+            "结构合法，但有限候选尚未排下，尚未冻结计划；不代表所有布局无解。"
+            "请使用本阶段剩余的最后一次提交，按用户用途重新总结过长展示文字，"
+            "拆出名称、短标签和读数，保留条件及或/且关系；长出处降为可选短说明。"
+            "以最终可见文字核算整卡总行数，不只满足单字段行数。"
+            "避免同一对象每句重复主体、周期和单位；共同适用范围写一次，"
+            "必要人群、强度、范围、例外和替代关系不能列入遗漏。"
+            "名称可与完整正文同放无标签属性行，避免额外标签行挤占容量。"
+            "用户明确要求完整或原文时仍遵守，不由程序删除事实。"
+            "本次只提交完整submit_card_plan，不输出DSL或原样重复过长计划。"
+            "最后一次结构合法计划仍将交由DSL尝试，不新增模型阶段。"
+        )
+        if retry_context is not None and retry_context.capacity_recovery:
+            instruction = (
+                "恢复Plan结构合法，但有限候选尚未排下，不代表所有布局无解。"
+                "请使用本阶段剩余的最后一次提交，保持既有recovery_fact_scope固定账本。"
+                "逐条保留requiredFacts的完整text、对应priority及保护属性；"
+                "不得重新总结、摘要、改写、拆分、合并或删除事实条目，"
+                "不得降低优先级，不新增遗漏或重新加入excludedFacts。"
+                "只能调整展示角色、同对象的字段分槽、contentGroups及组件布局；"
+                "分槽不改变原事实text，所有索引仍引用本次固定事实数组。"
+                "保留主体、日期时间、条件、单位、关系及全部Action，"
+                "不靠缩字、扩尺寸或擅自删减凑容量。"
+                "按最终可见文字和实际组件能力核对整卡行数，"
+                "切换presentationStyle时同步componentHints。"
+                "本次只提交完整submit_card_plan，不输出DSL或恢复蓝图。"
+                "最后一次结构合法计划仍将交由DSL尝试，不新增模型阶段或调用预算。"
+            )
         updated = copy.deepcopy(conversation)
         updated.append({
             "role": "user",
@@ -2149,18 +2178,7 @@ class PromptBuilder:
                     "name": "submit_card_plan", "ok": True,
                     "accepted": False, "capacityReference": feedback,
                 },
-                "instruction": (
-                    "结构合法，但有限候选尚未排下，尚未冻结计划；不代表所有布局无解。"
-                    "请使用本阶段剩余的最后一次提交，按用户用途重新总结过长展示文字，"
-                    "拆出名称、短标签和读数，保留条件及或/且关系；长出处降为可选短说明。"
-                    "以最终可见文字核算整卡总行数，不只满足单字段行数。"
-                    "避免同一对象每句重复主体、周期和单位；共同适用范围写一次，"
-                    "必要人群、强度、范围、例外和替代关系不能列入遗漏。"
-                    "名称可与完整正文同放无标签属性行，避免额外标签行挤占容量。"
-                    "用户明确要求完整或原文时仍遵守，不由程序删除事实。"
-                    "本次只提交完整submit_card_plan，不输出DSL或原样重复过长计划。"
-                    "最后一次结构合法计划仍将交由DSL尝试，不新增模型阶段。"
-                ),
+                "instruction": instruction,
             }, ensure_ascii=False),
         })
         return updated

@@ -1,13 +1,18 @@
 """静态容量恢复把已有事实账本交给Plan，不改变首次提示或事实校验。"""
 
+import copy
 import json
-import socket
 
+import httpx
 import pytest
 from jsonschema import Draft202012Validator
 
+from api.schemas import GenerateWidgetCardRequest
 from config.config import get_settings
+from core.errors import GenerationStatus
+from custom.a2ui_model_client import A2UIModelClient
 from models.generation import CompactDslRecoveryFact, CompactDslRetryContext, TaskSpec
+from services.artifact_store import ArtifactStore
 from services.compact_plan import compact_recovery_plan_errors
 from services.generation_content_policy import (
     EXISTING_CONTENT_POLICY,
@@ -18,6 +23,7 @@ from services.prompt_builder import (
     _CAPACITY_RECOVERY_PLAN_INSTRUCTION,
     PromptBuilder,
 )
+from services.widget_generation_service import WidgetGenerationService
 
 
 @pytest.fixture(autouse=True)
@@ -25,8 +31,9 @@ def offline(monkeypatch):
     def reject_network(*_args, **_kwargs):
         raise AssertionError("提示构建回归不得访问网络")
 
-    monkeypatch.setattr(socket.socket, "connect", reject_network)
-    monkeypatch.setattr(socket.socket, "connect_ex", reject_network)
+    # 底层 socket 由离线运行器管控；不包装 Windows asyncio 的唤醒配对。
+    monkeypatch.setattr(httpx.Client, "request", reject_network)
+    monkeypatch.setattr(httpx.AsyncClient, "request", reject_network)
     monkeypatch.setattr(get_settings(), "enable_design_compact_runtime_prompt_context", False)
 
 
@@ -231,3 +238,123 @@ def test_dynamic_repair_does_not_acquire_static_recovery_contract():
             messages, "错误计划", ("缺组",), retry_context=context(),
         )
     assert original == repaired
+
+
+def test_refinement_default_payload_is_unchanged_with_noncapacity_context():
+    messages = [{"role": "system", "content": "原合同"}]
+    feedback = ["候选组件尚未容纳完整文字"]
+    expected_instruction = (
+        "结构合法，但有限候选尚未排下，尚未冻结计划；不代表所有布局无解。"
+        "请使用本阶段剩余的最后一次提交，按用户用途重新总结过长展示文字，"
+        "拆出名称、短标签和读数，保留条件及或/且关系；长出处降为可选短说明。"
+        "以最终可见文字核算整卡总行数，不只满足单字段行数。"
+        "避免同一对象每句重复主体、周期和单位；共同适用范围写一次，"
+        "必要人群、强度、范围、例外和替代关系不能列入遗漏。"
+        "名称可与完整正文同放无标签属性行，避免额外标签行挤占容量。"
+        "用户明确要求完整或原文时仍遵守，不由程序删除事实。"
+        "本次只提交完整submit_card_plan，不输出DSL或原样重复过长计划。"
+        "最后一次结构合法计划仍将交由DSL尝试，不新增模型阶段。"
+    )
+    original = PromptBuilder.build_static_plan_refinement(messages, feedback)
+    noncapacity = PromptBuilder.build_static_plan_refinement(
+        messages, feedback, retry_context=context(capacity_recovery=False),
+    )
+    assert original == noncapacity
+    assert original[:-1] == messages
+    assert messages == [{"role": "system", "content": "原合同"}]
+    assert json.loads(original[-1].get("content", "")) == {
+        "toolResult": {
+            "name": "submit_card_plan", "ok": True,
+            "accepted": False, "capacityReference": feedback,
+        },
+        "instruction": expected_instruction,
+    }
+
+
+def test_recovery_refinement_keeps_frozen_scope_and_existing_schema():
+    retry = context()
+    messages = prompt(STATIC_CONTENT_POLICY, retry)
+    refined = PromptBuilder.build_static_plan_refinement(
+        messages, ["有限候选尚未排下"], retry_context=retry,
+    )
+    assert refined[:-1] == messages
+    assert scope_from(refined) == scope_from(messages)
+    payload = json.loads(refined[-1].get("content", ""))
+    instruction = payload.get("instruction", "")
+    assert "逐条保留requiredFacts的完整text、对应priority" in instruction
+    assert "不得重新总结、摘要、改写、拆分、合并或删除事实条目" in instruction
+    assert "不得降低优先级，不新增遗漏或重新加入excludedFacts" in instruction
+    assert "同对象的字段分槽" in instruction
+    assert "不要原样重复过长计划" not in instruction
+    assert "按用户用途重新总结过长展示文字" not in instruction
+    submitted = recovery_submission()
+    validator = Draft202012Validator(tool_schema_from(refined))
+    assert not list(validator.iter_errors(submitted))
+    facts = submitted.get("info_required")
+    assert isinstance(facts, list)
+    facts[1]["text"] = "11月7日–9日"
+    assert list(validator.iter_errors(submitted))
+
+
+@pytest.mark.asyncio
+async def test_service_passes_recovery_scope_to_capacity_refinement(
+    monkeypatch, isolated_theme_stage,
+):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_static_content_generation_policy", True)
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
+    monkeypatch.setattr(settings, "enable_model_failure_retry", False)
+    text = "必须保留的完整说明" * 40
+    plan = {
+        "info_required": [{
+            "text": text, "requirement": "完整说明", "sourceTexts": [text],
+            "priority": "must", "componentHints": ["EmphasisText"],
+            "protectedTexts": [], "displayRole": "body",
+        }],
+        "contentGroups": [{
+            "id": "detail", "kind": "object", "identity": None, "factIndexes": [0],
+        }],
+        "layoutHints": ["S-static-content"], "omittedContents": [],
+    }
+    request = GenerateWidgetCardRequest(
+        uid="recovery-refinement", prdVer="11.7.7.331", device={"romVersion": "7.0"},
+        userQuery=text, size="2x2", title="完整说明", description="静态容量恢复",
+    )
+    request._compact_dsl_retry_context = CompactDslRetryContext(
+        failure_category="layout_capacity", capacity_recovery=True,
+        retained_facts=(CompactDslRecoveryFact("text", text, "完整说明", "must"),),
+        omitted_facts=(CompactDslRecoveryFact("text", "可选附注", "附注", "should"),),
+    )
+    calls = []
+
+    async def generate(_client, messages, profile=None, **kwargs):
+        calls.append({
+            "messages": copy.deepcopy(messages), "phase": kwargs.get("phase"),
+            "format": (profile or {}).get("format"),
+        })
+        if (profile or {}).get("format") == "raw-json":
+            return json.dumps({"name": "submit_card_plan", "arguments": plan}, ensure_ascii=False)
+        return "\n".join(json.dumps(row, ensure_ascii=False) for row in [
+            ["root", "Layout", {"layout": "S-static-content"}, ["body"]],
+            ["body", "EmphasisText", {"mainText": text}], ["/state/ready", True],
+        ])
+
+    def reject_save(*_args, **_kwargs):
+        raise AssertionError("仍然放不下的固定事实不能被发布为成功")
+
+    monkeypatch.setattr(A2UIModelClient, "generate", generate)
+    monkeypatch.setattr(ArtifactStore, "save", reject_save)
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
+    assert response.status == GenerationStatus.FAILED
+    assert len(calls) == 3
+    assert [call.get("phase") for call in calls[:2]] == ["plan", "plan"]
+    assert [call.get("format") for call in calls] == ["raw-json", "raw-json", "compact-dsl"]
+    second_messages = calls[1].get("messages")
+    assert isinstance(second_messages, list)
+    refined = json.loads(second_messages[-1].get("content", ""))
+    assert refined.get("toolResult", {}).get("capacityReference")
+    assert "保持既有recovery_fact_scope固定账本" in refined.get("instruction", "")
+    assert "按用户用途重新总结过长展示文字" not in refined.get("instruction", "")
+    assert scope_from(second_messages) == scope_from(calls[0].get("messages", []))
+    assert "staticPlanReview" not in json.dumps(second_messages)
