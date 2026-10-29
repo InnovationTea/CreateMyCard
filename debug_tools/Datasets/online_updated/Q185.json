@@ -1,0 +1,51 @@
+{
+  "content": {
+    "title": "三年规划",
+    "description": "年度目标总览",
+    "userQuery": "制作一张三年规划目标卡片，展示以下内容：\n\n三年规划（2026.11-2029.10）\n\n第一年（2026.11-2027.10）：打基础\n工作：提升专业能力，承担跨部门项目\n生活：男性备孕调理，体重降至75kg以内，每周运动3-5次\n财务：学习投资基础，存款达2w\n成长：读完5本书，选定技能开始学习\n\n第二年（2027.11-2028.10）：稳推进\n工作：承担管理职能，为副职竞聘做准备\n生活：迎来宝宝，体重68-70kg，坚持运动\n财务：炒股盈利1w，存款达3.5w\n成长：读完5本书，技能实操\n\n第三年（2028.11-2029.10）：达目标\n工作：竞聘中层副职，稳步晋升\n生活：宝宝1岁+，体重65-70kg，身体机能恢复\n财务：炒股盈利2w，存款达5w\n成长：读完5本书（累计15本），技能熟练掌握\n\n卡片要求：每个年度目标可以打勾标记完成，每年具体内容清晰可读，后续可以自己修改\n\n本轮卡片静态内容（用作展示的外部事实）：\n三年规划目标：工作稳步发展争取中层副职；拥有1岁及以上孩子，体重65-70kg保持运动；炒股盈利2w存款达5w；看书15本学会一项技能",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027145905503"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "9",
+    "isNew": false,
+    "sessionId": "9fbe4fcc-8d7e-4f36-84da-27ede4b3894b"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "年度目标总览",
+  "userQuery": "制作一张三年规划目标卡片，展示以下内容：\n\n三年规划（2026.11-2029.10）\n\n第一年（2026.11-2027.10）：打基础\n工作：提升专业能力，承担跨部门项目\n生活：男性备孕调理，体重降至75kg以内，每周运动3-5次\n财务：学习投资基础，存款达2w\n成长：读完5本书，选定技能开始学习\n\n第二年（2027.11-2028.10）：稳推进\n工作：承担管理职能，为副职竞聘做准备\n生活：迎来宝宝，体重68-70kg，坚持运动\n财务：炒股盈利1w，存款达3.5w\n成长：读完5本书，技能实操\n\n第三年（2028.11-2029.10）：达目标\n工作：竞聘中层副职，稳步晋升\n生活：宝宝1岁+，体重65-70kg，身体机能恢复\n财务：炒股盈利2w，存款达5w\n成长：读完5本书（累计15本），技能熟练掌握\n\n卡片要求：每个年度目标可以打勾标记完成，每年具体内容清晰可读，后续可以自己修改\n\n本轮卡片静态内容（用作展示的外部事实）：\n三年规划目标：工作稳步发展争取中层副职；拥有1岁及以上孩子，体重65-70kg保持运动；炒股盈利2w存款达5w；看书15本学会一项技能",
+  "title": "三年规划",
+  "candidateDataBindings": []
+}

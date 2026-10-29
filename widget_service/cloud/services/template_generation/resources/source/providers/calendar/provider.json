@@ -581,7 +581,7 @@
       "templateId": "ScheduleOverviewReminderSourceFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "沿用提醒详情 Full 的时间轴版式，展示日程发起人与提前提醒分钟数；不要求重要程度、更新时间或日程标题，不接收展示 Prop。",
+      "description": "沿用日程详情 Full 的上下分组版式，展示日程发起人与提前提醒分钟数；不要求重要程度、更新时间或日程标题，不接收展示 Prop。",
       "entry": "templates/schedule-detail-full.cardtpl",
       "primaryData": [
         "/events/0/senderName"

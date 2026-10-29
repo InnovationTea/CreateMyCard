@@ -1,0 +1,81 @@
+{
+  "content": {
+    "title": "联通流量话费",
+    "description": "流量话费速览",
+    "userQuery": "以中国联通流量套餐和话费为基础设置一个桌面卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n套餐名称：5G流量王畅玩版39（江苏）\n剩余通用流量：17.17GB\n剩余话费：28.28元\n剩余语音：48分钟",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "mobile_data_manage_entry"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.dataUsage"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.mobiledata_circle_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026052753700"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "5e37598b-f21f-43d8-bf47-c2400c3debed"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.mobiledata_circle_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "mobile_data_manage_entry"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.dataUsage"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "流量话费速览",
+  "userQuery": "以中国联通流量套餐和话费为基础设置一个桌面卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n套餐名称：5G流量王畅玩版39（江苏）\n剩余通用流量：17.17GB\n剩余话费：28.28元\n剩余语音：48分钟",
+  "title": "联通流量话费",
+  "candidateDataBindings": []
+}

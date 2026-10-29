@@ -1,0 +1,97 @@
+{
+  "content": {
+    "title": "今日会议",
+    "description": "会议日程速览",
+    "userQuery": "帮我创建一个今天会议卡片，显示最近的会议，支持一键进入会议",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "DEL-AL20 6.0.0.130",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/startDate",
+          "/events/0/countdownDays",
+          "/events/0/eventLocation",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/dtEnd",
+          "/events/1/startDate",
+          "/events/1/countdownDays",
+          "/events/1/eventLocation",
+          "/eventCount"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DEL-AL20",
+    "prdVer": "11.7.8.303",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026133112194"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "611f26cc-4068-4f3d-bb89-fa27dcaacafb"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DEL-AL20 6.0.0.130",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "会议日程速览",
+  "userQuery": "帮我创建一个今天会议卡片，显示最近的会议，支持一键进入会议",
+  "title": "今日会议",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "futureDays": 7
+      },
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/startDate",
+        "/events/0/countdownDays",
+        "/events/0/eventLocation",
+        "/events/1/title",
+        "/events/1/dtStart",
+        "/events/1/dtEnd",
+        "/events/1/startDate",
+        "/events/1/countdownDays",
+        "/events/1/eventLocation",
+        "/eventCount"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    }
+  ]
+}

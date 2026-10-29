@@ -1,0 +1,87 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "武汉天气速览",
+    "userQuery": "做一张武汉今日天气卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n武汉今天（10月26日）多云转小雨，气温16℃~25℃，北风1级，空气质量优",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "DPX-AL00 6.0.0.120",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "武汉市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/daily/0/date",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/rainProbabilityPercent"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.352",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026063353899"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "5",
+    "isNew": false,
+    "sessionId": "918fb113-451c-4236-9922-86903062c0b4"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.120",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "武汉天气速览",
+  "userQuery": "做一张武汉今日天气卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n武汉今天（10月26日）多云转小雨，气温16℃~25℃，北风1级，空气质量优",
+  "title": "今日天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "forecastDays": 1,
+        "prefectureName": "武汉市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/daily/0/date",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

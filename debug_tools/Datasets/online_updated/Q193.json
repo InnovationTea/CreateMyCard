@@ -1,0 +1,51 @@
+{
+  "content": {
+    "title": "购物清单",
+    "description": "待购与已购一目了然",
+    "userQuery": "做一张购物清单卡片，展示备忘录中的购物清单内容。\n\n本轮卡片静态内容（用作展示的外部事实）：\n购物清单：待购项——厨房调味和小电：醋、可现拧的黑胡椒和盐（研磨瓶）、1-2人小户型电饭煲、非金属炒菜铲；卧室大件和运动：1.8米×2米大床床垫、运动地胶、半躺半靠沙发、挂衣架；衣物护理：曼妮芬内衣（2件）、洗衣机清洁剂、柔顺剂、消毒水；清洁工具：水压大的高压清洗喷壶、清洁工具套装（缝隙刷、除霉啫喱等）；个人护理和其他：指甲死皮剪、推死皮刀、手机磁吸环。已购买：舞蹈镜（180×120）、除胶剂、蚊香。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023020259566"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "12",
+    "isNew": false,
+    "sessionId": "1bb7e640-6fd4-4e0e-a2ee-d4662b6c406f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "待购与已购一目了然",
+  "userQuery": "做一张购物清单卡片，展示备忘录中的购物清单内容。\n\n本轮卡片静态内容（用作展示的外部事实）：\n购物清单：待购项——厨房调味和小电：醋、可现拧的黑胡椒和盐（研磨瓶）、1-2人小户型电饭煲、非金属炒菜铲；卧室大件和运动：1.8米×2米大床床垫、运动地胶、半躺半靠沙发、挂衣架；衣物护理：曼妮芬内衣（2件）、洗衣机清洁剂、柔顺剂、消毒水；清洁工具：水压大的高压清洗喷壶、清洁工具套装（缝隙刷、除霉啫喱等）；个人护理和其他：指甲死皮剪、推死皮刀、手机磁吸环。已购买：舞蹈镜（180×120）、除胶剂、蚊香。",
+  "title": "购物清单",
+  "candidateDataBindings": []
+}

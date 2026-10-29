@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"icon":"resources/base/media/hourglass_fill.svg","value":{"path":"/data/dailyUsage/mostUsedApps/0/totalDuration"},"supportingText":"今日使用时长"}]
+["/data/dailyUsage/mostUsedApps/0/appName","抖音"]
+["/data/dailyUsage/mostUsedApps/0/totalDuration","2小时30分钟"]

@@ -1,0 +1,65 @@
+{
+  "content": {
+    "title": "我的日程与健康天气卡片",
+    "description": "展示我的日程安排、睡眠时长和南京未来三天降雨概率的桌面卡片",
+    "userQuery": "帮我生成一张桌面卡片，显示我的日程安排、睡眠时长，以及南京未来三天的降雨概率",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "DPX-AL00 6.0.0.120",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.352",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023101305556"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "6ea141f7-1ef9-414c-b73a-4b594bab0a40"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.120",
+  "bundleName": "com.huawei.genui",
+  "description": "展示我的日程安排、睡眠时长和南京未来三天降雨概率的桌面卡片",
+  "userQuery": "帮我生成一张桌面卡片，显示我的日程安排、睡眠时长，以及南京未来三天的降雨概率",
+  "title": "我的日程与健康天气卡片",
+  "dataCapabilityIds": [
+    "ViewWeather",
+    "GetCalendarEvents",
+    "GetHealthAndSportSummary"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "content": {
+    "title": "长度换算",
+    "description": "三年级数学长度单位换算题卡",
+    "userQuery": "生成三年级数学长度的一个换算题卡\n\n本轮卡片静态内容（用作展示的外部事实）：\n三年级数学长度单位换算：\n1千米=1000米\n1米=10分米\n1分米=10厘米\n1厘米=10毫米\n1米=100厘米=1000毫米\n\n练习题：\n1. 3米=（ ）分米\n2. 5千米=（ ）米\n3. 40厘米=（ ）分米\n4. 2米=（ ）厘米\n5. 80毫米=（ ）厘米\n6. 7分米=（ ）厘米",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027135945547"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "276055e5-1268-428f-bb26-98ef0925bfdb"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "三年级数学长度单位换算题卡",
+  "userQuery": "生成三年级数学长度的一个换算题卡\n\n本轮卡片静态内容（用作展示的外部事实）：\n三年级数学长度单位换算：\n1千米=1000米\n1米=10分米\n1分米=10厘米\n1厘米=10毫米\n1米=100厘米=1000毫米\n\n练习题：\n1. 3米=（ ）分米\n2. 5千米=（ ）米\n3. 40厘米=（ ）分米\n4. 2米=（ ）厘米\n5. 80毫米=（ ）厘米\n6. 7分米=（ ）厘米",
+  "title": "长度换算",
+  "candidateDataBindings": []
+}

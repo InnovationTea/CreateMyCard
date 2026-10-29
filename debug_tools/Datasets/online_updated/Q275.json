@@ -1,0 +1,76 @@
+{
+  "content": {
+    "title": "宝宝出生",
+    "description": "宝宝出生天数",
+    "userQuery": "在日历的桌面卡片中显示我女儿已经出生了多少天（正向计时）\n\n本轮卡片静态内容（用作展示的外部事实）：\n我女儿是2026年9月19日出生的，到今天10月26日已经出生38天（包含出生当天）。\n卡片需要显示正向计时，即显示宝宝已经出生38天，而不是距离目标日期的倒数。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2026-09-19"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.cake_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026151420345"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "cc08e745-c152-4eb7-b3c1-9178cc1db35f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.cake_fill"
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "宝宝出生天数",
+  "userQuery": "在日历的桌面卡片中显示我女儿已经出生了多少天（正向计时）\n\n本轮卡片静态内容（用作展示的外部事实）：\n我女儿是2026年9月19日出生的，到今天10月26日已经出生38天（包含出生当天）。\n卡片需要显示正向计时，即显示宝宝已经出生38天，而不是距离目标日期的倒数。",
+  "title": "宝宝出生",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2026-09-19"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "content": {
+    "title": "天气卡片",
+    "description": "雨花台区天气速览",
+    "userQuery": "把这张图片做成桌面天气卡片，显示南京雨花台区的天气。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "雨花台区",
+          "forecastDays": 1,
+          "prefectureName": "南京市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/windLevel",
+          "/current/windDirection",
+          "/current/airQuality"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026132448079"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "ee27fdc6-5488-4ff9-aaea-36a7c8aeb889"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "雨花台区天气速览",
+  "userQuery": "把这张图片做成桌面天气卡片，显示南京雨花台区的天气。",
+  "title": "天气卡片",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "雨花台区",
+        "forecastDays": 1,
+        "prefectureName": "南京市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/windLevel",
+        "/current/windDirection",
+        "/current/airQuality"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

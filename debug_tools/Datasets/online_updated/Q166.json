@@ -1,0 +1,139 @@
+{
+  "content": {
+    "title": "日程·睡眠·天气",
+    "description": "日程睡眠与南京天气",
+    "userQuery": "生成一张桌面卡片，显示我的日程安排、睡眠时长，以及南京未来三天的降雨概率。\n\n本轮卡片静态内容（用作展示的外部事实）：\n南京未来三天天气预报：10月29日小雨，12℃到19℃，降雨概率较高；10月30日晴，11℃到23℃，基本无降雨；10月31日多云，16℃到23℃，降雨概率较低。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/countdownDays",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/countdownDays"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "candidateOutputFields": [
+          "/nightSleepDurationText",
+          "/sleepScore",
+          "/sleepStatus"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      },
+      {
+        "arguments": {
+          "forecastDays": 3,
+          "prefectureName": "南京市"
+        },
+        "candidateOutputFields": [
+          "/daily/0/date",
+          "/daily/0/rainProbabilityPercent",
+          "/daily/1/date",
+          "/daily/1/rainProbabilityPercent",
+          "/daily/2/date",
+          "/daily/2/rainProbabilityPercent"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028071201591"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "19",
+    "isNew": false,
+    "sessionId": "84f02a17-6fd5-40d4-959f-fc97ed67e0c6"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "日程睡眠与南京天气",
+  "userQuery": "生成一张桌面卡片，显示我的日程安排、睡眠时长，以及南京未来三天的降雨概率。\n\n本轮卡片静态内容（用作展示的外部事实）：\n南京未来三天天气预报：10月29日小雨，12℃到19℃，降雨概率较高；10月30日晴，11℃到23℃，基本无降雨；10月31日多云，16℃到23℃，降雨概率较低。",
+  "title": "日程·睡眠·天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "futureDays": 7
+      },
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/countdownDays",
+        "/events/1/title",
+        "/events/1/dtStart",
+        "/events/1/countdownDays"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    },
+    {
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "candidateOutputFields": [
+        "/nightSleepDurationText",
+        "/sleepScore",
+        "/sleepStatus"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    },
+    {
+      "arguments": {
+        "forecastDays": 3,
+        "prefectureName": "南京市"
+      },
+      "candidateOutputFields": [
+        "/daily/0/date",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/1/date",
+        "/daily/1/rainProbabilityPercent",
+        "/daily/2/date",
+        "/daily/2/rainProbabilityPercent"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

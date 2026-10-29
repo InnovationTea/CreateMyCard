@@ -90,8 +90,8 @@ create 移除 missing 后立即重新判断核心目标，不能先调用权限�
 | `GetPhoneBatteryInfo` | 本机电池状态快照 | 无参 `{}`；不含最大容量或容量百分比式健康度；`healthStatusDesc` 是物理健康状态描述，不等于最大容量指标 |
 | `GetHealthAndSportSummary` | 睡眠、日常活动与最近一次专业运动、相关心率分析 | `targetDayOffset` 默认 0，描述支持过去 30 天；不是实时心率监测，也不支持任意历史跨度 |
 | `GetCurrentTime` | 公历日期、星期、农历及更新时间 | 无参 `{}`；输出未声明独立时分秒字段，不据名称承诺秒级时钟或后台计时 |
-| `GetAppPowerConsumptionRanking` | 应用耗电排行 | `limit` 默认 5；不能查询指定 App 的使用时长 |
-| `GetDailyMostUsage` | 当日应用使用时长排行 | `topN` 默认 3；必须在生成前实际提醒用户手动开启设置中的“健康使用设备”，未开启无法获取使用时长；权限通过不能省略提醒；不支持任意 App/任意日期统计 |
+| `GetAppPowerConsumptionRanking` | 应用耗电排行 | `limit` 默认 5 |
+| `GetDailyMostUsage` | 当日应用使用时长排行 | `topN` 默认 3；不支持查询指定 App 的使用时长或任意日期统计；必须在生成前实际提醒用户手动开启设置中的“健康使用设备”，未开启无法获取使用时长；权限通过不能省略提醒 |
 | `GetPhoneCallRecords` | 通话计数、总时长及最近记录 | `callRecordType` 默认 0 为全量；其它枚举只能按本轮定义，不能自行猜测筛选值 |
 | `GetMemoData` | 笔记、待办统计及列表 | 无参 `{}`；读取与提醒标记不代表支持写入、勾选待办或创建后台提醒 |
 

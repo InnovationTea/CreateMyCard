@@ -1,0 +1,107 @@
+{
+  "content": {
+    "title": "贵阳天气",
+    "description": "贵阳天气与一键拨号",
+    "userQuery": "我需要创建桌面卡片，显示我老家贵阳的天气以及给我在贵阳的妈妈打电话，她的号码是13995956565。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日贵阳市白天小雨，最高气温16℃，夜间小雨，最低气温11℃。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VNE-AL00 6.1.0.110",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "贵阳市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/daily/0/temperatureRangeText"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "13995956565"
+            }
+          },
+          "call": "clickToApi"
+        },
+        "capabilityId": "event.call.phone"
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VNE-AL00",
+    "prdVer": "11.7.8.371",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023091428776"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "7",
+    "isNew": false,
+    "sessionId": "0515e398-0e28-481f-9dde-70b1087dd00e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VNE-AL00 6.1.0.110",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "13995956565"
+          }
+        },
+        "call": "clickToApi"
+      },
+      "capabilityId": "event.call.phone"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "贵阳天气与一键拨号",
+  "userQuery": "我需要创建桌面卡片，显示我老家贵阳的天气以及给我在贵阳的妈妈打电话，她的号码是13995956565。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日贵阳市白天小雨，最高气温16℃，夜间小雨，最低气温11℃。",
+  "title": "贵阳天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "forecastDays": 1,
+        "prefectureName": "贵阳市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName",
+        "/daily/0/temperatureRangeText"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

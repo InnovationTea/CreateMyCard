@@ -1,0 +1,80 @@
+{
+  "content": {
+    "title": "杭州天气",
+    "description": "杭州今日天气卡片，展示温度、紫外线等级和降雨概率",
+    "userQuery": "杭州今天天气，包含紫外线等级和降雨概率",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HOP-AL00 7.0.0.105",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "杭州市"
+        },
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_uv_color",
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.7.8.303",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023063848261"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "12",
+    "isNew": false,
+    "sessionId": "a2943b93-b18d-49e9-99ac-9f8694f77cb1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "assetCandidateIds": [
+    "asset.ic_uv_color",
+    "asset.ic_weather_monochrome"
+  ],
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HOP-AL00 7.0.0.105",
+  "eventCapabilityIds": [
+    "event.open.weather"
+  ],
+  "description": "杭州今日天气卡片，展示温度、紫外线等级和降雨概率",
+  "userQuery": "杭州今天天气，包含紫外线等级和降雨概率",
+  "title": "杭州天气",
+  "dataCapabilitySchemas": {
+    "ViewWeather": {
+      "forecastDays": 1,
+      "prefectureName": "杭州市"
+    }
+  },
+  "cardSize": "2x2",
+  "bundleName": "com.huawei.genui",
+  "dataCapabilityIds": [
+    "ViewWeather"
+  ]
+}
