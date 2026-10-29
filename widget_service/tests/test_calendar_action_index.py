@@ -74,7 +74,7 @@ def _content(registry, index="0"):
                 "action": _action(registry, "event.open.weather"),
             },
         ],
-        "candidateAssetIds": ["asset.ic_weather_color", "asset.ic_calender"],
+        "candidateAssetIds": ["asset.ic_weather_monochrome", "asset.ic_calender"],
     }
 
 
@@ -207,7 +207,7 @@ def _plan(task_spec):
         "assetAssignments": {
             "actions": [
                 {"actionId": "event.viewCalendarEvent", "assetId": "asset.ic_calender"},
-                {"actionId": "event.open.weather", "assetId": "asset.ic_weather_color"},
+                {"actionId": "event.open.weather", "assetId": "asset.ic_weather_monochrome"},
             ],
             "title": {"assetId": None, "reason": "两个素材均用于动作"},
         },
@@ -234,6 +234,11 @@ def test_l375_replay_original_fails_and_aligned_action_passes(registry):
     card_spec = result.card_spec.model_dump(mode="json")
     plan = _plan(task_spec)
     original = FIXTURE.read_text(encoding="utf-8")
+    # 仅迁移已退役的素材引用；保留 L375 原动作参数与未解析数组下标。
+    original = original.replace(
+        "resources/base/media/ic_weather_color.svg",
+        "resources/base/media/ic_weather_monochrome.svg",
+    )
 
     broken_task = copy.deepcopy(task_spec)
     events = broken_task.get("eventCandidates")
