@@ -30,13 +30,17 @@ from services.template_generation.test_support.gallery_replay import (
     prepare_failed_replay,
 )
 
-_FIXTURES = [
-    fixture
-    for fixture in json.loads(
-        (Path(__file__).parent / "fixtures/gallery_failed_plans.json").read_text(encoding="utf-8")
-    )
-    if fixture.get("index") != 34
-]
+def _load_fixtures() -> list[dict]:
+    path = Path(__file__).parent / "fixtures/gallery_failed_plans.json"
+    fixtures = json.loads(path.read_text(encoding="utf-8"))
+    selected = []
+    for fixture in fixtures:
+        if fixture.get("index") != 34:
+            selected.append(fixture)
+    return selected
+
+
+_FIXTURES = _load_fixtures()
 
 
 def _required(mapping, key):
