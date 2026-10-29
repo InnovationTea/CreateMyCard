@@ -1,13 +1,14 @@
 # 2x2 Few-shot
 
-配套规范：[通用卡片 UX 规范](UX-SPEC.md)。本文件按原有“示例说明 → user → assistant”格式，同步当前 Fusion 完整案例，不再使用旧单步走的自由基础组件案例。
+配套规范：[通用卡片 UX 规范](UX-SPEC.md)。本文件保持“示例说明 → user → assistant”格式，先列既有能力型路线的 19 个案例，再列静态开域维护库的 7 个案例，不使用旧单步走的自由基础组件案例。
 
-**来源版本：2026-10-23，main `56c3e7827f080c3250caac4c580008679811698f`。** 维护源：[`prompt_source/fewshots/2x2.md`](https://github.com/InnovationTea/CreateMyCard/blob/56c3e7827f080c3250caac4c580008679811698f/widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/fewshots/2x2.md)，共 19 例。案例 ID 保留维护源编号，不按本文件顺序重新编号。
+**校对版本：2026-10-29，main `9154c93e6d9041bdf9824ef7ee05992b11368c63`。** 既有能力型维护源：[`prompt_source/fewshots/2x2.md`](https://github.com/InnovationTea/CreateMyCard/blob/9154c93e6d9041bdf9824ef7ee05992b11368c63/widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/fewshots/2x2.md)，共 19 例，其正文与此前 `56c3e782` 快照一致；静态维护源：[`prompt_source/static_content/fewshots_2x2.md`](https://github.com/InnovationTea/CreateMyCard/blob/9154c93e6d9041bdf9824ef7ee05992b11368c63/widget_service/cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source/static_content/fewshots_2x2.md)，共 7 例。案例 ID 保留各库编号，不按本文件顺序重新编号。
 
-以下案例仅用于参考信息关系、组件组合和布局表达；当前 TaskSpec、已接受 Plan、组件与布局合同优先。不得复制本轮输入没有的事实、路径、事件、素材或样例数据，不为贴合案例删减、补造或静态化信息。
+**选库与准入：** 运行时先按本请求的内容策略选库，再按尺寸和 few-shot selection 开关注入；不是把本附件两套案例一起发送给模型。当前普通纯静态创建要求原始数据／事件候选及有效动态绑定／动作均为空，编辑和带动作请求不因静态库案例而改变准入。附件只是维护源快照，不是运行时读取入口；静态库中的动作兼容结构示范在对应例中另行标明。
+
+以下案例仅用于参考信息关系、组件组合和布局表达；当前 TaskSpec、已接受 Plan、组件与布局合同优先。不得复制本轮输入没有的事实、路径、事件、素材或样例数据，不为贴合案例删减、补造或静态化信息。静态范围选择、忠实摘要和受控省略按主规范单独验收，源案例存在不代表完整履约。
 
 **主题与容量说明：** 下列输入与 DSL 代码块原样同步维护源，不是最终模型请求或主题后 A2UI。维护源中保留的颜色、渐变、design 及标题中的主题名，在实际布局提示组装时按 layout-only 规则清理，布局定稿后统一应用本轮主题；不能直接认定最终沿用示例颜色。历史标题中的 Sub-118 / Sub-140 仅是维护说明，不是当前允许输出的布局名，实际以示例的 Region.variant 为准。案例中的区域宽高是参考预算，不能直接规定所有设备尺寸；当前仍保留的组件内部规格与自适应条件见[主规范附录 A](UX-SPEC.md#附录-a-当前实现的参考预算与固定内部规格)。案例同步不代表本轮重新生成或真机验收通过。
-
 ## 示例一（2x2-V01）：运动会倒计时（`S-center`·融球暖橙）
 本例使用“核心居中”：唯一量化焦点由 `DataDisplay` 同时承载短标签、核心数值和单位，作为 root 的唯一内容组件。仅当用户明确要求一个动作且实际候选目标匹配时，改选带动作布局，不在 `S-center` 中临时增加标题或动作槽。
 干扰候选示范：输入虽含一个歌单事件和音符素材，但本次只要求倒计时；输出不生成按钮、图标或隐式点击，不把候选数量当作用户意图。
@@ -372,4 +373,123 @@ root 纵向放置两个等权 `InfoBlock`，间距为 8vp。每个信息块的 `
 ["/data/beijing/location/prefectureName","北京"]
 ["/data/beijing/current/temperatureText","18°C"]
 ["/data/beijing/current/condition","晴"]
+```
+
+## 静态示例一（2x2-V91）：演出信息
+
+ContentBlock 承载活动名称、时间和地点。
+
+### user
+```json
+{"userQuery":"制作示例演出卡：周末音乐分享会，预计周六19:30，示例剧场。","size":"2x2","dataModelSchema":{"data":{}},"eventCandidates":[],"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-static-content"},["body"]]
+["body","ContentBlock",{"title":"周末音乐分享会","body":"预计周六19:30","attributes":[{"label":"地点","value":"示例剧场"}]}]
+["/state/ready",true]
+```
+
+## 静态示例二（2x2-V92）：出发备忘
+
+ContentBlock 承载短备忘，标题与正文分层。
+
+### user
+```json
+{"userQuery":"制作备忘：出发前检查，证件和充电器随身携带。","size":"2x2","dataModelSchema":{"data":{}},"eventCandidates":[],"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-static-content"},["body"]]
+["body","ContentBlock",{"title":"出发前检查","body":"证件和充电器随身携带"}]
+["/state/ready",true]
+```
+
+## 静态示例三（2x2-V93）：两条行程
+
+RecordList 按输入顺序展示两条记录，名称与补充信息分别承载。
+
+**校对注：** 原维护源输出未单独显示输入中的 Day1／Day2 标签，本附件保留该源块；顺序一致不等于所有请求文字均已展示，不能将该案例作为完整履约或真机验收证明。
+
+### user
+```json
+{"userQuery":"展示两项行程：Day1游览示例公园，建议2小时，免费；Day2参观示例展馆，建议1小时，20元。","size":"2x2","dataModelSchema":{"data":{}},"eventCandidates":[],"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-static-content"},["body"]]
+["body","RecordList",{"items":[{"title":"示例公园","description":"建议2小时 · 免费"},{"title":"示例展馆","description":"建议1小时 · 20元"}],"variant":"plain"}]
+["/state/ready",true]
+```
+
+## 静态示例四（2x2-V94）：背板记录
+
+RecordList 使用 panel 变体展示两条短记录。
+
+### user
+```json
+{"userQuery":"展示活动：阅读分享会，周六；摄影交流会，周日。","size":"2x2","dataModelSchema":{"data":{}},"eventCandidates":[],"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-static-content"},["body"]]
+["body","RecordList",{"items":[{"title":"阅读分享会","description":"周六"},{"title":"摄影交流会","description":"周日"}],"variant":"panel"}]
+["/state/ready",true]
+```
+
+## 静态示例五（2x2-V95）：三项短备忘
+
+RecordList 使用 plain 变体承载三项短记录；三项并非所有内容都能放入的保证。
+
+### user
+```json
+{"userQuery":"完整备忘三项：带证件、带雨伞、带充电器。","size":"2x2","dataModelSchema":{"data":{}},"eventCandidates":[],"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-static-content"},["body"]]
+["body","RecordList",{"items":[{"title":"带证件"},{"title":"带雨伞"},{"title":"带充电器"}],"variant":"plain"}]
+["/state/ready",true]
+```
+
+## 静态示例六（2x2-V96）：静态内容与单动作兼容结构
+
+本例保留静态合同中 ContentBlock 与 PillButton 的组合。
+
+**准入说明：** 2x2-V96 是已登记的动作兼容结构示范。当前普通创建只要携带事件候选仍走既有能力型路线，不因本例而自动进入静态内容策略，也不授权伪造动作候选。
+
+### user
+```json
+{"userQuery":"出发备忘：带证件，并提供打开日历按钮。","size":"2x2","dataModelSchema":{"data":{}},"eventCandidates":[{"id":"event.open.calendar","call":"clickToDeeplink","args":{"uri":"hww://calendar"}}],"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"出发备忘","fontSize":12}]
+["content","ContentBlock",{"body":"带证件"}]
+["action","PillButton",{"label":"打开日历","onClick":[{"call":"clickToDeeplink","args":{"uri":"hww://calendar"}}]}]
+["/state/ready",true]
+```
+
+## 静态示例七（2x2-V97）：主体与共同来源说明
+
+ContentBlock 承载主体事实，SecondaryBody 单独承载共同来源说明。
+
+### user
+```json
+{"userQuery":"上海博物馆自2008年3月10日起向社会免费开放。来源：维基百科。","size":"2x2","dataModelSchema":{"data":{}},"eventCandidates":[],"assetCandidates":[]}
+```
+
+### assistant
+```genui
+["root","Layout",{"layout":"S-static-content"},["body","note"]]
+["body","ContentBlock",{"title":"上海博物馆","body":"自2008年3月10日起向社会免费开放"}]
+["note","SecondaryBody",{"items":[{"value":"来源：维基百科","maxLines":2}],"columns":1,"fontSize":12}]
+["/state/ready",true]
 ```
