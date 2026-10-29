@@ -1,5 +1,6 @@
 """每日次数日志覆盖：跳过、查询、交付边界、写入重试及隐私保护。"""
 
+import hashlib
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -80,6 +81,20 @@ async def test_missing_client_is_logged(route_settings, usage_logs):
     assert await routes._check_daily_usage(OPERATION, payload(), "s&1", None) is None
     assert "reason=client_not_initialized" in usage_logs[-1]
     assert "action=bypass record_required=False" in usage_logs[-1]
+
+
+@pytest.mark.asyncio
+async def test_whitelist_bypass_log_does_not_expose_user_ids(
+    monkeypatch, route_settings, usage_logs
+):
+    uid_hash = hashlib.sha256(b"private-user").hexdigest()
+    monkeypatch.setattr(route_settings, "daily_usage_uid_whitelist", uid_hash)
+    request = payload(uid="private-user")
+    assert await routes._check_daily_usage(OPERATION, request, "s&1", None) is None
+    assert "reason=uid_whitelist record_required=False" in usage_logs[-1]
+    text = "\n".join(usage_logs)
+    assert "private-user" not in text
+    assert uid_hash not in text
 
 
 @pytest.mark.asyncio
