@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"icon":"resources/base/media/cake_fill.svg","value":"生日快乐！","supportingText":"{{ ${/data/time/currentDate} + ' · ' + ${/data/time/lunarDate} }}"}]
+["/data/time/currentDate","2026-07-09"]
+["/data/time/lunarDate","五月廿六"]

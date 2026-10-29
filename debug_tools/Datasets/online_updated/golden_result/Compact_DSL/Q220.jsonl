@@ -1,0 +1,3 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"中考倒计时","value":{"path":"/data/countdown/countdownDays"},"supportingText":"天"}]
+["/data/countdown/countdownDays",30]
