@@ -13,7 +13,11 @@ from core.errors import GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient, A2UIModelGenerationError
 from models.generation import CompactDslRecoveryFact, CompactDslRetryContext, TaskSpec
 from services.artifact_store import ArtifactStore
-from services.compact_plan import parse_compact_plan_call, static_fact_source
+from services.compact_plan import (
+    CompactPlanValidationError,
+    parse_compact_plan_call,
+    static_fact_source,
+)
 from services.generation_content_policy import (
     EXISTING_CONTENT_POLICY,
     STATIC_CONTENT_POLICY,
@@ -75,10 +79,10 @@ def _parse(payload, source="带证件"):
     return parse_static_plan_review(json.dumps(payload), source=source, fact_count=1)
 
 
-def _request(query="制作静态卡片：带证件"):
+def _request(query="制作静态卡片：带证件", size="2x2"):
     return GenerateWidgetCardRequest(
         uid="static-review", prdVer="11.7.7.331", device={"romVersion": "7.0"},
-        userQuery=query, size="2x2", title="复核", description="静态复核专项",
+        userQuery=query, size=size, title="复核", description="静态复核专项",
     )
 
 
@@ -102,7 +106,7 @@ def _accepted_plan(messages):
     raise AssertionError("DSL 阶段没有收到接受的 Plan")
 
 
-def _service(monkeypatch, outputs, display="带证件"):
+def _service(monkeypatch, outputs, display="带证件", dsl_source=None):
     calls = []
     saved = []
     pending = iter(outputs)
@@ -111,7 +115,7 @@ def _service(monkeypatch, outputs, display="带证件"):
         calls.append({"format": (profile or {}).get("format"), "messages": copy.deepcopy(messages),
                       "phase": kwargs.get("phase")})
         if (profile or {}).get("format") != "raw-json":
-            return _dsl(display)
+            return _dsl(display) if dsl_source is None else dsl_source
         value = next(pending)
         if isinstance(value, Exception):
             raise value
@@ -359,6 +363,121 @@ async def test_confirmed_original_survives_optimization_without_feasible_candida
     assert accepted.get("info_required", [])[0].get("text") == "完整说明"
 
 
+def _no_candidate_case():
+    title = "流程安排"
+    facts = [{"requirement": title, "text": title, "sourceTexts": [title],
+              "priority": "must", "displayRole": "title",
+              "componentHints": ["SingleLineTitle"]}]
+    groups = [{"id": "title", "kind": "shared", "identity": None, "factIndexes": [0]}]
+    items = []
+    for index in range(1, 6):
+        identity = f"阶段{index}"
+        detail = "核对原始记录后逐项登记处理结果并保留完整资料" * 3
+        text = f"{identity} {detail}"
+        facts.append({"requirement": text, "text": text, "sourceTexts": [text],
+                      "priority": "must", "displayRole": "body",
+                      "componentHints": ["SingleLineList"]})
+        groups.append({"id": f"step{index}", "kind": "object", "identity": identity,
+                       "factIndexes": [index]})
+        items.append({"text": identity, "assist": detail})
+    plan = {"info_required": facts, "contentGroups": groups,
+            "layoutHints": ["W-static-content"], "presentationStyle": "rows",
+            "omittedContents": []}
+    query = "；".join(fact.get("text", "") for fact in facts)
+    dsl = "\n".join(json.dumps(row, ensure_ascii=False) for row in [
+        ["root", "Layout", {"layout": "W-static-content"}, ["header", "body"]],
+        ["header", "SingleLineTitle", {"title": title}],
+        ["body", "SingleLineList", {"items": items}], ["/state/ready", True],
+    ])
+    return plan, query, dsl
+
+
+def _parse_no_candidate(plan, query):
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        accepted = parse_compact_plan_call(json.dumps(_call(plan)), {
+            "userQuery": query, "size": "2x4", "dataModelSchema": {"data": {}},
+            "assetCandidates": [], "eventCandidates": [],
+        }).plan
+    assert not accepted.get("staticPresentation")
+    assert accepted.get("staticPresentationFeedback")
+    return accepted
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("violation", ["record_count", "note_length"])
+async def test_confirmed_no_candidate_plan_reaches_dsl_after_invalid_optimization(
+    monkeypatch, violation,
+):
+    original, query, dsl = _no_candidate_case()
+    accepted = _parse_no_candidate(original, query)
+    corrected = copy.deepcopy(original)
+    if violation == "record_count":
+        corrected["presentationStyle"] = "records"
+        expected_error = "TextList"
+    else:
+        corrected["selectionNotes"] = ["说明" * 101]
+        expected_error = "取舍说明最多200字符"
+    with pytest.raises(CompactPlanValidationError, match=expected_error):
+        _parse_no_candidate(corrected, query)
+    trace_events = []
+
+    def record(event, **kwargs):
+        trace_events.append((event, kwargs))
+
+    monkeypatch.setattr("services.widget_generation_service.trace_record", record)
+    service, calls, saved = _service(monkeypatch, [
+        _call(original), _correct(corrected),
+    ], dsl_source=dsl)
+    response = await service.generate_widget_card_compact_dsl(_request(query, "2x4"))
+    assert [call.get("format") for call in calls] == ["raw-json", "raw-json", "compact-dsl"]
+    assert _accepted_plan(calls[-1].get("messages", [])) == accepted
+    assert response.status != GenerationStatus.SUCCESS
+    assert response.errorCode == "VALIDATION_FAILED"
+    assert not saved
+    fallback = [payload for name, payload in trace_events
+                if name == "static_content.plan.review.fallback"]
+    assert len(fallback) == 1
+    details = fallback[0].get("details", {})
+    assert details.get("hasFeasibleCandidate") is False
+    assert "不代表容量已通过" in details.get("reason", "")
+
+
+@pytest.mark.asyncio
+async def test_two_structurally_valid_plans_without_candidate_keep_the_new_plan(monkeypatch):
+    original, query, dsl = _no_candidate_case()
+    _parse_no_candidate(original, query)
+    corrected = copy.deepcopy(original)
+    corrected["selectionNotes"] = ["继续按原完整内容尝试排版"]
+    accepted = _parse_no_candidate(corrected, query)
+    service, calls, saved = _service(monkeypatch, [
+        _call(original), _correct(corrected),
+    ], dsl_source=dsl)
+    response = await service.generate_widget_card_compact_dsl(_request(query, "2x4"))
+    assert len(calls) == 3
+    assert _accepted_plan(calls[-1].get("messages", [])) == accepted
+    assert response.status != GenerationStatus.SUCCESS and not saved
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["needs_correction", "invalid_review", "timeout"])
+async def test_no_candidate_does_not_bypass_semantic_or_review_failures(monkeypatch, failure):
+    original, query, dsl = _no_candidate_case()
+    _parse_no_candidate(original, query)
+    if failure == "needs_correction":
+        review = _correct({"info_required": []}, [_finding("流程安排", [0])])
+    elif failure == "invalid_review":
+        review = {"decision": "correct", "sourceFidelity": "preserved", "findings": []}
+    else:
+        review = TimeoutError("offline timeout")
+    service, calls, saved = _service(monkeypatch, [_call(original), review], dsl_source=dsl)
+    try:
+        response = await service.generate_widget_card_compact_dsl(_request(query, "2x4"))
+    except (A2UIModelGenerationError, TimeoutError):
+        response = None
+    assert response is None or response.status != GenerationStatus.SUCCESS
+    assert len(calls) == 2 and not saved
+
+
 @pytest.mark.asyncio
 async def test_existing_capacity_refinement_and_source_review_share_second_call(monkeypatch):
     source = "完整说明" * 70
@@ -384,6 +503,8 @@ async def test_first_contract_error_uses_second_contract_repair_without_third_ca
     assert len(calls) == 3 and len(saved) == 1
     repair_prompt = json.dumps(calls[1].get("messages"), ensure_ascii=False)
     assert "同一对象组的最终text与identity" in repair_prompt
+    assert "原始需求的主体、年份和作用范围即使放在header也不是装饰" in repair_prompt
+    assert "来源引用错误先核对并修正引用" in repair_prompt
     assert "staticPlanReview" not in repair_prompt
 
 

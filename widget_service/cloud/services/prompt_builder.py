@@ -1903,10 +1903,20 @@ class PromptBuilder:
         """把失败 Plan 与校验工具结果追加到同一条对话。"""
         from services.generation_content_policy import current_content_policy
 
+        title_instruction = (
+            "不得删除用户要求来规避错误，"
+            "但应移除模型自行新增且用户未要求的装饰标题事实。"
+        )
         text_instruction = "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
         reference_feedback = None
         if current_content_policy().is_static:
             reference_feedback = static_plan_repair_feedback(invalid_output)
+            title_instruction = (
+                "不得删除用户要求来规避错误。来源引用错误先核对并修正引用；"
+                "只有来源诊断与原始输入共同确认是模型虚构、且不承载用户要求的装饰文字才移除。"
+                "原始需求的主体、年份和作用范围即使放在header也不是装饰；"
+                "布局不容纳header时，应移到现有合法显示字段，不能删除信息凑结构。"
+            )
             text_instruction = (
                 "静态text仍允许忠于sourceTexts的摘要、合并和简洁表达，不要求逐字提取。"
                 "修正全部已报告的结构问题；contentGroups.factIndexes只引用本次提交的"
@@ -1942,8 +1952,7 @@ class PromptBuilder:
             "instruction": (
                 PLAN_JSON_OUTPUT_INSTRUCTION + " "
                 "按本轮提供的合同修正计划或必要数据缺口报告，不得新增未开放的调用。"
-                "不得删除用户要求来规避错误，"
-                "但应移除模型自行新增且用户未要求的装饰标题事实。"
+                f"{title_instruction}"
                 f"{text_instruction}"
                 "不得生成 Compact DSL、Markdown 或解释。"
             ),

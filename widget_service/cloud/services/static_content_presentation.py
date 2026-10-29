@@ -297,6 +297,50 @@ def _complete_text_feedback(
     return feedback
 
 
+def _continuation_items(objects: list[_DisplayObject]) -> list[dict[str, str]]:
+    items = []
+    identities = set()
+    for item in objects:
+        identity = item.identity
+        if not isinstance(identity, str) or not identity or identity in identities:
+            return []
+        identities.add(identity)
+        start = len(items)
+        for fact in item.facts:
+            text = fact.get("text")
+            if not isinstance(text, str) or not text:
+                return []
+            if text != identity:
+                items.append({"text": identity, "assist": text})
+        if len(items) == start:
+            return []
+    return items if len(items) > len(objects) else []
+
+
+def _trial_continuation(
+    plan: dict[str, Any], query: str, size: str,
+) -> StaticPresentationTrial:
+    from services.card_validation.compact_validation.semantic.static_content import (
+        static_fact_coverage,
+    )
+
+    objects, shared = _display_objects(plan, ())
+    for item in shared:
+        if any(fact.get("displayRole") != "title" for fact in item.facts):
+            return StaticPresentationTrial(None, 0, ())
+    items = _continuation_items(objects)
+    if not items:
+        return StaticPresentationTrial(None, 0, ())
+    source = _encode("SingleLineList", {"items": items}, shared, size)
+    if source is None:
+        return StaticPresentationTrial(None, 0, ())
+    if _complete_text_feedback(source, plan, query, size):
+        return StaticPresentationTrial(None, 1, ())
+    if any(not fact.visible for fact in static_fact_coverage(source, plan)):
+        return StaticPresentationTrial(None, 1, ())
+    return StaticPresentationTrial(source, 1, ())
+
+
 def trial_static_presentation(
     plan: dict[str, Any], query: str, size: str
 ) -> StaticPresentationTrial:
@@ -345,7 +389,13 @@ def trial_static_presentation(
                 )
                 feedback = (message, *errors)
             if source in original_sources:
-                feedback += _complete_text_feedback(source, plan, query, size)
+                pressure = _complete_text_feedback(source, plan, query, size)
+                feedback += pressure
+                if not omitted and pressure:
+                    continuation = _trial_continuation(plan, query, size)
+                    attempted += continuation.attempted
+                    if continuation.source is not None:
+                        return StaticPresentationTrial(continuation.source, attempted, ())
             return StaticPresentationTrial(source, attempted, feedback)
     if not attempted:
         count = sum(group.get("kind") == "object" for group in plan.get("contentGroups", []))

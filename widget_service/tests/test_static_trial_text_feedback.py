@@ -61,7 +61,7 @@ def test_allowed_ellipsis_adds_exact_pressure_without_replacing_source(role, fie
     standard = convert_compact_dsl_to_a2ui(source, size="2x2")
     trial = trial_static_presentation(plan, _query(plan), "2x2")
     assert trial.source == source
-    assert trial.attempted == 1
+    assert trial.attempted == (2 if role == "label" else 1)
     assert len(trial.errors) == 1
     message = trial.errors[0]
     assert "正式组件UX允许省略号，原候选仍可用" in message
@@ -113,7 +113,7 @@ def test_long_original_still_precedes_later_complete_optional_candidate():
         convert_compact_dsl_to_a2ui(original_sources[-1], size="2x2")
     trial = trial_static_presentation(plan, _query(plan), "2x2")
     assert trial.source == original_sources[0]
-    assert trial.attempted == 1
+    assert trial.attempted == 2
     assert "辅助说明" in trial.source
     assert "完整文字展示压力" in "\n".join(trial.errors)
 

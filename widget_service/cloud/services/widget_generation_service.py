@@ -1087,8 +1087,8 @@ class WidgetGenerationService:
                             json_artifacts={"static_plan_review_findings": list(review.findings)},
                         )
                         review_keep = review.decision == "keep"
-                        review_fallback = review.source_fidelity == "preserved" and bool(
-                            review_plan.plan.get("staticPresentation")
+                        review_fallback = (
+                            review.source_fidelity == "preserved" and not review.findings
                         )
                         if review_keep:
                             if review_source is None:
@@ -1167,7 +1167,11 @@ class WidgetGenerationService:
                                 "static_content.plan.review.fallback", stage="plan",
                                 status="success",
                                 details={
-                                    "reason": "原计划语义已确认，容量优化合同失败，保留原候选",
+                                    "reason": "原计划语义已确认，修正版合同失败，保留结构合法"
+                                    "原计划继续DSL排版；有限试排无候选不代表容量已通过",
+                                    "hasFeasibleCandidate": bool(
+                                        review_plan.plan.get("staticPresentation")
+                                    ),
                                 },
                             )
                         elif not will_retry and refinement_plan is not None:
@@ -1199,7 +1203,8 @@ class WidgetGenerationService:
                             )
                             continue
                     if review_fallback and review_plan is not None:
-                        if not validation.plan.get("staticPresentation"):
+                        previous_candidate = review_plan.plan.get("staticPresentation")
+                        if previous_candidate and not validation.plan.get("staticPresentation"):
                             validation = review_plan
                             if review_source is not None:
                                 raw_plan = review_source
