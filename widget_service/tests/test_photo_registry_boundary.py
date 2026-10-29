@@ -82,21 +82,22 @@ def test_photo_delivery_uses_registry_url_not_external_same_key_mapping(monkeypa
     item for item in registry.registered_themes(include_disabled=True)
     if item.get("kind") == "photo"
 ], ids=lambda item: item.get("id"))
-def test_registered_photo_panel_tracks_its_text_palette(photo):
+def test_registered_photo_panel_preserves_approved_surface_palette(photo):
     content = photo.get("content", {})
     rgb = content.get("roles", {}).get("primary", "")[3:]
     assert rgb in {"000000", "FFFFFF"}
     size = photo.get("size")
     result = themes.apply_theme(source(), photo, {"size": size}, {})
     panel = node_by_id(result, "panel").get("styles", {})
-    assert panel.get("backgroundColor") == "#33" + rgb
+    expected = content.get("panelBySize", {}).get(size)
+    assert panel.get("backgroundColor") == expected
     assert panel.get("backdropBlur") == {"radius": 20}
     assert themes.foreground_signature(result) == themes.foreground_signature(source())
 
 
 @pytest.mark.parametrize("rgb,photo_id", [
     ("000000", "photo-ux-meeting-room-wide"),
-    ("FFFFFF", "photo-ux-wave-wide"),
+    ("FFFFFF", "photo-ux-mountain-sunset-lake-wide"),
 ])
 def test_wide_pill_info_and_card_button_use_consistent_surface_palette(rgb, photo_id):
     rows = [

@@ -216,19 +216,14 @@ def test_websocket_rejects_undeclared_fields_before_preflight(
     content = stream.get("streamContent")
     assert isinstance(content, str)
     error = parse_legacy_stream_content(content)
-    assert error.get("type") == "error"
-    assert error.get("errorCode") == "INVALID_ARGUMENTS"
     assert name in content
-    error_payload = error.get("error")
-    assert isinstance(error_payload, dict)
-    details = error_payload.get("details")
-    assert isinstance(details, dict)
+    details = error
     assert details.get("retryable") is True
-    assert details.get("modelCalled") is False
+    assert details.get("requiredActions") == ["FIX_AND_RETRY"]
     issues = details.get("issues")
     assert isinstance(issues, list)
     assert any(issue.get("path") == f"/{name}" for issue in issues)
-    assert all(issue.get("repairInstruction") for issue in issues)
+    assert all(issue.get("message") for issue in issues)
 
 
 @pytest.mark.parametrize("operation", [None, "generateWidgetCardCompactDsl"])

@@ -108,10 +108,7 @@ def test_corrected_request_can_be_retried_without_reaching_generation_on_first_c
     ) as websocket:
         websocket.send_json({"arguments": arguments})
         rejected = _receive_result(websocket)
-        error = rejected.get("error")
-        assert isinstance(error, dict)
-        details = error.get("details")
-        assert isinstance(details, dict)
+        details = rejected
         assert details.get("retryable") is True
         assert "candidateDataBindings" in json.dumps(details)
         assert not calls
@@ -152,11 +149,7 @@ def test_business_failure_has_explicit_stop_feedback(monkeypatch, status, code):
     ) as websocket:
         websocket.send_json({"arguments": _arguments()})
         result = _receive_result(websocket)
-    assert result.get("status") == status
-    error = result.get("error")
-    assert isinstance(error, dict)
-    details = error.get("details")
-    assert isinstance(details, dict)
+    details = result
     assert details.get("retryable") is False
     assert details.get("requiredActions") == ["STOP"]
 
@@ -334,6 +327,8 @@ def test_id_list_error_names_the_complete_replacement_object(name, replacement):
     issue = _issue_at(feedback, f"/{name}")
     assert replacement in issue.get("repairInstruction", "")
     assert "capabilityId" in issue.get("expected", "")
+    instruction = feedback.get("agentInstruction", "")
+    assert ("权限" in instruction) is (name == "dataCapabilityIds")
 
 
 @pytest.mark.parametrize(
@@ -389,9 +384,9 @@ def test_misplaced_event_definition_has_complete_non_destructive_repair_guidance
     assert "call、args" in action.get("repairInstruction", "")
     assert "不把整个事件定义" in definition.get("repairInstruction", "")
     instruction = feedback.get("agentInstruction", "")
-    assert "只提交局部补丁" in instruction
-    assert "清空候选" in instruction
-    assert "外层错误遮蔽" in instruction
+    assert "完整 invoke.arguments" in instruction
+    assert "先修外层结构" in instruction
+    assert "未列出的问题不代表已通过后续检查" in instruction
 
 
 def test_custom_validator_message_and_context_are_not_echoed_to_agent():
@@ -490,14 +485,10 @@ def test_logged_envelope_errors_guide_agent_to_resubmit_business_object(monkeypa
     ) as websocket:
         websocket.send_json(payload)
         rejected = _receive_result(websocket)
-        error = rejected.get("error")
-        assert isinstance(error, dict)
-        details = error.get("details")
-        assert isinstance(details, dict)
-        assert details.get("stage") == "requestValidation"
+        details = rejected
         assert not calls
         issue = _issue_at(details, "/candidateEventCandidates/0/capabilityId")
-        assert "本轮事件概述" in issue.get("repairInstruction", "")
+        assert "本轮事件概述" in issue.get("message", "")
         content["candidateEventCandidates"] = [{"capabilityId": event.id, "action": action}]
         payload["content"] = content
         # 外层旧镜像不覆盖已修正的 content；主 Agent 不需要承担镜像构造职责。
@@ -541,17 +532,153 @@ def test_malformed_transport_does_not_authorize_agent_to_patch_wire_json(monkeyp
     ) as websocket:
         websocket.send_text('{"secret-request-value":')
         result = _receive_result(websocket)
-    error = result.get("error")
-    assert isinstance(error, dict)
-    details = error.get("details")
-    assert isinstance(details, dict)
-    assert details.get("stage") == "requestEnvelope"
-    assert details.get("modelCalled") is False
+    details = result
     assert details.get("retryable") is False
     assert details.get("requiredActions") == ["STOP"]
-    assert "arguments 对象" in details.get("agentInstruction", "")
-    assert "不手工拼接" in details.get("agentInstruction", "")
+    assert "停止本轮自动调用" in details.get("agentInstruction", "")
     assert "secret-request-value" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("name", ["title", "description"])
+@pytest.mark.parametrize(
+    "kind,actual_type,message",
+    [
+        ("missing", "missing", "缺少必填字段"),
+        ("null", "null", "不能为 null"),
+        ("empty", "string", "字符串长度不足"),
+        ("object", "object", "JSON 类型不符合要求"),
+    ],
+)
+def test_create_metadata_feedback_distinguishes_missing_null_empty_and_type(
+    name, kind, actual_type, message,
+):
+    arguments = _arguments()
+    if kind == "missing":
+        arguments.pop(name)
+    elif kind == "null":
+        arguments[name] = None
+    elif kind == "empty":
+        arguments[name] = ""
+    else:
+        arguments[name] = {"private": "secret-value"}
+    with pytest.raises(ValidationError) as caught:
+        GenerateWidgetCardRequest(**arguments)
+    details = _error_details(
+        caught.value, "generateWidgetCardCompactDsl", request_arguments=arguments,
+    )
+    assert isinstance(details, dict)
+    issue = _issue_at(details, f"/{name}")
+    assert issue.get("actualType") == actual_type
+    assert message in issue.get("message", "")
+    assert "secret-value" not in json.dumps(details)
+    assert details.get("retryable") is True
+
+
+def test_custom_missing_metadata_without_original_request_does_not_claim_explicit_null():
+    arguments = _arguments()
+    arguments.pop("title")
+    with pytest.raises(ValidationError) as caught:
+        GenerateWidgetCardRequest(**arguments)
+    details = request_validation_feedback(caught.value, "generateWidgetCardCompactDsl")
+    issue = _issue_at(details, "/title")
+    assert issue.get("actualType") == "unknown"
+    assert "非空 title 字符串" in issue.get("message", "")
+
+
+def test_websocket_missing_create_metadata_has_precise_diagnosis(monkeypatch):
+    async def unexpected_generate(*_args, **_kwargs):
+        pytest.fail("incomplete metadata must not reach generation")
+
+    monkeypatch.setattr(
+        WidgetGenerationService, "generate_widget_card_compact_dsl", unexpected_generate,
+    )
+    arguments = _arguments()
+    arguments.pop("title")
+    arguments.pop("description")
+    with TestClient(app).websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json({"arguments": arguments})
+        result = _receive_result(websocket)
+    details = result
+    for name in ("title", "description"):
+        issue = _issue_at(details, f"/{name}")
+        assert "须填写非空字符串" in issue.get("message", "")
+
+
+def test_stringified_request_reports_confirmed_inner_issues_without_trace(monkeypatch):
+    from api import routes
+    from config.config import get_settings
+
+    logs = []
+    monkeypatch.setattr(get_settings(), "enable_compact_dsl_argument_repair_fallback", False)
+    monkeypatch.setattr(routes.logger, "info", logs.append)
+    monkeypatch.setattr(routes, "trace_record", lambda *_args, **_kwargs: None)
+    with TestClient(app).websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json({
+            "content": {"arguments": json.dumps({"userQuery": "secret-original-query"})},
+            "deviceInfo": {"prdVer": "11.7.8.353", "romVersion": "7.0"},
+        })
+        result = _receive_result(websocket)
+    details = result
+    assert details.get("retryable") is True
+    assert details.get("requiredActions") == ["FIX_AND_RETRY"]
+    assert "diagnostic" not in details
+    for name in ("title", "description"):
+        issue = _issue_at(details, f"/{name}")
+        assert "须填写非空字符串" in issue.get("message", "")
+        assert "agentAction" not in issue and "retryable" not in issue
+    assert "secret-original-query" not in json.dumps(details)
+    rejection_logs = [entry for entry in logs if "deterministic_argument_repair_rejected" in entry]
+    assert len(rejection_logs) == 1
+    assert "/title" in rejection_logs[0] and "/description" in rejection_logs[0]
+    assert "\n" not in rejection_logs[0]
+
+
+def test_model_recovery_exhaustion_preserves_diagnosis_and_does_not_authorize_retry(monkeypatch):
+    from api import routes
+    from config.config import get_settings
+    from services.compact_dsl_argument_repair import CompactDslArgumentRepairExhaustedError
+
+    diagnostic = {
+        "stage": "requestValidation",
+        "issues": [{"code": "REQUEST_VALUE_ERROR", "path": "/title", "message": "缺少标题"}],
+    }
+
+    async def exhausted(*_args, **_kwargs):
+        raise CompactDslArgumentRepairExhaustedError(
+            "secret-internal-exception", diagnostic=diagnostic, attempts=2,
+        )
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_compact_dsl_argument_repair_fallback", True)
+    monkeypatch.setattr(settings, "compact_dsl_argument_repair_reminder_count", 0)
+    monkeypatch.setattr(routes, "recover_compact_dsl_content", exhausted)
+    logs = []
+    monkeypatch.setattr(routes.logger, "error", logs.append)
+    with TestClient(app).websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json({
+            "content": {"arguments": "broken"},
+            "deviceInfo": {"prdVer": "11.7.8.353", "romVersion": "7.0"},
+            "session": {"sessionId": "feedback-exhausted", "interactionId": "1"},
+        })
+        result = _receive_result(websocket)
+    details = result
+    assert "diagnostic" not in details
+    assert "repairAttempts" not in details
+    assert details.get("retryable") is False
+    assert details.get("requiredActions") == ["NOTIFY_USER"]
+    assert "停止本轮自动调用" in details.get("agentInstruction", "")
+    assert "secret-internal-exception" not in json.dumps(result)
+    failure_logs = [entry for entry in logs if "compact_dsl_argument_repair_failed" in entry]
+    assert len(failure_logs) == 1
+    assert '"repairAttempts":2' in failure_logs[0]
+    assert "will_retry=false" in failure_logs[0]
+    assert "\n" not in failure_logs[0]
 
 
 def test_preflight_keeps_precise_constraint_and_points_to_agent_business_object():
@@ -580,5 +707,108 @@ def test_preflight_keeps_precise_constraint_and_points_to_agent_business_object(
     assert "inputSchema" in issue.get("referenceSource", "")
     assert details.get("requiredActions") == ["FIX_AND_RETRY"]
     assert "invoke.arguments" in details.get("agentInstruction", "")
-    assert "只提交补丁" in details.get("agentInstruction", "")
+    assert "完整 invoke.arguments" in details.get("agentInstruction", "")
     assert "secret-number" not in json.dumps(details)
+
+
+def test_mother_care_feedback_is_concise_and_keeps_all_control_fields(monkeypatch):
+    async def unexpected_generate(*_args, **_kwargs):
+        pytest.fail("missing metadata must stop before generation")
+
+    monkeypatch.setattr(
+        WidgetGenerationService, "generate_widget_card_compact_dsl", unexpected_generate,
+    )
+    arguments = {
+        "bundleName": "com.omega_w_0823.hmservice",
+        "userQuery": (
+            "创建一个妈妈关怀卡片，常驻地在深圳，显示实时温度与空气质量，还能一键打电话给妈妈"
+        ),
+        "candidateEventCandidates": [
+            {
+                "capabilityId": "event.call.phone",
+                "action": {
+                    "call": "clickToApi",
+                    "args": {"intentName": "CallPhone", "params": {"phoneNumber": ""}},
+                },
+            },
+            {
+                "capabilityId": "event.open.weather",
+                "action": {
+                    "call": "clickToDeeplink",
+                    "args": {
+                        "intentName": "Weather_CityCode", "bundleName": "", "abilityName": "",
+                        "uri": (
+                            "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode='"
+                            " + ${/data/weather/location/cityCode} }}"
+                        ),
+                    },
+                },
+            },
+        ],
+    }
+    with TestClient(app).websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json({
+            "content": arguments,
+            "deviceInfo": {"prdVer": "11.7.8.353", "romVersion": "7.0", "locale": "zh-CN"},
+            "session": {"sessionId": "mother-care-replay", "interactionId": "1"},
+            "userAuth": {"user": {"userId": "local-replay-user"}},
+        })
+        response = websocket.receive_json()
+    assert response.get("errorCode") == "0"
+    reply = response.get("reply")
+    assert isinstance(reply, dict)
+    stream_info = reply.get("streamInfo")
+    assert isinstance(stream_info, dict)
+    content = stream_info.get("streamContent")
+    assert isinstance(content, str)
+    assert len(content) < 350
+    details = json.loads(content)
+    assert set(details) == {
+        "message", "retryable", "requiredActions", "agentInstruction", "issues",
+    }
+    assert details.get("retryable") is True
+    assert details.get("requiredActions") == ["FIX_AND_RETRY"]
+    assert len(details.get("agentInstruction", "")) < 80
+    for name in ("title", "description"):
+        issue = _issue_at(details, f"/{name}")
+        assert set(issue) == {
+            "path", "message",
+        }
+        assert "须填写非空字符串" in issue.get("message", "")
+        assert "编辑" not in issue.get("message", "")
+    instruction = details.get("agentInstruction", "")
+    assert "权限" not in instruction and "传输" not in instruction
+
+
+@pytest.mark.parametrize("has_warning", [False, True])
+@pytest.mark.parametrize("retryable", [False, True])
+def test_preflight_text_matches_actions_and_only_explains_present_warnings(has_warning, retryable):
+    from models.preflight import (
+        AgentAction,
+        GenerationPreflightError,
+        GenerationPreflightResult,
+        PreflightIssue,
+    )
+
+    issue = PreflightIssue(
+        code="TEST", path="/candidateAssetIds/0", message="素材不可用",
+        agentAction=AgentAction.FIX_AND_RETRY if retryable else AgentAction.STOP,
+        retryable=retryable,
+    )
+    result = GenerationPreflightResult(
+        effective_bindings=(), effective_data_capabilities=(), effective_events=(),
+        effective_assets=(), removed_capabilities=(), blocking_issues=(issue,),
+        warnings=(issue,) if has_warning else (), card_spec=None, task_spec=None,
+    )
+    details = GenerationPreflightError(result).details()
+    assert details.get("retryable") is retryable
+    assert details.get("requiredActions") == ["FIX_AND_RETRY" if retryable else "STOP"]
+    assert details.get("issues") == [issue.model_dump(mode="json")]
+    instruction = details.get("agentInstruction", "")
+    assert ("重试" in instruction) is retryable
+    assert ("停止" in instruction) is not retryable
+    assert ("warnings" in instruction) is has_warning
+    assert "权限" not in instruction
+    assert len(instruction) < 110

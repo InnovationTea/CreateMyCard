@@ -77,7 +77,8 @@ def autumn_sample(query="中秋倒计时", title="倒计时", name=None):
 
 def rejection(sample, identity):
     data = themes.decode(sample.source)[-1].get("updateDataModel", {}).get("value")
-    evidence = photo_layout_evidence(sample.nodes, data, final_layout=sample.compact)
+    evidence = photo_layout_evidence(sample.nodes, data, final_layout=sample.compact,
+                                     size=sample.task.get("size"))
     return themes.photo_reason(photo(identity), sample.task, evidence,
                                final_layout=sample.compact)
 

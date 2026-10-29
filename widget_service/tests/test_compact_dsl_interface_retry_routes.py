@@ -120,7 +120,11 @@ def test_route_retries_generation_with_one_directive_pair(monkeypatch, failure_k
     assert len(calls) == 2
     assert_single_directive_pair(frames, succeeded=recovers)
     result = final_result(frames)
-    assert result.get("status") == ("success" if recovers else "failed")
+    if recovers:
+        assert result.get("status") == "success"
+    else:
+        assert result.get("retryable") is False
+        assert result.get("requiredActions") == ["STOP"]
 
 
 def test_route_records_loaded_retry_policy_once_per_request(monkeypatch):
@@ -225,12 +229,14 @@ def test_bad_parameters_never_enter_generation_retry(monkeypatch, bad_input):
         else:
             websocket.send_json(_tool_payload({"arguments": "broken"}, "repair-failure"))
         response = websocket.receive_json()
-    expected = (
-        ErrorCode.A2UI_GENERATION_FAILED
-        if bad_input == "repair-failed"
-        else ErrorCode.INVALID_ARGUMENTS
-    )
-    assert final_result([response]).get("errorCode") == expected
+    feedback = final_result([response])
+    assert feedback.get("retryable") is (bad_input == "missing-title")
+    expected_action = "STOP"
+    if bad_input == "missing-title":
+        expected_action = "FIX_AND_RETRY"
+    elif bad_input == "repair-failed":
+        expected_action = "NOTIFY_USER"
+    assert feedback.get("requiredActions") == [expected_action]
     assert len(repair_calls) == (1 if bad_input == "repair-failed" else 0)
 
 

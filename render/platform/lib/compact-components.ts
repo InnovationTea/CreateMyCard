@@ -1730,7 +1730,8 @@ function expandHighLevel(
         type,
         "supporting",
         size,
-        { content: p.supportingText, fontColor: secondaryColor },
+        { content: p.supportingText, fontColor: isSecondaryValue(p.supportingText)
+          ? p.fontColor : secondaryColor },
         [],
         variant,
       ),

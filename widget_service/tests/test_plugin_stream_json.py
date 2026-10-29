@@ -52,13 +52,12 @@ def test_daily_usage_errors_use_configured_user_message_and_stop_instruction(
     original = legacy.model_copy(deep=True)
     response = _build_plugin_stream_response(legacy)
     content = response.reply.streamInfo.streamContent
-    assert content.startswith(f"请向用户回复“{message}”，并停止本轮自动调用：")
-    parsed = parse_legacy_stream_content(content)
-    error = parsed.get("error")
-    assert isinstance(error, dict)
-    assert error.get("message") == message
-    assert error.get("details") == {"stage": "dailyUsage"}
-    assert parsed.get("errorCode") == code
+    parsed = json.loads(content)
+    assert parsed.get("message") == message
+    assert parsed.get("retryable") is False
+    assert parsed.get("requiredActions") == ["STOP"]
+    assert "停止本轮自动调用" in parsed.get("agentInstruction", "")
+    assert "errorCode" not in parsed and "details" not in parsed
     assert "更换请求标识" not in content
     assert "暂时无法检查" not in content
     assert legacy == original
@@ -145,7 +144,7 @@ async def test_actual_websocket_and_two_more_json_layers_preserve_content(html_s
 
 
 @pytest.mark.parametrize("stage", [None, "argumentRepair"])
-def test_error_keeps_explanation_details_and_json_body(stage):
+def test_error_only_exposes_compact_feedback_without_mutating_diagnostics(stage):
     details = {"stage": stage, "retryable": False}
     message = WidgetWebSocketErrorMessage(
         operation="generateWidgetCardCompactDsl",
@@ -154,15 +153,15 @@ def test_error_keeps_explanation_details_and_json_body(stage):
     )
     response = _build_plugin_stream_response(message)
     content = response.reply.streamInfo.streamContent
-    explanation, separator, body = content.partition("：")
-    assert separator
-    assert explanation
-    if stage == "argumentRepair":
-        assert "停止本轮自动调用" in explanation
-    assert json.loads(body) == message.model_dump(mode="json")
-    parsed = parse_legacy_stream_content(content)
-    assert parsed.get("explanation") == explanation
-    assert parsed.get("error") == message.error
+    parsed = json.loads(content)
+    assert set(parsed) == {
+        "message", "retryable", "requiredActions", "agentInstruction", "issues",
+    }
+    assert parsed.get("message") == "参数'不合法'"
+    assert parsed.get("retryable") is False
+    assert parsed.get("requiredActions") == ["STOP"]
+    assert "停止本轮自动调用" in parsed.get("agentInstruction", "")
+    assert message.error.get("details") == details
 
 
 def test_real_overview_keeps_every_field_and_reduces_html_safe_expansion(monkeypatch):

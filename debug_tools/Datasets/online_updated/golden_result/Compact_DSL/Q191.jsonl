@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-content-dual-action"},["earphone_summary","bluetooth_action","battery_action"]]
+["earphone_summary","TableText",{"items":[{"label":"蓝牙","value":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}"},{"label":"设备","value":{"path":"/data/earphone/earphoneName"}}],"fontSize":12}]
+["bluetooth_action","CardButton",{"label":"蓝牙设置","icon":"resources/base/media/ic_Bluetooth.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}]}]
+["battery_action","CardButton",{"label":"电池设置","icon":"resources/base/media/battery_leaf_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
+["/data/earphone/isConnected",true]
+["/data/earphone/earphoneName","示例耳机"]
+["/data/phoneBattery/batterySOCText","68%"]

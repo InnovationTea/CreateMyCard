@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"武汉今日天气","fontSize":12}]
+["primary","EmphasisText",{"mainText":{"path":"/data/weather/current/condition"},"secondaryText":"多云转小雨","fontSize":18}]
+["support","SecondaryBody",{"items":[{"value":"气温 16℃~25℃"},{"value":"北风 1级"},{"value":"空气质量 优"}],"fontSize":14}]
+["/data/weather/current/condition","多云"]

@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"手机电量","fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/phoneBattery/batterySOCText"},"fontSize":30}]
+["support","SecondaryBody",{"items":[{"value":{"path":"/data/phoneBattery/chargingStatusDesc"}}],"fontSize":14}]
+["/data/phoneBattery/batterySOCText","68%"]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
