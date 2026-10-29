@@ -38,6 +38,11 @@ def test_missing_spec_uses_default_config(
     assert helper.config_file.name == "default_config.yaml"
     assert helper.get("obs.expire.time") == 3600
     assert helper.get("enable_a2ui_model_mock") == "true"
+    assert helper.get("daily_usage_slb") == ""
+    assert helper.get("daily_usage_limit_exceeded_message") == (
+        "今日 AI 卡片生成次数已达上限，请明天再尝试。"
+    )
+    assert helper.get("daily_usage_limit_unavailable_message") == "本次卡片生成失败，请稍后重试。"
     assert helper.get("fusion_ball_min_prd_version") == "11.7.5.206"
     assert helper.get("enable_compact_dsl_argument_repair_fallback") == "false"
     assert helper.get("compact_dsl_argument_repair_reminder_count") == 1
@@ -154,6 +159,15 @@ def test_settings_prefixed_environment_wins_over_bare_environment(
     settings = Settings(_env_file=tmp_path / "missing.env")
 
     assert settings.openai_master_client == "deepseek_official_http"
+
+
+@pytest.mark.parametrize(
+    "option", ["daily_usage_limit_exceeded_message", "daily_usage_limit_unavailable_message"]
+)
+def test_daily_usage_messages_support_environment_override(monkeypatch, tmp_path, option):
+    monkeypatch.setenv(f"WIDGET_SERVICE_{option.upper()}", "自定义卡片提示。")
+    settings = Settings(_env_file=tmp_path / "missing.env")
+    assert getattr(settings, option) == "自定义卡片提示。"
 
 
 @pytest.mark.parametrize("enabled", [False, True])

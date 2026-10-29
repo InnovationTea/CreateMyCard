@@ -25,7 +25,7 @@
           "args": {
             "intentName": "CallPhone",
             "params": {
-              "phoneNumber": ""
+              "phoneNumber": "1388888888"
             }
           }
         }
@@ -33,7 +33,7 @@
     ],
     "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打电话。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_purification",
       "asset.phone_fill"
     ]
@@ -92,7 +92,7 @@
         "args": {
           "intentName": "CallPhone",
           "params": {
-            "phoneNumber": ""
+            "phoneNumber": "1388888888"
           }
         }
       }
@@ -100,7 +100,7 @@
   ],
   "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打电话。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_purification",
     "asset.phone_fill"
   ]

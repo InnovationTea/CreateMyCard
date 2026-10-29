@@ -73,6 +73,8 @@ def _layout_source(layout: str, variant: str = "standard", action: bool = False)
         kinds = ["SingleLineTitle", "InfoBlock", "InfoBlock"]
     if layout == "S-content-dual-action" and variant == "actions-only":
         kinds = ["CardButton", "CardButton"]
+    if layout == "S-title-content-action" and variant == "title-action":
+        kinds = ["SingleLineTitle", "PillButton"]
     if action:
         kinds.append("PillButton")
     leaves = []
@@ -103,6 +105,7 @@ def test_small_semantic_layout_matches_registered_contract_and_converts(layout: 
     ("S-title-content-action", "direct-dense", False),
     ("S-title-content-action", "direct-tight", False),
     ("S-title-content-action", "direct-flush", False),
+    ("S-title-content-action", "title-action", False),
     ("S-title-primary-secondary-action", "dense", False),
     ("S-title-dual-content", "stacked-info", False),
     ("S-title-dual-column-action", "standard", True),

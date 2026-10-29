@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"今日日历","icon":"resources/base/media/calendar_fill.svg","fontSize":12}]
+["content","Group",{"variant":"hero-support"},["content_primary","content_support"]]
+["content_primary","EmphasisText",{"mainText":{"path":"/data/currentTime/currentDate"},"fontSize":18}]
+["content_support","SecondaryBody",{"items":[{"value":{"path":"/data/currentTime/dayOfWeek"}},{"value":{"path":"/data/currentTime/lunarDate"}}],"separator":" | ","fontSize":14}]
+["/data/currentTime/currentDate","示例"]
+["/data/currentTime/dayOfWeek","示例"]
+["/data/currentTime/lunarDate","示例"]

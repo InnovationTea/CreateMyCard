@@ -193,8 +193,13 @@ def test_action_only_cards_use_first_actual_action(first, expected):
 
 
 @pytest.mark.parametrize("first", ["weather", "battery"])
-@pytest.mark.parametrize("layout", ["square", "column-wide", "split-wide"])
-def test_mixed_abstract_final_obs_delivery_and_colors(monkeypatch, first, layout):
+@pytest.mark.parametrize("layout", ["square", "column-wide", "split-wide", "four-wide"])
+@pytest.mark.parametrize("ice_enabled", [False, True])
+def test_mixed_photo_final_obs_delivery_and_colors(monkeypatch, first, layout, ice_enabled):
+    config = registry.load_theme_registry()
+    ice = next(item for item in config.get("themes", []) if item.get("id") == "photo-ux-ice-wide")
+    ice["enabled"] = ice_enabled
+    monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
     second = "earphone"
     saved = mixed_sample(first, second)
     if layout == "split-wide":
@@ -202,6 +207,17 @@ def test_mixed_abstract_final_obs_delivery_and_colors(monkeypatch, first, layout
     if layout == "column-wide":
         saved.task["size"] = "2x4"
         saved = expanded(themes.decode(saved.compact), saved.task)
+    if layout == "four-wide":
+        rows = [["root", "Layout", {"layout": "W-four-slots"}, ["a", "b", "c", "d"]]]
+        for slot, business in (("a", first), ("b", second), ("c", second), ("d", second)):
+            path = PATHS.get(business)
+            assert path is not None
+            rows.append([slot, "InfoBlock", {"variant": "slot", "surfaceRole": "panel",
+                                             "primaryText": {"path": path},
+                                             "secondaryText": "当前状态"}])
+        for business in (first, second):
+            rows.append([PATHS.get(business), "正文"])
+        saved = expanded(rows, {**saved.task, "size": "2x4"})
     original = artifact()
     original.genui = saved.source
     original.taskSpec = saved.task
@@ -235,10 +251,16 @@ def test_mixed_abstract_final_obs_delivery_and_colors(monkeypatch, first, layout
         final_layout=saved.compact,
     ))
     audit = audits[0]
-    assert audit.get("themeId", "").startswith("photo-ux-texture-")
     assert not audit.get("finalValidationErrors"), audit
     assert themes.foreground_signature(result.genui) == themes.foreground_signature(saved.source)
-    assert node_by_id(result.genui, "root").get("styles", {}).get("backgroundColor") == "#FF8FADCC"
+    if ice_enabled and first == "weather" and layout in {"split-wide", "four-wide"}:
+        assert audit.get("themeId") == "photo-ux-ice-wide"
+    elif layout == "four-wide":
+        assert not audit.get("themeId", "").startswith("photo-")
+        return
+    else:
+        assert audit.get("themeId", "").startswith("photo-ux-texture-")
+    assert node_by_id(result.genui, "root").get("styles", {}).get("backgroundColor") == "#FF1F1F99"
     assert node_by_id(result.genui, themes.PREFIX + "base").get("src") == (
         audit.get("theme", {}).get("remoteUrl")
     )

@@ -9,6 +9,8 @@ from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from services.theme_content_regions import photo_layout_evidence
+from services.theme_user_preferences import filter_preferences, parse_preferences
+from theme_preference_samples import preference
 
 COUNTDOWN_ID = "photo-ux-birds-countdown-square"
 START = "/data/calendar/events/0/startTime"
@@ -75,7 +77,8 @@ def autumn_sample(query="中秋倒计时", title="倒计时", name=None):
 
 def rejection(sample, identity):
     data = themes.decode(sample.source)[-1].get("updateDataModel", {}).get("value")
-    evidence = photo_layout_evidence(sample.nodes, data, final_layout=sample.compact)
+    evidence = photo_layout_evidence(sample.nodes, data, final_layout=sample.compact,
+                                     size=sample.task.get("size"))
     return themes.photo_reason(photo(identity), sample.task, evidence,
                                final_layout=sample.compact)
 
@@ -97,11 +100,17 @@ def test_countdown_white_palette_keeps_both_panel_blurs_without_changing_layout(
     assert "#FFFFFFFF" in text_colors
 
 
-@pytest.mark.parametrize("preference", ["融球", "绒球", "纯色", "不要图片"])
-def test_user_theme_preferences_take_priority(preference):
+@pytest.mark.parametrize("word,value,operation", [
+    ("融球", "fusion", "prefer"), ("绒球", "fusion", "prefer"),
+    ("纯色", "solid", "prefer"), ("不要图片", "photo", "avoid"),
+])
+def test_user_theme_preferences_take_priority(word, value, operation):
     sample = autumn_sample()
-    sample.task["userQuery"] += "，使用" + preference
-    assert rejection(sample, COUNTDOWN_ID) == "用户明确其它主题或不要图片"
+    sample.task["userQuery"] += "，" + word
+    candidates = [photo(COUNTDOWN_ID)]
+    items = [preference("backgroundKind", value, word, operation)]
+    parsed = parse_preferences(items, sample.task.get("userQuery"), candidates)
+    assert filter_preferences(candidates, parsed, {}) == []
 
 
 def test_default_photo_switch_is_enabled():

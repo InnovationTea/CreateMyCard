@@ -41,7 +41,7 @@
     "candidateEventCandidates": [],
     "description": "展示上海与平顶山的温度、天气、湿度、风力、空气质量等详细信息。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_uv_color",
       "asset.ic_purification",
       "asset.icon_weather_wind"
@@ -117,7 +117,7 @@
   "candidateEventCandidates": [],
   "description": "展示上海与平顶山的温度、天气、湿度、风力、空气质量等详细信息。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_uv_color",
     "asset.ic_purification",
     "asset.icon_weather_wind"

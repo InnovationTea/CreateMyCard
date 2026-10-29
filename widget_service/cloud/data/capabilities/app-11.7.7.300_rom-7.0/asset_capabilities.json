@@ -618,8 +618,8 @@
     "id": "asset.gearshape_fill",
     "type": "asset",
     "src": "resources/base/media/gearshape_fill.svg",
-    "description": "样式：默认黑色的单色实心多齿齿轮图标，原始尺寸为 24×24；适用：系统设置、偏好配置、闹钟规则、相机参数与健康权限设置入口。",
-    "overviewDescription": "齿轮单色图标；用于系统设置、偏好、闹钟规则、相机或健康权限。",
+    "description": "样式：默认黑色的单色实心多齿齿轮图标，原始尺寸为 24×24；适用：系统设置、设备管理、相机参数与健康权限设置入口,也可作为电池电压、电流、温度、电量、充电状态、充电器类型、电池物理健康状态的辅助图标。图标本身不表示开关状态、操作成功、具体读数或设备健康程度，展示数据与点击操作须分别匹配已声明的能力。",
+    "overviewDescription": "齿轮单色图标；用于系统设置、设备管理、相机或健康权限,也用于电池参数，不代表具体状态或操作结果。",
     "sceneTags": [
       "settings",
       "control"
@@ -915,23 +915,11 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.ic_weather_color",
-    "type": "asset",
-    "src": "resources/base/media/ic_weather_color.svg",
-    "description": "样式：蓝色半透明渐变的云朵图标，原始尺寸为 20×20，SVG 矢量图（保留原色，禁止染色）需保留原始渐变配色，禁止染色；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
-    "overviewDescription": "蓝色渐变云朵图标；用于天气或天气详情主题，不代表晴阴雨状态。",
-    "sceneTags": [
-      "weather",
-      "condition"
-    ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
     "id": "asset.ic_weather_monochrome",
     "type": "asset",
     "src": "resources/base/media/ic_weather_monochrome.svg",
-    "description": "样式：黑色单色云朵图标，原始尺寸为 24×24；适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
-    "overviewDescription": "云朵单色图标；用于天气或天气详情主题，不代表晴阴雨状态。",
+    "description": "样式：黑色单色云朵图标，原始尺寸为 24×24，可随主题染成白色或黑色；选择：普通天气或天气详情需求的首选云朵图标。适用：天气卡片中配合 ViewWeather 的 current.condition 或 daily.condition 展示天气现象，也可与 event.open.weather 组成天气详情入口。图标仅表示天气主题，不代表晴、阴、雨等具体天气状态。",
+    "overviewDescription": "单色云朵图标；普通天气或天气详情需求首选，可随主题染成白色或黑色，不代表晴阴雨状态。",
     "sceneTags": [
       "weather",
       "condition"
@@ -1263,32 +1251,6 @@
       "calendar",
       "reminder",
       "alarm"
-    ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.emoji_temperature_blue",
-    "type": "asset",
-    "src": "resources/base/media/emoji_temperature_blue.png",
-    "description": "样式：亮蓝色圆形底上的白色温度计图标，温度计内部带蓝色液柱，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气温度、体感温度或手机电池温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC、daily.temperatureRangeText 或 GetPhoneBatteryInfo 的 batteryTemperatureText 展示，也可作为 event.open.weather、event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。蓝色仅为视觉配色，不表示低温、具体温度等级或电池健康状态。",
-    "overviewDescription": "蓝色圆底温度计图标；用于通用天气温度、体感温度或手机电池温度及相关入口，颜色不代表低温、温度等级或电池健康状态。",
-    "sceneTags": [
-      "weather",
-      "temperature",
-      "battery"
-    ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.emoji_temperature_orange",
-    "type": "asset",
-    "src": "resources/base/media/emoji_temperature_orange.png",
-    "description": "样式：橙色圆形底上的米白色温度计图标，温度计内部带橙色液柱，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气温度、体感温度或手机电池温度卡片，可结合 ViewWeather 的 current.temperatureText、current.feelsLikeC、daily.temperatureRangeText 或 GetPhoneBatteryInfo 的 batteryTemperatureText 展示，也可作为 event.open.weather、event.open.settings.battery 或 event.open.settings.batteryHealth 的辅助入口图标。橙色仅为视觉配色，不表示高温、具体预警等级或电池健康状态。",
-    "overviewDescription": "橙色圆底温度计图标；用于通用天气温度、体感温度或手机电池温度及相关入口，颜色不代表高温、预警等级或电池健康状态。",
-    "sceneTags": [
-      "weather",
-      "temperature",
-      "battery"
     ],
     "minXiaoyiVersion": "1.0.0"
   },

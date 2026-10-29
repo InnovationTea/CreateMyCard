@@ -5,7 +5,13 @@ import json
 import pytest
 
 from services.compact_plan import CompactPlanValidationError, parse_compact_plan_call
-from services.compact_plan_output import normalize_plan_output
+from services.compact_plan_output import (
+    PlanDuplicateKeyError,
+    decode_plan_json,
+    normalize_plan_output,
+    normalize_plan_root_arguments,
+    plan_output_format_feedback,
+)
 from services.prompt_builder import PromptBuilder
 
 _DSML = "｜｜DSML｜｜"
@@ -107,7 +113,6 @@ def test_unrecognized_or_incomplete_dsml_is_rejected(change: str) -> None:
     [
         {"dataId": "/data/fake", "requirement": "不存在数据", "priority": "must"},
         {"actionId": "fake.action", "requirement": "不存在动作", "priority": "must"},
-        {"text": "编造原文", "requirement": "错误原文", "priority": "must"},
         {"text": "静态卡片", "requirement": "错误优先级", "priority": "invalid"},
     ],
 )
@@ -118,6 +123,38 @@ def test_wrapped_plan_keeps_original_contract_errors(fact: dict) -> None:
         parse_compact_plan_call(plain, _spec())
     with pytest.raises(CompactPlanValidationError) as wrapped:
         parse_compact_plan_call(_PREFIX + json.dumps(arguments) + _SUFFIX, _spec())
+    assert wrapped.value.errors == original.value.errors
+
+
+def test_wrapped_plan_preserves_non_verbatim_text_and_source_warning() -> None:
+    fact = {"text": "新展示文案", "requirement": "展示文案", "priority": "must"}
+    arguments = {"info_required": [fact]}
+    plain = json.dumps({"name": "submit_card_plan", "arguments": arguments})
+    original = parse_compact_plan_call(plain, _spec())
+    wrapped = parse_compact_plan_call(_PREFIX + json.dumps(arguments) + _SUFFIX, _spec())
+    assert original.plan == wrapped.plan
+    assert wrapped.plan.get("info_required") == [fact]
+    warning = "info_required[0].text must be copied from userQuery."
+    assert warning in original.warnings
+    assert warning in wrapped.warnings
+
+
+def test_wrapped_plan_keeps_protected_static_text_error() -> None:
+    from services.generation_content_policy import STATIC_CONTENT_POLICY, content_policy_scope
+
+    arguments = {
+        "info_required": [{
+            "text": "修改后的展示", "requirement": "原文展示", "priority": "must",
+            "sourceTexts": ["静态卡片"], "preserveVerbatim": True,
+        }],
+        "contentGroups": [{"id": "content", "kind": "object", "factIndexes": [0]}],
+    }
+    plain = json.dumps({"name": "submit_card_plan", "arguments": arguments})
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(CompactPlanValidationError, match="原文展示") as original:
+            parse_compact_plan_call(plain, _spec())
+        with pytest.raises(CompactPlanValidationError, match="原文展示") as wrapped:
+            parse_compact_plan_call(_PREFIX + json.dumps(arguments) + _SUFFIX, _spec())
     assert wrapped.value.errors == original.value.errors
 
 
@@ -172,3 +209,229 @@ def test_wrapped_plan_keeps_argument_and_layout_checks(extra: dict) -> None:
     with pytest.raises(CompactPlanValidationError) as wrapped:
         parse_compact_plan_call(_PREFIX + json.dumps(arguments), _spec())
     assert wrapped.value.errors == original.value.errors
+
+
+@pytest.mark.parametrize("wrapper", ["opening", "closing", "opening_json", "opening_upper"])
+def test_single_sided_fence_preserves_complete_plan(wrapper: str) -> None:
+    plain = json.dumps({"name": "submit_card_plan", "arguments": _arguments()}, ensure_ascii=False)
+    raw = plain + "\n```"
+    if wrapper == "opening":
+        raw = "```\n" + plain
+    elif wrapper == "opening_json":
+        raw = "```json\r\n" + plain
+    elif wrapper == "opening_upper":
+        raw = "```JSON\n" + plain
+    normalized = normalize_plan_output(raw)
+    assert normalized.text == plain
+    assert normalized.warnings == (
+        "Plan single-sided Markdown fence removed; complete JSON unchanged.",
+    )
+    expected = parse_compact_plan_call(plain, _spec()).plan
+    assert parse_compact_plan_call(raw, _spec()).plan == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        '```json\n{"name":"submit_card_plan","arguments":',
+        '```json\n{"name":"submit_card_plan"}\n完成',
+        '{"name":"submit_card_plan"}\n完成\n```',
+        '```json\n{"name":"submit_card_plan"}{}',
+        '{"name":"submit_card_plan"}{}\n```',
+        '说明\n{"name":"submit_card_plan"}\n```',
+        '```python\n{"name":"submit_card_plan"}',
+        '```json\n{"name":"submit_card_plan",,"arguments":{}}',
+        '```json\n{"name":"submit_card_plan"}\n```\n```',
+    ],
+)
+def test_single_sided_fence_does_not_guess_incomplete_or_ambiguous_json(raw: str) -> None:
+    result = normalize_plan_output(raw)
+    assert result.text == raw
+    assert result.warnings == ()
+    with pytest.raises(CompactPlanValidationError):
+        parse_compact_plan_call(raw, _spec())
+
+
+@pytest.mark.parametrize("fenced", [False, True])
+def test_valid_json_or_complete_fence_bytes_remain_unchanged(fenced: bool) -> None:
+    raw = json.dumps({"name": "submit_card_plan", "arguments": _arguments()}, indent=2)
+    if fenced:
+        raw = "```json\n" + raw + "\n```"
+    raw = " \n" + raw + "\n "
+    assert normalize_plan_output(raw).text == raw
+    assert normalize_plan_output(raw).warnings == ()
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"layoutHints": ["S-center"]},
+        {"presentationStyle": "records", "paletteFamily": "auto"},
+        {"contentGroups": [{"id": "one", "kind": "object", "factIndexes": [0]}]},
+        {"selectionNotes": ["保留主体"], "omittedContents": []},
+        {"assetAssignments": [], "composition": {"layout": "S-center"}},
+    ],
+)
+def test_known_root_parameters_move_without_changing_values(extra: dict) -> None:
+    arguments = {"info_required": _arguments().get("info_required")}
+    payload = {"name": "submit_card_plan", "arguments": arguments, **extra}
+    unchanged = json.dumps(payload, ensure_ascii=False)
+    result = normalize_plan_output(unchanged)
+    expected = {"name": "submit_card_plan", "arguments": {**arguments, **extra}}
+    assert json.loads(result.text) == expected
+    assert result.warnings
+    assert json.dumps(payload, ensure_ascii=False) == unchanged
+    assert normalize_plan_output(result.text).text == result.text
+    assert normalize_plan_output(result.text).warnings == ()
+
+
+def test_moved_parameters_still_receive_original_schema_and_capability_checks() -> None:
+    valid = {"name": "submit_card_plan", "arguments": _arguments()}
+    misplaced = {
+        "name": "submit_card_plan",
+        "arguments": {"info_required": _arguments().get("info_required")},
+        "layoutHints": ["S-center"],
+    }
+    assert parse_compact_plan_call(json.dumps(misplaced), _spec()).plan == (
+        parse_compact_plan_call(json.dumps(valid), _spec()).plan
+    )
+    misplaced["paletteFamily"] = "blue"
+    with pytest.raises(CompactPlanValidationError, match="Unsupported Plan arguments"):
+        parse_compact_plan_call(json.dumps(misplaced), _spec())
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"name": "submit_card_plan", "arguments": {}, "unknown": "value"},
+        {"name": "submit_card_plan", "arguments": {"unknown": 1}, "layoutHints": []},
+        {"name": "submit_card_plan", "arguments": {"layoutHints": []}, "layoutHints": []},
+        {"name": "submit_card_plan", "arguments": {"paletteFamily": None}, "paletteFamily": "auto"},
+        {"name": "other_tool", "arguments": {}, "layoutHints": []},
+        {"name": "submit_card_plan", "arguments": "{}", "layoutHints": []},
+        {"name": "submit_card_plan", "layoutHints": []},
+        {"arguments": {}, "layoutHints": []},
+    ],
+)
+def test_root_parameters_with_unknown_keys_or_conflicts_are_not_moved(payload: dict) -> None:
+    raw = json.dumps(payload)
+    result = normalize_plan_output(raw)
+    assert result.text == raw
+    assert result.warnings == ()
+    normalized_object = normalize_plan_root_arguments(payload)
+    assert normalized_object.payload is payload
+    assert normalized_object.warnings == ()
+    with pytest.raises(CompactPlanValidationError):
+        parse_compact_plan_call(raw, _spec())
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        '{"name":"other_tool","name":"submit_card_plan","arguments":{}}',
+        '{"name":"submit_card_plan","arguments":{"layoutHints":[],"layoutHints":[]}}',
+        '{"name":"submit_card_plan","arguments":{"info_required":[{"text":"a","text":"b"}]}}',
+        '{"name":"submit_card_plan","arguments":{},"layoutHints":[],"layou\\u0074Hints":[]}',
+    ],
+)
+def test_duplicate_json_keys_are_not_hidden_by_normalization(raw: str) -> None:
+    for candidate in (raw, "```json\n" + raw, raw + "\n```"):
+        normalized = normalize_plan_output(candidate)
+        assert normalized.text == candidate
+        assert normalized.warnings == ()
+    with pytest.raises(PlanDuplicateKeyError):
+        decode_plan_json(raw)
+    feedback = plan_output_format_feedback(raw)
+    assert feedback.get("duplicateJsonKey")
+    assert "duplicate key" in str(feedback.get("jsonError"))
+
+
+def test_format_feedback_locates_internal_json_error_without_repairing_it() -> None:
+    raw = '{"name":"submit_card_plan","arguments":{"selectionNotes":["说明"]],"layoutHints":[]}}'
+    normalized = normalize_plan_output(raw)
+    assert normalized.text == raw
+    assert normalized.warnings == ()
+    feedback = plan_output_format_feedback(raw)
+    assert feedback.get("jsonLine") == 1
+    assert feedback.get("jsonOffset") == raw.index("]]") + 1
+    context = feedback.get("jsonContext")
+    assert isinstance(context, str)
+    assert "]]" in context
+    assert len(context) <= 80
+
+
+def test_format_feedback_lists_root_parameter_paths_and_conflicts() -> None:
+    raw = json.dumps({
+        "name": "submit_card_plan",
+        "arguments": {"layoutHints": ["S-center"]},
+        "layoutHints": ["S-title-content"],
+        "paletteFamily": "auto",
+        "unknown": 1,
+    })
+    feedback = plan_output_format_feedback(raw)
+    assert feedback.get("unexpectedRootKeys") == ["layoutHints", "paletteFamily", "unknown"]
+    assert feedback.get("expectedPaths") == {
+        "layoutHints": "/arguments/layoutHints", "paletteFamily": "/arguments/paletteFamily",
+    }
+    assert feedback.get("conflictingArgumentKeys") == ["layoutHints"]
+
+
+def test_complete_fence_feedback_inspects_json_without_reporting_backticks_as_error() -> None:
+    raw = '```json\n{"name":"submit_card_plan","arguments":{},"unknown":1}\n```'
+    feedback = plan_output_format_feedback(raw)
+    assert feedback.get("detectedEnvelope") == "markdown_fence"
+    assert feedback.get("unexpectedRootKeys") == ["unknown"]
+    assert "jsonError" not in feedback
+
+
+@pytest.mark.parametrize("extra_closer", ["}", "}}"])
+def test_terminal_closer_recovery_then_root_relocation_preserves_plan(extra_closer: str) -> None:
+    arguments = _arguments()
+    misplaced = {
+        "name": "submit_card_plan",
+        "arguments": {"info_required": arguments.get("info_required")},
+        "layoutHints": arguments.get("layoutHints"),
+    }
+    raw = json.dumps(misplaced) + extra_closer
+    # 封装层不猜修 JSON；原解析器恢复终端括号后再处理无冲突的字段层级。
+    assert normalize_plan_output(raw).text == raw
+    result = parse_compact_plan_call(raw, _spec())
+    expected = parse_compact_plan_call(
+        json.dumps({"name": "submit_card_plan", "arguments": arguments}), _spec()
+    )
+    assert result.plan == expected.plan
+    assert len(result.warnings) == 2
+    assert "terminal closing delimiters recovered" in result.warnings[0]
+    assert "root parameters moved to arguments" in result.warnings[1]
+
+
+@pytest.mark.parametrize("extra_closer", ["", "}"])
+@pytest.mark.parametrize("root_value", [["S-center"], ["S-title-content"]])
+def test_parser_rejects_root_argument_overlap_even_after_terminal_recovery(
+    extra_closer: str, root_value: list[str],
+) -> None:
+    raw = json.dumps({
+        "name": "submit_card_plan", "arguments": _arguments(), "layoutHints": root_value,
+    }) + extra_closer
+    with pytest.raises(CompactPlanValidationError, match="only name and arguments"):
+        parse_compact_plan_call(raw, _spec())
+
+
+@pytest.mark.parametrize("wrapper", ["plain", "complete_fence", "extra_closer"])
+@pytest.mark.parametrize("duplicate_scope", ["name", "arguments", "fact"])
+def test_parser_rejects_duplicate_keys_in_all_json_scopes(
+    wrapper: str, duplicate_scope: str,
+) -> None:
+    raw = json.dumps({"name": "submit_card_plan", "arguments": _arguments()})
+    if duplicate_scope == "name":
+        raw = raw.replace('"name":', '"name":"other_tool","name":', 1)
+    elif duplicate_scope == "arguments":
+        raw = raw.replace('"layoutHints":', '"layoutHints":[],"layoutHints":', 1)
+    else:
+        raw = raw.replace('"priority":', '"priority":"should","priority":', 1)
+    if wrapper == "complete_fence":
+        raw = "```json\n" + raw + "\n```"
+    elif wrapper == "extra_closer":
+        raw += "}"
+    with pytest.raises(CompactPlanValidationError, match="duplicate key"):
+        parse_compact_plan_call(raw, _spec())

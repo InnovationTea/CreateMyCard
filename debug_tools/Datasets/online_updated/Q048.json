@@ -38,7 +38,7 @@
     ],
     "description": "展示当前天气和未来天气预报。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_uv_color",
       "asset.ic_purification"
     ]
@@ -110,7 +110,7 @@
   ],
   "description": "展示当前天气和未来天气预报。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_uv_color",
     "asset.ic_purification"
   ]

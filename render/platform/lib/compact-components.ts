@@ -737,7 +737,8 @@ function expandHighLevel(
       children.push(secondaryId);
       rows.push(row(secondaryId, type, "secondary", size, {
         content: secondaryContent,
-        fontColor: colorWithAlpha(p.fontColor as string, 0.6),
+        fontColor: isSecondaryValue(secondaryContent)
+          ? p.fontColor : colorWithAlpha(p.fontColor as string, 0.6),
       }));
     }
     return [row(id, type, "root", size, {}, children), ...rows];
@@ -1223,7 +1224,8 @@ function expandHighLevel(
         size,
         {
           content: p.secondaryText,
-          fontColor: colorWithAlpha(String(p.fontColor), 0.6),
+          fontColor: isSecondaryValue(p.secondaryText)
+            ? p.fontColor : colorWithAlpha(String(p.fontColor), 0.6),
         },
       ),
     ];
@@ -1728,7 +1730,8 @@ function expandHighLevel(
         type,
         "supporting",
         size,
-        { content: p.supportingText, fontColor: secondaryColor },
+        { content: p.supportingText, fontColor: isSecondaryValue(p.supportingText)
+          ? p.fontColor : secondaryColor },
         [],
         variant,
       ),

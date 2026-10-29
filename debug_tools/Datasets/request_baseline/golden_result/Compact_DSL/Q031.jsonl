@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"耳机","icon":"resources/base/media/icon_earphone.svg","fontSize":12}]
+["content","EmphasisText",{"mainText":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","fontSize":18}]
+["action","PillButton",{"label":"收藏歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]
+["/data/earphone/isConnected",true]
+["/data/earphone/earphoneName","示例耳机"]

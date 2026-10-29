@@ -10,29 +10,32 @@ from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from test_clouds_photo_top_content import CLOUDS, weather_sample
 from test_uniform_photo_eligibility import PATHS, choose, rejection, sample
+from test_weather_body_regions import weather_regions
 
-SQUARE = "photo-ux-wave-square"
-WIDE = "photo-ux-wave-wide"
-STARFIELD = "photo-ux-starfield-weather-square"
+SQUARE = "photo-ux-mountain-sunset-lake-square"
+WIDE = "photo-ux-mountain-sunset-lake-wide"
+STARFIELD = "photo-ux-pink-sunset-lake-square"
+LOCAL_CLOUD = "photo-ux-cumulus-blue-square"
 
 
 @pytest.mark.parametrize("lines", [1, 2])
 @pytest.mark.parametrize("response", ["invalid", json.dumps({"themeId": STARFIELD})])
-def test_qualified_clouds_take_priority_over_both_other_weather_photos(
+def test_disabled_old_clouds_cannot_override_new_weather_photos(
     monkeypatch, lines, response,
 ):
     saved = weather_sample(lines)
     for identity in (CLOUDS, SQUARE, STARFIELD):
         assert rejection(saved, identity) is None
     result, audit = choose(saved, monkeypatch, response)
-    assert audit.get("candidates") == [CLOUDS]
-    assert audit.get("themeId") == CLOUDS
+    expected = {SQUARE, STARFIELD}
+    assert set(audit.get("candidates", [])) == expected
+    assert audit.get("themeId") in expected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 
-@pytest.mark.parametrize("selected", [SQUARE, STARFIELD])
+@pytest.mark.parametrize("selected", [SQUARE, STARFIELD, LOCAL_CLOUD])
 @pytest.mark.parametrize("response", ["invalid", json.dumps({"themeId": CLOUDS})])
-def test_wave_and_starfield_share_one_unweighted_draw_when_clouds_fail(
+def test_weather_qualified_region_pool_uses_one_unweighted_draw(
     monkeypatch, selected, response,
 ):
     calls = []
@@ -42,13 +45,15 @@ def test_wave_and_starfield_share_one_unweighted_draw_when_clouds_fail(
         return selected
 
     monkeypatch.setattr(themes.secrets, "choice", choice)
-    saved = sample(PATHS.get("weather"), 3)
+    main = 3 if selected == LOCAL_CLOUD else 2
+    saved = weather_regions(main, "button")
+    expected = {LOCAL_CLOUD} if main == 3 else {SQUARE, STARFIELD}
     assert rejection(saved, CLOUDS)
     result, audit = choose(saved, monkeypatch, response)
     assert len(calls) == 1
-    assert len(calls[0]) == 2
-    assert set(calls[0]) == {SQUARE, STARFIELD}
-    assert set(audit.get("candidates", [])) == {SQUARE, STARFIELD}
+    assert len(calls[0]) == len(expected)
+    assert set(calls[0]) == expected
+    assert set(audit.get("candidates", [])) == expected
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -66,8 +71,9 @@ def test_disabled_clouds_do_not_override_the_shared_weather_draw(monkeypatch):
 @pytest.mark.parametrize("identity,wide", [(SQUARE, False), (WIDE, True)])
 @pytest.mark.parametrize("lines", [1, 2, 3, 4, 5])
 def test_wave_body_limit_excludes_title_and_button(identity, wide, lines):
-    saved = sample(PATHS.get("weather"), lines, wide=wide)
-    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 3))
+    saved = (sample(PATHS.get("weather"), lines, wide=True) if wide
+             else weather_regions(lines, "button"))
+    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 2))
 
 
 @pytest.mark.parametrize("business", ["sleep", "sport", "calendar", "earphone", "battery"])
@@ -90,7 +96,7 @@ def test_wide_weather_depends_on_main_region_not_right_slot(monkeypatch, main_we
     result, audit = choose(saved, monkeypatch)
     assert (WIDE in audit.get("candidates", [])) is main_weather
     if main_weather:
-        expected = {WIDE, "photo-ux-fuzzy-wide"}
+        expected = {WIDE, "photo-ux-pink-sunset-lake-wide", "photo-ux-cumulus-blue-wide"}
         assert set(audit.get("candidates", [])) == expected
         assert audit.get("themeId") in expected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -120,10 +126,10 @@ def test_photo_priority_rejects_invalid_values(value):
         registry.validate_registry(config)
 
 
-def test_only_clouds_have_explicit_priority():
+def test_only_holiday_and_disabled_old_clouds_have_explicit_priority():
     priorities = {}
     for item in registry.registered_themes(include_disabled=True):
         priority = item.get("selectionPriority", 0)
         if priority:
             priorities[item.get("id")] = priority
-    assert priorities == {CLOUDS: 1}
+    assert priorities == {CLOUDS: 1, "photo-ux-birds-countdown-square": 10}

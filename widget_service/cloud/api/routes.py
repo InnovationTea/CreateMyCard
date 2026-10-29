@@ -40,7 +40,11 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
-from services.agent_feedback import request_validation_feedback, terminal_feedback
+from services.agent_feedback import (
+    request_envelope_feedback,
+    request_validation_feedback,
+    terminal_feedback,
+)
 from services.artifact_store import ArtifactUploadError
 from services.capability_registry import CapabilityRegistry
 from services.compact_dsl_argument_repair import (
@@ -48,8 +52,11 @@ from services.compact_dsl_argument_repair import (
     compact_dsl_argument_issue_tracker,
     has_explicit_stringified_arguments,
     recover_compact_dsl_content,
+    recover_deterministic_content,
 )
 from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
+from services.daily_usage_limiter import DailyUsageError, DailyUsageLimiter, DailyUsageRecord
+from services.generation_input_feedback import MissingDataInputError
 from services.generation_retry_policy import retry_policy_details
 from services.generation_trace_recorder import (
     trace_increment_retry,
@@ -104,6 +111,10 @@ ERROR_EXPLANATIONS = {
     ErrorCode.INVALID_ARGUMENTS.value: (
         "工具参数传入有误，请按 details.issues 修正全部必填字段、类型和取值后再调用；"
         "不要只修第一项或原样重试。报错信息如下"
+    ),
+    ErrorCode.GENERATION_INPUT_INCOMPLETE.value: (
+        "生成所需的动态数据输入不完整，请按 details 中的结构化指引核对能力、"
+        "补齐参数并复查权限后，在原有调用预算内重调。报错信息如下"
     ),
     ErrorCode.UNKNOWN_CAPABILITY.value: (
         "工具参数中包含未注册的能力 ID；若 details 要求 STOP 则停止，"
@@ -207,8 +218,10 @@ class StringifiedToolArgumentsError(ValueError):
             "agentInstruction": (
                 "外层请求是合法 JSON，但工具调用的 arguments 被序列化成字符串，"
                 "导致传输包的 content 中出现多余的字符串字段 arguments。"
-                "请把该字符串反序列化为 JSON 对象，并将其业务字段直接作为"
-                " generateWidgetCardCompactDsl 的 arguments 重新调用。"
+                "请恢复完整业务对象，作为下一次 invoke.arguments 提交，保留原需求及全部合法候选；"
+                "issues.path 是服务端定位路径，不要求你手工构造 content 或顶层镜像。"
+                "调用元数据由当前工具调用约定及中间链路处理，不补造设备或会话字段；"
+                "仅在既有调用预算内修正重调，相同错误重复且无新修正依据时停止。"
             ),
             "issues": [
                 {
@@ -221,8 +234,10 @@ class StringifiedToolArgumentsError(ValueError):
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "反序列化 content.arguments，把恢复出的业务字段提升到 content，"
-                        "并移除 content.skillName、content.functionName 和 content.arguments。"
+                        "将原字符串恢复为完整业务 JSON 对象，检查括号、逗号、引号和转义；"
+                        "直接作为下一次 invoke.arguments，不再次包裹 arguments 或整个调用对象。"
+                        "保留原值、模式、来源、用户尺寸要求及合法候选，不通过清空数组过检；"
+                        "不要手工编辑 WebSocket content、顶层镜像或透传元数据。"
                     ),
                     "referenceSource": "generateWidgetCardCompactDsl tool schema",
                 }
@@ -243,9 +258,10 @@ class StringifiedToolArgumentsError(ValueError):
             "requiredActions": ["FIX_AND_RETRY"],
             "agentInstruction": (
                 "调用 generateWidgetCardCompactDsl 时，arguments 必须直接传合法的 "
-                "JSON 对象，不能把整个对象序列化成 JSON 字符串。请保持 arguments、"
-                "functionName、skillName 同层，并把 bundleName、userQuery、title、"
-                "description 等工具字段放入 arguments 对象后重新调用。"
+                "JSON 对象，不能把整个对象序列化成 JSON 字符串。"
+                "微服务仅看到透传字段，不能据此恢复原始业务内容；请从本轮原需求及已核对候选"
+                "恢复完整 invoke.arguments，缺必要内容时停止，不猜值。"
+                "不要手工补传输包络、顶层镜像、用户或设备字段；调用元数据按运行时约定处理。"
             ),
             "issues": [
                 {
@@ -258,8 +274,9 @@ class StringifiedToolArgumentsError(ValueError):
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "将 arguments 字符串反序列化为 JSON 对象；保留 functionName 和 skillName 为"
-                        " arguments 的同层字段，不要在 arguments 内再次嵌套工具调用外层。"
+                        "在下一次工具调用的 arguments 中直接提交完整业务对象，"
+                        "不序列化、不再次嵌套调用外层；检查全部必填及候选结构，"
+                        "保留原需求、模式和合法候选，在既有预算内重调。"
                     ),
                     "referenceSource": "generateWidgetCardCompactDsl tool schema",
                 }
@@ -600,7 +617,28 @@ async def _repair_compact_dsl_content_if_needed(
     request_id: str | None,
     model_runtime: ModelExecutionRuntime | None,
 ) -> bool:
-    """连续出现字符串化 arguments 时按配置调用模型恢复 content。"""
+    """先做一次确定性恢复，未能恢复的字符串参数再沿用有界模型兜底。"""
+    if operation == COMPACT_DSL_OPERATION:
+        try:
+            deterministic = recover_deterministic_content(payload)
+        except ValueError as exc:
+            logger.info(
+                f"{_MODULE} deterministic_argument_repair_rejected "
+                f"request_id={request_id} reason={type(exc).__name__}"
+            )
+        else:
+            if deterministic is not None:
+                payload["content"] = deterministic.content
+                compact_dsl_argument_issue_tracker.reset(request_id)
+                trace_record(
+                    "argument_repair.result", stage="argumentRepair", status="success",
+                    details={"mode": deterministic.mode, "attempts": 0, "modelCalled": False},
+                )
+                logger.info(
+                    f"{_MODULE} deterministic_argument_repair_completed "
+                    f"request_id={request_id} mode={deterministic.mode}"
+                )
+                return True
     has_issue = has_explicit_stringified_arguments(payload)
     if operation != COMPACT_DSL_OPERATION or not has_issue:
         compact_dsl_argument_issue_tracker.reset(request_id)
@@ -682,6 +720,8 @@ def _error_details(
         details = exc.details()
     elif isinstance(exc, GenerationPreflightError):
         details = exc.details()
+    elif isinstance(exc, MissingDataInputError):
+        details = exc.details()
     elif isinstance(exc, ValidationError):
         # Pydantic 的 ctx 可能携带原生 ValueError，input 可能包含完整请求或注册表；
         # 二者既不适合对外返回，也可能导致错误响应再次序列化失败。
@@ -717,8 +757,14 @@ def _build_plugin_stream_response(
     出参：插件顶层始终成功；业务异常说明和完整旧消息放入 streamContent。
     """
     resolved_streaming_text_id = streaming_text_id or legacy_message.requestId or uuid.uuid4().hex
+    message_payload = legacy_message.model_dump(mode="json")
+    daily_usage_message = _daily_usage_error_message(legacy_message.errorCode)
+    if daily_usage_message is not None:
+        error = message_payload.get("error")
+        if isinstance(error, dict):
+            error["message"] = daily_usage_message
     stream_content = json.dumps(
-        legacy_message.model_dump(mode="json"),
+        message_payload,
         ensure_ascii=False,
         separators=(",", ":"),
     )
@@ -750,10 +796,30 @@ def _build_plugin_stream_response(
     )
 
 
+def _daily_usage_error_message(error_code: str) -> str | None:
+    message: str | None = None
+    if error_code in (
+        ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED.value,
+        ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE.value,
+    ):
+        settings = get_settings()
+        messages = {
+            ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED.value: settings.daily_usage_limit_exceeded_message,
+            ErrorCode.DAILY_USAGE_LIMIT_UNAVAILABLE.value: (
+                settings.daily_usage_limit_unavailable_message
+            ),
+        }
+        message = messages.get(error_code)
+    return message
+
+
 def _error_explanation(error_code: str) -> str:
     """把内部错误码转换成主 Agent 可理解、可采取下一步动作的异常说明。"""
     if not error_code:
         return ""
+    daily_usage_message = _daily_usage_error_message(error_code)
+    if daily_usage_message is not None:
+        return f"请向用户回复“{daily_usage_message}”，并停止本轮自动调用"
     return ERROR_EXPLANATIONS.get(error_code, DEFAULT_ERROR_EXPLANATION)
 
 
@@ -889,6 +955,46 @@ async def _heartbeat_sender(
         logger.error(f"{_MODULE} widget_operation_ws_heartbeat_failed", exc_info=True)
 
 
+async def _check_daily_usage(
+    operation: str,
+    payload: dict[str, Any],
+    request_id: str | None,
+    limiter: DailyUsageLimiter | None,
+) -> DailyUsageRecord | None:
+    record: DailyUsageRecord | None = None
+    if operation not in GENERATION_OPERATIONS:
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=non_generation")
+        return record
+    settings = get_settings()
+    if not settings.enable_daily_usage_limit:
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=disabled")
+        return record
+    uid = _trace_uid_from_raw_payload(payload)
+    if not uid.strip():
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=missing_uid")
+        return record
+    whitelist_entries = settings.daily_usage_uid_whitelist.split(",")
+    whitelisted_uid_hashes = {item.strip().lower() for item in whitelist_entries}
+    uid_hash = hashlib.sha256(uid.encode("utf-8")).hexdigest()
+    if uid_hash in whitelisted_uid_hashes:
+        logger.info(
+            f"[Daily Usage] bypass operation={operation} "
+            "reason=uid_whitelist record_required=False"
+        )
+        return record
+    if not request_id or not request_id.strip():
+        logger.info(f"[Daily Usage] bypass operation={operation} reason=missing_request_id")
+        return record
+    if limiter is None:
+        logger.error(
+            f"[Daily Usage] check_failed operation={operation} reason=client_not_initialized "
+            "action=bypass record_required=False"
+        )
+        return record
+    record = await limiter.check(uid, request_id)
+    return record
+
+
 async def _serve_operation_websocket(
     websocket: WebSocket,
     operation: str,
@@ -918,6 +1024,7 @@ async def _serve_operation_websocket(
     logger.info(f"{_MODULE} widget_operation_ws_connected operation={operation}")
     try:
         model_runtime = getattr(websocket.app.state, "model_runtime", None)
+        daily_usage_limiter = getattr(websocket.app.state, "daily_usage_limiter", None)
         service = get_service(model_runtime)
         while True:
             card_id = str(uuid.uuid4())
@@ -963,8 +1070,8 @@ async def _serve_operation_websocket(
                     operation=operation,
                     errorCode=ErrorCode.INVALID_ARGUMENTS.value,
                     error={
-                        "message": "WebSocket request body must be valid JSON.",
-                        "details": str(exc),
+                        "message": "工具调用链路的请求未能解析为合法 JSON。",
+                        "details": request_envelope_feedback(),
                     },
                 )
                 streaming_text_id = uuid.uuid4().hex
@@ -998,11 +1105,16 @@ async def _serve_operation_websocket(
             request_id = raw_request_id
             arguments: dict[str, Any] = {}
             heartbeat_task: asyncio.Task | None = None
+            daily_usage_record: DailyUsageRecord | None = None
+            daily_usage_record_started = False
             streaming_text_id = request_id or uuid.uuid4().hex
             metrics.task_started()
             try:
                 if not isinstance(payload, dict):
                     raise ValueError("WebSocket request body must be a JSON object")
+                daily_usage_record = await _check_daily_usage(
+                    operation, payload, raw_request_id, daily_usage_limiter
+                )
                 content_repaired = await _repair_compact_dsl_content_if_needed(
                     payload,
                     operation,
@@ -1158,6 +1270,7 @@ async def _serve_operation_websocket(
                         result_data.get("suggestSize"),
                         directive_size,
                     )
+                    end_command_enabled = _widget_directive_commands_enabled()
                     if not await _send_widget_directive_command(
                         websocket,
                         payload,
@@ -1170,6 +1283,15 @@ async def _serve_operation_websocket(
                         artifact_url,
                     ):
                         return
+                    countable = (
+                        end_command_enabled
+                        and result_data.get("status") == "success"
+                        and directive_state is WidgetDirectiveState.SUCCESS
+                    )
+                    if daily_usage_record is not None and countable:
+                        assert daily_usage_limiter is not None
+                        daily_usage_record_started = True
+                        await daily_usage_limiter.record_success(daily_usage_record)
                 plugin_response = _build_plugin_stream_response(
                     result_message,
                     streaming_text_id,
@@ -1189,6 +1311,32 @@ async def _serve_operation_websocket(
                     "final",
                 ):
                     return
+            except DailyUsageError as exc:
+                trace_status = "failed"
+                trace_error_code = exc.code.value
+                logger.warning(
+                    f"{_MODULE} daily_usage_rejected operation={operation} "
+                    f"request_id={request_id} error_code={exc.code.value}"
+                )
+                error_message = WidgetWebSocketErrorMessage(
+                    tool=operation,
+                    operation=operation,
+                    requestId=request_id,
+                    errorCode=exc.code.value,
+                    error={
+                        "message": str(exc),
+                        "details": {"stage": "dailyUsage", "retryable": False},
+                    },
+                )
+                plugin_response = _build_plugin_stream_response(error_message, streaming_text_id)
+                if not await _send_websocket_json(
+                    websocket,
+                    plugin_response.model_dump(mode="json", exclude_none=True),
+                    operation,
+                    request_id,
+                    "final_error",
+                ):
+                    return
             except ValueError as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 error_code = _value_error_code(exc)
@@ -1206,6 +1354,8 @@ async def _serve_operation_websocket(
                     )
                 if isinstance(exc, CompactDslArgumentRepairExhaustedError):
                     error_summary = "本次 DSL 生成失败，请提示用户重试一下。"
+                if isinstance(exc, MissingDataInputError):
+                    error_summary = str(exc)
                 logger.error(
                     f"{_MODULE} widget_operation_ws_invalid_arguments request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
@@ -1312,6 +1462,13 @@ async def _serve_operation_websocket(
                 ):
                     return
             finally:
+                if daily_usage_record is not None and not daily_usage_record_started:
+                    logger.info(
+                        f"[Daily Usage] record_skipped operation={operation} "
+                        f"record_id={daily_usage_record.record_id} "
+                        f"status={trace_status} directive_started={widget_directive_started} "
+                        "reason=success_delivery_not_confirmed"
+                    )
                 if operation == COMPACT_DSL_OPERATION:
                     service.trace_recorder.finalize(
                         status=trace_status,

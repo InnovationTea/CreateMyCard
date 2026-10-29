@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 
 import pytest
-
 from services.compact_prompt_loader import FRAGMENT, read_prompt
 
 SOURCE = (
@@ -142,6 +141,7 @@ EXPECTED_PROPS = {
         "density",
         "items",
         "items[].location",
+        "items[].onClick",
         "items[].time",
         "items[].title"
     ],

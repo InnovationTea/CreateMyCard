@@ -1,0 +1,59 @@
+{
+  "content": {
+    "title": "新闻简报",
+    "description": "今日新闻热点",
+    "userQuery": "在桌面添加一个新闻简报卡片，展示今日新闻热点。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.ic_public_connection_filled",
+      "asset.ic_weather_monochrome",
+      "asset.ic_ranking"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025154359235"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "2ad0f670-2d29-40df-800d-dbb3e939943e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.ic_public_connection_filled",
+    "asset.ic_weather_monochrome",
+    "asset.ic_ranking"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "今日新闻热点",
+  "userQuery": "在桌面添加一个新闻简报卡片，展示今日新闻热点。",
+  "title": "新闻简报",
+  "candidateDataBindings": []
+}

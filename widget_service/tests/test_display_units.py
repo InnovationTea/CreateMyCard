@@ -153,6 +153,22 @@ def test_repair_collapses_repeated_unit_and_keeps_one_for_raw_number():
     assert "{{ ${/data/battery/level} + '%' }}" in repaired
 
 
+@pytest.mark.parametrize("inline", [False, True])
+def test_repair_preserves_unit_with_business_text(inline: bool):
+    content = "{{ ${/data/battery/level} }}"
+    siblings = ()
+    if inline:
+        content = "{{ ${/data/battery/level} + '% · 电量' }}"
+    else:
+        siblings = ({"id": "unit_text", "component": "Text", "content": "% · 电量"},)
+    source = _dsl(content, sibling_components=siblings)
+    capability = _capability(unit_included=True)
+
+    repaired = repair_repeated_display_units(source, _card_spec(), [capability])
+
+    assert repaired == source
+
+
 def test_repair_removes_redundant_sibling_unit_for_formatted_text():
     repaired = repair_repeated_display_units(
         _dsl("{{ ${/data/battery/level} }}", sibling_units=1),
@@ -194,10 +210,31 @@ def test_unit_repair_does_not_remove_non_text_nodes() -> None:
     assert repaired == source
 
 
-def test_validator_reports_missing_unit_for_raw_number():
+@pytest.mark.parametrize("unit", ["%", "天", "℃", "公里"])
+def test_validator_reports_missing_unit_for_raw_number(unit: str):
     reporter = validate_card(
         artifact={
             "genui": _dsl("{{ ${/data/battery/level} }}"),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=False, unit=unit).model_dump(mode="json")]
+            },
+        }
+    )
+
+    diagnostics = [
+        item for item in reporter.diagnostics if item.code == "DISPLAY_UNIT_MISSING"
+    ]
+    assert len(diagnostics) == 1
+    assert diagnostics[0].severity == "error"
+
+
+def test_percentage_unit_with_separator_does_not_report_missing():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(
+                "{{ ${/data/battery/level} + '% | ' + ${/data/battery/status} }}"
+            ),
             "cardSpec": _card_spec(),
             "effectiveCapabilities": {
                 "data": [_capability(unit_included=False).model_dump(mode="json")]
@@ -205,7 +242,80 @@ def test_validator_reports_missing_unit_for_raw_number():
         }
     )
 
-    assert reporter.has_code("DISPLAY_UNIT_MISSING")
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+def test_validator_keeps_non_percentage_missing_unit_as_error():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl("{{ ${/data/battery/level} }}"),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=False, unit="天").model_dump(mode="json")]
+            },
+        }
+    )
+
+    diagnostics = [
+        item for item in reporter.diagnostics if item.code == "DISPLAY_UNIT_MISSING"
+    ]
+    assert len(diagnostics) == 1
+    assert diagnostics[0].severity == "error"
+
+
+@pytest.mark.parametrize("separator", ["% · ", "% | ", "%，", "% ", "%|"])
+@pytest.mark.parametrize("unit_included", [False, True])
+def test_bound_percentage_with_separator(separator, unit_included):
+    content = "{{ (${/data/battery/level}) + '" + separator + "' + ${/data/battery/status} }}"
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(content),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=unit_included).model_dump(mode="json")]
+            },
+        }
+    )
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING")
+    assert reporter.has_code("DISPLAY_UNIT_DUPLICATED") is unit_included
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "{{ '2天1晚 · ' + ${/data/battery/level} }}",
+        "{{ '天 · ' + ${/data/battery/level} }}",
+        "{{ ${/data/battery/level} + ' / ' + ${/data/battery/other} + '天' }}",
+        "{{ ${/data/battery/level} + '天数说明' }}",
+        "{{ ${/data/battery/level} ? '天' : '未知' }}",
+    ],
+)
+def test_unrelated_unit_does_not_supply_bound_number(content):
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(content),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=False, unit="天").model_dump(mode="json")]
+            },
+        }
+    )
+    missing = [item for item in reporter.diagnostics if item.code == "DISPLAY_UNIT_MISSING"]
+    assert len(missing) == 1
+    assert missing[0].severity == "error"
+
+
+def test_trip_title_does_not_duplicate_appended_unit():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl("{{ '杭州2天1晚 · ' + ${/data/battery/level} + '天' }}"),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=False, unit="天").model_dump(mode="json")]
+            },
+        }
+    )
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
 
 
 def _template_unit_dsl(

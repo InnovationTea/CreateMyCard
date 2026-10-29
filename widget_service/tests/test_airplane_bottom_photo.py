@@ -55,7 +55,7 @@ def test_a17_selection_preserves_foreground_and_registered_asset(orientation, mo
     assert images[0].get("src") == audit.get("theme", {}).get("src")
     assert audit.get("theme", {}).get("remoteUrl", "").startswith("https://")
     root = next(node for node in nodes if node.get("id") == "root")
-    assert root.get("styles", {}).get("backgroundColor") == "#FF8FADCC"
+    assert root.get("styles", {}).get("backgroundColor") == "#FF1F1F99"
 
 
 @pytest.mark.parametrize("orientation", ["content-left", "content-right"])
@@ -117,12 +117,17 @@ def test_a17_recognizes_flight_data_and_preserves_disable_switch(monkeypatch):
     assert AIRPLANE not in audit.get("candidates", [])
 
 
-def test_only_a17_receives_new_side_focus_policy():
+def test_only_approved_subjects_receive_side_focus_policy():
     configured = []
     for item in registry.registered_themes(include_disabled=True):
         if item.get("contentEligibility", {}).get("wideLayout") == "side-focus":
             configured.append(item.get("id"))
-    assert configured == [AIRPLANE]
+    assert set(configured) == {AIRPLANE, "photo-ux-hourglass-wide", "photo-ux-sleep-new-wide"}
+    bottom_only = []
+    for item in registry.registered_themes(include_disabled=True):
+        if item.get("contentEligibility", {}).get("placement") == "bottom":
+            bottom_only.append(item.get("id"))
+    assert bottom_only == [AIRPLANE]
 
 
 @pytest.mark.parametrize("field,value", [("wideLayout", "side-focus"), ("placement", "bottom")])

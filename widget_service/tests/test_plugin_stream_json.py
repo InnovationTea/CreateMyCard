@@ -7,6 +7,7 @@ from starlette.websockets import WebSocket
 
 from api.routes import _build_plugin_stream_response, _send_websocket_json
 from api.schemas import CapabilityOverviewRequest
+from config.config import get_settings
 from models.service import WidgetWebSocketErrorMessage, WidgetWebSocketResultMessage
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 from services.widget_generation_service import WidgetGenerationService
@@ -19,6 +20,48 @@ OPERATIONS = [
     "generateWidgetCardCompactDsl",
     "generateWidgetCardTerseDslNested2",
 ]
+
+
+@pytest.mark.parametrize(
+    "code,option,default_message",
+    [
+        (
+            "DAILY_USAGE_LIMIT_EXCEEDED", "daily_usage_limit_exceeded_message",
+            "今日 AI 卡片生成次数已达上限，请明天再尝试。",
+        ),
+        (
+            "DAILY_USAGE_LIMIT_UNAVAILABLE", "daily_usage_limit_unavailable_message",
+            "本次卡片生成失败，请稍后重试。",
+        ),
+    ],
+)
+@pytest.mark.parametrize("custom", [False, True])
+def test_daily_usage_errors_use_configured_user_message_and_stop_instruction(
+    monkeypatch, code, option, default_message, custom
+):
+    settings = get_settings()
+    message = '请回复"自定义提示"。' if custom else default_message
+    if custom:
+        monkeypatch.setattr(settings, option, message)
+    else:
+        assert getattr(settings, option) == default_message
+    legacy = WidgetWebSocketErrorMessage(
+        operation="generateWidgetCardCompactDsl", errorCode=code,
+        error={"message": "暂时无法检查今日卡片生成次数", "details": {"stage": "dailyUsage"}},
+    )
+    original = legacy.model_copy(deep=True)
+    response = _build_plugin_stream_response(legacy)
+    content = response.reply.streamInfo.streamContent
+    assert content.startswith(f"请向用户回复“{message}”，并停止本轮自动调用：")
+    parsed = parse_legacy_stream_content(content)
+    error = parsed.get("error")
+    assert isinstance(error, dict)
+    assert error.get("message") == message
+    assert error.get("details") == {"stage": "dailyUsage"}
+    assert parsed.get("errorCode") == code
+    assert "更换请求标识" not in content
+    assert "暂时无法检查" not in content
+    assert legacy == original
 
 
 def _message(operation="getWidgetCapabilityOverview", request_id="session&9"):

@@ -12,9 +12,9 @@ WAVE = "photo-ux-digital-wave-wide"
 MEETING_SQUARE = "photo-ux-meeting-room-square"
 MEETING_WIDE = "photo-ux-meeting-room-wide"
 DISABLED = {
-    "galaxy-sleep-square",
     "track-runner-square", "sunrise-runner-square", "track-sprint-square", "running-pair-wide",
-    "starry-sky-wide", "bedside-lamp-wide",
+    "road-wide", "bedside-lamp-wide", "cloud-square", "cloud-wide",
+    "clouds-weather-square", "starfield-weather-square", "wave-square", "wave-wide", "fuzzy-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
 }
 
@@ -23,7 +23,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 18
+    assert len(registry.registered_themes("photos")) == 36
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -67,9 +67,9 @@ def double_countdown(first="国庆", second="中秋", lines=1):
 
 
 @pytest.mark.parametrize("second,lines,allowed", [
-    ("中秋", 1, True), ("中秋", 2, False), ("考试", 1, False), ("待办", 1, False),
+    ("中秋", 1, True), ("中秋", 2, True), ("考试", 1, False), ("待办", 1, False),
 ])
-def test_a12_dual_panels_need_all_holidays_and_total_at_most_three(second, lines, allowed):
+def test_a12_dual_panels_need_all_holidays_without_line_limit(second, lines, allowed):
     saved = double_countdown(second=second, lines=lines)
     flow = evidence(saved).get("photoBodyTextFlow", {}).get("root", {})
     assert flow.get("lineCount") == 2 * lines
@@ -124,6 +124,9 @@ def test_meeting_square_rejects_wrong_business_alignment_or_line_count(business,
 def test_a19_overlaps_meeting_wide_without_changing_meeting_placement(
     monkeypatch, button, expected,
 ):
+    expected = expected | {
+        "photo-ux-meeting-room-brown-chairs-wide", "photo-ux-meeting-room-green-chairs-wide",
+    }
     saved = sample(PATHS.get("calendar"), 3, wide=True, button=button)
     result, audit = choose(saved, monkeypatch)
     assert set(audit.get("candidates", [])) == expected
@@ -153,11 +156,16 @@ def test_meeting_wide_keeps_business_line_count_and_wide_layout_gate():
     assert rejection(expanded(rows, saved.task), MEETING_WIDE)
 
 
-def test_only_new_meeting_photos_use_black_foreground():
+def test_only_approved_subject_photos_use_black_foreground():
+    black_photos = {
+        MEETING_SQUARE, MEETING_WIDE, "photo-ux-gradient-wide",
+        "photo-ux-meeting-room-brown-chairs-square", "photo-ux-meeting-room-brown-chairs-wide",
+        "photo-ux-meeting-room-green-chairs-square", "photo-ux-meeting-room-green-chairs-wide",
+    }
     for photo in registry.registered_themes(include_disabled=True):
         if photo.get("kind") != "photo":
             continue
-        rgb = "000000" if photo.get("id") in {MEETING_SQUARE, MEETING_WIDE} else "FFFFFF"
+        rgb = "000000" if photo.get("id") in black_photos else "FFFFFF"
         roles = photo.get("content", {}).get("roles", {})
         assert roles.get("primary") == "#FF" + rgb
         assert roles.get("secondary") == "#CC" + rgb

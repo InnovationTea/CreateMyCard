@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from services.card_validation.base import read_pointer
 from services.display_text import current_display_text
+from services.theme_body_regions import body_region_evidence
 from services.theme_style_roles import ROLE_PATTERN, is_role
+from services.theme_text_allocation import content_sized_width_ids
 
 
 def panel_ids(nodes: list[dict]) -> list[str]:
@@ -32,7 +34,8 @@ def button_ids(nodes: list[dict]) -> list[str]:
 
 
 def photo_layout_evidence(nodes: list[dict], data_model: dict | None = None,
-                          *, final_layout: str | None = None) -> dict:
+                          *, final_layout: str | None = None, size: str | None = None) -> dict:
+    content_widths = content_sized_width_ids(nodes, data_model, final_layout, size)
     roots = [node for node in nodes if node.get("id") == "root"]
     content_ids = []
     non_text_ids = []
@@ -54,21 +57,29 @@ def photo_layout_evidence(nodes: list[dict], data_model: dict | None = None,
               "sideBySidePanels": _side_by_side_panels(nodes),
               "nonTextIds": non_text_ids,
               "nonTextAncestors": _non_text_ancestors(nodes, non_text_ids),
-              "textFlow": text_flow_evidence(nodes),
+              "textFlow": text_flow_evidence(nodes, content_width_ids=content_widths),
               "deviceGeometryKnown": False}
     if data_model is not None:
-        result["bodyTextFlow"] = body_text_flow_evidence(nodes, data_model)
+        result["bodyTextFlow"] = body_text_flow_evidence(
+            nodes, data_model, content_width_ids=content_widths,
+        )
         title_ids = _layout_title_ids(final_layout)
         if title_ids is not None:
             result["photoBodyTextFlow"] = body_text_flow_evidence(
                 nodes, data_model, include_buttons=True, exclude_ids=title_ids,
+                content_width_ids=content_widths,
             )
             texture_titles = _layout_title_ids(final_layout, include_region_titles=True)
             result["textureBodyTextFlow"] = body_text_flow_evidence(
                 nodes, data_model, include_buttons=True, exclude_ids=texture_titles,
+                content_width_ids=content_widths,
             )
             result["photoTopContent"] = top_content_evidence(
                 nodes, result.get("photoBodyTextFlow", {}), title_ids,
+            )
+            result["photoBodyRegions"] = body_region_evidence(
+                nodes, result.get("photoBodyTextFlow", {}), title_ids,
+                set(result.get("buttonIds", [])),
             )
     return result
 
@@ -263,12 +274,13 @@ def _layout_title_ids(final_layout: str | None,
 
 def body_text_flow_evidence(nodes: list[dict], data_model: dict | None,
                             *, include_buttons: bool = False,
-                            exclude_ids: set[str] | None = None) -> dict:
+                            exclude_ids: set[str] | None = None,
+                            content_width_ids: set[str] | None = None) -> dict:
     """当前文字行数，可排除标题或按钮；不推测端侧自动折行。"""
     if data_model is None:
         return {}
     flows = text_flow_evidence(nodes, current_data=data_model, include_buttons=include_buttons,
-                               exclude_ids=exclude_ids)
+                               exclude_ids=exclude_ids, content_width_ids=content_width_ids)
     result = {}
     for identity, flow in flows.items():
         result[identity] = {"lineCount": flow.get("maxLines"),
@@ -295,7 +307,8 @@ def _current_text_lines(node: dict, data_model: dict) -> int | None:
 
 
 def text_flow_evidence(nodes: list[dict], *, current_data: dict | None = None,
-                       include_buttons: bool = False, exclude_ids: set[str] | None = None) -> dict:
+                       include_buttons: bool = False, exclude_ids: set[str] | None = None,
+                       content_width_ids: set[str] | None = None) -> dict:
     """默认保留行数上界；当前数据模式供所有图片正文准入，不使用像素尺寸。"""
     by_id = {node.get("id"): node for node in nodes}
     flows = {}
@@ -348,7 +361,7 @@ def text_flow_evidence(nodes: list[dict], *, current_data: dict | None = None,
                                         current_text=current_data is not None)
             if kind == "Row":
                 child_nodes = [by_id.get(child, {}) for child in children]
-                if _row_distributes_text(child_nodes, child_flows):
+                if _row_distributes_text(child_nodes, child_flows, content_width_ids or set()):
                     flow["leftAligned"] = False
         flows[identity] = flow
         return flow
@@ -357,7 +370,9 @@ def text_flow_evidence(nodes: list[dict], *, current_data: dict | None = None,
     return flows
 
 
-def _row_distributes_text(nodes: list[dict], flows: list[dict]) -> bool:
+def _row_distributes_text(
+    nodes: list[dict], flows: list[dict], content_width_ids: set[str],
+) -> bool:
     """Local start alignment does not make weighted or fixed-width columns globally left."""
     reserved = False
     for node, flow in zip(nodes, flows, strict=True):
@@ -367,7 +382,8 @@ def _row_distributes_text(nodes: list[dict], flows: list[dict]) -> bool:
         styles = node.get("styles", {})
         weight = styles.get("layoutWeight")
         stretched = type(weight) in {int, float} and weight > 0
-        column_width = has_text and styles.get("width") not in {None, "wrapContent"}
+        column_width = (has_text and styles.get("width") not in {None, "wrapContent"}
+                        and node.get("id") not in content_width_ids)
         reserved = reserved or stretched or column_width
     return False
 

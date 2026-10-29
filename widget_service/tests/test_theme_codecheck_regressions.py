@@ -17,7 +17,55 @@ from services.compact_high_level_components import (
     CompactDslConversionError,
     _system_palette_color,
 )
+from services.template_generation.engine.cardplan import photo_facts
 from services.theme_style_roles import layout_phase, role
+from test_photo_asset_delivery import artifact as photo_artifact
+
+
+def test_photo_main_scope_uses_one_typed_return_for_optional_pair():
+    tree = ast.parse(inspect.getsource(photo_facts._main_scope))
+    returns = [node for node in ast.walk(tree) if isinstance(node, ast.Return)]
+    assert len(returns) == 1, "G.CTL.01: 主区与方向应通过同一带类型的局部变量返回"
+    returned = returns[0].value
+    assert isinstance(returned, ast.Name)
+    declarations = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
+            continue
+        if node.target.id == returned.id:
+            declarations.append(node)
+    assert len(declarations) == 1
+    assert ast.unparse(declarations[0].annotation) == "tuple[dict | None, str | None]"
+
+
+@pytest.mark.parametrize("kind,children,expected_direction", [
+    ("Row", ["main", "support"], "left"),
+    ("Row", ["support", "main"], "right"),
+    ("Column", ["main", "support"], "top"),
+    ("Column", ["support", "main"], "bottom"),
+    ("Stack", ["main", "support"], None),
+    ("Row", [], None),
+    ("Column", ["support", "other_support"], None),
+])
+def test_photo_main_scope_preserves_pair_and_node_identity(kind, children, expected_direction):
+    root = {"id": "root", "component": kind, "children": children}
+    main = {"id": "main", "component": "Column", "children": ["reading"]}
+    support_kind = "Column" if kind == "Row" else "Row"
+    nodes = [
+        root, main,
+        {"id": "reading", "component": "Text", "content": "主区"},
+        {"id": "support", "component": support_kind, "children": ["upper", "lower"]},
+        {"id": "other_support", "component": "Row", "children": ["upper", "lower"]},
+        {"id": "upper", "component": "Column", "styles": {"backgroundColor": "#33FFFFFF"}},
+        {"id": "lower", "component": "Column", "styles": {"backgroundColor": "#33FFFFFF"}},
+    ]
+    result = photo_facts._main_scope(root, {node.get("id"): node for node in nodes}, set())
+    assert isinstance(result, tuple) and len(result) == 2
+    if expected_direction is None:
+        assert result == (None, None)
+    else:
+        assert result[0] is main
+        assert result[1] == expected_direction
 
 
 @pytest.mark.parametrize("module", [registry, theme_photo_eligibility, theme_texture_eligibility])
@@ -89,17 +137,15 @@ def test_selection_never_starts_a_measurement_process(monkeypatch):
 @pytest.mark.parametrize("error", ["ARTIFACT.INVALID", "ASSET.INVALID", "VISUAL.INVALID"])
 def test_final_validation_errors_reapply_gradient_from_original(monkeypatch, error):
     source = layout_source()
-    photo = {"id": "test-photo", "kind": "photo", "src": "test-background.jpg"}
+    photo = next(item for item in registry.registered_themes("photos")
+                 if item.get("size") == "2x2")
     audit = {"theme": photo, "outputSize": "2x2"}
-    monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=("photo-result", audit)))
+    themed = themes.apply_theme(source, photo, {"size": "2x2"}, {})
+    monkeypatch.setattr(themes, "select_theme", AsyncMock(return_value=(themed, audit)))
     monkeypatch.setattr(themes, "trace_record", Mock())
-    artifact = SimpleNamespace(
-        genui=source, meta=SimpleNamespace(generationMode="create"),
-        model_copy=Mock(side_effect=lambda **kwargs: SimpleNamespace(
-            genui=source, taskSpec={}, cardSpec={"suggestSize": "2x2"}, effectiveCapabilities={},
-            model_dump=Mock(return_value={}),
-        )),
-    )
+    artifact = photo_artifact()
+    artifact.genui = source
+    artifact.taskSpec = {}
     validator = SimpleNamespace(validate=Mock(side_effect=[[error], []]))
     result = asyncio.run(themes.theme_artifact(
         artifact, {"size": "2x2", "userQuery": "天气"}, Mock(), validator, {},

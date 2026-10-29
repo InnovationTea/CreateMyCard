@@ -46,7 +46,7 @@
     ],
     "description": "国庆风格天气卡片，含体感、湿度、空气质量、紫外线、风况、降水等。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_uv_color",
       "asset.ic_purification",
       "asset.icon_weather_wind",
@@ -129,7 +129,7 @@
   ],
   "description": "国庆风格天气卡片，含体感、湿度、空气质量、紫外线、风况、降水等。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_uv_color",
     "asset.ic_purification",
     "asset.icon_weather_wind",

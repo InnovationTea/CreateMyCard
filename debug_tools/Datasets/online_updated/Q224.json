@@ -1,0 +1,51 @@
+{
+  "content": {
+    "title": "评委评分速记卡",
+    "description": "5分制快速评分对照",
+    "userQuery": "做一张讲师大赛评委快速评分速记卡（5分制版），包含四个维度各5分制打分的最低要求（每项不低于4.25分），折算公式（四维总分×5），以及卓越4.75~5分、优秀4.5~4.75分、良好4.25~4.5分三个档位参考。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027225411046"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "9",
+    "isNew": false,
+    "sessionId": "980a548c-6774-44ef-9981-ba404efd5c11"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "5分制快速评分对照",
+  "userQuery": "做一张讲师大赛评委快速评分速记卡（5分制版），包含四个维度各5分制打分的最低要求（每项不低于4.25分），折算公式（四维总分×5），以及卓越4.75~5分、优秀4.5~4.75分、良好4.25~4.5分三个档位参考。",
+  "title": "评委评分速记卡",
+  "candidateDataBindings": []
+}

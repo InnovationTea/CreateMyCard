@@ -20,6 +20,7 @@ from .template_retrieval import (
     TemplateRetrievalMiss,
     TemplateSearchIntent,
     TemplateSearchResult,
+    _task_spec_schema_leaf,
     normalize_calendar_reminder_intent,
     search_template_variants,
 )
@@ -82,6 +83,13 @@ _RICHENG3_FULL_TEXT_QUERY = re.compile(
     r"(?<![a-z])(?:full\s+text|without\s+(?:truncation|ellipsis))(?![a-z])",
     re.IGNORECASE,
 )
+_CALENDAR_FAIL_EXCLUDED_CONTEXT_QUERY = re.compile(
+    r"(?:不要|无需|不需要|不显示|不展示|不带|禁止|不允许).{0,12}"
+    r"(?:日期|更新时间|时区|地点|标题|名称|结束时间|开始时间|备注)|"
+    r"\b(?:no|without)\s+(?:date|update|timezone|location|title|end|start|notes)\b",
+    re.IGNORECASE,
+)
+_CALENDAR_FAIL_MATTER_COUNT = re.compile(r"([0-9零一二两三四五六七八九十百千万]+)\s*件事")
 
 
 @dataclass(frozen=True)
@@ -125,11 +133,20 @@ def plan_calendar_no_action_fallback(
     target = _fallback_template(task_spec.size, frozenset(requested))
     if target is None and not _ADDITIONAL_MULTIPLE_EVENTS_QUERY.search(query):
         target = _additional_fallback_template(task_spec.size, frozenset(requested))
+    extended = False
+    if target is None and not _ADDITIONAL_MULTIPLE_EVENTS_QUERY.search(query):
+        target = _calendar_fail_fallback_template(task_spec.size, frozenset(requested))
+        extended = target is not None
     if target is None or target not in registry.templates:
+        return result
+    if extended and not _extended_context_allowed(
+        target, requested, query, task_spec, bindings, registry
+    ):
         return result
     compact_targets = {
         "ScheduleOverviewEventCountNotesFull@1",
         "ScheduleOverviewDateCountdownReminderFull@1",
+        "ScheduleOverviewLocationDescriptionEndWideFull@1",
     }
     if target in compact_targets and _RICHENG3_FULL_TEXT_QUERY.search(query):
         return result
@@ -137,11 +154,8 @@ def plan_calendar_no_action_fallback(
         if _EXCLUSIVE_CONTEXT_QUERY.search(query):
             return result
         # 三、四字段复用不能违反排他要求，额外展示字段也必须已获候选授权。
-        required = {
-            f"{_EVENT}{field}"
-            for field in ("startDate", "title", "dtStart", "dtEnd", "eventLocation")
-        }
-        if not required.issubset(bindings[0].candidateOutputFields):
+        required = _calendar_fail_context_fields(target, task_spec, bindings[0], registry)
+        if required is None or not required.issubset(bindings[0].candidateOutputFields):
             return result
     if trusted_template_candidate_ids and set(trusted_template_candidate_ids) != {target}:
         return result
@@ -164,7 +178,10 @@ def plan_calendar_no_action_fallback(
             preferred_template_ids=(target,),
         )
         plans = plan_template_candidates(
-            normalized, found, task_spec, fallback_registry,
+            normalized,
+            found,
+            task_spec,
+            fallback_registry,
             allowed_layout_ids=trusted_template_layout_ids,
         )
     except TemplateRetrievalMiss as exc:
@@ -313,3 +330,99 @@ def _additional_fallback_template(size: str, requested: frozenset[str]) -> str |
             target = f"ScheduleOverview{suffix}@1"
             break
     return target
+
+
+def _calendar_fail_fallback_template(size: str, requested: frozenset[str]) -> str | None:
+    """旧精确形态未选择时，才补字段较少的分支或同语义宽版。"""
+    title = f"{_EVENT}title"
+    start = f"{_EVENT}dtStart"
+    end = f"{_EVENT}dtEnd"
+    date = f"{_EVENT}startDate"
+    location = f"{_EVENT}eventLocation"
+    all_day = f"{_EVENT}isAllDay"
+    variants = (
+        ("2x2", "DateAllDayFull", {title, all_day}, set()),
+        ("2x2", "DateEndFull", {date, end}, set()),
+        (
+            "2x4",
+            "ReminderDetailsWideFull",
+            {f"{_EVENT}senderName", f"{_EVENT}importantEventType", f"{_EVENT}remindTime/0"},
+            set(),
+        ),
+        ("2x4", "DatedMeetingWideFull", {start, location}, {title, date, end}),
+        ("2x4", "DateAllDayWideFull", {date, title, all_day}, set()),
+        (
+            "2x4",
+            "LocationDescriptionEndWideFull",
+            {f"{_EVENT}description", end, location},
+            set(),
+        ),
+        ("2x4", "AllDayLocationWideFull", {all_day, location}, {title, f"{_EVENT}timeZone"}),
+    )
+    target: str | None = None
+    for card_size, suffix, required, optional in variants:
+        if size == card_size and required <= requested <= required | optional:
+            target = f"ScheduleOverview{suffix}@1"
+            break
+    return target
+
+
+def _extended_context_allowed(
+    target: str,
+    requested: tuple[str, ...],
+    query: str,
+    task_spec: TaskSpec,
+    bindings: tuple[CandidateDataBinding, ...],
+    registry: CardPlanRegistry,
+) -> bool:
+    """新增复用的上下文必须有候选授权；排他请求不能附带其他字段。"""
+    if not _calendar_fail_single_query_allowed(query):
+        return False
+    displayed = _calendar_fail_context_fields(target, task_spec, bindings[0], registry)
+    candidates = set(bindings[0].candidateOutputFields)
+    if displayed is None or not displayed.issubset(candidates):
+        return False
+    exclusive = _EXCLUSIVE_CONTEXT_QUERY.search(query)
+    excluded = _CALENDAR_FAIL_EXCLUDED_CONTEXT_QUERY.search(query)
+    if exclusive or excluded:
+        if not displayed.issubset(requested):
+            return False
+    return True
+
+
+def _calendar_fail_single_query_allowed(query: str) -> bool:
+    """新单项分支不能把明确多项请求缩为首条。"""
+    if _ADDITIONAL_MULTIPLE_EVENTS_QUERY.search(query):
+        return False
+    itemized = _NEGATED_ITEMIZED_EVENTS_QUERY.sub("", query)
+    first_only = _NEGATED_FIRST_ONLY_QUERY.sub("", query)
+    if _ITEMIZED_EVENTS_QUERY.search(itemized) and not _ITEMIZED_FIRST_ONLY_QUERY.search(
+        first_only
+    ):
+        return False
+    for match in _CALENDAR_FAIL_MATTER_COUNT.finditer(query):
+        count = match.group(1)
+        if count != "一" and count.lstrip("0") != "1":
+            return False
+    return True
+
+
+def _calendar_fail_context_fields(
+    target: str,
+    task_spec: TaskSpec,
+    binding: CandidateDataBinding,
+    registry: CardPlanRegistry,
+) -> set[str] | None:
+    """正式编译会补回 schema 中的可选字段，边界检查须覆盖实际显示范围。"""
+    definition = registry.require_template(target)
+    displayed: set[str] | None = set(definition.required_data)
+    for optional in definition.optional_data_fields:
+        absolute = f"{binding.writeResultTo.rstrip('/')}{optional.path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, absolute)
+        if leaf is None:
+            continue
+        if leaf.get("type") != optional.data_type:
+            displayed = None
+            break
+        displayed.add(optional.path)
+    return displayed

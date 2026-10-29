@@ -28,7 +28,7 @@
           "args": {
             "intentName": "CallPhone",
             "params": {
-              "phoneNumber": ""
+              "phoneNumber": "1388888888"
             }
           }
         }
@@ -36,7 +36,7 @@
     ],
     "description": "显示当前和未来天气预报，带一键拨打电话按钮。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.phone_fill"
     ]
   },
@@ -97,7 +97,7 @@
         "args": {
           "intentName": "CallPhone",
           "params": {
-            "phoneNumber": ""
+            "phoneNumber": "1388888888"
           }
         }
       }
@@ -105,7 +105,7 @@
   ],
   "description": "显示当前和未来天气预报，带一键拨打电话按钮。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.phone_fill"
   ]
 }

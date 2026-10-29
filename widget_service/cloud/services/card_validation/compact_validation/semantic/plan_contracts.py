@@ -13,8 +13,10 @@ from services.card_validation.compact_validation.semantic.asset_references impor
 from services.card_validation.compact_validation.syntax.expressions import (
     _collect_binding_context,
 )
+from services.compact_action_instances import event_card_item_handlers, plan_action_handlers
 from services.compact_component_semantics import CORE_INFORMATION_COMPONENT_TYPES
 from services.compact_dsl_a2ui_converter import ComponentRow
+from services.compact_plan import compact_plan_overflow_action_ids
 from services.compact_whole_card_click import accepted_whole_card_click
 from services.event_matching import event_handlers_match
 
@@ -26,15 +28,20 @@ def collect_actions_only_plan_errors(
     compact_plan: dict[str, Any] | None,
     errors: list[str],
 ) -> None:
-    """无内容双动作必须由完整的已接受计划授权，不豁免任何展示事实。"""
+    """无正文动作变体必须由完整的已接受计划授权，不豁免任何展示事实。"""
     root = next((row for row in source_components if row.component_id == "root"), None)
     if root is None:
         return
     actions_only = False
+    title_action_only = False
     if root.component_type == "Layout":
-        if root.props.get("layout") != "S-content-dual-action":
+        layout = root.props.get("layout")
+        if layout == "S-title-content-action":
+            title_action_only = root.props.get("variant") == "title-action"
+        elif layout == "S-content-dual-action":
+            actions_only = root.props.get("variant") == "actions-only" or len(root.children) == 2
+        else:
             return
-        actions_only = root.props.get("variant") == "actions-only" or len(root.children) == 2
     elif root.component_type == "Column":
         by_id = {row.component_id: row for row in source_components}
         buttons = []
@@ -43,28 +50,77 @@ def collect_actions_only_plan_errors(
             if child is not None and child.component_type == "CardButton":
                 buttons.append(child)
         actions_only = len(root.children) == 2 and len(buttons) == 2
-    if not actions_only:
+    if not actions_only and not title_action_only:
         return
     facts = compact_plan.get("info_required") if isinstance(compact_plan, dict) else None
-    action_ids: set[str] = set()
-    valid = isinstance(facts, list) and len(facts) == 2
-    if isinstance(facts, list):
-        for fact in facts:
-            if not isinstance(fact, dict):
-                valid = False
-                continue
-            action_id = fact.get("actionId")
-            if not isinstance(action_id, str) or not action_id:
-                valid = False
-                continue
-            if "dataId" in fact or "text" in fact:
-                valid = False
-            action_ids.add(action_id)
-    if not valid or len(action_ids) != 2:
-        errors.append(
-            "S-content-dual-action actions-only requires an accepted Plan containing "
-            "exactly two distinct actions and no display facts; preserve all required content."
+    if title_action_only:
+        valid = _is_title_action_plan(facts)
+    else:
+        valid = _is_actions_only_plan(facts)
+    if not valid:
+        layout_name = "S-title-content-action title-action" if title_action_only else (
+            "S-content-dual-action actions-only"
         )
+        action_count = (
+            "exactly one action and at most one title fact"
+            if title_action_only
+            else "exactly two distinct actions"
+        )
+        errors.append(
+            f"{layout_name} requires an accepted Plan containing {action_count} and no "
+            "body or data display facts; preserve all required content."
+        )
+
+
+def _is_actions_only_plan(facts: Any) -> bool:
+    """确认双动作变体不夹带展示事实。"""
+    if not isinstance(facts, list) or len(facts) != 2:
+        return False
+    action_ids: set[str] = set()
+    for fact in facts:
+        if not isinstance(fact, dict):
+            return False
+        action_id = fact.get("actionId")
+        if not isinstance(action_id, str) or not action_id:
+            return False
+        if "dataId" in fact or "text" in fact:
+            return False
+        action_ids.add(action_id)
+    return len(action_ids) == 2
+
+
+def _is_title_action_plan(facts: Any) -> bool:
+    """确认标题加单动作变体只保留可见标题事实。"""
+    if not isinstance(facts, list) or len(facts) not in {1, 2}:
+        return False
+    action_ids: set[str] = set()
+    title_count = 0
+    for fact in facts:
+        if not isinstance(fact, dict):
+            return False
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id:
+            if "dataId" in fact or "text" in fact:
+                return False
+            action_ids.add(action_id)
+            continue
+        if not _is_title_fact(fact):
+            return False
+        title_count += 1
+    return len(action_ids) == 1 and title_count <= 1
+
+
+def _is_title_fact(fact: dict[str, Any]) -> bool:
+    """标题事实可由明确角色或首选标题组件标识。"""
+    if "actionId" in fact or "dataId" in fact:
+        return False
+    text = fact.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return False
+    if fact.get("displayRole") == "title":
+        return True
+    component_hints = fact.get("componentHints")
+    return isinstance(component_hints, list) and component_hints[:1] == ["SingleLineTitle"]
 
 
 def collect_plan_contract_errors(
@@ -215,6 +271,11 @@ def _collect_plan_asset_assignment_errors(
         for component in components
         if component.component_type in _BUTTON_COMPONENT_TYPES
     ]
+    overflow_action_ids = compact_plan_overflow_action_ids(
+        components,
+        compact_plan,
+        task_spec,
+    )
     action_assignments = assignments.get("actions")
     if isinstance(action_assignments, list):
         for assignment in action_assignments:
@@ -230,10 +291,23 @@ def _collect_plan_asset_assignment_errors(
             handler = event_handlers.get(action_id)
             if handler is None:
                 continue
+            item_detail = False
+            for component in components:
+                if component.component_type != "EventCard":
+                    continue
+                for item_handler in event_card_item_handlers(component.props):
+                    if event_handlers_match(item_handler, handler):
+                        item_detail = True
+            if item_detail:
+                if assignment.get("assetId") is not None:
+                    errors.append("EventCard item detail must not reserve a button icon.")
+                continue
             matching_buttons = [
                 button for button in buttons if _component_uses_handler(button, handler)
             ]
             if not matching_buttons:
+                if action_id in overflow_action_ids:
+                    continue
                 errors.append(
                     f"assetAssignments action {action_id!r} has no matching button component."
                 )
@@ -481,21 +555,7 @@ def _asset_sources_by_id(task_spec: dict[str, Any]) -> dict[str, str]:
 
 
 def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    result: dict[str, dict[str, Any]] = {}
-    candidates = task_spec.get("eventCandidates")
-    if not isinstance(candidates, list):
-        return result
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        identifier = candidate.get("id")
-        call = candidate.get("call")
-        args = candidate.get("args")
-        valid_identifier = isinstance(identifier, str)
-        valid_handler = isinstance(call, str) and isinstance(args, dict)
-        if valid_identifier and valid_handler:
-            result[identifier] = {"call": call, "args": args}
-    return result
+    return plan_action_handlers(task_spec)
 
 
 def _component_uses_handler(component: ComponentRow, handler: dict[str, Any]) -> bool:

@@ -16,10 +16,11 @@ from services.validator import ArtifactValidator
 from test_photo_asset_delivery import artifact
 from test_photo_background_fallback import node_by_id
 from test_uniform_photo_eligibility import ACTION, PATHS, choose, evidence, rejection, sample
+from theme_preference_samples import preference, reply
 
 A19 = "photo-ux-digital-wave-wide"
-WAVE = "photo-ux-wave-wide"
-FUZZY = "photo-ux-fuzzy-wide"
+WAVE = "photo-ux-mountain-sunset-lake-wide"
+FUZZY = "photo-ux-pink-sunset-lake-wide"
 GRADIENT = "photo-ux-gradient-wide"
 BLUE = "photo-ux-texture-blue-diamond-wide"
 PURPLE = "photo-ux-texture-purple-diagonal-wide"
@@ -122,9 +123,10 @@ def test_only_approved_wide_configs_use_main_focus_and_circle_enablement_is_unch
             flexible.append(item.get("id"))
             assert item.get("size") == "2x4"
             assert item.get("pool") == "photos" and item.get("id") in {
-                A19, WAVE, FUZZY, GRADIENT,
+                A19, WAVE, FUZZY, GRADIENT, "photo-ux-cumulus-blue-wide",
+                "photo-ux-wave-wide", "photo-ux-fuzzy-wide",
             }
-    assert len(flexible) == 4
+    assert len(flexible) == 7
     for item in registry.registered_themes("texturePhotos", include_disabled=True):
         assert "wideLayout" not in item.get("contentEligibility", {})
         if item.get("id", "").endswith("circles-wide"):
@@ -160,7 +162,7 @@ def test_square_photos_still_stop_at_three_lines(identity, business):
 
 @pytest.mark.parametrize("layout", ["W-split-panels", "W-four-slots"])
 @pytest.mark.parametrize("business", ["weather", "countdown"])
-def test_subject_rejects_split_and_grid_but_abstract_uses_total_lines(
+def test_split_and_grid_select_ice_for_weather_otherwise_check_abstract_total_lines(
     monkeypatch, layout, business,
 ):
     path = PATHS.get(business)
@@ -185,7 +187,10 @@ def test_subject_rejects_split_and_grid_but_abstract_uses_total_lines(
     rows.append([path, "29"])
     saved = expanded(rows, {"size": "2x4", "userQuery": "天气", "appVersion": "99.0.0"})
     _, audit = choose(saved, monkeypatch)
-    if layout == "W-split-panels":
+    if business == "weather":
+        assert audit.get("candidates") == ["photo-ux-ice-wide"]
+        assert audit.get("themeId") == "photo-ux-ice-wide"
+    elif layout == "W-split-panels":
         assert all(identity.startswith("photo-ux-texture-")
                    for identity in audit.get("candidates", []))
         assert audit.get("themeId", "").startswith("photo-ux-texture-")
@@ -205,12 +210,21 @@ def test_top_primary_title_alone_is_not_a_main_focus(identity, business):
     assert rejection(expanded(rows, saved.task), identity)
 
 
-@pytest.mark.parametrize("query", ["使用融球效果", "不要背景图片", "使用纯色背景"])
-def test_explicit_user_theme_stays_above_new_photo_rules(monkeypatch, query):
+@pytest.mark.parametrize("query,value,operation", [
+    ("使用融球效果", "fusion", "prefer"),
+    ("不要背景图片", "photo", "avoid"),
+    ("使用纯色背景", "solid", "prefer"),
+])
+def test_explicit_user_theme_stays_above_new_photo_rules(monkeypatch, query, value, operation):
     saved = focus_sample()
     saved.task["userQuery"] = query
-    _, audit = choose(saved, monkeypatch)
+    items = [preference("backgroundKind", value, query, operation)]
+    _, audit = choose(saved, monkeypatch, reply(items))
     assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
+    if value == "fusion":
+        assert audit.get("theme", {}).get("kind") == "gradient"
+        assert audit.get("unmetPreferences") == items
+        assert audit.get("preferenceWarning")
 
 
 @pytest.mark.parametrize("identity,business", [(A19, "calendar"), (WAVE, "weather"),
@@ -222,7 +236,9 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
     if identity == ORANGE:
         config = registry.load_theme_registry()
         for item in config.get("themes", []):
-            if item.get("id") == GRADIENT:
+            if item.get("id") in {
+                GRADIENT, "photo-ux-hourglass-wide", "photo-ux-glass-hourglass-wide",
+            }:
                 item["enabled"] = False
         monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
     saved = focus_sample(business, 1 if identity == ORANGE else 4, layout)
@@ -271,7 +287,14 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
         audit.get("theme", {}).get("remoteUrl")
     )
     styles = node_by_id(result.genui, "root").get("styles", {})
-    assert styles.get("backgroundColor") == "#FF8FADCC"
+    rgb = "000000" if identity == GRADIENT else "FFFFFF"
+    if identity == GRADIENT:
+        assert styles.get("backgroundColor") == "#FFE6E6E6"
+        assert styles.get("linearGradient") == {
+            "direction": "LeftBottom", "colors": [["#FFFFFFFF", 0], ["#FFE6E6E6", 1]],
+        }
+    else:
+        assert styles.get("backgroundColor") == "#FF1F1F99"
     nodes = themes.components(themes.decode(result.genui))
     backgrounds = []
     for node in nodes:
@@ -279,6 +302,6 @@ def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch
             backgrounds.append(node)
         if node.get("component") == "Text":
             assert node.get("styles", {}).get("fontColor") in {
-                "#FFFFFFFF", "#CCFFFFFF", "#99FFFFFF",
+                "#FF" + rgb, "#CC" + rgb, "#99" + rgb,
             }
     assert len(backgrounds) == 1

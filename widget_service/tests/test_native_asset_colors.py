@@ -117,8 +117,9 @@ def test_native_images_stay_unpainted_after_conversion_and_theme(
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
-def test_tintable_title_retains_runtime_color(size: str) -> None:
-    asset = _asset("battery_leaf_fill")
+@pytest.mark.parametrize("name", ["battery_leaf_fill", "ic_weather_monochrome"])
+def test_tintable_title_retains_runtime_color(size: str, name: str) -> None:
+    asset = _asset(name)
     src = asset.get("src")
     assert isinstance(src, str)
     task = {"size": size, "assetCandidates": [asset]}

@@ -1,0 +1,97 @@
+{
+  "content": {
+    "title": "今日运动情况",
+    "description": "展示今日步数、消耗热量、运动距离及最近一次运动训练信息",
+    "userQuery": "生成一张卡片展示今天的运动情况，包括今日步数、消耗热量、运动距离，以及最近一次运动训练的类型、时长和消耗热量。卡片规格为2x4。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.health.sportsRecord",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Health",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "huaweischeme://healthapp/router/openwith?address=com.huawei.health.h5.sports-record?h5pro=true&urlType=4&pName=com.huawei.health"
+          }
+        }
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_run",
+      "asset.emoji_calories_blue",
+      "asset.ic_sportsHealth_bule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020022611571"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "09b16011-79e8-4ae1-bf0b-710bd34815f1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "dataCapabilities": [
+    {
+      "id": "GetHealthAndSportSummary",
+      "parameters": {
+        "targetDayOffset": 0
+      },
+      "writeResultTo": "/data/healthSport"
+    }
+  ],
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "展示今日步数、消耗热量、运动距离及最近一次运动训练信息",
+  "assetCandidates": [
+    {
+      "id": "asset.emoji_run"
+    },
+    {
+      "id": "asset.emoji_calories_blue"
+    },
+    {
+      "id": "asset.ic_sportsHealth_bule"
+    }
+  ],
+  "userQuery": "生成一张卡片展示今天的运动情况，包括今日步数、消耗热量、运动距离，以及最近一次运动训练的类型、时长和消耗热量。卡片规格为2x4。",
+  "title": "今日运动情况",
+  "eventCapabilities": [
+    {
+      "id": "event.open.health.sportsRecord"
+    }
+  ]
+}

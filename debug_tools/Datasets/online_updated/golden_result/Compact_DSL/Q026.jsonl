@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":{"path":"/data/weather/current/temperatureText"},"secondaryText":{"path":"/data/weather/current/condition"}}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":"空气质量","secondaryText":{"path":"/data/weather/current/airQuality"}}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/airQuality","良"]

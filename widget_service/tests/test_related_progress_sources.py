@@ -10,8 +10,9 @@ from pydantic import ValidationError
 from api.schemas import GenerateWidgetCardRequest
 from models.capability import DataCapability
 from models.generation import CandidateDataBinding
-from services.card_validation import validate_card
+from services.card_validation import CompactDslValidationError, validate_card, validate_compact_dsl
 from services.card_validation.base import expression_references, read_pointer
+from services.card_validation.compact_validation.model_feedback import compact_issue_for_model
 from services.card_validation.compact_validation.semantic.bindings import (
     _compact_component_binding_errors,
 )
@@ -188,6 +189,85 @@ def test_registered_readout_cannot_borrow_another_numeric_metric():
     component = ComponentRow("line", "ProgressLine2", row[2], ())
     errors = _compact_component_binding_errors([component], schema)
     assert any("registered numeric source" in message for message in errors)
+
+
+def test_info_block_progress_feedback_names_registered_numeric_source():
+    source = "\n".join(
+        json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+        for row in (
+            ["root", "Column", {}, ["battery"]],
+            [
+                "battery",
+                "InfoBlock",
+                {
+                    "primaryText": {"path": "/data/battery/levelText"},
+                    "secondaryText": "未充电",
+                    "visual": {"type": "progressCircle", "icon": "battery.svg"},
+                },
+            ],
+            ["/data/battery/levelText", "60%"],
+            ["/data/battery/level", 60],
+        )
+    )
+    task_spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "battery": {
+                    "levelText": {
+                        "type": "string",
+                        "numericSource": "/data/battery/level",
+                    },
+                    "level": {"type": "integer"},
+                }
+            }
+        },
+        "assetCandidates": [],
+        "eventCandidates": [],
+    }
+
+    with pytest.raises(CompactDslValidationError) as captured:
+        validate_compact_dsl(
+            source,
+            task_spec=task_spec,
+            card_spec={"suggestSize": "2x4", "dataBindings": []},
+        )
+
+    diagnostic = next(
+        item
+        for item in captured.value.diagnostics
+        if item.code == "COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE"
+    )
+    assert diagnostic.actual == {
+        "path": "/data/battery/levelText",
+        "schemaType": "string",
+        "visualType": "progressCircle",
+    }
+    assert diagnostic.expected == {
+        "schemaTypes": ["integer", "number"],
+        "preserveVisual": True,
+        "unitProperty": "unit",
+        "numericSource": "/data/battery/level",
+        "numericSourceType": "integer",
+    }
+    assert diagnostic.fix_hint is not None
+    assert '{"path":"/data/battery/level"}' in diagnostic.fix_hint
+    assert 'visual.type:"progressCircle"' in diagnostic.fix_hint
+    assert 'unit:"%"' in diagnostic.fix_hint
+
+    feedback = compact_issue_for_model(
+        {
+            "stage": "validation",
+            "code": "COMPACT_DSL_VALIDATION_FAILED",
+            "message": captured.value.errors[0],
+            "compactDiagnostics": [diagnostic.to_payload()],
+        }
+    )
+    message = feedback.get("message")
+    assert isinstance(message, str)
+    assert "/data/battery/levelText" in message
+    assert "/data/battery/level" in message
+    assert "修改建议" in message
 
 
 def test_unregistered_formatted_readout_does_not_authorize_other_numeric_metric():

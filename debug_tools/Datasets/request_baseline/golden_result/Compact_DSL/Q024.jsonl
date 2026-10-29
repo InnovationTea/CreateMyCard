@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-primary-secondary-action"},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":"下一场日程","icon":"resources/base/media/icon_meeting.svg","fontSize":12}]
+["primary","EmphasisText",{"mainText":{"path":"/data/calendar/events/0/senderName"},"fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"重要日程 ","value":"{{ ${/data/calendar/events/0/importantEventType} ? '是' : '否' }}"},{"label":"提前提醒 ","value":"{{ ${/data/calendar/events/0/remindTime/0} + '分钟' }}"}],"fontSize":14}]
+["action","PillButton",{"label":"打开免打扰","icon":"resources/base/media/bell_slash_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"intelligent_scene_entry"}}]}]
+["/data/calendar/events/0/senderName","李四"]
+["/data/calendar/events/0/importantEventType",0]
+["/data/calendar/events/0/remindTime/0","15"]

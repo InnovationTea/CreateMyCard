@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"广州马拉松","icon":"resources/base/media/figure_run.svg","fontSize":12}]
+["content","Group",{"variant":"label-value"},["content_label","content_value"]]
+["content_label","SecondaryBody",{"items":[{"value":"距离开跑还有"}],"fontSize":14}]
+["content_value","EmphasizedData",{"value":{"path":"/data/countdown/countdownDays"},"unit":"天","fontSize":30}]
+["action","PillButton",{"label":"打开闹钟","icon":"resources/base/media/alarm_fill_1.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Clock","bundleName":"com.huawei.hmos.clock","abilityName":"com.huawei.hmos.clock.phone","uri":""}}]}]
+["/data/countdown/countdownDays",30]

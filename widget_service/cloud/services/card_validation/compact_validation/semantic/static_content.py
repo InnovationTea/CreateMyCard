@@ -286,8 +286,8 @@ def static_group_errors(
             return ["静态省略授权越界。"]
         fact = facts[index]
         protected = fact.get("protectedTexts") or fact.get("preserveVerbatim")
-        if fact.get("priority") != "should" or protected:
-            return ["COMPACT_STATIC_CORE_MISSING: 不能授权省略静态核心或受保护原文。"]
+        if protected:
+            return ["COMPACT_STATIC_CORE_MISSING: 不能授权省略受保护原文。"]
     object_count = sum(group.get("kind") == "object" for group in plan.get("contentGroups", []))
     objects, shared_groups_display = static_display_groups(
         source, attribute_objects=object_count > 1

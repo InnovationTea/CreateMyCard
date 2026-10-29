@@ -581,7 +581,7 @@
       "templateId": "ScheduleOverviewReminderSourceFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "沿用提醒详情 Full 的时间轴版式，展示日程发起人与提前提醒分钟数；不要求重要程度、更新时间或日程标题，不接收展示 Prop。",
+      "description": "沿用日程详情 Full 的上下分组版式，展示日程发起人与提前提醒分钟数；不要求重要程度、更新时间或日程标题，不接收展示 Prop。",
       "entry": "templates/schedule-detail-full.cardtpl",
       "primaryData": [
         "/events/0/senderName"
@@ -744,16 +744,15 @@
       "templateId": "ScheduleOverviewDateAllDayFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "日程日期与全天状态 Full：展示首项日期、标题及全天或非全天状态，无按钮。仅用于旧匹配失败后的 2x2 补充分支。",
+      "description": "日程日期与全天状态 Full：展示首项标题及全天或非全天状态，日期可选；完整输入保持原三项布局。仅用于旧匹配失败后的 2x2 无按钮补充分支。",
       "entry": "templates/schedule-additional-no-action-full.cardtpl",
       "primaryData": [
-        "/events/0/startDate",
         "/events/0/title"
       ],
       "secondaryData": [
         "/events/0/isAllDay"
       ],
-      "optionalData": []
+      "optionalData": ["/events/0/startDate"]
     },
     {
       "templateId": "ScheduleOverviewDateEndFull@1",
@@ -808,34 +807,31 @@
       "templateId": "ScheduleOverviewReminderDetailsWideFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "日程提醒详情 WideFull：完整展示首项邀请人、重要程度、提前提醒分钟数及数据更新时间，无按钮。仅用于旧匹配失败后的 2x4 补充分支。",
+      "description": "日程提醒详情 WideFull：展示首项邀请人、重要程度和提前提醒分钟数，更新时间可选；完整输入保持原四项布局。仅用于旧匹配失败后的 2x4 无按钮补充分支。",
       "entry": "templates/schedule-additional-no-action-full.cardtpl",
       "primaryData": [
         "/events/0/senderName"
       ],
       "secondaryData": [
         "/events/0/importantEventType",
-        "/events/0/remindTime/0",
-        "/updatedAt"
+        "/events/0/remindTime/0"
       ],
-      "optionalData": []
+      "optionalData": ["/updatedAt"]
     },
     {
       "templateId": "ScheduleOverviewDatedMeetingWideFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "日程日期详情 WideFull：完整展示首项日期、标题、开始时间、结束时间和地点，不代表逐条展示所有日程，无按钮。仅用于旧匹配失败后的 2x4 补充分支。",
+      "description": "日程日期详情 WideFull：展示首项标题、开始时间和地点，日期及结束时间可选；完整输入保持原五字段布局。不代表逐条展示所有日程，仅用于旧匹配失败后的 2x4 无按钮补充分支。",
       "entry": "templates/schedule-additional-no-action-full.cardtpl",
       "primaryData": [
-        "/events/0/startDate",
         "/events/0/title"
       ],
       "secondaryData": [
         "/events/0/dtStart",
-        "/events/0/dtEnd",
         "/events/0/eventLocation"
       ],
-      "optionalData": []
+      "optionalData": ["/events/0/startDate", "/events/0/dtEnd"]
     },
     {
       "templateId": "ScheduleOverviewDateLocationTimeFull@1",
@@ -951,6 +947,74 @@
       "entry": "templates/schedule-richeng3-no-action-full.cardtpl",
       "primaryData": ["/events/0/title", "/events/0/dtStart"],
       "secondaryData": ["/events/0/startDate", "/events/0/countdownDays", "/events/0/remindTime/0"],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewDateAllDayWideFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "单项日期标题全天 WideFull：复用日期全天分组，无按钮；仅用于旧匹配失败的宽卡，不代表完整列表。",
+      "entry": "templates/schedule-calendar-fail-full.cardtpl",
+      "primaryData": ["/events/0/title"],
+      "secondaryData": ["/events/0/startDate", "/events/0/isAllDay"],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewTwoEventsWideFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "双日程时间 WideFull：完整展示两个真实索引的开始时间，标题、结束时间、地点可选；仅在旧匹配失败且两项字段角色对称完整时准入，无按钮。",
+      "entry": "templates/schedule-calendar-fail-full.cardtpl",
+      "primaryData": ["/events/0/dtStart", "/events/1/dtStart"],
+      "secondaryData": [],
+      "optionalData": [
+        "/events/0/title", "/events/0/dtEnd", "/events/0/eventLocation",
+        "/events/1/title", "/events/1/dtEnd", "/events/1/eventLocation"
+      ]
+    },
+    {
+      "templateId": "ScheduleOverviewLocationDescriptionEndWideFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程备注结束地点 WideFull：复用原三字段 Full 的主辅分组，不要求日期或标题；仅用于旧匹配失败的无按钮宽卡，不承诺备注全文。",
+      "entry": "templates/schedule-calendar-fail-full.cardtpl",
+      "primaryData": ["/events/0/description"],
+      "secondaryData": ["/events/0/dtEnd", "/events/0/eventLocation"],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewAllDayLocationWideFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程全天地点 WideFull：全天状态和地点必需，标题与时区可选；仅用于旧匹配失败的无按钮宽卡，不从异地措辞补造时区。",
+      "entry": "templates/schedule-calendar-fail-full.cardtpl",
+      "primaryData": ["/events/0/isAllDay"],
+      "secondaryData": ["/events/0/eventLocation"],
+      "optionalData": ["/events/0/title", "/events/0/timeZone"]
+    },
+    {
+      "templateId": "ScheduleOverviewEventCountThreeDetailsWideFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "三条日程数量详情 WideFull：总数及三条日程各自标题、开始时间、备注；仅用于旧匹配失败且三项索引完整的列表，无按钮，不承诺备注全文。",
+      "entry": "templates/schedule-calendar-fail-full.cardtpl",
+      "primaryData": ["/eventCount"],
+      "secondaryData": [
+        "/events/0/title", "/events/0/dtStart", "/events/0/description",
+        "/events/1/title", "/events/1/dtStart", "/events/1/description",
+        "/events/2/title", "/events/2/dtStart", "/events/2/description"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewTitleLocationHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程标题地点 Hero：复用地点 Support 视觉，仅用于旧匹配失败后的 2x4 日程天气无动作双 Hero 组合。",
+      "entry": "templates/schedule-calendar-fail-full.cardtpl",
+      "supportedCardSizes": ["2x4"],
+      "primaryData": ["/events/0/title"],
+      "secondaryData": ["/events/0/eventLocation"],
       "optionalData": []
     }
   ],

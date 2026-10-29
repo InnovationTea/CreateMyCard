@@ -29,7 +29,7 @@
       }
     ],
     "title": "旅途倒计时",
-    "size": "2x2",
+    "size": "2x4",
     "candidateEventCandidates": [
       {
         "capabilityId": "event.call.phone",
@@ -47,7 +47,7 @@
     "description": "石家庄出发倒计时、目的地天气与空气质量，点击拨号。",
     "candidateAssetIds": [
       "asset.ic_calender",
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.phone_fill"
     ]
   },
@@ -109,7 +109,7 @@
     }
   ],
   "title": "旅途倒计时",
-  "size": "2x2",
+  "size": "2x4",
   "candidateEventCandidates": [
     {
       "capabilityId": "event.call.phone",
@@ -127,7 +127,7 @@
   "description": "石家庄出发倒计时、目的地天气与空气质量，点击拨号。",
   "candidateAssetIds": [
     "asset.ic_calender",
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.phone_fill"
   ]
 }

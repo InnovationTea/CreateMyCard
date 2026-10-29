@@ -363,12 +363,140 @@ def _matching_plan_facts(item: Any, plan: dict[str, Any] | None) -> list[dict[st
     return matched
 
 
-def bounded_component_capacity_contexts(
-    source: str,
-    quality_errors: list[dict[str, Any]] | tuple[str, ...],
+def _compact_diagnostics(quality_errors: list[Any] | tuple[Any, ...]) -> list[dict[str, Any]]:
+    """兼容直接诊断与 issue.promptContext 中的结构化诊断。"""
+    diagnostics: list[dict[str, Any]] = []
+    for issue in quality_errors:
+        if not isinstance(issue, dict):
+            continue
+        if isinstance(issue.get("actual"), dict):
+            diagnostics.append(issue)
+        nested = issue.get("compactDiagnostics")
+        if not isinstance(nested, list):
+            continue
+        for diagnostic in nested:
+            if isinstance(diagnostic, dict):
+                diagnostics.append(diagnostic)
+    return diagnostics
+
+
+def _height_capacity_evidence(
+    quality_errors: list[Any] | tuple[Any, ...],
+) -> list[dict[str, Any]]:
+    evidence_by_component: dict[str, dict[str, Any]] = {}
+    for diagnostic in _compact_diagnostics(quality_errors):
+        if diagnostic.get("code") != "COMPACT_LAYOUT_HEIGHT_OVERFLOW":
+            continue
+        actual = diagnostic.get("actual")
+        fits = actual.get("secondaryBodyFits") if isinstance(actual, dict) else None
+        if not isinstance(fits, list):
+            continue
+        for fit in fits:
+            if not isinstance(fit, dict):
+                continue
+            component_id = fit.get("componentId")
+            retained_count = fit.get("maxRetainedRowCount")
+            if not isinstance(component_id, str) or not isinstance(retained_count, int):
+                continue
+            previous = evidence_by_component.get(component_id)
+            previous_count = None if previous is None else previous.get("maxRetainedRowCount")
+            if isinstance(previous_count, int) and previous_count <= retained_count:
+                continue
+            evidence_by_component[component_id] = fit
+    return list(evidence_by_component.values())
+
+
+def _indexed_items(
+    items: list[Any],
+    indexes: Any,
     plan: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """为固定 items 上限生成修复证据；不改变校验或授权省略事实。"""
+    payloads: list[dict[str, Any]] = []
+    if not isinstance(indexes, list):
+        return payloads
+    for index in indexes:
+        if isinstance(index, bool) or not isinstance(index, int):
+            continue
+        if not 0 <= index < len(items):
+            continue
+        item = items[index]
+        payloads.append(
+            {
+                "itemIndex": index,
+                "value": copy.deepcopy(item),
+                "planFacts": _matching_plan_facts(item, plan),
+            }
+        )
+    return payloads
+
+
+def _secondary_body_height_contexts(
+    components: dict[str, dict[str, Any]],
+    quality_errors: list[Any] | tuple[Any, ...],
+    plan: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    contexts: list[dict[str, Any]] = []
+    for evidence in _height_capacity_evidence(quality_errors):
+        component_id = evidence.get("componentId")
+        component = components.get(component_id)
+        if component is None or component.get("type") != "SecondaryBody":
+            continue
+        props = component.get("props")
+        items = props.get("items") if isinstance(props, dict) else None
+        if not isinstance(items, list):
+            continue
+        directly_fits = _indexed_items(
+            items,
+            evidence.get("directlyFitsItemIndexes"),
+            plan,
+        )
+        does_not_fit = _indexed_items(
+            items,
+            evidence.get("doesNotFitItemIndexes"),
+            plan,
+        )
+        if not does_not_fit:
+            continue
+        overflow_fact_indexes: set[int] = set()
+        for item in does_not_fit:
+            for fact in item["planFacts"]:
+                fact_index = fact.get("factIndex")
+                if isinstance(fact_index, int) and not isinstance(fact_index, bool):
+                    overflow_fact_indexes.add(fact_index)
+        contexts.append(
+            {
+                "componentId": component_id,
+                "componentType": "SecondaryBody",
+                "actualItemCount": len(items),
+                "actualRowCount": evidence.get("actualRowCount"),
+                "maxRetainedRowCount": evidence.get("maxRetainedRowCount"),
+                "effectiveColumnCount": evidence.get("effectiveColumnCount"),
+                "rowHeights": copy.deepcopy(evidence.get("rowHeights")),
+                "rowSpacing": evidence.get("rowSpacing"),
+                "parentId": evidence.get("parentId"),
+                "parentAvailableHeight": evidence.get("parentAvailableHeight"),
+                "directlyFits": directly_fits,
+                "doesNotFit": does_not_fit,
+                "overflowItemCount": len(does_not_fit),
+                "overflowFactCount": len(overflow_fact_indexes),
+                "scope": "currentComponentItemsOnly",
+                "instruction": (
+                    "父区域剩余高度结合当前列分组、展开后行高和行间距，只能保留 "
+                    "maxRetainedRowCount 行；doesNotFit 是当前组件中无法容纳的条目。"
+                    "该切分不是省略授权；只有 repairStrategy.optionalDrop 或 "
+                    "approvedOmissions 明确列出的非 Action 事实才允许删除。"
+                ),
+            }
+        )
+    return contexts
+
+
+def bounded_component_capacity_contexts(
+    source: str,
+    quality_errors: list[Any] | tuple[Any, ...],
+    plan: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """生成条目容量修复证据；不改变校验或授权省略事实。"""
     messages: list[str] = []
     for issue in quality_errors:
         if isinstance(issue, dict):
@@ -376,18 +504,12 @@ def bounded_component_capacity_contexts(
         else:
             messages.append(str(issue))
     message_text = "\n".join(messages).lower()
-    contexts: list[dict[str, Any]] = []
-    for line in source.splitlines():
-        try:
-            row = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(row, list) or len(row) < 3:
-            continue
-        component_id = row[0]
-        component_type = row[1]
-        props = row[2]
-        if not isinstance(component_id, str) or not isinstance(component_type, str):
+    components = _source_component_rows(source)
+    contexts = _secondary_body_height_contexts(components, quality_errors, plan)
+    for component_id, component in components.items():
+        component_type = component.get("type")
+        props = component.get("props")
+        if not isinstance(component_type, str):
             continue
         limits = _BOUNDED_ITEM_COMPONENTS.get(component_type)
         if limits is None or not isinstance(props, dict):

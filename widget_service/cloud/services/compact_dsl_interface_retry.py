@@ -10,6 +10,7 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelGenerationError
 from models.generation import CompactDslRetryContext
 from services.artifact_store import ArtifactUploadError
+from services.generation_input_feedback import MissingDataInputError
 from services.generation_trace_recorder import (
     trace_attempt,
     trace_increment_retry,
@@ -85,11 +86,14 @@ async def run_compact_dsl_with_retry(
                 attempt_request = snapshot.model_copy(deep=True) if enabled else snapshot
                 attempt_request._compact_dsl_retry_context = retry_context
                 result = await operation(attempt_request)
+            except MissingDataInputError:
+                raise
             except (
                 A2UIModelGenerationError,
                 ArtifactUploadError,
                 TimeoutError,
                 ConnectionError,
+                ValueError,
             ) as exc:
                 reason = type(exc).__name__
                 attempt_span.outcome("failed", exceptionType=reason)

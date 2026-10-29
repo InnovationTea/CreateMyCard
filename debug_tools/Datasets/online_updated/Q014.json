@@ -39,7 +39,7 @@
     ],
     "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打12345。",
     "candidateAssetIds": [
-      "asset.ic_weather_color"
+      "asset.ic_weather_monochrome"
     ]
   },
   "deviceInfo": {
@@ -110,6 +110,6 @@
   ],
   "description": "显示位置、实时温度、天气变化和空气质量，可一键拨打12345。",
   "candidateAssetIds": [
-    "asset.ic_weather_color"
+    "asset.ic_weather_monochrome"
   ]
 }

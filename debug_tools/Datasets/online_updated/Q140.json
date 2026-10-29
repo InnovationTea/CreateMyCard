@@ -1,0 +1,167 @@
+{
+  "content": {
+    "title": "蓝牙耳机音乐卡片",
+    "description": "快速听歌，实时查看耳机电量与状态",
+    "userQuery": "生成一个连接蓝牙快速听歌的卡片，能实时显示耳机电量和状态，还可以播放本地音乐的每日推荐和收藏歌单。\n\n本轮卡片静态内容（用作展示的外部事实）：\n耳机状态数据通过蓝牙连接获取，支持显示耳机名称、左右耳及耳机盒电量百分比和充电状态。注意：本能力仅支持蓝牙连接，不支持星闪连接；非华为耳机设备只能查询到名称，其它信息无法获取。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL00B 7.1.0.17",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName",
+          "/batteryLevel",
+          "/chargingStatusDesc",
+          "/leftBatteryLevel",
+          "/leftChargingStatusDesc",
+          "/rightBatteryLevel",
+          "/rightChargingStatusDesc"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "bluetooth",
+              "switchFlag": 0
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.setBluetoothMode"
+      },
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.daily"
+      },
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.favorite"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_bluetooth_earbuds_black",
+      "asset.emoji_music"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020084329940"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "4fb9b9ec-bb41-48e6-bb7e-a04490cbaaee"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL00B 7.1.0.17",
+  "candidateAssetIds": [
+    "asset.emoji_bluetooth_earbuds_black",
+    "asset.emoji_music"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "bluetooth",
+            "switchFlag": 0
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.setBluetoothMode"
+    },
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.daily"
+    },
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.favorite"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "快速听歌，实时查看耳机电量与状态",
+  "userQuery": "生成一个连接蓝牙快速听歌的卡片，能实时显示耳机电量和状态，还可以播放本地音乐的每日推荐和收藏歌单。\n\n本轮卡片静态内容（用作展示的外部事实）：\n耳机状态数据通过蓝牙连接获取，支持显示耳机名称、左右耳及耳机盒电量百分比和充电状态。注意：本能力仅支持蓝牙连接，不支持星闪连接；非华为耳机设备只能查询到名称，其它信息无法获取。",
+  "title": "蓝牙耳机音乐卡片",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc"
+      ],
+      "capabilityId": "GetEarphoneInfo",
+      "writeResultTo": "/data/earphone"
+    }
+  ]
+}

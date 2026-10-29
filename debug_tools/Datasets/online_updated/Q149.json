@@ -1,0 +1,79 @@
+{
+  "content": {
+    "title": "滨江天气",
+    "description": "杭州滨江天气速览",
+    "userQuery": "做一张杭州滨江区天气卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日杭州市滨江区小雨转多云，气温15℃~21℃，当前温度19℃，西北风3级，空气质量优",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "滨江区",
+          "forecastDays": 1,
+          "prefectureName": "杭州市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261021095544143"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "84f02a17-6fd5-40d4-959f-fc97ed67e0c6"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "杭州滨江天气速览",
+  "userQuery": "做一张杭州滨江区天气卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日杭州市滨江区小雨转多云，气温15℃~21℃，当前温度19℃，西北风3级，空气质量优",
+  "title": "滨江天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "滨江区",
+        "forecastDays": 1,
+        "prefectureName": "杭州市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

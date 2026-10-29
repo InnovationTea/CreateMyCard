@@ -1,0 +1,87 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "金州区天气速览",
+    "userQuery": "把天气预报放到主页面，做成桌面卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日大连市金州区多云转晴，气温10℃～16℃，北风4级，空气质量优。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "金州区",
+          "forecastDays": 1,
+          "prefectureName": "大连市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026023300413"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "cf0ca8ff-71c5-4070-84c0-e8462389c659"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "金州区天气速览",
+  "userQuery": "把天气预报放到主页面，做成桌面卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日大连市金州区多云转晴，气温10℃～16℃，北风4级，空气质量优。",
+  "title": "今日天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "金州区",
+        "forecastDays": 1,
+        "prefectureName": "大连市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/condition"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

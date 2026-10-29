@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-content-dual-action"},["sleep_summary","set_alarm","sleep_detail"]]
+["sleep_summary","EmphasisText",{"mainText":{"path":"/data/healthSport/nightSleepDurationText"},"secondaryText":"{{ '睡眠得分 ' + ${/data/healthSport/sleepScore} }}","fontSize":18}]
+["set_alarm","CardButton",{"label":"设置闹钟","icon":"resources/base/media/alarm_fill_1.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.clock.phone","bundleName":"com.huawei.hmos.clock","intentName":"Clock","uri":""}}]}]
+["sleep_detail","CardButton",{"label":"睡眠详情","icon":"resources/base/media/moon_z_fill_1.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Health","uri":"huaweischeme://healthapp/router/sleepDetail"}}]}]
+["/data/healthSport/nightSleepDurationText","7小时1分"]
+["/data/healthSport/sleepScore",82]

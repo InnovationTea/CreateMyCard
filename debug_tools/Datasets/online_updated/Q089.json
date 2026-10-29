@@ -44,7 +44,7 @@
     "candidateEventCandidates": [],
     "description": "展示当天时间与今日日程。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.calendar_fill"
     ]
   },
@@ -121,7 +121,7 @@
   "candidateEventCandidates": [],
   "description": "展示当天时间与今日日程。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.calendar_fill"
   ]
 }

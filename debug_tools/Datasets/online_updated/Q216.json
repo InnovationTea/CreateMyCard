@@ -1,0 +1,139 @@
+{
+  "content": {
+    "title": "实时天气",
+    "description": "天气实时观察",
+    "userQuery": "帮我生成一个实时观察的天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话。\n\n本轮卡片静态内容（用作展示的外部事实）：\n当前用户位于浙江省杭州市滨江区，天气卡片将展示当前位置的实时天气信息。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HOP-AL00 7.0.0.105",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "滨江区",
+          "forecastDays": 3,
+          "prefectureName": "杭州市"
+        },
+        "candidateOutputFields": [
+          "/location/prefectureName",
+          "/location/districtName",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/airQuality",
+          "/current/humidityPercent",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/condition",
+          "/daily/2/temperatureRangeText"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi"
+        },
+        "capabilityId": "event.call.phone"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome",
+      "asset.ic_call_bule",
+      "asset.emoji_location_blue",
+      "asset.ic_purification"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "ohos",
+    "prdVer": "11.7.8.303",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023063927288"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "13",
+    "isNew": false,
+    "sessionId": "a2943b93-b18d-49e9-99ac-9f8694f77cb1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HOP-AL00 7.0.0.105",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome",
+    "asset.ic_call_bule",
+    "asset.emoji_location_blue",
+    "asset.ic_purification"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": ""
+          }
+        },
+        "call": "clickToApi"
+      },
+      "capabilityId": "event.call.phone"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "天气实时观察",
+  "userQuery": "帮我生成一个实时观察的天气卡片，显示位置、实时温度、天气变化、空气质量等，并且可以一键拨打电话。\n\n本轮卡片静态内容（用作展示的外部事实）：\n当前用户位于浙江省杭州市滨江区，天气卡片将展示当前位置的实时天气信息。",
+  "title": "实时天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "滨江区",
+        "forecastDays": 3,
+        "prefectureName": "杭州市"
+      },
+      "candidateOutputFields": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/current/humidityPercent",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/condition",
+        "/daily/2/temperatureRangeText"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

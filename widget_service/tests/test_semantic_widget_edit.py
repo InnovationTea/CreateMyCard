@@ -270,6 +270,132 @@ def _request(**kwargs):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("language", ["json", "JSON", "jsonl", "genui", ""])
+async def test_complete_edit_fences_work_without_repair(edit_run, monkeypatch, language):
+    """真实编辑编排的意图和执行均允许完整外包装，不消耗修复预算。"""
+    monkeypatch.setattr(get_settings(), "widget_edit_max_repair_attempts", 0)
+    generate = A2UIModelClient.generate
+
+    async def fenced(client, *args, **kwargs):
+        output = await generate(client, *args, **kwargs)
+        return f" \n```{language}\r\n{output}\r\n```\n "
+
+    monkeypatch.setattr(A2UIModelClient, "generate", fenced)
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(edit_run.saved) == 1
+    assert [phase for phase, _ in edit_run.calls] == ["edit_intent", "edit_execute"]
+
+
+@pytest.fixture
+def edit_logs(monkeypatch):
+    records = []
+    monkeypatch.setattr(widget_edit_service.logger, "log", lambda level, message: records.append(
+        (level, message),
+    ))
+    return records
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("raw", [
+    '```json\n{"outcome":"ready"}',
+    '{"outcome":"ready"}\n```',
+    '说明\n```json\n{}\n```',
+    '```json\n{}\n```\n说明',
+    '```json\n{}\n```\n```json\n{}\n```',
+    '```json\n{"outcome":"ready","outcome":"unchanged"}\n```',
+    '```json\n{"outcome":}\n```',
+])
+async def test_invalid_edit_envelopes_keep_strict_checks(
+    edit_run, edit_logs, monkeypatch, raw,
+):
+    monkeypatch.setattr(get_settings(), "widget_edit_max_repair_attempts", 0)
+
+    async def invalid(*_args, **_kwargs):
+        return raw
+
+    monkeypatch.setattr(A2UIModelClient, "generate", invalid)
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert response.errorCode == ErrorCode.WIDGET_EDIT_INVALID.value
+    assert not edit_run.saved
+    failures = [message for _, message in edit_logs if "intent_validation_failed" in message]
+    assert len(failures) == 1
+    details = json.loads(failures[0].split(" details=", 1)[1])
+    assert details.get("attempt") == 1
+    assert details.get("maxAttempts") == 1
+    assert details.get("willRetry") is False
+    assert details.get("exceptionType") in {"JSONDecodeError", "ValueError"}
+    assert details.get("reason")
+    assert any("[Widget Edit] validation_failed" in message for _, message in edit_logs)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("budget", [0, 2])
+async def test_edit_logs_report_execution_budget_and_result(
+    edit_run, edit_logs, monkeypatch, source, budget,
+):
+    monkeypatch.setattr(get_settings(), "widget_edit_max_repair_attempts", budget)
+    edit_run.outputs = ["{}", json.dumps(_patch(source))]
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    failures = [message for _, message in edit_logs if "execute_validation_failed" in message]
+    assert len(failures) == 1
+    details = json.loads(failures[0].split(" details=", 1)[1])
+    assert details.get("maxAttempts") == budget + 1
+    assert details.get("willRetry") is (budget > 0)
+    assert details.get("errors")
+    for _, message in edit_logs:
+        assert "\n" not in message
+        assert _request().sourceArtifactUrl not in message
+    if budget:
+        assert response.status == GenerationStatus.SUCCESS
+        assert len(edit_run.calls) == 3
+        assert any("[Widget Edit] completed" in message for _, message in edit_logs)
+    else:
+        assert response.errorCode == ErrorCode.WIDGET_EDIT_INVALID.value
+        assert not edit_run.saved
+
+
+def test_edit_schema_error_log_omits_input_values():
+    with pytest.raises(ValueError) as caught:
+        EditIntent.model_validate({"explanation": "", "targetSize": "private-input"})
+    details = widget_edit_service._exception_details(caught.value)
+    assert details.get("exceptionType") == "ValidationError"
+    reason = details.get("reason")
+    assert isinstance(reason, str)
+    assert "private-input" not in reason
+    errors = json.loads(reason)
+    assert errors
+    for error in errors:
+        assert "input" not in error
+
+
+@pytest.mark.asyncio
+async def test_intent_parse_failure_logs_reason_then_repairs(edit_run, edit_logs, monkeypatch):
+    generate = A2UIModelClient.generate
+    intent_calls = 0
+
+    async def invalid_then_valid(client, *args, **kwargs):
+        nonlocal intent_calls
+        if kwargs.get("phase") == "edit_intent":
+            intent_calls += 1
+            if intent_calls == 1:
+                return '```json\n{"outcome":}\n```'
+        return await generate(client, *args, **kwargs)
+
+    monkeypatch.setattr(A2UIModelClient, "generate", invalid_then_valid)
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request())
+    assert response.status == GenerationStatus.SUCCESS
+    assert intent_calls == 2
+    failures = [message for _, message in edit_logs if "intent_validation_failed" in message]
+    assert len(failures) == 1
+    details = json.loads(failures[0].split(" details=", 1)[1])
+    assert details.get("exceptionType") == "JSONDecodeError"
+    assert details.get("willRetry") is True
+    assert details.get("maxAttempts") == 3
+    assert any("intent_accepted" in message for _, message in edit_logs)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("entry", [
     "generate_widget_card_compact_dsl", "generate_widget_card_a2ui_form",
     "generate_widget_card_terse_dsl_nested2",
@@ -538,7 +664,7 @@ def test_default_semantic_edit_and_budget_are_independent_from_creation():
 
     settings = Settings(_env_file=None)
     assert settings.enable_semantic_widget_edit is True
-    assert settings.widget_edit_max_repair_attempts == 2
+    assert settings.widget_edit_max_repair_attempts == 3
 
 
 def test_noop_does_not_ignore_explicit_size_change(source):

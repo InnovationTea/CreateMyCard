@@ -15,6 +15,7 @@ from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.prompt_builder import PromptBuilder
 from services.theme_content_regions import photo_layout_evidence
 from services.theme_style_roles import layout_phase
+from theme_preference_samples import preference, reply
 
 QUERY = "生成一个提醒按时睡觉的卡片，监测睡眠状况，显示睡眠时长，并可快速设置闹钟提醒"
 ACTION = {
@@ -127,16 +128,16 @@ def test_sleep_reminder_expands_violet_without_photo_or_foreground_change(
     compact = sleep_layout()
     with layout_phase():
         source = convert_compact_dsl_to_a2ui(compact, size="2x2")
-    client = SimpleNamespace(generate=AsyncMock(
-        return_value='{"themeId":"fusion-ball-sleep-violet"}'
-    ))
+    items = [preference("backgroundKind", "photo", "不要图片", "avoid")] if photos_enabled else []
+    response = reply(items, "fusion-ball-sleep-violet")
+    client = SimpleNamespace(generate=AsyncMock(return_value=response))
     final, audit = asyncio.run(themes.select_theme(source, task, client, final_layout=compact))
     assert audit.get("themeId") == "fusion-ball-sleep-violet"
     assert audit.get("selectorError") is None
     assert "fusion-ball-schedule-blue" not in audit.get("candidates", [])
     if photos_enabled:
         reason = audit.get("rejected", {}).get("photo-ux-sleep-square")
-        assert reason == "用户明确其它主题或不要图片"
+        assert reason == "不满足用户结构化主题偏好：backgroundKind"
     assert themes.foreground_signature(source) == themes.foreground_signature(final)
     nodes = themes.components(themes.decode(final))
     by_id = {node.get("id"): node for node in nodes}

@@ -68,7 +68,8 @@ def _rows(task: dict, variant: str | None = "actions-only") -> list:
         assert isinstance(params, dict)
         params["switchFlag"] = 1
         rows.append([name, "CardButton", {
-            "label": name, "icon": f"resources/base/media/{name}.svg",
+            "label": "Wi-Fi" if name == "wlan" else "蓝牙",
+            "icon": f"resources/base/media/{name}.svg",
             "fillColor": "#FF1F4799",
             "onClick": [{"call": candidate.get("call"), "args": args}],
         }])
@@ -101,6 +102,17 @@ def test_pure_actions_validate_convert_and_preserve_flag(variant: str | None) ->
         "data": [], "event": task.get("eventCandidates"), "asset": task.get("assetCandidates"),
     })
     assert not report.has_code("EFFECTIVE_EVENT_NOT_ALLOWED")
+
+
+def test_pure_actions_still_reject_overlong_button_label() -> None:
+    task = _task()
+    rows = _rows(task)
+    rows[2][2]["label"] = "bluetooth"
+    with pytest.raises(CompactDslValidationError, match="at most 5 visible characters"):
+        validate_compact_dsl(
+            _source(rows), task_spec=task, card_spec={"suggestSize": "2x2"},
+            compact_plan=_plan(task),
+        )
 
 
 @pytest.mark.parametrize("case", ["missing_plan", "display_fact", "duplicate_action"])

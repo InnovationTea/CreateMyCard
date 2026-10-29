@@ -24,6 +24,7 @@ from services.card_validation.compact_validation.semantic.cross_file import (
     _unused_data_capability_warnings,
 )
 from services.card_validation.compact_validation.semantic.display import (
+    _collect_action_label_length_errors,
     _collect_ambiguous_metric_text_errors,
     _collect_compound_duration_component_errors,
     _collect_progress_readout_object_errors,
@@ -34,6 +35,9 @@ from services.card_validation.compact_validation.semantic.display import (
 from services.card_validation.compact_validation.semantic.effective import (
     _collect_asset_source_errors,
     _collect_model_asset_source_errors,
+)
+from services.card_validation.compact_validation.semantic.event_items import (
+    collect_event_item_errors,
 )
 from services.card_validation.compact_validation.semantic.layout.assets import (
     _collect_asset_color_errors,
@@ -165,8 +169,16 @@ def validate_compact_dsl(
     if enforce_model_component_types:
         collect_secondary_body_context_errors(components, binding_contract_errors)
     _collect_compound_duration_component_errors(components, task_spec, binding_contract_errors)
+    collect_event_item_errors(components, task_spec, binding_contract_errors)
     if binding_contract_errors:
-        raise CompactDslValidationError([*layout_errors, *binding_contract_errors])
+        combined_errors = DiagnosticCollector()
+        combined_errors.extend(layout_errors)
+        for record in binding_contract_errors.records:
+            if isinstance(record, CompactDiagnostic):
+                combined_errors.emit(record)
+            else:
+                combined_errors.append(record)
+        raise _validation_error(combined_errors, context, repair_context)
     original_errors = DiagnosticCollector()
     from services.generation_content_policy import current_content_policy
 
@@ -179,6 +191,7 @@ def validate_compact_dsl(
             original_errors,
             allowed_omitted_fact_indexes,
         )
+    _collect_action_label_length_errors(components, original_errors)
     _collect_model_asset_source_errors(components, task_spec, original_errors)
     _collect_asset_color_errors(components, task_spec, original_errors)
     _collect_numeric_component_errors(components, task_spec, original_errors)

@@ -1,0 +1,117 @@
+{
+  "content": {
+    "title": "天气",
+    "description": "实时天气与拨号",
+    "userQuery": "生成一个天气卡片，显示实时温度和空气质量，还能一键打电话。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日武汉市洪山区阵雨转中雨，气温17℃~31℃，南风1级，空气质量良，武汉市气象台发布大风黄色预警信号，预计17日早晨至夜间有6到8级阵风，局地9级以上雷暴大风。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "洪山区",
+          "forecastDays": 1,
+          "prefectureName": "武汉市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/airQuality",
+          "/current/alertLevel"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "1388888888"
+            }
+          },
+          "call": "clickToApi"
+        },
+        "capabilityId": "event.call.phone"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome",
+      "asset.ic_purification",
+      "asset.phone_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261017080201171"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "8743a6b5-0248-45c2-9d18-d67ed4a6cf0f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome",
+    "asset.ic_purification",
+    "asset.phone_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "1388888888"
+          }
+        },
+        "call": "clickToApi"
+      },
+      "capabilityId": "event.call.phone"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "实时天气与拨号",
+  "userQuery": "生成一个天气卡片，显示实时温度和空气质量，还能一键打电话。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日武汉市洪山区阵雨转中雨，气温17℃~31℃，南风1级，空气质量良，武汉市气象台发布大风黄色预警信号，预计17日早晨至夜间有6到8级阵风，局地9级以上雷暴大风。",
+  "title": "天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "洪山区",
+        "forecastDays": 1,
+        "prefectureName": "武汉市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/current/alertLevel"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

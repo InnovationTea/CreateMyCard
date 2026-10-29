@@ -1,0 +1,87 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "展示今日温度与降雨情况的蓝色背景天气卡片",
+    "userQuery": "生成一个天气卡片，包含今天的温度和是否下雨，背景是蓝色的",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HOP-AL00 7.0.0.113",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HOP-AL00",
+    "prdVer": "11.7.8.341",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020115541526"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "892c4a10-e1e4-481f-b7d9-891831d417ee"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "assetCandidateIds": [
+    "asset.ic_weather_monochrome"
+  ],
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HOP-AL00 7.0.0.113",
+  "eventCapabilityIds": [
+    "event.open.weather"
+  ],
+  "description": "展示今日温度与降雨情况的蓝色背景天气卡片",
+  "userQuery": "生成一个天气卡片，包含今天的温度和是否下雨，背景是蓝色的",
+  "title": "今日天气",
+  "dataCapabilitySchemas": {
+    "ViewWeather": {
+      "districtName": "",
+      "forecastDays": 1,
+      "prefectureName": ""
+    }
+  },
+  "size": "2x2",
+  "bundleName": "com.huawei.genui",
+  "dataCapabilityIds": [
+    "ViewWeather"
+  ]
+}

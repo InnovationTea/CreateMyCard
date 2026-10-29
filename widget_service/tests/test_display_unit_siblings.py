@@ -127,3 +127,14 @@ def test_adjacent_duration_unit_is_still_checked(unit: str, unit_included: bool)
 
     assert not reporter.has_code("DISPLAY_UNIT_MISSING")
     assert reporter.has_code("DISPLAY_UNIT_DUPLICATED") is unit_included
+
+
+def test_static_trip_title_does_not_duplicate_countdown_unit() -> None:
+    reporter = _validate_siblings(
+        "{{ '杭州2天1晚秋日漫游 · 距离出发还有 ' + "
+        "${/data/countdown/countdownDays} + ' 天' }}",
+        [],
+    )
+
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING")
+    assert not reporter.has_code("DISPLAY_UNIT_DUPLICATED")

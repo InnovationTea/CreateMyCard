@@ -1,0 +1,91 @@
+{
+  "content": {
+    "title": "南京未来三天降雨概率",
+    "description": "南京未来三天降雨概率速览",
+    "userQuery": "做一张南京未来三天降雨概率的天气卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n南京未来三天降雨概率",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "DPX-AL00 6.0.0.120",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 3,
+          "prefectureName": "南京市"
+        },
+        "candidateOutputFields": [
+          "/daily/0/rainProbabilityPercent",
+          "/daily/1/rainProbabilityPercent",
+          "/daily/2/rainProbabilityPercent",
+          "/daily/0/date",
+          "/daily/1/date",
+          "/daily/2/date",
+          "/daily/0/weekday",
+          "/daily/1/weekday",
+          "/daily/2/weekday"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.352",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026062903311"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "918fb113-451c-4236-9922-86903062c0b4"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.120",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "南京未来三天降雨概率速览",
+  "userQuery": "做一张南京未来三天降雨概率的天气卡片。\n\n本轮卡片静态内容（用作展示的外部事实）：\n南京未来三天降雨概率",
+  "title": "南京未来三天降雨概率",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "forecastDays": 3,
+        "prefectureName": "南京市"
+      },
+      "candidateOutputFields": [
+        "/daily/0/rainProbabilityPercent",
+        "/daily/1/rainProbabilityPercent",
+        "/daily/2/rainProbabilityPercent",
+        "/daily/0/date",
+        "/daily/1/date",
+        "/daily/2/date",
+        "/daily/0/weekday",
+        "/daily/1/weekday",
+        "/daily/2/weekday"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

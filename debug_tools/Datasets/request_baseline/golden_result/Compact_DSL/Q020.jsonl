@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-dual-info"},["phone","earphone"]]
+["phone","InfoBlock",{"primaryText":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","secondaryText":"手机电量","visual":{"type":"icon","icon":"resources/base/media/phone_fill.svg"}}]
+["earphone","InfoBlock",{"primaryText":"{{ ${/data/earphone/batteryLevel} + '%' }}","secondaryText":"{{ ${/data/earphone/isConnected} ? '耳机已连接' : '耳机未连接' }}","visual":{"type":"icon","icon":"resources/base/media/earphone_case_16644.svg"}}]
+["/data/phoneBattery/batterySOC",68]
+["/data/earphone/batteryLevel",80]
+["/data/earphone/isConnected",true]

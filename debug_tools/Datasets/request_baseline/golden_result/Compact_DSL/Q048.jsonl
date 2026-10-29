@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"S-content-dual-action"},["content","cta_music","cta_dnd"]]
+["content","EmphasisText",{"mainText":{"path":"/data/earphone/earphoneName"},"secondaryText":"{{ ${/data/earphone/batteryLevel} + '%' }}","fontSize":18}]
+["cta_music","CardButton",{"label":"每日歌单","icon":"resources/base/media/music_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["cta_dnd","CardButton",{"label":"免打扰","icon":"resources/base/media/bell_slash_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"intelligent_scene_entry"}}]}]
+["/data/earphone/earphoneName","示例耳机"]
+["/data/earphone/batteryLevel",80]

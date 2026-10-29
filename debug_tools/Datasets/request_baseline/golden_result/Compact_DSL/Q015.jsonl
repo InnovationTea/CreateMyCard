@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"primaryText":{"path":"/data/healthSport/exerciseHeartRateMax"},"unit":"次/分钟","secondaryText":"最高心率"}]
+["second","InfoBlock",{"primaryText":{"path":"/data/healthSport/exerciseHeartRateMin"},"unit":"次/分钟","secondaryText":"最低心率"}]
+["/data/healthSport/exerciseHeartRateMax",168]
+["/data/healthSport/exerciseHeartRateMin",96]

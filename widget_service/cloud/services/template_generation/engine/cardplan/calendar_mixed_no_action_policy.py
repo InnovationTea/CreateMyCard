@@ -1,4 +1,4 @@
-"""旧匹配失败后，仅补日程日期标题与天气的无动作双业务宽卡。"""
+"""旧匹配失败后，仅补已登记的日程天气无动作双业务宽卡。"""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from .calendar_no_action_policy import (
     _MULTIPLE_EVENTS_QUERY,
     _NEGATIVE_ACTION,
     CalendarNoActionFallback,
+    _calendar_fail_single_query_allowed,
 )
 from .registry import CardPlanRegistry
 from .template_plan_planner import plan_template_candidates
@@ -25,6 +26,8 @@ from .template_retrieval import (
 _WEATHER = "ViewWeather"
 _TARGET = "ScheduleOverviewDateTitleFull@1"
 _FIELDS = frozenset({"/events/0/title", "/events/0/startDate"})
+_LOCATION_TARGET = "ScheduleOverviewTitleLocationHero@1"
+_LOCATION_FIELDS = frozenset({"/events/0/title", "/events/0/eventLocation"})
 
 
 def plan_calendar_weather_no_action_fallback(
@@ -39,7 +42,7 @@ def plan_calendar_weather_no_action_fallback(
     trusted_template_action_ids: tuple[str, ...] = (),
     trusted_template_layout_ids: tuple[str, ...] = (),
 ) -> CalendarNoActionFallback | None:
-    """保留两业务的全部字段，仅开放一个日期标题 Full，仍由正式检索与规划验证。"""
+    """保留两业务全部字段，仅开放一个对应日程形态，仍由正式检索与规划验证。"""
     result: CalendarNoActionFallback | None = None
     if task_spec.size != "2x4" or not _calendar_weather_request(
         intent, coverage_bindings, card_spec
@@ -51,19 +54,28 @@ def plan_calendar_weather_no_action_fallback(
     if _ACTION_QUERY.search(query) or _MULTIPLE_EVENTS_QUERY.search(query):
         return result
     fields = intent.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID, ())
-    if frozenset(fields) != _FIELDS or _TARGET not in registry.templates:
+    target: str | None = None
+    if frozenset(fields) == _FIELDS:
+        target = _TARGET
+    elif frozenset(fields) == _LOCATION_FIELDS:
+        weather_fields = intent.required_output_fields_by_capability.get(_WEATHER, ())
+        if frozenset(weather_fields) == {"/current/condition"}:
+            target = _LOCATION_TARGET
+    if target is None or target not in registry.templates:
+        return result
+    if target == _LOCATION_TARGET and not _calendar_fail_single_query_allowed(query):
         return result
     # 可信范围含天气模板，不能像单业务后备那样要求只含日历目标。
-    if trusted_template_candidate_ids and _TARGET not in trusted_template_candidate_ids:
+    if trusted_template_candidate_ids and target not in trusted_template_candidate_ids:
         return result
     fallback_registry = CardPlanRegistry(
         source_root=registry.source_root,
         disabled_provider_ids=tuple(registry.disabled_provider_ids),
         disabled_template_ids=tuple(registry.disabled_template_ids),
         enable_fusion_ball=enable_fusion_ball,
-        enabled_calendar_fallback_template_ids=(_TARGET,),
+        enabled_calendar_fallback_template_ids=(target,),
     )
-    if not fallback_registry.template_is_enabled(_TARGET):
+    if not fallback_registry.template_is_enabled(target):
         return result
     try:
         found = search_template_variants(
@@ -75,13 +87,16 @@ def plan_calendar_weather_no_action_fallback(
             preferred_template_ids=trusted_template_candidate_ids,
         )
         plans = plan_template_candidates(
-            intent, found, task_spec, fallback_registry,
+            intent,
+            found,
+            task_spec,
+            fallback_registry,
             allowed_layout_ids=trusted_template_layout_ids,
         )
     except TemplateRetrievalMiss as exc:
         logger.info(
             "[Template Generation] calendar_weather_no_action_fallback selected=False "
-            f"template_id={_TARGET} reason={exc}"
+            f"template_id={target} reason={exc}"
         )
         return result
     result = CalendarNoActionFallback(intent, fallback_registry, found, plans)

@@ -1,0 +1,51 @@
+{
+  "content": {
+    "title": "单位换算",
+    "description": "三年级数学单位换算图卡",
+    "userQuery": "制作一个三年级数学的单位之间换算的图卡\n\n本轮卡片静态内容（用作展示的外部事实）：\n三年级数学单位换算知识点：\n1. 长度单位：毫米(mm)、厘米(cm)、分米(dm)、米(m)、千米(km)\n   1厘米=10毫米，1分米=10厘米，1米=10分米=100厘米=1000毫米，1千米=1000米\n2. 质量单位：克(g)、千克(kg)、吨(t)\n   1千克=1000克，1吨=1000千克\n3. 时间单位：秒(s)、分(min)、时(h)、日(d)\n   1分=60秒，1时=60分，1日=24时\n4. 面积单位：平方厘米(cm²)、平方分米(dm²)、平方米(m²)\n   1平方分米=100平方厘米，1平方米=100平方分米\n5. 人民币单位：元、角、分\n   1元=10角，1角=10分，1元=100分",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027135806619"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "f139dd7a-733e-47a5-bfa6-80d3c0be0624"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [],
+  "bundleName": "com.huawei.genui",
+  "description": "三年级数学单位换算图卡",
+  "userQuery": "制作一个三年级数学的单位之间换算的图卡\n\n本轮卡片静态内容（用作展示的外部事实）：\n三年级数学单位换算知识点：\n1. 长度单位：毫米(mm)、厘米(cm)、分米(dm)、米(m)、千米(km)\n   1厘米=10毫米，1分米=10厘米，1米=10分米=100厘米=1000毫米，1千米=1000米\n2. 质量单位：克(g)、千克(kg)、吨(t)\n   1千克=1000克，1吨=1000千克\n3. 时间单位：秒(s)、分(min)、时(h)、日(d)\n   1分=60秒，1时=60分，1日=24时\n4. 面积单位：平方厘米(cm²)、平方分米(dm²)、平方米(m²)\n   1平方分米=100平方厘米，1平方米=100平方分米\n5. 人民币单位：元、角、分\n   1元=10角，1角=10分，1元=100分",
+  "title": "单位换算",
+  "candidateDataBindings": [],
+  "candidateEventBindings": []
+}

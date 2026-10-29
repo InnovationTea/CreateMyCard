@@ -7,7 +7,7 @@ import pytest
 
 import services.prompt_builder as prompt_builder_module
 from config.config import get_settings
-from models.generation import CompactDslRetryContext, TaskSpec
+from models.generation import CompactDslRecoveryFact, CompactDslRetryContext, TaskSpec
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID
 
@@ -23,7 +23,12 @@ def _task_spec() -> TaskSpec:
                         "type": "string",
                         "description": "会议标题",
                         "sampleValue": "设计评审",
-                    }
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "会议地点",
+                        "sampleValue": "会议室",
+                    },
                 }
             }
         },
@@ -147,6 +152,22 @@ def test_capacity_recovery_plan_prompt_replans_components_and_priorities(
     retry_context = CompactDslRetryContext(
         failure_category="layout_capacity",
         capacity_recovery=True,
+        retained_facts=(
+            CompactDslRecoveryFact(
+                target="dataId",
+                value="/data/calendar/title",
+                requirement="会议标题",
+                priority="must",
+            ),
+        ),
+        omitted_facts=(
+            CompactDslRecoveryFact(
+                target="dataId",
+                value="/data/calendar/location",
+                requirement="会议地点",
+                priority="must",
+            ),
+        ),
     )
 
     prompt = PromptBuilder().build_compact_plan(
@@ -159,5 +180,9 @@ def test_capacity_recovery_plan_prompt_replans_components_and_priorities(
     system_prompt = prompt[0]["content"]
     assert "上一轮完整生成已经耗尽布局容量/结构修复预算" in system_prompt
     assert "优先选择占位更小且语义兼容的文本类组件" in system_prompt
-    assert "全部 Action 必须保持 must" in system_prompt
-    assert "禁止仅为通过容量校验而降级" in system_prompt
+    assert "不要依据该轮 capacityFits.doesNotFit 再删除仍然可见的信息" in system_prompt
+    assert '"dataId":"/data/calendar/location"' in system_prompt
+    tool = _plan_tool_from_prompt(prompt)
+    fact_properties = tool["function"]["parameters"]["properties"]["info_required"]
+    data_ids = fact_properties["items"]["properties"]["dataId"]["enum"]
+    assert data_ids == ["/data/calendar/title"]

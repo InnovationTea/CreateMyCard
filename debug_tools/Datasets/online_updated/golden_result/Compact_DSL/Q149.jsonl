@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"杭州滨江区","fontSize":12}]
+["primary","EmphasisText",{"mainText":{"path":"/data/weather/current/temperatureText"},"secondaryText":{"path":"/data/weather/current/condition"},"fontSize":18}]
+["support","SecondaryBody",{"items":[{"value":"今日杭州市滨江区小雨转多云，气温15℃~21℃，西北风3级，空气质量优","maxLines":2}],"columns":1,"fontSize":12}]
+["/data/weather/current/temperatureText","19℃"]
+["/data/weather/current/condition","小雨"]
+["/state/ready",true]

@@ -20,7 +20,7 @@
     "candidateEventCandidates": [],
     "description": "创建一张天气卡片。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_uv_color",
       "asset.ic_purification"
     ]
@@ -74,7 +74,7 @@
   "candidateEventCandidates": [],
   "description": "创建一张天气卡片。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_uv_color",
     "asset.ic_purification"
   ]

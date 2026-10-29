@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":{"path":"/data/weather/location/prefectureName"},"icon":"resources/base/media/ic_weather_color.svg","fontSize":12}]
+["content","EmphasisText",{"mainText":{"path":"/data/weather/current/temperatureText"},"secondaryText":"{{ ${/data/weather/current/condition} + ' | 空气质量 ' + ${/data/weather/current/airQuality} }}","fontSize":18}]
+["action","PillButton",{"label":"一键拨打","icon":"resources/base/media/phone_fill.svg","onClick":[{"call":"clickToApi","args":{"intentName":"CallPhone","params":{"phoneNumber":"1388888888"}}}]}]
+["/data/weather/location/prefectureName","上海市"]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/airQuality","良"]

@@ -44,9 +44,9 @@
     ],
     "description": "天气桌面卡片，展示当前位置天气概况。",
     "candidateAssetIds": [
-      "asset.emoji_temperature_orange",
+      "asset.icon_weather_thermometer_medium",
       "asset.icon_weather_wind",
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_uv_color",
       "asset.ic_warning_color"
     ]
@@ -124,9 +124,9 @@
   ],
   "description": "天气桌面卡片，展示当前位置天气概况。",
   "candidateAssetIds": [
-    "asset.emoji_temperature_orange",
+    "asset.icon_weather_thermometer_medium",
     "asset.icon_weather_wind",
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_uv_color",
     "asset.ic_warning_color"
   ]

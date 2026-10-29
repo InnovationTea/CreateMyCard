@@ -1,4 +1,4 @@
-"""已有日程路线失败后，仅尝试完整、定长、无动作的日程列表。"""
+"""已有路线失败后，尝试定长无动作列表或明确标注首项范围的单项摘要。"""
 
 from __future__ import annotations
 
@@ -13,8 +13,11 @@ from models.generation import CandidateDataBinding, TaskSpec
 from .calendar_field_paths import CALENDAR_CAPABILITY_ID
 from .calendar_no_action_policy import (
     _ACTION_QUERY,
+    _CALENDAR_FAIL_EXCLUDED_CONTEXT_QUERY,
+    _EXCLUSIVE_CONTEXT_QUERY,
     _NEGATIVE_ACTION,
     CalendarNoActionFallback,
+    _calendar_fail_context_fields,
     _single_calendar_request,
 )
 from .registry import CardPlanRegistry
@@ -22,6 +25,7 @@ from .template_plan_planner import plan_template_candidates
 from .template_retrieval import (
     TemplateRetrievalMiss,
     TemplateSearchIntent,
+    _task_spec_schema_leaf,
     search_template_variants,
 )
 
@@ -114,6 +118,29 @@ _THREE_TIME_NOTES_SHAPE = _ListShape(
     ("dtStart", "description"),
     with_count=True,
 )
+_THREE_DETAILS_SHAPE = _ListShape(
+    "ScheduleOverviewEventCountThreeDetailsWideFull@1",
+    3,
+    ("title", "dtStart", "description"),
+    with_count=True,
+)
+_TWO_EVENTS_TARGET = "ScheduleOverviewTwoEventsWideFull@1"
+_QUERY_MATTER_COUNT = re.compile(r"([0-9零一二两三四五六七八九十百千万]+)\s*件事")
+_RECENT_SUMMARY_SHAPE = _ListShape(
+    "ScheduleOverviewEventCountDetailsWideFull@1",
+    1,
+    ("title", "dtStart", "description"),
+    with_count=True,
+)
+_RECENT_COMPLETE_QUERY = re.compile(
+    r"全部|所有|完整|逐条|逐项|各自|每(?:个|条|项|场)|列表|清单|"
+    r"(?:不能|不许|禁止|不要|不得|不允许)(?:只|仅)(?:显示|展示|看|列出|保留)?"
+    r"(?:首|第一|最近|下一)|"
+    r"(?:不能|不许|禁止|不要|不得|不允许)(?:省略|漏掉|遗漏|丢失).{0,8}"
+    r"(?:日程|会议|活动|安排)|"
+    r"\b(?:all|every|complete|entire)\b",
+    re.IGNORECASE,
+)
 
 
 def plan_calendar_list_no_action_fallback(
@@ -142,6 +169,12 @@ def plan_calendar_list_no_action_fallback(
     if _NEGATED_ALL_QUERY.search(query):
         return result
     selection = _select_list_shape(intent, query)
+    if selection is None or not _complete_list_input(
+        selection.shape, task_spec, coverage_bindings[0]
+    ):
+        selection = _select_recent_summary_shape(
+            intent, query, task_spec, coverage_bindings[0], registry
+        )
     if selection is None:
         return result
     shape = selection.shape
@@ -152,6 +185,9 @@ def plan_calendar_list_no_action_fallback(
     if not _query_count_fits(query, shape.event_count):
         return result
     target = shape.template_id
+    if target in {_TWO_EVENTS_TARGET, _THREE_DETAILS_SHAPE.template_id}:
+        if not _new_list_context_fits(selection, query, task_spec, coverage_bindings[0], registry):
+            return result
     if trusted_template_candidate_ids and set(trusted_template_candidate_ids) != {target}:
         return result
     fallback_registry = CardPlanRegistry(
@@ -173,7 +209,10 @@ def plan_calendar_list_no_action_fallback(
             preferred_template_ids=(target,),
         )
         plans = plan_template_candidates(
-            selection.intent, found, task_spec, fallback_registry,
+            selection.intent,
+            found,
+            task_spec,
+            fallback_registry,
             allowed_layout_ids=trusted_template_layout_ids,
         )
     except TemplateRetrievalMiss as exc:
@@ -193,11 +232,112 @@ def plan_calendar_list_no_action_fallback(
     return result
 
 
+def _select_recent_summary_shape(
+    intent: TemplateSearchIntent,
+    query: str,
+    task_spec: TaskSpec,
+    binding: CandidateDataBinding,
+    registry: CardPlanRegistry,
+) -> _ListSelection | None:
+    """仅单项投影的数量/时间/备注摘要，沿用模板固定的首项范围标识。"""
+    result: _ListSelection | None = None
+    if _ALL_EVENTS_QUERY.search(query) or _RECENT_COMPLETE_QUERY.search(query):
+        return result
+    for match in _QUERY_MATTER_COUNT.finditer(query):
+        if not _same_count(match.group(1), 1):
+            return result
+    requested = frozenset(
+        intent.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID, ())
+    )
+    required = {"/eventCount", "/events/0/dtStart", "/events/0/description"}
+    title_path = "/events/0/title"
+    if not required <= requested <= required | {title_path}:
+        return result
+    shape = _RECENT_SUMMARY_SHAPE
+    if shape.template_id not in registry.templates:
+        return result
+    if not _complete_list_input(shape, task_spec, binding):
+        return result
+    title = _task_spec_schema_leaf(
+        task_spec.dataModelSchema, f"{binding.writeResultTo.rstrip('/')}{title_path}"
+    )
+    if title is None or title.get("type") != "string":
+        return result
+    displayed = _calendar_fail_context_fields(shape.template_id, task_spec, binding, registry)
+    if displayed is None or not displayed.issubset(binding.candidateOutputFields):
+        return result
+    exclusive = _EXCLUSIVE_CONTEXT_QUERY.search(query)
+    excluded = _CALENDAR_FAIL_EXCLUDED_CONTEXT_QUERY.search(query)
+    if exclusive or excluded:
+        if not displayed.issubset(requested):
+            return result
+    result = _ListSelection(shape, intent)
+    return result
+
+
 def _select_list_shape(intent: TemplateSearchIntent, query: str) -> _ListSelection | None:
     selection = _select_existing_list_shape(intent, query)
     if selection is None:
         selection = _select_three_time_notes_shape(intent, query)
+    if selection is None:
+        selection = _select_calendar_fail_list_shape(intent)
     return selection
+
+
+def _select_calendar_fail_list_shape(intent: TemplateSearchIntent) -> _ListSelection | None:
+    """只接完整三项详情或同角色的两项时间，不扩张首层的列表范围。"""
+    requested = frozenset(
+        intent.required_output_fields_by_capability.get(CALENDAR_CAPABILITY_ID, ())
+    )
+    selection: _ListSelection | None = None
+    if requested == _THREE_DETAILS_SHAPE.required_fields():
+        selection = _ListSelection(_THREE_DETAILS_SHAPE, intent)
+    else:
+        roles: dict[str, set[str]] = {"0": set(), "1": set()}
+        for path in requested:
+            parts = path.split("/")
+            if len(parts) != 4 or parts[1] != "events":
+                return selection
+            selected_roles = roles.get(parts[2])
+            if selected_roles is None:
+                return selection
+            selected_roles.add(parts[3])
+        first = roles.get("0", set())
+        second = roles.get("1", set())
+        allowed = ("title", "dtStart", "dtEnd", "eventLocation")
+        if first != second or "dtStart" not in first:
+            return selection
+        if not first.issubset(allowed):
+            return selection
+        fields = tuple(field for field in allowed if field in first)
+        shape = _ListShape(_TWO_EVENTS_TARGET, 2, fields)
+        selection = _ListSelection(shape, intent)
+    return selection
+
+
+def _new_list_context_fits(
+    selection: _ListSelection,
+    query: str,
+    task_spec: TaskSpec,
+    binding: CandidateDataBinding,
+    registry: CardPlanRegistry,
+) -> bool:
+    if _TIME_NOTES_FIRST_ONLY_QUERY.search(query):
+        return False
+    for match in _QUERY_MATTER_COUNT.finditer(query):
+        if not _same_count(match.group(1), selection.shape.event_count):
+            return False
+    displayed = _calendar_fail_context_fields(
+        selection.shape.template_id, task_spec, binding, registry
+    )
+    if displayed is None or not displayed.issubset(binding.candidateOutputFields):
+        return False
+    exclusive = _EXCLUSIVE_CONTEXT_QUERY.search(query)
+    excluded = _CALENDAR_FAIL_EXCLUDED_CONTEXT_QUERY.search(query)
+    if exclusive or excluded:
+        if not displayed.issubset(selection.shape.required_fields()):
+            return False
+    return True
 
 
 def _select_existing_list_shape(intent: TemplateSearchIntent, query: str) -> _ListSelection | None:

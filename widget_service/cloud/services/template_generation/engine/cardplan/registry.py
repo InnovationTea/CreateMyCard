@@ -59,6 +59,12 @@ CALENDAR_NO_ACTION_FALLBACK_TEMPLATE_IDS = frozenset(
         "ScheduleOverviewEventCountThreeTimeNotesWideFull@1",
         "ScheduleOverviewDateTitleFull@1",
         "ScheduleOverviewDateCountdownReminderFull@1",
+        "ScheduleOverviewDateAllDayWideFull@1",
+        "ScheduleOverviewTwoEventsWideFull@1",
+        "ScheduleOverviewLocationDescriptionEndWideFull@1",
+        "ScheduleOverviewAllDayLocationWideFull@1",
+        "ScheduleOverviewEventCountThreeDetailsWideFull@1",
+        "ScheduleOverviewTitleLocationHero@1",
     }
 )
 
@@ -159,6 +165,7 @@ class CardPlanRegistry:
         self.palette_scene_theme_ids = self._palette_scene_themes(
             visible_themes
         )
+        self.photo_themes: dict[str, ThemeDefinition] = {}
         self._validate_distributed_resources()
 
     def _validate_manifest_metadata(self) -> None:
@@ -280,6 +287,9 @@ class CardPlanRegistry:
         try:
             return self.themes[theme_id]
         except KeyError as exc:
+            photo_theme = self.photo_themes.get(theme_id)
+            if photo_theme is not None:
+                return photo_theme
             raise ValueError(f"unknown CardPlan theme: {theme_id}") from exc
 
     def theme_reference_values(self, theme_id: str) -> dict[str, object]:

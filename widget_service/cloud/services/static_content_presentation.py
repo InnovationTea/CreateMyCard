@@ -152,7 +152,7 @@ def _variants(objects: list[_DisplayObject], size: str, presentation: str):
 
 def _encode(
     component: str, props: dict, shared: list[_DisplayObject], size: str, variant: str = "flow",
-    font_size: int = 12, context_as_body: bool = False,
+    font_size: int = 12, context_as_body: bool = False, separate_header: bool = False,
 ) -> str:
     titles = []
     notes = []
@@ -166,9 +166,10 @@ def _encode(
         props = {**props, "fontSize": font_size}
     if titles:
         title = "；".join(titles)
+        inline_title = component == "ContentBlock" and "title" not in props and not separate_header
         if context_as_body:
             props = {**props, "body": title}
-        elif component == "ContentBlock" and "title" not in props:
+        elif inline_title:
             props = {**props, "title": title}
         else:
             children.append("header")
@@ -212,7 +213,7 @@ def static_presentation_candidates(
             for source in _candidate_sources(plan, size, tuple(optional), font_size):
                 if source not in sources:
                     sources.append(source)
-    return tuple(sources)
+    return tuple(dict.fromkeys(sources))
 
 
 def _candidate_sources(
@@ -231,8 +232,14 @@ def _candidate_sources(
     for _style, component, props in variants:
         sources.append(_encode(component, props, shared, size, font_size=font_size))
         sources.append(_encode(component, props, shared, size, "compact", font_size))
-        can_use_context = component == "ContentBlock" and "attributes" in props
         has_context = any(item.has({"title"}) for item in shared)
+        if component == "ContentBlock" and has_context and "title" not in props:
+            for root_variant in ("flow", "compact"):
+                sources.append(_encode(
+                    component, props, shared, size, root_variant, font_size,
+                    separate_header=True,
+                ))
+        can_use_context = component == "ContentBlock" and "attributes" in props
         if can_use_context and has_context and "body" not in props:
             for root_variant in ("flow", "compact"):
                 sources.append(_encode(

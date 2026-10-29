@@ -122,6 +122,7 @@ from services.template_generation.engine.tersel_converter import (
     convert_tersel_to_a2ui,
 )
 from services.template_generation.profile import read_tersel_protocol_profile
+from services.template_generation.tests.photo_assertions import capture_template_photos
 from services.widget_generation_service import WidgetGenerationService
 
 _WEATHER_BODY = (
@@ -6020,7 +6021,11 @@ async def test_bluetooth_music_action_uses_hero_pair_data():
 
 
 @pytest.mark.asyncio
-async def test_2x2_battery_pill_action_uses_generic_hero_template():
+@pytest.mark.parametrize("photo_enabled", [False, True])
+async def test_2x2_battery_pill_action_uses_generic_hero_template(
+    monkeypatch: pytest.MonkeyPatch, photo_enabled: bool,
+):
+    photos = capture_template_photos(monkeypatch, enabled=photo_enabled)
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
@@ -6054,6 +6059,7 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
         model,
         enable_fusion_ball=True,
     )
+    photos.assert_output(output, expect_photo=photo_enabled)
 
     assert output.template_ids == (
         "BatteryOverviewHero@1",
@@ -6122,7 +6128,7 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     }
     assert messages[1]["updateComponents"]["root"] == "root"
     assert components["root"]["children"] == [
-        "fusionBallBackground",
+        "__post_theme_background" if photo_enabled else "fusionBallBackground",
         "template_root",
     ]
     content = components["template_root"]
@@ -6473,7 +6479,11 @@ async def test_2x2_battery_health_level_hero_uses_health_fields():
 
 
 @pytest.mark.asyncio
-async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
+@pytest.mark.parametrize("photo_enabled", [False, True])
+async def test_2x2_battery_generic_compact_accepts_two_pill_actions(
+    monkeypatch: pytest.MonkeyPatch, photo_enabled: bool,
+):
+    photos = capture_template_photos(monkeypatch, enabled=photo_enabled)
     action_ids = ("event.setPowerSavingMode", "event.startNavigate")
 
     class TwoActionBatteryModel:
@@ -6546,6 +6556,7 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
         model,
         enable_fusion_ball=True,
     )
+    photos.assert_output(output, expect_photo=photo_enabled)
 
     assert output.template_ids == (
         "BatteryOverviewCompact@1",
@@ -6568,12 +6579,13 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
     }
     assert messages[1]["updateComponents"]["root"] == "root"
     assert components["root"]["children"] == [
-        "fusionBallBackground",
+        "__post_theme_background" if photo_enabled else "fusionBallBackground",
         "template_root",
     ]
-    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF1F9985"
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF24B3B3"
-    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF5AB38E"
+    if not photo_enabled:
+        assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF1F9985"
+        assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF24B3B3"
+        assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF5AB38E"
     assert components["template_root"]["children"] == [
         "__genui_render_component__template_root"
     ]
@@ -6794,7 +6806,10 @@ def test_countdown_theme_candidates_follow_fusion_gate(
 async def test_generic_countdown_query_uses_countdown_overview_without_workout_semantics(
     enable_fusion_ball: bool,
     theme_id: str,
+    monkeypatch,
 ) -> None:
+    # 此用例验证原主题与融球开关；图片主题的内容及回退由本地专项回归覆盖。
+    monkeypatch.setattr(get_settings(), "enable_photo_background_theme", False)
     task_spec = TaskSpec(
         userQuery="做一张日程倒数卡片，我想看看高考还剩下多少天",
         size="2x2",

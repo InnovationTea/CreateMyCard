@@ -5,7 +5,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from api.schemas import CapabilityOverviewRequest
+from api.schemas import CapabilityOverviewRequest, DataCapabilitySchemasRequest
 from config.config import get_settings
 from models.capability import AssetCapability
 from services.capability_registry import CapabilityRegistry
@@ -57,6 +57,32 @@ def test_overview_uses_short_assets_and_keeps_event_contract(overview_request):
         for argument in event.dynamicArguments:
             expected_arguments.append(argument.model_dump(mode="json", exclude_none=True))
         assert row.get("dynamicArguments") == expected_arguments
+
+
+def test_weather_overview_preserves_description_and_schema_defines_forecast_start(overview_request):
+    service = WidgetGenerationService()
+    overview = service.get_widget_capability_overview(overview_request)
+    weather = next(item for item in overview.dataCapabilities if item.id == "ViewWeather")
+    registered = CapabilityRegistry(version=CURRENT_REGISTRY).get_data_capability("ViewWeather")
+    assert registered is not None
+    assert weather.description == registered.description
+    request = DataCapabilitySchemasRequest(
+        **overview_request.model_dump(), dataCapabilityIds=["ViewWeather"]
+    )
+    response = service.get_data_capability_schemas(request)
+    assert not response.missingCapabilityIds
+    assert len(response.dataCapabilities) == 1
+    definition = response.dataCapabilities[0]
+    properties = definition.inputSchema.get("properties")
+    assert isinstance(properties, dict)
+    forecast = properties.get("forecastDays")
+    assert isinstance(forecast, dict)
+    assert "不是目标日期偏移" in forecast.get("description", "")
+    output = definition.outputSchema.get("properties")
+    assert isinstance(output, dict)
+    daily = output.get("daily")
+    assert isinstance(daily, dict)
+    assert "daily[0]为明天，daily[1]为后天" in daily.get("description", "")
 
 
 def test_legacy_request_falls_back_to_current_asset_descriptions(monkeypatch, overview_request):

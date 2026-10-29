@@ -208,7 +208,7 @@ async def test_q008_uses_daily2_weather_support_with_countdown() -> None:
     )
     bindings = _bindings(weather_fields, forecast_days=3)
     task_spec = TaskSpec(
-        userQuery="显示出发倒计时和后日天气、温度范围",
+        userQuery="显示出发倒计时和大后天天气、温度范围",
         size="2x2",
         assetCandidates=[_TIMING_ASSET, _THERMOMETER_ASSET],
         dataModelSchema={

@@ -1,0 +1,95 @@
+{
+  "content": {
+    "title": "杭州西湖区天气",
+    "description": "查看杭州市西湖区当前天气，点击查看杭州天气详情",
+    "userQuery": "帮我做个卡片，看杭州市西湖区现在是什么天气，点一下查看杭州天气详情。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "西湖区",
+          "forecastDays": 1,
+          "prefectureName": "杭州市"
+        },
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        }
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020114814782"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "11",
+    "isNew": false,
+    "sessionId": "b1b77308-062d-4f89-bb2c-fbb478798617"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "cardSize": "2x4",
+  "dataCapabilities": [
+    {
+      "id": "ViewWeather",
+      "inputParams": {
+        "districtName": "西湖区",
+        "forecastDays": 1,
+        "prefectureName": "杭州市"
+      }
+    }
+  ],
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "查看杭州市西湖区当前天气，点击查看杭州天气详情",
+  "userQuery": "帮我做个卡片，看杭州市西湖区现在是什么天气，点一下查看杭州天气详情。",
+  "title": "杭州西湖区天气",
+  "eventCapabilities": [
+    {
+      "actionTemplate": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "id": "event.open.weather"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"日程提醒","fontSize":12}]
+["content","EventCard",{"items":[{"title":{"path":"/data/calendar/events/0/title"},"time":"{{ ${/data/calendar/events/0/dtStart} + ' – ' + ${/data/calendar/events/0/dtEnd} }}"}]}]
+["action","PillButton",{"label":"一键入会","icon":"resources/base/media/icon_meeting.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"EnterMeeting","bundleName":"","abilityName":"","uri":"{{ ${/data/calendar/events/0/oneClickServiceLink} }}"}}]}]
+["/data/calendar/events/0/title","项目例会"]
+["/data/calendar/events/0/dtStart","14:00"]
+["/data/calendar/events/0/dtEnd","15:00"]
+["/data/calendar/events/0/oneClickServiceLink",""]

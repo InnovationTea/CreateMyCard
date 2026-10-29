@@ -45,7 +45,7 @@
     ],
     "description": "天气运动和歌单",
     "candidateAssetIds": [
-      "asset.emoji_temperature_orange",
+      "asset.icon_weather_thermometer_medium",
       "asset.icon_weather_wind",
       "asset.figure_run",
       "asset.music_fill"
@@ -125,7 +125,7 @@
   ],
   "description": "天气运动和歌单",
   "candidateAssetIds": [
-    "asset.emoji_temperature_orange",
+    "asset.icon_weather_thermometer_medium",
     "asset.icon_weather_wind",
     "asset.figure_run",
     "asset.music_fill"

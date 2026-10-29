@@ -49,7 +49,7 @@ description: 输入输出、绑定、事件授权、素材来源及主题阶段�
 
 | 性质 | 判断 | 保留方式 |
 |---|---|---|
-| 显式动作 | 用户明确要求行为，候选目标吻合 | mustKeep；默认使用合法可见动作组件。仅服务端接受 Plan 含 wholeCardActionId 时，以该唯一只读详情的 root 点击承载；明确按钮要求及其它必要 CTA 不替代 |
+| 显式动作 | 用户明确要求行为，候选目标吻合 | mustKeep；默认使用合法可见动作组件。日程详情可由同记录 EventCard.items[].onClick 承载；明确要求独立按钮时保留按钮。仅服务端接受 Plan 含 wholeCardActionId 时，以该唯一只读详情的 root 点击承载；其它必要 CTA 不替代 |
 | 隐式入口 | 仅要求信息，但有同一对象的无副作用详情入口 | 可选；2x2单业务唯一天气城市或单条日程详情可按Plan例外入选，入选后must并由服务端复核wholeCardActionId；不增按钮或动作提示，其它候选不自动变为必要动作 |
 | 副作用动作 | 设置、导航、拨号、清理、控制、播放等 | 仅用户明确要求才使用，不由候选存在推断授权 |
 
@@ -136,7 +136,7 @@ Compact DSL 阶段只输出一个 genui 代码块，所有组件行和数据行�
 ```json
 {"onClick":[{"call":"候选call","args":{}}]}
 ```
-恰好一个 handler，完整保留候选中的静态值、Expression 或 PathBinding，无 condition、as、$context 或动作链。动作文字简洁保留真实行为与必要目标；不生成无事件按钮，不重复入口。
+恰好一个 handler，完整保留候选中的静态值、Expression 或 PathBinding，无 condition、as、$context 或动作链。PillButton/CardButton 的可见 `label` 最多5个字符，使用简洁的“动作+必要目标”文案，例如“一键导航去公司”写为“导航去公司”；只缩短显示文案，不删减或改写 handler、参数和真实目标。不生成无事件按钮，不重复入口。
 
 ### 动态图形的数值来源
 

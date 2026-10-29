@@ -220,6 +220,15 @@ def test_weather_support_height_overflow_is_blocking_layout_capacity_error() -> 
     assert all(item.to_payload().get("severity") == "error" for item in diagnostics)
     assert any(item.actual.get("overflow", 0) > 2 for item in diagnostics)
     assert any("Occupancy:" in item.legacy_message for item in diagnostics)
+    height_fits = []
+    for diagnostic in diagnostics:
+        fits = diagnostic.actual.get("secondaryBodyFits", [])
+        if isinstance(fits, list):
+            height_fits.extend(fits)
+    support_fit = next(item for item in height_fits if item["componentId"] == "support")
+    assert support_fit["effectiveColumnCount"] == 1
+    assert support_fit["maxRetainedRowCount"] < support_fit["actualRowCount"]
+    assert support_fit["doesNotFitItemIndexes"]
 
 
 def test_anchor_multiline_support_expands_from_the_bottom_without_overlap() -> None:
@@ -245,11 +254,21 @@ def test_anchor_multiline_support_still_rejects_total_height_overflow() -> None:
     )
 
 
-def test_closed_sleep_card_rejects_height_even_when_item_margin_matches_overflow() -> None:
+def test_closed_sleep_card_accepts_height_at_wide_tolerance() -> None:
     rows = []
     for row in _sleep_rows(closed=True):
         if row.component_id == "details":
             row = replace(row, props={**row.props, "height": 90})
+        rows.append(row)
+
+    assert not _height_errors(rows)
+
+
+def test_closed_sleep_card_rejects_height_above_wide_tolerance() -> None:
+    rows = []
+    for row in _sleep_rows(closed=True):
+        if row.component_id == "details":
+            row = replace(row, props={**row.props, "height": 89})
         rows.append(row)
     errors = _height_errors(rows)
 
@@ -257,7 +276,8 @@ def test_closed_sleep_card_rejects_height_even_when_item_margin_matches_overflow
     diagnostic = errors.records[0]
     assert not isinstance(diagnostic, str)
     assert diagnostic.code == "COMPACT_LAYOUT_HEIGHT_OVERFLOW"
-    assert diagnostic.actual.get("overflow") == 2.0
+    assert diagnostic.expected.get("heightTolerance") == 2.0
+    assert diagnostic.actual.get("overflow") == 3.0
 
 
 @pytest.mark.parametrize("component_id", ["root", "weighted"])

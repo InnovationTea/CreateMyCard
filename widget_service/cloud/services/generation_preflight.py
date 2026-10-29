@@ -524,7 +524,8 @@ class GenerationPreflight:
                     actual_value=data_path,
                     repair_instruction=(
                         "从本轮能力概述重新复制完整 actionTemplate；"
-                        "只允许按 dynamicArguments 描述修改已声明的动态参数。"
+                        "只允许按 dynamicArguments 描述修改已声明的动态参数；"
+                        "数组占位符 i 必须替换为实际展示对象的数字下标，不得猜测。"
                     ),
                     reference_source=_EVENT_SOURCE,
                 )
@@ -733,20 +734,24 @@ class GenerationPreflight:
     ) -> str:
         if issue_code == "EVENT_ARGUMENT_SCHEMA_INVALID":
             return (
-                "从本轮能力概述重新完整复制该事件的 actionTemplate 到 action，"
-                "再仅按 dynamicArguments 描述填写动态字段；固定字段不得改写。"
+                "在下一次 invoke.arguments 的对应事件项中，仅取本轮 actionTemplate 的 call、args"
+                "构造 action，按 dynamicArguments 声明路径填写有来源的动态值；"
+                "固定字段及空字符串原样保留，不复制 id、Schema 或动态参数定义，"
+                "不把参数定义对象当执行值，复核对应数据绑定和实际数组下标。"
             )
         field_name = str(location[-1]) if location else "对应字段"
         validator = str(error.validator)
         if validator == "required":
             return (
-                f"在 arguments 中补充 {field_name}；优先从原始用户需求提取，"
+                f"在 invoke.arguments 对应数据候选的 arguments 中补充 {field_name}；"
+                "优先从原始用户需求或已核验来源取得，"
                 "无法唯一确定时询问用户，不要用相邻字段代替。"
             )
         if validator == "additionalProperties":
             return (
-                f"删除未声明字段 {field_name}；若本意是其它参数，"
-                "改用 inputSchema.properties 中的准确字段名。"
+                f"核对未声明字段 {field_name} 是否错名或错层级；"
+                "仅按本轮 inputSchema.properties 的准确字段和层级放回实际业务值，"
+                "纯定义元数据才移除，不通过删除核心需求或清空参数对象过检。"
             )
         if validator == "type":
             return (
@@ -843,9 +848,11 @@ class GenerationPreflight:
         ):
             template_is_array_placeholder = template_part == "i"
             actual_is_array_index = actual_part.isdigit()
-            if actual_part != template_part and not (
-                template_is_array_placeholder and actual_is_array_index
-            ):
+            if template_is_array_placeholder:
+                if not actual_is_array_index:
+                    return False
+                continue
+            if actual_part != template_part:
                 return False
         return True
 

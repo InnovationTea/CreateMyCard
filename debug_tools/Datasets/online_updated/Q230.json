@@ -1,0 +1,81 @@
+{
+  "content": {
+    "title": "流量监控",
+    "description": "流量使用情况速览",
+    "userQuery": "帮我在桌面设置一个流量监控的卡片，展示手机流量使用情况，可以点击跳转到流量管理页面查看详细流量信息。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "mobile_data_manage_entry"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.dataUsage"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.mobiledata_circle_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026052457736"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "c17f2a82-2097-4fd8-91a9-653a69e92bce"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.mobiledata_circle_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "mobile_data_manage_entry"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.dataUsage"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "流量使用情况速览",
+  "userQuery": "帮我在桌面设置一个流量监控的卡片，展示手机流量使用情况，可以点击跳转到流量管理页面查看详细流量信息。",
+  "title": "流量监控",
+  "candidateDataBindings": []
+}

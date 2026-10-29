@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-dual-content","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"今日天气","fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/weather/current/temperatureText"},"fontSize":30}]
+["support","SecondaryBody",{"items":[{"label":"天气 ","value":{"path":"/data/weather/current/condition"}}],"fontSize":14}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/location/cityCode","60814"]

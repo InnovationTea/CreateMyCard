@@ -1,6 +1,7 @@
 """导航与设置入口接入蓝色抽象图，不改变数据业务、布局和最终交付门禁。"""
 
 import asyncio
+import copy
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -18,6 +19,7 @@ from services.validator import ArtifactValidator
 from test_photo_asset_delivery import artifact
 from test_photo_background_fallback import node_by_id
 from test_uniform_photo_eligibility import ACTION, choose, evidence, rejection, sample
+from theme_preference_samples import preference, reply
 
 BLUE = "photo-ux-texture-blue-"
 NAVIGATION = "event.startNavigate"
@@ -120,7 +122,7 @@ def test_visible_data_keeps_its_business_instead_of_action_business(event_id, pa
 
 def test_only_blue_abstracts_add_navigation_and_settings_and_keep_enabled_states():
     matching = []
-    for photo in registry.registered_themes(include_disabled=True):
+    for photo in registry.registered_themes("texturePhotos", include_disabled=True):
         businesses = set(photo.get("contentEligibility", {}).get("businesses", []))
         if businesses & {"navigation", "settings"}:
             matching.append(photo)
@@ -138,6 +140,12 @@ def test_only_blue_abstracts_add_navigation_and_settings_and_keep_enabled_states
 @pytest.mark.parametrize("wide", [False, True])
 @pytest.mark.parametrize("shape", ["diamond", "diagonal"])
 def test_selection_is_uniform_blue_and_preserves_foreground(monkeypatch, event_id, wide, shape):
+    # 本测试专门验证抽象池；新主体图优先级另由实际图集回归覆盖。
+    config = registry.load_theme_registry()
+    for item in config.get("themes", []):
+        if item.get("pool") == "photos":
+            item["enabled"] = False
+    monkeypatch.setattr(registry, "load_theme_registry", lambda: copy.deepcopy(config))
     saved = entry_sample(event_id, wide=wide)
     suffix = "wide" if wide else "square"
     expected = {BLUE + item + "-" + suffix for item in ("diamond", "diagonal")}
@@ -235,18 +243,24 @@ def test_two_setting_buttons_count_as_one_business_and_zero_body_lines(monkeypat
     ]
     saved = expanded(rows, {"size": "2x2", "userQuery": "网络开关", "appVersion": "99.0.0"})
     _, audit = choose(saved, monkeypatch)
-    assert set(audit.get("candidates", [])) == {
-        BLUE + "diamond-square", BLUE + "diagonal-square",
-    }
+    assert audit.get("candidates") == ["photo-ux-metal-gear-square"]
     assert evidence(saved).get("photoBodyTextFlow", {}).get("root", {}).get("lineCount") == 0
 
 
-@pytest.mark.parametrize("query", ["导航卡片，不要图片", "设置入口，使用融球效果"])
-def test_explicit_visual_preference_still_excludes_photos(monkeypatch, query):
+@pytest.mark.parametrize("query,value,operation", [
+    ("导航卡片，不要图片", "photo", "avoid"),
+    ("设置入口，使用融球效果", "fusion", "prefer"),
+])
+def test_explicit_visual_preference_still_excludes_photos(monkeypatch, query, value, operation):
     saved = entry_sample(SETTINGS)
     saved.task["userQuery"] = query
-    _, audit = choose(saved, monkeypatch)
+    items = [preference("backgroundKind", value, query, operation)]
+    _, audit = choose(saved, monkeypatch, reply(items))
     assert not any(item.startswith("photo-") for item in audit.get("candidates", []))
+    if value == "fusion":
+        assert audit.get("theme", {}).get("kind") == "gradient"
+        assert audit.get("unmetPreferences") == items
+        assert not audit.get("fusionEligibility", {}).get("allowedTokens")
 
 
 @pytest.mark.parametrize("event_id", [NAVIGATION, SETTINGS])
@@ -267,8 +281,9 @@ def test_final_delivery_keeps_one_obs_image_fallback_and_colors(monkeypatch, eve
     ))
     suffix = "wide" if wide else "square"
     urls = set()
-    for item in registry.registered_themes("texturePhotos"):
-        if item.get("id") in {BLUE + "diamond-" + suffix, BLUE + "diagonal-" + suffix}:
+    subject = "car-night-lake" if event_id == NAVIGATION else "metal-gear"
+    for item in registry.registered_themes("photos"):
+        if item.get("id") == "photo-ux-" + subject + "-" + suffix:
             urls.add(item.get("remoteUrl"))
     assert node_by_id(delivered.genui, themes.PREFIX + "base").get("src") in urls
     images = []
@@ -277,6 +292,6 @@ def test_final_delivery_keeps_one_obs_image_fallback_and_colors(monkeypatch, eve
             images.append(node)
     assert len(images) == 1
     root_styles = node_by_id(delivered.genui, "root").get("styles", {})
-    assert root_styles.get("backgroundColor") == "#FF8FADCC"
+    assert root_styles.get("backgroundColor") == "#FF1F1F99"
     assert node_by_id(delivered.genui, "reading").get("styles", {}).get("fontColor") == "#FFFFFFFF"
     assert themes.foreground_signature(delivered.genui) == themes.foreground_signature(saved.source)

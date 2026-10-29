@@ -8,6 +8,7 @@ from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from test_uniform_photo_eligibility import PATHS, choose, photo, rejection, sample
+from theme_preference_samples import preference, reply
 
 BIRDS = "photo-ux-birds-countdown-square"
 ARCH = "photo-ux-sand-arch-square"
@@ -34,7 +35,8 @@ def test_new_photos_only_match_assigned_business(identity, businesses, wide, bus
     category = "holiday" if business == "countdown" else business
     assert (rejection(saved, identity) is None) is (category in businesses)
     assert photo(identity).get("contentEligibility") == {
-        "kind": "uniform", "businesses": list(businesses),
+        "kind": "holiday-countdown" if identity == BIRDS else "uniform",
+        "businesses": list(businesses),
     }
 
 
@@ -43,15 +45,19 @@ def test_new_photos_only_match_assigned_business(identity, businesses, wide, bus
 def test_new_photos_keep_shared_line_limit_with_buttons(identity, businesses, wide, lines):
     business = "countdown" if businesses[0] == "holiday" else businesses[0]
     saved = sample(PATHS.get(business), lines, wide=wide, button=True, title="假期")
-    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 3))
+    allowed = identity == BIRDS or lines <= (4 if wide else 3)
+    assert (rejection(saved, identity) is None) is allowed
 
 
 @pytest.mark.parametrize("identity,businesses,wide", CASES)
-def test_new_photos_still_honor_explicit_no_photo_request(identity, businesses, wide):
+def test_new_photos_still_honor_explicit_no_photo_request(monkeypatch, identity, businesses, wide):
     business = "countdown" if businesses[0] == "holiday" else businesses[0]
     saved = sample(PATHS.get(business), 1, wide=wide)
     saved.task["userQuery"] = "不要图片"
-    assert rejection(saved, identity) == "用户明确其它主题或不要图片"
+    items = [preference("backgroundKind", "photo", "不要图片", "avoid")]
+    _, audit = choose(saved, monkeypatch, reply(items))
+    assert identity not in audit.get("candidates", [])
+    assert not any(item.startswith("photo-") for item in audit.get("candidates", []))
 
 
 @pytest.mark.parametrize("identity", [
@@ -64,7 +70,10 @@ def test_replaced_photos_are_removed_from_registry_and_assets(identity):
     assert not (Path(__file__).parents[2] / "resources/base/media" / name).exists()
 
 
-@pytest.mark.parametrize("selected", ["photo-ux-wave-square", WEATHER])
+@pytest.mark.parametrize("selected", [
+    "photo-ux-mountain-sunset-lake-square", "photo-ux-pink-sunset-lake-square",
+    "photo-ux-cumulus-blue-square",
+])
 def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, selected):
     calls = []
 
@@ -73,10 +82,14 @@ def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, sele
         return selected
 
     monkeypatch.setattr(themes.secrets, "choice", choice)
-    saved = sample(PATHS.get("weather"), 3, button=False)
+    cloud = "photo-ux-cumulus-blue-square"
+    saved = sample(PATHS.get("weather"), 3 if selected == cloud else 2, button=False)
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
-    assert set(calls[0]) == {"photo-ux-wave-square", WEATHER}
+    expected = {cloud} if selected == cloud else {
+        "photo-ux-mountain-sunset-lake-square", "photo-ux-pink-sunset-lake-square",
+    }
+    assert set(calls[0]) == expected
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -86,7 +99,10 @@ def test_calendar_no_longer_uses_arch_and_can_fall_back_to_abstract(monkeypatch)
     saved = sample(PATHS.get("calendar"), 2)
     assert rejection(saved, ARCH)
     _, audit = choose(saved, monkeypatch)
-    assert audit.get("candidates") == ["photo-ux-meeting-room-square"]
+    assert set(audit.get("candidates", [])) == {
+        "photo-ux-meeting-room-square", "photo-ux-meeting-room-brown-chairs-square",
+        "photo-ux-meeting-room-green-chairs-square",
+    }
     saved = sample(PATHS.get("calendar"), 2, align="center")
     _, audit = choose(saved, monkeypatch)
     candidates = audit.get("candidates", [])
@@ -107,12 +123,8 @@ def test_battery_subject_precedes_abstract_without_relayout(monkeypatch, wide):
     identity = WIDE_BATTERY if wide else BATTERY
     saved = sample(PATHS.get("battery"), 3, wide=wide)
     result, audit = choose(saved, monkeypatch)
-    if wide:
-        assert len(audit.get("candidates", [])) == 6
-        assert all(item.startswith("photo-ux-texture-") for item in audit.get("candidates", []))
-    else:
-        assert audit.get("candidates") == [identity]
-        assert audit.get("themeId") == identity
+    assert audit.get("candidates") == [identity]
+    assert audit.get("themeId") == identity
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 

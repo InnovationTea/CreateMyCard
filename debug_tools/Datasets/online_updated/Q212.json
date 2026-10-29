@@ -1,0 +1,78 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "东莞今日天气卡片，展示当前温度、天气状况和空气质量",
+    "userQuery": "东莞市今天天气",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "东莞市"
+        },
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_default_weather_blue"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027072850751"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "14fa159c-c13d-48d9-a255-fcbf121e2ca5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "description": "东莞今日天气卡片，展示当前温度、天气状况和空气质量",
+  "assetCandidates": [
+    "asset.emoji_default_weather_blue"
+  ],
+  "userQuery": "东莞市今天天气",
+  "title": "今日天气",
+  "dataCapabilitySchemas": {
+    "ViewWeather": {
+      "forecastDays": 1,
+      "prefectureName": "东莞市"
+    }
+  },
+  "eventCapabilities": [
+    "event.open.weather"
+  ],
+  "cardSize": "2x2",
+  "bundleName": "com.huawei.genui",
+  "dataCapabilityIds": [
+    "ViewWeather"
+  ]
+}

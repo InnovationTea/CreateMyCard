@@ -30,7 +30,7 @@ async def test_generate_dsl_from_task_spec_reuses_compact_pipeline(monkeypatch, 
     assert "@theme:" not in generated.dsl
     if photos_enabled:
         assert "bg_ux_texture_" in generated.dsl
-        assert "#FF8FADCC" in generated.dsl
+        assert "#FF1F1F99" in generated.dsl
         assert "linearGradient" not in generated.dsl
     else:
         assert "linearGradient" in generated.dsl

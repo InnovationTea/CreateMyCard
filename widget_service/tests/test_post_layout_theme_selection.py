@@ -16,6 +16,7 @@ from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.layout_theme_contract import layout_only_prompt
 from services.protocol_registry import A2UIProtocolRegistry
 from services.theme_style_roles import layout_phase
+from theme_preference_samples import preference, reply
 
 LAYOUT = '\n'.join([
     '["root","Column",{"width":"matchParent","height":"matchParent"},["value"]]',
@@ -71,10 +72,14 @@ def test_selection_contract_reuses_original_mapping_without_color_values():
 @pytest.mark.parametrize("family", ["blue", "purple", "warm"])
 def test_gradient_colors_and_geometry_unchanged(settings, size, family):
     names = {"blue": "蓝色", "purple": "紫色", "warm": "暖色"}
-    task = {"size": size, "userQuery": "使用" + names.get(family), "appVersion": "11.9.9.342"}
+    task = {"size": size, "userQuery": "使用" + names.get(family) + "渐变",
+            "appVersion": "11.9.9.342"}
     source = layout_source(size)
     client = SimpleNamespace(generate=AsyncMock(
-        return_value=json.dumps({"themeId": "gradient-" + family})
+        return_value=reply([
+            preference("paletteFamily", family, task.get("userQuery")),
+            preference("backgroundKind", "gradient", "渐变"),
+        ], "gradient-" + family)
     ))
     final, audit = asyncio.run(themes.select_theme(source, task, client, final_layout=LAYOUT))
     assert audit.get("themeId") == "gradient-" + family
@@ -180,7 +185,7 @@ def test_grouped_layouts_excluded(monkeypatch, layout_id):
 
 
 def test_removed_photo_pools_are_empty_including_disabled_entries():
-    assert len(themes.registered_themes("photos")) == 18
+    assert len(themes.registered_themes("photos")) == 36
     assert themes.registered_themes("subjectlessWidePhotos", include_disabled=True) == []
     assert themes.registered_themes("squareExpansions", include_disabled=True) == []
 
@@ -193,4 +198,5 @@ def test_single_business_keeps_original_palette(business, family):
     task = {"userQuery": "显示业务内容", "dataModelSchema": {"data": {business: {}}}}
     assert policy.default_palette_family(task) == family
     task["userQuery"] = "我要紫色背景"
-    assert policy.default_palette_family(task) is None
+    # 数据业务默认值保持稳定；用户配色在模型返回结构化偏好后覆盖。
+    assert policy.default_palette_family(task) == family

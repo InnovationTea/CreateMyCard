@@ -1,0 +1,105 @@
+{
+  "content": {
+    "title": "低电量提醒",
+    "description": "电量不足，开启省电模式",
+    "userQuery": "帮我做一张低电量卡片，显示手机电量低于20%的提示，并提供\"开启省电模式\"按钮。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VYG-AL00 7.0.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/batteryCapacityLevelDesc",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "battery_saving_mode"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.setPowerSavingMode"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VYG-AL00",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027080522287"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "8c6a4b2c-6b92-49bf-91f2-b9bd05576641"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VYG-AL00 7.0.0.115",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "battery_saving_mode"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.setPowerSavingMode"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "电量不足，开启省电模式",
+  "userQuery": "帮我做一张低电量卡片，显示手机电量低于20%的提示，并提供\"开启省电模式\"按钮。",
+  "title": "低电量提醒",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/batteryCapacityLevelDesc",
+        "/chargingStatusDesc"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ]
+}

@@ -93,8 +93,8 @@ def test_blue_replaces_only_the_retired_ball_colors(case):
 def test_all_themes_are_self_contained_and_only_current_photos_remain():
     config = registry.load_theme_registry()
     entries = config.get("themes", [])
-    assert len(entries) == 53
-    assert len({theme.get("id") for theme in entries}) == 53
+    assert len(entries) == 77
+    assert len({theme.get("id") for theme in entries}) == 77
     for theme in entries:
         assert "palette" not in theme
         assert theme.get("background")
@@ -102,8 +102,9 @@ def test_all_themes_are_self_contained_and_only_current_photos_remain():
         assert set(content.get("roles", {})) == set(registry._ROLE_NAMES)
         assert set(theme.get("sizes", [])).issubset(content.get("panelBySize", {}))
     photos = registry.registered_themes("photos", include_disabled=True)
-    assert len(photos) == 25
-    assert all(item.get("contentEligibility", {}).get("kind") == "uniform" for item in photos)
+    assert len(photos) == 49
+    kinds = {item.get("contentEligibility", {}).get("kind") for item in photos}
+    assert kinds == {"uniform", "holiday-countdown", "weather-panels"}
     for pool in ("subjectlessWidePhotos", "squareExpansions"):
         assert registry.registered_themes(pool, include_disabled=True) == []
 
@@ -152,7 +153,7 @@ def test_duplicate_theme_id_rejected():
 def test_registry_returns_independent_copies():
     first = registry.load_theme_registry()
     first.get("themes", []).clear()
-    assert len(registry.load_theme_registry().get("themes", [])) == 53
+    assert len(registry.load_theme_registry().get("themes", [])) == 77
 
 
 def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch):
@@ -169,7 +170,7 @@ def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch
     assert "gradient-blue-added" not in {theme.get("id") for theme in registry.registered_themes()}
     entries.remove(extra)
     use_config(monkeypatch, config)
-    assert len(registry.registered_themes()) == 43
+    assert len(registry.registered_themes()) == 61
 
 
 @pytest.mark.parametrize("identity", [
@@ -302,20 +303,22 @@ def test_invalid_model_choice_keeps_original_gradient_fallback(response):
     assert "linearGradient" in result
 
 
-@pytest.mark.parametrize("route,query,expected", [
-    ("earphone-status", "耳机", "fusion-ball-battery-teal"),
-    ("battery-readout", "电量", "fusion-ball-battery-teal"),
-    ("countdown", "倒计时", "fusion-ball-sport-orange"),
-    ("calendar-event", "会议提醒", "fusion-ball-schedule-blue"),
-    ("calendar-event", "会议使用融球", "fusion-ball-schedule-blue"),
-    ("calendar-event", "评审使用融球", "fusion-ball-schedule-blue"),
-    ("calendar-event", "日程提醒", "fusion-ball-schedule-blue"),
-    ("health-readout", "睡眠", "fusion-ball-sleep-violet"),
-    ("health-readout", "运动", "fusion-ball-sport-orange"),
-    ("health-readout", "心率", None),
-    ("weather", "天气", None),
+@pytest.mark.parametrize("route,path,expected", [
+    ("earphone-status", "/data/earphone/name", "fusion-ball-battery-teal"),
+    ("battery-readout", "/data/phoneBattery/level", "fusion-ball-battery-teal"),
+    ("countdown", "/data/countdown/0/countdownDays", "fusion-ball-sport-orange"),
+    ("calendar-event", "/data/calendar/0/title", "fusion-ball-schedule-blue"),
+    ("health-readout", "/data/healthSport/sleepScore", "fusion-ball-sleep-violet"),
+    ("health-readout", "/data/healthSport/dailySteps", "fusion-ball-sport-orange"),
+    ("health-readout", "/data/healthSport/heartRate", None),
+    ("weather-readout", "/data/weather/temperature", None),
+    ("generic", "/data/healthSport/sleepScore", None),
 ])
-def test_business_mapping_preserves_original_routes(monkeypatch, route, query, expected):
-    monkeypatch.setattr(policy.PromptBuilder, "_visual_route", lambda task: (route, {}))
-    task = SimpleNamespace(userQuery=query, dataModelSchema={})
-    assert policy._business_token(task) == expected
+def test_business_mapping_reuses_bindings_and_preserves_route_gate(route, path, expected):
+    from services.compact_dsl_a2ui_converter import ComponentRow
+    from services.content_business import BusinessContext
+
+    task = SimpleNamespace(userQuery="睡眠运动天气会议都只是文字", dataModelSchema={})
+    context = BusinessContext(layout_route=route)
+    facts = context.visible([ComponentRow("text", "Text", {"content": {"path": path}})])
+    assert policy._business_token(task, facts, context) == expected

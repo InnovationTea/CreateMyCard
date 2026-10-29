@@ -657,6 +657,60 @@ def test_accepts_icons_matching_plan_asset_assignments() -> None:
     )
 
 
+def test_allows_missing_asset_button_for_third_overflow_action() -> None:
+    daily = {"call": "openDaily", "args": {"target": "daily"}}
+    favorite = {"call": "openFavorite", "args": {"target": "favorite"}}
+    bluetooth = {"call": "setBluetooth", "args": {"enabled": True}}
+    task_spec = {
+        "size": "2x4",
+        "eventCandidates": [
+            {"id": "event.daily", **daily},
+            {"id": "event.favorite", **favorite},
+            {"id": "event.bluetooth", **bluetooth},
+        ],
+        "dataModelSchema": {"data": {}},
+        "assetCandidates": [
+            {"id": "asset.daily", "src": "resources/daily.svg"},
+            {"id": "asset.favorite", "src": "resources/favorite.svg"},
+            {"id": "asset.bluetooth", "src": "resources/bluetooth.svg"},
+        ],
+    }
+    compact_plan = {
+        "info_required": [
+            {"requirement": "每日推荐", "actionId": "event.daily"},
+            {"requirement": "收藏歌单", "actionId": "event.favorite"},
+            {"requirement": "蓝牙开关", "actionId": "event.bluetooth"},
+        ],
+        "assetAssignments": {
+            "actions": [
+                {"actionId": "event.daily", "assetId": "asset.daily"},
+                {"actionId": "event.favorite", "assetId": "asset.favorite"},
+                {"actionId": "event.bluetooth", "assetId": "asset.bluetooth"},
+            ],
+            "title": {"assetId": None},
+        },
+    }
+    compact_dsl = "\n".join(
+        [
+            '["root","Column",{},["content","daily","bluetooth"]]',
+            '["content","EmphasisText",{"mainText":"耳机已连接"}]',
+            '["daily","CardButton",{"label":"每日推荐",'
+            '"icon":"resources/daily.svg",'
+            f'"onClick":[{json.dumps(daily)}]' + "}]",
+            '["bluetooth","CardButton",{"label":"蓝牙开关",'
+            '"icon":"resources/bluetooth.svg",'
+            f'"onClick":[{json.dumps(bluetooth)}]' + "}]",
+        ]
+    )
+
+    validate_compact_dsl(
+        compact_dsl,
+        task_spec=task_spec,
+        card_spec={"suggestSize": "2x4", "dataBindings": []},
+        compact_plan=compact_plan,
+    )
+
+
 def test_allows_plan_title_asset_without_title_when_info_block_is_present() -> None:
     task_spec = {
         "size": "2x2",

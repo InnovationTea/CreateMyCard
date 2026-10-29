@@ -1,0 +1,131 @@
+{
+  "content": {
+    "title": "天气与耳机状态",
+    "description": "风力降水与耳机状态速览",
+    "userQuery": "生成一个2x4的鸿蒙桌面卡片，显示今天的风力等级和降水概率，耳机是否连接、耳机仓的电量、耳机仓是否连接，并且点击打开歌单。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日上海市青浦区多云，气温约21℃，风力2级，降水概率较低。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "SGT-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/current/windLevel",
+          "/daily/0/rainProbabilityPercent"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/isConnected",
+          "/batteryLevel",
+          "/chargingStatusDesc"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.daily"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_earbud_case_black",
+      "asset.icon_weather_wind"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261020112526512"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "9",
+    "isNew": false,
+    "sessionId": "b1b77308-062d-4f89-bb2c-fbb478798617"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.emoji_earbud_case_black",
+    "asset.icon_weather_wind"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.daily"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "风力降水与耳机状态速览",
+  "userQuery": "生成一个2x4的鸿蒙桌面卡片，显示今天的风力等级和降水概率，耳机是否连接、耳机仓的电量、耳机仓是否连接，并且点击打开歌单。\n\n本轮卡片静态内容（用作展示的外部事实）：\n今日上海市青浦区多云，气温约21℃，风力2级，降水概率较低。",
+  "title": "天气与耳机状态",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "青浦区",
+        "forecastDays": 1,
+        "prefectureName": "上海市"
+      },
+      "candidateOutputFields": [
+        "/current/windLevel",
+        "/daily/0/rainProbabilityPercent"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/isConnected",
+        "/batteryLevel",
+        "/chargingStatusDesc"
+      ],
+      "capabilityId": "GetEarphoneInfo",
+      "writeResultTo": "/data/earphone"
+    }
+  ]
+}

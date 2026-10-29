@@ -351,9 +351,24 @@ def build_template_retrieval_prompt(
         + battery_rule
         +
         "不得输出主题、schemaVersion、组件、模板、Variant、尺寸、布局、Props 或理由。\n"
-        + ui_instruction + "\n"
-        + json.dumps(schema, ensure_ascii=False)
+        + ui_instruction
     )
+    if "GetCalendarEvents" in capability_ids:
+        system += (
+            "\n【日历展示需求与候选分离】仅对 GetCalendarEvents："
+            "以 userQuery 中明确要求展示的内容确定必需字段，"
+            "候选字段、schema样例、派生标题描述和外部事实段只说明可用数据，"
+            "不能自行增加必须展示的日期、倒计时、标题或日程条数。"
+            "外部事实段若另有明确展示要求仍须保留，不能丢弃真正的用户要求。"
+            "用户要求时间段或起止时间时保留开始和结束，不能为匹配删结束时间；"
+            "异地不自动等同于要求时区，是否全天必须保留布尔false。"
+            "明确两条、三条、各条或全部时，保留对应真实索引的全部必要字段；"
+            "输入只有首项不能声称已覆盖全部，不补造缺失索引。"
+            "未指定列表范围时不能仅因候选多项就自动扩大必需条数；"
+            "候选中的其它字段保持可用，不因未选为必需而篡改输入。"
+            "仍只输出展示字段和显式动作，不选择模板，不改变其它业务的字段规则。"
+        )
+    system += "\n" + json.dumps(schema, ensure_ascii=False)
     if "GetEarphoneInfo" in capability_ids:
         system += (
             "\n【蓝牙耳机意图优先】仅 GetEarphoneInfo 按 providerFirstLayerRules 中的"

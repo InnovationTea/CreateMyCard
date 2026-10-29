@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ '成都 ' + ${/data/weather1/current/temperatureC} + '℃' }}","secondaryText":{"path":"/data/weather1/current/condition"}}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ '上海 ' + ${/data/weather2/current/temperatureC} + '℃' }}","secondaryText":{"path":"/data/weather2/current/condition"}}]
+["/data/weather1/current/temperatureC",29]
+["/data/weather1/current/condition","多云"]
+["/data/weather2/current/temperatureC",29]
+["/data/weather2/current/condition","多云"]

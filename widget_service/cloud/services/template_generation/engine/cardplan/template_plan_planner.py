@@ -215,10 +215,11 @@ def plan_template_candidates(
     plan_limit = 1 if allowed_layout_ids else _MAX_PLANS
     selected = list(same_theme[:plan_limit])
     _verify_plans_cover_request(selected, intent)
-    return tuple(
+    plans = tuple(
         item.plan.model_copy(update={"plan_id": f"plan-{index + 1}"})
         for index, item in enumerate(selected)
     )
+    return plans
 
 
 def _prefer_earphone_action_role(drafts: list[_PlanDraft], action_count: int) -> list[_PlanDraft]:

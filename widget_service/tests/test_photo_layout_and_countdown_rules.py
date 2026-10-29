@@ -21,14 +21,19 @@ SPLIT_REASON = "2x4左右两个大背板布局不使用图片背景"
 
 
 @pytest.mark.parametrize("identity", [item.get("id") for item in registered_themes("photos")])
-def test_split_panels_are_excluded_for_every_photo_business(identity):
+def test_split_panels_only_admit_explicit_weather_panel_policy(identity):
     sample = wide_battery_sample("W-split-panels")
     theme = photo(identity)
     theme["size"] = "2x4"
     evidence = photo_layout_evidence(sample.nodes)
     assert evidence.get("sideBySidePanels") is True
     reason = themes.photo_reason(theme, sample.task, evidence, final_layout=sample.compact)
-    if theme.get("contentEligibility", {}).get("wideLayout") == "main-focus":
+    policy = theme.get("contentEligibility", {})
+    if policy.get("kind") == "weather-panels":
+        assert reason is None
+    elif policy.get("kind") == "holiday-countdown":
+        assert reason == "此图片仅用于2x2单业务节假日倒计时，每个展示对象均须属于节假日"
+    elif policy.get("wideLayout") == "main-focus":
         assert reason == "2x4图片需要明确主焦点，不支持双大背板或无主次布局"
     elif theme.get("contentEligibility", {}).get("wideLayout") == "side-focus":
         assert reason == "2x4图片需要左右主焦点加另一侧上下双槽，不支持上下或双大背板布局"
@@ -73,18 +78,21 @@ def test_legacy_wide_pool_uses_the_same_global_exclusion():
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-@pytest.mark.parametrize("selected_shape", [WIDE, "photo-ux-texture-blue-diagonal-wide"])
-def test_model_cannot_return_excluded_subject_but_abstract_can_match(
+@pytest.mark.parametrize("selected_shape", [
+    "photo-ux-ice-wide", WIDE, "photo-ux-texture-blue-diagonal-wide",
+])
+def test_model_cannot_return_excluded_subject_but_eligible_photo_can_match(
     monkeypatch, enabled, selected_shape,
 ):
     sample = wide_battery_sample("W-split-panels")
-    subjects = []
-    for theme in registered_themes("photos"):
-        if theme.get("size") == "2x4":
-            subjects.append(theme)
-    assert subjects
-    excluded_subject = subjects[0].get("id")
-    assert isinstance(excluded_subject, str)
+    excluded_subject = "photo-ux-airplane-tarmac-wide"
+    if selected_shape != "photo-ux-ice-wide":
+        # 未启用冰面时仍需覆盖两种抽象形状，不能依赖随机抽样碰巧命中。
+        def without_ice(pool):
+            return [item for item in registered_themes(pool)
+                    if item.get("id") != "photo-ux-ice-wide"]
+
+        monkeypatch.setattr(themes, "registered_themes", without_ice)
 
     # 测试固定蓝色，再分别抽中两种形状；不依赖颜色或形状的随机结果。
     random_options = []
@@ -111,7 +119,8 @@ def test_model_cannot_return_excluded_subject_but_abstract_can_match(
         assert random_options
         assert selected_shape in audit.get("candidates", [])
         assert audit.get("themeId") == selected_shape
-        assert audit.get("theme", {}).get("pool") == "texturePhotos"
+        if selected_shape != "photo-ux-ice-wide":
+            assert audit.get("theme", {}).get("pool") == "texturePhotos"
     else:
         assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
     assert themes.foreground_signature(sample.source) == themes.foreground_signature(result)

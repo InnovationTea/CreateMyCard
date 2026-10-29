@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"睡眠","icon":"resources/base/media/moon_z_fill_1.svg","fontSize":12}]
+["content","Group",{"variant":"hero-support"},["content_primary","content_support"]]
+["content_primary","EmphasisText",{"mainText":{"path":"/data/healthSport/nightSleepDurationText"},"secondaryText":{"path":"/data/healthSport/sleepStatus"},"fontSize":18}]
+["content_support","SecondaryBody",{"items":[{"label":"白天小睡 ","value":{"path":"/data/healthSport/totalNapDurationText"}}],"fontSize":14}]
+["/data/healthSport/nightSleepDurationText","7小时1分"]
+["/data/healthSport/sleepStatus","良好"]
+["/data/healthSport/totalNapDurationText","0分"]
