@@ -212,46 +212,104 @@ class IDSClient:
             )
             return {"nameSpaces": []}
 
-        try:
-            logger.info(
-                f"{_MODULE} ids_remote_query_started request_id={request_id} "
-                f"method={ids_query.method} url={ids_query.url} "
-                f"timeout_seconds={self.settings.ids_request_timeout_seconds}"
-            )
-            response = requests.request(
-                method=ids_query.method,
-                url=ids_query.url,
-                json=ids_query.body.model_dump(mode="json"),
-                timeout=self.settings.ids_request_timeout_seconds,
-                headers=ids_query.headers.model_dump(mode="json", by_alias=True),
-                stream=False,
-                verify=False,
-                allow_redirects=False,
-            )
-            logger.info(
-                f"{_MODULE} ids_remote_query_response_received request_id={request_id} "
-                f"status_code={response.status_code} response_bytes={len(response.content)}"
-            )
-            response.raise_for_status()
-            payload = response.json()
-            if not isinstance(payload, dict):
-                logger.error(
-                    f"{_MODULE} ids_remote_query_invalid_response_type request_id={request_id} "
-                    f"response_type={type(payload).__name__}"
+        max_attempts = self.settings.ids_request_retry_count + 1
+        for attempt in range(1, max_attempts + 1):
+            headers = ids_query.headers.model_dump(mode="json", by_alias=True)
+            if attempt > 1:
+                headers["idsSign"] = self.build_ids_sign()
+            try:
+                payload = self._query_remote_ids_once(
+                    ids_query, request_id, headers, attempt, max_attempts
                 )
-                return {"nameSpaces": []}
-            logger.debug(
-                f"{_MODULE} ids_remote_query_payload_loaded request_id={request_id} "
-                f"namespace_count={len(payload.get('nameSpaces', []))}"
-            )
+            except (requests.RequestException, ValueError) as exc:
+                retryable = self._is_retryable_error(exc)
+                will_retry = retryable and attempt < max_attempts
+                logger.error(
+                    f"{_MODULE} ids_remote_query_failed request_id={request_id} "
+                    f"attempt={attempt} max_attempts={max_attempts} "
+                    f"retryable={retryable} will_retry={will_retry} "
+                    f"exception_type={type(exc).__name__} error={exc} "
+                    f"traceback={traceback.format_exc()}"
+                )
+                if not will_retry:
+                    logger.warning(
+                        f"{_MODULE} ids_remote_query_stopped request_id={request_id} "
+                        f"attempt={attempt} max_attempts={max_attempts} "
+                        f"reason={'exhausted' if retryable else 'non_retryable'}"
+                    )
+                    break
+                logger.info(
+                    f"{_MODULE} ids_remote_query_retry_scheduled request_id={request_id} "
+                    f"next_attempt={attempt + 1} max_attempts={max_attempts} delay_seconds=0.2"
+                )
+                time.sleep(0.2)
+                continue
+            if attempt > 1:
+                logger.info(
+                    f"{_MODULE} ids_remote_query_recovered request_id={request_id} "
+                    f"attempt={attempt} max_attempts={max_attempts}"
+                )
             return payload
-        except (requests.RequestException, ValueError) as exc:
+        return {"nameSpaces": []}
+
+    def _query_remote_ids_once(
+        self,
+        ids_query: IDSHttpRequest,
+        request_id: str,
+        headers: dict[str, Any],
+        attempt: int,
+        max_attempts: int,
+    ) -> dict[str, Any]:
+        """执行一次远程查询；可重试错误交给外层统一处理。"""
+        logger.info(
+            f"{_MODULE} ids_remote_query_started request_id={request_id} "
+            f"attempt={attempt} max_attempts={max_attempts} "
+            f"method={ids_query.method} url={ids_query.url} "
+            f"timeout_seconds={self.settings.ids_request_timeout_seconds}"
+        )
+        response = requests.request(
+            method=ids_query.method,
+            url=ids_query.url,
+            json=ids_query.body.model_dump(mode="json"),
+            timeout=self.settings.ids_request_timeout_seconds,
+            headers=headers,
+            stream=False,
+            verify=False,
+            allow_redirects=False,
+        )
+        logger.info(
+            f"{_MODULE} ids_remote_query_response_received request_id={request_id} "
+            f"attempt={attempt} max_attempts={max_attempts} "
+            f"status_code={response.status_code} response_bytes={len(response.content)}"
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict):
             logger.error(
-                f"{_MODULE} ids_remote_query_failed request_id={request_id} error={exc} "
-                f"exception_type={type(exc).__name__} exception={exc!r} "
-                f"traceback={traceback.format_exc()}"
+                f"{_MODULE} ids_remote_query_invalid_response_type request_id={request_id} "
+                f"response_type={type(payload).__name__}"
             )
-            return {"nameSpaces": []}
+            raise ValueError("IDS response must be a JSON object")
+        logger.debug(
+            f"{_MODULE} ids_remote_query_payload_loaded request_id={request_id} "
+            f"namespace_count={len(payload.get('nameSpaces', []))}"
+        )
+        return payload
+
+    @staticmethod
+    def _is_retryable_error(exc: Exception) -> bool:
+        """仅重试临时网络故障、临时 HTTP 错误及 JSON 解析错误。"""
+        if isinstance(exc, requests.HTTPError):
+            response = exc.response
+            if response is None:
+                return False
+            return response.status_code in (408, 429) or 500 <= response.status_code < 600
+        if isinstance(exc, requests.exceptions.JSONDecodeError):
+            return True
+        # InvalidURL 也继承 ValueError，必须先排除其所在的 RequestException 分支。
+        if isinstance(exc, requests.RequestException):
+            return isinstance(exc, (requests.Timeout, requests.ConnectionError))
+        return isinstance(exc, ValueError)
 
     def _safe_headers_for_log(self, ids_query: IDSHttpRequest) -> dict[str, Any]:
         """生成可打印的 IDS 请求头。

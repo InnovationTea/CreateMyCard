@@ -100,6 +100,9 @@ class Settings(BaseSettings):
     server_port: int = 8855
     sts_server: str = CONFIG.get("sts_serverDomain")
     ids_request_timeout_seconds: int = 30
+    ids_request_retry_count: int = Field(
+        default=CONFIG.get("ids_request_retry_count", 1), ge=0
+    )
     ids_access_key: str = CONFIG.get("ids_access_key")
     obs_preview_supported_file_format: list = ["html"]
     obs_use_edge: bool = CONFIG.get("obs.use.edge") == "true"  # bool类型需要str转bool
@@ -389,6 +392,14 @@ class Settings(BaseSettings):
     def validate_daily_usage_integer(cls, value: object) -> object:
         if isinstance(value, (bool, float)):
             raise ValueError("daily usage integer settings must not be boolean or float")
+        return value
+
+    @field_validator("ids_request_retry_count", mode="before")
+    @classmethod
+    def validate_ids_retry_count(cls, value: object) -> object:
+        """重试次数允许整数字符串，不接受布尔值或浮点数。"""
+        if isinstance(value, (bool, float)):
+            raise ValueError("ids_request_retry_count must be a non-negative integer")
         return value
 
     @field_validator("compact_dsl_interface_retry_count", mode="before")
