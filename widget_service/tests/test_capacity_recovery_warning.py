@@ -214,6 +214,10 @@ async def test_static_service_recovery_preserves_unapproved_missing_must(monkeyp
         model_format = (profile or {}).get("format")
         formats.append(model_format)
         if model_format == "raw-json":
+            if '"staticPlanReview":' in _prompt[-1].get("content", ""):
+                return json.dumps({
+                    "decision": "keep", "sourceFidelity": "preserved", "findings": [],
+                })
             return json.dumps({"name": "submit_card_plan", "arguments": plan}, ensure_ascii=False)
         return next(sources)
 
@@ -247,4 +251,4 @@ async def test_static_service_recovery_preserves_unapproved_missing_must(monkeyp
     assert [fact.value for fact in retry.retained_facts] == [
         "对象甲", details[0], "对象乙", "周二开门", "对象丙",
     ]
-    assert formats == ["raw-json", "compact-dsl", "compact-dsl", "compact-dsl"]
+    assert formats == ["raw-json", "raw-json", "compact-dsl", "compact-dsl", "compact-dsl"]

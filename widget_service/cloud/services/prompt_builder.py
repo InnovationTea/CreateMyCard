@@ -27,6 +27,7 @@ from services.compact_plan import (
     build_compact_plan_tool,
     compact_plan_context,
     compact_plan_required_route,
+    static_fact_source,
 )
 from services.compact_plan_feedback import static_plan_repair_feedback
 from services.compact_plan_output import (
@@ -1919,6 +1920,9 @@ class PromptBuilder:
                 "selectionNotes为一个字符串数组，不在每项外另加数组。"
                 "对照来源自查对象名称、日期、数值与单位、否定、范围、冲突来源和必要限定；"
                 "用户要求原文或全部展示时仍须遵守，不得为修复结构改变含义或删除核心。"
+                "本次已是最后一次Plan机会，同时按同一对象组的最终text与identity核对原始事实；"
+                "requirement、sourceTexts或selectionNotes里写到，不代表卡片会展示。"
+                "同组标签与正文可共同表达，不要让每条text重复整段来源。"
             )
         if len(plan_prompt) < 3 or plan_prompt[0].get("role") != "system":
             raise ValueError("Compact Plan repair requires the active Plan conversation")
@@ -1957,6 +1961,75 @@ class PromptBuilder:
             }
         )
         return repaired
+
+    @staticmethod
+    def build_static_plan_review(
+        conversation: list[dict[str, str]], plan: dict[str, Any], user_query: str,
+        *, original_submission: str,
+    ) -> list[dict[str, str]]:
+        """复用最后一次 Plan 提交，明确核对展示语义并合并已有容量参考。"""
+        if not conversation or conversation[0].get("role") != "system":
+            raise ValueError("Static Plan review requires the active Plan conversation")
+        system_content = conversation[0].get("content")
+        if not isinstance(system_content, str):
+            raise ValueError("Static Plan review requires a textual system prompt")
+        source, explicit_source = static_fact_source(user_query)
+        candidate = {
+            key: value for key, value in plan.items()
+            if key not in {"staticPresentation", "staticPresentationFeedback"}
+        }
+        updated = copy.deepcopy(conversation)
+        updated[0]["content"] = system_content + (
+            "\n本次为同一Plan阶段最后一次静态复核，先前普通submit_card_plan输出格式"
+            "仅用于correctedPlan内部；本次唯一返回格式以最后消息的reviewOutput为准。"
+            "不输出DSL，不调用新工具。"
+        )
+        updated.append({
+            "role": "user",
+            "content": json.dumps({
+                "staticPlanReview": {
+                    "candidatePlan": candidate,
+                    "originalSubmission": original_submission,
+                    "originalFactSource": source,
+                    "hasExplicitFactSection": explicit_source,
+                    "capacityReference": plan.get("staticPresentationFeedback", []),
+                },
+                "reviewOutput": {
+                    "decision": "keep | correct",
+                    "sourceFidelity": "preserved | needs_correction",
+                    "findings": [{
+                        "sourceText": "原始事实源中的连续原文证据",
+                        "factIndexes": "首份candidatePlan中受影响的索引数组，完全漏项用[]",
+                        "issue": "原始事实与同组最终展示的具体差异",
+                    }],
+                    "correctedPlan": "仅correct时填写完整{name:submit_card_plan,arguments:{...}}",
+                },
+                "instruction": (
+                    "这是冻结前的明确复核，不是已接受结果。只输出一个纯JSON对象。"
+                    "candidatePlan是程序归一化后的对照对象，不是新提交格式；"
+                    "originalSubmission保留原提交作格式参考，实际仍以系统中的工具Schema为准。"
+                    "不得把omissionCandidates等程序字段抄入correctedPlan；"
+                    "新omittedContents须按原合同提交description/factIndexes对象，"
+                    "索引对应修正后的事实数组，不得从归一化说明猜造遗漏许可。"
+                    "先按原始事实源核对用户要求的必要对象、地点、条件、时间范围、数值单位、"
+                    "否定和替代关系是否在同组最终text与identity中完整表达；"
+                    "requirement/sourceTexts/selectionNotes有记载不等于最终可见。"
+                    "不要把原文全部逐字搬入卡片；允许同组标签与正文共同表达及忠实摘要，"
+                    "但不能把必要场景或限定改成更宽泛的结论。按已有合同核对真实遗漏申请。"
+                    "存在显式事实段时，只把originalFactSource作为事实依据，不把段前期望当事实。"
+                    "确认无语义问题且无需改排时返回"
+                    '{"decision":"keep","sourceFidelity":"preserved","findings":[]}，'
+                    "不要重抄计划。语义有丢失、改变或编造时返回correct+needs_correction，"
+                    "逐条给出有效原文证据、首份索引和差异，并在correctedPlan修正完整计划；"
+                    "facts、分组、真实遗漏声明必须原子同步，不能只修改规划说明。"
+                    "若仅优化容量且原计划语义完整，使用correct+preserved+空findings。"
+                    "先保全语义，再结合capacityReference组织短标签、正文和布局；"
+                    "不靠放宽原合同、缩字或新增删除许可凑容量。"
+                    "这是本阶段最后一次提交，不会再增加Plan调用；不返回解释或Markdown。"
+                ),
+            }, ensure_ascii=False, separators=(",", ":")),
+        })
+        return updated
 
     @staticmethod
     def build_static_plan_refinement(

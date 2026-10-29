@@ -148,14 +148,23 @@ def _variants(objects: list[_DisplayObject], size: str, presentation: str, *, fa
 
 def _encode(
     component: str, props: dict, shared: list[_DisplayObject], size: str, *, heading: str = "",
-    note_index: int | None = None,
+    note_index: int | None = None, shared_header: bool = False,
 ) -> str | None:
     titles = []
     notes = []
+    shared_texts = []
     for item in shared:
         for fact in item.facts:
+            if shared_header and fact.get("displayRole", "body") not in {"title", "body"}:
+                return None
             target = titles if fact.get("displayRole") == "title" else notes
             target.append(fact.get("text", ""))
+            shared_texts.append(fact.get("text", ""))
+    if shared_header:
+        if not titles or not notes:
+            return None
+        titles = shared_texts
+        notes = []
     if not titles and heading:
         titles.append(heading)
     items = props.get("items")
@@ -198,6 +207,7 @@ def _encode(
 
 def _candidate_sources(
     plan: dict, size: str, omitted_indexes: tuple[int, ...], *, fallback=False,
+    shared_header=False,
 ) -> list[str]:
     objects, shared = _display_objects(plan, omitted_indexes)
     if not objects:
@@ -208,10 +218,12 @@ def _candidate_sources(
         heading = ""
         if component == "EmphasisText" and len(objects) == 1:
             heading = objects[0].caption()
-        source = _encode(component, props, shared, size, heading=heading)
+        source = _encode(
+            component, props, shared, size, heading=heading, shared_header=shared_header,
+        )
         if source is not None:
             sources.append(source)
-        elif fallback and component != "EmphasisText":
+        elif fallback and component != "EmphasisText" and not shared_header:
             items = props.get("items")
             if not isinstance(items, list):
                 continue
@@ -245,6 +257,14 @@ def static_presentation_candidates(
         sources.extend(_candidate_sources(plan, size, omitted_indexes, fallback=True))
         if len(optional) > len(omitted_indexes):
             sources.extend(_candidate_sources(plan, size, tuple(optional), fallback=True))
+        # 公共说明只能在所有旧候选之后尝试已有标题；完整字号容量检查仍由调用方执行。
+        sources.extend(_candidate_sources(
+            plan, size, omitted_indexes, fallback=True, shared_header=True,
+        ))
+        if len(optional) > len(omitted_indexes):
+            sources.extend(_candidate_sources(
+                plan, size, tuple(optional), fallback=True, shared_header=True,
+            ))
     return tuple(dict.fromkeys(sources))
 
 

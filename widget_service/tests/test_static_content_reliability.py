@@ -179,7 +179,7 @@ def _dense_plan():
     return {"info_required": facts, "contentGroups": groups, "omittedContents": []}
 
 
-def test_shared_header_search_finds_complete_layout_without_changing_facts_or_limits():
+def test_unenumerated_shared_header_does_not_change_facts_or_limits():
     plan = _dense_plan()
     baseline = copy.deepcopy(plan)
     facts = plan.get("info_required")
@@ -187,42 +187,67 @@ def test_shared_header_search_finds_complete_layout_without_changing_facts_or_li
     query = "；".join(fact.get("text", "") for fact in facts)
     with content_policy_scope(STATIC_CONTENT_POLICY):
         trial = trial_static_presentation(plan, query, "2x4")
+        assert trial.source is None
+    assert trial.errors
+    assert "不代表所有合法排版均不可行" in trial.errors[0]
+    assert plan == baseline
+
+
+def _supported_plan():
+    facts = [_fact("本月采样", displayRole="title")]
+    groups = [{"id": "header", "kind": "shared", "identity": None, "factIndexes": [0]}]
+    for name, reading in (("采样甲", "7.1268"), ("采样乙", "7.1045"), ("采样丙", "7.0921")):
+        start = len(facts)
+        facts.extend([_fact(name, displayRole="title"), _fact(reading, displayRole="body")])
+        groups.append({
+            "id": name, "kind": "object", "identity": name, "factIndexes": [start, start + 1],
+        })
+    return {"info_required": facts, "contentGroups": groups, "presentationStyle": "rows"}
+
+
+def test_registered_shared_header_layout_keeps_every_object_and_reading():
+    plan = _supported_plan()
+    before = copy.deepcopy(plan)
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        trial = trial_static_presentation(plan, "展示全部采样", "2x4")
         assert trial.source is not None
-        rows = [json.loads(line) for line in trial.source.splitlines()]
-        assert any(row[0] == "header" and row[1] == "SingleLineTitle" for row in rows)
         validate_compact_dsl(
-            trial.source,
-            task_spec={
-                "userQuery": query, "size": "2x4", "dataModelSchema": {"data": {}},
+            trial.source, task_spec={
+                "userQuery": "展示全部采样", "size": "2x4", "dataModelSchema": {"data": {}},
                 "eventCandidates": [], "assetCandidates": [],
             },
             card_spec={"suggestSize": "2x4"}, compact_plan=plan,
             layout_scope="W-static-content-guided",
         )
     assert not trial.errors
-    assert plan == baseline
+    assert plan == before
+    assert all(fact.get("text") in trial.source for fact in plan.get("info_required", []))
 
 
-def test_candidates_remain_unique_and_all_complete_font_steps_precede_optional_omission():
-    plan = _dense_plan()
+def test_candidates_remain_unique_and_complete_variants_precede_optional_omission():
+    plan = _supported_plan()
     facts = plan.get("info_required")
     assert isinstance(facts, list)
-    facts[1]["priority"] = "should"
+    facts.append(_fact("补充说明", priority="should"))
+    groups = plan.get("contentGroups")
+    assert groups
+    groups[1].get("factIndexes").append(len(facts) - 1)
     with content_policy_scope(STATIC_CONTENT_POLICY):
         sources = static_presentation_candidates(plan, "2x4")
     assert len(sources) == len(set(sources))
-    complete_fonts = []
+    complete_sources = []
     omission_seen = False
     for source in sources:
         rows = [json.loads(line) for line in source.splitlines()]
         body = next(row for row in rows if row[0] == "body")
-        if "整体变化约0.72%" not in source:
+        assert "fontSize" not in body[2]
+        if "补充说明" not in source:
             omission_seen = True
             continue
         assert not omission_seen
-        complete_fonts.append(body[2].get("fontSize", 12))
-    assert complete_fonts == sorted(complete_fonts, reverse=True)
-    assert set(complete_fonts) == {12, 11, 10}
+        complete_sources.append(source)
+    assert complete_sources
+    assert omission_seen
 
 
 def test_unenumerated_structure_remains_feedback_not_permission_to_drop_core():
@@ -257,6 +282,8 @@ async def test_wrong_stage_output_recovers_via_existing_candidates_without_extra
 
     async def generate(_client, _prompt, profile=None, **_kwargs):
         calls.append((profile or {}).get("format"))
+        if calls[-1] == "raw-json" and '"staticPlanReview":' in _prompt[-1].get("content", ""):
+            return json.dumps({"decision": "keep", "sourceFidelity": "preserved", "findings": []})
         return raw
 
     def save(_store, artifact):
@@ -279,4 +306,4 @@ async def test_wrong_stage_output_recovers_via_existing_candidates_without_extra
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
     assert response.status == GenerationStatus.SUCCESS
     assert len(saved) == 1
-    assert calls == ["raw-json", "compact-dsl"]
+    assert calls == ["raw-json", "raw-json", "compact-dsl"]

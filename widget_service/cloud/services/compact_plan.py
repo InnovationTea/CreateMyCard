@@ -816,7 +816,7 @@ def _collect_static_source_errors(
         errors.append("info_required: 静态来源引用数量超过预算。")
 
 
-def _static_fact_source(user_query: str) -> tuple[str, bool]:
+def static_fact_source(user_query: str) -> tuple[str, bool]:
     """提取显式附加的静态事实段，避免把用户期望误作已获事实。"""
     _, marker, fact_source = user_query.partition(_STATIC_FACT_SECTION_MARKER)
     if not marker:
@@ -832,7 +832,7 @@ def _normalize_static_plan(
     user_query = task.get("userQuery")
     if not isinstance(user_query, str):
         raise CompactPlanValidationError(["静态来源需求必须是字符串。"])
-    source_query, has_explicit_fact_source = _static_fact_source(user_query)
+    source_query, has_explicit_fact_source = static_fact_source(user_query)
     if not isinstance(raw_facts, list) or not 1 <= len(raw_facts) <= 24:
         raise CompactPlanValidationError(["静态计划必须包含 1–24 条事实或动作。"])
     warnings: list[str] = []
