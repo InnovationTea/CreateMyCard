@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from typing import Any
 
@@ -17,6 +19,18 @@ from services.static_text_capacity import (
     text_width,
 )
 from services.theme_style_roles import alpha_role, is_role
+
+_COMPLETE_TEXT_TRIAL: ContextVar[bool] = ContextVar("complete_static_text_trial", default=False)
+
+
+@contextmanager
+def complete_static_text_trial(enabled: bool = True):
+    """新增恢复候选须全文容纳；不改变正常组件规格和省略号样式。"""
+    token = _COMPLETE_TEXT_TRIAL.set(enabled)
+    try:
+        yield
+    finally:
+        _COMPLETE_TEXT_TRIAL.reset(token)
 
 
 def _fail(message: str) -> None:
@@ -122,6 +136,11 @@ class _Builder:
         }
         if text_overflow == "ellipsis":
             line_limit = max_lines or int(number(spec, "maxLines"))
+            if _COMPLETE_TEXT_TRIAL.get():
+                require_static_text_capacity(
+                    content, width, {**spec, "maxLines": line_limit},
+                    f"{self.component.component_id}.{suffix}",
+                )
             try:
                 visible_lines = min(measure_text(content, width, spec).lines, line_limit)
             except ValueError:

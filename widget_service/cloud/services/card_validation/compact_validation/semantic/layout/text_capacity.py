@@ -32,6 +32,8 @@ def _record_list_object_groups(
     """识别已明确选择单个 TextList 的对象组。"""
     if plan.get("presentationStyle") == "records":
         return objects
+    if plan.get("presentationStyle") in {"content", "rows", "comparison"}:
+        return []
     result = []
     for group in objects:
         preferred_record_list = False

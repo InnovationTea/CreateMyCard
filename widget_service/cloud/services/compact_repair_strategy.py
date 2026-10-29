@@ -20,6 +20,7 @@ from services.compact_repair_context import (
     bounded_component_capacity_contexts,
     repair_topology_fingerprint,
     semantic_layout_repair_guidance,
+    static_component_capacity_contexts,
 )
 
 _CAPACITY_MARKERS = (
@@ -1216,6 +1217,8 @@ def _drop_optional_component_fallback_directive(
 def _drop_candidate_is_fully_removed(
     compact_dsl: str,
     candidate: CompactOptionalDropCandidate,
+    compact_plan: dict[str, Any] | None = None,
+    approved_indexes: tuple[int, ...] = (),
 ) -> bool:
     """候选行及全部父级引用均消失后，才允许选择下一个候选。"""
     if candidate.partial:
@@ -1250,19 +1253,23 @@ def _drop_candidate_is_fully_removed(
                 )
             return True
         from services.card_validation.compact_validation.semantic.static_content import (
-            display_text,
+            _fact_covered,
             static_display_groups,
+            static_fact_coverage,
         )
-
+        if compact_plan is None:
+            return False
         try:
+            coverage = static_fact_coverage(compact_dsl, compact_plan, approved_indexes)
             objects, shared = static_display_groups(compact_dsl)
         except (TypeError, ValueError):
             return False
-        for group in objects + shared:
-            if group.component_id != candidate.component_id:
-                continue
-            visible = display_text("".join(group.parts))
-            if any(display_text(text) in visible for text in candidate.display_texts):
+        states = {item.fact_index: item.visible for item in coverage}
+        facts = compact_plan.get("info_required", [])
+        for index in candidate.fact_indexes:
+            if not 0 <= index < len(facts) or states.get(index) is not False:
+                return False
+            if any(_fact_covered(facts[index], display.parts) for display in objects + shared):
                 return False
         return True
     try:
@@ -1391,6 +1398,8 @@ class CompactRepairStrategyTracker:
         allow_invalid_table_text: bool = False,
     ) -> CompactOptionalDropCandidate | None:
         """从当前仍可见内容中选择下一轮唯一候选并累计省略授权。"""
+        if self._static_content and allowed_fact_indexes is None:
+            allowed_fact_indexes = self._capacity_overflow_fact_indexes
         candidate = compact_plan_optional_drop_candidate(
             compact_dsl,
             compact_plan,
@@ -1399,6 +1408,7 @@ class CompactRepairStrategyTracker:
             max_fact_count=max_fact_count,
             allowed_fact_indexes=allowed_fact_indexes,
             allow_invalid_table_text=allow_invalid_table_text,
+            approved_omitted_fact_indexes=tuple(self._allowed_omitted_fact_indexes),
         )
         if candidate is None:
             return None
@@ -1426,8 +1436,17 @@ class CompactRepairStrategyTracker:
                 previous_count is not None and duplicate_excess_count >= previous_count
             )
         self._previous_duplicate_excess_count = duplicate_excess_count
-        capacity_fits = _capacity_fits_from_issues(quality_errors)
-        if not capacity_fits:
+        if self._static_content:
+            capacity_fits = static_component_capacity_contexts(
+                invalid_source_dsl, quality_errors, compact_plan,
+                tuple(self._allowed_omitted_fact_indexes),
+            )
+            self._latest_capacity_fits = []
+            self._capacity_overflow_limit = None
+            self._capacity_overflow_fact_indexes = set()
+        else:
+            capacity_fits = _capacity_fits_from_issues(quality_errors)
+        if not capacity_fits and not self._static_content:
             capacity_fits = bounded_component_capacity_contexts(
                 invalid_source_dsl,
                 quality_errors,
@@ -1544,8 +1563,8 @@ class CompactRepairStrategyTracker:
         )
         static_capacity_followup = (
             self._static_content
-            and category == "layout_capacity"
-            and self._repair_submission_count >= 1
+            and bool(capacity_fits)
+            and self._capacity_pressure_repair_submitted
         )
         early_drop_due = (
             persistent_plan_coverage_followup
@@ -1577,6 +1596,11 @@ class CompactRepairStrategyTracker:
             or bounded_capacity_followup
         )
         drop_entry_due = drop_entry_due and not _has_duplicate_actions(quality_errors)
+        if self._static_content:
+            drop_entry_due = static_capacity_followup and not _has_duplicate_actions(quality_errors)
+            drop_relevant_failure = bool(capacity_fits)
+            if self._active_fallback == "drop_optional_component":
+                drop_entry_due = False
         if drop_entry_due and drop_relevant_failure and task_spec is not None:
             max_fact_count = self._capacity_overflow_limit if early_drop_due else None
             allowed_fact_indexes = None
@@ -1617,6 +1641,8 @@ class CompactRepairStrategyTracker:
             candidate_was_removed = _drop_candidate_is_fully_removed(
                 invalid_source_dsl,
                 self._optional_drop_candidate,
+                compact_plan,
+                tuple(self._allowed_omitted_fact_indexes),
             )
             candidate_was_removed = (
                 candidate_was_removed
@@ -1625,7 +1651,8 @@ class CompactRepairStrategyTracker:
                     self._optional_drop_candidate,
                 )
             )
-            if candidate_was_removed and not drop_relevant_failure:
+            static_noncapacity_failure = self._static_content and not capacity_fits
+            if static_noncapacity_failure or (candidate_was_removed and not drop_relevant_failure):
                 directive = _non_layout_directive(
                     category=category,
                     quality_errors=quality_errors,
@@ -1924,8 +1951,9 @@ class CompactRepairStrategyTracker:
                 directive,
                 instruction=(
                     "按当前静态合同修复完整源，正文使用TextList、SingleLineList、ComparisonGroup或EmphasisText；固定标题和贴底内容区；"
-                    "保留must核心、保护片段和原文要求；无保护should可省略并反馈取舍。"
-                    "不得删除仍承载must的组件；混合组件只删除可选补充片段。"
+                    "保留全部已接受事实、保护片段和原文要求；"
+                    "仅optionalDrop或approvedOmissions明确授权的事实可省略并反馈取舍。"
+                    "混合组件不得连带删除未授权文字或整组。"
                     "先修语法与引用，再检查事实归属，最后调整组件；短键值可改SingleLineList。"
                     "对比对象名与主值分开，关键数值、日期时间、单位保持完整片段；"
                     "超宽时改全宽正文或列表；省略号只采用Plan已有展示版本，"

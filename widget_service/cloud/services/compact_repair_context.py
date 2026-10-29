@@ -551,6 +551,130 @@ def bounded_component_capacity_contexts(
     return contexts
 
 
+_STATIC_FIELD_STYLES = {
+    "SingleLineList": {"text": "singleText", "assist": "singleAssist"},
+    "TextList": {"primaryText": "listPrimary", "secondaryText": "listSecondary",
+                 "value": "listValue"},
+    "ComparisonGroup": {"primaryText": "comparisonPrimary", "secondaryText": "comparisonSecondary"},
+    "EmphasisText": {"mainText": "emphasis", "secondaryText": "emphasisSecondary"},
+    "SingleLineTitle": {"title": "header"},
+}
+
+
+def _static_width_targets(
+    component_id: str, component: dict[str, Any], message: str,
+) -> list[tuple[int | None, str]]:
+    """原生容量文案须对应当前字段，并以同合同重新确认超宽。"""
+    from services.static_text_capacity import measure_text, text_spec
+
+    styles = _STATIC_FIELD_STYLES.get(component.get("type"), {})
+    props = component.get("props", {})
+    pattern = (
+        r"(?<![\w./-])" + re.escape(component_id)
+        + r"\.(?:item(\d+)_)?([A-Za-z]+) 完整文字需要 "
+        r"(\d+) 行，([\d.]+)vp 区域仅允许 (\d+) 行"
+    )
+    result = []
+    if "COMPACT_STATIC_TEXT_CAPACITY:" not in message:
+        return result
+    for match in re.finditer(pattern, message):
+        item_number, field, lines, width, maximum = match.groups()
+        style = styles.get(field)
+        if style is None or int(lines) <= int(maximum):
+            continue
+        item_index = int(item_number) if item_number is not None else None
+        values = props
+        if item_index is not None:
+            items = props.get("items")
+            if not isinstance(items, list) or not 0 <= item_index < len(items):
+                continue
+            values = items[item_index]
+        if not isinstance(values, dict):
+            continue
+        value = values.get(field)
+        if not isinstance(value, str) or not value.strip():
+            continue
+        if "{{" in value or "${" in value:
+            continue
+        try:
+            capacity = measure_text(value, float(width), text_spec(style))
+        except ValueError:
+            continue
+        if not capacity.fits:
+            result.append((item_index, field))
+    return result
+
+
+def _static_excess_items(
+    component_id: str, component: dict[str, Any], root: dict[str, Any], message: str,
+) -> list[int]:
+    """仅识别当前源已证明的项数上界冲突，不把下界或空字段算容量。"""
+    kind = component.get("type")
+    items = component.get("props", {}).get("items")
+    if component_id != "body" or not isinstance(items, list):
+        return []
+    if component_id not in root.get("children", []):
+        return []
+    has_header = "header" in root.get("children", [])
+    maximum = len(items)
+    if kind == "TextList":
+        if has_header and "TextList 含标题区时最多两项" in message:
+            maximum = 2
+        elif "TextList.items 必须为2–3项" in message:
+            maximum = 3
+    elif kind == "ComparisonGroup":
+        if has_header and "ComparisonGroup 四项宫格占满正文区" in message:
+            maximum = 3
+    return list(range(len(items))) if len(items) > maximum else []
+
+
+def static_component_capacity_contexts(
+    source: str, quality_errors: list[dict[str, Any]], plan: dict[str, Any] | None,
+    approved_indexes: tuple[int, ...] = (),
+) -> list[dict[str, Any]]:
+    """静态只给当前错误字段的所属事实生成证据；证据本身不授权删除。"""
+    from services.card_validation.compact_validation.semantic.static_content import (
+        static_capacity_fact_indexes,
+    )
+
+    if not isinstance(plan, dict):
+        return []
+    components = _source_component_rows(source)
+    root = components.get("root", {})
+    if root.get("type") != "Layout":
+        return []
+    message = "\n".join(str(issue.get("message") or "") for issue in quality_errors)
+    result = []
+    for identifier in root.get("children", []):
+        component = components.get(identifier)
+        if component is None:
+            continue
+        targets = _static_width_targets(identifier, component, message)
+        excess_items = _static_excess_items(identifier, component, root, message)
+        for index in excess_items:
+            targets.append((index, None))
+        if not targets:
+            continue
+        overflow = []
+        for item_index, property_name in dict.fromkeys(targets):
+            try:
+                indexes = static_capacity_fact_indexes(
+                    source, plan, identifier, item_index, property_name, approved_indexes,
+                )
+            except (TypeError, ValueError):
+                indexes = ()
+            overflow.append({
+                "itemIndex": item_index, "property": property_name,
+                "planFacts": [{"factIndex": index} for index in indexes],
+            })
+        result.append({
+            "componentId": identifier, "componentType": component.get("type"),
+            "doesNotFit": overflow, "scope": "currentStaticField",
+            "instruction": "只核对当前字段所属事实；证据不授权删除整组或其它条目。",
+        })
+    return result
+
+
 def repair_topology_fingerprint(source: str) -> str | None:
     """忽略 ID 和配色；保留组件、布局角色、挂接及行数配置。解析不明时不推断。"""
     components: dict[str, list[Any]] = {}

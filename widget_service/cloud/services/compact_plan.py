@@ -515,8 +515,9 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
                 "identity": {
                     "type": ["string", "null"], "minLength": 1, "maxLength": 120,
                     "description": (
-                        "对象的可见短名称，忠于来源；无名称或shared填null。"
-                        "不能只写在内部ID中。"
+                        "对象最终显示的短名称，忠于来源；无名称或shared填null。"
+                        "若本组text已有同对象简称，同步统一名称版本，不能只写在内部ID中。"
+                        "允许独立名称标签加正文；不必把identity重复写入每条text。"
                     ),
                 },
                 "factIndexes": {
@@ -2687,6 +2688,7 @@ def compact_plan_optional_drop_candidate(
     max_fact_count: int | None = None,
     allowed_fact_indexes: set[int] | None = None,
     allow_invalid_table_text: bool = False,
+    approved_omitted_fact_indexes: tuple[int, ...] = (),
 ) -> CompactOptionalDropCandidate | None:
     """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
@@ -2704,6 +2706,7 @@ def compact_plan_optional_drop_candidate(
             plan,
             allowed_fact_indexes,
             allow_must_fallback=allow_must_fallback,
+            approved_indexes=approved_omitted_fact_indexes,
         )
     try:
         rows = parse_compact_dsl_rows(
@@ -2847,6 +2850,7 @@ def _static_optional_drop_candidate(
     allowed_indexes: set[int] | None,
     *,
     allow_must_fallback: bool,
+    approved_indexes: tuple[int, ...] = (),
 ) -> CompactOptionalDropCandidate | None:
     """静态删减按事实授权；优先 should，无候选时才允许 must 兜底。"""
     from services.card_validation.compact_validation.semantic.static_content import (
@@ -2857,12 +2861,13 @@ def _static_optional_drop_candidate(
     if not isinstance(facts, list):
         return None
     try:
-        coverage_rows = static_fact_coverage(source, plan)
+        coverage_rows = static_fact_coverage(source, plan, approved_indexes)
     except (TypeError, ValueError):
         return None
     visible_indexes = {
         coverage.fact_index for coverage in coverage_rows if coverage.visible
     }
+    visible_indexes.difference_update(approved_indexes)
     object_groups = []
     for group in plan.get("contentGroups", []):
         if group.get("kind") != "object":
@@ -2878,6 +2883,8 @@ def _static_optional_drop_candidate(
     must_candidates = []
     for coverage in coverage_rows:
         index = coverage.fact_index
+        if index in approved_indexes:
+            continue
         if allowed_indexes is not None and index not in allowed_indexes:
             continue
         fact = facts[index]
