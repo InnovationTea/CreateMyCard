@@ -29,7 +29,10 @@ title为非空短标题；icon为可选的合法素材引用。
 
 ### 选择条件
 每个对象都有明确名称和一条必要说明，需要逐条查看；一项内部的主副信息不能拆散给别项。
-两项TextList必须与SingleLineTitle标题配套使用；三项时可不使用标题，让正文使用完整高度。
+对象名之外还有状态、说明、趋势或多个限定时优先本组件；对象名、主读数与状态并存时，
+主读数放value、状态放secondaryText。TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无标题。
+三项时优先不使用标题，让正文使用完整高度。共同主题若不可省略，在Plan中并入首条或改用其它可承载标题的结构，
+不能生成标题加三条TextList。
 ### 语义字段
 items为2–3项，每项primaryText与secondaryText必填，value可选，只放本项短数值。
 ### Runtime规则
@@ -46,9 +49,9 @@ primaryText和secondaryText固定单行，超出可用宽度时显示省略号�
 ## SingleLineList
 
 ### 选择条件
-若干短标签与对应内容，每项都能在一行内完整理解；不把长段落压成右侧窄栏。
-SingleLineList必须与SingleLineTitle标题配套使用；没有可展示的共同标题时改用其它正文组件。
-记录名或右侧内容无法完整单行显示时，使用TextList的主副记录结构，不继续选择SingleLineList。
+若干短标签与对应内容，每项都能在一行内完整理解；不把长段落、趋势或多个限定压成右侧窄栏。
+只有“短标签 + 短值”这一层语义时使用，且必须与SingleLineTitle标题配套使用；没有可展示的共同标题时改用其它正文组件。
+若右侧需要解释状态、条件或多段信息，或记录名、右侧内容无法完整单行显示时，改用TextList。
 ### 语义字段
 items为非空数组，每项text、assist必填；assist可为文字或数值，数值仍需有可理解的标签与单位。
 ### Runtime规则

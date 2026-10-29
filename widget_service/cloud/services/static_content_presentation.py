@@ -131,7 +131,13 @@ def _variants(objects: list[_DisplayObject], size: str, presentation: str):
 
 
 def _encode(
-    component: str, props: dict, shared: list[_DisplayObject], size: str, *, heading: str = "",
+    component: str,
+    props: dict,
+    shared: list[_DisplayObject],
+    size: str,
+    *,
+    heading: str = "",
+    include_titles: bool = True,
 ) -> str | None:
     titles = []
     notes = []
@@ -153,7 +159,7 @@ def _encode(
         props = {**props, "secondaryText": "；".join([*values, *notes])}
     children = []
     rows = []
-    if titles:
+    if titles and include_titles:
         children.append("header")
         rows.append(["header", "SingleLineTitle", {"title": "；".join(titles)}])
     children.append("body")
@@ -162,6 +168,23 @@ def _encode(
     root = ["root", "Layout", {"layout": f"{prefix}-static-content"}, children]
     return "\n".join(json.dumps(row, ensure_ascii=False)
                       for row in [root, *rows, ["/state/ready", True]])
+
+
+def _can_omit_shared_title_for_three_records(shared: list[_DisplayObject]) -> bool:
+    """三条文本记录没有标题区；只允许省略 Plan 已标注为可选的共同标题。"""
+    title_facts = []
+    for item in shared:
+        for fact in item.facts:
+            if fact.get("displayRole") == "title":
+                title_facts.append(fact)
+            else:
+                return False
+    return bool(title_facts) and all(
+        fact.get("priority") == "should"
+        and not fact.get("protectedTexts")
+        and not fact.get("preserveVerbatim")
+        for fact in title_facts
+    )
 
 
 def _candidate_sources(plan: dict, size: str, omitted_indexes: tuple[int, ...]) -> list[str]:
@@ -174,7 +197,21 @@ def _candidate_sources(plan: dict, size: str, omitted_indexes: tuple[int, ...]) 
         heading = ""
         if component == "EmphasisText" and len(objects) == 1:
             heading = objects[0].caption()
-        source = _encode(component, props, shared, size, heading=heading)
+        items = props.get("items")
+        headerless_records = (
+            component == "TextList"
+            and isinstance(items, list)
+            and len(items) == 3
+            and _can_omit_shared_title_for_three_records(shared)
+        )
+        source = _encode(
+            component,
+            props,
+            shared,
+            size,
+            heading=heading,
+            include_titles=not headerless_records,
+        )
         if source is not None:
             sources.append(source)
     return sources

@@ -787,6 +787,59 @@ def _static_fact_source(user_query: str) -> tuple[str, bool]:
     return fact_source.strip(), True
 
 
+def _static_presentation_consistency_errors(
+    facts: list[dict[str, Any]],
+    groups: list[dict[str, Any]],
+    presentation_style: str,
+) -> list[str]:
+    """拒绝模型已显式指定的正文组件与展示风格相互冲突的 Plan。"""
+    expected_components = {
+        "records": "TextList",
+        "rows": "SingleLineList",
+        "comparison": "ComparisonGroup",
+    }
+    expected = expected_components.get(presentation_style)
+    if expected is None:
+        return []
+    body_components = set(expected_components.values())
+    object_count = sum(group.get("kind") == "object" for group in groups)
+    errors = []
+    if presentation_style == "records" and object_count == 3:
+        for group in groups:
+            if group.get("kind") != "shared":
+                continue
+            for index in group.get("factIndexes", []):
+                fact = facts[index]
+                title_is_protected = bool(
+                    fact.get("protectedTexts") or fact.get("preserveVerbatim")
+                )
+                title_is_required = fact.get("priority") != "should" or title_is_protected
+                is_required_title = (
+                    fact.get("displayRole") == "title"
+                    and title_is_required
+                )
+                if is_required_title:
+                    return [
+                        "三条 records/TextList 优先不设共同标题：将可省略主题改为 should，"
+                        "或把必要主题归入首条对象后再提交；不能减少核心记录。"
+                    ]
+    for group in groups:
+        if group.get("kind") != "object":
+            continue
+        for index in group.get("factIndexes", []):
+            hints = facts[index].get("componentHints", [])
+            if not isinstance(hints, list):
+                continue
+            selected = next((hint for hint in hints if hint in body_components), None)
+            if selected is not None and selected != expected:
+                errors.append(
+                    "presentationStyle 与 componentHints 冲突："
+                    f"{presentation_style} 需要 {expected}，但对象事实首选 {selected}。"
+                )
+                return errors
+    return errors
+
+
 def _normalize_static_plan(
     arguments: dict[str, Any], task: dict[str, Any]
 ) -> _StaticPlanNormalization:
@@ -945,6 +998,13 @@ def _normalize_static_plan(
     )
     facts = selection.facts
     groups = selection.groups
+    consistency_errors = _static_presentation_consistency_errors(
+        facts,
+        groups,
+        arguments.get("presentationStyle", "auto"),
+    )
+    if consistency_errors:
+        raise CompactPlanValidationError(consistency_errors)
 
     try:
         StaticContentContext.from_plan(source_query, {"info_required": facts})

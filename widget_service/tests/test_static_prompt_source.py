@@ -87,7 +87,7 @@ def test_size_specific_components_layouts_and_composition_are_isolated():
     assert "宽卡比较可使用2–3栏" in wide
 
 
-@pytest.mark.parametrize("size,count", [("2x2", 6), ("2x4", 9)])
+@pytest.mark.parametrize("size,count", [("2x2", 6), ("2x4", 11)])
 def test_loaded_examples_match_current_static_contract(size, count):
     content = read_static_prompt(SOURCE, "fewshot", size)
     assert content.count("```genui") == count
@@ -103,6 +103,8 @@ def test_wide_examples_are_grouped_by_body_component():
     assert components == [
         "EmphasisText",
         "EmphasisText",
+        "TextList",
+        "TextList",
         "TextList",
         "TextList",
         "TextList",

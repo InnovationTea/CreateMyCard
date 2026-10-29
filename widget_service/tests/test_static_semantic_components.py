@@ -163,6 +163,48 @@ def test_three_item_list_with_header_is_rejected_without_changing_spec():
         check(encode("TextList", {"items": items}, header=True))
 
 
+def test_three_text_records_omit_only_an_optional_shared_title_in_candidates():
+    facts = [{
+        "text": "附近小区房价",
+        "priority": "should",
+        "displayRole": "title",
+        "sourceTexts": ["附近小区房价"],
+    }]
+    groups = [{"id": "theme", "kind": "shared", "identity": None, "factIndexes": [0]}]
+    for name, value, trend in (
+        ("中海寰宇时代", "58600元/㎡", "环比下跌1.2%"),
+        ("天通苑北一区", "41200元/㎡", "环比持平"),
+        ("融泽嘉园", "46800元/㎡", "近30天成交6套"),
+    ):
+        fact_indexes = []
+        for text, role in ((name, "title"), (value, "value"), (trend, "body")):
+            fact_indexes.append(len(facts))
+            facts.append({
+                "text": text,
+                "priority": "must",
+                "displayRole": role,
+                "componentHints": ["TextList"],
+                "sourceTexts": [text],
+            })
+        groups.append({
+            "id": name,
+            "kind": "object",
+            "identity": name,
+            "factIndexes": fact_indexes,
+        })
+    plan = {
+        "info_required": facts,
+        "contentGroups": groups,
+        "presentationStyle": "records",
+    }
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        candidates = static_presentation_candidates(plan, "2x4")
+        assert candidates
+        assert '"TextList"' in candidates[0]
+        assert '"header"' not in candidates[0]
+        assert not static_group_errors(candidates[0], plan)
+
+
 def test_four_item_comparison_uses_full_width_two_by_two_grid():
     items = [
         {"primaryText": f"{price}元/月", "secondaryText": name}

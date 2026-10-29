@@ -11,12 +11,12 @@ description: 按真实诊断修复语法、引用、信息落实和组件容量�
 
 空间错误先看哪个组件的哪个字段过长、哪一项超出容量。保持必要名称、读数、单位及限定，
 换用允许的组件或重新分配同对象主副字段，父外框与固定样式继续由Runtime管理。
-TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无标题。
-较多短键值用SingleLineList，长段落不硬塞单行。
-SingleLineList必须与SingleLineTitle标题配套使用；修复时不得删除header后只保留body列表。
-SingleLineList的text或assist无法完整单行展示时，改用TextList承载长记录的主副信息；
-含标题的TextList最多两项。未收到optionalDrop时保留全部事实；仍放不下时只删除后续明确授权的超出信息。
-ComparisonGroup为2或3项时必须与SingleLineTitle标题配套使用；4项宫格允许无标题。
+TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无标题。三条主副记录先去除可省略标题，或将必要主题归入首条后保持三条TextList，
+不得先删减为两条记录来保留标题。只有短键值才用SingleLineList，长说明、趋势或多个限定不硬塞单行；
+SingleLineList必须与SingleLineTitle标题配套使用，修复时不得删除header后只保留body列表。
+SingleLineList的text或assist无法完整单行展示时，改用TextList承载长记录的主副信息；未收到optionalDrop时保留全部事实；
+仍放不下时只删除后续明确授权的超出信息。ComparisonGroup为2或3项时必须与SingleLineTitle标题配套使用；4项宫格允许无标题。
+禁止为满足容量删除核心对象。
 已接受核心的改写或删除只在程序明确授权的既有Drop阶段执行；按本轮明确索引处理。
 一次只删除本轮批准的事实，保留其余对象、字段与标题；删后重新排齐剩余内容。
 空间修复仍失败可进入程序授权Drop，优先低优先级补充；保护原文和最后一个正文对象继续保留。

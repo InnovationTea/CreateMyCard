@@ -122,6 +122,70 @@ def test_no_eligible_candidate_still_returns_capacity_feedback_without_deleting_
     assert plan == before
 
 
+def test_plan_rejects_conflicting_record_component_and_row_style():
+    plan = {
+        "info_required": [
+            fact("中海寰宇时代", displayRole="title", componentHints=["TextList"]),
+            fact("58600元/㎡，环比下跌1.2%", displayRole="body", componentHints=["TextList"]),
+        ],
+        "contentGroups": [{
+            "id": "community",
+            "kind": "object",
+            "identity": "中海寰宇时代",
+            "factIndexes": [0, 1],
+        }],
+        "presentationStyle": "rows",
+    }
+    task = {"userQuery": "中海寰宇时代58600元/㎡，环比下跌1.2%", "size": "2x4"}
+    raw = json.dumps({"name": "submit_card_plan", "arguments": plan}, ensure_ascii=False)
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(
+            CompactPlanValidationError,
+            match="presentationStyle 与 componentHints 冲突",
+        ):
+            parse_compact_plan_call(raw, task)
+
+
+def test_three_records_reject_a_required_shared_title_before_dsl_generation():
+    facts = [fact("附近小区房价", displayRole="title")]
+    groups = [{"id": "theme", "kind": "shared", "identity": None, "factIndexes": [0]}]
+    communities = (
+        ("中海寰宇时代", "58600元/㎡"),
+        ("天通苑北一区", "41200元/㎡"),
+        ("融泽嘉园", "46800元/㎡"),
+    )
+    for name, value in communities:
+        title_index = len(facts)
+        facts.append(fact(name, displayRole="title", componentHints=["TextList"]))
+        value_index = len(facts)
+        facts.append(fact(value, displayRole="value", componentHints=["TextList"]))
+        groups.append({
+            "id": name,
+            "kind": "object",
+            "identity": name,
+            "factIndexes": [title_index, value_index],
+        })
+    plan = {
+        "info_required": facts,
+        "contentGroups": groups,
+        "presentationStyle": "records",
+    }
+    task = {
+        "userQuery": (
+            "附近小区房价：中海寰宇时代58600元/㎡；天通苑北一区41200元/㎡；"
+            "融泽嘉园46800元/㎡"
+        ),
+        "size": "2x4",
+    }
+    raw = json.dumps({"name": "submit_card_plan", "arguments": plan}, ensure_ascii=False)
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(
+            CompactPlanValidationError,
+            match="三条 records/TextList 优先不设共同标题",
+        ):
+            parse_compact_plan_call(raw, task)
+
+
 def test_dynamic_plan_tool_has_no_static_identity_roles_or_capacity_feedback():
     task = {"size": "2x4", "userQuery": "动态数据", "dataModelSchema": {"data": {}}}
     with content_policy_scope(EXISTING_CONTENT_POLICY):
