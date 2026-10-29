@@ -70,13 +70,13 @@ def test_ineligible_fusion_preserves_foreground_across_sizes_and_businesses(wide
 @pytest.mark.parametrize("extra,expected", [
     (preference("backgroundTone", "dark", QUERY), "#FF1A1A1A"),
     (preference("backgroundTone", "light", QUERY), "#FFFFFFFF"),
-    (preference("backgroundColor", "#123456", QUERY), "#FF123456"),
+    (preference("backgroundColor", "#123456", "#123456"), "#FF123456"),
     (preference("backgroundKind", "gradient", QUERY, "avoid"), None),
     (preference("paletteFamily", "purple", QUERY), None),
 ])
 def test_other_color_tone_and_negative_preferences_survive(extra, expected):
     saved = sample(PATHS.get("weather"), 2, wide=True)
-    saved.task["userQuery"] = QUERY
+    saved.task["userQuery"] = QUERY + "，精确底色 #123456"
     result, audit = choose(saved, [FUSION, extra])
     assert audit.get("unmetPreferences") == [FUSION]
     if expected:
