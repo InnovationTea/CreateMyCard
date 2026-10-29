@@ -1,5 +1,15 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-28 日程条目点击：`items[].onClick` 的字段和单 handler 形状归语法／组件，
+委托 `compact_high_level_components.py` 共享合同及展开后 `syntax/components.py`；
+有效日程详情、展示与参数的同数组记录归属、重复详情入口归语义／有效能力，
+唯一落点为 `semantic/event_items.py`，诊断为 `COMPACT_EVENT_ITEM_MISMATCH`、
+`COMPACT_EVENT_ITEM_DUPLICATE`。记录路径解析复用公共 BindingValidator，不按标题或样例值推断。
+动作实例引用由 `compact_action_instances.py` 统一提供，Plan 覆盖仍归 `compact_plan.py`，
+条目点击的素材豁免仍归语义／跨文件一致性的 `semantic/plan_contracts.py`。
+新增规则只作用于 EventCard 条目点击，不迁移历史规则；建议在 `repair_hints.json`，
+回归在 `test_event_card_item_clicks.py`，规则目录及归属快照同步登记。
+
 2026-10-27 单位校验补充：缺失、重复单位归语义／展示语义，继续由公共
 `card_validation/display_unit_validator.py` 判定，`display_unit_rules.py` 提供绑定单位与相邻拼接匹配。
 单位后允许空白或标点分隔，不跨动态字段借用单位，不按业务文案新增后缀特例。
