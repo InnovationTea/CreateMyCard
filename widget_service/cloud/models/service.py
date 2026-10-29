@@ -175,7 +175,7 @@ class WidgetPluginStreamResponse(BaseModel):
     """华为流处理插件 WebSocket 输出包络。
 
     入参：
-    - errorCode：插件接入响应码，固定为 "0"；业务错误码位于 streamContent。
+    - errorCode：插件接入响应码，固定为 "0"；失败信息由 streamContent 的简版反馈表达。
     - errorMessage：插件接入错误描述，固定为空字符串。
     - reply：响应内容，包含 streamInfo 和 items。
     出参：发送给小艺插件平台的流处理插件响应。

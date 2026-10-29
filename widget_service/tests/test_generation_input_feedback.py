@@ -247,14 +247,12 @@ def test_websocket_final_exposes_structured_input_guidance(monkeypatch):
     assert isinstance(stream, dict)
     assert stream.get("streamType") == "final"
     message = parse_legacy_stream_content(stream.get("streamContent", ""))
-    assert message.get("status") == "failed"
-    assert message.get("errorCode") == ErrorCode.GENERATION_INPUT_INCOMPLETE.value
-    error = message.get("error")
-    assert isinstance(error, dict)
-    details = error.get("details")
-    assert isinstance(details, dict)
+    details = message
     assert details.get("retryable") is True
-    assert details.get("modelCalled") is True
-    assert details.get("stage") == "generationInput"
-    assert "停止本轮调用" not in error.get("message", "")
+    assert details.get("requiredActions") == ["REFRESH_CAPABILITIES", "FIX_AND_RETRY"]
+    assert "动态数据输入不完整" in message.get("message", "")
+    issues = details.get("issues")
+    assert isinstance(issues, list) and issues
+    assert issues[0].get("path") == "/candidateDataBindings"
+    assert "权限" in issues[0].get("message", "")
     assert len(calls) == 1

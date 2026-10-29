@@ -132,7 +132,7 @@ async def test_new_round_rejected_before_argument_repair(monkeypatch, setup_rout
     frames, calls = await run_route(monkeypatch, limiter, requests=[bad_payload])
     assert not calls
     assert len(frames) == 1
-    assert final_message(frames).get("errorCode") == ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED
+    assert final_message(frames).get("message") == setup_route.daily_usage_limit_exceeded_message
     repair.assert_not_called()
 
 
@@ -142,7 +142,11 @@ async def test_non_success_results_do_not_count(monkeypatch, setup_route, status
     limiter = make_limiter()
     frames, calls = await run_route(monkeypatch, limiter, status=status)
     assert len(calls) == 1
-    assert final_message(frames).get("status") == status
+    if status in {"failed", "unsupported"}:
+        assert final_message(frames).get("retryable") is False
+        assert final_message(frames).get("requiredActions") == ["STOP"]
+    else:
+        assert final_message(frames).get("status") == status
     assert not limiter.repository.records
 
 
@@ -239,7 +243,7 @@ async def test_whitelist_does_not_exempt_nonmatching_users(monkeypatch, setup_ro
     await limiter.record_success(record)
     frames, calls = await run_route(monkeypatch, limiter)
     assert not calls
-    assert final_message(frames).get("errorCode") == ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED
+    assert final_message(frames).get("message") == setup_route.daily_usage_limit_exceeded_message
 
 
 @pytest.mark.asyncio
@@ -366,7 +370,8 @@ async def test_exception_before_success_does_not_count(monkeypatch, setup_route,
         )
     limiter = make_limiter()
     frames, _calls = await run_route(monkeypatch, limiter, handler=failing_handler)
-    assert final_message(frames).get("status") == "failed"
+    assert final_message(frames).get("retryable") is False
+    assert final_message(frames).get("requiredActions") == ["STOP"]
     assert not limiter.repository.records
 
 

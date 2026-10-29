@@ -3,17 +3,17 @@
   "pluginType": "Device",
   "toolType": "XiaoYiDeviceTool",
   "toolName": "RequestDataPermission",
-  "description": "获取特定场景的数据权限能力",
+  "description": "检查本轮数据能力的授权状态",
   "arguments": {
     "properties": {
       "dataCapabilityIds": {
         "type": "Array<String>",
-        "description": "需要加载完整 schema 的数据能力 ID 列表，至少 1 个。",
+        "description": "本轮需要检查权限的数据能力 ID 列表，至少 1 个。",
         "required": [],
         "properties": {
           "ArrayItem": {
             "type": "String",
-            "description": "完整 schema 的数据能力 ID "
+            "description": "数据能力 ID"
           }
         }
       }

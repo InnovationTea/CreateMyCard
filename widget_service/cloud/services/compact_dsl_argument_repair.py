@@ -21,6 +21,8 @@ from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelBackend
 from models.capability import EventDynamicArgument
 from models.generation import CandidateDataBinding, GenerationOptions, ModelRequestContext
+from models.preflight import GenerationPreflightError
+from services.agent_feedback import request_validation_feedback
 from services.argument_json_recovery import (
     DECODER,
     PreservedArguments,
@@ -90,22 +92,69 @@ _MAX_ARGUMENT_CHARS = 131072
 class CompactDslArgumentRepairError(ValueError):
     """表示模型候选无法作为生成请求的 content 使用。"""
 
+    def __init__(self, message: str, *, feedback: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.feedback = feedback
+
 
 class CompactDslArgumentRepairExhaustedError(ValueError):
     """参数恢复失败是本轮生成的终态，不再让 Agent 自动改参循环。"""
 
     error_code = ErrorCode.A2UI_GENERATION_FAILED
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        diagnostic: dict[str, Any] | None = None,
+        attempts: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.diagnostic = diagnostic
+        self.attempts = attempts
+
     def details(self) -> dict[str, Any]:
-        return {
+        details: dict[str, Any] = {
             "stage": "argumentRepair",
             "retryable": False,
             "requiredActions": ["NOTIFY_USER"],
             "agentInstruction": (
-                "本次 DSL 生成失败：参数修复及重试均未成功，未生成卡片结果。"
-                "请停止本轮自动调用，并提示用户：卡片生成失败，请重试一下。"
+                "停止本轮自动调用并告知用户生成失败，保留原有效来源。"
             ),
         }
+        if self.diagnostic is not None:
+            details["diagnostic"] = self.diagnostic
+            details["agentInstruction"] += "diagnostic 仅供定位，不授予重试权限。"
+        if self.attempts is not None:
+            details["repairAttempts"] = self.attempts
+        return details
+
+
+def argument_repair_diagnostic(exc: Exception) -> dict[str, Any]:
+    """仅保留受控校验诊断；不将原始异常、参数值或内部修复指令返回主 Agent。"""
+    diagnostic: dict[str, Any] = {
+        "stage": "argumentRepair",
+        "message": "参数恢复未通过完整性或结构检查，无法安全还原完整业务对象。",
+    }
+    if isinstance(exc, CompactDslArgumentRepairError) and exc.feedback is not None:
+        issues = []
+        for issue in exc.feedback.get("issues", []):
+            item = {}
+            for name in ("code", "path", "message", "expected", "actualType", "referenceSource"):
+                if name in issue:
+                    item[name] = issue.get(name)
+            issues.append(item)
+        diagnostic = {"stage": exc.feedback.get("stage"), "issues": issues}
+    elif isinstance(exc, json.JSONDecodeError):
+        diagnostic = {
+            "stage": "argumentRepair",
+            "message": "内层参数未能解析为合法 JSON；核对括号、逗号、引号及转义。",
+            "line": exc.lineno,
+            "column": exc.colno,
+        }
+    elif not isinstance(exc, ValueError):
+        diagnostic = {"stage": "argumentRepair", "message": "参数恢复执行异常，未取得可用结果。"}
+    return diagnostic
 
 
 @dataclass(frozen=True)
@@ -320,6 +369,7 @@ async def recover_compact_dsl_content(
             preserved.fields[key] = content.get(key)
     previous_output = ""
     validation_errors: list[str] = []
+    last_diagnostic: dict[str, Any] | None = None
     client = A2UIModelClient(
         use_mock=False,
         backend=backend,
@@ -357,10 +407,13 @@ async def recover_compact_dsl_content(
             except Exception as exc:
                 previous_output = raw_output
                 validation_errors = _repair_error_messages(exc)
+                last_diagnostic = argument_repair_diagnostic(exc)
                 logger.warning(
                     f"{_MODULE} model_candidate_rejected attempt={attempt} "
+                    f"max_attempts={normalized_attempts} "
+                    f"will_retry={json_for_log(attempt < normalized_attempts)} "
                     f"exception_type={type(exc).__name__} "
-                    f"errors={json_for_log(validation_errors)}"
+                    f"diagnostic={json_for_log(last_diagnostic)}"
                 )
                 continue
             mode: Literal["model", "model_retry"] = (
@@ -388,9 +441,12 @@ async def recover_compact_dsl_content(
 
     logger.error(
         f"{_MODULE} recovery_failed attempts={normalized_attempts} "
-        f"raw_arguments_hash={raw_hash} errors={json_for_log(validation_errors)}"
+        f"raw_arguments_hash={raw_hash} will_retry=false "
+        f"diagnostic={json_for_log(last_diagnostic)}"
     )
-    raise CompactDslArgumentRepairExhaustedError("卡片生成失败，请重试一下。")
+    raise CompactDslArgumentRepairExhaustedError(
+        "卡片生成失败，请重试一下。", diagnostic=last_diagnostic, attempts=normalized_attempts,
+    )
 
 
 def _build_repair_prompt(
@@ -480,7 +536,10 @@ def _normalize_model_output(
         preflight = GenerationPreflight(registry).run(preflight_request)
         if preflight.blocking_issues:
             issue = preflight.blocking_issues[0]
-            raise CompactDslArgumentRepairError(f"preflight rejected {issue.path}: {issue.code}")
+            raise CompactDslArgumentRepairError(
+                f"preflight rejected {issue.path}: {issue.code}",
+                feedback=GenerationPreflightError(preflight).details(),
+            )
     normalized = _normalized_business_content(repaired, request)
     _preserve_outer_content_values(normalized, outer_content)
     if not normalized:
@@ -880,7 +939,12 @@ def _validate_generation_content(
         for item in exc.errors(include_context=False, include_input=False):
             location = "/" + "/".join(str(part) for part in item.get("loc", ()))
             errors.append(f"{location}: {item.get('msg', 'invalid value')}")
-        raise CompactDslArgumentRepairError("; ".join(errors)) from exc
+        raise CompactDslArgumentRepairError(
+            "; ".join(errors),
+            feedback=request_validation_feedback(
+                exc, "generateWidgetCardCompactDsl", arguments=business_content,
+            ),
+        ) from exc
 
 
 def _normalized_business_content(

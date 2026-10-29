@@ -40,6 +40,7 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
+from services.agent_error_view import agent_error_view
 from services.agent_feedback import (
     request_envelope_feedback,
     request_validation_feedback,
@@ -49,6 +50,7 @@ from services.artifact_store import ArtifactUploadError
 from services.capability_registry import CapabilityRegistry
 from services.compact_dsl_argument_repair import (
     CompactDslArgumentRepairExhaustedError,
+    argument_repair_diagnostic,
     compact_dsl_argument_issue_tracker,
     has_explicit_stringified_arguments,
     recover_compact_dsl_content,
@@ -108,80 +110,58 @@ GENERATION_OPERATIONS = frozenset(
     }
 )
 ERROR_EXPLANATIONS = {
-    ErrorCode.INVALID_ARGUMENTS.value: (
-        "工具参数传入有误，请按 details.issues 修正全部必填字段、类型和取值后再调用；"
-        "不要只修第一项或原样重试。报错信息如下"
-    ),
-    ErrorCode.GENERATION_INPUT_INCOMPLETE.value: (
-        "生成所需的动态数据输入不完整，请按 details 中的结构化指引核对能力、"
-        "补齐参数并复查权限后，在原有调用预算内重调。报错信息如下"
-    ),
-    ErrorCode.UNKNOWN_CAPABILITY.value: (
-        "工具参数中包含未注册的能力 ID；若 details 要求 STOP 则停止，"
-        "否则重新获取能力概述并仅使用返回的 ID；"
-        "随后继续修正 details.issues 中的其它问题。报错信息如下"
-    ),
-    ErrorCode.WRITE_RESULT_CONFLICT.value: (
-        "多个数据能力的写入路径存在冲突，请调整 writeResultTo，"
-        "避免路径相同、嵌套或相互覆盖，并继续修正 details.issues 中的其它问题。报错信息如下"
-    ),
+    ErrorCode.INVALID_ARGUMENTS.value: "参数检查未通过",
+    ErrorCode.GENERATION_INPUT_INCOMPLETE.value: "生成所需的动态数据输入不完整",
+    ErrorCode.UNKNOWN_CAPABILITY.value: "包含未注册的能力 ID，按 details 核对",
+    ErrorCode.WRITE_RESULT_CONFLICT.value: "数据写入路径冲突",
     ErrorCode.NO_EFFECTIVE_CAPABILITY.value: (
-        "本次请求没有可用于生成卡片的有效能力，请停止本轮生成，不移除核心需求或改成静态请求。报错信息如下"
+        "没有可用于生成卡片的有效能力，停止本轮调用"
     ),
     ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value: (
-        "当前指定的 DSL 协议不支持本次请求中的动态能力或编辑模式，"
-        "请停止本轮调用，不切换创建／编辑、生成接口或把动态需求改成静态请求。报错信息如下"
+        "当前协议不支持本次动态能力或编辑模式，停止本轮调用"
     ),
     ErrorCode.APP_VERSION_UNSUPPORTED.value: (
-        "当前设备的 App 或 ROM 版本不在服务支持范围内，请停止继续生成，并向用户说明版本暂不支持。"
-        "报错信息如下"
+        "App 或 ROM 版本不在服务支持范围内，停止本轮调用"
     ),
     ErrorCode.PACKAGE_NOT_INSTALLED.value: (
-        "当前设备未安装能力依赖的应用，请停止本轮调用，不擅自移除核心能力。报错信息如下"
+        "未安装能力依赖的应用，停止本轮调用"
     ),
     ErrorCode.A2UI_GENERATION_FAILED.value: (
-        "卡片生成模型调用失败，或模型没有返回有效 DSL；"
-        "本次没有可继续处理的卡片结果，也没有可执行的改参依据，请停止本轮自动调用。"
-        "报错信息如下"
+        "卡片生成流程未成功完成，停止本轮自动调用"
     ),
     ErrorCode.VALIDATION_FAILED.value: (
-        "模型生成的卡片 DSL 存在 error 级校验问题，且当前结果未通过修复校验，"
-        "内部修复未通过，请停止本轮自动调用，不删除核心内容或猜测修改业务参数。"
-        "报错信息如下"
+        "生成结果或服务内部校验未通过，停止本轮自动调用"
     ),
     ErrorCode.ARTIFACT_UPLOAD_FAILED.value: (
-        "卡片内容已经生成，但产物保存或上传失败，当前没有可用的 artifactUrl，"
-        "请停止本轮自动调用，不补做生成或构造地址。报错信息如下"
+        "产物保存或上传失败，无有效产物地址，停止本轮自动调用"
     ),
     ErrorCode.WIDGET_EDIT_DISABLED.value: (
-        "当前服务没有开启卡片编辑功能，无法处理 sourceArtifactUrl；"
-        "请停止本轮编辑并保留原卡，不自动转为新建。"
-        "报错信息如下"
+        "服务没有开启卡片编辑功能，停止本轮编辑并保留原卡"
     ),
     ErrorCode.SOURCE_ARTIFACT_NOT_FOUND.value: (
-        "没有找到待编辑的来源卡片产物，请停止本轮编辑并保留原有效来源，不猜地址或自动新建。报错信息如下"
+        "没有找到待编辑的来源卡片产物，停止本轮编辑并保留原有效来源"
     ),
     ErrorCode.SOURCE_ARTIFACT_DOWNLOAD_FAILED.value: (
-        "待编辑的来源卡片产物下载失败，请停止本轮编辑并保留原有效来源，不自动重试或新建。报错信息如下"
+        "来源卡片产物下载失败，停止本轮编辑并保留原有效来源"
     ),
     ErrorCode.SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED.value: (
-        "待编辑的来源卡片产物版本或结构不受当前服务支持，请停止本轮编辑，不自动新建。报错信息如下"
+        "来源卡片产物版本或结构不受当前服务支持，停止本轮编辑"
     ),
     ErrorCode.SOURCE_ARTIFACT_INVALID.value: (
-        "待编辑的来源卡片产物内容无效或不完整，请停止本轮编辑并保留原有效来源，不自动新建。报错信息如下"
+        "来源卡片产物内容无效或不完整，停止本轮编辑并保留原有效来源"
     ),
     ErrorCode.TIMEOUT.value: (
-        "工具执行超时，本次调用结果无法确认，请停止本轮自动调用，不把本次结果当作成功结果。报错信息如下"
+        "工具执行超时，结果无法确认，停止本轮自动调用"
     ),
     ErrorCode.WIDGET_EDIT_UNSUPPORTED.value: (
-        "本次修改超出当前编辑支持范围，请停止本轮编辑，不自动新建或改变核心用途。报错信息如下"
+        "修改超出当前编辑支持范围，停止本轮编辑"
     ),
     ErrorCode.WIDGET_EDIT_INVALID.value: (
-        "本次编辑未通过保护或履约检查，原卡保持不变，请停止本轮自动调用。报错信息如下"
+        "编辑未通过保护或履约检查，停止本轮自动调用"
     ),
 }
 DEFAULT_ERROR_EXPLANATION = (
-    "工具执行过程中发生未分类的服务异常，本次调用未成功完成，请停止本轮自动调用并保留原有效来源。报错信息如下"
+    "未分类的服务异常，停止本轮自动调用"
 )
 
 
@@ -196,6 +176,7 @@ class StringifiedToolArgumentsError(ValueError):
         model_called: bool = False,
         repair_failure_type: str = "",
         transport_only: bool = False,
+        recovery_diagnostic: dict[str, Any] | None = None,
     ) -> None:
         error_message = "tool arguments were stringified before content mapping"
         if not transport_only:
@@ -204,6 +185,7 @@ class StringifiedToolArgumentsError(ValueError):
         self.model_called = model_called
         self.repair_failure_type = repair_failure_type
         self.transport_only = transport_only
+        self.recovery_diagnostic = recovery_diagnostic
 
     def details(self) -> dict[str, Any]:
         """构造保持插件包络格式的可执行修复说明。"""
@@ -216,36 +198,35 @@ class StringifiedToolArgumentsError(ValueError):
             "retryable": True,
             "requiredActions": ["FIX_AND_RETRY"],
             "agentInstruction": (
-                "外层请求是合法 JSON，但工具调用的 arguments 被序列化成字符串，"
-                "导致传输包的 content 中出现多余的字符串字段 arguments。"
-                "请恢复完整业务对象，作为下一次 invoke.arguments 提交，保留原需求及全部合法候选；"
-                "issues.path 是服务端定位路径，不要求你手工构造 content 或顶层镜像。"
-                "调用元数据由当前工具调用约定及中间链路处理，不补造设备或会话字段；"
-                "仅在既有调用预算内修正重调，相同错误重复且无新修正依据时停止。"
+                "按当前工具约定，将完整业务对象直接提交为 invoke.arguments，沿用既有预算；"
+                "不手工构造传输包络。"
             ),
             "issues": [
                 {
                     "code": "STRINGIFIED_TOOL_ARGUMENTS",
                     "path": "/content/arguments",
-                    "message": "content 中多传了字符串类型的 arguments 字段。",
-                    "expected": "content directly contains the tool business fields",
+                    "message": "外层 JSON 合法，内层 arguments 为字符串且未能自动恢复。",
+                    "expected": "下一次 invoke.arguments 为包含完整业务字段的 JSON 对象",
                     "actualType": "string",
                     "agentAction": "FIX_AND_RETRY",
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "将原字符串恢复为完整业务 JSON 对象，检查括号、逗号、引号和转义；"
-                        "直接作为下一次 invoke.arguments，不再次包裹 arguments 或整个调用对象。"
-                        "保留原值、模式、来源、用户尺寸要求及合法候选，不通过清空数组过检；"
-                        "不要手工编辑 WebSocket content、顶层镜像或透传元数据。"
+                        "恢复完整业务对象，检查括号、逗号、引号及转义；"
+                        "不再次包裹 arguments 或整个调用对象。"
                     ),
-                    "referenceSource": "generateWidgetCardCompactDsl tool schema",
+                    "referenceSource": "generateWidgetCardCompactDsl 当前工具 Schema",
                 }
             ],
             "warnings": [],
         }
         if self.repair_failure_type:
             details["repairFailureType"] = self.repair_failure_type
+        if self.recovery_diagnostic is not None:
+            details["diagnostic"] = self.recovery_diagnostic
+            details["agentInstruction"] += (
+                "diagnostic 路径相对于解码后的业务对象，仅列出已确认问题。"
+            )
         return details
 
     @staticmethod
@@ -257,28 +238,23 @@ class StringifiedToolArgumentsError(ValueError):
             "retryable": True,
             "requiredActions": ["FIX_AND_RETRY"],
             "agentInstruction": (
-                "调用 generateWidgetCardCompactDsl 时，arguments 必须直接传合法的 "
-                "JSON 对象，不能把整个对象序列化成 JSON 字符串。"
-                "微服务仅看到透传字段，不能据此恢复原始业务内容；请从本轮原需求及已核对候选"
-                "恢复完整 invoke.arguments，缺必要内容时停止，不猜值。"
-                "不要手工补传输包络、顶层镜像、用户或设备字段；调用元数据按运行时约定处理。"
+                "按当前工具约定恢复完整 invoke.arguments，直接传合法 JSON 对象；"
+                "缺必要内容时先澄清，不补造传输字段。"
             ),
             "issues": [
                 {
                     "code": "STRINGIFIED_TOOL_ARGUMENTS",
                     "path": "/arguments",
-                    "message": "工具调用的 arguments 被错误地传成了 JSON 字符串。",
-                    "expected": "arguments must be a JSON object",
+                    "message": "微服务仅收到透传字段，未取得原始业务参数。",
+                    "expected": "arguments 必须为完整业务 JSON 对象",
                     "actualType": "string",
                     "agentAction": "FIX_AND_RETRY",
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "在下一次工具调用的 arguments 中直接提交完整业务对象，"
-                        "不序列化、不再次嵌套调用外层；检查全部必填及候选结构，"
-                        "保留原需求、模式和合法候选，在既有预算内重调。"
+                        "从本轮原需求及已核对候选恢复完整业务对象，在既有预算内重调。"
                     ),
-                    "referenceSource": "generateWidgetCardCompactDsl tool schema",
+                    "referenceSource": "generateWidgetCardCompactDsl 当前工具 Schema",
                 }
             ],
             "warnings": [],
@@ -618,13 +594,16 @@ async def _repair_compact_dsl_content_if_needed(
     model_runtime: ModelExecutionRuntime | None,
 ) -> bool:
     """先做一次确定性恢复，未能恢复的字符串参数再沿用有界模型兜底。"""
+    diagnostic: dict[str, Any] | None = None
     if operation == COMPACT_DSL_OPERATION:
         try:
             deterministic = recover_deterministic_content(payload)
         except ValueError as exc:
+            diagnostic = argument_repair_diagnostic(exc)
             logger.info(
                 f"{_MODULE} deterministic_argument_repair_rejected "
-                f"request_id={request_id} reason={type(exc).__name__}"
+                f"request_id={request_id} exception_type={type(exc).__name__} "
+                f"diagnostic={json_for_log(diagnostic)}"
             )
         else:
             if deterministic is not None:
@@ -646,9 +625,9 @@ async def _repair_compact_dsl_content_if_needed(
     settings = get_settings()
     if not settings.enable_compact_dsl_argument_repair_fallback:
         compact_dsl_argument_issue_tracker.reset(request_id)
-        return False
+        raise StringifiedToolArgumentsError(recovery_diagnostic=diagnostic)
     if not request_id:
-        return False
+        raise StringifiedToolArgumentsError(recovery_diagnostic=diagnostic)
     issue_count, should_repair = compact_dsl_argument_issue_tracker.record(
         request_id,
         settings.compact_dsl_argument_repair_reminder_count,
@@ -659,7 +638,7 @@ async def _repair_compact_dsl_content_if_needed(
         f"should_repair={json_for_log(should_repair)}"
     )
     if not should_repair:
-        return False
+        raise StringifiedToolArgumentsError(recovery_diagnostic=diagnostic)
     try:
         with trace_span("argument_repair.completed", stage="argumentRepair"):
             recovery = await recover_compact_dsl_content(
@@ -670,14 +649,20 @@ async def _repair_compact_dsl_content_if_needed(
                 max_attempts=settings.compact_dsl_argument_repair_max_attempts,
             )
     except Exception as exc:
+        failure = exc
+        if not isinstance(failure, CompactDslArgumentRepairExhaustedError):
+            failure = CompactDslArgumentRepairExhaustedError(
+                "卡片生成失败，请重试一下。", diagnostic=argument_repair_diagnostic(exc),
+            )
         logger.error(
             f"{_MODULE} compact_dsl_argument_repair_failed request_id={request_id} "
-            f"exception_type={type(exc).__name__} traceback={traceback.format_exc()}"
+            f"exception_type={type(exc).__name__} will_retry=false "
+            f"details={json_for_log(failure.details())}"
         )
         compact_dsl_argument_issue_tracker.reset(request_id)
-        raise CompactDslArgumentRepairExhaustedError(
-            "卡片生成失败，请重试一下。"
-        ) from exc
+        if failure is exc:
+            raise
+        raise failure from exc
     payload["content"] = recovery.content
     trace_observe_attempt("argumentRepairAttempts", recovery.attempts)
     if recovery.attempts > 1:
@@ -707,6 +692,7 @@ def _error_details(
     operation: str | None = None,
     *,
     request_validated: bool = False,
+    request_arguments: dict[str, Any] | None = None,
 ) -> dict[str, Any] | list[dict[str, Any]] | str:
     """将参数异常转换成可序列化详情。
 
@@ -730,7 +716,7 @@ def _error_details(
         elif request_validated:
             details = terminal_feedback("serviceValidation")
         else:
-            details = request_validation_feedback(exc, operation)
+            details = request_validation_feedback(exc, operation, arguments=request_arguments)
     elif operation is not None:
         details = terminal_feedback("serviceExecution" if request_validated else "requestEnvelope")
     else:
@@ -754,34 +740,23 @@ def _build_plugin_stream_response(
 
     入参：
     - legacy_message：旧版 WebSocket 完整出参。
-    出参：插件顶层始终成功；业务异常说明和完整旧消息放入 streamContent。
+    出参：插件顶层始终成功；失败仅展示简版指引，成功保留完整业务消息。
     """
     resolved_streaming_text_id = streaming_text_id or legacy_message.requestId or uuid.uuid4().hex
     message_payload = legacy_message.model_dump(mode="json")
-    daily_usage_message = _daily_usage_error_message(legacy_message.errorCode)
-    if daily_usage_message is not None:
-        error = message_payload.get("error")
-        if isinstance(error, dict):
-            error["message"] = daily_usage_message
+    is_failure = isinstance(legacy_message, WidgetWebSocketErrorMessage)
+    if is_failure or legacy_message.status in {"failed", "unsupported"}:
+        message_payload = agent_error_view(
+            legacy_message.error, _error_explanation(legacy_message.errorCode),
+            user_message=_daily_usage_error_message(legacy_message.errorCode),
+        )
+        if legacy_message.status == "unsupported":
+            message_payload["agentInstruction"] = "停止本轮调用，按不支持流程向用户说明原因。"
     stream_content = json.dumps(
         message_payload,
         ensure_ascii=False,
         separators=(",", ":"),
     )
-    error_explanation = _error_explanation(legacy_message.errorCode)
-    if isinstance(legacy_message, WidgetWebSocketErrorMessage):
-        details = legacy_message.error.get("details")
-        if isinstance(details, dict) and details.get("stage") == "argumentRepair":
-            error_explanation = "本次卡片生成失败，请提示用户重试一下；停止本轮自动调用"
-        elif (
-            isinstance(details, dict) and details.get("retryable") is False
-            and legacy_message.errorCode == ErrorCode.INVALID_ARGUMENTS.value
-        ):
-            instruction = details.get("agentInstruction")
-            if isinstance(instruction, str):
-                error_explanation = instruction
-    if error_explanation:
-        stream_content = f"{error_explanation}：{stream_content}"
     return WidgetPluginStreamResponse(
         errorCode="0",
         errorMessage="",
@@ -1344,16 +1319,15 @@ async def _serve_operation_websocket(
                     error_code = ErrorCode.VALIDATION_FAILED.value
                 trace_status = "failed"
                 trace_error_code = error_code
-                details = _error_details(exc, operation, request_validated=request_validated)
-                error_summary = (
-                    "工具参数校验失败，请按 details 中的字段位置、修正说明和重试限制处理。"
+                details = _error_details(
+                    exc, operation,
+                    request_validated=request_validated, request_arguments=arguments,
                 )
+                error_summary = "参数校验未通过。"
                 if request_validated and not isinstance(exc, GenerationPreflightError):
-                    error_summary = (
-                        "服务内部处理或校验失败，没有可执行的入参修正依据，请停止本轮调用。"
-                    )
+                    error_summary = "服务内部处理或校验失败。"
                 if isinstance(exc, CompactDslArgumentRepairExhaustedError):
-                    error_summary = "本次 DSL 生成失败，请提示用户重试一下。"
+                    error_summary = "参数恢复未成功，本次未生成卡片。"
                 if isinstance(exc, MissingDataInputError):
                     error_summary = str(exc)
                 logger.error(

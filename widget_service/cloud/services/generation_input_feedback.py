@@ -51,7 +51,7 @@ class MissingDataInputError(ValueError):
 
     def __init__(self, report: MissingDataReport) -> None:
         self.report = report
-        super().__init__("生成所需的动态数据输入不完整，请按结构化指引核对并补齐。")
+        super().__init__("生成所需的动态数据输入不完整。")
 
     def details(self) -> dict[str, Any]:
         issues = []
@@ -62,9 +62,7 @@ class MissingDataInputError(ValueError):
                 expected="必要动态数据具有本轮真实可用的绑定和完整展示字段",
                 agentAction=AgentAction.FIX_AND_RETRY, retryable=True,
                 repairInstruction=(
-                    "将缺口作为待核对需求，重新检查本轮能力概述并按需加载完整数据定义；"
-                    "仅用真实可用能力补齐绑定、参数或展示字段，复查最终集合权限后重调。"
-                    "不能把缺口说明当作能力授权，不猜字段、参数或读数。"
+                    "仅用本轮可用能力补齐绑定、参数或展示字段，复查最终集合权限；不猜测能力或读数。"
                 ),
                 referenceSource="本轮能力概述、完整数据定义及用户有效需求",
             ).model_dump(mode="json"))
@@ -72,14 +70,8 @@ class MissingDataInputError(ValueError):
             "stage": "generationInput", "modelCalled": True, "retryable": True,
             "requiredActions": ["REFRESH_CAPABILITIES", "FIX_AND_RETRY"],
             "agentInstruction": (
-                "当前未生成卡片。按 requiredActions 核对本轮可用能力、加载所需数据定义，"
-                "补齐候选绑定、业务参数或字段投影，并对最终数据集合重新检查权限。"
-                "将完整业务对象作为下一次 invoke.arguments，保留原需求和其它合法候选；"
-                "issues.path仅用于定位，不手工构造传输包络，不只提交局部补丁。"
-                "缺口说明仅是需求诊断，不是能力或权限证明；核心不支持时停止，"
-                "必要业务值缺失时先澄清，权限拒绝或待授权时按原规则停止。"
-                "只在原任务最多三次总调用预算内修正后串行重调，不原样重试，"
-                "不删除核心需求、不改成静态请求、不改创建／编辑模式，不重复开始话术。"
+                "核对本轮可用数据能力，补齐全部 issues 后提交完整 invoke.arguments 重试，"
+                "沿用三次总调用预算。缺必要业务值先澄清，核心不支持时停止。"
             ),
             "issues": issues,
         }

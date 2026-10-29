@@ -162,7 +162,7 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
                 errorCode="FAILED",
                 error={"message": "failed"},
             ),
-            ("工具执行过程中发生未分类的服务异常，本次调用未成功完成，请停止本轮自动调用并保留原有效来源。报错信息如下"),
+            "未分类的服务异常，停止本轮自动调用",
         ),
     ],
 )
@@ -171,36 +171,37 @@ def test_plugin_final_response_uses_json_string_and_empty_items(
     expected_explanation,
 ):
     response = _build_plugin_stream_response(legacy_message)
-    expected_prefix = f"{expected_explanation}：" if expected_explanation else ""
 
     assert response.errorCode == "0"
     assert response.errorMessage == ""
     content = response.reply.streamInfo.streamContent
-    assert content.startswith(expected_prefix)
-    assert json_module.loads(content.removeprefix(expected_prefix)) == legacy_message.model_dump(
-        mode="json"
-    )
+    if expected_explanation:
+        feedback = json_module.loads(content)
+        assert feedback.get("retryable") is False
+        assert feedback.get("requiredActions") == ["STOP"]
+    else:
+        assert json_module.loads(content) == legacy_message.model_dump(mode="json")
     assert response.reply.items == []
 
 
 @pytest.mark.parametrize(
     ("error_code", "expected_fragment"),
     [
-        ("INVALID_ARGUMENTS", "工具参数传入有误"),
+        ("INVALID_ARGUMENTS", "参数检查未通过"),
         ("UNKNOWN_CAPABILITY", "包含未注册的能力 ID"),
-        ("WRITE_RESULT_CONFLICT", "写入路径存在冲突"),
+        ("WRITE_RESULT_CONFLICT", "数据写入路径冲突"),
         ("NO_EFFECTIVE_CAPABILITY", "没有可用于生成卡片的有效能力"),
         ("APP_VERSION_UNSUPPORTED", "App 或 ROM 版本不在服务支持范围内"),
         ("PACKAGE_NOT_INSTALLED", "未安装能力依赖的应用"),
-        ("A2UI_GENERATION_FAILED", "卡片生成模型调用失败"),
-        ("VALIDATION_FAILED", "存在 error 级校验问题"),
+        ("A2UI_GENERATION_FAILED", "卡片生成流程未成功完成"),
+        ("VALIDATION_FAILED", "生成结果或服务内部校验未通过"),
         ("ARTIFACT_UPLOAD_FAILED", "产物保存或上传失败"),
         ("WIDGET_EDIT_DISABLED", "没有开启卡片编辑功能"),
         ("SOURCE_ARTIFACT_NOT_FOUND", "没有找到待编辑的来源卡片产物"),
         ("SOURCE_ARTIFACT_DOWNLOAD_FAILED", "来源卡片产物下载失败"),
         ("SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED", "版本或结构不受当前服务支持"),
         ("SOURCE_ARTIFACT_INVALID", "来源卡片产物内容无效或不完整"),
-        ("PROTOCOL_CAPABILITY_UNSUPPORTED", "不支持本次请求中的动态能力或编辑模式"),
+        ("PROTOCOL_CAPABILITY_UNSUPPORTED", "不支持本次动态能力或编辑模式"),
         ("TIMEOUT", "工具执行超时"),
         ("FAILED", "未分类的服务异常"),
     ],
@@ -212,7 +213,7 @@ def test_plugin_error_explanation_distinguishes_business_failures(
     explanation = _error_explanation(error_code)
 
     assert expected_fragment in explanation
-    assert explanation.endswith("报错信息如下")
+    assert len(explanation) < 60
 
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):

@@ -27,15 +27,7 @@ _TRANSPORT_FIELDS = frozenset(
     }
 )
 _RETRY_INSTRUCTION = (
-    "issues.path 用于定位错误，请修正下一次 invoke.arguments 的完整业务对象；"
-    "不要手工构造 WebSocket content、顶层镜像、设备或会话包络。"
-    "逐项处理全部 issues；先修外层容器和层级，再复核对应项全部必填及下层参数，"
-    "返回列表不保证已列出被外层错误遮蔽的问题。"
-    "保留原需求、创建／编辑模式、有效来源、用户尺寸要求及其它合法数据、事件和素材候选；"
-    "不得只提交局部补丁、原样重试、猜值或清空候选以规避错误。"
-    "绑定或数据集合变化后重新检查权限；缺必要业务值时先澄清，核心能力不支持时停止。"
-    "修正后串行调用并等待最终结果，不超过本轮既有调用预算；"
-    "相同错误重复且无新修正依据时停止。"
+    "修正全部 issues 后提交完整 invoke.arguments 重试；保留原需求，沿用既有调用预算。"
 )
 
 
@@ -48,65 +40,50 @@ class _Guidance:
 
 _DATA_LIST = _Guidance(
     "JSON 对象数组，每项包含 capabilityId、arguments、writeResultTo，可选 candidateOutputFields",
-    "按本轮已选数据构造对象数组，每项独立保留 ID、静态调用参数和写入路径；"
-    "不能仅传 ID、定义对象或序列化字符串，不通过清空数据候选规避错误。",
+    "按本轮数据定义构造完整绑定，不只传 ID；arguments 为静态对象，无参用 {}。",
     "getDataCapabilitySchemas.dataCapabilities[]",
 )
 _EVENT_LIST = _Guidance(
     "JSON 对象数组，每项为 {capabilityId, action:{call,args}}",
-    "从本轮事件概述构造候选对象数组：capabilityId 使用该事件的 ID，"
-    "action 仅取对应 actionTemplate 的 call、args，保留固定值及空字符串，"
-    "只替换已声明的动态参数；不整体复制含 id、Schema 或 dynamicArguments 的定义对象。",
+    "从本轮事件概述取 ID，action 仅复制 actionTemplate 的 call、args；只填写声明的动态参数。",
     "getWidgetCapabilityOverview.eventCapabilities[]",
 )
 _EVENT_ID = _Guidance(
     "本轮事件概述中的 ID 字符串，位于候选项的 capabilityId",
-    "从本轮事件概述核对该动作的 ID 后填写 capabilityId；"
-    "若 ID 误放在 id、action 或模板内部，只能核对后放回候选项外层，"
-    "不得根据文案、URI 或相近名称猜 ID，也不把 ID 写进 call。",
+    "核对本轮事件概述，将对应 ID 填在候选项外层 capabilityId，不猜 ID。",
     "getWidgetCapabilityOverview.eventCapabilities[].id",
 )
 _EVENT_ACTION = _Guidance(
     "JSON 对象 {call,args}，args 为 JSON 对象",
-    "将本轮对应模板中 call、args 的完整值放入 action；仅保留这两个执行字段，"
-    "保留固定值和空字符串，只填写声明的动态参数。"
-    "不把整个事件定义放入 action，不提交 id、actionTemplate 或 dynamicArguments 定义；"
-    "已有动作或 ID 发生冲突时先核对本轮概述，不覆盖实际参数。",
+    "将本轮 actionTemplate 的 call、args 完整值放入 action，保留固定值及空字符串；"
+    "不把整个事件定义放入 action。",
     "getWidgetCapabilityOverview.eventCapabilities[].actionTemplate/dynamicArguments",
 )
 _EVENT_ARGS = _Guidance(
     "本轮动作模板的完整 args 对象及其已声明动态参数",
-    "按本轮该事件的 args 模板核对字段层级、类型、固定值及动态参数允许值；"
-    "仅在 dynamicArguments 声明的相对路径填入有来源的值，不把动态参数定义作为执行参数。"
-    "依赖数据的引用须有对应绑定，列表引用使用同一展示对象的明确数字下标，不保留 i 或猜第 0 项。",
+    "按本轮模板填写声明的动态参数，保留固定值；数据引用须匹配绑定及实际展示对象的数字下标。",
     "getWidgetCapabilityOverview.eventCapabilities[].actionTemplate/dynamicArguments",
 )
 _DATA_ARGS = _Guidance(
     "符合本轮 inputSchema 的静态 JSON 参数对象；无参能力使用 {}",
-    "按本轮该数据能力 inputSchema 构造静态参数对象，满足字段名、层级、类型、必填和取值范围；"
-    "不要把对象序列化为字符串，不使用 DSL 绑定或表达式。"
-    "值从用户要求或已核验来源取得，缺必要业务值时澄清，不填 null、空字符串或假值代替。",
+    "按本轮 inputSchema 填写静态参数；缺必要业务值先澄清，不猜值。",
     "getDataCapabilitySchemas.dataCapabilities[].inputSchema",
 )
 _DATA_FIELDS = {
     "capabilityId": _Guidance(
         "本轮可用数据能力 ID 字符串，位于候选项的 capabilityId",
-        "从本轮可用数据概述核对该数据能力 ID，并填写到候选项外层 capabilityId；"
-        "不把完整数据定义或仅含 ID 的数组当作数据绑定。",
+        "核对本轮数据概述，将对应 ID 填在候选项外层 capabilityId。",
         "getWidgetCapabilityOverview.dataCapabilities[].id",
     ),
     "arguments": _DATA_ARGS,
     "writeResultTo": _Guidance(
         "位于 /data/ 下且与其它绑定不相同、不互为父子的 JSON Pointer 字符串",
-        "优先使用本轮数据定义的 defaultWriteResultTo；自定义路径需符合 JSON Pointer 转义，"
-        "并检查与全部其它绑定不相同、不覆盖。编辑保留原能力及写入路径，不随意改根。",
+        "优先使用 defaultWriteResultTo，检查全部绑定的路径冲突；编辑保留原写入根。",
         "getDataCapabilitySchemas.dataCapabilities[].defaultWriteResultTo",
     ),
     "candidateOutputFields": _Guidance(
         "可选字符串数组，每项为本轮 outputSchema 可推导的叶子 JSON Pointer",
-        "从本轮 outputSchema 选择所需展示字段，保留同一对象和时间范围；"
-        "数组用实际非负整数下标，不复制完整 Schema、样例读数或用静态值代替动态字段。"
-        "仅修正非法路径，不为过检删掉用户必需的展示字段。",
+        "从本轮 outputSchema 选择所需叶子路径，数组用数字下标；保留必需字段及对应时间范围。",
         "getDataCapabilitySchemas.dataCapabilities[].outputSchema",
     ),
 }
@@ -115,38 +92,32 @@ _TOP_FIELDS = {
     "candidateEventCandidates": _EVENT_LIST,
     "sourceArtifactUrl": _Guidance(
         "同一目标卡片最近有效结果的非空完整来源地址",
-        "编辑只使用本会话目标卡片最近有效结果的来源，不猜地址、传空值、删除来源或切换创建；"
-        "无法可靠恢复有效来源时停止。",
+        "使用目标卡片最近有效来源，不猜地址或切换创建；来源不可恢复时停止。",
     ),
     "size": _Guidance(
         "2x2 或 2x4",
-        "仅填写 2x2 或 2x4，保留用户明确指定尺寸，不因参数错误擅自扩大尺寸。",
+        "按用户要求填写允许尺寸。",
     ),
     "title": _Guidance(
         "新建为非空字符串；编辑未修改时可省略继承",
-        "新建时填写符合有效需求的非空静态短标题，不从动态数据样例抄读数；"
-        "编辑未改标题时省略继承，不用 null 或空字符串代替省略。",
+        "新建填写短标题；编辑未修改则省略继承。",
     ),
     "description": _Guidance(
         "新建为非空字符串；编辑未修改时可省略继承",
-        "新建时填写符合有效需求的非空静态短说明，不承诺未支持功能；"
-        "编辑未改说明时省略继承，不用 null 或空字符串代替省略。",
+        "新建填写简短说明；编辑未修改则省略继承。",
     ),
     "userQuery": _Guidance(
         "包含本轮有效需求、全部明确约束及实际采用静态事实的非空字符串",
-        "填写本轮有效需求及实际采用的完整静态事实；没有原始需求时先澄清，"
-        "不把技术字段或示例当需求，不删除核心要求来规避错误。",
+        "填写本轮有效需求和采用的静态事实，保留核心要求；无原始需求时先澄清。",
     ),
     "candidateAssetIds": _Guidance(
         "本轮素材概述中 ID 组成的字符串数组",
-        "仅使用本轮素材概述中的 ID，不填写资源路径、完整定义或伪造 ID；"
-        "无所需匹配素材时可为空，不能删除已有必要素材来规避其它参数错误。",
+        "从本轮素材概述选择 ID，无匹配项可为空。",
         "getWidgetCapabilityOverview.assetCandidates[].id",
     ),
     "options": _Guidance(
         "当前工具 Schema 明确开放的配置对象",
-        "仅在当前运行时工具 Schema 开放时提交 options，按声明的布尔等类型填写；"
-        "未开放则不提交，不借配置扩大降级、权限或重试范围。",
+        "按当前工具 Schema 填写；未开放则省略。",
     ),
 }
 _TYPE_EXPECTATIONS = {
@@ -206,9 +177,7 @@ def _guidance(location: tuple[Any, ...], operation: str) -> _Guidance:
         if root in {"arguments", "params", "content"}:
             return _Guidance(
                 "invoke.arguments 直接包含当前工具声明的业务字段",
-                "下一次 invoke.arguments 直接填写 userQuery 及本轮完整业务参数，"
-                "不要再次包 arguments、params、content 或整个工具调用／传输包络；"
-                "从本轮已有业务对象恢复合法值，不猜设备或会话字段。",
+                "直接提交完整业务参数，不要再次包 arguments、params、content 或整个调用对象。",
             )
         if root == "dataCapabilityIds" and operation in _GENERATION_OPERATIONS:
             return _Guidance(
@@ -228,12 +197,12 @@ def _guidance(location: tuple[Any, ...], operation: str) -> _Guidance:
             root,
             _Guidance(
                 "当前工具 Schema 在该位置声明的字段",
-                "核对字段是否错名、错层级或误复制了定义元数据；按本轮定义放回正确业务位置并保留实际值。",
+                "核对字段名和层级，将业务值放回正确位置，移除误传定义元数据。",
             ),
         )
     return _Guidance(
         "当前工具 Schema 在该位置声明的类型和约束",
-        "按当前工具 Schema 核对该嵌套字段，不因它与顶层字段同名而搬动或删除业务值。",
+        "按该嵌套位置的 Schema 修正，不套用同名顶层字段规则。",
     )
 
 
@@ -257,17 +226,26 @@ def _event_guidance(location: tuple[Any, ...]) -> _Guidance:
         if len(location) == 4 and location[3] == "call":
             return _Guidance(
                 "本轮对应 actionTemplate.call 的原始字符串值",
-                "原样使用本轮对应模板的 call，不填写事件 ID、URI、能力名或自定义调用类型。",
+                "原样使用本轮对应模板的 call。",
                 _EVENT_ACTION.reference,
             )
         return _EVENT_ACTION
     return _EVENT_LIST
 
 
-def _actual_type(error: dict[str, Any]) -> str:
+def _actual_type(
+    error: dict[str, Any], arguments: dict[str, Any] | None = None,
+) -> str:
     if error.get("type") == "missing":
         return "missing"
     value = error.get("input", _MISSING)
+    if arguments is not None:
+        value = _request_value(arguments, tuple(error.get("loc", ())))
+        if value is _MISSING:
+            return "missing"
+    elif error.get("type") == "value_error" and value is None:
+        # 自定义跨字段校验可能没有 input；不能把 Pydantic 合成的 None 当作用户显式 null。
+        value = _MISSING
     result = "unknown"
     if value is _MISSING:
         return result
@@ -286,6 +264,40 @@ def _actual_type(error: dict[str, Any]) -> str:
     elif isinstance(value, float):
         result = "number"
     return result
+
+
+def _request_value(arguments: dict[str, Any], location: tuple[Any, ...]) -> Any:
+    value: Any = arguments
+    for part in location:
+        if isinstance(value, dict):
+            value = value.get(part, _MISSING)
+        elif isinstance(value, list) and isinstance(part, int):
+            value = value[part] if 0 <= part < len(value) else _MISSING
+        else:
+            value = _MISSING
+        if value is _MISSING:
+            break
+    return value
+
+
+def _request_message(error: dict[str, Any], actual_type: str) -> str:
+    """只解释已登记的服务端约束，不回显自定义异常文本或用户值。"""
+    location = tuple(error.get("loc", ()))
+    message = str(error.get("msg", ""))
+    if location in {("title",), ("description",)}:
+        name = str(location[0])
+        if message == f"Value error, {name} is required in create mode":
+            if actual_type == "missing":
+                return f"新建卡片缺少必填字段 {name}。"
+            if actual_type == "null":
+                return f"新建卡片的 {name} 不能为 null。"
+            return f"新建卡片必须提供有效的非空 {name} 字符串。"
+    if location == ("sourceArtifactUrl",):
+        if message == "Value error, sourceArtifactUrl must be a non-empty string":
+            return "编辑来源无效：sourceArtifactUrl 必须是目标卡片的非空有效来源地址。"
+    if message.endswith("cannot be null in edit mode"):
+        return "编辑时该字段不能为 null。"
+    return _message(str(error.get("type", "validation_error")))
 
 
 def _message(error_type: str) -> str:
@@ -308,50 +320,86 @@ def _message(error_type: str) -> str:
 def _repair_instruction(error: dict[str, Any], guide: _Guidance) -> str:
     error_type = str(error.get("type", "validation_error"))
     prefix = ""
-    if error_type == "missing":
-        prefix = "在 invoke.arguments 对应位置补齐必填字段；"
-    elif error_type == "extra_forbidden":
-        prefix = "先核对该字段的归属，实际业务值应保留到正确位置，纯定义元数据才移除；"
+    if error_type == "extra_forbidden":
+        prefix = "核对字段归属；"
     elif error_type in _TYPE_EXPECTATIONS:
-        prefix = (
-            "按 expected 重新构造正确 JSON 类型；对象和数组不序列化成字符串，"
-            "不强制转成字符串或用空值过检；"
-        )
-    elif error_type in {"literal_error", "enum"}:
-        prefix = "核对本轮定义的允许值，不自创枚举或更改用户明确目标；"
+        prefix = "按 expected 重构 JSON 类型；"
     message = str(error.get("msg", ""))
     location = tuple(error.get("loc", ()))
     edit_null = message.endswith("cannot be null in edit mode")
     if edit_null and location != ("sourceArtifactUrl",):
-        prefix += "编辑未改该字段则省略继承，明确修改则提交完整合法值，不传 null；"
+        return "未修改则省略继承；修改时提交完整合法值，不传 null。"
     return prefix + guide.instruction
 
 
-def request_validation_feedback(exc: ValidationError, operation: str) -> dict[str, Any]:
+def _mode_guidance(
+    guide: _Guidance, location: tuple[Any, ...], arguments: dict[str, Any] | None,
+) -> _Guidance:
+    result = guide
+    if arguments is not None and location in {("title",), ("description",)}:
+        if "sourceArtifactUrl" in arguments:
+            result = _Guidance("非空字符串；未修改可省略继承", "修改时填写合法值，否则省略继承。")
+        else:
+            instruction = (
+                "按有效需求填写短标题。" if location == ("title",) else "按有效需求填写简短说明。"
+            )
+            result = _Guidance("非空字符串", instruction)
+    return result
+
+
+def _request_retry_instruction(issues: list[PreflightIssue]) -> str:
+    instruction = _RETRY_INSTRUCTION
+    has_binding_issue = False
+    has_structure_issue = False
+    for issue in issues:
+        if issue.path == "/dataCapabilityIds" or issue.path.startswith("/candidateDataBindings"):
+            has_binding_issue = True
+        if issue.code in {
+            "REQUEST_DICT_TYPE", "REQUEST_MODEL_TYPE", "REQUEST_MODEL_ATTRIBUTES_TYPE",
+            "REQUEST_LIST_TYPE",
+        }:
+            has_structure_issue = True
+        if issue.path in {"/arguments", "/params", "/content"}:
+            has_structure_issue = True
+        parts = issue.path.split("/")
+        if len(parts) == 4 and parts[1] == "candidateEventCandidates":
+            if parts[3] in {"action", "actionTemplate"}:
+                has_structure_issue = True
+    if has_structure_issue:
+        instruction += "先修外层结构再复核下层字段；未列出的问题不代表已通过后续检查。"
+    if has_binding_issue:
+        instruction += "数据绑定变化后复查权限。"
+    return instruction
+
+
+def request_validation_feedback(
+    exc: ValidationError, operation: str, *, arguments: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     issues = []
     # 仅读取 input 的 JSON 类型；不回传值、原始异常消息或 ctx。
     for error in exc.errors(include_context=False, include_input=True):
         location = tuple(error.get("loc", ()))
         error_type = str(error.get("type", "validation_error"))
         guide = _guidance(location, operation)
+        guide = _mode_guidance(guide, location, arguments)
         expected = guide.expected
         expected_type = _TYPE_EXPECTATIONS.get(error_type)
         if expected_type is not None:
             expected = f"{expected_type}；{expected}"
         retryable = _is_business_error(location, error_type)
+        actual_type = _actual_type(error, arguments)
         instruction = _repair_instruction(error, guide)
         if not retryable:
             instruction = (
-                "请求上下文缺失或无法定位业务字段，请停止本轮调用并核对工具链路；"
-                "不要手工填写 content、镜像字段、设备或会话包络，不编造用户身份。"
+                "核对工具链路的上下文传递，不要手工填写身份或设备字段。"
             )
         issues.append(
             PreflightIssue(
                 code=f"REQUEST_{error_type.upper()}",
                 path=_pointer(location),
-                message=_message(error_type),
+                message=_request_message(error, actual_type),
                 expected=expected,
-                actualType=_actual_type(error),
+                actualType=actual_type,
                 agentAction=AgentAction.FIX_AND_RETRY if retryable else AgentAction.STOP,
                 retryable=retryable,
                 repairInstruction=instruction,
@@ -365,10 +413,9 @@ def request_validation_feedback(exc: ValidationError, operation: str) -> dict[st
         "retryable": retryable,
         "requiredActions": ["FIX_AND_RETRY" if retryable else "STOP"],
         "agentInstruction": (
-            _RETRY_INSTRUCTION
+            _request_retry_instruction(issues)
             if retryable
-            else "包含不可自动修复的上下文问题，请停止本轮调用并保留原有效来源；"
-            "不手工构造传输包络或编造技术字段。"
+            else "停止本轮调用并核对工具上下文，不编造身份或设备字段。"
         ),
         "issues": [issue.model_dump(mode="json") for issue in issues],
     }
@@ -392,10 +439,8 @@ def request_envelope_feedback() -> dict[str, Any]:
         "retryable": False,
         "requiredActions": ["STOP"],
         "agentInstruction": (
-            "服务端请求未能解析为合法 JSON，尚无法定位具体业务字段。"
-            "请停止本轮自动调用并核对工具调用链路的参数序列化；"
-            "主 Agent 仅按当前工具定义构造业务 arguments 对象，不手工拼接传输帧或包络，"
-            "不从此错误猜测缺失业务值，不原样重复调用。"
+            "请求 JSON 无法解析，停止本轮调用并核对序列化链路；"
+            "仅按工具定义提交 arguments 对象，不手工拼接传输包络。"
         ),
     }
 
@@ -407,7 +452,6 @@ def terminal_feedback(stage: str) -> dict[str, Any]:
         "retryable": False,
         "requiredActions": ["STOP"],
         "agentInstruction": (
-            "本轮没有可执行的入参修正依据，请停止自动调用并按真实状态回复；"
-            "保留原有效来源，不猜修法、不改为新建或静态请求，不把失败结果当作成功。"
+            "停止本轮自动调用，按实际失败原因回复；保留原有效来源。"
         ),
     }

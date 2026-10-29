@@ -106,8 +106,14 @@ async def _call_ws(operation: str, content: dict, interaction_id: str) -> tuple[
             legacy_message = parse_legacy_stream_content(
                 stream_info["streamContent"]
             )
-            assert legacy_message["operation"] == operation
-            assert legacy_message["requestId"] == expected_request_id
+            if "retryable" in legacy_message:
+                assert isinstance(legacy_message.get("retryable"), bool)
+                assert legacy_message.get("message")
+                assert legacy_message.get("requiredActions")
+                assert isinstance(legacy_message.get("issues"), list)
+            else:
+                assert legacy_message.get("operation") == operation
+                assert legacy_message.get("requestId") == expected_request_id
             print(
                 f"\n[{operation}] {interaction_id}\n"
                 + json.dumps(legacy_message, ensure_ascii=False, indent=2),
@@ -234,11 +240,9 @@ def test_live_invalid_arguments_plugin_contract():
 
     assert response["errorCode"] == "0"
     assert response["errorMessage"] == ""
-    assert legacy_message["type"] == "error"
-    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    assert legacy_message["explanation"].startswith("工具参数传入有误")
-    assert legacy_message["explanation"].endswith("报错信息如下")
-    assert legacy_message["error"]["details"]
+    assert legacy_message.get("retryable") is True
+    assert legacy_message.get("requiredActions") == ["FIX_AND_RETRY"]
+    assert legacy_message.get("issues")
 
 
 def test_live_malformed_json_plugin_contract():
@@ -262,6 +266,6 @@ def test_live_malformed_json_plugin_contract():
     assert response["errorCode"] == "0"
     assert response["errorMessage"] == ""
     assert response["reply"]["items"] == []
-    assert legacy_message["type"] == "error"
-    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    assert legacy_message["explanation"].startswith("工具参数传入有误")
+    assert legacy_message.get("retryable") is False
+    assert legacy_message.get("requiredActions") == ["STOP"]
+    assert "JSON" in legacy_message.get("message", "")
