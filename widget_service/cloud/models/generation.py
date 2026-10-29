@@ -23,11 +23,24 @@ class ModelRequestContext:
 
 
 @dataclass(frozen=True)
+class CompactDslRecoveryFact:
+    """接口容量恢复时由第二轮 Recovery Plan 保留的事实。"""
+
+    target: Literal["dataId", "actionId", "text"]
+    value: str
+    requirement: str
+    priority: Literal["must", "should"]
+
+
+@dataclass(frozen=True)
 class CompactDslRetryContext:
     """在接口级重试之间传递的内部恢复上下文，不进入外部协议。"""
 
     failure_category: str
     capacity_recovery: bool = False
+    retained_facts: tuple[CompactDslRecoveryFact, ...] = ()
+    omitted_facts: tuple[CompactDslRecoveryFact, ...] = ()
+    recovery_plan: dict[str, Any] | None = None
 
 
 class DeviceContext(BaseModel):

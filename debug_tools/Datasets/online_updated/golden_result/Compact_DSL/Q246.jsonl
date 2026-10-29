@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"W-four-slots"},["top_left","top_right","bottom_left","bottom_right"]]
+["top_left","InfoBlock",{"variant":"slot","primaryText":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","secondaryText":"左耳电量"}]
+["top_right","InfoBlock",{"variant":"slot","primaryText":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}","secondaryText":"右耳电量"}]
+["bottom_left","CardButton",{"label":"推荐歌单","icon":"resources/base/media/icon_music.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Music","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}]}]
+["bottom_right","CardButton",{"label":"收藏歌单","icon":"resources/base/media/icon_music.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Music","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]
+["/data/earphone/earphoneName","示例耳机"]
+["/data/earphone/leftBatteryLevel",76]
+["/data/earphone/rightBatteryLevel",78]

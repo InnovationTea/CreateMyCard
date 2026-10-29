@@ -27,7 +27,7 @@
     "candidateEventCandidates": [],
     "description": "展示温度、天气、空气质量与今日步数，参考天气安排户外运动。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_purification",
       "asset.figure_run"
     ]
@@ -88,7 +88,7 @@
   "candidateEventCandidates": [],
   "description": "展示温度、天气、空气质量与今日步数，参考天气安排户外运动。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_purification",
     "asset.figure_run"
   ]

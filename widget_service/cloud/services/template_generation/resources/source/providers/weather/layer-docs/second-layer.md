@@ -1,5 +1,10 @@
 # 第二层业务模板使用规则
 
+- 所有预报从端侧本次刷新日期的明天开始：`daily[0]` 是明天，`daily[1]` 是后天，
+  `daily[2]` 是大后天，`daily[3]`、`daily[4]` 分别为距刷新日4天、5天；不包含今天。
+  当前天气使用 `current`。日期、星期、天气、气温和指数必须与所引用预报项的日期一致，
+  不能把第0项标为今日或把第1项标为明日；`forecastDays` 是数量，不是日期偏移。
+
 - `WeatherOverviewConditionSupport@1`：双业务天气现象信息块，仅必需 `/current/condition`，
   不依赖温度和城市。`conditionIcon` 必填且仅接受与实际天气匹配的状态图标；没有匹配素材时不选择该模板，
   不用温度计替代。可选 `actionId` 只消费已分配的天气详情事件。
@@ -48,10 +53,10 @@
     大号数字展示体感温度并固定追加“°”，不展示天气现象、风力、天气预警和感冒风险（四个字段仅进入
     字段覆盖契约）；用于 2x4 双 Hero 组合布局（含 `WideTwoHeroActionLayout@1`）的天气槽位，
     底部按钮由布局 PillAction 槽位提供；可选内部事件 `actionId` 绑定根节点底板。
-  - `WeatherOverviewWideFull@1`：左右分区的完整天气摘要，可展示体感、湿度、空气、风况和当日预报。
-  - `WeatherOverviewWideHero@1`：以当前温度和天气现象为焦点，辅助展示体感与当日预报。
+  - `WeatherOverviewWideFull@1`：左右分区的完整天气摘要，可展示体感、湿度、空气、当前风况和明日预报（daily[0]）。
+  - `WeatherOverviewWideHero@1`：以当前温度和天气现象为焦点，辅助展示当前体感与明日预报（daily[0]）。
   - `WeatherOverviewCareWideHero@1`：天气关怀 WideHero，突出当前天气预警主值（缺失时显示
-    「无预警信息」）与「天气预警」说明，右侧辅助展示紫外线等级、空气质量和感冒指数（daily[0]）；
+    「无预警信息」）与「天气预警」说明，右侧辅助展示明日紫外线等级、空气质量和感冒指数（daily[0]）；
     城市区县可选；只用于 `WideSingleFocusLayout@1` 配无主 `PillAction@1`，不在模板内注册天气事件。
   - `WeatherOverviewWideHalf@1`：适用于 2x4 组合布局的横向半高天气摘要。
   - `WeatherOverviewAlertFull@1`：以天气预警为主焦点并显示更新时间的 Full；可选地点、预警和时间图标。
@@ -61,29 +66,29 @@
     `/location/cityCode` 仅作为可选数据进入字段覆盖契约，不在模板内展示。
   - `WeatherOverviewWindFull@1`：展示城市、当前风向和风力等级的 Full；可选位置图标。更新时间可选，存在对应字段时显示底部 10vp 文本，否则整行省略；不接收风向或时间图标。
   - `WeatherOverviewDualCityFull@1`：并列展示两个天气数据绑定的温度与天气现象；城市名称可选。
-  - `WeatherOverviewDaily2TravelSupport@1`：出行后日天气 Support，以双层信息块展示天气现象和温度范围；
+  - `WeatherOverviewDaily2TravelSupport@1`：出行大后天天气 Support（daily[2]），以双层信息块展示天气现象和温度范围；
     只用于 `TwoSupportLayout@1`，可选 `conditionIcon`；主标题为 14vp，副标题为 10vp。
   - `WeatherOverviewTravelSupport@1`：出行天气 Support；参考 `WeatherOverviewConditionHero@1`
-    以天气现象为主视觉，辅助展示 `daily[4]` 的温度范围和降雨概率，或当前温度；只用于
+    以天气现象为主视觉，辅助展示未来第5天 `daily[4]` 的温度范围和降雨概率，或当前温度；只用于
     `TwoSupportLayout@1`，可选 `conditionIcon`，可在分配天气详情事件时通过 `actionId` 绑定胶囊点击；
     主标题为 14vp，副标题为 10vp。
-  - `WeatherOverviewDailyDateFull@1`：明日日期天气 Full，突出天气现象，并展示日期和星期。
-  - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围；说明为“降雨概率”，不可当作空气湿度。
-  - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
-  - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
-  - `WeatherOverviewNextDayHealthFull@1`：当日（daily[0]）健康指数 Full，与 DailyHealthFull 同构，突出紫外线等级，并展示空气质量、感冒指数，可选补充天气现象与气温范围。
-  - `WeatherOverviewTargetDayHealthFull@1`：当日健康指数 Full（daily[4]），上组突出 20vp 紫外线等级，
+  - `WeatherOverviewDailyDateFull@1`：明日日期天气 Full（daily[0]），突出天气现象，并展示日期和星期。
+  - `WeatherOverviewDailyRainFull@1`：明日降雨 Full（daily[0]），突出降雨概率，并展示温度范围；说明为“降雨概率”，不可当作空气湿度。
+  - `WeatherOverviewDailyCompareFull@1`：明后两日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
+  - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full（daily[0]），突出紫外线等级，并展示空气质量和感冒指数。
+  - `WeatherOverviewNextDayHealthFull@1`：明日（daily[0]）健康指数 Full，与 DailyHealthFull 同构，突出紫外线等级，并展示空气质量、感冒指数，可选补充天气现象与气温范围。
+  - `WeatherOverviewTargetDayHealthFull@1`：未来第5天健康指数 Full（daily[4]，距刷新日5天），上组突出 20vp 紫外线等级，
     下组以 12vp 展示空气质量和感冒指数；城市区县可选，缺失时显示「当前城市」；可选紫外线图标。
   - `WeatherOverviewAlertInfoFull@1`：完整温度天气摘要，空气质量行下追加预警信息行；无预警时显示“无预警信息”。可选 `conditionIcon`。
   - `WeatherOverviewFeelsLikeAlertFull@1`：完整温度天气摘要，倒数第二行展示体感温度，最后一行展示预警信息；无预警时显示“无预警信息”。可选 `conditionIcon`。
   - `WeatherOverviewHumidityWindFull@1`：完整温度天气摘要，倒数第二行展示湿度，最后一行展示风向。可选 `conditionIcon`。
   - `WeatherOverviewUvColdFull@1`：完整温度天气摘要，展示紫外线强度行，并保留感冒风险行。可选 `conditionIcon`。
   - `WeatherOverviewFeelsLikeWindSupport@1`：左侧两行展示体感温度和风力等级，右侧固定 24vp 温度计图标（`temperatureIcon`）。
-  - `WeatherOverviewDailySummaryFull@1`：日期天气摘要 Full，展示城市、日期、星期、温度范围、降雨概率和空气质量。
-  - `WeatherOverviewThreeDayForecastFull@1`：三日天气 Full，按顺序完整展示 `daily[0..2]` 每天的
+  - `WeatherOverviewDailySummaryFull@1`：后天天气摘要 Full（daily[1]），展示城市、日期、星期、温度范围、降雨概率和空气质量。
+  - `WeatherOverviewThreeDayForecastFull@1`：从明天开始的三日天气 Full，按顺序完整展示 `daily[0..2]` 每天的
     日期、星期、天气现象、降雨概率和温度范围；每天固定两行，上行是完整日期与星期，下行是天气、
     降雨概率和完整温度范围，不得裁掉低温；可传入可信 `location` 作为标题前缀。
-  - `WeatherOverviewDestinationDayFull@1`：目的地出发日天气 Full，展示 `daily[3]` 的温度范围、
+  - `WeatherOverviewDestinationDayFull@1`：目的地出发日天气 Full，展示未来第4天 `daily[3]`（距刷新日4天）的温度范围、
     降雨概率和空气质量；可传入可信 `location` 和 `targetDate`。
 - 所有天气模板的 `location` 仅作城市显示兜底：只能使用本轮 `trustedStringLiterals` 下发的
   真实城市或区县名（来自请求参数，如 `深圳市`）；标题、描述等其他可信文案不是城市，

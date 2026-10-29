@@ -1,0 +1,127 @@
+{
+  "content": {
+    "title": "待办事项",
+    "description": "我的待办列表",
+    "userQuery": "在手机桌面上创建一个待办事项列表卡片，展示我的待办事项。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/todoTotalCount",
+          "/todoCompletedCount",
+          "/todoPendingCount",
+          "/todos/0/title",
+          "/todos/0/isComplete",
+          "/todos/0/reminderTimeText",
+          "/todos/1/title",
+          "/todos/1/isComplete",
+          "/todos/1/reminderTimeText",
+          "/todos/2/title",
+          "/todos/2/isComplete",
+          "/todos/2/reminderTimeText"
+        ],
+        "capabilityId": "GetMemoData",
+        "writeResultTo": "/data/memo"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewNote"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.checkmark_calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027090255054"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "5",
+    "isNew": false,
+    "sessionId": "95251629-20cb-4724-aa9a-b504bcb5ee7a"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.checkmark_calendar_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewNote"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "我的待办列表",
+  "userQuery": "在手机桌面上创建一个待办事项列表卡片，展示我的待办事项。",
+  "title": "待办事项",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/todoTotalCount",
+        "/todoCompletedCount",
+        "/todoPendingCount",
+        "/todos/0/title",
+        "/todos/0/isComplete",
+        "/todos/0/reminderTimeText",
+        "/todos/1/title",
+        "/todos/1/isComplete",
+        "/todos/1/reminderTimeText",
+        "/todos/2/title",
+        "/todos/2/isComplete",
+        "/todos/2/reminderTimeText"
+      ],
+      "capabilityId": "GetMemoData",
+      "writeResultTo": "/data/memo"
+    }
+  ]
+}

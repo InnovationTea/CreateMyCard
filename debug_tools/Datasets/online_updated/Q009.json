@@ -49,7 +49,7 @@
     ],
     "description": "展示实时天气与今日会议待办，支持一键导航到公司。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.calendar_fill",
       "asset.icon_car",
       "asset.local_fill"
@@ -133,7 +133,7 @@
   ],
   "description": "展示实时天气与今日会议待办，支持一键导航到公司。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.calendar_fill",
     "asset.icon_car",
     "asset.local_fill"

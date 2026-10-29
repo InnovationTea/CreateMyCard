@@ -628,8 +628,8 @@ def test_obsolete_compact_directive_route_is_not_registered():
     assert "/api/v1/ws/tools/generateWidgetCardCompactDslWithDirective" not in route_paths
 
 
-def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
-    """外层请求合法但 content.arguments 为字符串时应返回精确错误。"""
+def test_compact_route_rejects_unrecoverable_stringified_tool_arguments(monkeypatch):
+    """外层请求合法但内层无法无损恢复时应返回精确错误。"""
     def unexpected_generate(*_args, **_kwargs):
         raise AssertionError("malformed tool arguments must not call the model")
 
@@ -639,14 +639,7 @@ def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
     content = {
         "skillName": "harmony-card-generation-online-directive",
         "functionName": "generateWidgetCardCompactDslWithDirective",
-        "arguments": json.dumps(
-            {
-                "userQuery": "生成大理天气卡片",
-                "title": "大理天气",
-                "description": "大理天气关怀卡片",
-            },
-            ensure_ascii=False,
-        ),
+        "arguments": '{"userQuery":"生成大理天气卡片","title":"未结束',
     }
     client = TestClient(app)
     request = _tool_payload(content, interaction_id)
@@ -668,15 +661,12 @@ def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
     assert stream_info["streamType"] == "final"
     assert stream_info["streamingTextId"] == request_id
     legacy_message = parse_legacy_stream_content(stream_info["streamContent"])
-    assert legacy_message["type"] == "error"
-    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    details = legacy_message["error"]["details"]
-    assert details["stage"] == "requestEnvelope"
-    assert details["modelCalled"] is False
+    details = legacy_message
+    assert details.get("retryable") is True
     assert details["issues"][0]["path"] == "/content/arguments"
-    assert details["issues"][0]["actualType"] == "string"
-    assert "外层请求是合法 JSON" in details["agentInstruction"]
-    assert "content 中出现多余" in details["agentInstruction"]
+    assert "完整业务对象" in details["agentInstruction"]
+    assert "外层 JSON 合法" in details["issues"][0]["message"]
+    assert "内层 arguments 为字符串且未能自动恢复" in details["issues"][0]["message"]
 
 
 def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
@@ -724,7 +714,7 @@ def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
         "romVersion": "VYG-AL00 " + ".".join(("7", "0", "0", "105")),
     }
     malformed_content = {
-        "arguments": json.dumps(valid_content, ensure_ascii=False),
+        "arguments": '{"userQuery":"未结束',
         "romVersion": valid_content["romVersion"],
     }
     client = TestClient(app)
@@ -755,8 +745,8 @@ def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
     third_message = parse_legacy_stream_content(
         third_response["reply"]["streamInfo"]["streamContent"]
     )
-    assert first_message["error"]["details"]["modelCalled"] is False
-    assert third_message["error"]["details"]["modelCalled"] is False
+    assert first_message.get("retryable") is True
+    assert third_message.get("retryable") is True
     assert model_profiles == ["compact-info-plan", "design-compact-dsl", "post-layout-theme"]
 
 
@@ -808,15 +798,10 @@ def test_compact_route_keeps_transport_only_stringified_arguments_reminder(
     assert stream_info["streamType"] == "final"
     assert stream_info["streamingTextId"] == request_id
     legacy_message = parse_legacy_stream_content(stream_info["streamContent"])
-    assert legacy_message["type"] == "error"
-    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    details = legacy_message["error"]["details"]
-    assert details["stage"] == "requestEnvelope"
-    assert details["modelCalled"] is False
-    assert details["issues"][0]["code"] == "STRINGIFIED_TOOL_ARGUMENTS"
+    details = legacy_message
+    assert details.get("retryable") is True
     assert details["issues"][0]["path"] == "/arguments"
-    assert details["issues"][0]["actualType"] == "string"
-    assert "arguments 必须直接传合法的 JSON 对象" in details["agentInstruction"]
+    assert "invoke.arguments，直接传合法 JSON 对象" in details["agentInstruction"]
     assert "content" not in details["agentInstruction"]
 
 
@@ -951,11 +936,8 @@ def test_handler_exception_keeps_plugin_envelope_successful(monkeypatch):
     legacy_message = parse_legacy_stream_content(
         response["reply"]["streamInfo"]["streamContent"]
     )
-    assert legacy_message["type"] == "error"
-    assert legacy_message["errorCode"] == "FAILED"
-    assert "未分类的服务异常" in legacy_message["explanation"]
-    assert "未分类的服务异常" in legacy_message["error"]["message"]
-    assert legacy_message["error"]["details"]["retryable"] is False
+    assert "未分类的服务异常" in legacy_message["message"]
+    assert legacy_message.get("retryable") is False
     assert "overview failed" not in response["reply"]["streamInfo"]["streamContent"]
 
 
@@ -1048,12 +1030,9 @@ def test_compact_protocol_fallback_switch_off_returns_unsupported(monkeypatch):
                 device_info=device_info,
             )
         )
-        message = _assert_success_envelope(
-            _receive_final_frame(websocket, request_id),
-            "generateWidgetCardCompactDsl",
-            request_id,
-        )
+        response = _receive_final_frame(websocket, request_id)
+        message = parse_legacy_stream_content(response["reply"]["streamInfo"]["streamContent"])
 
-    assert message["data"]["status"] == "unsupported"
-    assert message["data"]["errorCode"] == "APP_VERSION_UNSUPPORTED"
-    assert "App 或 ROM 版本不在服务支持范围内" in message["explanation"]
+    assert message.get("retryable") is False
+    assert message.get("requiredActions") == ["STOP"]
+    assert "App 或 ROM 版本不在服务支持范围内" in message["message"]

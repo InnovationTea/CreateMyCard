@@ -1,14 +1,13 @@
-"""主体图按主区、抽象图按整卡准入，只读取定稿布局，不调整前景。"""
+"""融合定稿事实适配；图片规则由公共纯算法模块统一执行。"""
 
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.content_business import BusinessContext, FinalBusinessContext
 from services.post_layout_theme_registry import load_theme_registry
+from services.theme_content_regions import layout_evidence_reason, photo_layout_exclusion_reason
 from services.theme_layout_summary import matches_subjectless_layout
-from services.theme_texture_eligibility import (
-    holiday_countdown,
-    subtree,
-    texture_business_reason,
-)
+from services.theme_photo_matching import PhotoMatchFacts, PhotoScopeFacts
+from services.theme_photo_matching import photo_content_reason as match_content
+from services.theme_texture_eligibility import holiday_countdown, subtree
 
 
 def _fully_centered(root: ComponentRow, rows: list[ComponentRow]) -> bool:
@@ -36,27 +35,6 @@ def _fully_centered(root: ComponentRow, rows: list[ComponentRow]) -> bool:
         else:
             return False
     return True
-
-
-def _placement_reason(policy: dict, scope: ComponentRow, rows: list[ComponentRow],
-                      flow: dict) -> str | None:
-    placement = policy.get("placement")
-    reason: str | None = None
-    if placement in {"center", "not-center"}:
-        if _fully_centered(scope, rows) != (placement == "center"):
-            reason = "2x2全居中只用同心圆，其余布局只用菱形或斜纹"
-    elif placement == "bottom":
-        bottom = scope.component_type == "Region" and scope.props.get("variant") == "title-content"
-        if not bottom or flow.get("lineCount", 0) == 0:
-            reason = "此图片要求主区正文整体居下，不能仅辅助内容贴底"
-    elif placement in {"bottom-left", "not-bottom-left"}:
-        bottom = scope.component_type == "Region" and scope.props.get("variant") == "title-content"
-        bottom_left = bottom and flow.get("leftAligned") is True
-        if placement == "bottom-left" and not bottom_left:
-            reason = "此会议图片要求左侧主区正文全部居左贴底"
-        elif placement == "not-bottom-left" and bottom_left:
-            reason = "居左贴底会议使用A19，不匹配会议室横图"
-    return reason
 
 
 def _wide_scope(root: ComponentRow, by_id: dict, final_layout: str,
@@ -87,100 +65,57 @@ def _wide_scope(root: ComponentRow, by_id: dict, final_layout: str,
     return result
 
 
-def photo_content_reason(photo: dict, task: dict, evidence: dict,
-                         final_layout: str | None, *,
-                         business_context: FinalBusinessContext | None = None) -> str | None:
+def fusion_photo_facts(
+    task: dict, evidence: dict, final_layout: str | None, *,
+    business_context: FinalBusinessContext | None = None,
+) -> PhotoMatchFacts:
     context = business_context or FinalBusinessContext.from_layout(
         final_layout, BusinessContext.from_task(task),
     )
-    if context.error:
-        return context.error
-    by_id = context.by_id
-    values = context.values
-    root = by_id.get("root")
-    if root is None:
-        return "图片缺少定稿根节点"
-    rules = load_theme_registry().get("photoEligibility", {})
-    policy = photo.get("contentEligibility", {})
-    if policy.get("kind") != "uniform":
-        return _special_content_reason(policy, task, root, by_id, values, context)
-    wide = task.get("size") == "2x4"
-    is_texture = photo.get("pool") == "texturePhotos"
-    scope = root
-    if wide and not is_texture:
-        scope = _wide_scope(root, by_id, final_layout, rules, policy)
-        if scope is None:
-            if policy.get("wideLayout") == "main-focus":
-                return "2x4图片需要明确主焦点，不支持双大背板或无主次布局"
-            if policy.get("wideLayout") == "side-focus":
-                return "2x4图片需要左右主焦点加另一侧上下双槽，不支持上下或双大背板布局"
-            return "2x4图片需要左主焦点和右侧上下两个背板"
-    elif task.get("size") not in {"2x2", "2x4"}:
-        return "图片只支持2x2和2x4"
-    if scope is None:
-        return "图片缺少主内容区"
-    rows = subtree(scope.component_id, by_id)
-    if not rows:
-        return "图片内容树不完整"
-    businesses = context.scope(scope.component_id)
-    if is_texture:
-        reason = texture_business_reason(photo, rows, businesses=businesses)
-        if reason is not None:
-            return reason
-    else:
-        business = businesses.single
-        if "holiday" in policy.get("businesses", []):
-            business = "holiday" if holiday_countdown(
-                rows, values, businesses=businesses,
-            ) else None
-        if business not in policy.get("businesses", []):
-            return "图片业务与实际可见的单业务内容不匹配"
-    flow_key = "textureBodyTextFlow" if is_texture else "photoBodyTextFlow"
-    flow = evidence.get(flow_key, {}).get(scope.component_id, {})
-    lines = flow.get("lineCount")
-    if type(lines) is not int or lines < 0:
-        return "无法确认图片正文行数"
-    wide_subject = wide and not is_texture
-    limit = rules.get("wideMaxTextLines" if wide_subject else "maxTextLines", 0)
-    max_lines = min(limit, policy.get("maxTextLines", limit))
-    if lines > max_lines:
-        return f"图片正文超过{max_lines}行（不含顶部标题和按钮文案）"
-    subject_square = photo.get("pool") == "photos" and task.get("size") == "2x2"
-    if subject_square and flow.get("leftAligned") is not True:
-        return "2x2主体图片要求正文整体居左，不能居中或两端对齐"
-    placement_reason = _placement_reason(policy, scope, rows, flow)
-    if placement_reason is not None:
-        return placement_reason
-    if policy.get("placement") == "top-left-empty-bottom":
-        top = evidence.get("photoTopContent", {})
-        if lines == 0:
-            return "蓝天白云需要1至2行正文"
-        if top.get("topOnly") is not True:
-            return "蓝天白云要求正文居左居上且下方留空：" + str(top.get("reason"))
-    return None
+    layout_error = layout_evidence_reason(evidence)
+    if layout_error:
+        return PhotoMatchFacts(task.get("size"), error=layout_error)
+    root = context.by_id.get("root")
+    if context.error or root is None:
+        return PhotoMatchFacts(task.get("size"), error=context.error or "图片缺少定稿根节点")
+
+    def scope_facts(scope: ComponentRow) -> PhotoScopeFacts:
+        rows = subtree(scope.component_id, context.by_id)
+        businesses = context.scope(scope.component_id)
+        return PhotoScopeFacts(
+            businesses,
+            body_flow=evidence.get("photoBodyTextFlow", {}).get(scope.component_id, {}),
+            texture_flow=evidence.get("textureBodyTextFlow", {}).get(scope.component_id, {}),
+            centered=_fully_centered(scope, rows),
+            bottom=(scope.component_type == "Region"
+                    and scope.props.get("variant") == "title-content"),
+            holiday=holiday_countdown(rows, context.values, businesses=businesses),
+        )
+
+    scopes = {"card": scope_facts(root)}
+    if task.get("size") == "2x4":
+        rules = load_theme_registry().get("photoEligibility", {})
+        for layout in ("left-main-dual", "main-focus", "side-focus"):
+            policy = {} if layout == "left-main-dual" else {"wideLayout": layout}
+            main = _wide_scope(root, context.by_id, final_layout, rules, policy)
+            if main is not None:
+                scopes[layout] = scope_facts(main)
+    count = None
+    if root.component_type == "Layout":
+        expected = {"W-split-panels": 2, "W-four-slots": 4}.get(root.props.get("layout"))
+        if expected is not None and len(root.children) == expected:
+            count = expected
+    return PhotoMatchFacts(
+        task.get("size"), scopes=scopes, panel_count=count,
+        top_content=evidence.get("photoTopContent", {}),
+        body_regions=evidence.get("photoBodyRegions", {}),
+        subject_exclusion=photo_layout_exclusion_reason(task, evidence, final_layout),
+    )
 
 
-def _special_content_reason(policy: dict, task: dict, root: ComponentRow,
-                            by_id: dict, values: dict,
-                            context: FinalBusinessContext) -> str | None:
-    rows = subtree(root.component_id, by_id)
-    if not rows:
-        return "图片内容树不完整"
-    kind = policy.get("kind")
-    businesses = context.scope(root.component_id)
-    if kind == "holiday-countdown":
-        if task.get("size") != "2x2" or not holiday_countdown(
-            rows, values, businesses=businesses,
-        ):
-            return "此图片仅用于2x2单业务节假日倒计时，每个展示对象均须属于节假日"
-    elif kind == "weather-panels":
-        if task.get("size") != "2x4" or root.component_type != "Layout":
-            return "冰面图仅用于2x4双大背板或四宫格"
-        count = {"W-split-panels": 2, "W-four-slots": 4}.get(root.props.get("layout"))
-        if count is None or len(root.children) != count:
-            return "冰面图仅用于双大背板或四宫格，不用于主焦点布局"
-        if "weather" not in businesses.data_businesses:
-            return "冰面图要求至少一项实际可见天气业务"
-    else:
-        return "图片缺少已登记准入配置"
-    return None
+def photo_content_reason(
+    photo: dict, task: dict, evidence: dict, final_layout: str | None, *,
+    business_context: FinalBusinessContext | None = None,
+) -> str | None:
+    facts = fusion_photo_facts(task, evidence, final_layout, business_context=business_context)
+    return match_content(photo, facts)

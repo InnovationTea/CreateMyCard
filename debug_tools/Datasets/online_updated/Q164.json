@@ -1,0 +1,55 @@
+{
+  "content": {
+    "title": "生日快乐",
+    "description": "生日蛋糕祝福卡片",
+    "userQuery": "帮我制作一个生日蛋糕卡片",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.cake_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026061945151"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "8e395e95-9203-4c55-bbc6-729afa503fdd"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.cake_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "生日蛋糕祝福卡片",
+  "userQuery": "帮我制作一个生日蛋糕卡片",
+  "title": "生日快乐",
+  "candidateDataBindings": []
+}

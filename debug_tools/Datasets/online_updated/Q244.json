@@ -1,0 +1,77 @@
+{
+  "content": {
+    "title": "阿瑞生日",
+    "description": "生日倒计时",
+    "userQuery": "创建一张阿瑞生日提醒卡片，显示距离生日还有多少天",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2025-10-03"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.cake_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026105216936"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "31",
+    "isNew": false,
+    "sessionId": "2de01ce5-08cd-44ca-a2ac-aaabd5554bfb"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.cake_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "生日倒计时",
+  "userQuery": "创建一张阿瑞生日提醒卡片，显示距离生日还有多少天",
+  "title": "阿瑞生日",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2025-10-03"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

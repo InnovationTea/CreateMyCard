@@ -1,0 +1,72 @@
+{
+  "content": {
+    "title": "今日天气",
+    "description": "天气速览",
+    "userQuery": "添加天气卡片到桌面",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "functionName": "generateWidgetCardCompactDsl",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/location/districtName"
+        ]
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027061706366"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "cbff3a98-4a0d-460f-9966-d240fca924f2"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "skillName": "harmony-card-generation-online",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "arguments": "{\"bundleName\": \"com.huawei.genui\", \"candidateAssetIds\": [], \"candidateDataBindings\": [{\"arguments\": {\"forecastDays\": 1}, \"candidateOutputFields\": [\"/current/temperatureText\", \"/current/condition\", \"/location/prefectureName\", \"/location/districtName\"], \"capabilityId\": \"ViewWeather\", \"writeResultTo\": \"/data/weather\"}], \"candidateEventCandidates\": [{\"actionTemplate\": {\"args\": {\"abilityName\": \"\", \"bundleName\": \"\", \"intentName\": \"Weather_CityCode\", \"uri\": \"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}}\", \"call\": \"clickToDeeplink\"}, \"capabilityId\": \"event.open.weather\", \"dynamicArguments\": [{\"description\": \"cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。\", \"path\": \"/uri\", \"type\": \"string\"}]}], \"description\": \"天气速览\", \"size\": \"2x2\", \"title\": \"今日天气\", \"userQuery\": \"添加天气卡片到桌面\"}"
+}

@@ -2,7 +2,7 @@
   {
     "id": "event.call.phone",
     "type": "event",
-    "description": "点击跳转至华为电话应用中指定号码的拨号界面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "点击跳转至华为电话应用中指定号码的拨号界面。",
     "actionTemplate": {
       "call": "clickToApi",
       "args": {
@@ -97,7 +97,7 @@
   {
     "id": "event.open.settings.dnd",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的情景模式，用户可以打开免打扰或专注模式。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的情景模式，用户可以打开免打扰或专注模式。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -150,7 +150,7 @@
   {
     "id": "event.open.settings.bluetooth",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的蓝牙设置页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的蓝牙设置页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -203,7 +203,7 @@
   {
     "id": "event.open.settings.battery",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的电池页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的电池页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -256,7 +256,7 @@
   {
     "id": "event.open.settings.batteryHealth",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的电池健康页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的电池健康页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -309,7 +309,7 @@
   {
     "id": "event.open.settings.parentControl",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的健康使用App页面，为了设置应用使用时长。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的健康使用App页面，为了设置应用使用时长。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -362,7 +362,7 @@
   {
     "id": "event.open.settings.storage",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的存储空间页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的存储空间页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -415,7 +415,7 @@
   {
     "id": "event.open.weather",
     "type": "event",
-    "description": "打开华为天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。不支持打开第三方天气应用，也不能更换为其他应用。",
+    "description": "打开华为天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -477,7 +477,7 @@
   {
     "id": "event.open.clock.alarm",
     "type": "event",
-    "description": "打开华为时钟应用首页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为时钟应用首页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -530,7 +530,7 @@
   {
     "id": "event.open.music.daily",
     "type": "event",
-    "description": "打开华为音乐应用的每日30首歌单，uri为固定值勿更改。不支持网易云音乐、QQ音乐等第三方音乐应用，也不能更换为其他应用。",
+    "description": "打开华为音乐应用的每日30首歌单，uri为固定值勿更改。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -583,7 +583,7 @@
   {
     "id": "event.open.music.favorite",
     "type": "event",
-    "description": "打开华为音乐应用的收藏歌单/心动歌单，uri为固定值勿更改。不支持网易云音乐、QQ音乐等第三方音乐应用，也不能更换为其他应用。",
+    "description": "打开华为音乐应用的收藏歌单/心动歌单，uri为固定值勿更改。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -636,7 +636,7 @@
   {
     "id": "event.open.health.sport",
     "type": "event",
-    "description": "打开华为运动健康应用的锻炼Tab页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为运动健康应用的锻炼Tab页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -693,7 +693,7 @@
   {
     "id": "event.open.health.sleep",
     "type": "event",
-    "description": "打开华为运动健康应用的睡眠详情页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为运动健康应用的睡眠详情页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -808,7 +808,7 @@
   {
     "id": "event.viewCalendarEvent",
     "type": "event",
-    "description": "点击日程卡片 or 日程按钮，跳转到华为日历应用 查看该日程的详情。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "点击日程卡片 or 日程按钮，跳转到华为日历应用 查看该日程的详情。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -863,7 +863,7 @@
   {
     "id": "event.startNavigate",
     "type": "event",
-    "description": "点击导航按钮，跳转到华为地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航。不支持百度地图、高德地图等第三方地图应用，也不能更换为其他应用。",
+    "description": "点击导航按钮，跳转到华为地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -1050,7 +1050,7 @@
   {
     "id": "event.open.settings.dndMode",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的情景模式并显示免打扰模式。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的情景模式并显示免打扰模式。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1122,7 +1122,7 @@
   {
     "id": "event.open.settings.sleepMode",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的情景模式并显示睡眠模式。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的情景模式并显示睡眠模式。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1194,7 +1194,7 @@
   {
     "id": "event.open.settings.studyMode",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的情景模式并显示学习模式。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的情景模式并显示学习模式。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1266,7 +1266,7 @@
   {
     "id": "event.open.settings.mobileNetwork",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的飞行模式（移动网络）页面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的飞行模式（移动网络）页面。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1319,7 +1319,7 @@
   {
     "id": "event.open.settings.wifi",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的wifi（wlan）页面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的wifi（wlan）页面。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1372,7 +1372,7 @@
   {
     "id": "event.open.settings.mobileData",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的移动网络页面的移动数据页面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的移动网络页面的移动数据页面。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1425,7 +1425,7 @@
   {
     "id": "event.open.settings.simManagement",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的移动网络页面的sim卡管理页面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的移动网络页面的sim卡管理页面。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1478,7 +1478,7 @@
   {
     "id": "event.open.settings.hotspot",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的移动网络页面的个人热点页面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的移动网络页面的个人热点页面。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1531,7 +1531,7 @@
   {
     "id": "event.open.settings.dataUsage",
     "type": "event",
-    "description": "打开华为手机自带的系统设置中的移动网络页面的流量管理。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为手机自带的系统设置中的移动网络页面的流量管理。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1584,7 +1584,7 @@
   {
     "id": "event.open.clock.worldClock",
     "type": "event",
-    "description": "打开华为时钟应用，并显示世界时钟这个tab页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为时钟应用，并显示世界时钟这个tab页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1656,7 +1656,7 @@
   {
     "id": "event.open.clock.alarmTab",
     "type": "event",
-    "description": "打开华为时钟应用，并显示闹钟这个tab页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为时钟应用，并显示闹钟这个tab页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1728,7 +1728,7 @@
   {
     "id": "event.open.clock.stopwatch",
     "type": "event",
-    "description": "打开华为时钟应用，并显示秒表这个tab页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为时钟应用，并显示秒表这个tab页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1800,7 +1800,7 @@
   {
     "id": "event.open.clock.timer",
     "type": "event",
-    "description": "打开华为时钟应用，并显示计时器这个tab页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为时钟应用，并显示计时器这个tab页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1872,7 +1872,7 @@
   {
     "id": "event.open.health.sportsRecord",
     "type": "event",
-    "description": "打开华为运动健康应用的运动记录页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为运动健康应用的运动记录页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1929,7 +1929,7 @@
   {
     "id": "event.open.health.activityRecord",
     "type": "event",
-    "description": "打开华为运动健康应用的活动记录页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为运动健康应用的活动记录页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -1986,7 +1986,7 @@
   {
     "id": "event.open.health.workoutDuration",
     "type": "event",
-    "description": "打开华为运动健康应用的锻炼时长页面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为运动健康应用的锻炼时长页面。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -2043,7 +2043,7 @@
   {
     "id": "event.open.settings.darkMode",
     "type": "event",
-    "description": "点击跳转设置中深色模式界面。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "点击跳转设置中深色模式界面。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -2560,7 +2560,7 @@
   {
     "id": "event.openCamera",
     "type": "event",
-    "description": "打开华为相机应用并选择指定拍照模式。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为相机应用并选择指定拍照模式。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -2642,7 +2642,7 @@
   {
     "id": "event.open.contacts.callLog",
     "type": "event",
-    "description": "打开华为电话应用全部通话页。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为电话应用全部通话页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -2695,7 +2695,7 @@
   {
     "id": "event.viewNote",
     "type": "event",
-    "description": "打开华为备忘录应用。仅支持对应的华为自带应用，不支持第三方应用，也不能更换为其他应用。",
+    "description": "打开华为备忘录应用。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {

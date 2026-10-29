@@ -1,0 +1,109 @@
+{
+  "content": {
+    "title": "闹钟",
+    "description": "闹钟快捷入口",
+    "userQuery": "将闹钟添加至桌面，制作一张闹钟桌面卡片，显示当前时间，点击可打开闹钟应用。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/time"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "parameters": {
+              "tabActive": "ALARM_CLOCK_TAB"
+            },
+            "uri": ""
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.clock.alarmTab"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.alarm_fill_1"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025073617103"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "d18e0902-7522-4a21-8070-aff83c1a8af0"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.alarm_fill_1"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "bundleName": "com.huawei.hmos.clock",
+          "intentName": "Clock",
+          "parameters": {
+            "tabActive": "ALARM_CLOCK_TAB"
+          },
+          "uri": ""
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.clock.alarmTab"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "闹钟快捷入口",
+  "userQuery": "将闹钟添加至桌面，制作一张闹钟桌面卡片，显示当前时间，点击可打开闹钟应用。",
+  "title": "闹钟",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ],
+      "capabilityId": "GetCurrentTime",
+      "writeResultTo": "/data/time"
+    }
+  ]
+}

@@ -157,6 +157,15 @@
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12}, "childCountMin": 2, "childCountMax": 3}
           ]
+        },
+        {
+          "rules": [
+            {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 6}, "childCount": 2},
+            {"path": [0], "types": ["SingleLineTitle"]},
+            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 108}, "childCount": 1},
+            {"path": [1, 0], "types": ["Column"], "props": {"width": 126, "height": 36}, "childCount": 1},
+            {"path": [1, 0, 0], "types": ["PillButton"], "eventPolicy": "require"}
+          ]
         }
       ]
     },

@@ -1,5 +1,6 @@
 """公共 WebSocket 路由的计次边界，不调用真实模型。"""
 
+import hashlib
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -48,6 +49,7 @@ def final_message(frames):
 def setup_route(monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_daily_usage_limit", True)
+    monkeypatch.setattr(settings, "daily_usage_uid_whitelist", "")
     monkeypatch.setattr(settings, "enable_widget_directive_commands", True)
     monkeypatch.setattr(settings, "enable_compact_dsl_interface_retry", False)
     monkeypatch.setattr(routes, "get_service", lambda _runtime: Mock())
@@ -130,7 +132,7 @@ async def test_new_round_rejected_before_argument_repair(monkeypatch, setup_rout
     frames, calls = await run_route(monkeypatch, limiter, requests=[bad_payload])
     assert not calls
     assert len(frames) == 1
-    assert final_message(frames).get("errorCode") == ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED
+    assert final_message(frames).get("message") == setup_route.daily_usage_limit_exceeded_message
     repair.assert_not_called()
 
 
@@ -140,7 +142,11 @@ async def test_non_success_results_do_not_count(monkeypatch, setup_route, status
     limiter = make_limiter()
     frames, calls = await run_route(monkeypatch, limiter, status=status)
     assert len(calls) == 1
-    assert final_message(frames).get("status") == status
+    if status in {"failed", "unsupported"}:
+        assert final_message(frames).get("retryable") is False
+        assert final_message(frames).get("requiredActions") == ["STOP"]
+    else:
+        assert final_message(frames).get("status") == status
     assert not limiter.repository.records
 
 
@@ -188,6 +194,112 @@ async def test_disabled_limit_never_reads_repository(monkeypatch, setup_route):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("operation", sorted(routes.GENERATION_OPERATIONS))
+@pytest.mark.parametrize("editing", [False, True])
+async def test_whitelisted_user_bypasses_exhausted_quota_without_api_calls(
+    monkeypatch, setup_route, operation, editing
+):
+    uid_hash = hashlib.sha256(b"user").hexdigest()
+    monkeypatch.setattr(
+        setup_route, "daily_usage_uid_whitelist", f"other, {uid_hash.upper()} ,{uid_hash},,"
+    )
+    limiter = make_limiter(limit=1)
+    record = await limiter.check("user", "session&previous")
+    assert record is not None
+    await limiter.record_success(record)
+    limiter.repository.snapshot = AsyncMock(side_effect=AssertionError("must not query"))
+    limiter.repository.insert_success = AsyncMock(side_effect=AssertionError("must not record"))
+    request = payload()
+    content = request.get("content")
+    assert isinstance(content, dict)
+    if editing:
+        content["sourceArtifactUrl"] = "https://example.com/existing-artifact.json"
+    frames, calls = await run_route(
+        monkeypatch, limiter, operation=operation, requests=[request]
+    )
+    assert len(calls) == 1
+    assert final_message(frames).get("status") == "success"
+    limiter.repository.snapshot.assert_not_awaited()
+    limiter.repository.insert_success.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "whitelist",
+    [
+        "",
+        " , , ",
+        "user",
+        "USER",
+        hashlib.sha256(b"USER").hexdigest(),
+        hashlib.sha256(b"user").hexdigest()[:-1],
+    ],
+)
+async def test_whitelist_does_not_exempt_nonmatching_users(monkeypatch, setup_route, whitelist):
+    monkeypatch.setattr(setup_route, "daily_usage_uid_whitelist", whitelist)
+    limiter = make_limiter(limit=1)
+    record = await limiter.check("user", "session&previous")
+    assert record is not None
+    await limiter.record_success(record)
+    frames, calls = await run_route(monkeypatch, limiter)
+    assert not calls
+    assert final_message(frames).get("message") == setup_route.daily_usage_limit_exceeded_message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "content_uid,auth_uid,exempt",
+    [("user", "other", True), ("other", "user", False), ("", "user", True)],
+)
+async def test_whitelist_uses_existing_uid_source_priority(
+    monkeypatch, setup_route, content_uid, auth_uid, exempt
+):
+    monkeypatch.setattr(
+        setup_route, "daily_usage_uid_whitelist", hashlib.sha256(b"user").hexdigest()
+    )
+    request = payload(uid=content_uid)
+    request["userAuth"] = {"user": {"userId": auth_uid}}
+    limiter = make_limiter()
+    result = await routes._check_daily_usage(OPERATION, request, "session&1", limiter)
+    assert (result is None) is exempt
+    assert limiter.repository.reads == (0 if exempt else 1)
+
+
+@pytest.mark.asyncio
+async def test_whitelisted_user_without_usage_client_still_generates(monkeypatch, setup_route):
+    monkeypatch.setattr(
+        setup_route, "daily_usage_uid_whitelist", hashlib.sha256(b"user").hexdigest()
+    )
+    frames, calls = await run_route(monkeypatch, None)
+    assert len(calls) == 1
+    assert final_message(frames).get("status") == "success"
+
+
+@pytest.mark.asyncio
+async def test_whitelist_removal_restores_quota_check(monkeypatch, setup_route):
+    limiter = make_limiter()
+    monkeypatch.setattr(
+        setup_route, "daily_usage_uid_whitelist", hashlib.sha256(b"user").hexdigest()
+    )
+    assert await routes._check_daily_usage(OPERATION, payload(), "session&1", limiter) is None
+    monkeypatch.setattr(setup_route, "daily_usage_uid_whitelist", "")
+    assert await routes._check_daily_usage(OPERATION, payload(), "session&1", limiter) is not None
+    assert limiter.repository.reads == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("uid", ["用户一", " user ", "user"])
+async def test_whitelist_uses_same_uid_hash_as_daily_usage_record(monkeypatch, setup_route, uid):
+    limiter = make_limiter()
+    record = await limiter.check(uid, "session&previous")
+    assert record is not None
+    monkeypatch.setattr(setup_route, "daily_usage_uid_whitelist", record.uid_hash)
+    limiter.repository.snapshot = AsyncMock(side_effect=AssertionError("must not query"))
+    assert await routes._check_daily_usage(OPERATION, payload(uid=uid), "s&1", limiter) is None
+    limiter.repository.snapshot.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("operation", ["getWidgetCapabilityOverview", "getDataCapabilitySchemas"])
 async def test_query_operations_skip_quota(setup_route, operation):
     assert await routes._check_daily_usage(operation, payload(), "session&1", None) is None
@@ -227,6 +339,10 @@ async def test_retry_shares_one_check_and_records_final_success(monkeypatch, set
 
 @pytest.mark.asyncio
 async def test_argument_repair_cannot_change_quota_identity(monkeypatch, setup_route):
+    monkeypatch.setattr(
+        setup_route, "daily_usage_uid_whitelist", hashlib.sha256(b"model-user").hexdigest()
+    )
+
     async def repair(body, *_args):
         content = body.get("content")
         assert isinstance(content, dict)
@@ -254,7 +370,8 @@ async def test_exception_before_success_does_not_count(monkeypatch, setup_route,
         )
     limiter = make_limiter()
     frames, _calls = await run_route(monkeypatch, limiter, handler=failing_handler)
-    assert final_message(frames).get("status") == "failed"
+    assert final_message(frames).get("retryable") is False
+    assert final_message(frames).get("requiredActions") == ["STOP"]
     assert not limiter.repository.records
 
 

@@ -2668,10 +2668,14 @@ def _event_card_items(component: ComponentRow) -> tuple[list[dict[str, Any]], bo
             raise CompactDslConversionError(
                 f"{component.component_id}: items[{index}] requires title and time."
             )
-        if not set(item) <= {"title", "time", "location"}:
+        if not set(item) <= {"title", "time", "location", "onClick"}:
             raise CompactDslConversionError(
-                f"{component.component_id}: items[{index}] allows title/time/location only."
+                f"{component.component_id}: items[{index}] allows title/time/location/onClick only."
             )
+        if "onClick" in item:
+            _validate_high_level_on_click(ComponentRow(
+                f"{component.component_id}.items[{index}]", "EventCard", item, (),
+            ))
         for name in ("title", "time"):
             if not _is_display_value(item.get(name)):
                 raise CompactDslConversionError(
@@ -2901,6 +2905,9 @@ def _expand_event_card(component: ComponentRow, size: str) -> list[ComponentRow]
             compact=compact,
             multiple=len(items) > 1,
         )
+        if "onClick" in item:
+            item_root = item_rows[0]
+            item_root.props["onClick"] = copy.deepcopy(item.get("onClick"))
         rows.extend(item_rows)
         item_ids.append(item_id)
         total_height += item_height
@@ -3036,7 +3043,9 @@ def _expand_data_display(
             variant=variant,
             props={
                 "content": copy.deepcopy(component.props["supportingText"]),
-                "fontColor": secondary_color,
+                "fontColor": _secondary_value_color(
+                    {"value": component.props["supportingText"]}, component.props["fontColor"],
+                ),
             },
         ),
     ]

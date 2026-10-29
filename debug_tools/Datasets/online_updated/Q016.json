@@ -19,7 +19,7 @@
     "candidateEventCandidates": [],
     "description": "展示温度、天气和空气质量，方便安排户外运动。",
     "candidateAssetIds": [
-      "asset.ic_weather_color",
+      "asset.ic_weather_monochrome",
       "asset.ic_purification",
       "asset.figure_run"
     ]
@@ -72,7 +72,7 @@
   "candidateEventCandidates": [],
   "description": "展示温度、天气和空气质量，方便安排户外运动。",
   "candidateAssetIds": [
-    "asset.ic_weather_color",
+    "asset.ic_weather_monochrome",
     "asset.ic_purification",
     "asset.figure_run"
   ]

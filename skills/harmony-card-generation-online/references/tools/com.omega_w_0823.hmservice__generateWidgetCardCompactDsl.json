@@ -8,18 +8,49 @@
     "properties": {
       "candidateEventCandidates": {
         "type": "Array",
-        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明",
+        "description": "候选点击事件对象数组，每项仅含 capabilityId 和 action；将概述的 actionTemplate 值复制到 action，不提交 actionTemplate 或 dynamicArguments 定义。",
         "required": [],
         "properties": {
           "ArrayItem": {
             "type": "Object",
-            "description": "事件 action"
+            "description": "来自本轮概述的事件候选",
+            "required": [
+              "capabilityId",
+              "action"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "capabilityId": {
+                "type": "String",
+                "description": "本轮事件概述 ID"
+              },
+              "action": {
+                "type": "Object",
+                "description": "完整复制对应模板的值，只替换声明的动态参数",
+                "required": [
+                  "call",
+                  "args"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "call": {
+                    "type": "String",
+                    "description": "模板原始调用类型，不填事件 ID"
+                  },
+                  "args": {
+                    "type": "Object",
+                    "description": "模板完整参数对象，保留固定值与空字符串，禁止序列化成字符串",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
           }
         }
       },
       "description": {
         "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
+        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字；新建必填非空，编辑未修改时省略并继承"
       },
       "candidateAssetIds": {
         "type": "Array<String>",
@@ -44,7 +75,11 @@
           "ArrayItem": {
             "type": "Object",
             "description": "候选数据能力",
-            "required": [],
+            "required": [
+              "capabilityId",
+              "arguments",
+              "writeResultTo"
+            ],
             "properties": {
               "writeResultTo": {
                 "type": "String",
@@ -52,7 +87,8 @@
               },
               "arguments": {
                 "type": "Object",
-                "description": "参数"
+                "description": "符合本轮 inputSchema 的 JSON 对象；无参用 {}，禁止 JSON 字符串、数组或 null",
+                "additionalProperties": true
               },
               "capabilityId": {
                 "type": "String",
@@ -69,17 +105,22 @@
                   }
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
       },
       "title": {
         "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
+        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字；新建必填非空，编辑未修改时省略并继承"
       },
       "size": {
         "type": "String",
-        "description": "用户指定尺寸时必须显式传入，优先于默认或建议；未指定按尺寸规则。"
+        "description": "用户指定尺寸时必须显式传入，优先于默认或建议；未指定按尺寸规则。",
+        "enum": [
+          "2x2",
+          "2x4"
+        ]
       },
       "sourceArtifactUrl": {
         "type": "String",
@@ -89,7 +130,9 @@
     "required": [
       "userQuery"
     ],
-    "type": "object"
+    "type": "object",
+    "additionalProperties": false,
+    "description": "业务参数必须直接为 JSON 对象，不调用 JSON.stringify、不手工转义整个对象；创建和编辑共用此入口。"
   },
   "outputSchema": {
     "properties": {
@@ -129,7 +172,7 @@
       },
       "errorCode": {
         "type": "String",
-        "description": "服务端业务错误码；不得向用户展示。"
+        "description": "服务端业务错误码；不得向用户展示。 GENERATION_INPUT_INCOMPLETE 表示创建Plan报告必要动态输入缺口；仅按 error.details 的重试许可核对能力、定义和权限后补参，不扩大调用预算。"
       },
       "effectiveCapabilities": {
         "type": "Object",

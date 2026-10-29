@@ -19,14 +19,17 @@
     小标题12fp，传入请求title，缺省或空字符串显示“手机电池”；大字实际充电状态18fp/800、
     温度辅行14fp/500，底部电量12fp固定左下角。请求标题非空时逐字传入title。
     必需 /chargingStatusDesc、/batteryTemperatureText、/batterySOCText，保留文本与单位。
-    充电温度与电量齐全的请求优先参考此模板；TemperatureStatusFull保留用于温度主值居中场景。
-  - `BatteryOverviewTemperatureStatusFull@1`：居中title/温度/电量三段Full，放入 `SingleFocusLayout@1`。
-    16fp title缺省“手机电池”、30fp温度、底行12fp“电量: N%”；辅助充电信息在底行左侧。
+    充电温度与电量齐全的请求优先参考此模板；TemperatureStatusFull保留用于温度主值场景。
+  - `BatteryOverviewTemperatureStatusFull@1`：放入 `SingleFocusLayout@1`，按三个可选字段数量切换。
+    0项居中显示title/温度/固定标识“温度状态”；1项在底部居中；2项独立成行放左下角，
+    上方标题和温度左对齐，参考天气更新时间Full；3项为温度主值加剩余电量、充电状态、充电类型三行明细。
     仅 /batteryTemperatureText 必需；/batterySOCText、/chargingStatusDesc、/pluggedTypeDesc 可选，
     无素材或按钮参数，请求标题非空时逐字传入title。
   - `BatteryOverviewPercentStatusFull@1`：电量 Hero 的无按钮 Full，放入 `SingleFocusLayout@1`。
-    12fp标题、30fp百分比，健康与更新时间在标题行，等级和温度在主值下方；
-    充电状态独立放在左下角。仅 /batterySOCText 必需；/chargingStatusDesc、/healthStatusDesc、
+    有/healthStatusDesc时顶部只显示健康状态；未传时使用title，title未传或为空则回退“手机电量”。
+    仅电量或电量加健康时采用居中标题/30fp电量/“电池状态”三段式。
+    有辅助信息时使用12fp左对齐标题、30fp电量，底部靠左依次显示更新时间、等级/温度、充电状态；
+    更新时间独占一行，仅有更新时间时贴底。仅 /batterySOCText 必需；/chargingStatusDesc、/healthStatusDesc、
     /batteryCapacityLevelDesc、/batteryTemperatureText、/updatedAt 可选，无图标或按钮参数。
   - `BatteryOverviewPercentHealthCurrentDetailsFull@1`：2x2 无动作百分比、健康与电流详情，
     放入 `SingleFocusLayout@1`。顶部“手机电量”12fp、百分比28fp加粗，下面三行依次为
@@ -69,11 +72,13 @@
     显示文本通过端侧 Expr 拼接数值和百分号，不依赖格式化电量字段。底部按钮由第二层组合
     `PillAction@1`。主数据：/batterySOC；次要数据：无；可选数据：无。
   - `BatteryOverviewChargingRingHero@1`：手机电量充电状态环形 Hero，只表达顶部英雄内容，环内展示 `/batterySOC` 数字及百分号，环形进度同样使用 `/batterySOC`，环下展示 `/chargingStatusDesc`；底部按钮必须由第二层组合 `PillAction@1`。主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：无。
-  - `BatteryOverviewChargingProgressHero@1`：手机充电状态 Hero，展示“手机电量”、包含百分号的
+  - `BatteryOverviewChargingProgressHero@1`：手机充电状态 Hero，展示顶部健康/标题、包含百分号的
     `/batterySOCText`、充电状态和电池健康；不展示进度条或充电器类型。
     底部按钮必须由第二层组合 `PillAction@1`。主数据：/batterySOCText；
     次要数据：无；可选数据：/chargingStatusDesc, /healthStatusDesc, /batteryCapacityLevelDesc, /batteryTemperatureText, /updatedAt。
-    电池健康可用时并入顶部标题；更新时间可用时显示在顶部标题行末尾（10fp）。
+    有健康状态时顶部只显示健康；无健康时显示title，title未传或为空时显示“手机电量”。
+    更新时间在主值下方独立成行（10fp），先于状态行；没有状态行时占据原状态行的位置。
+    时间与状态同时存在时采用2vp间距、28fp/32vp主值、12vp时间行，Hero总高82vp以保留按钮空间。
     充电状态、电量等级和温度在下方统一12fp展示：只有一项时带字段标签，多项时以点号分隔；
     不在百分比旁或另起温度行重复展示。分支只按字段是否存在于本轮绑定进行编译期选择，不按样例值选择分支。
   - `BatteryOverviewChargingProgressFull@1`：手机电量充电进度 Full；顶部为标题，中部以 44vp 环形进度和电量图标展示 `/batterySOC` 与 `/chargingStatusDesc`，底部以两行相邻 key-value 展示 `/healthStatusDesc` 和 `/pluggedTypeDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc, /healthStatusDesc, /pluggedTypeDesc；可选数据：无。
@@ -155,12 +160,14 @@
 
 - `BatteryOverviewPercentLevelFull@1`：2×2 无动作百分比等级 Full。必需 /batterySOCText、/batteryCapacityLevelDesc，无可选字段。居中三段式：顶部“手机电量”16fp/400、百分比主值38fp/700、底部实际电量等级12fp/400；段间距8vp，不显示电量等级标签；不依赖素材，不新增模板选择优先级。
 
-- `BatteryOverviewCurrentVoltageFull@1`：2×2 电流电压 Full，仅必需 /nowCurrentText、/voltageText，可选 /batterySOCText、/batteryTemperatureText、/healthStatusDesc。标题12fp，所有数值12fp/500，标签12fp/400，各详情行高16vp，左对齐；无需图标或动作，字段存在时显示对应行，沿用通用检索和候选字段排序。
+- `BatteryOverviewCurrentVoltageFull@1`：2×2 电流电压 Full，仅必需 /nowCurrentText、/voltageText，可选 /batterySOCText、/batteryTemperatureText、/healthStatusDesc。可选参数 `title` 优先展示传入标题，未传或为空时显示“电池状态”。标题12fp，所有数值12fp/500，标签12fp/400，各详情行高16vp，左对齐；无需图标或动作，字段存在时显示对应行，沿用通用检索和候选字段排序。
+  详情组整体左下对齐，顺序为电流、电压、电量、温度、健康，行间距4vp；底部沿用主题12vp安全边距，不重复添加。
 
 充电类型百分比 Full 的宽卡内容区为102vp：顶部24vp、底部16vp、间距4vp、顶部内边距4vp，
 中部弹性容器承载48vp电量文本，总最小高度100vp；底行不得随中部固定高度溢出。
 
-TemperatureStatusFull当前布局为居中三段式：顶部16fp title，缺省“手机电池”；
-中间30fp温度，底部12fp“电量: ”加 /batterySOCText，只有温度必需。
-电量、充电状态、充电器类型均可选；辅助信息存在时左侧展示，电量在右侧，
-仅有电量时底行居中。没有任何底行数据时省略；请求标题非空时逐字传入title。
+TemperatureStatusFull只有温度必需，title缺省“手机电池”；按电量、充电状态、充电器类型的绑定数量布局。
+0/1项：16fp居中标题、30fp温度、12fp底部居中文本；0项显示“温度状态”，不推断正常或异常。
+2项：16fp标题和18fp温度左对齐，底部两条20vp高的12fp信息独立成行，参考WeatherOverviewUpdatedAtFull。
+3项：12fp标题、24fp温度主值和三条16vp明细行，标签400/值700字重、值使用textAlign=end；
+参考PercentHealthDetailsFull，固定内容共112vp。各分支均保留传入title，不增加图标或按钮。

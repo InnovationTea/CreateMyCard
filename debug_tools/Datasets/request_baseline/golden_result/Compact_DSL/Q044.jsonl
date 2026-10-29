@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-content-dual-action"},["content","action_power","action_navigate"]]
+["content","EmphasizedData",{"value":"{{ ${/data/phoneBattery/batterySOC} + '%' }}","fontSize":30}]
+["action_power","CardButton",{"label":"省电模式","icon":"resources/base/media/battery_leaf_fill.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"SetSettingSwitch","params":{"appBundleName":"com.huawei.hmos.settings","itemName":"battery_saving_mode","switchFlag":0}}}]}]
+["action_navigate","CardButton",{"label":"导航回家","icon":"resources/base/media/location_north_up_right_fill.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"StartNavigate","params":{"dstLocation":{"location":"home","latitude":"","longitude":""}}}}]}]
+["/data/phoneBattery/batterySOC",68]

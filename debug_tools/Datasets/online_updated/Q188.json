@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "股市大盘",
+    "description": "股市大盘速览",
+    "userQuery": "在最左侧增加一个可以看股市大盘的卡片",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "forecastDays": 1
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027151659181"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "ab34dd77-a558-46ab-a6a4-be211d914a3d"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "股市大盘速览",
+  "userQuery": "在最左侧增加一个可以看股市大盘的卡片",
+  "title": "股市大盘",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "forecastDays": 1
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

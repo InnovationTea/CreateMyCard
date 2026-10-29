@@ -31,6 +31,52 @@ from services.compact_dsl_a2ui_converter import (
     ComponentRow,
 )
 
+_ACTION_LABEL_COMPONENTS = frozenset({"PillButton", "CardButton"})
+_MAX_ACTION_LABEL_VISIBLE_CHARACTERS = 5
+
+
+def _collect_action_label_length_errors(
+    components: list[ComponentRow], errors: list[str]
+) -> None:
+    """限制可见按钮文案长度，不改动完整动作合同。"""
+    for component in components:
+        if component.component_type not in _ACTION_LABEL_COMPONENTS:
+            continue
+        label = component.props.get("label")
+        if not isinstance(label, str) or "{{" in label:
+            continue
+        visible_character_count = sum(1 for character in label if not character.isspace())
+        if visible_character_count <= _MAX_ACTION_LABEL_VISIBLE_CHARACTERS:
+            continue
+        emit_error(
+            errors,
+            CompactDiagnostic(
+                code="COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG",
+                validation_class="semantic",
+                category="display",
+                message="按钮可见文案超过 5 个字符。",
+                expected={
+                    "maxVisibleCharacters": _MAX_ACTION_LABEL_VISIBLE_CHARACTERS,
+                    "preserveActionHandler": True,
+                    "preserveActionTarget": True,
+                },
+                actual={
+                    "label": label,
+                    "visibleCharacterCount": visible_character_count,
+                },
+                evidence_source="original",
+                component_id=component.component_id,
+                property_path="/label",
+                legacy_message=(
+                    f"component {component.component_id}: {component.component_type}.label "
+                    "must contain at most 5 visible characters "
+                    f"(got {visible_character_count}): {label!r}. Shorten only the visible "
+                    "action wording while preserving the complete onClick handler and action "
+                    "target; for example, replace '一键导航去公司' with '导航去公司'."
+                ),
+            ),
+        )
+
 
 def _collect_raw_boolean_text_errors(
     components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str]

@@ -1,0 +1,175 @@
+{
+  "content": {
+    "title": "本月日程",
+    "description": "本月每日安排一览",
+    "userQuery": "请帮我创建一个日历行程的一个卡片，要求大一点，然后能看到本月每天的那个安排的这样子",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "futureDays": 30
+        },
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/countdownDays",
+          "/events/1/title",
+          "/events/1/startDate",
+          "/events/1/dtStart",
+          "/events/1/countdownDays",
+          "/events/2/title",
+          "/events/2/startDate",
+          "/events/2/dtStart",
+          "/events/2/countdownDays",
+          "/eventCount"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/1/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/2/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026163945967"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "9c002049-4a8e-4388-b31a-3f4150f32e66"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.calendar_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/1/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/2/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "本月每日安排一览",
+  "userQuery": "请帮我创建一个日历行程的一个卡片，要求大一点，然后能看到本月每天的那个安排的这样子",
+  "title": "本月日程",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "futureDays": 30
+      },
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/countdownDays",
+        "/events/1/title",
+        "/events/1/startDate",
+        "/events/1/dtStart",
+        "/events/1/countdownDays",
+        "/events/2/title",
+        "/events/2/startDate",
+        "/events/2/dtStart",
+        "/events/2/countdownDays",
+        "/eventCount"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    }
+  ]
+}

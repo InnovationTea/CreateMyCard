@@ -1,0 +1,159 @@
+{
+  "content": {
+    "title": "天气时间",
+    "description": "天气与时间速览",
+    "userQuery": "在我的桌面添加天气和时间的卡片，显示当前天气和当前时间。\n\n本轮卡片静态内容（用作展示的外部事实）：\n当前用户位于江苏省南通市崇川区",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "崇川区",
+          "forecastDays": 1,
+          "prefectureName": "南通市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/location/districtName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/time"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      },
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.clock.alarm"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_time",
+      "asset.emoji_default_weather_blue"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026143244355"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "c0e9519c-00c7-4c62-9d0e-f9a04c5971e2"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.emoji_time",
+    "asset.emoji_default_weather_blue"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    },
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "bundleName": "com.huawei.hmos.clock",
+          "intentName": "Clock",
+          "uri": ""
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.clock.alarm"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "天气与时间速览",
+  "userQuery": "在我的桌面添加天气和时间的卡片，显示当前天气和当前时间。\n\n本轮卡片静态内容（用作展示的外部事实）：\n当前用户位于江苏省南通市崇川区",
+  "title": "天气时间",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "崇川区",
+        "forecastDays": 1,
+        "prefectureName": "南通市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName",
+        "/location/districtName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ],
+      "capabilityId": "GetCurrentTime",
+      "writeResultTo": "/data/time"
+    }
+  ]
+}

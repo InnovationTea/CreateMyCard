@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/countdown/midAutumn/countdownDays} + '天' }}","secondaryText":"距中秋节"}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/countdown/national/countdownDays} + '天' }}","secondaryText":"距国庆节"}]
+["/data/countdown/midAutumn/countdownDays",30]
+["/data/countdown/national/countdownDays",30]

@@ -154,7 +154,7 @@ def theme_description(theme: dict) -> dict:
     """白名单字段投影；颜色、图片地址、构图坐标和完整配置绝不进入模型输入。"""
     result = {"themeId": theme.get("id"), "type": theme.get("kind"),
               "name": theme.get("name"), "description": theme.get("description")}
-    for key in ("business", "family", "sizes", "composition"):
+    for key in ("business", "family", "paletteFamilies", "sizes", "composition"):
         if key in theme:
             result[key] = theme.get(key)
     return result

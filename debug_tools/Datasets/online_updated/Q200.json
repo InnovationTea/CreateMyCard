@@ -1,0 +1,99 @@
+{
+  "content": {
+    "title": "家庭简报",
+    "description": "展示当前时间、手机电量、近期日程和备忘录待办的家庭简报卡片",
+    "userQuery": "家庭简报卡片，展示当前时间、手机电量、近期日程和备忘录待办信息",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime"
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      },
+      {
+        "capabilityId": "GetMemoData"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027091150629"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "22c7ff3d-a714-4203-b351-af2331b6220d"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "cardSize": "2x4",
+  "assets": [],
+  "dataCapabilities": [
+    {
+      "data": {
+        "writeResultTo": "/data/currentTime"
+      },
+      "id": "GetCurrentTime"
+    },
+    {
+      "data": {
+        "writeResultTo": "/data/phoneBattery"
+      },
+      "id": "GetPhoneBatteryInfo"
+    },
+    {
+      "data": {
+        "futureDays": 7,
+        "writeResultTo": "/data/calendar"
+      },
+      "id": "GetCalendarEvents"
+    },
+    {
+      "data": {
+        "writeResultTo": "/data/memo"
+      },
+      "id": "GetMemoData"
+    }
+  ],
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "展示当前时间、手机电量、近期日程和备忘录待办的家庭简报卡片",
+  "userQuery": "家庭简报卡片，展示当前时间、手机电量、近期日程和备忘录待办信息",
+  "title": "家庭简报",
+  "events": [
+    {
+      "id": "event.open.clock.alarm"
+    },
+    {
+      "id": "event.viewNote"
+    }
+  ]
+}

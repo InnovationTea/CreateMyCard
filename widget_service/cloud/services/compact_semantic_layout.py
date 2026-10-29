@@ -687,11 +687,17 @@ class _SmallCompiler(_Compiler):
             default_variant = "actions-only"
         variant = root.props.get("variant", default_variant)
         actions_only = layout == "S-content-dual-action" and variant == "actions-only"
+        title_action_only = (
+            layout == "S-title-content-action" and variant == "title-action"
+        )
         count, description = roles
         counts = {count, count + 1} if layout == "S-title-dual-column-action" else {count}
         if actions_only:
             counts = {2}
             description = "[CardButton, CardButton]"
+        elif title_action_only:
+            counts = {2}
+            description = "[title, PillButton]"
         if len(root.children) not in counts:
             _fail(
                 "root",
@@ -703,7 +709,7 @@ class _SmallCompiler(_Compiler):
         patterns = registered.get("patterns", [])
         if not patterns:
             raise ValueError("已登记小卡布局的几何定义不完整")
-        pattern_index = 1 if actions_only else 0
+        pattern_index = 2 if title_action_only else 1 if actions_only else 0
         rules = patterns[pattern_index].get("rules", [])
         if not rules:
             raise ValueError("已登记小卡布局的规则定义不完整")
@@ -719,7 +725,13 @@ class _SmallCompiler(_Compiler):
         if layout in {"S-title-content-action", "S-title-primary-secondary-action"}:
             allowed.add("dense")
         if layout == "S-title-content-action":
-            allowed.update({"direct", "direct-tight", "direct-dense", "direct-flush"})
+            allowed.update({
+                "direct",
+                "direct-tight",
+                "direct-dense",
+                "direct-flush",
+                "title-action",
+            })
         if layout == "S-title-dual-content":
             allowed.add("stacked-info")
         if not isinstance(variant, str) or variant not in allowed:
@@ -793,26 +805,36 @@ class _SmallCompiler(_Compiler):
             children = tuple(row_ids)
         elif layout in {"S-title-content-action", "S-title-primary-secondary-action"}:
             props["itemMargin"] = 4 if variant == "dense" else 6
-            primary = children[1]
-            if layout == "S-title-primary-secondary-action":
-                primary = self.generated("root", "primary_support")
-                self.add(primary, "Column", {"width": "matchParent", "itemMargin": 2,
-                                             "alignItems": "start", "justifyContent": "start",
-                                             "layoutWeight": 1},
-                         children[1:3], "root")
-            if variant.startswith("direct"):
-                gaps = {"direct": 6, "direct-dense": 4, "direct-tight": 2, "direct-flush": 0}
-                props["itemMargin"] = gaps.get(variant, 6)
-                self.geometry(primary, {"layoutWeight": 1})
-                children = (children[0], primary, children[-1])
-            else:
-                if layout == "S-title-primary-secondary-action":
-                    action = self.wrap("root", "action", children[-1],
-                                       {"height": 36, "flexShrink": 0})
-                    body = self.body("root", (primary, action), 8, {})
-                else:
-                    body = self.standard_action_body(primary, children[-1], 8)
+            if title_action_only:
+                action = self.wrap(
+                    "root",
+                    "action",
+                    children[-1],
+                    {"height": 36, "flexShrink": 0},
+                )
+                body = self.body("root", (action,), 0, {"justifyContent": "end"})
                 children = (children[0], body)
+            else:
+                primary = children[1]
+                if layout == "S-title-primary-secondary-action":
+                    primary = self.generated("root", "primary_support")
+                    self.add(primary, "Column", {"width": "matchParent", "itemMargin": 2,
+                                                   "alignItems": "start", "justifyContent": "start",
+                                                   "layoutWeight": 1},
+                             children[1:3], "root")
+                if variant.startswith("direct"):
+                    gaps = {"direct": 6, "direct-dense": 4, "direct-tight": 2, "direct-flush": 0}
+                    props["itemMargin"] = gaps.get(variant, 6)
+                    self.geometry(primary, {"layoutWeight": 1})
+                    children = (children[0], primary, children[-1])
+                else:
+                    if layout == "S-title-primary-secondary-action":
+                        action = self.wrap("root", "action", children[-1],
+                                           {"height": 36, "flexShrink": 0})
+                        body = self.body("root", (primary, action), 8, {})
+                    else:
+                        body = self.standard_action_body(primary, children[-1], 8)
+                    children = (children[0], body)
         elif layout == "S-title-dual-column-action":
             metrics = self.ratios("root", children[1:3], grid=False)
             if len(children) == 4:

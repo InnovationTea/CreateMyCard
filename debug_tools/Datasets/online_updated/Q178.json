@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "倒计时",
+    "description": "倒计时小组件",
+    "userQuery": "添加一个倒计时小组件到桌面",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2026-12-31"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027165524719"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "0b0576b2-da83-4fcb-aad0-f3c7a64cca3e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "倒计时小组件",
+  "userQuery": "添加一个倒计时小组件到桌面",
+  "title": "倒计时",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2026-12-31"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

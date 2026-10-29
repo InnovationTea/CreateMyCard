@@ -120,7 +120,11 @@ def test_route_retries_generation_with_one_directive_pair(monkeypatch, failure_k
     assert len(calls) == 2
     assert_single_directive_pair(frames, succeeded=recovers)
     result = final_result(frames)
-    assert result.get("status") == ("success" if recovers else "failed")
+    if recovers:
+        assert result.get("status") == "success"
+    else:
+        assert result.get("retryable") is False
+        assert result.get("requiredActions") == ["STOP"]
 
 
 def test_route_records_loaded_retry_policy_once_per_request(monkeypatch):
@@ -189,28 +193,17 @@ def test_stringified_arguments_repaired_once_before_generation_retries(monkeypat
     monkeypatch.setattr(WidgetGenerationService, "generate_widget_card_compact_dsl", generate)
     interaction_id = "repair-once"
     malformed = _tool_payload(
-        {"arguments": '{"title":"天气","userQuery":"生成天气卡片"'}, interaction_id
+        {"arguments": json.dumps(_CONTENT, ensure_ascii=False).removesuffix("}")}, interaction_id,
     )
     request_id = _request_id(interaction_id)
     with TestClient(app).websocket_connect(_PATH) as websocket:
         websocket.send_json(malformed)
-        first = _receive_frames_until_final(websocket, request_id)
-        assert final_result(first).get("errorCode") == ErrorCode.INVALID_ARGUMENTS
-        assert not model_calls
-        assert not generation_calls
+        frames = _receive_frames_until_final(websocket, request_id)
+        assert_single_directive_pair(frames, succeeded=True)
 
-        websocket.send_json(malformed)
-        second = _receive_frames_until_final(websocket, request_id)
-        assert_single_directive_pair(second, succeeded=True)
-
-        # 生成的内部重试不累计 arguments 异常次数；收口后新请求从提醒重新开始。
-        websocket.send_json(malformed)
-        third = _receive_frames_until_final(websocket, request_id)
-        assert final_result(third).get("errorCode") == ErrorCode.INVALID_ARGUMENTS
-
-    assert model_calls == ["raw-json"]
+    assert model_calls == []
     assert len(generation_calls) == 2
-    assert recorded_issues == [request_id, request_id, request_id]
+    assert recorded_issues == []
 
 
 @pytest.mark.parametrize("bad_input", ["invalid-json", "missing-title", "repair-failed"])
@@ -236,12 +229,14 @@ def test_bad_parameters_never_enter_generation_retry(monkeypatch, bad_input):
         else:
             websocket.send_json(_tool_payload({"arguments": "broken"}, "repair-failure"))
         response = websocket.receive_json()
-    expected = (
-        ErrorCode.A2UI_GENERATION_FAILED
-        if bad_input == "repair-failed"
-        else ErrorCode.INVALID_ARGUMENTS
-    )
-    assert final_result([response]).get("errorCode") == expected
+    feedback = final_result([response])
+    assert feedback.get("retryable") is (bad_input == "missing-title")
+    expected_action = "STOP"
+    if bad_input == "missing-title":
+        expected_action = "FIX_AND_RETRY"
+    elif bad_input == "repair-failed":
+        expected_action = "NOTIFY_USER"
+    assert feedback.get("requiredActions") == [expected_action]
     assert len(repair_calls) == (1 if bad_input == "repair-failed" else 0)
 
 

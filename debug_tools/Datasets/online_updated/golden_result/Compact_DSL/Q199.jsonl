@@ -1,0 +1,6 @@
+["root","Layout",{"layout":"W-top-bottom","variant":"continuous"},["title","primary","details"]]
+["title","SingleLineTitle",{"title":"考试倒计时","icon":"resources/base/media/hourglass_fill.svg","fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/countdown/countdownDays"},"unit":"天","fontSize":30}]
+["details","TextBlock",{"items":[{"label":"考试日期","value":"2026年2月4日"},{"label":"实时倒数","value":"时分秒实时倒数"}]}]
+["/data/countdown/countdownDays",100]
+["/state/ready",true]

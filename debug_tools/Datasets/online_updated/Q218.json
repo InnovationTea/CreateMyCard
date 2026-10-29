@@ -1,0 +1,59 @@
+{
+  "content": {
+    "title": "天气预报",
+    "description": "天气速览",
+    "userQuery": "帮我弄一个天气预报的桌面卡片图标",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "functionName": "generateWidgetCardCompactDsl",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/location/districtName"
+        ]
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025071123972"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "81b37c33-7ced-4af8-885a-95e12e42385f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "skillName": "harmony-card-generation-online",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "arguments": "{\"bundleName\": \"com.huawei.genui\", \"userQuery\": \"帮我弄一个天气预报的桌面卡片图标\", \"title\": \"天气预报\", \"description\": \"天气速览\", \"size\": \"2x2\", \"candidateDataBindings\": [{\"capabilityId\": \"ViewWeather\", \"arguments\": {\"forecastDays\": 1}, \"writeResultTo\": \"/data/weather\", \"candidateOutputFields\": [\"/current/temperatureText\", \"/current/condition\", \"/location/prefectureName\", \"/location/districtName\"]}], \"candidateEventCandidates\": [{\"call\": \"clickToDeeplink\", \"args\": {\"intentName\": \"Weather_CityCode\", \"bundleName\": \"\", \"abilityName\": \"\", \"uri\": \"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}}], \"candidateAssetIds\": [\"asset.ic_weather_color\"]}"
+}

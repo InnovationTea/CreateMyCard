@@ -12,11 +12,13 @@ from services.template_generation.engine.cardplan.models import (
 )
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.pipeline import generate_template_a2ui
+from services.template_generation.tests.photo_assertions import capture_template_photos
 from services.template_generation.tests.test_template_generation import (
     _battery_card_spec,
     _battery_task,
     _FixedTemplateModel,
 )
+from services.theme_photo_processing import template_foreground
 
 
 def test_battery_green_palette_matches_earphone_without_changing_layout() -> None:
@@ -71,9 +73,11 @@ def test_only_battery_green_disables_template_action_background_override() -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("photo_enabled", [False, True])
 async def test_battery_green_keeps_fusion_a2ui_unchanged(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, photo_enabled: bool,
 ) -> None:
+    photos = capture_template_photos(monkeypatch, enabled=photo_enabled)
     template_id = "BatteryOverviewChargingRingHero@1"
     registry = get_cardplan_registry(True)
     fields = ("/batterySOC", "/chargingStatusDesc")
@@ -97,6 +101,7 @@ async def test_battery_green_keeps_fusion_a2ui_unchanged(
         task, _battery_card_spec(), (binding,), model,
         enable_fusion_ball=True, trusted_template_candidate_ids=(template_id,),
     )
+    photos.assert_output(current, expect_photo=photo_enabled)
     previous_definition = registry.require_template(template_id).model_copy(update={
         "layout_action_style": TemplateLayoutActionStyle(backgroundOpacity=0.2),
     })
@@ -105,11 +110,15 @@ async def test_battery_green_keeps_fusion_a2ui_unchanged(
         task, _battery_card_spec(), (binding,), model,
         enable_fusion_ball=True, trusted_template_candidate_ids=(template_id,),
     )
+    photos.assert_output(previous, expect_photo=photo_enabled)
     assert "fusionBallBackground" in current.a2ui
-    assert current.a2ui == previous.a2ui
+    assert template_foreground(current.a2ui) == template_foreground(previous.a2ui)
+    if not photo_enabled:
+        assert current.a2ui == previous.a2ui
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("photo_enabled", [False, True])
 @pytest.mark.parametrize(("template_id", "layout_id", "action_template"), [
     ("BatteryOverviewFull@1", "SingleFocusLayout@1", None),
     ("BatteryOverviewFull@1", "FullIconActionLayout@1", "IconAction@1"),
@@ -117,7 +126,9 @@ async def test_battery_green_keeps_fusion_a2ui_unchanged(
 ])
 async def test_battery_compiles_green_full_and_hero(
     template_id: str, layout_id: str, action_template: str | None,
+    monkeypatch: pytest.MonkeyPatch, photo_enabled: bool,
 ) -> None:
+    photos = capture_template_photos(monkeypatch, enabled=photo_enabled)
     fields = ("/batterySOC", "/batterySOCText", "/batteryCapacityLevelDesc", "/chargingStatusDesc")
     action_id = "event.setPowerSavingMode" if action_template is not None else None
     body = f'Template("{layout_id}",{{}},Template("{template_id}",{{}})'
@@ -142,15 +153,22 @@ async def test_battery_compiles_green_full_and_hero(
         _battery_task(), _battery_card_spec(), (binding,), model,
         enable_fusion_ball=False, trusted_template_candidate_ids=(template_id,),
     )
+    photo = photos.assert_output(output, expect_photo=photo_enabled)
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = messages[1].get("updateComponents", {}).get("components")
     assert isinstance(components, list)
     root = next(component for component in components if component.get("id") == "root")
     styles = root.get("styles")
     assert isinstance(styles, dict)
-    assert styles.get("backgroundColor") == "#FFF0FFE6"
-    assert "linearGradient" not in styles
-    assert "fusionBall" not in output.a2ui
+    colors = {"graphicPrimary": "#FF34651F", "componentSecondary": "#3364BB5C"}
+    panel = "#3364BB5C"
+    if photo is None:
+        assert styles.get("backgroundColor") == "#FFF0FFE6"
+        assert "linearGradient" not in styles
+        assert "fusionBall" not in output.a2ui
+    else:
+        colors = photo.get("content", {}).get("roles", {})
+        panel = photo.get("content", {}).get("panelBySize", {}).get("2x2")
     marked_ids = []
     for component in components:
         component_id = component.get("id")
@@ -165,7 +183,7 @@ async def test_battery_compiles_green_full_and_hero(
     for component in components:
         component_styles = component.get("styles", {})
         if component.get("component") == "Progress":
-            assert component_styles.get("color") == "#FF34651F"
-            assert component_styles.get("backgroundColor") == "#3364BB5C"
+            assert component_styles.get("color") == colors.get("graphicPrimary")
+            assert component_styles.get("backgroundColor") == colors.get("componentSecondary")
         if component.get("onClick"):
-            assert component_styles.get("backgroundColor") == "#3364BB5C"
+            assert component_styles.get("backgroundColor") == panel

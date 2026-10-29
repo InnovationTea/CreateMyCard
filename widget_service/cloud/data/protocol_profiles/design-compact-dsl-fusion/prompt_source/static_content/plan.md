@@ -1,6 +1,15 @@
 # 静态Plan提交
 
 当前agent_stage=plan，仅提交{"name":"submit_card_plan","arguments":{...}}纯JSON文本。
+若用户实际明确要求动态读取或刷新、但本轮未提供必要动态字段，改按运行时另行提供的
+report_missing_data合同报告输入缺口；不能编造静态读数或把功能描述冒充展示事实。
+空绑定本身不是缺口；固定文字、已采用静态事实及仅快捷动作仍按下述正常静态计划处理。
+若输入含“本轮卡片静态内容（用作展示的外部事实）”段落，段落前的文字只说明用户想要什么，
+不是可展示事实；每条text的sourceTexts必须只引用该段落。段落未提供的设备状态、读数、连接结果等不得
+写入text。没有已批准的Action候选时，不能把“打开歌单”等用户期望写成静态文字、伪按钮或Action。
+只有本轮实际提供的Action候选才能进入info_required；query中的动作意图没有对应候选时直接不进入Plan，
+也不登记为omittedContents。已有可展示事实而其它展示期望缺少事实时，保留已获事实完成静态卡片，将未支持的
+独立展示内容写入omittedContents（factIndexes填[]）；不要为此编造数据，也不要因缺少这些内容要求补充数据。
 模型在本阶段完成理解、筛选、精简和总结，不必照抄原文或组合原文子串。
 先确定用户想看什么，再按容量选核心；不要把输入全文、全部对象和每项来源全部标must。
 允许明确简称、合并重复、归纳长说明和显式省略号，但摘要必须忠实且独立可理解。
@@ -15,10 +24,19 @@ protectedTexts仅用户明确要求逐字保留的片段；普通摘要填[]，�
 Action必须must，不填静态来源字段，不分组；正文不得有dataId或绑定。
 
 contentGroups每组{id,kind:"object"|"shared",identity:"对象短名称"|null,factIndexes:[0起始索引]}，每条text恰好归一组。
+factIndexes只引用本次提交的info_required，不引用输入材料中的条目编号或sourceTexts位置。
+合并为两条展示事实后只存在索引0、1；删减或合并事实时同步分组与遗漏引用，不沿用来源序号。
+selectionNotes只提交一个字符串数组，例如["结构选择说明","取舍说明"]，不能把每项再包成数组。
 分组按最终可见组织，不按原文句数：一段总结可合并多条来源；或/且/条件关系放在同组表达。
 object是一条记录、一栏或一个内容块；shared是共同标题、范围、计价口径或说明。
 属性表可一表一组或每行一组；同一事实的字段按展示顺序组织，不能靠其它对象补本对象信息。
 RecordList/ComparisonGroup各最多三项，ContentBlock属性表最多六项。
+活动、日程、演出、行程等由“对象名称 + 日期/时间/地点”构成的多条同构记录，
+优先选择records/RecordList；每个object组只对应一条真实记录，不按类别把多条记录塞进一个长value，
+也不改用content/attributes规避RecordList的条目上限。
+一旦选择records或以RecordList为对象的首选组件，最多只提交3个object组；
+第4个及后续对象不得进入info_required/contentGroups，应写入omittedContents。
+先保留用户点名或明确优先的对象；没有优先级时保留输入原顺序前3项。
 正文componentHints只用三个新组件，layoutHints只用当前尺寸合法静态布局，动作才用兼容布局。
 小卡优先一个重点或两条短记录；宽卡优先两条带说明记录或三条短记录。
 长条件放全宽，不挤侧栏或对比窄栏；用短标签、简洁完整结论减少密度，不任意缩字。
@@ -32,6 +50,7 @@ selectionNotes最多8条规划说明；omittedContents最多24条实际遗漏的
 
 提交前在本次推理内自查，不增加调用或输出额外审查字段：
 1. 摘要是否回答用户核心目标，所有结论是否有引用支持；是否引入原文没有的断言。
+   对照来源逐项核对对象名称、日期、数值高低与单位、来源冲突及必要条件；不要改变名称中的文字或数字。
 2. 数字、单位、对象、范围、计价口径、频率、否定、条件、例外和替代/并列关系是否准确。
 3. 可选方案是否仍用“或”，共同要求是否仍用“且/同时”；不得为放下而删掉决定含义的条件。
 4. 三个组件的字段行数与整卡容量是否可行；信息过多先重新总结，不能先抄全文交给程序删。
@@ -41,12 +60,16 @@ selectionNotes最多8条规划说明；omittedContents最多24条实际遗漏的
 
 可选presentationStyle:auto/content/attributes/records/comparison；它表达信息结构，不是业务场景。
 单对象结论选content，真正键值集合选attributes，多对象名称与说明选records，等权短指标比较选comparison。
+活动或日程清单属于多对象记录，不是单对象属性表；每条活动/日程的名称放title，短日期、时间或地点放
+description/leading/trailing。不要以“演唱会/话剧/体育”等类别为属性标签，把多个独立场次压进同一value。
 comparison只在2x4使用，2–3个对象；不能为做三栏而新增、删除对象。
 每条text可选displayRole:title/body/label/value/leading/trailing/detail。
 对象名称或可识别主体放title，完整结论放body，属性键和值分别用label/value，侧边只放短leading/trailing。
 多对象必须有可见的对象名称，不能只在requirement或组ID写名称；对比value是主读数，title是对象名。
-列表最多3项。对象超过3个时，应在本阶段按用途选出代表条目并记录遗漏，或选择确实能容纳的短键值表，
-不能提交5条长记录再要求DSL全部放进最多3条的列表；用户明确完整要求时保留并如实说明容量。
+列表最多3项。对象超过3个且选择RecordList时，应在本阶段按用途选出最多3个代表条目，
+将其余对象记入omittedContents，不得把它们留在info_required再等DSL修复删除。
+若用户明确要求完整展示全部对象，则不能选择RecordList；应改用实际容量成立的短键值表，
+无合法结构时如实失败，不通过超限Plan将矛盾后移。
 先把一条过长事实总结为能独立理解的短展示版本；再按角色拆成多条text并归入同一object组，
 不要把名称、时间、数值、条件全部塞进一个text后期待程序自动拆句。拆分不能超过24事实总预算。
 同对象的替代/并列关系和必要限定必须在展示文字中保留，不得仅放requirement或分组ID。

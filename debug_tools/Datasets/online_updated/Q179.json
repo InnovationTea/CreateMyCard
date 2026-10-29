@@ -1,0 +1,73 @@
+{
+  "content": {
+    "title": "小布出生",
+    "description": "已出生天数",
+    "userQuery": "生成一张日历卡片，显示小布（2026年9月19日出生）已出生的天数，今天是第38天，正向计时，普通样式",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2026-09-19"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026152545984"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": false,
+    "sessionId": "dd071108-5d79-465f-8c8d-a567848bebf7"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "已出生天数",
+  "userQuery": "生成一张日历卡片，显示小布（2026年9月19日出生）已出生的天数，今天是第38天，正向计时，普通样式",
+  "title": "小布出生",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2026-09-19"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

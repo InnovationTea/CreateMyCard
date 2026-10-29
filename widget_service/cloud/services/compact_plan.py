@@ -4,13 +4,23 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from core.json_pointer import parse_json_pointer
+from models.generation import CompactDslRecoveryFact
+from services.compact_action_instances import (
+    action_instance_instruction,
+    event_card_detail_action,
+    event_card_item_handlers,
+    plan_action_candidates,
+    plan_action_handlers,
+    prefers_event_card_item,
+)
 from services.compact_component_semantics import (
     CORE_INFORMATION_COMPONENT_TYPES,
     MODEL_COMPONENT_TYPES_BY_SIZE,
@@ -32,7 +42,12 @@ from services.compact_layout_runtime import (
     load_layout_contract,
     match_compact_layout,
 )
-from services.compact_plan_output import normalize_plan_output
+from services.compact_plan_output import (
+    PlanDuplicateKeyError,
+    decode_plan_json,
+    normalize_plan_output,
+    normalize_plan_root_arguments,
+)
 from services.compact_whole_card_click import WHOLE_CARD_LAYOUTS, select_whole_card_click
 from services.event_matching import event_handlers_match
 
@@ -50,6 +65,7 @@ _STATIC_ROLE_ALIASES = {
     "secondaryText": "title",
     "details": "detail",
 }
+_STATIC_FACT_SECTION_MARKER = "本轮卡片静态内容（用作展示的外部事实）："
 _MAX_MUST_FACTS_BY_SIZE = {"2x2": 6, "2x4": 10}
 _FRESHNESS_METADATA_NAMES = frozenset(
     {
@@ -147,6 +163,10 @@ class CompactOptionalDropCandidate:
     contains_must_facts: bool
     partial: bool = False
     display_texts: tuple[str, ...] = ()
+    item_indexes: tuple[int, ...] = ()
+    item_signatures: tuple[str, ...] = ()
+    requires_core_reattach: bool = False
+    protected_core_component_ids: tuple[str, ...] = ()
 
 
 def build_compact_plan_tool(
@@ -154,19 +174,27 @@ def build_compact_plan_tool(
     *,
     include_composition: bool = False,
     layout_scope: str | None = None,
+    allowed_fact_targets: tuple[tuple[str, str], ...] | None = None,
 ) -> dict[str, Any]:
     """根据本次 TaskSpec 构造 submit_card_plan 的动态工具合同。"""
     size = task_spec.get("size")
     max_must_facts = _max_must_facts(size)
     data_paths = list(compact_plan_data_paths(task_spec))
     action_ids = list(compact_plan_action_ids(task_spec))
+    allowed_texts: list[str] | None = None
+    if allowed_fact_targets is not None:
+        allowed = set(allowed_fact_targets)
+        data_paths = [path for path in data_paths if ("dataId", path) in allowed]
+        action_ids = [action_id for action_id in action_ids if ("actionId", action_id) in allowed]
+        allowed_texts = [value for target, value in allowed_fact_targets if target == "text"]
     asset_ids = list(compact_plan_asset_ids(task_spec))
     target_variants: list[dict[str, Any]] = []
     if data_paths:
         target_variants.append({"required": ["dataId"]})
     if action_ids:
         target_variants.append({"required": ["actionId"]})
-    target_variants.append({"required": ["text"]})
+    if allowed_texts is None or allowed_texts:
+        target_variants.append({"required": ["text"]})
     properties: dict[str, Any] = {
         "requirement": {
             "type": "string",
@@ -181,14 +209,6 @@ def build_compact_plan_tool(
                 "should 仅用于未明确要求、且省略后不改变主要用途的入选补充。"
                 "不得为容量将明确要求降为 should。所有入选 actionId 必须为 must。"
                 f"当前 {size} 最多可提交 {max_must_facts} 条 must 信息，Action 计入该数量。"
-            ),
-        },
-        "text": {
-            "type": "string",
-            "minLength": 1,
-            "description": (
-                "逐字引用 userQuery 明确要求在卡面展示的静态正文；"
-                "仅用于拨号、入会、导航等操作的参数不单独列为展示事实。"
             ),
         },
         "componentHints": {
@@ -215,6 +235,17 @@ def build_compact_plan_tool(
             ),
         },
     }
+    if allowed_texts is None or allowed_texts:
+        properties["text"] = {
+            "type": "string",
+            "minLength": 1,
+            "description": (
+                "逐字引用 userQuery 明确要求在卡面展示的静态正文；"
+                "仅用于拨号、入会、导航等操作的参数不单独列为展示事实。"
+            ),
+        }
+        if allowed_texts is not None:
+            properties["text"]["enum"] = allowed_texts
     if data_paths:
         properties["dataId"] = {
             "type": "string",
@@ -238,6 +269,7 @@ def build_compact_plan_tool(
                 "须无用户禁止点击、明确按钮要求或其它必要动作，且同对象绑定符合登记合同。"
                 "例外入选仍为must，由服务端复核整卡承载，不额外补按钮。"
                 "副作用操作必须有明确授权。候选原有参数完整携带。"
+                + action_instance_instruction(task_spec)
             ),
         }
     layout_hints = list(_layout_hints(size))
@@ -444,7 +476,12 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
     }
     properties["presentationStyle"] = {
         "enum": ["auto", "content", "attributes", "records", "comparison"],
-        "description": "模型按用户用途选择结构；comparison仅2x4，普通偏好不替代实际容量校验。",
+        "description": (
+            "模型按用户用途选择结构；活动、日程等名称加时地的多条同构记录优先records，"
+            "每个object组对应一条真实记录，不按类别压成ContentBlock长值；"
+            "records最多三个object组；"
+            "comparison仅2x4，普通偏好不替代实际容量校验。"
+        ),
     }
     properties["paletteFamily"] = {
         "enum": ["auto", "blue", "purple", "warm"],
@@ -472,6 +509,11 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
     properties["contentGroups"] = {
         "type": "array",
         "maxItems": 24,
+        "description": (
+            "每条text归属唯一object或shared组。若presentationStyle为records"
+            "或对象首选RecordList，最多提交三个object组；活动、日程等多记录输入按"
+            "真实记录分组，不按类别合并多条记录；超额内容记入omittedContents。"
+        ),
         "items": {
             "type": "object",
             "additionalProperties": False,
@@ -491,6 +533,10 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
                     "minItems": 1,
                     "uniqueItems": True,
                     "items": {"type": "integer", "minimum": 0},
+                    "description": (
+                        "仅引用本次提交info_required的零起始索引，最大值小于事实数；"
+                        "不是来源条目编号。合并或删减事实后同步引用。"
+                    ),
                 },
             },
         },
@@ -526,6 +572,13 @@ class _StaticPlanNormalization:
 class _StaticOmissionDeclarations:
     descriptions: list[str]
     candidates: list[dict[str, Any]]
+    warnings: list[str]
+
+
+@dataclass(frozen=True)
+class _StaticGroupNormalization:
+    membership: dict[int, str]
+    groups: list[dict[str, Any]]
 
 
 def _normalize_static_omissions(
@@ -536,6 +589,7 @@ def _normalize_static_omissions(
         raise CompactPlanValidationError(["omittedContents 必须为最多24项的实际删减数组。"])
     descriptions = []
     candidates = []
+    warnings = []
     for entry in raw:
         if not allow_legacy and not isinstance(entry, dict):
             raise CompactPlanValidationError([
@@ -556,9 +610,11 @@ def _normalize_static_omissions(
             raise CompactPlanValidationError(["遗漏事实引用必须为最多24项的索引数组。"])
         selected = []
         seen: set[int] = set()
+        invalid_reason = None
         for index in indexes:
             if type(index) is not int or not 0 <= index < len(raw_facts):
-                raise CompactPlanValidationError(["遗漏事实索引越界或类型错误。"])
+                invalid_reason = "事实索引越界或类型错误"
+                break
             if index in seen:
                 raise CompactPlanValidationError(["遗漏事实索引不得重复。"])
             seen.add(index)
@@ -567,40 +623,202 @@ def _normalize_static_omissions(
                 raise CompactPlanValidationError(["遗漏引用仅支持静态text事实。"])
             protected = original.get("protectedTexts") or original.get("preserveVerbatim")
             if original.get("priority") != "should" or protected:
-                raise CompactPlanValidationError([
-                    "遗漏候选只能引用无保护的should，不能授权删核心。"
-                ])
+                invalid_reason = "引用了 must 或受保护事实"
+                break
             mapped = index_map.get(index)
             if mapped is None:
-                raise CompactPlanValidationError(["遗漏事实索引映射缺失。"])
+                invalid_reason = "事实索引没有有效映射"
+                break
             accepted_fact = accepted_facts[mapped]
             merged_protected = (
                 accepted_fact.get("protectedTexts") or accepted_fact.get("preserveVerbatim")
             )
             if accepted_fact.get("priority") != "should" or merged_protected:
-                raise CompactPlanValidationError(["去重后的核心或受保护事实不能作为遗漏候选。"])
+                invalid_reason = "去重后指向 must 或受保护事实"
+                break
             if mapped not in selected:
                 selected.append(mapped)
+        if invalid_reason is not None:
+            descriptions.append(description)
+            warnings.append(
+                f"omittedContents「{description}」的 factIndexes {invalid_reason}，"
+                "已撤销删除授权并按未选入的 query 内容记录。"
+            )
+            continue
         if selected:
             candidates.append({"description": description, "factIndexes": selected})
         else:
             descriptions.append(description)
-    return _StaticOmissionDeclarations(descriptions, candidates)
+    return _StaticOmissionDeclarations(descriptions, candidates, warnings)
+
+
+def _normalize_static_groups(
+    raw_groups: list[Any],
+    raw_facts: list[Any],
+    errors: list[str],
+    warnings: list[str],
+) -> _StaticGroupNormalization:
+    """校验正文分组，并确定性移除误入分组的纯 Action。"""
+    membership: dict[int, str] = {}
+    identifiers: set[str] = set()
+    normalized_groups: list[dict[str, Any]] = []
+    warned_action_indexes: set[int] = set()
+    for group_index, group in enumerate(raw_groups):
+        path = f"contentGroups[{group_index}]"
+        if not isinstance(group, dict):
+            errors.append(f"{path}: contentGroups 必须为对象数组。")
+            continue
+        required_keys = {"id", "kind", "factIndexes"}
+        if not required_keys.issubset(group) or set(group) - (required_keys | {"identity"}):
+            errors.append(f"{path}: contentGroups 仅支持 id、kind、factIndexes、identity。")
+        object_name = group.get("identity")
+        if object_name is not None:
+            if not isinstance(object_name, str):
+                errors.append(f"{path}.identity: identity 必须为对象短名称或null。")
+            elif not object_name.strip() or len(object_name) > 120:
+                errors.append(f"{path}.identity: identity 必须为1–120字的对象短名称。")
+            if group.get("kind") == "shared":
+                errors.append(f"{path}.identity: shared的identity必须为null。")
+        identifier = group.get("id")
+        if not isinstance(identifier, str) or not identifier.strip():
+            errors.append(f"{path}.id: 内容组 ID 必须非空。")
+            continue
+        kind = group.get("kind")
+        if not isinstance(kind, str):
+            errors.append(f"{path}.kind: 内容组 kind 必须是字符串。")
+        elif kind not in {"object", "shared"}:
+            errors.append(f"{path}.kind: 内容组 kind 必须为object或shared。")
+        if identifier in identifiers:
+            errors.append(f"{path}.id: 内容组 ID 重复。")
+        identifiers.add(identifier)
+        indexes = group.get("factIndexes")
+        if not isinstance(indexes, list) or not indexes:
+            errors.append(f"{path}.factIndexes: 内容组必须引用至少一条静态事实。")
+            continue
+        text_indexes: list[int] = []
+        for position, index in enumerate(indexes):
+            index_path = f"{path}.factIndexes[{position}]"
+            if type(index) is not int or not 0 <= index < len(raw_facts):
+                errors.append(
+                    f"{index_path}: 内容组事实索引越界或类型错误。实际值={index!r}；"
+                    f"本次info_required共{len(raw_facts)}条，"
+                    f"有效整数索引为0–{len(raw_facts) - 1}；"
+                    "不得使用来源条目编号，合并或删减事实后须同步引用。"
+                )
+                continue
+            indexed_fact = raw_facts[index]
+            is_action = (
+                isinstance(indexed_fact, dict)
+                and isinstance(indexed_fact.get("actionId"), str)
+                and "text" not in indexed_fact
+            )
+            if is_action:
+                if index not in warned_action_indexes:
+                    warnings.append(
+                        f"contentGroups 引用了 Action 事实索引 {index}，已自动移出正文分组。"
+                    )
+                    warned_action_indexes.add(index)
+                continue
+            if index in membership:
+                errors.append(
+                    f"{index_path}: 每条静态事实只能归属一个组，组内索引不得重复。"
+                    f"索引{index}已归属{membership.get(index)!r}。"
+                )
+            else:
+                membership[index] = identifier
+                text_indexes.append(index)
+        if text_indexes:
+            normalized_group = dict(group)
+            normalized_group["factIndexes"] = text_indexes
+            normalized_groups.append(normalized_group)
+    return _StaticGroupNormalization(membership, normalized_groups)
+
+
+def _collect_static_source_errors(
+    raw_facts: list[Any],
+    source: str,
+    membership: dict[int, str],
+    errors: list[str],
+    warnings: list[str],
+    *,
+    require_references: bool,
+) -> None:
+    from config.config import get_settings
+    from services.card_validation.compact_validation.semantic.cross_file import static_source_errors
+
+    reference_count = 0
+    for index, raw_fact in enumerate(raw_facts):
+        if not isinstance(raw_fact, dict) or "text" not in raw_fact:
+            continue
+        path = f"info_required[{index}]"
+        references = raw_fact.get("sourceTexts")
+        missing_references = references is None or references == []
+        protected = raw_fact.get("protectedTexts") or raw_fact.get("preserveVerbatim") is True
+        if missing_references:
+            if require_references:
+                errors.append(
+                    f"{path}: 提供了静态事实段时，每条静态 text 必须引用该段中的非空 sourceTexts。"
+                )
+            elif protected:
+                errors.append(f"{path}: 受保护或要求原文展示的静态 text 必须提交非空 sourceTexts。")
+            else:
+                warnings.append(f"静态 text 事实索引 {index} 缺少 sourceTexts，已保留为 warning。")
+        else:
+            for error in static_source_errors(raw_fact, source):
+                errors.append(f"{path}: {error}")
+        if index not in membership:
+            errors.append(f"{path}: 每条静态text必须归属contentGroups。")
+        if isinstance(references, list):
+            reference_count += len(references)
+            if len(references) > 3:
+                errors.append(
+                    f"{path}.sourceTexts: 单事实最多引用三段来源。实际{len(references)}段；"
+                    "请引用1–3段连续原文上下文，或重新组织展示事实并同步分组索引。"
+                )
+    if reference_count > get_settings().static_content_max_source_references:
+        errors.append("info_required: 静态来源引用数量超过预算。")
+
+
+def _static_fact_source(user_query: str) -> tuple[str, bool]:
+    """提取显式附加的静态事实段，避免把用户期望误作已获事实。"""
+    _, marker, fact_source = user_query.partition(_STATIC_FACT_SECTION_MARKER)
+    if not marker:
+        return user_query, False
+    return fact_source.strip(), True
 
 
 def _normalize_static_plan(
     arguments: dict[str, Any], task: dict[str, Any]
 ) -> _StaticPlanNormalization:
-    from config.config import get_settings
-    from services.card_validation.compact_validation.semantic.cross_file import static_source_errors
-
     raw_facts = arguments.get("info_required")
     raw_groups = arguments.get("contentGroups")
-    source_query = task.get("userQuery")
-    if not isinstance(source_query, str):
+    user_query = task.get("userQuery")
+    if not isinstance(user_query, str):
         raise CompactPlanValidationError(["静态来源需求必须是字符串。"])
+    source_query, has_explicit_fact_source = _static_fact_source(user_query)
     if not isinstance(raw_facts, list) or not 1 <= len(raw_facts) <= 24:
         raise CompactPlanValidationError(["静态计划必须包含 1–24 条事实或动作。"])
+    warnings: list[str] = []
+    normalized_facts: list[Any] = []
+    for index, raw_fact in enumerate(raw_facts):
+        normalized_fact = raw_fact
+        if isinstance(raw_fact, dict):
+            has_action = isinstance(raw_fact.get("actionId"), str)
+            if has_action and isinstance(raw_fact.get("text"), str):
+                normalized_fact = dict(raw_fact)
+                for field_name in (
+                    "text",
+                    "sourceTexts",
+                    "protectedTexts",
+                    "preserveVerbatim",
+                    "displayRole",
+                ):
+                    normalized_fact.pop(field_name, None)
+                warnings.append(
+                    f"静态事实索引 {index} 同时包含 text 与 actionId，已优先保留 Action。"
+                )
+        normalized_facts.append(normalized_fact)
+    raw_facts = normalized_facts
     pure_actions = True
     for raw_fact in raw_facts:
         if not isinstance(raw_fact, dict):
@@ -616,47 +834,23 @@ def _normalize_static_plan(
         raw_groups = []
     if not isinstance(raw_groups, list) or len(raw_groups) > 24:
         raise CompactPlanValidationError(["静态计划必须包含 contentGroups，最多24组。"])
-    membership: dict[int, str] = {}
-    identifiers: set[str] = set()
-    for group in raw_groups:
-        if not isinstance(group, dict):
-            raise CompactPlanValidationError(["contentGroups 必须为对象数组。"])
-        required_keys = {"id", "kind", "factIndexes"}
-        if not required_keys.issubset(group) or set(group) - (required_keys | {"identity"}):
-            raise CompactPlanValidationError([
-                "contentGroups 仅支持 id、kind、factIndexes、identity。"
-            ])
-        object_name = group.get("identity")
-        if object_name is not None:
-            if not isinstance(object_name, str):
-                raise CompactPlanValidationError(["identity 必须为对象短名称或null。"])
-            if not object_name.strip() or len(object_name) > 120:
-                raise CompactPlanValidationError(["identity 必须为1–120字的对象短名称。"])
-            if group.get("kind") == "shared":
-                raise CompactPlanValidationError(["shared的identity必须为null。"])
-        identifier = group.get("id")
-        if not isinstance(identifier, str) or not identifier.strip():
-            raise CompactPlanValidationError(["内容组 ID 必须非空。"])
-        kind = group.get("kind")
-        if not isinstance(kind, str):
-            raise CompactPlanValidationError(["内容组 kind 必须是字符串。"])
-        if identifier in identifiers or kind not in {"object", "shared"}:
-            raise CompactPlanValidationError(["内容组 ID 重复或 kind 非法。"])
-        identifiers.add(identifier)
-        indexes = group.get("factIndexes")
-        if not isinstance(indexes, list) or not indexes:
-            raise CompactPlanValidationError(["内容组必须引用至少一条静态事实。"])
-        for index in indexes:
-            if type(index) is not int or not 0 <= index < len(raw_facts):
-                raise CompactPlanValidationError(["内容组事实索引越界或类型错误。"])
-            if index in membership:
-                raise CompactPlanValidationError(["每条静态事实只能归属一个组，组内索引不得重复。"])
-            membership[index] = identifier
+    errors: list[str] = []
+    group_normalization = _normalize_static_groups(raw_groups, raw_facts, errors, warnings)
+    membership = group_normalization.membership
+    raw_groups = group_normalization.groups
+    _collect_static_source_errors(
+        raw_facts,
+        source_query,
+        membership,
+        errors,
+        warnings,
+        require_references=has_explicit_fact_source,
+    )
+    if errors:
+        raise CompactPlanValidationError(errors)
     facts: list[dict[str, Any]] = []
-    warnings: list[str] = []
     old_to_new: dict[int, int] = {}
     identities: dict[tuple[str, str, str, str | None], int] = {}
-    reference_count = 0
     extras = {"sourceTexts", "protectedTexts", "preserveVerbatim", "displayRole"}
     for old_index, raw_fact in enumerate(raw_facts):
         if not isinstance(raw_fact, dict) or set(raw_fact) - (_FACT_KEYS | extras):
@@ -681,15 +875,6 @@ def _normalize_static_plan(
                 display_role = _STATIC_ROLE_ALIASES.get(display_role, display_role)
                 if display_role not in _STATIC_DISPLAY_ROLES:
                     raise CompactPlanValidationError(["静态 displayRole 不在已登记角色中。"])
-            source_errors = static_source_errors(raw_fact, source_query)
-            if source_errors:
-                raise CompactPlanValidationError(source_errors)
-            if old_index not in membership:
-                raise CompactPlanValidationError(["每条静态text必须归属contentGroups。"])
-            references = raw_fact.get("sourceTexts", [])
-            reference_count += len(references)
-            if len(references) > 3:
-                raise CompactPlanValidationError(["单事实最多引用三段来源。"])
         elif old_index in membership or extras.intersection(raw_fact):
             raise CompactPlanValidationError(["Action不得填写静态来源字段或加入正文组。"])
         accepted, notes = _validate_facts(
@@ -736,8 +921,6 @@ def _normalize_static_plan(
         old_to_new[old_index] = len(facts)
         identities[identity] = len(facts)
         facts.append(fact)
-    if reference_count > get_settings().static_content_max_source_references:
-        raise CompactPlanValidationError(["静态来源引用数量超过预算。"])
     groups = []
     for group in raw_groups:
         indexes = []
@@ -881,7 +1064,7 @@ def _normalize_composition(
     layout = load_layout_contract().get("layouts", {}).get(value.get("layout"), {})
     if variant > len(layout.get("patterns", [])):
         return None, [warning]
-    action_count = sum(1 for fact in facts if "actionId" in fact)
+    action_count = sum(1 for fact in facts if _requires_action_button(fact))
     action_range = layout.get("actionCount", {})
     if not action_range.get("min", 0) <= action_count <= action_range.get("max", action_count):
         return None, [
@@ -1233,6 +1416,9 @@ def parse_compact_plan_call(
         syntax_warnings.extend(envelope.warnings)
         raw_output = envelope.text
     payload = _parse_json_object(raw_output, syntax_warnings)
+    normalized_envelope = normalize_plan_root_arguments(payload)
+    payload = normalized_envelope.payload
+    syntax_warnings.extend(normalized_envelope.warnings)
     if set(payload) != {"name", "arguments"}:
         raise CompactPlanValidationError(["Plan output must contain only name and arguments."])
     if payload.get("name") != SUBMIT_CARD_PLAN:
@@ -1312,6 +1498,7 @@ def parse_compact_plan_call(
             arguments.get("info_required", []), normalized_static.index_map,
             normalized_static.facts, allow_legacy=not require_static_omission_refs,
         )
+        warnings.extend(omissions.warnings)
         plan["omittedContents"] = omissions.descriptions + list(normalized_static.omitted_contents)
         if omissions.candidates:
             plan["omissionCandidates"] = omissions.candidates
@@ -1529,6 +1716,40 @@ def _is_title_fact(fact: dict[str, Any]) -> bool:
     )
 
 
+def _is_title_action_plan(facts: list[Any]) -> bool:
+    """判断标题加单动作变体是否只含可见标题和一个动作。"""
+    if len(facts) not in {1, 2}:
+        return False
+    action_ids: set[str] = set()
+    title_count = 0
+    for fact in facts:
+        if not isinstance(fact, dict):
+            return False
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id:
+            if "dataId" in fact or "text" in fact:
+                return False
+            action_ids.add(action_id)
+            continue
+        if not _is_title_action_fact(fact):
+            return False
+        title_count += 1
+    return len(action_ids) == 1 and title_count <= 1
+
+
+def _is_title_action_fact(fact: dict[str, Any]) -> bool:
+    """标题加单动作变体的标题必须可由 Plan 明确识别。"""
+    if "actionId" in fact or "dataId" in fact:
+        return False
+    text = fact.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return False
+    if fact.get("displayRole") == "title":
+        return True
+    hints = fact.get("componentHints")
+    return isinstance(hints, list) and hints[:1] == ["SingleLineTitle"]
+
+
 def _composition_groups_freshness_with_core(
     composition: dict[str, Any],
     core_index: int,
@@ -1574,19 +1795,32 @@ def compact_plan_context(
             "根内部不再生成按钮或其它点击节点，不预留按钮高度，不补动作提示文字；"
             "不能删动作、改为子节点点击或因修复补回按钮。该动作没有按钮图标。"
         )
-    fixed_dual_action = plan.get("layoutHints") == ["S-content-dual-action"]
+    facts = plan.get("info_required")
+    fixed_dual_action = (
+        plan.get("layoutHints") == ["S-content-dual-action"]
+        and _has_two_distinct_actions(facts)
+    )
+    fixed_title_action = plan.get("layoutHints") == ["S-title-content-action"]
     if conflicts:
         context_plan.pop("composition", None)
         context_plan["compositionNotes"] = conflicts
     asset_instruction = ""
     pure_action_instruction = ""
-    facts = plan.get("info_required")
+    title_action_only = False
     if fixed_dual_action and isinstance(facts, list):
         if len(facts) == 2 and all("actionId" in fact for fact in facts):
             pure_action_instruction = (
                 "本轮只有两个必要动作、没有展示事实，使用 S-content-dual-action 的 "
                 "actions-only 变体，children 仅为两个 CardButton；"
                 "不生成内容槽、标题、占位正文、空容器或伪造状态。"
+            )
+    if fixed_title_action and isinstance(facts, list):
+        title_action_only = _is_title_action_plan(facts)
+        if title_action_only:
+            pure_action_instruction = (
+                "本轮只有一个必要动作，至多保留一个标题事实，使用 S-title-content-action 的 "
+                "title-action 变体，children 仅为 SingleLineTitle 和 PillButton；"
+                "保留稳定标题和真实动作，不生成内容槽、正文、占位正文、空容器或伪造状态。"
             )
     if "assetAssignments" in context_plan:
         asset_instruction = (
@@ -1596,6 +1830,7 @@ def compact_plan_context(
             "不得复用、互换或跳过已分配素材，也不得用"
             "未分配素材覆盖明确的空分配。动作 assetId 为 null 时仍可使用 CardButton，"
             "其原始 DSL 必须省略 icon。"
+            "EventCard条目详情不使用按钮或按钮图标，分配为null并由对应items[].onClick履约。"
         )
         if whole_card_instruction:
             asset_instruction = (
@@ -1655,7 +1890,12 @@ def compact_plan_context(
         "不按事实数量强制表格；TableText 先满足等权语义，再按实际行数核算 Recipe 高度。"
         "首选组件不适配时重组选型，保留全部事实、两个动作及其完整参数，不缩字或补造正文。"
         if fixed_dual_action
-        else "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
+        else (
+            "本轮唯一必要动作且至多一个标题事实时，S-title-content-action 必须使用 "
+            "title-action 变体，不得生成正文槽。"
+            if title_action_only
+            else "componentHints 与 layoutHints 不冻结组件实例或最终骨架，但不能无理由忽略。"
+        )
     )
     return (
         "# 已接受的 Compact Info Plan\n\n"
@@ -1774,6 +2014,7 @@ class CompactPlanCoverageResult:
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     duplicate_facts: tuple[dict[str, Any], ...] = ()
+    duplicate_actions: tuple[dict[str, Any], ...] = ()
 
 
 def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleState:
@@ -1791,6 +2032,15 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         visible_props = {
             key: value for key, value in component.props.items() if key in visible_names
         }
+        if component.component_type == "EventCard":
+            items = visible_props.get("items")
+            if isinstance(items, list):
+                display_items = []
+                for item in items:
+                    if isinstance(item, dict):
+                        display_items.append({k: v for k, v in item.items() if k != "onClick"})
+                visible_props["items"] = display_items
+            handlers.extend(event_card_item_handlers(component.props))
         has_separate_progress_readout = (
             component.component_type in _PROGRESS_VALUE_DRIVER_COMPONENTS
             and "displayValue" in visible_props
@@ -1817,6 +2067,64 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         item_literals=tuple(_normalize_text(value) for value in item_literals),
         handlers=tuple(handlers),
     )
+
+
+def compact_plan_overflow_action_ids(
+    components: list[ComponentRow],
+    plan: dict[str, Any] | None,
+    task_spec: dict[str, Any],
+) -> frozenset[str]:
+    """已有两个合法按钮时，将第三个及后续未落位 Action 视为容量降级。"""
+    if not isinstance(plan, dict):
+        return frozenset()
+    facts = plan.get("info_required")
+    if not isinstance(facts, list):
+        return frozenset()
+    selected_action_ids: list[str] = []
+    item_action_ids: set[str] = set()
+    for fact in facts:
+        if not isinstance(fact, dict):
+            continue
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id not in selected_action_ids:
+            selected_action_ids.append(action_id)
+            if prefers_event_card_item(fact):
+                item_action_ids.add(action_id)
+    if len(selected_action_ids) <= 2:
+        return frozenset()
+
+    reachable_ids = _reachable_component_ids(tuple(components))
+    buttons = [
+        component
+        for component in components
+        if component.component_id in reachable_ids
+        and component.component_type in _ACTION_FACT_COMPONENTS
+    ]
+    if len(buttons) < 2:
+        return frozenset()
+
+    event_handlers = _event_handlers_by_id(task_spec)
+    visible_action_ids: set[str] = set()
+    for button in buttons:
+        on_click = button.props.get("onClick")
+        if not isinstance(on_click, list) or len(on_click) != 1:
+            return frozenset()
+        actual_handler = on_click[0]
+        if not isinstance(actual_handler, dict):
+            return frozenset()
+        matches = []
+        for action_id in selected_action_ids:
+            expected_handler = event_handlers.get(action_id)
+            if expected_handler is None:
+                continue
+            if event_handlers_match(actual_handler, expected_handler):
+                matches.append(action_id)
+        if len(matches) != 1:
+            return frozenset()
+        visible_action_ids.add(matches[0])
+    if len(visible_action_ids) != len(buttons) or len(visible_action_ids) < 2:
+        return frozenset()
+    return frozenset(set(selected_action_ids) - visible_action_ids - item_action_ids)
 
 
 def _collect_structured_item_literals(
@@ -1931,6 +2239,7 @@ def evaluate_compact_plan_coverage(
     *,
     allowed_omitted_fact_indexes: tuple[int, ...] = (),
     information_errors_as_warnings: bool = False,
+    check_duplicate_actions: bool = True,
 ) -> CompactPlanCoverageResult:
     """检查 Plan 覆盖；修复后可仅放宽非 Action 展示事实。"""
     from services.generation_content_policy import current_content_policy
@@ -1947,6 +2256,7 @@ def evaluate_compact_plan_coverage(
     components = [row for row in rows if isinstance(row, ComponentRow)]
     state = _compact_visible_state(components)
     event_handlers = _event_handlers_by_id(task_spec)
+    overflow_action_ids = compact_plan_overflow_action_ids(components, plan, task_spec)
     allowed = set(allowed_omitted_fact_indexes)
     errors: list[str] = []
     if static_content:
@@ -1963,6 +2273,22 @@ def evaluate_compact_plan_coverage(
             errors=("Accepted Compact Plan has no info_required facts.",),
             warnings=(),
         )
+    duplicate_actions = ()
+    if check_duplicate_actions:
+        from services.card_validation.compact_validation.semantic.action_display import (
+            find_duplicate_actions,
+        )
+
+        duplicate_actions = find_duplicate_actions(compact_dsl, plan, event_handlers)
+        for action in duplicate_actions:
+            positions = ", ".join(
+                item.get("componentId", "") for item in action.get("occurrences", [])
+            )
+            errors.append(
+                "Plan action is displayed more than once in visible DSL: "
+                f"{action.get('actionId')}; expected 1, got {action.get('actualVisibleCount')}; "
+                f"occurrences: {positions}."
+            )
     for index, fact in enumerate(facts):
         if not isinstance(fact, dict):
             continue
@@ -1974,6 +2300,13 @@ def evaluate_compact_plan_coverage(
         if result.duplicate_facts:
             errors.extend(result.errors)
             duplicate_facts.extend(result.duplicate_facts)
+        elif fact.get("actionId") in overflow_action_ids:
+            requirement = fact.get("requirement")
+            label = requirement if isinstance(requirement, str) else "unknown requirement"
+            warnings.append(
+                "Plan action was omitted after at least two distinct valid action buttons "
+                f"were retained: {label} ({fact.get('actionId')})."
+            )
         elif information_errors_as_warnings and "actionId" not in fact:
             warnings.extend(result.errors)
         else:
@@ -2013,6 +2346,7 @@ def evaluate_compact_plan_coverage(
         errors=tuple(errors),
         warnings=tuple(warnings),
         duplicate_facts=tuple(duplicate_facts),
+        duplicate_actions=duplicate_actions,
     )
 
 
@@ -2048,6 +2382,136 @@ def compact_plan_coverage_warnings(
     ).warnings
 
 
+def _recovery_fact(fact: dict[str, Any]) -> CompactDslRecoveryFact | None:
+    for target in _TARGET_KEYS:
+        value = fact.get(target)
+        if not isinstance(value, str) or not value.strip():
+            continue
+        requirement = fact.get("requirement")
+        priority = fact.get("priority")
+        if not isinstance(requirement, str) or priority not in _FACT_PRIORITIES:
+            return None
+        return CompactDslRecoveryFact(
+            target=target,
+            value=value.strip(),
+            requirement=requirement.strip(),
+            priority=priority,
+        )
+    return None
+
+
+def compact_plan_recovery_facts(
+    compact_dsl: str,
+    plan: dict[str, Any] | None,
+    task_spec: dict[str, Any],
+) -> tuple[tuple[CompactDslRecoveryFact, ...], tuple[CompactDslRecoveryFact, ...]]:
+    """按第一轮最后一次失败 DSL 的可见结果划分第二轮 Plan 事实。"""
+    if not plan:
+        return (), ()
+    facts = plan.get("info_required")
+    if not isinstance(facts, list):
+        return (), ()
+    non_action_indexes = tuple(
+        index
+        for index, fact in enumerate(facts)
+        if isinstance(fact, dict) and "actionId" not in fact
+    )
+    omitted = compact_plan_omitted_facts(
+        compact_dsl,
+        plan,
+        task_spec,
+        non_action_indexes,
+    )
+    omitted_targets = set()
+    for fact in omitted:
+        recovery_fact = _recovery_fact(fact)
+        if recovery_fact is not None:
+            omitted_targets.add((recovery_fact.target, recovery_fact.value))
+    retained_facts: list[CompactDslRecoveryFact] = []
+    omitted_facts: list[CompactDslRecoveryFact] = []
+    for fact in facts:
+        if not isinstance(fact, dict):
+            continue
+        recovery_fact = _recovery_fact(fact)
+        if recovery_fact is None:
+            continue
+        target = (recovery_fact.target, recovery_fact.value)
+        should_omit = target in omitted_targets
+        if recovery_fact.target != "actionId" and should_omit:
+            omitted_facts.append(recovery_fact)
+        else:
+            retained_facts.append(recovery_fact)
+    return tuple(retained_facts), tuple(omitted_facts)
+
+
+def build_compact_recovery_plan(
+    plan: dict[str, Any] | None,
+    required_facts: tuple[CompactDslRecoveryFact, ...],
+) -> dict[str, Any] | None:
+    """从首轮已接受 Plan 构造确定性的接口恢复 Plan。"""
+    if not plan or not required_facts:
+        return None
+    facts = plan.get("info_required")
+    if not isinstance(facts, list):
+        return None
+    expected = {(fact.target, fact.value) for fact in required_facts}
+    retained: list[dict[str, Any]] = []
+    for fact in facts:
+        if not isinstance(fact, dict):
+            continue
+        recovery_fact = _recovery_fact(fact)
+        if recovery_fact is None:
+            continue
+        if (recovery_fact.target, recovery_fact.value) in expected:
+            retained.append(copy.deepcopy(fact))
+    recovery_plan = copy.deepcopy(plan)
+    recovery_plan["info_required"] = retained
+    recovery_plan.pop("composition", None)
+    recovery_plan.pop("compositionNotes", None)
+    if compact_recovery_plan_errors(recovery_plan, required_facts):
+        return None
+    return recovery_plan
+
+
+def compact_recovery_plan_errors(
+    plan: dict[str, Any],
+    required_facts: tuple[CompactDslRecoveryFact, ...],
+) -> tuple[str, ...]:
+    """确保容量恢复 Plan 只规划第一轮最终保留的事实。"""
+    if not required_facts:
+        return ()
+    expected = {(fact.target, fact.value): fact for fact in required_facts}
+    actual: dict[tuple[str, str], dict[str, Any]] = {}
+    for fact in plan.get("info_required", []):
+        if not isinstance(fact, dict):
+            continue
+        recovery_fact = _recovery_fact(fact)
+        if recovery_fact is not None:
+            actual[(recovery_fact.target, recovery_fact.value)] = fact
+    errors: list[str] = []
+    for target, expected_fact in expected.items():
+        actual_fact = actual.get(target)
+        if actual_fact is None:
+            errors.append(
+                "容量恢复 Plan 缺少第一轮最终保留的信息："
+                f"{expected_fact.requirement} ({expected_fact.value})。"
+            )
+            continue
+        if actual_fact.get("priority") != expected_fact.priority:
+            errors.append(
+                "容量恢复 Plan 不得修改保留信息的优先级："
+                f"{expected_fact.requirement} 必须保持 {expected_fact.priority}。"
+            )
+    for target, actual_fact in actual.items():
+        if target in expected:
+            continue
+        errors.append(
+            "容量恢复 Plan 不得重新加入第一轮最终已缺失的信息："
+            f"{actual_fact.get('requirement') or target[1]} ({target[1]})。"
+        )
+    return tuple(errors)
+
+
 def compact_plan_omitted_facts(
     compact_dsl: str,
     plan: dict[str, Any] | None,
@@ -2075,7 +2539,8 @@ def compact_plan_omitted_facts(
             optional = fact.get("priority") == "should"
             authorized = coverage.fact_index in allowed_omitted_fact_indexes or optional
             if authorized and not coverage.visible:
-                omitted_static.append({**fact, "omissionReason": "optional_omission"})
+                omission_reason = "optional_omission" if optional else "bounded_drop"
+                omitted_static.append({**fact, "omissionReason": omission_reason})
         return tuple(omitted_static)
     if not allowed_omitted_fact_indexes:
         return ()
@@ -2096,6 +2561,145 @@ def compact_plan_omitted_facts(
     return tuple(omitted)
 
 
+def _reachable_component_ids(rows: tuple[Any, ...]) -> set[str]:
+    components = {
+        row.component_id: row for row in rows if isinstance(row, ComponentRow)
+    }
+    pending = ["root"]
+    reachable: set[str] = set()
+    while pending:
+        component_id = pending.pop()
+        if component_id in reachable:
+            continue
+        component = components.get(component_id)
+        if component is None:
+            continue
+        reachable.add(component_id)
+        pending.extend(component.children)
+    return reachable
+
+
+def _reachable_core_component_ids(rows: tuple[Any, ...]) -> set[str]:
+    components = {
+        row.component_id: row for row in rows if isinstance(row, ComponentRow)
+    }
+    return {
+        component_id
+        for component_id in _reachable_component_ids(rows)
+        if components[component_id].component_type in CORE_INFORMATION_COMPONENT_TYPES
+    }
+
+
+def _defined_core_component_ids(rows: tuple[Any, ...]) -> set[str]:
+    return {
+        row.component_id
+        for row in rows
+        if isinstance(row, ComponentRow)
+        and row.component_type in CORE_INFORMATION_COMPONENT_TYPES
+    }
+
+
+def _drop_fact_matches(
+    row: ComponentRow,
+    facts: list[Any],
+    event_handlers: dict[str, dict[str, Any]],
+) -> tuple[list[int], list[str], bool]:
+    state = _compact_visible_state([row])
+    matched: list[int] = []
+    priorities: list[str] = []
+    for index, fact in enumerate(facts):
+        if not isinstance(fact, dict):
+            continue
+        result = _compact_fact_coverage_result(fact, state, event_handlers)
+        if result.errors or result.warnings:
+            continue
+        if "actionId" in fact:
+            return [], [], True
+        matched.append(index)
+        priorities.append(str(fact.get("priority") or "must"))
+    return matched, priorities, False
+
+
+def _item_partial_drop_candidate(
+    row: ComponentRow,
+    facts: list[Any],
+    event_handlers: dict[str, dict[str, Any]],
+    allowed_fact_indexes: set[int] | None,
+    max_fact_count: int | None,
+    preserved_fact_indexes: set[int],
+) -> CompactOptionalDropCandidate | None:
+    """为 SecondaryBody 容量证据或至少三行 TableText 生成最小条目删减候选。"""
+    secondary_body_candidate = (
+        row.component_type == "SecondaryBody" and allowed_fact_indexes is not None
+    )
+    table_text_candidate = row.component_type == "TableText"
+    if not secondary_body_candidate and not table_text_candidate:
+        return None
+    items = row.props.get("items")
+    if not isinstance(items, list):
+        return None
+    if table_text_candidate and len(items) < 3:
+        return None
+    candidates: list[CompactOptionalDropCandidate] = []
+    for item_index, item in enumerate(items):
+        item_row = ComponentRow(
+            row.component_id,
+            row.component_type,
+            {**row.props, "items": [item]},
+            row.children,
+        )
+        item_matches, item_priorities, has_action_fact = _drop_fact_matches(
+            item_row,
+            facts,
+            event_handlers,
+        )
+        if has_action_fact or not item_matches:
+            continue
+        omission_pairs = [
+            (index, priority)
+            for index, priority in zip(item_matches, item_priorities, strict=True)
+            if index not in preserved_fact_indexes
+        ]
+        if not omission_pairs:
+            continue
+        omission_indexes = [index for index, _priority in omission_pairs]
+        outside_allowed_scope = allowed_fact_indexes is not None and any(
+            index not in allowed_fact_indexes for index in omission_indexes
+        )
+        if outside_allowed_scope:
+            continue
+        if max_fact_count is not None and len(omission_indexes) > max_fact_count:
+            continue
+        requirements = tuple(
+            str(facts[index].get("requirement") or "") for index in omission_indexes
+        )
+        signature = json.dumps(
+            item,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        candidates.append(
+            CompactOptionalDropCandidate(
+                component_id=row.component_id,
+                component_type=row.component_type,
+                fact_indexes=tuple(omission_indexes),
+                requirements=requirements,
+                contains_must_facts=any(
+                    priority != "should" for _index, priority in omission_pairs
+                ),
+                partial=True,
+                item_indexes=(item_index,),
+                item_signatures=(signature,),
+            )
+        )
+    should_candidates = [item for item in candidates if not item.contains_must_facts]
+    selected = should_candidates or candidates
+    if not selected:
+        return None
+    return max(selected, key=lambda item: max(item.fact_indexes, default=-1))
+
+
 def compact_plan_optional_drop_candidate(
     compact_dsl: str,
     plan: dict[str, Any] | None,
@@ -2104,6 +2708,7 @@ def compact_plan_optional_drop_candidate(
     allow_must_fallback: bool = True,
     max_fact_count: int | None = None,
     allowed_fact_indexes: set[int] | None = None,
+    allow_invalid_table_text: bool = False,
 ) -> CompactOptionalDropCandidate | None:
     """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
@@ -2116,55 +2721,128 @@ def compact_plan_optional_drop_candidate(
     if current_content_policy().is_static:
         if max_fact_count is not None and max_fact_count < 1:
             return None
-        return _static_optional_drop_candidate(compact_dsl, plan, allowed_fact_indexes)
+        return _static_optional_drop_candidate(
+            compact_dsl,
+            plan,
+            allowed_fact_indexes,
+            allow_must_fallback=allow_must_fallback,
+        )
     try:
-        rows = parse_compact_dsl_rows(compact_dsl)
+        rows = parse_compact_dsl_rows(
+            compact_dsl,
+            expand_layouts=False,
+            skip_compact_dsl_validation=allow_invalid_table_text,
+            preserve_unreachable=True,
+        )
     except (TypeError, ValueError):
         return None
+    reachable_component_ids = _reachable_component_ids(rows)
+    reachable_core_component_ids = _reachable_core_component_ids(rows)
+    defined_core_component_ids = _defined_core_component_ids(rows)
+    if not defined_core_component_ids:
+        return None
+    requires_core_reattach = not reachable_core_component_ids
+    protected_core_component_ids = (
+        defined_core_component_ids
+        if requires_core_reattach
+        else reachable_core_component_ids
+    )
     event_handlers = _event_handlers_by_id(task_spec)
+    preserved_fact_indexes: set[int] = set()
+    if requires_core_reattach:
+        for row in rows:
+            if not isinstance(row, ComponentRow):
+                continue
+            if row.component_id not in protected_core_component_ids:
+                continue
+            matched, _priorities, has_action_fact = _drop_fact_matches(
+                row,
+                facts,
+                event_handlers,
+            )
+            if not has_action_fact:
+                preserved_fact_indexes.update(matched)
     should_only_candidates: list[CompactOptionalDropCandidate] = []
     fallback_candidates: list[CompactOptionalDropCandidate] = []
     for row in rows:
         if not isinstance(row, ComponentRow):
             continue
+        if row.component_id not in reachable_component_ids:
+            continue
+        if allow_invalid_table_text:
+            items = row.props.get("items")
+            if row.component_type != "TableText" or not isinstance(items, list):
+                continue
+            if len(items) <= 3:
+                continue
         if row.component_type in {"Row", "Column", "Stack"}:
             continue
         if row.component_type in _ACTION_FACT_COMPONENTS:
             continue
         if row.props.get("onClick"):
             continue
-        state = _compact_visible_state([row])
-        matched: list[int] = []
-        priorities: list[str] = []
-        has_action_fact = False
-        for index, fact in enumerate(facts):
-            if not isinstance(fact, dict):
-                continue
-            result = _compact_fact_coverage_result(fact, state, event_handlers)
-            if result.errors or result.warnings:
-                continue
-            if "actionId" in fact:
-                has_action_fact = True
-                break
-            matched.append(index)
-            priorities.append(str(fact.get("priority") or "must"))
+        partial_candidate = _item_partial_drop_candidate(
+            row,
+            facts,
+            event_handlers,
+            allowed_fact_indexes,
+            max_fact_count,
+            preserved_fact_indexes,
+        )
+        if partial_candidate is not None:
+            partial_candidate = replace(
+                partial_candidate,
+                requires_core_reattach=requires_core_reattach,
+                protected_core_component_ids=tuple(sorted(protected_core_component_ids)),
+            )
+            target = fallback_candidates
+            if not partial_candidate.contains_must_facts:
+                target = should_only_candidates
+            target.append(partial_candidate)
+            continue
+        if row.component_type == "SecondaryBody" and allowed_fact_indexes is not None:
+            continue
+        if (
+            row.component_id in protected_core_component_ids
+            and len(protected_core_component_ids) <= 1
+        ):
+            continue
+        matched, priorities, has_action_fact = _drop_fact_matches(
+            row,
+            facts,
+            event_handlers,
+        )
         if has_action_fact or not matched:
             continue
-        if max_fact_count is not None and len(matched) > max_fact_count:
+        omission_pairs = [
+            (index, priority)
+            for index, priority in zip(matched, priorities, strict=True)
+            if index not in preserved_fact_indexes
+        ]
+        if not omission_pairs:
+            continue
+        omission_indexes = [index for index, _priority in omission_pairs]
+        if max_fact_count is not None and len(omission_indexes) > max_fact_count:
             continue
         if allowed_fact_indexes is not None:
             carries_unrelated_fact = any(
-                fact_index not in allowed_fact_indexes for fact_index in matched
+                fact_index not in allowed_fact_indexes for fact_index in omission_indexes
             )
             if carries_unrelated_fact:
                 continue
-        requirements = tuple(str(facts[index].get("requirement") or "") for index in matched)
+        requirements = tuple(
+            str(facts[index].get("requirement") or "") for index in omission_indexes
+        )
         candidate = CompactOptionalDropCandidate(
             component_id=row.component_id,
             component_type=row.component_type,
-            fact_indexes=tuple(matched),
+            fact_indexes=tuple(omission_indexes),
             requirements=requirements,
-            contains_must_facts=any(priority != "should" for priority in priorities),
+            contains_must_facts=any(
+                priority != "should" for _index, priority in omission_pairs
+            ),
+            requires_core_reattach=requires_core_reattach,
+            protected_core_component_ids=tuple(sorted(protected_core_component_ids)),
         )
         if candidate.contains_must_facts:
             fallback_candidates.append(candidate)
@@ -2175,15 +2853,24 @@ def compact_plan_optional_drop_candidate(
         candidates = fallback_candidates
     if not candidates:
         return None
-    return min(candidates, key=lambda item: len(item.fact_indexes))
+
+    def candidate_key(item: CompactOptionalDropCandidate) -> tuple[bool, int]:
+        return (
+            item.component_id in protected_core_component_ids,
+            len(item.fact_indexes),
+        )
+
+    return min(candidates, key=candidate_key)
 
 
 def _static_optional_drop_candidate(
     source: str,
     plan: dict[str, Any],
     allowed_indexes: set[int] | None,
+    *,
+    allow_must_fallback: bool,
 ) -> CompactOptionalDropCandidate | None:
-    """静态删减按事实授权，混合组件保留核心；不复用整组件或must删除语义。"""
+    """静态删减按事实授权；优先 should，无候选时才允许 must 兜底。"""
     from services.card_validation.compact_validation.semantic.static_content import (
         static_fact_coverage,
     )
@@ -2195,15 +2882,37 @@ def _static_optional_drop_candidate(
         coverage_rows = static_fact_coverage(source, plan)
     except (TypeError, ValueError):
         return None
+    visible_indexes = {
+        coverage.fact_index for coverage in coverage_rows if coverage.visible
+    }
+    object_groups = []
+    for group in plan.get("contentGroups", []):
+        if group.get("kind") != "object":
+            continue
+        indexes = {
+            index
+            for index in group.get("factIndexes", [])
+            if type(index) is int and 0 <= index < len(facts)
+        }
+        if indexes:
+            object_groups.append(indexes)
+    should_candidates = []
+    must_candidates = []
     for coverage in coverage_rows:
         index = coverage.fact_index
         if allowed_indexes is not None and index not in allowed_indexes:
             continue
         fact = facts[index]
         protected = fact.get("protectedTexts") or fact.get("preserveVerbatim")
-        if fact.get("priority") != "should" or protected:
+        if protected:
             continue
         if not coverage.visible or coverage.component_id is None:
+            continue
+        retains_object = any(
+            any(other != index and other in visible_indexes for other in group_indexes)
+            for group_indexes in object_groups
+        )
+        if not retains_object:
             continue
         text = fact.get("text")
         if not isinstance(text, str):
@@ -2211,16 +2920,25 @@ def _static_optional_drop_candidate(
         requirement = fact.get("requirement")
         if not isinstance(requirement, str):
             requirement = text
-        return CompactOptionalDropCandidate(
+        candidate = CompactOptionalDropCandidate(
             component_id=coverage.component_id,
             component_type="static_content",
             fact_indexes=(index,),
             requirements=(requirement,),
-            contains_must_facts=False,
+            contains_must_facts=fact.get("priority") != "should",
             partial=True,
             display_texts=(text,),
         )
-    return None
+        if candidate.contains_must_facts:
+            must_candidates.append(candidate)
+        else:
+            should_candidates.append(candidate)
+    candidates = should_candidates
+    if not candidates and allow_must_fallback:
+        candidates = must_candidates
+    if not candidates:
+        return None
+    return max(candidates, key=lambda candidate: candidate.fact_indexes)
 
 
 def _required_anchor_layout(
@@ -2325,18 +3043,8 @@ def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:
 
 
 def compact_plan_action_ids(task_spec: dict[str, Any]) -> tuple[str, ...]:
-    """列出本轮具有稳定 ID 的事件候选。"""
-    candidates = task_spec.get("eventCandidates")
-    if not isinstance(candidates, list):
-        return ()
-    identifiers: list[str] = []
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        identifier = candidate.get("id")
-        if isinstance(identifier, str) and identifier.strip():
-            identifiers.append(identifier.strip())
-    return tuple(dict.fromkeys(identifiers))
+    """列出本轮动作实例引用，重复的能力 ID 不覆盖不同参数。"""
+    return tuple(plan_action_candidates(task_spec))
 
 
 def compact_plan_asset_ids(task_spec: dict[str, Any]) -> tuple[str, ...]:
@@ -2395,7 +3103,15 @@ def _normalize_asset_assignments(
         if action_id in normalized_actions:
             errors.append(f"{location}.actionId is duplicated: {action_id}.")
             continue
-        if action_id == whole_card_action_id:
+        item_detail = False
+        if isinstance(action_id, str) and event_card_detail_action(task_spec, action_id):
+            for fact in facts:
+                if fact.get("actionId") == action_id:
+                    item_detail = prefers_event_card_item(fact)
+                    break
+        if item_detail:
+            normalized = {"assetId": None, "reason": "EventCard item detail has no button icon."}
+        elif action_id == whole_card_action_id:
             normalized = {"assetId": None, "reason": "Whole-card detail has no button icon."}
         else:
             normalized = _normalize_single_asset_assignment(
@@ -2544,8 +3260,7 @@ def _validate_facts(
             continue
         source_mismatch = _normalize_text(target_value) not in _normalize_text(query_text)
         if target == "text" and source_mismatch and not static_content:
-            errors.append(f"{location}.text must be copied from userQuery.")
-            continue
+            warnings.append(f"{location}.text must be copied from userQuery.")
         priority = raw_fact.get("priority", "must")
         if priority not in _FACT_PRIORITIES:
             errors.append(f"{location}.priority must be must or should.")
@@ -2571,7 +3286,10 @@ def _validate_facts(
                 for hint in hints:
                     if not isinstance(hint, str) or hint not in allowed_hints:
                         continue
-                    is_action_hint = hint in _ACTION_FACT_COMPONENTS
+                    item_detail = False
+                    if target == "actionId" and hint == "EventCard":
+                        item_detail = event_card_detail_action(task_spec, target_value)
+                    is_action_hint = hint in _ACTION_FACT_COMPONENTS or item_detail
                     if (target == "actionId") != is_action_hint:
                         removed_target_mismatch = True
                         continue
@@ -2689,7 +3407,7 @@ def _normalize_two_by_four_action_layouts(
     size: Any,
 ) -> tuple[list[str], list[str]]:
     """移除无法承载 2x4 显式动作的无动作布局软候选。"""
-    has_action = any(isinstance(fact.get("actionId"), str) for fact in facts)
+    has_action = any(_requires_action_button(fact) for fact in facts)
     if size != "2x4" or not has_action or "W-top-bottom" not in layout_hints:
         return layout_hints, []
 
@@ -2708,6 +3426,13 @@ def _normalize_dual_action_plan(
 ) -> tuple[list[str], list[str]]:
     """统一 2x2 双必要动作的布局和按钮，保留内容事实与软候选。"""
     if not _is_two_by_two_dual_action_plan(facts, size):
+        if size == "2x2" and "S-content-dual-action" in layout_hints:
+            accepted = [hint for hint in layout_hints if hint != "S-content-dual-action"]
+            return accepted, [
+                "S-content-dual-action was removed from layoutHints because the Plan "
+                "does not contain exactly two distinct actions; preserve the actual facts "
+                "and actions without inventing a second action."
+            ]
         return layout_hints, []
 
     warnings: list[str] = []
@@ -2716,7 +3441,7 @@ def _normalize_dual_action_plan(
         warnings.append("Two required 2x2 actions force layoutHints to S-content-dual-action.")
 
     for fact in facts:
-        if "actionId" not in fact:
+        if not _requires_action_button(fact):
             continue
         hints = fact.get("componentHints")
         if hints != ["CardButton"]:
@@ -2731,11 +3456,30 @@ def _is_two_by_two_dual_action_plan(
 ) -> bool:
     if size != "2x2":
         return False
-    action_count = 0
+    return _has_two_distinct_actions(facts)
+
+
+def _has_two_distinct_actions(facts: Any) -> bool:
+    """固定双动作约束来自事实，不把模型候选或重复动作当作两个动作。"""
+    if not isinstance(facts, list):
+        return False
+    action_ids: list[str] = []
     for fact in facts:
-        if isinstance(fact.get("actionId"), str):
-            action_count += 1
-    return action_count == 2
+        if not isinstance(fact, dict):
+            return False
+        if not _requires_action_button(fact):
+            continue
+        action_id = fact.get("actionId")
+        if isinstance(action_id, str) and action_id.strip():
+            action_ids.append(action_id)
+    return len(action_ids) == 2 and len(set(action_ids)) == 2
+
+
+def _requires_action_button(fact: dict[str, Any]) -> bool:
+    return (
+        isinstance(fact.get("actionId"), str)
+        and not prefers_event_card_item(fact)
+    )
 
 
 def _parse_json_object(
@@ -2749,11 +3493,17 @@ def _parse_json_object(
     if match is not None:
         text = match.group(1).strip()
     try:
-        payload = json.loads(text)
+        payload = decode_plan_json(text)
+    except PlanDuplicateKeyError as exc:
+        raise CompactPlanValidationError([str(exc)]) from exc
     except json.JSONDecodeError as exc:
         repaired = _recover_plan_closers(text)
         if repaired is None:
-            raise CompactPlanValidationError(["Plan output must be valid JSON."]) from exc
+            raise CompactPlanValidationError([
+                "Plan output must be valid JSON. "
+                f"line={exc.lineno}, column={exc.colno}, offset={exc.pos}: {exc.msg}. "
+                "只修复JSON结构，不猜补事实；数组须完整闭合，数组元素之间使用逗号。"
+            ]) from exc
         payload = repaired
         if warnings is not None:
             warnings.append("Plan JSON terminal closing delimiters recovered; facts unchanged.")
@@ -2799,8 +3549,8 @@ def _recover_plan_closers(text: str) -> dict[str, Any] | None:
         if char not in cursor:
             return None
     try:
-        payload = json.loads(prefix + expected)
-    except json.JSONDecodeError:
+        payload = decode_plan_json(prefix + expected)
+    except (json.JSONDecodeError, PlanDuplicateKeyError):
         return None
     return payload if isinstance(payload, dict) else None
 
@@ -2953,19 +3703,7 @@ def _collect_visible_path_occurrences(
 
 
 def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    handlers: dict[str, dict[str, Any]] = {}
-    candidates = task_spec.get("eventCandidates")
-    if not isinstance(candidates, list):
-        return handlers
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        identifier = candidate.get("id")
-        call = candidate.get("call")
-        args = candidate.get("args")
-        if isinstance(identifier, str) and isinstance(call, str) and isinstance(args, dict):
-            handlers[identifier] = {"call": call, "args": args}
-    return handlers
+    return plan_action_handlers(task_spec)
 
 
 def _event_handler_mismatch(

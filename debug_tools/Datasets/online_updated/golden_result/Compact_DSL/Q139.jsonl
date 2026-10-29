@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"东方绿舟酒店","fontSize":12}]
+["content","EmphasisText",{"mainText":"东方绿舟酒店","fontSize":18}]
+["action","PillButton",{"label":"拨打电话","onClick":[{"call":"clickToApi","args":{"intentName":"CallPhone","params":{"phoneNumber":"1388888888"}}}]}]
+["/state/ready",true]

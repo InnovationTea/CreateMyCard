@@ -55,7 +55,7 @@
     "description": "展示今日日程、当前时间、天气和电量信息。",
     "candidateAssetIds": [
       "asset.calendar_fill",
-      "asset.ic_weather_color"
+      "asset.ic_weather_monochrome"
     ]
   },
   "deviceInfo": {
@@ -142,6 +142,6 @@
   "description": "展示今日日程、当前时间、天气和电量信息。",
   "candidateAssetIds": [
     "asset.calendar_fill",
-    "asset.ic_weather_color"
+    "asset.ic_weather_monochrome"
   ]
 }

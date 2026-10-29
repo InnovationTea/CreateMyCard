@@ -48,6 +48,57 @@ def _context():
     )
 
 
+def test_request_recovery_diagnostic_reports_all_metadata_issues_without_values():
+    with pytest.raises(repair.CompactDslArgumentRepairError) as caught:
+        repair._validate_generation_content({"userQuery": "secret-query"}, {})
+    diagnostic = repair.argument_repair_diagnostic(caught.value)
+    assert diagnostic.get("stage") == "requestValidation"
+    issues = diagnostic.get("issues")
+    assert isinstance(issues, list)
+    assert {issue.get("path") for issue in issues} == {"/title", "/description"}
+    for issue in issues:
+        assert issue.get("actualType") == "missing"
+        assert "缺少必填字段" in issue.get("message", "")
+        assert "agentAction" not in issue and "retryable" not in issue
+    assert "secret-query" not in json.dumps(diagnostic)
+
+
+def test_preflight_recovery_diagnostic_preserves_all_confirmed_issues(registry):
+    content = _content()
+    content["candidateAssetIds"] = ["unknown-first", "unknown-second"]
+    with pytest.raises(repair.CompactDslArgumentRepairError) as caught:
+        repair._normalize_model_output(json.dumps(content), {}, {}, registry)
+    diagnostic = repair.argument_repair_diagnostic(caught.value)
+    assert diagnostic.get("stage") == "generationPreflight"
+    issues = diagnostic.get("issues")
+    assert isinstance(issues, list)
+    assert {issue.get("path") for issue in issues} == {
+        "/candidateAssetIds/0", "/candidateAssetIds/1",
+    }
+    assert all(issue.get("referenceSource") for issue in issues)
+    assert "requiredActions" not in diagnostic
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ValueError("secret-exception-value"),
+        RuntimeError("secret-exception-value"),
+        repair.CompactDslArgumentRepairError("secret-exception-value"),
+        json.JSONDecodeError("secret-exception-value", "secret-document", 3),
+    ],
+)
+def test_recovery_diagnostic_never_exposes_raw_exceptions(error):
+    diagnostic = repair.argument_repair_diagnostic(error)
+    serialized = json.dumps(diagnostic)
+    assert "secret-exception-value" not in serialized
+    assert "secret-document" not in serialized
+    assert diagnostic.get("message")
+    if isinstance(error, json.JSONDecodeError):
+        assert diagnostic.get("line") == error.lineno
+        assert diagnostic.get("column") == error.colno
+
+
 @pytest.mark.parametrize(
     "raw",
     [
@@ -125,7 +176,7 @@ def test_candidate_fragment_is_validated_before_locking(registry):
     assert "candidateAssetIds" not in guard.fields
 
 
-def test_intact_data_and_assets_survive_damaged_event_and_model_overwrite(registry):
+def test_intact_fragments_are_locked_but_unrecoverable_event_cannot_be_invented(registry):
     original = _content()
     raw = json.dumps(original).removesuffix("}") + ',"candidateEventCandidates":[broken'
     guard = repair._preserve_valid_fragments(raw, registry)
@@ -149,16 +200,13 @@ def test_intact_data_and_assets_survive_damaged_event_and_model_overwrite(regist
         "candidateAssetIds": [],
         "candidateEventCandidates": [event],
     }
-    normalized, dropped, _warnings = repair._normalize_model_output(
-        json.dumps(output),
-        {},
-        _payload(raw),
-        registry,
-        preserved=guard,
-    )
-    assert normalized.get("candidateDataBindings") == original.get("candidateDataBindings")
-    assert normalized.get("candidateAssetIds") == original.get("candidateAssetIds")
-    assert not dropped
+    merged = guard.merge(output)
+    assert merged.get("candidateDataBindings") == original.get("candidateDataBindings")
+    assert merged.get("candidateAssetIds") == original.get("candidateAssetIds")
+    with pytest.raises(repair.CompactDslArgumentRepairError):
+        repair._normalize_model_output(
+            json.dumps(output), {}, _payload(raw), registry, preserved=guard,
+        )
 
 
 @pytest.mark.parametrize("output", [{}, {"candidateEventCandidates": []}])
@@ -221,7 +269,7 @@ def test_losing_all_invalid_candidates_is_failure_not_static_success(registry):
     content = _content()
     content["candidateDataBindings"] = []
     content["candidateAssetIds"] = ["unknown.asset"]
-    with pytest.raises(repair.CompactDslArgumentRepairError, match="no usable candidates"):
+    with pytest.raises(repair.CompactDslArgumentRepairError, match="preflight rejected"):
         repair._normalize_model_output(json.dumps(content), {}, {}, registry)
 
 
@@ -269,10 +317,11 @@ def test_explicit_empty_events_and_options_are_preserved(registry):
 @pytest.mark.asyncio
 async def test_transport_errors_are_bounded_and_fail_closed(monkeypatch, registry):
     calls = []
+    warnings = []
 
     async def generate(*_args, **_kwargs):
         calls.append(True)
-        raise TimeoutError("test timeout")
+        raise TimeoutError("secret-transport-error")
 
     async def close(_self):
         return None
@@ -280,7 +329,8 @@ async def test_transport_errors_are_bounded_and_fail_closed(monkeypatch, registr
     monkeypatch.setattr(repair.A2UIModelClient, "generate", generate)
     monkeypatch.setattr(repair.A2UIModelClient, "aclose", close)
     monkeypatch.setattr(repair, "_select_capability_registry", lambda *_: (registry, []))
-    with pytest.raises(repair.CompactDslArgumentRepairExhaustedError):
+    monkeypatch.setattr(repair.logger, "warning", warnings.append)
+    with pytest.raises(repair.CompactDslArgumentRepairExhaustedError) as caught:
         await repair.recover_compact_dsl_content(
             _payload("broken"),
             backend="mep",
@@ -289,6 +339,16 @@ async def test_transport_errors_are_bounded_and_fail_closed(monkeypatch, registr
             max_attempts=2,
         )
     assert len(calls) == 2
+    details = caught.value.details()
+    assert details.get("repairAttempts") == 2
+    assert details.get("retryable") is False
+    assert "secret-transport-error" not in json.dumps(details)
+    rejection_logs = [entry for entry in warnings if "model_candidate_rejected" in entry]
+    assert len(rejection_logs) == 2
+    assert "max_attempts=2 will_retry=true" in rejection_logs[0]
+    assert "max_attempts=2 will_retry=false" in rejection_logs[1]
+    assert all("exception_type=TimeoutError" in entry for entry in rejection_logs)
+    assert all("\n" not in entry for entry in rejection_logs)
 
 
 @pytest.mark.asyncio

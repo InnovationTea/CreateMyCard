@@ -72,11 +72,14 @@ def test_selection_contract_reuses_original_mapping_without_color_values():
 @pytest.mark.parametrize("family", ["blue", "purple", "warm"])
 def test_gradient_colors_and_geometry_unchanged(settings, size, family):
     names = {"blue": "蓝色", "purple": "紫色", "warm": "暖色"}
-    task = {"size": size, "userQuery": "使用" + names.get(family), "appVersion": "11.9.9.342"}
+    task = {"size": size, "userQuery": "使用" + names.get(family) + "渐变",
+            "appVersion": "11.9.9.342"}
     source = layout_source(size)
     client = SimpleNamespace(generate=AsyncMock(
-        return_value=reply([preference("paletteFamily", family, task.get("userQuery"))],
-                           "gradient-" + family)
+        return_value=reply([
+            preference("paletteFamily", family, task.get("userQuery")),
+            preference("backgroundKind", "gradient", "渐变"),
+        ], "gradient-" + family)
     ))
     final, audit = asyncio.run(themes.select_theme(source, task, client, final_layout=LAYOUT))
     assert audit.get("themeId") == "gradient-" + family
@@ -182,7 +185,7 @@ def test_grouped_layouts_excluded(monkeypatch, layout_id):
 
 
 def test_removed_photo_pools_are_empty_including_disabled_entries():
-    assert len(themes.registered_themes("photos")) == 21
+    assert len(themes.registered_themes("photos")) == 36
     assert themes.registered_themes("subjectlessWidePhotos", include_disabled=True) == []
     assert themes.registered_themes("squareExpansions", include_disabled=True) == []
 

@@ -1,6 +1,6 @@
 {
-  "current_version": "v2",
-  "update_date": "2026-10-21",
+  "current_version": "v4",
+  "update_date": "2026-10-29",
   "history_versions": [
     {
       "update_date": "2026-10-15",
@@ -21,6 +21,22 @@
         "补齐请求包名及 Q014、Q038、Q049 的请求上下文。"
       ],
       "version": "v2"
+    },
+    {
+      "update_date": "2026-10-28",
+      "commits": [],
+      "changes": [
+        "新增 8 条带点击动作的开域用例，覆盖睡眠、运动、音乐、世界时钟、备忘录、拨号、电池设置与双动作入口。"
+      ],
+      "version": "v3"
+    },
+    {
+      "update_date": "2026-10-29",
+      "commits": [],
+      "changes": [
+        "调整 Q032、Q051 为 2x4，Q043、Q045 为 2x2，content 与外层 size 同步修改。"
+      ],
+      "version": "v4"
     }
   ]
 }

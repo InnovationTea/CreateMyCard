@@ -1,0 +1,3 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"出生天数","value":"{{ ${/data/countdown/countdownDays} + '天' }}","supportingText":"女儿出生至今"}]
+["/data/countdown/countdownDays",14]

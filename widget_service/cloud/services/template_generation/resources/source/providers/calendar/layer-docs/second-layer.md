@@ -78,8 +78,12 @@
     不猜测枚举含义，不把整数插入仅接受字符串的模板插值。
   - `ScheduleOverviewReminderDetailsHero@1`：提醒详情 Hero；展示数据更新时间、发起人、重要类型和提前
     提醒分钟数，不接收展示 Prop。
-  - `ScheduleOverviewReminderSourceFull@1`：同版式的提醒来源 Full；发起人和提前提醒分钟数全部必需，
+  - `ScheduleOverviewReminderSourceFull@1`：上下分组的提醒来源 Full；发起人和提前提醒分钟数全部必需，
     不要求重要程度、更新时间或日程标题，不补造其它日程信息；不接收展示 Prop。
+    与 `ScheduleOverviewSourceReminderFull@1`、`ScheduleOverviewTitleStartFull@1` 沿用
+    `ScheduleOverviewDateAllDayFull@1` 的上方主文、下方辅助信息布局。头部为 12 号字，
+    主文为 18 号加粗、最多两行，下方提醒或开始时间为 12 号字；全部左对齐并使用主题文字色。
+    来源模板的可选标题仍只用于头部，缺少时保留“日程来源”，不增加数据要求。
   - `ScheduleOverviewDateLocationTimeFull@1`：同版式的日期地点时间 Full；标题、真实开始日期、开始时间
     和地点全部必需，不要求结束时间或时区；可选 `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewTitleHero@1`：标题日程 Hero；展示标题和开始时间，可选结束时间；可选

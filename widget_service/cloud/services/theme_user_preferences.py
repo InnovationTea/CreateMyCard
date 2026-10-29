@@ -2,7 +2,13 @@
 
 import re
 
-from services.post_layout_theme_registry import load_theme_registry, user_background_roles
+from services.post_layout_theme_registry import (
+    load_theme_registry,
+    palette_family_options,
+    registered_themes,
+    theme_palette_families,
+    user_background_roles,
+)
 
 _KINDS = frozenset({"photo", "fusion", "gradient", "solid"})
 _PROPERTIES = frozenset({
@@ -16,24 +22,28 @@ PREFERENCE_INSTRUCTION = """
 preferences为数组；无明确偏好返回[]。每项严格为
 {"property":"属性","operator":"prefer或avoid","value":"值","evidence":"query中的连续原文"}。
 属性和值：
-- backgroundKind: photo/fusion/gradient/solid，表示图片/融球/渐变/纯色。
+- backgroundKind: photo/fusion/gradient/solid，仅用户明确指定背景形式时输出，
+  不从普通色系或氛围需求推导背景形式。
 - backgroundTone: dark/light，表示背景明暗。
-- backgroundColor/textColor: 用户指定的具体背景色/文字色，规范化为#RRGGBB或#AARRGGBB；
-  明确色相也是具体颜色要求，不以登记候选的颜色数量或已有family限制其取值。
-- paletteFamily: 仅用于未指定具体颜色的宽泛配色系列，值必须来自候选中已有family。
+- paletteFamily: 普通颜色或氛围对应的登记色系，候选的family或paletteFamilies说明其适用范围。
+  优先使用可承接该色系的已有融球或渐变，不把普通色名直接变成高饱和纯色。
+  登记色系本轮没有合格融球或渐变时由程序提供普通底色，不需要伪造候选或精确色值。
+- backgroundColor/textColor: 明确纯色、精确色值或现有候选无法承接的背景色，以及明确文字色，
+  规范化为#RRGGBB或#AARRGGBB；不要据普通配色需求额外生成背景色覆盖。
 - themeId: 仅用户明确要求/排除某张登记素材时使用，值须来自本轮候选。
-先确定颜色指向的对象和具体程度，再选择属性：整卡明确颜色、未限定为文字或图标时，按backgroundColor处理；
-明确文字颜色使用textColor，图标颜色不改成整卡颜色。仅有情绪或风格描述时不要虚构具体色值。
-具体色相或色值不能降格为最接近的冷暖系列；同时出现具体颜色与风格描述时，保留具体颜色约束。
-paletteFamily不替代具体颜色，也不与同一对象的backgroundColor重复表达；背景色不与泛色系重复约束。
-backgroundColor表示固定底色，不与渐变/图片/融球要求同时输出；宽泛色系才使用paletteFamily。
+先确定颜色指向的对象和具体程度，图标或文字颜色不改成整卡颜色。氛围需求可选择已有色系，
+不虚构精确色值；纯业务标题不构成视觉要求。精确色值和明确纯色仍按用户原意保留。
+同一背景不要同时输出paletteFamily和backgroundColor；backgroundColor是固定底色，
+不与渐变/图片/融球要求同时输出。未要求纯色时，优先融球，其次已有渐变。
 根据整句语义处理否定、转折及最终修正，不按单词出现与否判断。排除要求使用avoid，不得反向设为prefer。
 只描述文字、图标或业务内容的明暗不属于背景偏好；普通业务标题、时间、图片名称不是用户颜色指令。
 不得从业务、样例或候选内容虚构用户偏好。每项evidence必须引用query真实原文，包含判断所需上下文。
 同一属性最多一个最终prefer；不输出已经被用户撤回的要求。未知意图不要猜色值或添加偏好。
 图片不具有可靠明暗/背景色元数据，背景颜色、深浅约束将由程序落实为可验证底色。
 具体底色优先于深浅；textColor只处理明确文字颜色；不要输出其它设计参数或任意URL。
-用户偏好不能突破尺寸、启停、业务、布局、行数和融球门禁；无法满足的组合不能伪造新候选。
+paletteFusionCandidates仅在用户肯定指定登记色系时可选，此时不受原融球内容门禁限制；
+未指定色系、仅排除色系或仅指定融球形式时仍使用默认候选，不扩展候选。
+用户偏好不能突破尺寸、启停、端侧版本和图片门禁；无法满足的组合不能伪造新候选。
 候选包含通过门禁的全部类型。无偏好时由程序按主体图>抽象图>合格融球>渐变执行，
 同级图片由程序等概率选择；普通主题按defaultPalette及原规则选择。
 只返回JSON：{"themeId":"本轮候选ID","preferences":[]}。
@@ -43,7 +53,9 @@ backgroundColor表示固定底色，不与渐变/图片/融球要求同时输出
 def parse_preferences(value: object, query: str, candidates: list[dict]) -> list[dict]:
     if not isinstance(value, list) or len(value) > 16:
         raise ValueError("Theme preferences must be an array with at most 16 entries")
-    families = {item.get("family") for item in candidates}
+    families = set(palette_family_options())
+    for candidate in candidates:
+        families.update(theme_palette_families(candidate))
     identities = {item.get("id") for item in candidates}
     result = []
     preferred = {}
@@ -77,22 +89,45 @@ def parse_preferences(value: object, query: str, candidates: list[dict]) -> list
                 raise ValueError("Requested background must be opaque")
         elif requested not in choices.get(attribute, set()):
             raise ValueError("Preference value is not in the registered choices")
+        normalized = {**item, "value": requested}
         if operation == "prefer":
-            if attribute in preferred:
-                raise ValueError("Duplicate preferred theme property")
-            preferred[attribute] = requested
+            previous = preferred.get(attribute)
+            if previous is not None:
+                if attribute != "paletteFamily":
+                    raise ValueError("Duplicate preferred theme property")
+                previous.update(_merge_palette_preference(previous, normalized, candidates))
+                continue
+            preferred[attribute] = normalized
         else:
             avoided.setdefault(attribute, set()).add(requested)
-        result.append({**item, "value": requested})
-    for attribute, requested in preferred.items():
-        if requested in avoided.get(attribute, set()):
+        result.append(normalized)
+    for attribute, item in preferred.items():
+        if item.get("value") in avoided.get(attribute, set()):
             raise ValueError("Conflicting theme preferences")
     if avoided.get("backgroundTone") == {"dark", "light"}:
         raise ValueError("Both background tones are excluded")
     return result
 
 
-def color_overrides(preferences: list[dict]) -> dict:
+def _merge_palette_preference(previous: dict, current: dict, candidates: list[dict]) -> dict:
+    """重复色系描述只在登记主题集合具有包含关系时收敛，不猜测句子含义。"""
+    available = registered_themes("standard") + candidates
+    previous_ids = set()
+    current_ids = set()
+    for theme in available:
+        families = theme_palette_families(theme)
+        if previous.get("value") in families:
+            previous_ids.add(theme.get("id"))
+        if current.get("value") in families:
+            current_ids.add(theme.get("id"))
+    if previous_ids and previous_ids.issubset(current_ids):
+        return previous
+    if current_ids and current_ids.issubset(previous_ids):
+        return current
+    raise ValueError("Conflicting preferred palette families")
+
+
+def color_overrides(preferences: list[dict], *, candidates: list[dict] | None = None) -> dict:
     result = {}
     tone = None
     for item in preferences:
@@ -117,7 +152,28 @@ def color_overrides(preferences: list[dict]) -> dict:
         if not selected:
             raise ValueError("Missing configured tone background")
         result["background"] = {**selected, "tone": name, "evidence": evidence}
+    if candidates is not None and "background" not in result:
+        fallback = _palette_fallback(preferences, candidates)
+        if fallback:
+            result["background"] = fallback
     return result
+
+
+def _palette_fallback(preferences: list[dict], candidates: list[dict]) -> dict:
+    """融球不可用且没有同色渐变时，用登记融球基色继续交付，避免卡住。"""
+    for item in preferences:
+        if item.get("property") != "paletteFamily" or item.get("operator") != "prefer":
+            continue
+        family = item.get("value")
+        if any(family in theme_palette_families(theme) for theme in candidates):
+            return {}
+        for theme in registered_themes("standard"):
+            if theme.get("kind") != "fusion" or family not in theme_palette_families(theme):
+                continue
+            color = theme.get("background", {}).get("ballColors", {}).get("large")
+            return {"color": color, "paletteFamily": family, "evidence": item.get("evidence"),
+                    "panelColor": user_background_roles(color).get("componentSecondary")}
+    return {}
 
 
 def _background_colors(theme: dict, overrides: dict) -> list[str]:
@@ -156,6 +212,11 @@ def preference_reason(theme: dict, preferences: list[dict], overrides: dict) -> 
             if background:
                 roles = user_background_roles(background)
             actual = [overrides.get("text", {}).get("color", roles.get("primary"))]
+        elif attribute == "paletteFamily":
+            actual = theme_palette_families(theme)
+            fallback_family = overrides.get("background", {}).get("paletteFamily")
+            if fallback_family:
+                actual = [fallback_family]
         else:
             keys = {"backgroundKind": "kind", "paletteFamily": "family", "themeId": "id"}
             key = keys.get(attribute)
@@ -175,6 +236,22 @@ def filter_preferences(
     result = []
     for theme in candidates:
         if preference_reason(theme, preferences, overrides) is None:
+            result.append(theme)
+    return result
+
+
+def palette_fusion_candidates(candidates: list[dict], preferences: list[dict]) -> list[dict]:
+    """兼容融球仅凭已校验的肯定色系启用，业务文字与模型猜选ID均不触发。"""
+    family = None
+    for item in preferences:
+        if item.get("property") == "paletteFamily" and item.get("operator") == "prefer":
+            family = item.get("value")
+            break
+    result = []
+    for theme in candidates:
+        if theme.get("kind") != "fusion":
+            continue
+        if family in theme_palette_families(theme):
             result.append(theme)
     return result
 
@@ -231,6 +308,14 @@ def prioritize_candidates(
             if theme.get("family") != family:
                 continue
         result.append(theme)
+    palette_requested = any(
+        item.get("property") == "paletteFamily" and item.get("operator") == "prefer"
+        for item in preferences
+    )
+    if palette_requested:
+        presets = [item for item in result if item.get("kind") in {"fusion", "gradient"}]
+        if presets:
+            result = presets
     photos = [item for item in result if item.get("kind") == "photo"]
     subjects = [item for item in photos if item.get("pool") != "texturePhotos"]
     if subjects:

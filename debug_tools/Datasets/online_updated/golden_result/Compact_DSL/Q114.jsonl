@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-content-dual-action","variant":"actions-only"},["wifi_action","bluetooth_action"]]
+["wifi_action","CardButton",{"label":"Wi-Fi","icon":"resources/base/media/wifi.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"SetSettingSwitch","params":{"appBundleName":"com.huawei.hmos.settings","itemName":"wlan","switchFlag":0}}}]}]
+["bluetooth_action","CardButton",{"label":"蓝牙","icon":"resources/base/media/ic_Bluetooth.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"SetSettingSwitch","params":{"appBundleName":"com.huawei.hmos.settings","itemName":"bluetooth","switchFlag":0}}}]}]
+["/state/ready",true]

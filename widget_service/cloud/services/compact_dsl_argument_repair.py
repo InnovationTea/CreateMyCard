@@ -21,11 +21,14 @@ from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelBackend
 from models.capability import EventDynamicArgument
 from models.generation import CandidateDataBinding, GenerationOptions, ModelRequestContext
+from models.preflight import GenerationPreflightError
+from services.agent_feedback import request_validation_feedback
 from services.argument_json_recovery import (
     DECODER,
     PreservedArguments,
     extract_fragments,
     repair_syntax,
+    validate_recovery_depth,
 )
 from services.capability_registry import CapabilityRegistry
 from services.card_validation.base import expression_references
@@ -82,14 +85,16 @@ _TARGET_STRUCTURE = {
     ],
     "options": {"allowDegradation": "boolean"},
 }
-_CANDIDATE_PATH = re.compile(
-    r"^/(candidateDataBindings|candidateEventCandidates|candidateAssetIds)/(\d+)(?:/|$)"
-)
 _MISSING = object()
+_MAX_ARGUMENT_CHARS = 131072
 
 
 class CompactDslArgumentRepairError(ValueError):
     """表示模型候选无法作为生成请求的 content 使用。"""
+
+    def __init__(self, message: str, *, feedback: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.feedback = feedback
 
 
 class CompactDslArgumentRepairExhaustedError(ValueError):
@@ -97,16 +102,59 @@ class CompactDslArgumentRepairExhaustedError(ValueError):
 
     error_code = ErrorCode.A2UI_GENERATION_FAILED
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        diagnostic: dict[str, Any] | None = None,
+        attempts: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.diagnostic = diagnostic
+        self.attempts = attempts
+
     def details(self) -> dict[str, Any]:
-        return {
+        details: dict[str, Any] = {
             "stage": "argumentRepair",
             "retryable": False,
             "requiredActions": ["NOTIFY_USER"],
             "agentInstruction": (
-                "本次 DSL 生成失败：参数修复及重试均未成功，未生成卡片结果。"
-                "请停止本轮自动调用，并提示用户：卡片生成失败，请重试一下。"
+                "停止本轮自动调用并告知用户生成失败，保留原有效来源。"
             ),
         }
+        if self.diagnostic is not None:
+            details["diagnostic"] = self.diagnostic
+            details["agentInstruction"] += "diagnostic 仅供定位，不授予重试权限。"
+        if self.attempts is not None:
+            details["repairAttempts"] = self.attempts
+        return details
+
+
+def argument_repair_diagnostic(exc: Exception) -> dict[str, Any]:
+    """仅保留受控校验诊断；不将原始异常、参数值或内部修复指令返回主 Agent。"""
+    diagnostic: dict[str, Any] = {
+        "stage": "argumentRepair",
+        "message": "参数恢复未通过完整性或结构检查，无法安全还原完整业务对象。",
+    }
+    if isinstance(exc, CompactDslArgumentRepairError) and exc.feedback is not None:
+        issues = []
+        for issue in exc.feedback.get("issues", []):
+            item = {}
+            for name in ("code", "path", "message", "expected", "actualType", "referenceSource"):
+                if name in issue:
+                    item[name] = issue.get(name)
+            issues.append(item)
+        diagnostic = {"stage": exc.feedback.get("stage"), "issues": issues}
+    elif isinstance(exc, json.JSONDecodeError):
+        diagnostic = {
+            "stage": "argumentRepair",
+            "message": "内层参数未能解析为合法 JSON；核对括号、逗号、引号及转义。",
+            "line": exc.lineno,
+            "column": exc.colno,
+        }
+    elif not isinstance(exc, ValueError):
+        diagnostic = {"stage": "argumentRepair", "message": "参数恢复执行异常，未取得可用结果。"}
+    return diagnostic
 
 
 @dataclass(frozen=True)
@@ -114,7 +162,7 @@ class CompactDslArgumentRecoveryResult:
     """参数恢复模块返回给路由的完整结果。"""
 
     content: dict[str, Any]
-    mode: Literal["model", "model_retry"]
+    mode: Literal["decoded", "syntax", "structure", "model", "model_retry"]
     attempts: int
     dropped_candidates: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -163,6 +211,137 @@ def has_explicit_stringified_arguments(payload: dict[str, Any]) -> bool:
     return isinstance(content.get("arguments"), str)
 
 
+def recover_deterministic_content(
+    payload: dict[str, Any],
+) -> CompactDslArgumentRecoveryResult | None:
+    """先尝试不调用模型的解码／语法／登记结构恢复；失败不修改原请求。"""
+    content = payload.get("content")
+    if not isinstance(content, dict):
+        return None
+    raw = content.get("arguments")
+    if not isinstance(raw, str) and not _has_encoded_fields(content):
+        return None
+    validate_recovery_depth(content)
+    mode: Literal["decoded", "syntax", "structure", "model", "model_retry"] = "structure"
+    if isinstance(raw, str):
+        mode = "decoded"
+        if len(raw) > _MAX_ARGUMENT_CHARS:
+            raise CompactDslArgumentRepairError("arguments exceed recovery size limit")
+        try:
+            source = DECODER.decode(raw)
+        except json.JSONDecodeError:
+            source = DECODER.decode(repair_syntax(raw))
+            mode = "syntax"
+        except RecursionError as exc:
+            raise CompactDslArgumentRepairError("arguments exceed recovery depth limit") from exc
+        if not isinstance(source, dict):
+            raise CompactDslArgumentRepairError("arguments root must be an object")
+        validate_recovery_depth(source)
+        source = _merge_outer_business(source, content)
+    else:
+        source = copy.deepcopy(content)
+    for name in ("functionName", "skillName", "uid", "odid"):
+        source.pop(name, None)
+    registry, warnings = _select_capability_registry(payload, source)
+    normalized, _dropped, structure_warnings = _normalize_model_output(
+        json.dumps(source, ensure_ascii=False), content, payload, registry,
+    )
+    if not isinstance(raw, str) and _same_values(normalized, content):
+        return None
+    return CompactDslArgumentRecoveryResult(
+        content=normalized, mode=mode, attempts=0, dropped_candidates=(),
+        warnings=tuple([*warnings, *structure_warnings]),
+        raw_arguments_hash=hashlib.sha256(
+            json.dumps(content, ensure_ascii=False).encode("utf-8")
+        ).hexdigest(),
+    )
+
+
+def _has_encoded_fields(content: dict[str, Any]) -> bool:
+    bindings = content.get("candidateDataBindings")
+    if isinstance(bindings, list):
+        for binding in bindings:
+            if isinstance(binding, dict) and isinstance(binding.get("arguments"), str):
+                return True
+    events = content.get("candidateEventCandidates")
+    if isinstance(events, list):
+        for candidate in events:
+            if not isinstance(candidate, dict):
+                continue
+            if "actionTemplate" in candidate:
+                return True
+            action = candidate.get("action")
+            if isinstance(action, str):
+                return True
+            if isinstance(action, dict) and isinstance(action.get("args"), str):
+                return True
+    return False
+
+
+def _merge_outer_business(
+    source: dict[str, Any], content: dict[str, Any],
+) -> dict[str, Any]:
+    merged = copy.deepcopy(source)
+    for name, value in content.items():
+        if name in _WRAPPER_KEYS:
+            continue
+        if name in _PROTECTED_TRANSPORT_KEYS:
+            merged.pop(name, None)
+            continue
+        if name in _PRESERVED_OUTER_KEYS:
+            merged[name] = copy.deepcopy(value)
+            continue
+        if name in merged and not _same_values(merged.get(name), value):
+            raise CompactDslArgumentRepairError(f"conflicting outer field: {name}")
+        merged[name] = copy.deepcopy(value)
+    for name in _PROTECTED_TRANSPORT_KEYS:
+        merged.pop(name, None)
+    return merged
+
+
+def _same_values(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        if left.keys() != right.keys():
+            return False
+        return all(_same_values(value, right.get(key)) for key, value in left.items())
+    if isinstance(left, list):
+        if len(left) != len(right):
+            return False
+        return all(_same_values(a, b) for a, b in zip(left, right, strict=True))
+    return left == right
+
+
+def _decode_object_fields(content: dict[str, Any]) -> None:
+    """只解码已登记的对象位置，不将展示文案或业务参数中的字符串解释成对象。"""
+    bindings = content.get("candidateDataBindings")
+    if isinstance(bindings, list):
+        for binding in bindings:
+            if isinstance(binding, dict):
+                _decode_object_at(binding, "arguments")
+    events = content.get("candidateEventCandidates")
+    if not isinstance(events, list):
+        return
+    for candidate in events:
+        if not isinstance(candidate, dict):
+            continue
+        if "actionTemplate" in candidate:
+            if "action" in candidate:
+                raise CompactDslArgumentRepairError("action and actionTemplate conflict")
+            candidate["action"] = candidate.pop("actionTemplate")
+        _decode_object_at(candidate, "action")
+        action = candidate.get("action")
+        if isinstance(action, dict):
+            _decode_object_at(action, "args")
+
+
+def _decode_object_at(container: dict[str, Any], name: str) -> None:
+    value = container.get(name)
+    if isinstance(value, str):
+        container[name] = _strict_json_object(value, allow_empty=True)
+
+
 async def recover_compact_dsl_content(
     payload: dict[str, Any],
     *,
@@ -178,6 +357,8 @@ async def recover_compact_dsl_content(
     raw_arguments = content.get("arguments")
     if not isinstance(raw_arguments, str):
         raise CompactDslArgumentRepairError("content.arguments must be a string")
+    if len(raw_arguments) > _MAX_ARGUMENT_CHARS:
+        raise CompactDslArgumentRepairError("arguments exceed recovery size limit")
 
     normalized_attempts = min(max(max_attempts, 1), 3)
     raw_hash = hashlib.sha256(raw_arguments.encode("utf-8")).hexdigest()
@@ -188,6 +369,7 @@ async def recover_compact_dsl_content(
             preserved.fields[key] = content.get(key)
     previous_output = ""
     validation_errors: list[str] = []
+    last_diagnostic: dict[str, Any] | None = None
     client = A2UIModelClient(
         use_mock=False,
         backend=backend,
@@ -225,10 +407,13 @@ async def recover_compact_dsl_content(
             except Exception as exc:
                 previous_output = raw_output
                 validation_errors = _repair_error_messages(exc)
+                last_diagnostic = argument_repair_diagnostic(exc)
                 logger.warning(
                     f"{_MODULE} model_candidate_rejected attempt={attempt} "
+                    f"max_attempts={normalized_attempts} "
+                    f"will_retry={json_for_log(attempt < normalized_attempts)} "
                     f"exception_type={type(exc).__name__} "
-                    f"errors={json_for_log(validation_errors)}"
+                    f"diagnostic={json_for_log(last_diagnostic)}"
                 )
                 continue
             mode: Literal["model", "model_retry"] = (
@@ -256,9 +441,12 @@ async def recover_compact_dsl_content(
 
     logger.error(
         f"{_MODULE} recovery_failed attempts={normalized_attempts} "
-        f"raw_arguments_hash={raw_hash} errors={json_for_log(validation_errors)}"
+        f"raw_arguments_hash={raw_hash} will_retry=false "
+        f"diagnostic={json_for_log(last_diagnostic)}"
     )
-    raise CompactDslArgumentRepairExhaustedError("卡片生成失败，请重试一下。")
+    raise CompactDslArgumentRepairExhaustedError(
+        "卡片生成失败，请重试一下。", diagnostic=last_diagnostic, attempts=normalized_attempts,
+    )
 
 
 def _build_repair_prompt(
@@ -321,37 +509,41 @@ def _normalize_model_output(
             repaired = preserved.merge(repaired)
         except ValueError as exc:
             raise CompactDslArgumentRepairError(str(exc)) from exc
-    forbidden = sorted(set(repaired) & _WRAPPER_KEYS)
-    if forbidden:
-        raise CompactDslArgumentRepairError(
-            "model output contains wrapper fields: " + ", ".join(forbidden)
-        )
-    allowed_fields = _BUSINESS_KEYS | {"bundleName", "romVersion"}
-    unknown_fields = sorted(set(repaired) - allowed_fields)
-    if unknown_fields:
-        raise CompactDslArgumentRepairError(
-            "model output contains unknown fields: " + ", ".join(unknown_fields)
-        )
+        if preserved.raw is not None:
+            original = _strict_json_object(preserved.raw)
+            original = _merge_outer_business(original, outer_content)
+            _check_recovery_fields(original)
+            original, _dropped, _warnings = _canonicalize_candidates(original, registry)
+            # 模型只能恢复结构；完整原始字段在规范化前逐项保持，含损坏字段后方的内容。
+            original_request = _validate_generation_content(original, payload)
+            expected = _normalized_business_content(original, original_request)
+            _preserve_outer_content_values(expected, outer_content)
+            actual = _merge_outer_business(repaired, outer_content)
+            actual, _dropped, _warnings = _canonicalize_candidates(actual, registry)
+            actual_request = _validate_generation_content(actual, payload)
+            actual = _normalized_business_content(actual, actual_request)
+            _preserve_outer_content_values(actual, outer_content)
+            if not _same_values(expected, actual):
+                raise CompactDslArgumentRepairError("repair changed original fields or values")
+    repaired = _merge_outer_business(repaired, outer_content)
+    _check_recovery_fields(repaired)
     dropped: list[str] = []
     warnings: list[str] = []
-    if registry is not None:
-        repaired, dropped, warnings = _canonicalize_candidates(repaired, registry)
+    repaired, dropped, warnings = _canonicalize_candidates(repaired, registry)
     request = _validate_generation_content(repaired, payload)
     if registry is not None and "sourceArtifactUrl" not in request.model_fields_set:
-        repaired, request, preflight_dropped = _remove_blocking_candidates(
-            repaired,
-            request,
-            registry,
-            payload,
-        )
-        dropped.extend(preflight_dropped)
+        preflight_request = EditRequestNormalizer.normalize_create(request)
+        preflight = GenerationPreflight(registry).run(preflight_request)
+        if preflight.blocking_issues:
+            issue = preflight.blocking_issues[0]
+            raise CompactDslArgumentRepairError(
+                f"preflight rejected {issue.path}: {issue.code}",
+                feedback=GenerationPreflightError(preflight).details(),
+            )
     normalized = _normalized_business_content(repaired, request)
     _preserve_outer_content_values(normalized, outer_content)
     if not normalized:
         raise CompactDslArgumentRepairError("repaired content must not be empty")
-    candidate_fields = ("candidateDataBindings", "candidateEventCandidates", "candidateAssetIds")
-    if dropped and not any(normalized.get(name) for name in candidate_fields):
-        raise CompactDslArgumentRepairError("no usable candidates remain after repair validation")
     if preserved is not None:
         try:
             preserved.assert_retained(normalized)
@@ -360,8 +552,24 @@ def _normalize_model_output(
     return normalized, dropped, warnings
 
 
+def _check_recovery_fields(content: dict[str, Any]) -> None:
+    forbidden = sorted(set(content) & _WRAPPER_KEYS)
+    if forbidden:
+        raise CompactDslArgumentRepairError(
+            "model output contains wrapper fields: " + ", ".join(forbidden)
+        )
+    allowed_fields = _BUSINESS_KEYS | {"bundleName", "romVersion"}
+    unknown_fields = sorted(set(content) - allowed_fields)
+    if unknown_fields:
+        raise CompactDslArgumentRepairError(
+            "model output contains unknown fields: " + ", ".join(unknown_fields)
+        )
+
+
 def _strict_json_object(raw_output: str, *, allow_empty: bool = False) -> dict[str, Any]:
     candidate = _strip_json_fence(raw_output)
+    if len(candidate) > _MAX_ARGUMENT_CHARS:
+        raise CompactDslArgumentRepairError("arguments exceed recovery size limit")
     try:
         loaded = DECODER.decode(candidate)
     except json.JSONDecodeError as exc:
@@ -376,10 +584,13 @@ def _strict_json_object(raw_output: str, *, allow_empty: bool = False) -> dict[s
         logger.info(f"{_MODULE} syntax_repaired output={json_text_for_log(repaired)}")
     except ValueError as exc:
         raise CompactDslArgumentRepairError(str(exc)) from exc
+    except RecursionError as exc:
+        raise CompactDslArgumentRepairError("arguments exceed recovery depth limit") from exc
     if not isinstance(loaded, dict):
         raise CompactDslArgumentRepairError("model output root must be a JSON object")
     if not loaded and not allow_empty:
         raise CompactDslArgumentRepairError("model output object must not be empty")
+    validate_recovery_depth(loaded)
     return loaded
 
 
@@ -423,59 +634,15 @@ def _select_capability_registry(
 
 def _canonicalize_candidates(
     content: dict[str, Any],
-    registry: CapabilityRegistry,
+    registry: CapabilityRegistry | None,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
-    normalized = dict(content)
+    normalized = copy.deepcopy(content)
     dropped: list[str] = []
     warnings: list[str] = []
-    _filter_registered_data_candidates(normalized, registry, dropped)
-    _filter_registered_assets(normalized, registry, dropped)
-    _rebuild_event_candidates(normalized, registry, dropped, warnings)
+    _decode_object_fields(normalized)
+    if registry is not None:
+        _rebuild_event_candidates(normalized, registry, dropped, warnings)
     return normalized, dropped, warnings
-
-
-def _filter_registered_data_candidates(
-    content: dict[str, Any],
-    registry: CapabilityRegistry,
-    dropped: list[str],
-) -> None:
-    candidates = content.get("candidateDataBindings")
-    if not isinstance(candidates, list):
-        return
-    filtered = []
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            filtered.append(candidate)
-            continue
-        capability_id = candidate.get("capabilityId")
-        if not isinstance(capability_id, str):
-            filtered.append(candidate)
-            continue
-        if registry.get_data_capability(capability_id) is None:
-            dropped.append(f"candidateDataBindings:{capability_id}")
-            continue
-        filtered.append(candidate)
-    content["candidateDataBindings"] = filtered
-
-
-def _filter_registered_assets(
-    content: dict[str, Any],
-    registry: CapabilityRegistry,
-    dropped: list[str],
-) -> None:
-    asset_ids = content.get("candidateAssetIds")
-    if not isinstance(asset_ids, list):
-        return
-    filtered = []
-    for asset_id in asset_ids:
-        if not isinstance(asset_id, str):
-            filtered.append(asset_id)
-            continue
-        if registry.get_asset_capability(asset_id) is None:
-            dropped.append(f"candidateAssetIds:{asset_id}")
-            continue
-        filtered.append(asset_id)
-    content["candidateAssetIds"] = filtered
 
 
 def _rebuild_event_candidates(
@@ -498,9 +665,16 @@ def _rebuild_event_candidates(
             continue
         capability = registry.get_event_capability(capability_id)
         if capability is None:
-            dropped.append(f"candidateEventCandidates:{capability_id}")
+            rebuilt.append(candidate)
             continue
+        unknown = set(candidate) - {"capabilityId", "action", "dynamicArguments"}
+        if unknown:
+            raise CompactDslArgumentRepairError(f"unknown event fields: {sorted(unknown)}")
         action = candidate.get("action")
+        if action is not None and not isinstance(action, dict):
+            raise CompactDslArgumentRepairError("action must be an object")
+        if action is None and not isinstance(candidate.get("dynamicArguments"), dict):
+            raise CompactDslArgumentRepairError("event is missing its original action")
         source_action = action if isinstance(action, dict) else {}
         if "dynamicArguments" in candidate:
             source_action = dict(source_action)
@@ -509,6 +683,7 @@ def _rebuild_event_candidates(
         template_args = template.get("args")
         if not isinstance(template_args, dict):
             raise CompactDslArgumentRepairError("event action template args must be an object")
+        _validate_source_action(source_action, template, capability_id, capability.dynamicArguments)
         for dynamic_argument in capability.dynamicArguments:
             _copy_dynamic_argument(
                 source_action,
@@ -519,6 +694,89 @@ def _rebuild_event_candidates(
             )
         rebuilt.append({"capabilityId": capability_id, "action": template})
     content["candidateEventCandidates"] = rebuilt
+
+
+def _validate_source_action(
+    action: dict[str, Any], template: dict[str, Any], capability_id: str,
+    dynamic_arguments: list[EventDynamicArgument],
+) -> None:
+    unknown = set(action) - {"call", "args", "dynamicArguments"}
+    if unknown:
+        raise CompactDslArgumentRepairError(f"unknown action fields: {sorted(unknown)}")
+    call = action.get("call", _MISSING)
+    if call is not _MISSING and call not in (template.get("call"), capability_id):
+        raise CompactDslArgumentRepairError("event call conflicts with registered template")
+    paths = {argument.path for argument in dynamic_arguments}
+    args = action.get("args", {})
+    if not isinstance(args, dict):
+        raise CompactDslArgumentRepairError("action.args must be an object")
+    _validate_action_values(args, template.get("args"), paths, "")
+    metadata = action.get("dynamicArguments")
+    if isinstance(metadata, dict) and set(metadata) - paths:
+        raise CompactDslArgumentRepairError("unknown legacy dynamic paths")
+    if metadata is not None and not isinstance(metadata, (dict, list)):
+        raise CompactDslArgumentRepairError("invalid dynamic argument metadata")
+    if isinstance(metadata, list):
+        for item in metadata:
+            if not isinstance(item, dict):
+                raise CompactDslArgumentRepairError("invalid dynamic argument metadata")
+            if set(item) - {"path", "type", "description", "enum"}:
+                raise CompactDslArgumentRepairError("unknown dynamic argument metadata fields")
+            matches = []
+            for argument in dynamic_arguments:
+                if argument.path == item.get("path"):
+                    matches.append(argument)
+            if len(matches) != 1 or item.get("type") != matches[0].type:
+                raise CompactDslArgumentRepairError("dynamic argument metadata mismatch")
+            if "enum" in item and item.get("enum") != matches[0].enum:
+                raise CompactDslArgumentRepairError("dynamic argument enum mismatch")
+    if call == template.get("call") and not _has_legacy_dynamic_values(args, action):
+        _require_action_fields(args, template.get("args"), "")
+
+
+def _has_legacy_dynamic_values(args: dict[str, Any], action: dict[str, Any]) -> bool:
+    if isinstance(action.get("dynamicArguments"), dict):
+        return True
+    if isinstance(args.get("dynamicArguments"), dict):
+        return True
+    return any(name.startswith("/") for name in args)
+
+
+def _require_action_fields(actual: Any, template: Any, path: str) -> None:
+    if not isinstance(template, dict):
+        return
+    if not isinstance(actual, dict):
+        raise CompactDslArgumentRepairError(f"missing action object: {path}")
+    for name, value in template.items():
+        if name not in actual:
+            raise CompactDslArgumentRepairError(f"missing action field: {path}/{name}")
+        _require_action_fields(actual.get(name), value, f"{path}/{name}")
+
+
+def _validate_action_values(
+    actual: Any, template: Any, dynamic_paths: set[str], path: str,
+) -> None:
+    if path in dynamic_paths:
+        return
+    if isinstance(actual, dict):
+        if not isinstance(template, dict):
+            raise CompactDslArgumentRepairError(f"action structure mismatch: {path}")
+        for name, value in actual.items():
+            if name == "dynamicArguments" and isinstance(value, dict):
+                if set(value) - dynamic_paths:
+                    raise CompactDslArgumentRepairError("unknown legacy dynamic paths")
+                continue
+            if name in dynamic_paths:
+                continue
+            if name not in template:
+                raise CompactDslArgumentRepairError(f"unknown action argument: {path}/{name}")
+            pointer_name = name.replace("~", "~0").replace("/", "~1")
+            _validate_action_values(
+                value, template.get(name), dynamic_paths, f"{path}/{pointer_name}",
+            )
+        return
+    if not _same_values(actual, template):
+        raise CompactDslArgumentRepairError(f"fixed action value mismatch: {path}")
 
 
 def _copy_dynamic_argument(
@@ -537,34 +795,44 @@ def _copy_dynamic_argument(
     for source in sources:
         if not isinstance(source, dict):
             continue
-        value = _read_dynamic_argument(source, parts, dynamic_argument.path)
-        if value is not _MISSING:
-            break
+        candidate_value = _read_dynamic_argument(source, parts, dynamic_argument.path)
+        if candidate_value is _MISSING:
+            continue
+        candidate_value = _restore_binding_expression(
+            candidate_value, _read_path(template_args, parts),
+        )
+        if value is not _MISSING and not _same_values(value, candidate_value):
+            raise CompactDslArgumentRepairError("conflicting dynamic argument values")
+        value = candidate_value
     template_value = _read_path(template_args, parts)
     if value is _MISSING:
         _reject_unresolved_array_argument(template_value, capability_id, dynamic_argument.path)
-        return
+        raise CompactDslArgumentRepairError(
+            f"missing dynamic argument: {capability_id}{dynamic_argument.path}"
+        )
     value = _restore_binding_expression(value, template_value)
     _reject_unresolved_array_argument(value, capability_id, dynamic_argument.path)
     if not _dynamic_value_is_valid(value, dynamic_argument):
         _reject_unresolved_array_argument(template_value, capability_id, dynamic_argument.path)
-        warnings.append(
-            f"事件 {capability_id} 的动态参数 {dynamic_argument.path} 类型或取值非法，"
-            "已保留能力清单默认值。"
+        raise CompactDslArgumentRepairError(
+            f"invalid dynamic argument: {capability_id}{dynamic_argument.path}"
         )
-        return
     _write_existing_path(template_args, parts, value)
 
 
 def _read_dynamic_argument(source: dict[str, Any], parts: tuple[str, ...], path: str) -> Any:
     """仅恢复已声明路径，优先沿用正式嵌套参数，再读取旧格式。"""
     value: Any = _read_path(source, parts)
-    if value is _MISSING:
-        value = source.get(path, _MISSING)
-    if value is _MISSING:
-        legacy = source.get("dynamicArguments")
-        if isinstance(legacy, dict):
-            value = legacy.get(path, _MISSING)
+    legacy = source.get("dynamicArguments")
+    legacy_value: Any = _MISSING
+    if isinstance(legacy, dict):
+        legacy_value = legacy.get(path, _MISSING)
+    for candidate in (source.get(path, _MISSING), legacy_value):
+        if candidate is _MISSING:
+            continue
+        if value is not _MISSING and not _same_values(value, candidate):
+            raise CompactDslArgumentRepairError("conflicting legacy dynamic argument values")
+        value = candidate
     return value
 
 
@@ -654,79 +922,29 @@ def _validate_generation_content(
         key: value for key, value in content.items() if key in _BUSINESS_KEYS
     }
     try:
-        return GenerateWidgetCardRequest(
-            uid="argument-repair-validation",
-            locale=str(device_values.get("locale") or "zh-CN"),
-            prdVer=str(device_values.get("prdVer") or "0"),
-            device={
-                "romVersion": CapabilityRegistry.normalize_rom_version(str(rom_version)),
+        return GenerateWidgetCardRequest.model_validate(
+            {
+                "uid": "argument-repair-validation",
+                "locale": str(device_values.get("locale") or "zh-CN"),
+                "prdVer": str(device_values.get("prdVer") or "0"),
+                "device": {
+                    "romVersion": CapabilityRegistry.normalize_rom_version(str(rom_version)),
+                },
+                **business_content,
             },
-            **business_content,
+            strict=True,
         )
     except ValidationError as exc:
         errors = []
         for item in exc.errors(include_context=False, include_input=False):
             location = "/" + "/".join(str(part) for part in item.get("loc", ()))
             errors.append(f"{location}: {item.get('msg', 'invalid value')}")
-        raise CompactDslArgumentRepairError("; ".join(errors)) from exc
-
-
-def _remove_blocking_candidates(
-    content: dict[str, Any],
-    request: GenerateWidgetCardRequest,
-    registry: CapabilityRegistry,
-    payload: dict[str, Any],
-) -> tuple[dict[str, Any], GenerateWidgetCardRequest, list[str]]:
-    normalized_content = dict(content)
-    dropped: list[str] = []
-    for _iteration in range(4):
-        preflight_request = EditRequestNormalizer.normalize_create(request)
-        preflight = GenerationPreflight(registry).run(preflight_request)
-        if not preflight.blocking_issues:
-            return normalized_content, request, dropped
-        removals: dict[str, set[int]] = {}
-        for issue in preflight.blocking_issues:
-            match = _CANDIDATE_PATH.match(issue.path)
-            if match is None:
-                raise CompactDslArgumentRepairError(
-                    f"preflight rejected repaired content at {issue.path}: {issue.code}"
-                )
-            removals.setdefault(match.group(1), set()).add(int(match.group(2)))
-        if not _drop_candidate_indexes(normalized_content, removals, dropped):
-            raise CompactDslArgumentRepairError(
-                "preflight rejected repaired content without removable candidates"
-            )
-        request = _validate_generation_content(normalized_content, payload)
-    raise CompactDslArgumentRepairError("repaired content did not pass generation preflight")
-
-
-def _drop_candidate_indexes(
-    content: dict[str, Any],
-    removals: dict[str, set[int]],
-    dropped: list[str],
-) -> bool:
-    changed = False
-    for field_name, indexes in removals.items():
-        candidates = content.get(field_name)
-        if not isinstance(candidates, list):
-            continue
-        for index in sorted(indexes, reverse=True):
-            if index >= len(candidates):
-                continue
-            candidate = candidates.pop(index)
-            dropped.append(f"{field_name}:{_candidate_label(candidate)}")
-            changed = True
-    return changed
-
-
-def _candidate_label(candidate: Any) -> str:
-    if isinstance(candidate, str):
-        return candidate
-    if isinstance(candidate, dict):
-        value = candidate.get("capabilityId")
-        if isinstance(value, str):
-            return value
-    return "invalid"
+        raise CompactDslArgumentRepairError(
+            "; ".join(errors),
+            feedback=request_validation_feedback(
+                exc, "generateWidgetCardCompactDsl", arguments=business_content,
+            ),
+        ) from exc
 
 
 def _normalized_business_content(
@@ -736,8 +954,12 @@ def _normalized_business_content(
     request_values = request.model_dump(mode="json", exclude_none=True)
     normalized = {}
     for key in _BUSINESS_KEYS:
-        if key in source and key in request_values:
-            normalized[key] = request_values[key]
+        if key not in source:
+            continue
+        if source.get(key) is None:
+            normalized[key] = None
+        elif key in request_values:
+            normalized[key] = request_values.get(key)
     bundle_name = source.get("bundleName")
     if isinstance(bundle_name, str) and bundle_name.strip():
         normalized["bundleName"] = bundle_name
@@ -752,7 +974,7 @@ def _preserve_valid_fragments(
     registry: CapabilityRegistry | None,
 ) -> PreservedArguments:
     fragments = extract_fragments(raw)
-    preserved = PreservedArguments(required_fields=list(fragments.damaged_fields))
+    preserved = PreservedArguments(required_fields=list(fragments.damaged_fields), raw=raw)
     text_fields = {
         "userQuery", "title", "description", "sourceArtifactUrl", "bundleName", "romVersion"
     }

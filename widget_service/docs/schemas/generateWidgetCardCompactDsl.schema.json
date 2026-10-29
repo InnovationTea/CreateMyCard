@@ -5,13 +5,19 @@
   "description": "提交用户需求和候选能力，使用 Design Compact DSL 生成并转换为标准 A2UI 卡片 artifact。content 对应业务入参。",
   "messageEnvelope": {
     "type": "object",
-    "required": ["content", "deviceInfo", "session"],
+    "required": [
+      "content",
+      "deviceInfo",
+      "session"
+    ],
     "properties": {
       "content": {
         "type": "object",
         "required": true,
-        "description": "唯一业务入参来源；uid、romVersion 和 odid 均可选；外层同名业务字段不会覆盖 content。",
-        "requiredProperties": ["userQuery", "title", "description"],
+        "description": "唯一业务入参来源；uid、romVersion 和 odid 均可选；外层同名业务字段不会覆盖 content。 新建另要求 title、description 非空；编辑未修改时省略并继承。业务入参禁止字符串化，微服务可尝试无损确定性恢复。",
+        "requiredProperties": [
+          "userQuery"
+        ],
         "properties": {
           "skillName": {
             "type": "string",
@@ -60,32 +66,106 @@
           },
           "size": {
             "type": "string",
-            "enum": ["2x2", "2x4"],
+            "enum": [
+              "2x2",
+              "2x4"
+            ],
             "required": false,
             "default": "2x2",
             "description": "主 Agent 建议尺寸。"
           },
           "title": {
             "type": "string",
-            "required": true,
+            "required": false,
             "minLength": 1,
-            "description": "主 Agent 建议的卡片标题；微服务规范化后写入最终 CardSpec。"
+            "description": "主 Agent 建议的卡片标题；微服务规范化后写入最终 CardSpec；新建必填，编辑可省略继承。"
           },
           "description": {
             "type": "string",
-            "required": true,
+            "required": false,
             "minLength": 1,
-            "description": "主 Agent 建议的卡片说明；微服务规范化后写入最终 CardSpec。"
+            "description": "主 Agent 建议的卡片说明；微服务规范化后写入最终 CardSpec；新建必填，编辑可省略继承。"
           },
           "candidateDataBindings": {
             "type": "CandidateDataBinding[]",
             "required": false,
-            "description": "根据第一个接口可用数据能力和第二个接口 schema 规划的数据绑定。"
+            "description": "根据第一个接口可用数据能力和第二个接口 schema 规划的数据绑定。",
+            "items": {
+              "type": "Object",
+              "description": "候选数据能力",
+              "required": [
+                "capabilityId",
+                "arguments",
+                "writeResultTo"
+              ],
+              "properties": {
+                "writeResultTo": {
+                  "type": "String",
+                  "description": "结果写入路径"
+                },
+                "arguments": {
+                  "type": "Object",
+                  "description": "符合本轮 inputSchema 的 JSON 对象；无参用 {}，禁止 JSON 字符串、数组或 null",
+                  "additionalProperties": true
+                },
+                "capabilityId": {
+                  "type": "String",
+                  "description": "能力ID"
+                },
+                "candidateOutputFields": {
+                  "type": "Array<String>",
+                  "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
+                  "required": [],
+                  "properties": {
+                    "ArrayItem": {
+                      "type": "String",
+                      "description": "可选候选展示字段 JSON Pointer"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
           },
           "candidateEventCandidates": {
             "type": "CandidateEventCandidate[]",
             "required": false,
-            "description": "从第一个接口可用事件能力中规划的点击事件列表。"
+            "description": "从第一个接口可用事件能力中规划的点击事件列表。",
+            "items": {
+              "type": "Object",
+              "description": "来自本轮概述的事件候选",
+              "required": [
+                "capabilityId",
+                "action"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "capabilityId": {
+                  "type": "String",
+                  "description": "本轮事件概述 ID"
+                },
+                "action": {
+                  "type": "Object",
+                  "description": "完整复制对应模板的值，只替换声明的动态参数",
+                  "required": [
+                    "call",
+                    "args"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "call": {
+                      "type": "String",
+                      "description": "模板原始调用类型，不填事件 ID"
+                    },
+                    "args": {
+                      "type": "Object",
+                      "description": "模板完整参数对象，保留固定值与空字符串，禁止序列化成字符串",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
           },
           "candidateAssetIds": {
             "type": "string[]",
@@ -133,7 +213,11 @@
   },
   "output": {
     "type": "object",
-    "required": ["errorCode", "errorMessage", "reply"],
+    "required": [
+      "errorCode",
+      "errorMessage",
+      "reply"
+    ],
     "properties": {
       "errorCode": {
         "type": "string",
@@ -149,7 +233,10 @@
         "type": "object",
         "required": true,
         "description": "流处理插件响应内容。",
-        "requiredProperties": ["streamInfo", "items"],
+        "requiredProperties": [
+          "streamInfo",
+          "items"
+        ],
         "properties": {
           "streamInfo": {
             "$ref": "#/nestedTypes/StreamInfo",
@@ -168,7 +255,12 @@
   },
   "nestedTypes": {
     "StreamInfo": {
-      "required": ["streamContent", "streamingTextId", "streamType", "textType"],
+      "required": [
+        "streamContent",
+        "streamingTextId",
+        "streamType",
+        "textType"
+      ],
       "properties": {
         "streamContent": "string；command 外层含 content/content_type/event/process_time/task_id；content 指令含 cardId/size。",
         "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
@@ -177,7 +269,16 @@
       }
     },
     "GenerateWidgetCardResult": {
-      "required": ["type", "tool", "operation", "requestId", "data", "status", "errorCode", "error"],
+      "required": [
+        "type",
+        "tool",
+        "operation",
+        "requestId",
+        "data",
+        "status",
+        "errorCode",
+        "error"
+      ],
       "properties": {
         "type": "string，旧完整出参消息类型；正常为 result，异常为 error。",
         "tool": "string，当前工具名；本接口为 generateWidgetCardCompactDsl。",
@@ -193,11 +294,15 @@
         "data.effectiveCapabilities": "object，最终进入 artifact 的有效 data、event、asset 能力集合。",
         "status": "string，旧完整出参调用状态；生成接口透传 data.status。",
         "errorCode": "string，旧完整出参错误码；生成接口透传 data.errorCode。",
-        "error": "object；参数错误提供 details.issues 的路径和修正说明、retryable 及 requiredActions；业务 failed/unsupported 提供停止指引，success/degraded 为空对象。"
+        "error": "object；参数错误提供 details.issues 的路径和修正说明、retryable 及 requiredActions；业务 failed/unsupported 提供停止指引，success/degraded 为空对象。 GENERATION_INPUT_INCOMPLETE 使用 details.stage=generationInput、modelCalled=true、retryable=true、requiredActions 与 issues；要求主Agent核对本轮可用能力、完整定义和权限后在原预算内补参重调，服务不自动补能力或保存产物。"
       }
     },
     "CandidateDataBinding": {
-      "required": ["capabilityId", "arguments", "writeResultTo"],
+      "required": [
+        "capabilityId",
+        "arguments",
+        "writeResultTo"
+      ],
       "properties": {
         "capabilityId": "string，数据能力 ID。",
         "arguments": "object，能力入参，只能使用该能力 inputSchema 声明的字段。",
@@ -206,7 +311,10 @@
       }
     },
     "CandidateEventCandidate": {
-      "required": ["capabilityId", "action"],
+      "required": [
+        "capabilityId",
+        "action"
+      ],
       "properties": {
         "capabilityId": "string，事件能力 ID。",
         "action.call": "string，事件调用名，例如 clickToDeeplink、clickToIntent、clickToApi。",
@@ -214,7 +322,11 @@
       }
     },
     "DeviceInfo": {
-      "required": ["locale", "phoneType", "sysVer"],
+      "required": [
+        "locale",
+        "phoneType",
+        "sysVer"
+      ],
       "properties": {
         "countryCode": "string，可选，国家码。",
         "deviceFormation": "string，可选，设备形态。",
@@ -228,7 +340,10 @@
       }
     },
     "Session": {
-      "required": ["sessionId", "interactionId"],
+      "required": [
+        "sessionId",
+        "interactionId"
+      ],
       "properties": {
         "sessionId": "string，会话 ID。",
         "interactionId": "string，交互 ID。",

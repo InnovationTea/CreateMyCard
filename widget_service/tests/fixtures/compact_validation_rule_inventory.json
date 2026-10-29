@@ -3,6 +3,13 @@
   "sites": [
     {
       "module": "semantic/bindings.py",
+      "function": "_info_block_progress_binding_diagnostic",
+      "code": "COMPACT_BINDING_INFO_BLOCK_PROGRESS_SOURCE",
+      "class": "semantic",
+      "category": "binding"
+    },
+    {
+      "module": "semantic/bindings.py",
       "function": "_collect_progress_value_errors",
       "code": "COMPACT_BINDING_PROGRESS_TYPE",
       "class": "semantic",
@@ -42,6 +49,13 @@
       "code": "COMPACT_CONTEXT_SCHEMA_INVALID",
       "class": "semantic",
       "category": "cross_file"
+    },
+    {
+      "module": "semantic/display.py",
+      "function": "_collect_action_label_length_errors",
+      "code": "COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG",
+      "class": "semantic",
+      "category": "display"
     },
     {
       "module": "semantic/display.py",
@@ -89,6 +103,20 @@
       "module": "semantic/effective.py",
       "function": "_collect_event_candidate_error",
       "code": "COMPACT_EVENT_NOT_ALLOWED",
+      "class": "semantic",
+      "category": "effective"
+    },
+    {
+      "module": "semantic/event_items.py",
+      "function": "collect_event_item_errors",
+      "code": "COMPACT_EVENT_ITEM_MISMATCH",
+      "class": "semantic",
+      "category": "effective"
+    },
+    {
+      "module": "semantic/event_items.py",
+      "function": "collect_event_item_errors",
+      "code": "COMPACT_EVENT_ITEM_DUPLICATE",
       "class": "semantic",
       "category": "effective"
     },

@@ -36,6 +36,24 @@ DECODER = json.JSONDecoder(
     parse_float=_finite_float,
 )
 _TOKEN = re.compile(r'"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null')
+_CONTAINER_TOKEN = re.compile(r'"(?:[^"\\]|\\.)*"|[{}\[\]]')
+_SIGNATURE_TOKEN = re.compile(_TOKEN.pattern + r"|[{}\[\]]")
+
+
+def validate_recovery_depth(value: Any) -> None:
+    """在复制或递归比较前约束恢复候选深度，不改变正常请求的业务限制。"""
+    pending = [(value, 0)]
+    while pending:
+        current, depth = pending.pop()
+        if depth > 64:
+            raise ValueError("arguments exceed recovery depth limit")
+        children: Any = ()
+        if isinstance(current, dict):
+            children = current.values()
+        elif isinstance(current, list):
+            children = current
+        for child in children:
+            pending.append((child, depth + 1))
 
 
 @dataclass
@@ -132,13 +150,61 @@ def _scalar_tokens(raw: str) -> list[Any]:
 def repair_syntax(raw: str) -> str:
     """json_repair 只修标点；修复后仍须严格解析和业务校验，不使用 schema 补默认值。"""
     original_tokens = _scalar_tokens(raw)
-    repaired = repair_json(raw, skip_json_loads=True, ensure_ascii=False)
+    balanced = _close_containers(raw)
+    repaired = repair_json(balanced, skip_json_loads=True, ensure_ascii=False)
     if not isinstance(repaired, str):
         raise ValueError("JSON repair did not return text")
     DECODER.decode(repaired)
     if original_tokens != _scalar_tokens(repaired):
         raise ValueError("JSON repair changed or removed fields/values")
+    if _container_signature(balanced) != _container_signature(repaired):
+        raise ValueError("JSON repair changed container boundaries")
     return repaired
+
+
+def _close_containers(raw: str) -> str:
+    """仅补闭合符；遇到数组结束符时先闭合其内部未闭合对象，避免尾部字段被吞入。"""
+    stack: list[str] = []
+    pieces: list[str] = []
+    position = 0
+    closing = {"{": "}", "[": "]"}
+    for match in _CONTAINER_TOKEN.finditer(raw):
+        token = match.group()
+        pieces.append(raw[position:match.start()])
+        if token in closing:
+            stack.append(token)
+            if len(stack) > 64:
+                raise ValueError("JSON repair exceeds container depth limit")
+        elif token in ("}", "]"):
+            while stack and closing.get(stack[-1]) != token:
+                pieces.append(_closing_token(stack.pop()))
+            if not stack:
+                raise ValueError("unexpected JSON closing delimiter")
+            stack.pop()
+        pieces.append(token)
+        position = match.end()
+    pieces.append(raw[position:])
+    while stack:
+        pieces.append(_closing_token(stack.pop()))
+    return "".join(pieces)
+
+
+def _closing_token(opening: str) -> str:
+    closing = {"{": "}", "[": "]"}.get(opening)
+    if closing is None:
+        raise ValueError("unknown JSON opening delimiter")
+    return closing
+
+
+def _container_signature(raw: str) -> list[str]:
+    """同时保留字符串和容器的相对位置，不能只比较标量序列。"""
+    result: list[str] = []
+    for match in _SIGNATURE_TOKEN.finditer(raw):
+        token = match.group()
+        if token not in ("{", "}", "[", "]"):
+            token = json.dumps(DECODER.decode(token), ensure_ascii=False)
+        result.append(token)
+    return result
 
 
 @dataclass
@@ -146,6 +212,7 @@ class PreservedArguments:
     fields: dict[str, Any] = field(default_factory=dict)
     items: dict[str, dict[int, Any]] = field(default_factory=dict)
     required_fields: list[str] = field(default_factory=list)
+    raw: str | None = None
 
     def merge(self, repaired: dict[str, Any]) -> dict[str, Any]:
         result = copy.deepcopy(repaired)

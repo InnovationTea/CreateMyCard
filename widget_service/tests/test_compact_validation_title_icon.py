@@ -142,7 +142,7 @@ def test_title_height_budget_matches_rendered_recipe(size: str, with_icon: bool)
     height = 20 if with_icon else 12
     task = _task(size, description="保留原色")
     _validate(_source(props, panel_height=height), task)
-    tolerance = 2 if size == "2x2" else 0
+    tolerance = 2
     source = _source(props, panel_height=height - tolerance - 1)
     with pytest.raises(CompactDslValidationError) as captured:
         _validate(source, task)

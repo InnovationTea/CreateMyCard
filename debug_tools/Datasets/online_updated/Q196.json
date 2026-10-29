@@ -1,0 +1,129 @@
+{
+  "content": {
+    "title": "每日待办",
+    "description": "待办事项速览",
+    "userQuery": "制作一张每日待办便签卡片，展示我的备忘录待办事项，包含待办总数、已完成数、未完成数，以及待办明细列表，支持点击跳转到备忘录应用查看详情。设计风格像便利贴，米白底色，圆角，顶部显示日期和待办统计，下方列出待办条目，每条左侧有勾选框样式，完成项文字划线变灰。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/todoTotalCount",
+          "/todoCompletedCount",
+          "/todoPendingCount",
+          "/todos/0/title",
+          "/todos/0/isComplete",
+          "/todos/1/title",
+          "/todos/1/isComplete",
+          "/todos/2/title",
+          "/todos/2/isComplete",
+          "/todos/3/title",
+          "/todos/3/isComplete",
+          "/hasReminderToday",
+          "/nextReminderTimeText"
+        ],
+        "capabilityId": "GetMemoData",
+        "writeResultTo": "/data/memo"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewNote"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.checkmark_circle_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026012424896"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "31faf624-8ed4-4936-9591-8ac37d070bad"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.checkmark_circle_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewNote"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "待办事项速览",
+  "userQuery": "制作一张每日待办便签卡片，展示我的备忘录待办事项，包含待办总数、已完成数、未完成数，以及待办明细列表，支持点击跳转到备忘录应用查看详情。设计风格像便利贴，米白底色，圆角，顶部显示日期和待办统计，下方列出待办条目，每条左侧有勾选框样式，完成项文字划线变灰。",
+  "title": "每日待办",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/todoTotalCount",
+        "/todoCompletedCount",
+        "/todoPendingCount",
+        "/todos/0/title",
+        "/todos/0/isComplete",
+        "/todos/1/title",
+        "/todos/1/isComplete",
+        "/todos/2/title",
+        "/todos/2/isComplete",
+        "/todos/3/title",
+        "/todos/3/isComplete",
+        "/hasReminderToday",
+        "/nextReminderTimeText"
+      ],
+      "capabilityId": "GetMemoData",
+      "writeResultTo": "/data/memo"
+    }
+  ]
+}

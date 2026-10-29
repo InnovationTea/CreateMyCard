@@ -252,7 +252,7 @@ def _text_styles(content: list[dict[str, Any]], path: str) -> list[dict[str, Any
 def _assert_reference_style(case: _Case, content: list[dict[str, Any]]) -> None:
     # 只约束参考款的主辅文字层级与分组特征，避免复制整份组件树作为期望值。
     if case.template_id == "ScheduleOverviewSourceReminderFull@1":
-        expected = (("/events/0/senderName", 16, 700), ("/events/0/remindTime/0", 12, 400))
+        expected = (("/events/0/senderName", 18, 700), ("/events/0/remindTime/0", 12, 400))
         sender_styles = _text_styles(content, "/events/0/senderName")
         assert len(sender_styles) == 1
         assert "height" not in sender_styles[0]
@@ -301,10 +301,14 @@ def _assert_grouped_layout(case: _Case, content: list[dict[str, Any]]) -> None:
     assert columns
     root = columns[0]
     if case.template_id == "ScheduleOverviewSourceReminderFull@1":
-        assert _styles(root).get("justifyContent") == "start"
-        assert root.get("itemMargin") == 8
+        assert _styles(root).get("justifyContent") == "spaceBetween"
+        assert root.get("itemMargin") == 2
         assert len(columns) == 2
         assert columns[1].get("itemMargin") == 4
+        headers = [component for component in content if component.get("component") == "Row"]
+        assert len(headers) == 1
+        assert _styles(headers[0]).get("height") == 24
+        assert _styles(headers[0]).get("alignItems") == "top"
     elif case.template_id in {
         "ScheduleOverviewEventCountDetailsWideFull@1",
         "ScheduleOverviewReminderWideFull@1",
@@ -345,7 +349,7 @@ def test_no_action_templates_compile_every_optional_combination_within_150vp(
         assert len(title_styles) == 1
         title_style = title_styles[0]
         if case.template_id == "ScheduleOverviewSourceReminderFull@1":
-            assert (title_style.get("fontSize"), title_style.get("fontWeight")) == (12, 400)
+            assert (title_style.get("fontSize"), title_style.get("fontWeight")) == (12, 500)
         elif case.template_id in {
             "ScheduleOverviewEventCountDetailsWideFull@1",
             "ScheduleOverviewReminderWideFull@1",

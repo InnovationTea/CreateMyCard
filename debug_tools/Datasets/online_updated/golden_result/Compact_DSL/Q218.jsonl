@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"当前天气","value":{"path":"/data/weather/current/temperatureText"},"supportingText":"{{ ${/data/weather/current/condition} + ' · ' + ${/data/weather/location/prefectureName} }}"}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/location/prefectureName","上海市"]

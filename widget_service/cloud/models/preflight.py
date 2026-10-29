@@ -73,15 +73,24 @@ class GenerationPreflightError(ValueError):
         required_actions = [
             action.value for action in action_order if action in action_set
         ]
+        instruction = "停止本轮自动调用，按 issues 说明原因；保留原有效来源。"
+        if retryable and AgentAction.STOP not in action_set:
+            instruction = (
+                "按 requiredActions 修正全部 issues 后提交完整 invoke.arguments 重试，"
+                "沿用既有预算。"
+            )
+            for issue in self.result.blocking_issues:
+                if issue.path.startswith("/candidateDataBindings"):
+                    instruction += "数据绑定变化后复查权限。"
+                    break
+        if self.result.warnings:
+            instruction += "warnings 为非阻断调整，请核对核心需求是否仍满足。"
         return {
             "stage": "generationPreflight",
             "modelCalled": False,
             "retryable": retryable,
             "requiredActions": required_actions,
-            "agentInstruction": (
-                "按 requiredActions 顺序处理，并结合本轮能力概述和数据 schema 修正全部 issues；"
-                "不得原样重试，不得交给模型 repair。候选数据集合变化后必须重新检查权限。"
-            ),
+            "agentInstruction": instruction,
             "issues": [
                 issue.model_dump(mode="json") for issue in self.result.blocking_issues
             ],
