@@ -60,6 +60,7 @@ from services.theme_user_preferences import (
     PREFERENCE_INSTRUCTION,
     color_overrides,
     filter_with_fusion_fallback,
+    palette_fusion_candidates,
     parse_preferences,
     preference_reason,
     prioritize_candidates,
@@ -324,6 +325,8 @@ def apply_theme(source: str, theme: dict, task: dict, overrides: dict) -> str:
 def preference_fallback(task: dict, preferences: list[dict], overrides: dict) -> dict:
     """校验或绘制失败后的普通主题仍须满足已确认偏好。"""
     ordinary = [item for item in presets(task) if item.get("kind") in {"solid", "gradient"}]
+    # 降级色系也写回审计及后续绘制，保留明确颜色与深浅要求。
+    overrides.update(color_overrides(preferences, candidates=ordinary))
     allowed = filter_with_fusion_fallback(ordinary, preferences, overrides)
     allowed = prioritize_candidates(allowed, preferences, default_palette_family(task))
     if not allowed:
@@ -359,7 +362,9 @@ async def select_theme(
             update = record.get("updateDataModel", {})
             if update.get("path") == "/" and isinstance(update.get("value"), dict):
                 data_model = update.get("value")
-        evidence = photo_layout_evidence(components(records), data_model, final_layout=final_layout)
+        evidence = photo_layout_evidence(
+            components(records), data_model, final_layout=final_layout, size=task.get("size"),
+        )
         excluded = load_theme_registry().get("photoEligibility", {}).get(
             "excludedForegroundAssets", [],
         )
@@ -367,8 +372,9 @@ async def select_theme(
             components(records), excluded, get_settings().asset_src_url_mapping, data_model,
         )
     fusion_gate = fusion_candidate_gate(task, final_layout, business_context)
+    standard_candidates = presets(task)
     candidates = [
-        item for item in presets(task)
+        item for item in standard_candidates
         if item.get("kind") != "fusion" or item.get("id") in fusion_gate.get("allowedTokens", [])
     ]
     family = default_palette_family(task)
@@ -433,6 +439,14 @@ async def select_theme(
             else:
                 rejected[candidate.get("id")] = "静态文字卡优先浅色底，减少纹理对信息的干扰"
         candidates = retained
+    conditional_fusions = []
+    if not current_content_policy().is_static:
+        for candidate in standard_candidates:
+            if candidate.get("kind") != "fusion":
+                continue
+            if candidate.get("id") not in fusion_gate.get("allowedTokens", []):
+                conditional_fusions.append(candidate)
+    fusion_gate["conditionalFusionTokens"] = [item.get("id") for item in conditional_fusions]
     expansions = [item.get("id") for item in candidates if item.get("composition") == "square-left"]
     prompt = [
         {
@@ -452,6 +466,8 @@ async def select_theme(
                         "businessSummary": final_business.payload(),
                     },
                     "candidates": [theme_description(item) for item in candidates],
+                    "paletteFusionCandidates": [theme_description(item)
+                                                for item in conditional_fusions],
                     "eligiblePhotos": [item.get("id") for item in candidates
                                        if item.get("kind") == "photo"],
                     "preferredExpansions": expansions,
@@ -461,7 +477,7 @@ async def select_theme(
             ),
         },
     ]
-    model_candidates = candidates
+    model_candidates = candidates + conditional_fusions
     selected = fallback_id
     preferences = []
     preference_status = "unavailable"
@@ -483,8 +499,11 @@ async def select_theme(
         selected = choice.get("themeId")
     except (ValueError, RuntimeError) as exc:
         choice_error = str(exc)
-    overrides = color_overrides(preferences)
-    candidates = filter_with_fusion_fallback(model_candidates, preferences, overrides)
+    palette_fusions = palette_fusion_candidates(conditional_fusions, preferences)
+    fusion_gate["palettePreferenceTokens"] = [item.get("id") for item in palette_fusions]
+    candidates.extend(palette_fusions)
+    overrides = color_overrides(preferences, candidates=candidates)
+    candidates = filter_with_fusion_fallback(candidates, preferences, overrides)
     candidates = prioritize_candidates(candidates, preferences, family)
     if not candidates:
         raise ValueError("User theme preferences conflict with all eligible candidates")
@@ -492,10 +511,19 @@ async def select_theme(
     for candidate in model_candidates:
         identity = candidate.get("id")
         if identity not in allowed:
-            rejected[identity] = preference_reason(candidate, preferences, overrides) or (
-                "已有更高优先级的合格主题"
-            )
+            if candidate in conditional_fusions and candidate not in palette_fusions:
+                rejected[identity] = "默认融球门禁未通过，且没有对应的肯定色系偏好"
+            else:
+                rejected[identity] = preference_reason(candidate, preferences, overrides) or (
+                    "已有更高优先级的合格主题"
+                )
     if selected not in allowed:
+        inactive_fusion = selected in fusion_gate.get("conditionalFusionTokens", [])
+        inactive_fusion = inactive_fusion and selected not in fusion_gate.get(
+            "palettePreferenceTokens", [],
+        )
+        if inactive_fusion and choice_error is None:
+            choice_error = "Theme selector chose conditional fusion without matching palette"
         registered = any(item.get("id") == selected for item in model_candidates)
         if not registered and choice_error is None:
             choice_error = "Theme selector returned an unregistered choice"

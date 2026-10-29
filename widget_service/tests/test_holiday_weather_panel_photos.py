@@ -98,8 +98,8 @@ def test_ice_does_not_enter_focus_layouts(layout):
     assert rejection(sample(PATHS.get("weather"), 1), ICE)
 
 
-@pytest.mark.parametrize("selected", [SLEEP, FIREWORKS])
-def test_sleep_pair_uses_single_unweighted_choice(monkeypatch, selected):
+@pytest.mark.parametrize("selected", [SLEEP, FIREWORKS, "photo-ux-sleep-new-square"])
+def test_sleep_trio_uses_single_unweighted_choice(monkeypatch, selected):
     calls = []
 
     def choice(items):
@@ -110,8 +110,8 @@ def test_sleep_pair_uses_single_unweighted_choice(monkeypatch, selected):
     saved = sample(button=False)
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
-    assert len(calls[0]) == 2
-    assert set(calls[0]) == {SLEEP, FIREWORKS}
+    assert len(calls[0]) == 3
+    assert set(calls[0]) == {SLEEP, FIREWORKS, "photo-ux-sleep-new-square"}
     assert audit.get("themeId") == selected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 

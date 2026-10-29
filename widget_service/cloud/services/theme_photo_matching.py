@@ -28,6 +28,7 @@ class PhotoMatchFacts:
     panel_count: int | None = None
     error: str | None = None
     subject_exclusion: str | None = None
+    body_regions: dict = field(default_factory=dict)
 
 
 def photo_content_reason(photo: dict, facts: PhotoMatchFacts) -> str | None:
@@ -82,7 +83,27 @@ def photo_content_reason(photo: dict, facts: PhotoMatchFacts) -> str | None:
         return f"图片正文超过{maximum}行（不含顶部标题和按钮文案）"
     if not texture and facts.size == "2x2" and flow.get("leftAligned") is not True:
         return "2x2主体图片要求正文整体居左，不能居中或两端对齐"
-    return _placement_reason(policy, scope, flow, facts.top_content)
+    reason = _placement_reason(policy, scope, flow, facts.top_content)
+    if reason is None and policy.get("bodyRegions") is not None:
+        reason = _body_region_reason(policy.get("bodyRegions"), facts)
+    return reason
+
+
+def _body_region_reason(requirement: dict, facts: PhotoMatchFacts) -> str | None:
+    regions = facts.body_regions
+    reason: str | None = None
+    if facts.size != "2x2" or regions.get("complete") is not True:
+        reason = "无法确认方图正文与底部区域：" + str(regions.get("reason"))
+    else:
+        main = regions.get("mainLines")
+        minimum = requirement.get("mainMinLines")
+        maximum = requirement.get("mainMaxLines")
+        footer = regions.get("footerTextLines", 0) + regions.get("footerButtonRows", 0)
+        if type(main) is not int or not minimum <= main <= maximum:
+            reason = f"此图片要求中间连续正文{minimum}至{maximum}行"
+        elif footer > requirement.get("footerMaxRows", 0):
+            reason = "此图片底部仅允许一行文字或一行按钮，不能同时放置"
+    return reason
 
 
 def _wide_reason(layout: str) -> str:

@@ -108,6 +108,7 @@ def fusion_photo_facts(
     return PhotoMatchFacts(
         task.get("size"), scopes=scopes, panel_count=count,
         top_content=evidence.get("photoTopContent", {}),
+        body_regions=evidence.get("photoBodyRegions", {}),
         subject_exclusion=photo_layout_exclusion_reason(task, evidence, final_layout),
     )
 

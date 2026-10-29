@@ -3043,7 +3043,9 @@ def _expand_data_display(
             variant=variant,
             props={
                 "content": copy.deepcopy(component.props["supportingText"]),
-                "fontColor": secondary_color,
+                "fontColor": _secondary_value_color(
+                    {"value": component.props["supportingText"]}, component.props["fontColor"],
+                ),
             },
         ),
     ]
