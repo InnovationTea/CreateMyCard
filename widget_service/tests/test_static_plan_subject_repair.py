@@ -147,3 +147,101 @@ def test_dynamic_repair_keeps_exact_previous_instruction():
         "不得生成 Compact DSL、Markdown 或解释。"
     )
     assert "staticPlanReferences" not in payload
+
+
+def test_unaccepted_static_plan_repair_can_choose_records_and_reports_real_omission():
+    plan = _plan()
+    before = copy.deepcopy(plan)
+    payload = _repair(plan, ("记录数超限",))
+    instruction = payload.get("instruction", "")
+    assert "本轮普通Plan尚未接受" in instruction
+    assert "可以合理未选完整记录" in instruction
+    assert "明确要求全部、完整或逐字展示时不得擅自省略" in instruction
+    assert "已声明未选的完整记录不能仍以must保留在展示账本中" in instruction
+    assert "description和空factIndexes记入omittedContents" in instruction
+    assert "切换presentationStyle时同步正文componentHints" in instruction
+    assert "SingleLineList仅适合实际能单行承载的短键值" in instruction
+    assert "不是记录数超限的通用解法" in instruction
+    assert plan == before
+
+
+def test_record_capacity_error_keeps_original_gate_and_conditional_switch_guidance():
+    from services.card_validation.compact_validation.semantic.layout.text_capacity import (
+        static_plan_capacity_errors,
+    )
+
+    plan = _plan()
+    plan["presentationStyle"] = "records"
+    before = copy.deepcopy(plan)
+    errors = static_plan_capacity_errors(plan, "2x4")
+    assert len(errors) == 1
+    assert errors[0].startswith("COMPACT_STATIC_TEXT_CAPACITY: TextList最多三项")
+    assert "仅适合能完整单行承载的短键值" in errors[0]
+    assert "恢复Plan仍须保持固定事实" in errors[0]
+    assert "请改用单行列表" not in errors[0]
+    assert plan == before
+
+
+def test_long_venue_records_can_use_declared_selection_with_unchanged_contract():
+    from services.card_validation import validate_compact_dsl
+
+    title = "Rivergate 2031 · 19:30 local"
+    records = [
+        ("Blue Quartet", "Jun 4 · Grand Riverside Hall"),
+        ("Silver Ensemble", "Jun 8 · Northbank Concert Hall"),
+        ("Amber Trio", "Jun 12 · Mountain Theatre"),
+        ("Cedar Orchestra", "Jun 19 · Lakeside Auditorium"),
+    ]
+    facts = [{
+        "requirement": "共同主题和开演时间", "priority": "must", "text": title,
+        "sourceTexts": [title], "displayRole": "title", "componentHints": ["SingleLineTitle"],
+    }]
+    groups = [{"id": "topic", "kind": "shared", "identity": None, "factIndexes": [0]}]
+    for index, (name, venue) in enumerate(records, 1):
+        text = f"{name} — Evening Set｜{venue}"
+        facts.append({
+            "requirement": text, "priority": "must", "text": text, "sourceTexts": [text],
+            "displayRole": "body", "componentHints": ["TextList"],
+        })
+        groups.append({
+            "id": f"record{index}", "kind": "object", "identity": name,
+            "factIndexes": [index],
+        })
+    plan = {
+        "info_required": facts, "contentGroups": groups, "omittedContents": [],
+        "presentationStyle": "records", "layoutHints": ["W-static-content"],
+    }
+    query = "展示演出日程，可按容量选取完整场次。" + "；".join(
+        fact.get("text", "") for fact in facts
+    )
+    task = {"size": "2x4", "userQuery": query, "dataModelSchema": {"data": {}}}
+    before = copy.deepcopy(plan)
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(CompactPlanValidationError, match="TextList最多三项"):
+            parse_compact_plan_call(_raw(plan), task)
+        selected = copy.deepcopy(plan)
+        selected["info_required"] = facts[:3]
+        selected["contentGroups"] = groups[:3]
+        selected["omittedContents"] = [{
+            "description": "未选后两场：Amber Trio、Cedar Orchestra", "factIndexes": [],
+        }]
+        accepted = parse_compact_plan_call(
+            _raw(selected), task, require_static_identity=True, require_static_omission_refs=True,
+        ).plan
+        items = []
+        for name, venue in records[:2]:
+            items.append({"primaryText": f"{name} — Evening Set", "secondaryText": venue})
+        source = "\n".join(json.dumps(row, ensure_ascii=False) for row in [
+            ["root", "Layout", {"layout": "W-static-content"}, ["header", "body"]],
+            ["header", "SingleLineTitle", {"title": title}],
+            ["body", "TextList", {"items": items}], ["/state/ready", True],
+        ])
+        validate_compact_dsl(
+            source, task_spec=task, card_spec={"suggestSize": "2x4"}, compact_plan=accepted,
+            layout_scope="W-static-content-guided",
+        )
+    assert accepted.get("omittedContents") == ["未选后两场：Amber Trio、Cedar Orchestra"]
+    assert len(accepted.get("info_required", [])) == 3
+    assert accepted.get("info_required", [])[1].get("text") == facts[1].get("text")
+    assert accepted.get("info_required", [])[2].get("text") == facts[2].get("text")
+    assert plan == before

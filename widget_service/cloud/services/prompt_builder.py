@@ -1907,6 +1907,8 @@ class PromptBuilder:
         plan_prompt: list[dict[str, str]],
         invalid_output: str,
         errors: tuple[str, ...],
+        *,
+        retry_context: CompactDslRetryContext | None = None,
     ) -> list[dict[str, str]]:
         """把失败 Plan 与校验工具结果追加到同一条对话。"""
         from services.generation_content_policy import current_content_policy
@@ -1920,19 +1922,43 @@ class PromptBuilder:
         if current_content_policy().is_static:
             reference_feedback = static_plan_repair_feedback(invalid_output)
             title_instruction = (
-                "不得删除用户要求来规避错误。来源引用错误先核对并修正引用；"
+                "来源引用错误先核对并修正引用；"
                 "只有来源诊断与原始输入共同确认是模型虚构、且不承载用户要求的装饰文字才移除。"
                 "原始需求的主体、年份和作用范围即使放在header也不是装饰；"
                 "布局不容纳header时，应移到现有合法显示字段，不能删除信息凑结构。"
             )
-            text_instruction = (
+            selection_instruction = (
                 "静态text仍允许忠于sourceTexts的摘要、合并和简洁表达，不要求逐字提取。"
+                "本轮普通Plan尚未接受，修复时沿用首次按用途与容量选取内容的规则："
+                "可以合理未选完整记录，并将实际未选内容以description和空factIndexes记入"
+                "omittedContents；不得改变剩余内容的主体、年份、共同条件或关系含义。"
+                "明确要求全部、完整或逐字展示时不得擅自省略。"
+                "选取结果须落实到info_required和contentGroups；已声明未选的完整记录"
+                "不能仍以must保留在展示账本中，再让DSL硬挤全部记录。"
+                "申请省略但仍在本次展示计划内的should继续按原合同填写其事实索引；"
+                "未选来源与条件性省略不可混记，不从自由文字说明自动删除事实。"
+            )
+            if retry_context is not None and retry_context.capacity_recovery:
+                selection_instruction = (
+                    "本轮为接口容量恢复，requiredFacts/excludedFacts是已确定的事实边界。"
+                    "逐条保留requiredFacts的完整text、对应priority和全部Action；"
+                    "不得摘要、改写、拆分、合并或新增事实，不重加excludedFacts。"
+                    "只重新选择contentGroups、displayRole、componentHints和presentationStyle；"
+                    "不能把保留文字移到requirement或selectionNotes代替展示。"
+                    "没有可行结构时保留真实失败，后续只沿既有明确授权Drop处理。"
+                )
+            text_instruction = selection_instruction + (
                 "修正全部已报告的结构问题；contentGroups.factIndexes只引用本次提交的"
-                "info_required零起始索引，不引用来源条目；合并或删减展示事实后，"
+                "info_required零起始索引，不引用来源条目；重排事实索引后，"
                 "须原子同步info_required、contentGroups及omittedContents全部引用。"
                 "先完成事实与对象的唯一归属，再按实际展示对象数选择presentationStyle和组件。"
-                "TextList项数限制不代表整张卡只能规划三条事实；超出时核对现有单行列表等"
-                "合法组件，不把尚未归组的正文伪装成已省略。"
+                "切换presentationStyle时同步正文componentHints：records对应TextList，"
+                "rows对应SingleLineList，comparison对应ComparisonGroup；"
+                "不能只改风格枚举而保留冲突的首选组件。"
+                "TextList项数限制不代表整张卡只能规划三条事实；SingleLineList仅适合"
+                "实际能单行承载的短键值，不是记录数超限的通用解法。"
+                "长名称、日期加长场馆等组合须核对所选字段的单行能力，不能机械换型；"
+                "不把尚未归组的正文伪装成已省略。"
                 "若输入含“本轮卡片静态内容（用作展示的外部事实）”段，"
                 "每条text须以sourceTexts引用该段内1至3段连续原文，不引用段前的用户期望。"
                 "没有显式事实段时，受保护或要求原文的text仍须有非空来源引用；"

@@ -1199,6 +1199,7 @@ class WidgetGenerationService:
                             repair_prompt_started_at = time.perf_counter()
                             plan_prompt = PromptBuilder.build_compact_plan_repair(
                                 plan_prompt, raw_plan, exc.errors,
+                                retry_context=compact_retry_context,
                             )
                             trace_step(
                                 "plan.prompt.built", stage="plan.promptBuild", status="success",

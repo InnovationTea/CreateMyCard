@@ -194,7 +194,40 @@ def test_repair_conversation_keeps_scope_and_exact_fact_validation():
     errors = compact_recovery_plan_errors(invalid, retry.retained_facts)
     assert len(errors) == 2
     with content_policy_scope(STATIC_CONTENT_POLICY):
-        repaired = PromptBuilder.build_compact_plan_repair(messages, json.dumps(invalid), errors)
+        repaired = PromptBuilder.build_compact_plan_repair(
+            messages, json.dumps(invalid), errors, retry_context=retry,
+        )
     assert scope_from(repaired) == scope_from(messages)
     assert repaired[0] == messages[0]
     assert len(repaired) == 5
+    payload = json.loads(repaired[-1].get("content", ""))
+    instruction = payload.get("instruction", "")
+    assert "本轮为接口容量恢复" in instruction
+    assert "逐条保留requiredFacts的完整text、对应priority" in instruction
+    assert "不得摘要、改写、拆分、合并或新增事实" in instruction
+    assert "不重加excludedFacts" in instruction
+    assert "仍允许忠于sourceTexts的摘要" not in instruction
+    assert "可以合理未选完整记录" not in instruction
+    assert "切换presentationStyle时同步正文componentHints" in instruction
+    assert payload.get("toolResult", {}).get("errors") == list(errors)
+
+
+@pytest.mark.parametrize("policy", [STATIC_CONTENT_POLICY, EXISTING_CONTENT_POLICY])
+def test_noncapacity_retry_context_keeps_normal_plan_repair(policy):
+    messages = prompt(policy)
+    with content_policy_scope(policy):
+        original = PromptBuilder.build_compact_plan_repair(messages, "错误计划", ("缺组",))
+        repaired = PromptBuilder.build_compact_plan_repair(
+            messages, "错误计划", ("缺组",), retry_context=context(capacity_recovery=False),
+        )
+    assert original == repaired
+
+
+def test_dynamic_repair_does_not_acquire_static_recovery_contract():
+    messages = prompt(EXISTING_CONTENT_POLICY, context())
+    with content_policy_scope(EXISTING_CONTENT_POLICY):
+        original = PromptBuilder.build_compact_plan_repair(messages, "错误计划", ("缺组",))
+        repaired = PromptBuilder.build_compact_plan_repair(
+            messages, "错误计划", ("缺组",), retry_context=context(),
+        )
+    assert original == repaired

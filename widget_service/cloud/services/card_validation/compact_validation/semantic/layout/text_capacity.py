@@ -18,7 +18,11 @@ def static_plan_capacity_errors(plan: dict[str, Any], size: str) -> list[str]:
         return [prefix + "静态合同只展示内容，不支持Action；请使用能力型请求链路。"]
     record_groups = _record_list_object_groups(plan, objects, facts)
     if len(record_groups) > 3 and not static_plan_candidate_preserves_required_content(plan, size):
-        return [prefix + "TextList最多三项，含标题最多两项；请改用单行列表或在Plan重新组织。"]
+        return [prefix + (
+            "TextList最多三项，含标题最多两项；请在Plan核对已选记录与实际组件容量。"
+            "SingleLineList仅适合能完整单行承载的短键值，不是记录数超限的通用替代；"
+            "普通Plan沿原合同合理取舍并同步展示账本与遗漏声明，恢复Plan仍须保持固定事实。"
+        )]
     if not objects and not actions and any("text" in item for item in facts):
         return [prefix + "正文至少有一个object组，不能将全部正文移到shared标题或说明。"]
     return []

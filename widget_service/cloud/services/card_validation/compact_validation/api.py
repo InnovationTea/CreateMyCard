@@ -182,6 +182,7 @@ def validate_compact_dsl(
     original_errors = DiagnosticCollector()
     from services.generation_content_policy import current_content_policy
 
+    has_static_group_errors = False
     if current_content_policy().is_static:
         from .semantic.static_content import collect_static_group_errors
 
@@ -191,11 +192,12 @@ def validate_compact_dsl(
             original_errors,
             allowed_omitted_fact_indexes,
         )
+        has_static_group_errors = bool(original_errors)
     _collect_action_label_length_errors(components, original_errors)
     _collect_model_asset_source_errors(components, task_spec, original_errors)
     _collect_asset_color_errors(components, task_spec, original_errors)
     _collect_numeric_component_errors(components, task_spec, original_errors)
-    if original_errors:
+    if original_errors and not has_static_group_errors:
         original_errors.extend(layout_errors)
         raise _validation_error(original_errors, context, repair_context)
     try:
@@ -204,11 +206,21 @@ def validate_compact_dsl(
         from .semantic.layout.text_capacity import capacity_diagnostic_from_error
 
         diagnostic = capacity_diagnostic_from_error(exc)
+        if original_errors:
+            if diagnostic is not None:
+                original_errors.emit(diagnostic)
+            else:
+                original_errors.append(str(exc))
+            original_errors.extend(layout_errors)
+            raise _validation_error(original_errors, context, repair_context) from exc
         if diagnostic is not None:
             capacity_errors = DiagnosticCollector()
             capacity_errors.emit(diagnostic)
             raise _validation_error(capacity_errors, context, repair_context) from exc
         raise CompactDslValidationError([str(exc)]) from exc
+    if original_errors:
+        original_errors.extend(layout_errors)
+        raise _validation_error(original_errors, context, repair_context)
     components = ComponentRows(components)
     context.components = components
     binding_paths = context.binding_paths
