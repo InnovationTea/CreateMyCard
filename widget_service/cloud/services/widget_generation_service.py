@@ -1082,6 +1082,7 @@ class WidgetGenerationService:
                             details={
                                 "decision": review.decision,
                                 "sourceFidelity": review.source_fidelity,
+                                "warnings": list(review.warnings),
                             },
                             text_artifacts={"static_plan_review_output": raw_plan},
                             json_artifacts={"static_plan_review_findings": list(review.findings)},

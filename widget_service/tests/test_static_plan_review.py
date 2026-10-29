@@ -188,6 +188,33 @@ def test_invalid_transport_is_rejected(raw):
         parse_static_plan_review(raw, source="带证件", fact_count=1)
 
 
+@pytest.mark.parametrize("payload", [_keep(), _correct(_plan(), [_finding()])])
+def test_only_missing_outer_review_brace_is_restored_without_changing_values(payload):
+    complete = json.dumps(payload, ensure_ascii=False)
+    result = parse_static_plan_review(complete[:-1], source="带证件", fact_count=1)
+    expected = parse_static_plan_review(complete, source="带证件", fact_count=1)
+    assert result.decision == expected.decision
+    assert result.source_fidelity == expected.source_fidelity
+    assert result.findings == expected.findings
+    assert result.corrected_source == expected.corrected_source
+    assert len(result.warnings) == 1
+    assert expected.warnings == ()
+
+
+@pytest.mark.parametrize("raw", [
+    '{"decision":"keep","sourceFidelity":"preserved","findings":[',
+    '{"decision":"keep","sourceFidelity":"preserved","findings":',
+    '{"decision":"keep","sourceFidelity":"preserved","findings":[],',
+    '{"decision":"keep","decision":"correct","sourceFidelity":"preserved","findings":[]',
+    '{"decision":"correct","sourceFidelity":"needs_correction","findings":[]',
+    '{"decision":"correct","sourceFidelity":"preserved","findings":[]',
+    '{"decision":"keep","sourceFidelity":"preserved","findings":[]}{}',
+])
+def test_review_closure_recovery_never_invents_content_or_bypasses_contract(raw):
+    with pytest.raises(StaticPlanReviewError):
+        parse_static_plan_review(raw, source="带证件", fact_count=1)
+
+
 def test_explicit_fact_source_does_not_admit_user_expectation_as_evidence():
     query = "想去北京；本轮卡片静态内容（用作展示的外部事实）：上海体育场"
     source, explicit = static_fact_source(query)

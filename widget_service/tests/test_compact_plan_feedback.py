@@ -59,6 +59,37 @@ def _recoveries(feedback: dict, code: str) -> list[dict]:
     return [item for item in items if item.get("code") == code]
 
 
+def test_group_repair_focus_identifies_missing_and_conflicting_facts_without_guessing_owner():
+    arguments = _arguments()
+    arguments["contentGroups"] = [_group(0, [0, 1]), _group(1, [1])]
+    original = copy.deepcopy(arguments)
+    feedback = _feedback(arguments)
+    repairs = feedback.get("requiredGroupRepairs")
+    assert isinstance(repairs, list) and len(repairs) == 2
+    assert repairs[0].get("index") == 1
+    assert repairs[0].get("text") == "完整事实1"
+    assert repairs[0].get("operation") == "resolve_group_conflict"
+    assert len(repairs[0].get("currentReferences", [])) == 2
+    assert repairs[1].get("index") == 2
+    assert repairs[1].get("operation") == "assign_one_group"
+    assert repairs[1].get("currentReferences") == []
+    assert "公共标题应引用独立且有来源的标题事实" in repairs[0].get("instruction", "")
+    assert arguments == original
+
+
+def test_optional_omission_request_does_not_hide_missing_group_in_repair_focus():
+    arguments = _arguments(1)
+    facts = arguments.get("info_required")
+    assert isinstance(facts, list) and facts
+    facts[0]["priority"] = "should"
+    arguments["contentGroups"] = []
+    arguments["omittedContents"] = [{"description": "可选说明", "factIndexes": [0]}]
+    repairs = _feedback(arguments).get("requiredGroupRepairs")
+    assert isinstance(repairs, list) and len(repairs) == 1
+    assert repairs[0].get("index") == 0
+    assert repairs[0].get("operation") == "assign_one_group"
+
+
 def _parse_static(arguments: dict):
     task = {
         "size": "2x2", "userQuery": "原始完整事实0 原始完整事实1 打开入口",

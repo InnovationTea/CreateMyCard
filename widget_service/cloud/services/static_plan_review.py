@@ -19,6 +19,21 @@ class StaticPlanReview:
     source_fidelity: str
     findings: tuple[dict[str, Any], ...]
     corrected_source: str | None = None
+    warnings: tuple[str, ...] = ()
+
+
+def _decode_review(raw_output: str) -> tuple[Any, tuple[str, ...]]:
+    """仅恢复缺失的最外层闭合符，不补值、内部结构或重复键。"""
+    text = raw_output.strip()
+    try:
+        return decode_plan_json(text), ()
+    except json.JSONDecodeError as exc:
+        if exc.pos != len(text) or not text.startswith("{"):
+            raise
+        if not text.endswith(("}", "]")):
+            raise
+        payload = decode_plan_json(text + "}")
+        return payload, ("Static review outer JSON closing brace restored; values unchanged.",)
 
 
 def _findings(value: Any, source: str, fact_count: int) -> tuple[dict[str, Any], ...]:
@@ -59,7 +74,7 @@ def parse_static_plan_review(
 ) -> StaticPlanReview:
     """严格解析 keep/correct，修正 Plan 的事实与结构仍交原解析器。"""
     try:
-        payload = decode_plan_json(raw_output)
+        payload, warnings = _decode_review(raw_output)
     except ValueError as exc:
         raise StaticPlanReviewError("静态复核必须返回唯一、无重复键的纯 JSON 对象。") from exc
     if not isinstance(payload, dict):
@@ -93,4 +108,4 @@ def parse_static_plan_review(
         if not isinstance(corrected.get("arguments"), dict):
             raise StaticPlanReviewError("correctedPlan.arguments 必须为对象。")
         corrected_source = json.dumps(corrected, ensure_ascii=False, separators=(",", ":"))
-    return StaticPlanReview(decision, fidelity, findings, corrected_source)
+    return StaticPlanReview(decision, fidelity, findings, corrected_source, warnings)

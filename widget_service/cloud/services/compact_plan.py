@@ -459,7 +459,11 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
     fields["preserveVerbatim"] = {"type": "boolean"}
     fields["displayRole"] = {
         "enum": [*_STATIC_DISPLAY_ROLES, *_STATIC_ROLE_ALIASES],
-        "description": "可选展示角色；名称、正文、标签、值和侧栏分别作为事实，不从原句猜字段。",
+        "description": (
+            "可选展示角色；名称、正文、标签、值和侧栏分别作为事实，不从原句猜字段。"
+            "共享正文说明使用body，共同标题使用title。兼容别名secondaryText在shared组"
+            "归一为body，在object组保留原title语义；显式title不改。"
+        ),
     }
     fields["text"] = {
         "type": "string",
@@ -479,7 +483,8 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
         "description": (
             "模型按用户用途选择结构；活动、日程等名称加时地的多条同构记录优先records，"
             "每个object组对应一条真实记录，一项保留同一对象的主副信息；"
-            "records两到三项，含共同标题最多两项；rows为单行列表；"
+            "records实际使用TextList时两到三项，含共同标题最多两项；rows为单行列表；"
+            "上述项数是实际组件承载限制，不是事实账本或contentGroups的数量上限；"
             "comparison仅2x4，普通偏好不替代实际容量校验。"
         ),
     }
@@ -510,9 +515,11 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
         "type": "array",
         "maxItems": 24,
         "description": (
-            "每条text归属唯一object或shared组。若presentationStyle为records"
-            "或对象首选TextList，两到三个object组，含共同标题最多两个；多记录输入按"
-            "真实记录分组，不按类别合并多条记录；超额内容记入omittedContents。"
+            "这是完整事实账本，每条保留text归属唯一object或shared组；"
+            "申请省略但仍在info_required中的should也必须归组。"
+            "按真实对象分组，不按类别合并不同记录。TextList最多三项的限制针对实际展示，"
+            "不能据此漏掉账本组；先完成归属，再选择可承载的合法组件。"
+            "共享标题引用独立且有来源的标题事实，不借用对象数值的索引。"
         ),
         "items": {
             "type": "object",
@@ -828,6 +835,9 @@ def _static_presentation_consistency_errors(
     facts: list[dict[str, Any]],
     groups: list[dict[str, Any]],
     presentation_style: str,
+    *,
+    presentation: str | None = None,
+    size: str | None = None,
 ) -> list[str]:
     """拒绝模型已显式指定的正文组件与展示风格相互冲突的 Plan。"""
     expected_components = {
@@ -856,6 +866,18 @@ def _static_presentation_consistency_errors(
                     and title_is_required
                 )
                 if is_required_title:
+                    from services.card_validation.compact_validation.semantic.layout import (
+                        text_capacity,
+                    )
+
+                    candidate_plan = {
+                        "info_required": facts, "contentGroups": groups,
+                        "staticPresentation": presentation,
+                    }
+                    if text_capacity.static_plan_candidate_preserves_required_content(
+                        candidate_plan, size,
+                    ):
+                        continue
                     return [
                         "三条 records/TextList 优先不设共同标题：将可省略主题改为 should，"
                         "或把必要主题归入首条对象后再提交；不能减少核心记录。"
@@ -942,6 +964,9 @@ def _normalize_static_plan(
     old_to_new: dict[int, int] = {}
     identities: dict[tuple[str, str, str, str | None], int] = {}
     extras = {"sourceTexts", "protectedTexts", "preserveVerbatim", "displayRole"}
+    shared_group_ids = {
+        group.get("id") for group in raw_groups if group.get("kind") == "shared"
+    }
     for old_index, raw_fact in enumerate(raw_facts):
         if not isinstance(raw_fact, dict) or set(raw_fact) - (_FACT_KEYS | extras):
             raise CompactPlanValidationError(["静态事实包含非法结构或未知字段。"])
@@ -962,7 +987,13 @@ def _normalize_static_plan(
             if "displayRole" in raw_fact:
                 if not isinstance(display_role, str):
                     raise CompactPlanValidationError(["静态 displayRole 必须为已登记角色。"])
-                display_role = _STATIC_ROLE_ALIASES.get(display_role, display_role)
+                if (
+                    display_role == "secondaryText"
+                    and membership.get(old_index) in shared_group_ids
+                ):
+                    display_role = "body"
+                else:
+                    display_role = _STATIC_ROLE_ALIASES.get(display_role, display_role)
                 if display_role not in _STATIC_DISPLAY_ROLES:
                     raise CompactPlanValidationError(["静态 displayRole 不在已登记角色中。"])
         elif old_index in membership or extras.intersection(raw_fact):
@@ -1039,6 +1070,8 @@ def _normalize_static_plan(
         facts,
         groups,
         arguments.get("presentationStyle", "auto"),
+        presentation=selection.presentation,
+        size=task.get("size"),
     )
     if consistency_errors:
         raise CompactPlanValidationError(consistency_errors)

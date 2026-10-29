@@ -146,7 +146,23 @@ def test_plan_rejects_conflicting_record_component_and_row_style():
             parse_compact_plan_call(raw, task)
 
 
-def test_three_records_reject_a_required_shared_title_before_dsl_generation():
+@pytest.mark.parametrize("candidate_available", [True, False])
+def test_three_records_title_requires_a_valid_alternative_candidate(
+    monkeypatch, candidate_available,
+):
+    from dataclasses import replace
+
+    from services import static_content_planning
+
+    original_select = static_content_planning.select_static_plan_content
+
+    def select_without_candidate(*args, **kwargs):
+        return replace(original_select(*args, **kwargs), presentation=None)
+
+    if not candidate_available:
+        monkeypatch.setattr(
+            static_content_planning, "select_static_plan_content", select_without_candidate,
+        )
     facts = [fact("附近小区房价", displayRole="title")]
     groups = [{"id": "theme", "kind": "shared", "identity": None, "factIndexes": [0]}]
     communities = (
@@ -179,11 +195,21 @@ def test_three_records_reject_a_required_shared_title_before_dsl_generation():
     }
     raw = json.dumps({"name": "submit_card_plan", "arguments": plan}, ensure_ascii=False)
     with content_policy_scope(STATIC_CONTENT_POLICY):
-        with pytest.raises(
-            CompactPlanValidationError,
-            match="三条 records/TextList 优先不设共同标题",
-        ):
-            parse_compact_plan_call(raw, task)
+        if not candidate_available:
+            with pytest.raises(
+                CompactPlanValidationError,
+                match="三条 records/TextList 优先不设共同标题",
+            ):
+                parse_compact_plan_call(raw, task)
+        else:
+            accepted = parse_compact_plan_call(raw, task).plan
+            source = accepted.get("staticPresentation")
+            assert isinstance(source, str)
+            assert '"SingleLineTitle"' in source
+            assert '"SingleLineList"' in source
+            assert "附近小区房价" in source
+            assert accepted.get("info_required") == facts
+            assert accepted.get("contentGroups") == groups
 
 
 def test_dynamic_plan_tool_has_no_static_identity_roles_or_capacity_feedback():
