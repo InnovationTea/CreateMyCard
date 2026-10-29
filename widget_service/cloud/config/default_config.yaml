@@ -4,6 +4,8 @@ ENVIRONMENT: local
 # 每日成功次数：通过内部 API 查询及记录；绿区 spec 未配置时同样默认关闭。
 enable_daily_usage_limit: false
 daily_usage_limit: 20
+# 用户 ID 的 SHA-256 十六进制摘要白名单，英文逗号分隔；命中后不限制、不查询及记录次数。
+daily_usage_uid_whitelist: ""
 # 用户可见话术；服务端另行补充要求主 Agent 回复该话术并停止本轮自动调用。
 daily_usage_limit_exceeded_message: 今日 AI 卡片生成次数已达上限，请明天再尝试。
 daily_usage_limit_unavailable_message: 本次卡片生成失败，请稍后重试。

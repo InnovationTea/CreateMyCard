@@ -926,12 +926,22 @@ async def _check_daily_usage(
     if operation not in GENERATION_OPERATIONS:
         logger.info(f"[Daily Usage] bypass operation={operation} reason=non_generation")
         return record
-    if not get_settings().enable_daily_usage_limit:
+    settings = get_settings()
+    if not settings.enable_daily_usage_limit:
         logger.info(f"[Daily Usage] bypass operation={operation} reason=disabled")
         return record
     uid = _trace_uid_from_raw_payload(payload)
     if not uid.strip():
         logger.info(f"[Daily Usage] bypass operation={operation} reason=missing_uid")
+        return record
+    whitelist_entries = settings.daily_usage_uid_whitelist.split(",")
+    whitelisted_uid_hashes = {item.strip().lower() for item in whitelist_entries}
+    uid_hash = hashlib.sha256(uid.encode("utf-8")).hexdigest()
+    if uid_hash in whitelisted_uid_hashes:
+        logger.info(
+            f"[Daily Usage] bypass operation={operation} "
+            "reason=uid_whitelist record_required=False"
+        )
         return record
     if not request_id or not request_id.strip():
         logger.info(f"[Daily Usage] bypass operation={operation} reason=missing_request_id")
