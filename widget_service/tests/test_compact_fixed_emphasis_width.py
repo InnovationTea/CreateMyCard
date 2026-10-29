@@ -2,14 +2,18 @@
 
 import copy
 import json
+import re
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
 from config.config import get_settings
+from services.card_validation import validate_compact_dsl
 from services.card_validation.compact_validation.semantic.layout.text_width import (
     _collect_text_width_budget_errors,
 )
+from services.compact_component_runtime import visual_recipe_part
 from services.compact_composition_planner import _text_width
 from services.compact_dsl_a2ui_converter import ComponentRow
 from services.compact_repair_strategy import CompactRepairStrategyTracker
@@ -66,7 +70,7 @@ def _issue(component="primary_main", kind="text width overflow"):
             "message": f"component {component}: {kind}; original font 18 exceeds its area."}
 
 
-def _measure(text, width, *, marker=None, overflow="clip"):
+def _measure(text, width, *, marker=None, overflow="clip", size="2x2"):
     props = {"content": text, "fontSize": 18, "maxLines": 1, "width": width,
              "textOverflow": overflow}
     if marker:
@@ -75,21 +79,72 @@ def _measure(text, width, *, marker=None, overflow="clip"):
                   ComponentRow("text", "Text", props)]
     errors, warnings = [], []
     _collect_text_width_budget_errors(
-        components, {"size": "2x2"}, {"suggestSize": "2x2"}, errors, None,
+        components, {"size": size}, {"suggestSize": size}, errors, None,
         warnings=warnings,
     )
     return errors, warnings
 
 
-def test_complete_width_uses_same_pressure_as_composition_planner():
+def _marker(component, part, size="2x2"):
+    _, props = visual_recipe_part(component, part, size=size)
+    marker = props.get("_visualRecipe")
+    assert isinstance(marker, str)
+    return marker
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_emphasis_main_width_uses_same_pressure_as_composition_planner(size):
     text = "设备健康度 92%"
     pressure = _text_width(text, 18)
     assert pressure == 134
-    errors, _ = _measure(text, 126)
+    marker = _marker("EmphasisText", "main", size)
+    errors, _ = _measure(text, 126, marker=marker, size=size)
     assert len(errors) == 1
     assert "134vp" in errors[0]
     assert text in errors[0]
-    assert _measure(text, pressure)[0] == []
+    assert _measure(text, pressure, marker=marker, size=size)[0] == []
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_same_font_plain_text_keeps_original_width_estimate(size):
+    assert _measure("设备健康度 92%", 126, size=size) == ([], [])
+    errors, _ = _measure("设备健康度 92%", 125, size=size)
+    assert len(errors) == 1 and "126vp" in errors[0]
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("role", ["secondary", "summary", "similar_marker"])
+def test_other_recipe_roles_do_not_gain_emphasis_main_pressure(role, size):
+    if role == "secondary":
+        marker = _marker("EmphasisText", "secondary", size)
+    elif role == "summary":
+        marker = _marker("SummaryList", "text", "2x4")
+    else:
+        marker = _marker("EmphasisText", "main", size) + "_extra"
+    assert _measure("设备健康度 92%", 126, marker=marker, size=size) == ([], [])
+
+
+def test_official_v39_summary_list_keeps_original_compatibility():
+    path = (Path(__file__).resolve().parents[1]
+            / "cloud/data/protocol_profiles/design-compact-dsl-fusion/prompt_source"
+            / "fewshots/2x4.md")
+    document = path.read_text(encoding="utf-8")
+    section = document.split("## 2x4-V39：", 1)[1].split("\n## ", 1)[0]
+    task_match = re.search(r"```json\s*\n(.*?)\n```", section, re.S)
+    source_match = re.search(r"```genui\s*\n(.*?)\n```", section, re.S)
+    assert task_match is not None and source_match is not None
+    task = json.loads(task_match.group(1))
+    source = source_match.group(1)
+    original = copy.deepcopy(task)
+    result = validate_compact_dsl(
+        source, task_spec=task, card_spec={"suggestSize": "2x4"},
+        enforce_model_component_types=True,
+    )
+    assert not result.warnings
+    assert task == original
+    text = "Day1 · 13:30-16:30 · 浙江省博物馆新馆"
+    assert sum(12 * (0.5 if character.isascii() else 1) for character in text) == 234
+    assert _text_width(text, 12) == 257
 
 
 def test_existing_chinese_fitting_text_is_unchanged():

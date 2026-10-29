@@ -83,7 +83,7 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | Plan 动作数量与正文角色 | 语义／布局，semantic/layout/text_capacity.py，由 compact_plan.py 委托 | 不以记录数替代全卡容量，不承担布局选择 |
 | 关键片段换行与详细文字容量 | 语义／布局，共享 static_text_capacity.py；text_capacity.py 发布原容量诊断 | 展开与校验同一度量，语义组件负责生成固定行 |
 | 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 静态生成标记继续采用共享静态文字度量和省略号合同，不改静态字号与行数 |
-| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 与compact_composition_planner._text_width共用压力估算；静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy，不在校验器改写文字或授权省略 |
+| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 仅Runtime Recipe明确标记的EmphasisText.main与compact_composition_planner._text_width共用压力估算；其它普通Text、SummaryList等保持原保守估算，静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy，不在校验器改写文字或授权省略 |
 
 以上沿用已登记诊断，不新增规则码，不迁移其它检查或更改闭域严重程度。
 
