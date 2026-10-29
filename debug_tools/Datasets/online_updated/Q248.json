@@ -1,0 +1,157 @@
+{
+  "content": {
+    "title": "时钟天气",
+    "description": "时钟天气合一卡片",
+    "userQuery": "将时钟卡片和天气卡片合为一张，制作一张桌面卡片，同时显示当前时间和当前天气。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/time"
+      },
+      {
+        "arguments": {
+          "districtName": "铁东区",
+          "forecastDays": 1,
+          "prefectureName": "鞍山市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      },
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.clock.alarm"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_time",
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025075454783"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "9a2829b8-81ca-45df-8411-fc660de6dd38"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.emoji_time",
+    "asset.ic_weather_monochrome"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    },
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "bundleName": "com.huawei.hmos.clock",
+          "intentName": "Clock",
+          "uri": ""
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.clock.alarm"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "时钟天气合一卡片",
+  "userQuery": "将时钟卡片和天气卡片合为一张，制作一张桌面卡片，同时显示当前时间和当前天气。",
+  "title": "时钟天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ],
+      "capabilityId": "GetCurrentTime",
+      "writeResultTo": "/data/time"
+    },
+    {
+      "arguments": {
+        "districtName": "铁东区",
+        "forecastDays": 1,
+        "prefectureName": "鞍山市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

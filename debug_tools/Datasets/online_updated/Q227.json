@@ -1,0 +1,128 @@
+{
+  "content": {
+    "title": "我的桌面卡片",
+    "description": "桌面信息速览",
+    "userQuery": "做一张组合桌面卡片，布局和视频里一样：左边是WiFi、蓝牙、定位快捷开关和电量温度，中间是日期、芯片、系统版本，右边是存储可用空间和手机型号。",
+    "size": "2x4",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/batteryTemperatureText"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/battery"
+      },
+      {
+        "arguments": {
+          "forecastDays": 1,
+          "prefectureName": "南京市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek"
+        ],
+        "capabilityId": "GetCurrentTime",
+        "writeResultTo": "/data/time"
+      },
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/rankingList/0/appName",
+          "/rankingList/0/powerText"
+        ],
+        "capabilityId": "GetAppPowerConsumptionRanking",
+        "writeResultTo": "/data/powerRank"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027050811857"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "da6d3b4b-9bc6-43eb-bbbf-054e0511b490"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "桌面信息速览",
+  "userQuery": "做一张组合桌面卡片，布局和视频里一样：左边是WiFi、蓝牙、定位快捷开关和电量温度，中间是日期、芯片、系统版本，右边是存储可用空间和手机型号。",
+  "title": "我的桌面卡片",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/batteryTemperatureText"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/battery"
+    },
+    {
+      "arguments": {
+        "forecastDays": 1,
+        "prefectureName": "南京市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek"
+      ],
+      "capabilityId": "GetCurrentTime",
+      "writeResultTo": "/data/time"
+    },
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/rankingList/0/appName",
+        "/rankingList/0/powerText"
+      ],
+      "capabilityId": "GetAppPowerConsumptionRanking",
+      "writeResultTo": "/data/powerRank"
+    }
+  ]
+}

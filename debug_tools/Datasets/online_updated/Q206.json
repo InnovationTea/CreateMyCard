@@ -1,0 +1,107 @@
+{
+  "content": {
+    "title": "手机电量",
+    "description": "电量状态速览",
+    "userQuery": "生成一张桌面卡片显示手机电量",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VNE-AL00 6.1.0.115",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryCapacityLevelDesc",
+          "/healthStatusDesc",
+          "/batteryTemperatureText"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.battery"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VNE-AL00",
+    "prdVer": "11.7.9.222",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028025022671"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "956d2f91-7f61-4e8e-9184-ce9686c6e7c1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VNE-AL00 6.1.0.115",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "battery"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.battery"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "电量状态速览",
+  "userQuery": "生成一张桌面卡片显示手机电量",
+  "title": "手机电量",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/healthStatusDesc",
+        "/batteryTemperatureText"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ]
+}

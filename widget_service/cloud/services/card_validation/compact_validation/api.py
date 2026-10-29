@@ -36,6 +36,9 @@ from services.card_validation.compact_validation.semantic.effective import (
     _collect_asset_source_errors,
     _collect_model_asset_source_errors,
 )
+from services.card_validation.compact_validation.semantic.event_items import (
+    collect_event_item_errors,
+)
 from services.card_validation.compact_validation.semantic.layout.assets import (
     _collect_asset_color_errors,
 )
@@ -166,6 +169,7 @@ def validate_compact_dsl(
     if enforce_model_component_types:
         collect_secondary_body_context_errors(components, binding_contract_errors)
     _collect_compound_duration_component_errors(components, task_spec, binding_contract_errors)
+    collect_event_item_errors(components, task_spec, binding_contract_errors)
     if binding_contract_errors:
         combined_errors = DiagnosticCollector()
         combined_errors.extend(layout_errors)

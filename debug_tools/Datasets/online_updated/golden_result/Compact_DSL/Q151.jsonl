@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"耗电排行","icon":"resources/base/media/ic_ranking.svg","fontSize":12}]
+["content","TableText",{"items":[{"label":{"path":"/data/powerRanking/rankingList/0/appName"},"value":{"path":"/data/powerRanking/rankingList/0/powerText"}},{"label":{"path":"/data/powerRanking/rankingList/1/appName"},"value":{"path":"/data/powerRanking/rankingList/1/powerText"}}],"fontSize":12}]
+["action","PillButton",{"label":"电池设置","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.settings.MainAbility","bundleName":"com.huawei.hmos.settings","intentName":"Settings","uri":"battery"}}]}]
+["/data/powerRanking/rankingList/0/appName","微信"]
+["/data/powerRanking/rankingList/0/powerText","53%"]
+["/data/powerRanking/rankingList/1/appName","设置"]
+["/data/powerRanking/rankingList/1/powerText","21%"]

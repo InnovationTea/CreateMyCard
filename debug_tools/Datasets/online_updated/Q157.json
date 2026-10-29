@@ -1,0 +1,77 @@
+{
+  "content": {
+    "title": "房租收租提醒",
+    "description": "房租收租提醒卡片",
+    "userQuery": "制作一个房租收租提醒卡片，按照参考图的格式。包含：提醒周期（每X个月提醒一次）、下次提醒日期（显示具体日期）、提醒时间（可设置具体时间点）、应收金额（显示本次应收的房租数额）。\n\n本轮卡片静态内容（用作展示的外部事实）：\n房租收租提醒卡片，包含提醒周期、下次提醒日期、提醒时间和应收金额四个核心信息。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2026-11-08"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.house_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025034612708"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "d82c4c1c-3b56-4519-8ccf-8b637f3c1791"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.house_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "房租收租提醒卡片",
+  "userQuery": "制作一个房租收租提醒卡片，按照参考图的格式。包含：提醒周期（每X个月提醒一次）、下次提醒日期（显示具体日期）、提醒时间（可设置具体时间点）、应收金额（显示本次应收的房租数额）。\n\n本轮卡片静态内容（用作展示的外部事实）：\n房租收租提醒卡片，包含提醒周期、下次提醒日期、提醒时间和应收金额四个核心信息。",
+  "title": "房租收租提醒",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2026-11-08"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "content": {
+    "title": "天气时间",
+    "description": "天气与时间速览",
+    "userQuery": "桌面天气时间卡片设置",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "functionName": "generateWidgetCardCompactDsl",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/location/districtName"
+        ]
+      },
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Clock",
+            "bundleName": "com.huawei.hmos.clock",
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.emoji_time",
+      "asset.emoji_default_weather_blue"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261025111436644"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "6118cb67-5657-4970-aa29-882435f964b5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "skillName": "harmony-card-generation-online",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "arguments": "{\"bundleName\":\"com.huawei.genui\",\"userQuery\":\"桌面天气时间卡片设置\",\"title\":\"天气时间\",\"description\":\"天气与时间速览\",\"size\":\"2x2\",\"candidateDataBindings\":[{\"capabilityId\":\"ViewWeather\",\"arguments\":{\"forecastDays\":1},\"writeResultTo\":\"/data/weather\",\"candidateOutputFields\":[\"/current/temperatureText\",\"/current/condition\",\"/location/prefectureName\",\"/location/districtName\"]},{\"capabilityId\":\"GetCurrentTime\",\"arguments\":{},\"writeResultTo\":\"/data/time\",\"candidateOutputFields\":[\"/currentDate\",\"/dayOfWeek\",\"/lunarDate\"]}],\"candidateEventCandidates\":[{\"capabilityId\":\"event.open.weather\",\"actionTemplate\":{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Weather_CityCode\",\"bundleName\":\"\",\"abilityName\":\"\",\"uri\":\"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}}}},{\"capabilityId\":\"event.open.clock.alarm\",\"actionTemplate\":{\"call\":\"clickToDeeplink\",\"args\":{\"intentName\":\"Clock\",\"bundleName\":\"com.huawei.hmos.clock\",\"abilityName\":\"com.huawei.hmos.clock.phone\",\"uri\":\"\"}}}],\"candidateAssetIds\":[\"asset.emoji_time\",\"asset.emoji_default_weather_blue\"]}"
+}

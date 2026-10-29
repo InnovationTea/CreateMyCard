@@ -1,0 +1,79 @@
+{
+  "content": {
+    "title": "今日值班排班",
+    "description": "展示今日值班人员排班信息的桌面卡片",
+    "userQuery": "生成排班日程桌面卡片，展示今日（10月26日）值班人员百达翡丽，值班时间9:00-23:00。\n\n卡片静态内容：今日10月26日值班：百达翡丽，值班时间9:00-23:00",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/dtEnd"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026084721680"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "24",
+    "isNew": false,
+    "sessionId": "2de01ce5-08cd-44ca-a2ac-aaabd5554bfb"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "展示今日值班人员排班信息的桌面卡片",
+  "userQuery": "生成排班日程桌面卡片，展示今日（10月26日）值班人员百达翡丽，值班时间9:00-23:00。\n\n卡片静态内容：今日10月26日值班：百达翡丽，值班时间9:00-23:00",
+  "title": "今日值班排班",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "futureDays": 7
+      },
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/dtEnd"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    }
+  ]
+}

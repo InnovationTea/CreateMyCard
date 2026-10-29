@@ -1,0 +1,50 @@
+{
+  "content": {
+    "title": "银行卡信息",
+    "description": "账户信息速览",
+    "userQuery": "把截图内容做成一个精美的卡片\n\n本轮卡片静态内容（用作展示的外部事实）：\n户名：张强\n卡号：6228481006218970461\n开户行：农行廊坊和平丽景支行",
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "bundleName": "com.huawei.genui",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028025914687"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "eabc3be8-895b-4747-9dd7-870a58af54d3"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "description": "账户信息速览",
+  "userQuery": "把截图内容做成一个精美的卡片\n\n本轮卡片静态内容（用作展示的外部事实）：\n户名：张强\n卡号：6228481006218970461\n开户行：农行廊坊和平丽景支行",
+  "title": "银行卡信息",
+  "candidateDataBindings": []
+}

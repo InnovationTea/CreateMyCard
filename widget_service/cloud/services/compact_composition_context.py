@@ -89,11 +89,11 @@ def compact_composition_context(
         if isinstance(hints, list) and "SingleLineTitle" in hints:
             titles.append({key: fact[key] for key in ("dataId", "text") if key in fact})
     handlers: list[dict[str, Any]] = []
-    candidates = task.get("eventCandidates", [])
-    if isinstance(candidates, list):
-        for candidate in candidates:
-            if isinstance(candidate, dict) and candidate.get("id") in actions:
-                handlers.append(copy.deepcopy(candidate))
+    from services.compact_action_instances import plan_action_candidates
+
+    for reference, candidate in plan_action_candidates(task).items():
+        if reference in actions:
+            handlers.append(copy.deepcopy(candidate))
     payload = {
         "referenceCanvasOnly": {
             "width": reference_dimension(size, "width"),
@@ -487,12 +487,9 @@ def repair_action_labels(source: str, task: dict[str, Any]) -> dict[str, str]:
             continue
         if not isinstance(handlers, list):
             continue
-        for event in task.get("eventCandidates", []):
-            if not isinstance(event, dict):
-                continue
-            event_id = event.get("id")
-            if not isinstance(event_id, str):
-                continue
+        from services.compact_action_instances import plan_action_candidates
+
+        for event_id, event in plan_action_candidates(task).items():
             handler = {"call": event.get("call"), "args": event.get("args")}
             for actual in handlers:
                 if not isinstance(actual, dict):

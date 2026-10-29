@@ -1,0 +1,115 @@
+{
+  "content": {
+    "title": "上海天气",
+    "description": "青浦天气速览",
+    "userQuery": "帮我生成一张桌面卡片，显示上海天气\n\n本轮卡片静态内容（用作展示的外部事实）：\n今天上海市青浦区白天中雨转大雨，最高气温约22℃，夜间大雨，最低约18℃，北到东北风4-5级，青浦区已发布台风蓝色预警",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VNE-AL00 6.1.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/alertLevel",
+          "/current/windDirection",
+          "/current/windLevel"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VNE-AL00",
+    "prdVer": "11.7.8.352",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261023103620122"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "17c834af-069e-4292-ae53-30249c8ca2dc"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VNE-AL00 6.1.0.111",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "青浦天气速览",
+  "userQuery": "帮我生成一张桌面卡片，显示上海天气\n\n本轮卡片静态内容（用作展示的外部事实）：\n今天上海市青浦区白天中雨转大雨，最高气温约22℃，夜间大雨，最低约18℃，北到东北风4-5级，青浦区已发布台风蓝色预警",
+  "title": "上海天气",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "青浦区",
+        "forecastDays": 1,
+        "prefectureName": "上海市"
+      },
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/alertLevel",
+        "/current/windDirection",
+        "/current/windLevel"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ]
+}

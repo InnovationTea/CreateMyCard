@@ -1,0 +1,111 @@
+{
+  "content": {
+    "title": "交通运输部报名",
+    "description": "明日报名提醒",
+    "userQuery": "做一张交通运输部报名的日程提醒卡片，显示明天上午9点到12点的报名日程。\n\n本轮卡片静态内容（用作展示的外部事实）：\n明天上午9:00-12:00 交通运输部报名",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "futureDays": 1
+        },
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/countdownDays"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      }
+    ],
+    "candidateAssetIds": [
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027163517405"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": false,
+    "sessionId": "bc324f4b-5a42-4772-9912-ae20f124bd00"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.calendar_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "明日报名提醒",
+  "userQuery": "做一张交通运输部报名的日程提醒卡片，显示明天上午9点到12点的报名日程。\n\n本轮卡片静态内容（用作展示的外部事实）：\n明天上午9:00-12:00 交通运输部报名",
+  "title": "交通运输部报名",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "futureDays": 1
+      },
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/countdownDays"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    }
+  ]
+}

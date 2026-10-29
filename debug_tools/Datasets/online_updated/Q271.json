@@ -1,0 +1,68 @@
+{
+  "content": {
+    "title": "时间天气",
+    "description": "展示当前时间和北京天气的小组件",
+    "userQuery": "添加小组件，展示当前时间和北京天气。\n本轮卡片静态内容（用作展示的外部事实）：\n- 当前时间、日期、星期及农历信息\n- 北京市朝阳区当前天气及未来天气预报",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime"
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261026035501595"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "4faa926c-850d-4d13-95eb-13c26ec03067"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "previewSize": "2x2",
+  "assetCandidateIds": [],
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "eventCapabilityIds": [
+    "event.open.weather"
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "展示当前时间和北京天气的小组件",
+  "userQuery": "添加小组件，展示当前时间和北京天气。\n本轮卡片静态内容（用作展示的外部事实）：\n- 当前时间、日期、星期及农历信息\n- 北京市朝阳区当前天气及未来天气预报",
+  "title": "时间天气",
+  "dataCapabilityIds": [
+    "GetCurrentTime",
+    "ViewWeather"
+  ]
+}

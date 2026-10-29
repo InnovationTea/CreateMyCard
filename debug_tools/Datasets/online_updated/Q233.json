@@ -1,0 +1,77 @@
+{
+  "content": {
+    "title": "运动健康",
+    "description": "今日步数与活动",
+    "userQuery": "帮我设置一个图片里的那种小卡片到桌面，运动健康的，显示今日步数",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/dailySteps"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": [
+      "asset.figure_run"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028025721371"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "a2aafe1a-188d-4957-9dc5-d0ec0135d7c8"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.figure_run"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "今日步数与活动",
+  "userQuery": "帮我设置一个图片里的那种小卡片到桌面，运动健康的，显示今日步数",
+  "title": "运动健康",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "candidateOutputFields": [
+        "/dailySteps"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ]
+}

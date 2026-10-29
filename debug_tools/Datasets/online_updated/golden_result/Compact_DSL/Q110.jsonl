@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"今日天气与日程","fontSize":12}]
+["primary","EmphasisText",{"mainText":{"path":"/data/weather/current/temperatureText"},"secondaryText":{"path":"/data/weather/current/condition"},"fontSize":18}]
+["support","EventCard",{"items":[{"title":{"path":"/data/calendar/events/0/title"},"time":{"path":"/data/calendar/events/0/dtStart"}}]}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/calendar/events/0/title","项目例会"]
+["/data/calendar/events/0/dtStart","14:00"]

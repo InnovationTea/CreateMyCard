@@ -1,0 +1,47 @@
+{
+  "content": {
+    "title": "女儿出生正计时",
+    "description": "展示女儿从2026年10月11日出生至今的天数正计时卡片",
+    "userQuery": "我的女儿出生于10月11号，我想在桌面上添加一个她从10月11号出生起到现在多大了的正计时卡片",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261024170650373"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "ac926869-8c41-4f34-b73b-547bb7ce4323"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "description": "展示女儿从2026年10月11日出生至今的天数正计时卡片",
+  "userQuery": "我的女儿出生于10月11号，我想在桌面上添加一个她从10月11号出生起到现在多大了的正计时卡片",
+  "title": "女儿出生正计时"
+}

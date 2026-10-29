@@ -1,0 +1,45 @@
+{
+  "content": {
+    "userQuery": "将卡片尺寸改为2x2。\n\n本轮卡片静态内容（用作展示的外部事实）：\n心脏健康卡片，展示当天心电图记录曲线，点击查看心脏健康按钮直达运动健康app心脏健康功能。",
+    "size": "2x2",
+    "bundleName": "com.huawei.genui",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateDataBindings": [],
+    "candidateEventCandidates": [],
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261027085620984"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "5",
+    "isNew": false,
+    "sessionId": "1de708ee-8f69-4911-a29c-86f9946f07ce"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "将卡片尺寸改为2x2。\n\n本轮卡片静态内容（用作展示的外部事实）：\n心脏健康卡片，展示当天心电图记录曲线，点击查看心脏健康按钮直达运动健康app心脏健康功能。",
+  "sourceArtifactUrl": "https://nsp-edge-drcn.platform.dbankcloud.cn/osms/20/4/bf255e42abc945b3a3604889e1095abd/a4a8c8a9e462404cac7cf23f0459711a.md?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=HPUA0GULRMHOZRWMZ2LB%2F20261027%2Fcn-north-2%2Fs3%2Faws4_request&X-Amz-Date=20261027T085243Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=2b2880e7e9fdae01b51ee78048441754e2f3d44e69c4b8f9c43310865bd0ad67&target-host=bnNwLWhhZy1yaXNrY3RydGVtcC1kcmNuLm9icy5jbi1ub3J0aC0yLm15aHVhd2VpY2xvdWQuY24"
+}
