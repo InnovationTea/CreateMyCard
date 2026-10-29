@@ -13,6 +13,14 @@ from typing import Any
 
 from core.json_pointer import parse_json_pointer
 from models.generation import CompactDslRecoveryFact
+from services.compact_action_instances import (
+    action_instance_instruction,
+    event_card_detail_action,
+    event_card_item_handlers,
+    plan_action_candidates,
+    plan_action_handlers,
+    prefers_event_card_item,
+)
 from services.compact_component_semantics import (
     CORE_INFORMATION_COMPONENT_TYPES,
     MODEL_COMPONENT_TYPES_BY_SIZE,
@@ -261,6 +269,7 @@ def build_compact_plan_tool(
                 "须无用户禁止点击、明确按钮要求或其它必要动作，且同对象绑定符合登记合同。"
                 "例外入选仍为must，由服务端复核整卡承载，不额外补按钮。"
                 "副作用操作必须有明确授权。候选原有参数完整携带。"
+                + action_instance_instruction(task_spec)
             ),
         }
     layout_hints = list(_layout_hints(size))
@@ -1092,7 +1101,7 @@ def _normalize_composition(
     layout = load_layout_contract().get("layouts", {}).get(value.get("layout"), {})
     if variant > len(layout.get("patterns", [])):
         return None, [warning]
-    action_count = sum(1 for fact in facts if "actionId" in fact)
+    action_count = sum(1 for fact in facts if _requires_action_button(fact))
     action_range = layout.get("actionCount", {})
     if not action_range.get("min", 0) <= action_count <= action_range.get("max", action_count):
         return None, [
@@ -1858,6 +1867,7 @@ def compact_plan_context(
             "不得复用、互换或跳过已分配素材，也不得用"
             "未分配素材覆盖明确的空分配。动作 assetId 为 null 时仍可使用 CardButton，"
             "其原始 DSL 必须省略 icon。"
+            "EventCard条目详情不使用按钮或按钮图标，分配为null并由对应items[].onClick履约。"
         )
         if whole_card_instruction:
             asset_instruction = (
@@ -2059,6 +2069,15 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         visible_props = {
             key: value for key, value in component.props.items() if key in visible_names
         }
+        if component.component_type == "EventCard":
+            items = visible_props.get("items")
+            if isinstance(items, list):
+                display_items = []
+                for item in items:
+                    if isinstance(item, dict):
+                        display_items.append({k: v for k, v in item.items() if k != "onClick"})
+                visible_props["items"] = display_items
+            handlers.extend(event_card_item_handlers(component.props))
         has_separate_progress_readout = (
             component.component_type in _PROGRESS_VALUE_DRIVER_COMPONENTS
             and "displayValue" in visible_props
@@ -2099,12 +2118,15 @@ def compact_plan_overflow_action_ids(
     if not isinstance(facts, list):
         return frozenset()
     selected_action_ids: list[str] = []
+    item_action_ids: set[str] = set()
     for fact in facts:
         if not isinstance(fact, dict):
             continue
         action_id = fact.get("actionId")
         if isinstance(action_id, str) and action_id not in selected_action_ids:
             selected_action_ids.append(action_id)
+            if prefers_event_card_item(fact):
+                item_action_ids.add(action_id)
     if len(selected_action_ids) <= 2:
         return frozenset()
 
@@ -2139,7 +2161,7 @@ def compact_plan_overflow_action_ids(
         visible_action_ids.add(matches[0])
     if len(visible_action_ids) != len(buttons) or len(visible_action_ids) < 2:
         return frozenset()
-    return frozenset(set(selected_action_ids) - visible_action_ids)
+    return frozenset(set(selected_action_ids) - visible_action_ids - item_action_ids)
 
 
 def _collect_structured_item_literals(
@@ -3107,18 +3129,8 @@ def compact_plan_data_paths(task_spec: dict[str, Any]) -> tuple[str, ...]:
 
 
 def compact_plan_action_ids(task_spec: dict[str, Any]) -> tuple[str, ...]:
-    """列出本轮具有稳定 ID 的事件候选。"""
-    candidates = task_spec.get("eventCandidates")
-    if not isinstance(candidates, list):
-        return ()
-    identifiers: list[str] = []
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        identifier = candidate.get("id")
-        if isinstance(identifier, str) and identifier.strip():
-            identifiers.append(identifier.strip())
-    return tuple(dict.fromkeys(identifiers))
+    """列出本轮动作实例引用，重复的能力 ID 不覆盖不同参数。"""
+    return tuple(plan_action_candidates(task_spec))
 
 
 def compact_plan_asset_ids(task_spec: dict[str, Any]) -> tuple[str, ...]:
@@ -3177,7 +3189,15 @@ def _normalize_asset_assignments(
         if action_id in normalized_actions:
             errors.append(f"{location}.actionId is duplicated: {action_id}.")
             continue
-        if action_id == whole_card_action_id:
+        item_detail = False
+        if isinstance(action_id, str) and event_card_detail_action(task_spec, action_id):
+            for fact in facts:
+                if fact.get("actionId") == action_id:
+                    item_detail = prefers_event_card_item(fact)
+                    break
+        if item_detail:
+            normalized = {"assetId": None, "reason": "EventCard item detail has no button icon."}
+        elif action_id == whole_card_action_id:
             normalized = {"assetId": None, "reason": "Whole-card detail has no button icon."}
         else:
             normalized = _normalize_single_asset_assignment(
@@ -3352,7 +3372,10 @@ def _validate_facts(
                 for hint in hints:
                     if not isinstance(hint, str) or hint not in allowed_hints:
                         continue
-                    is_action_hint = hint in _ACTION_FACT_COMPONENTS
+                    item_detail = False
+                    if target == "actionId" and hint == "EventCard":
+                        item_detail = event_card_detail_action(task_spec, target_value)
+                    is_action_hint = hint in _ACTION_FACT_COMPONENTS or item_detail
                     if (target == "actionId") != is_action_hint:
                         removed_target_mismatch = True
                         continue
@@ -3470,7 +3493,7 @@ def _normalize_two_by_four_action_layouts(
     size: Any,
 ) -> tuple[list[str], list[str]]:
     """移除无法承载 2x4 显式动作的无动作布局软候选。"""
-    has_action = any(isinstance(fact.get("actionId"), str) for fact in facts)
+    has_action = any(_requires_action_button(fact) for fact in facts)
     if size != "2x4" or not has_action or "W-top-bottom" not in layout_hints:
         return layout_hints, []
 
@@ -3504,7 +3527,7 @@ def _normalize_dual_action_plan(
         warnings.append("Two required 2x2 actions force layoutHints to S-content-dual-action.")
 
     for fact in facts:
-        if "actionId" not in fact:
+        if not _requires_action_button(fact):
             continue
         hints = fact.get("componentHints")
         if hints != ["CardButton"]:
@@ -3530,10 +3553,19 @@ def _has_two_distinct_actions(facts: Any) -> bool:
     for fact in facts:
         if not isinstance(fact, dict):
             return False
+        if not _requires_action_button(fact):
+            continue
         action_id = fact.get("actionId")
         if isinstance(action_id, str) and action_id.strip():
             action_ids.append(action_id)
     return len(action_ids) == 2 and len(set(action_ids)) == 2
+
+
+def _requires_action_button(fact: dict[str, Any]) -> bool:
+    return (
+        isinstance(fact.get("actionId"), str)
+        and not prefers_event_card_item(fact)
+    )
 
 
 def _parse_json_object(
@@ -3757,19 +3789,7 @@ def _collect_visible_path_occurrences(
 
 
 def _event_handlers_by_id(task_spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    handlers: dict[str, dict[str, Any]] = {}
-    candidates = task_spec.get("eventCandidates")
-    if not isinstance(candidates, list):
-        return handlers
-    for candidate in candidates:
-        if not isinstance(candidate, dict):
-            continue
-        identifier = candidate.get("id")
-        call = candidate.get("call")
-        args = candidate.get("args")
-        if isinstance(identifier, str) and isinstance(call, str) and isinstance(args, dict):
-            handlers[identifier] = {"call": call, "args": args}
-    return handlers
+    return plan_action_handlers(task_spec)
 
 
 def _event_handler_mismatch(

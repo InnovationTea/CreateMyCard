@@ -107,6 +107,20 @@
       "category": "effective"
     },
     {
+      "module": "semantic/event_items.py",
+      "function": "collect_event_item_errors",
+      "code": "COMPACT_EVENT_ITEM_MISMATCH",
+      "class": "semantic",
+      "category": "effective"
+    },
+    {
+      "module": "semantic/event_items.py",
+      "function": "collect_event_item_errors",
+      "code": "COMPACT_EVENT_ITEM_DUPLICATE",
+      "class": "semantic",
+      "category": "effective"
+    },
+    {
       "module": "semantic/layout/assets.py",
       "function": "_collect_asset_color_errors",
       "code": "COMPACT_SVG_FILL_COLOR_MISSING",
