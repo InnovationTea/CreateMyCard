@@ -120,6 +120,6 @@ def test_actions_only_still_requires_all_display_facts() -> None:
     task, plan, rows = _case(True)
     plan = copy.deepcopy(plan)
     plan["info_required"].append({"text": "必须显示", "priority": "must", "requirement": "正文"})
-    with pytest.raises(CompactDslValidationError, match="no display facts"):
+    with pytest.raises(CompactDslValidationError, match="no body or data display facts"):
         validate_compact_dsl(_source(rows), task_spec=task, compact_plan=plan,
                              card_spec={"suggestSize": "2x2"})

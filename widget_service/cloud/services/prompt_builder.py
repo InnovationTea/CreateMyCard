@@ -27,6 +27,7 @@ from services.compact_plan import (
     build_compact_plan_tool,
     compact_plan_context,
     compact_plan_required_route,
+    static_fact_source,
 )
 from services.compact_plan_feedback import static_plan_repair_feedback
 from services.compact_plan_output import (
@@ -71,7 +72,9 @@ _CAPACITY_RECOVERY_PLAN_INSTRUCTION = (
 )
 
 
-def _capacity_recovery_plan_instruction(retry_context: CompactDslRetryContext) -> str:
+def _capacity_recovery_plan_instruction(
+    retry_context: CompactDslRetryContext, *, static_content: bool = False,
+) -> str:
     """把第一轮最终事实边界加入容量恢复上下文。"""
     retained = [
         {
@@ -93,8 +96,20 @@ def _capacity_recovery_plan_instruction(retry_context: CompactDslRetryContext) -
         ensure_ascii=False,
         separators=(",", ":"),
     )
+    instruction = _CAPACITY_RECOVERY_PLAN_INSTRUCTION
+    if static_content:
+        instruction = (
+            "<interface_retry_context>上一轮容量未闭合。本轮重新选择分组、组件和布局；"
+            "下面requiredFacts是本轮必须保留的已接受事实，包括上一轮未授权遗漏的内容。"
+            "逐条保持text和priority原样，不合并或改写事实条目；可通过contentGroups"
+            "重新组织同对象事实，不重复展示，不以扩尺寸、省略核心解决容量。"
+            "excludedFacts是程序已确认可省略且未完整展示的事实，本轮不得重新加入。"
+            "这份恢复范围优先于普通Plan的摘要或装饰标题取舍；不删除保留清单中的标题。"
+            "保护原文和全部Action继续保留，不生成DSL或恢复蓝图。"
+            "</interface_retry_context>"
+        )
     return (
-        f"{_CAPACITY_RECOVERY_PLAN_INSTRUCTION}\n"
+        f"{instruction}\n"
         f"<recovery_fact_scope>{scope}</recovery_fact_scope>"
     )
 
@@ -1838,12 +1853,9 @@ class PromptBuilder:
             capacity_context = f"\n\n{compact_plan_capacity_context(task_spec.size)}"
         recovery_context = ""
         if retry_context is not None and retry_context.capacity_recovery:
-            recovery_context = f"\n\n{_capacity_recovery_plan_instruction(retry_context)}"
-            if content_policy.is_static:
-                recovery_context = (
-                    "\n\n上一轮容量未闭合。本轮重新选择分组、组件和布局；"
-                    "保留must、保护原文、全部Action，不以扩尺寸、改写或省略核心解决容量。"
-                )
+            recovery_context = "\n\n" + _capacity_recovery_plan_instruction(
+                retry_context, static_content=content_policy.is_static,
+            )
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}{recovery_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
@@ -1891,10 +1903,20 @@ class PromptBuilder:
         """把失败 Plan 与校验工具结果追加到同一条对话。"""
         from services.generation_content_policy import current_content_policy
 
+        title_instruction = (
+            "不得删除用户要求来规避错误，"
+            "但应移除模型自行新增且用户未要求的装饰标题事实。"
+        )
         text_instruction = "text 必须保留原文，不能只修改 requirement 后重复提交不合法的 text。"
         reference_feedback = None
         if current_content_policy().is_static:
             reference_feedback = static_plan_repair_feedback(invalid_output)
+            title_instruction = (
+                "不得删除用户要求来规避错误。来源引用错误先核对并修正引用；"
+                "只有来源诊断与原始输入共同确认是模型虚构、且不承载用户要求的装饰文字才移除。"
+                "原始需求的主体、年份和作用范围即使放在header也不是装饰；"
+                "布局不容纳header时，应移到现有合法显示字段，不能删除信息凑结构。"
+            )
             text_instruction = (
                 "静态text仍允许忠于sourceTexts的摘要、合并和简洁表达，不要求逐字提取。"
                 "修正全部已报告的结构问题；contentGroups.factIndexes只引用本次提交的"
@@ -1908,6 +1930,9 @@ class PromptBuilder:
                 "selectionNotes为一个字符串数组，不在每项外另加数组。"
                 "对照来源自查对象名称、日期、数值与单位、否定、范围、冲突来源和必要限定；"
                 "用户要求原文或全部展示时仍须遵守，不得为修复结构改变含义或删除核心。"
+                "本次已是最后一次Plan机会，同时按同一对象组的最终text与identity核对原始事实；"
+                "requirement、sourceTexts或selectionNotes里写到，不代表卡片会展示。"
+                "同组标签与正文可共同表达，不要让每条text重复整段来源。"
             )
         if len(plan_prompt) < 3 or plan_prompt[0].get("role") != "system":
             raise ValueError("Compact Plan repair requires the active Plan conversation")
@@ -1927,8 +1952,7 @@ class PromptBuilder:
             "instruction": (
                 PLAN_JSON_OUTPUT_INSTRUCTION + " "
                 "按本轮提供的合同修正计划或必要数据缺口报告，不得新增未开放的调用。"
-                "不得删除用户要求来规避错误，"
-                "但应移除模型自行新增且用户未要求的装饰标题事实。"
+                f"{title_instruction}"
                 f"{text_instruction}"
                 "不得生成 Compact DSL、Markdown 或解释。"
             ),
@@ -1946,6 +1970,116 @@ class PromptBuilder:
             }
         )
         return repaired
+
+    @staticmethod
+    def build_static_plan_review(
+        conversation: list[dict[str, str]], plan: dict[str, Any], user_query: str,
+        *, original_submission: str,
+    ) -> list[dict[str, str]]:
+        """复用最后一次 Plan 提交，明确核对展示语义并合并已有容量参考。"""
+        if not conversation or conversation[0].get("role") != "system":
+            raise ValueError("Static Plan review requires the active Plan conversation")
+        system_content = conversation[0].get("content")
+        if not isinstance(system_content, str):
+            raise ValueError("Static Plan review requires a textual system prompt")
+        source, explicit_source = static_fact_source(user_query)
+        candidate = {
+            key: value for key, value in plan.items()
+            if key not in {"staticPresentation", "staticPresentationFeedback"}
+        }
+        updated = copy.deepcopy(conversation)
+        updated[0]["content"] = system_content + (
+            "\n本次为同一Plan阶段最后一次静态复核，先前普通submit_card_plan输出格式"
+            "仅用于correctedPlan内部；本次唯一返回格式以最后消息的reviewOutput为准。"
+            "不输出DSL，不调用新工具。"
+        )
+        updated.append({
+            "role": "user",
+            "content": json.dumps({
+                "staticPlanReview": {
+                    "candidatePlan": candidate,
+                    "originalSubmission": original_submission,
+                    "originalFactSource": source,
+                    "hasExplicitFactSection": explicit_source,
+                    "capacityReference": plan.get("staticPresentationFeedback", []),
+                },
+                "reviewOutput": {
+                    "type": "object",
+                    "required": ["decision", "sourceFidelity", "findings"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "decision": {"type": "string", "enum": ["keep", "correct"]},
+                        "sourceFidelity": {
+                            "type": "string", "enum": ["preserved", "needs_correction"],
+                        },
+                        "findings": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": ["sourceText", "factIndexes", "issue"],
+                                "additionalProperties": False,
+                                "properties": {
+                                    "sourceText": {"type": "string", "minLength": 1},
+                                    "factIndexes": {
+                                        "type": "array",
+                                        "items": {"type": "integer", "minimum": 0},
+                                        "uniqueItems": True,
+                                        "description": "首份candidatePlan的索引，完全漏项用[]",
+                                    },
+                                    "issue": {"type": "string", "minLength": 1},
+                                },
+                            },
+                        },
+                        "correctedPlan": {
+                            "type": "object", "required": ["name", "arguments"],
+                            "additionalProperties": False,
+                            "description": "correct时必填、keep时禁止；不得JSON序列化成字符串",
+                            "properties": {
+                                "name": {"const": "submit_card_plan"},
+                                "arguments": {
+                                    "type": "object",
+                                    "description": "完整遵守系统submit_card_plan工具的参数Schema",
+                                },
+                            },
+                        },
+                    },
+                },
+                "instruction": (
+                    "这是冻结前的明确复核，不是已接受结果。reviewOutput是JSON Schema，"
+                    "只输出符合它的一个纯JSON对象，不输出Schema本身。"
+                    "correctedPlan与其arguments必须是真实JSON对象，factIndexes必须是数组，"
+                    "都不能序列化成字符串。"
+                    "candidatePlan是程序归一化后的对照对象，不是新提交格式；"
+                    "originalSubmission保留原提交作格式参考，实际仍以系统中的工具Schema为准。"
+                    "不得把omissionCandidates等程序字段抄入correctedPlan；"
+                    "新omittedContents须按原合同提交description/factIndexes对象，"
+                    "索引对应修正后的事实数组，不得从归一化说明猜造遗漏许可。"
+                    "先按原始事实源核对用户要求的必要对象、地点、条件、时间范围、数值单位、"
+                    "否定和替代关系是否在最终可见内容中完整表达；"
+                    "requirement/sourceTexts/selectionNotes有记载不等于最终可见。"
+                    "复核完整事实及对象、条件、范围关系，不要求每个字段逐字重复。"
+                    "同一对象的identity标签、同组text及确实共同适用的shared内容可共同表达；"
+                    "跨不同对象不能借值。共同单位限定明确的数字列表、无歧义分隔、"
+                    "共同标题或说明中的年份，不因没有逐项重复单位、年份或原文数量用语"
+                    "而判为缺失。不要把原文全部逐字搬入卡片，允许忠实摘要；"
+                    "但不能把必要场景或限定改成更宽泛的结论。按已有合同核对真实遗漏申请。"
+                    "仅真实丢失、改变、编造或错误归属才标needs_correction；"
+                    "排版偏好、措辞美化、重复标注不构成语义纠错。"
+                    "存在显式事实段时，只把originalFactSource作为事实依据，不把段前期望当事实。"
+                    "确认无语义问题且无需改排时返回"
+                    '{"decision":"keep","sourceFidelity":"preserved","findings":[]}，'
+                    "不要重抄计划。语义有丢失、改变或编造时返回correct+needs_correction，"
+                    "逐条给出有效原文证据、首份索引和差异，并在correctedPlan修正完整计划；"
+                    "facts、分组、真实遗漏声明必须原子同步，不能只修改规划说明。"
+                    "原计划完整且无容量问题时应keep；只有容量问题才在preserved下改排，"
+                    "使用correct+preserved+空findings。"
+                    "先保全语义，再结合capacityReference组织短标签、正文和布局；"
+                    "不靠放宽原合同、缩字或新增删除许可凑容量。"
+                    "这是本阶段最后一次提交，不会再增加Plan调用；不返回解释或Markdown。"
+                ),
+            }, ensure_ascii=False, separators=(",", ":")),
+        })
+        return updated
 
     @staticmethod
     def build_static_plan_refinement(

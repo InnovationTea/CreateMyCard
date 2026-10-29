@@ -13,9 +13,15 @@ from custom.a2ui_model_client import A2UIModelClient, A2UIModelGenerationError
 from models.generation import TaskSpec
 from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore
+from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.card_validation.standard_plan_coverage import standard_plan_coverage_errors
-from services.compact_repair_strategy import CompactRepairStrategyTracker
+from services.compact_repair_strategy import (
+    CompactRepairStrategyTracker,
+    compact_capacity_recovery_failure_category,
+)
 from services.generation_pipeline import (
+    DesignCompactProcessor,
+    DslProcessingContext,
     DslProcessingResult,
     DslProcessorKind,
     QualityIssue,
@@ -81,6 +87,42 @@ def _request(**changes):
     }
     values.update(changes)
     return GenerateWidgetCardRequest(**values)
+
+
+def _capacity_failure_source():
+    rows = [
+        ["root", "Column", {"width": "matchParent", "height": "matchParent",
+                            "padding": 12, "itemMargin": 8},
+         ["overflow-title", "overflow-top", "overflow-bottom"]],
+        ["overflow-title", "Text", {"content": "测试卡片", "height": 20}],
+        ["overflow-top", "Text", {"content": "上区", "height": 64}],
+        ["overflow-bottom", "Text", {"content": "下区", "height": 64}],
+    ]
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+
+
+def test_capacity_failure_fixture_is_parseable_and_really_overflows():
+    with pytest.raises(CompactDslValidationError, match="164vp within 126vp"):
+        validate_compact_dsl(
+            _capacity_failure_source(),
+            task_spec={"size": "2x4", "dataModelSchema": {"data": {}},
+                       "assetCandidates": [], "eventCandidates": []},
+            card_spec={"suggestSize": "2x4"},
+        )
+
+
+def test_malformed_source_is_not_reported_as_capacity_by_real_processor():
+    result = DesignCompactProcessor().process("invalid-compact", DslProcessingContext(
+        size="2x4", task_spec={"size": "2x4", "dataModelSchema": {"data": {}}},
+        card_spec={"suggestSize": "2x4"}, protocol_profile=None,
+    ))
+    assert result.errors
+    assert "Compact DSL output is empty" in "; ".join(issue.message for issue in result.errors)
+    assert not result.standard_dsl
+    diagnostics = [issue.to_diagnostic_payload() for issue in result.issues]
+    assert compact_capacity_recovery_failure_category(
+        diagnostics, layout_failure_seen=False,
+    ) is None
 
 
 def _as_legacy_source(standard):
@@ -159,7 +201,8 @@ def single_step_run(monkeypatch):
     monkeypatch.setattr(settings, "enable_design_compact_runtime_prompt_context", False)
     state = SimpleNamespace(
         calls=[], saved=[], standard=_standard(), primary_success=False,
-        compact_source="invalid-compact", repaired_compact_source="invalid-compact",
+        compact_source=_capacity_failure_source(),
+        repaired_compact_source=_capacity_failure_source(),
         envelope=None, profiles=[], theme_calls=[],
     )
 
@@ -204,7 +247,7 @@ def single_step_run(monkeypatch):
             return DslProcessingResult(source_dsl=source, standard_dsl=state.standard)
         return DslProcessingResult(source_dsl=source, issues=(QualityIssue(
             stage="validation", code="COMPACT_DSL_VALIDATION_FAILED",
-            message="component root: vertical layout requires at least 150vp within 126vp",
+            message="component root: vertical layout requires at least 164vp within 126vp",
         ),))
 
     async def save(_store, artifact):
@@ -259,6 +302,7 @@ async def test_five_repairs_then_one_standard_call_and_forced_validation(single_
     assert "componentHints" not in content
     assert "layoutHints" not in content
     assert "invalid-compact" not in content
+    assert "overflow-title" not in content
 
 
 @pytest.mark.asyncio

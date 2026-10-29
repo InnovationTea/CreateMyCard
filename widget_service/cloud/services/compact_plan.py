@@ -524,8 +524,9 @@ def _extend_static_plan_tool(tool: dict[str, Any], task: dict[str, Any]) -> None
                 "identity": {
                     "type": ["string", "null"], "minLength": 1, "maxLength": 120,
                     "description": (
-                        "对象的可见短名称，忠于来源；无名称或shared填null。"
-                        "不能只写在内部ID中。"
+                        "对象最终显示的短名称，忠于来源；无名称或shared填null。"
+                        "若本组text已有同对象简称，同步统一名称版本，不能只写在内部ID中。"
+                        "允许独立名称标签加正文；不必把identity重复写入每条text。"
                     ),
                 },
                 "factIndexes": {
@@ -581,6 +582,32 @@ class _StaticGroupNormalization:
     groups: list[dict[str, Any]]
 
 
+def _static_omission_references_are_known(
+    indexes: list[Any], raw_facts: list[Any], index_map: dict[int, int],
+    accepted_facts: list[dict[str, Any]],
+) -> bool:
+    """拒绝授权后仍检查整条引用，不能把尾部未知内容当作已计划事实。"""
+    if not indexes:
+        return False
+    seen: set[int] = set()
+    for index in indexes:
+        if type(index) is not int or not 0 <= index < len(raw_facts):
+            return False
+        if index in seen:
+            return False
+        seen.add(index)
+        original = raw_facts[index]
+        if not isinstance(original, dict) or not isinstance(original.get("text"), str):
+            return False
+        mapped = index_map.get(index)
+        if type(mapped) is not int or not 0 <= mapped < len(accepted_facts):
+            return False
+        accepted = accepted_facts[mapped]
+        if not isinstance(accepted, dict) or not isinstance(accepted.get("text"), str):
+            return False
+    return True
+
+
 def _normalize_static_omissions(
     raw: Any, raw_facts: list[Any], index_map: dict[int, int], accepted_facts: list[dict[str, Any]],
     *, allow_legacy: bool = True,
@@ -611,6 +638,7 @@ def _normalize_static_omissions(
         selected = []
         seen: set[int] = set()
         invalid_reason = None
+        authorization_denied = False
         for index in indexes:
             if type(index) is not int or not 0 <= index < len(raw_facts):
                 invalid_reason = "事实索引越界或类型错误"
@@ -624,6 +652,7 @@ def _normalize_static_omissions(
             protected = original.get("protectedTexts") or original.get("preserveVerbatim")
             if original.get("priority") != "should" or protected:
                 invalid_reason = "引用了 must 或受保护事实"
+                authorization_denied = True
                 break
             mapped = index_map.get(index)
             if mapped is None:
@@ -635,14 +664,22 @@ def _normalize_static_omissions(
             )
             if accepted_fact.get("priority") != "should" or merged_protected:
                 invalid_reason = "去重后指向 must 或受保护事实"
+                authorization_denied = True
                 break
             if mapped not in selected:
                 selected.append(mapped)
         if invalid_reason is not None:
-            descriptions.append(description)
+            known_references = authorization_denied and _static_omission_references_are_known(
+                indexes, raw_facts, index_map, accepted_facts,
+            )
+            if known_references:
+                consequence = "已撤销删除授权；实际遗漏由最终覆盖核对。"
+            else:
+                descriptions.append(description)
+                consequence = "已撤销删除授权并按未选入的 query 内容记录。"
             warnings.append(
                 f"omittedContents「{description}」的 factIndexes {invalid_reason}，"
-                "已撤销删除授权并按未选入的 query 内容记录。"
+                f"{consequence}"
             )
             continue
         if selected:
@@ -779,7 +816,7 @@ def _collect_static_source_errors(
         errors.append("info_required: 静态来源引用数量超过预算。")
 
 
-def _static_fact_source(user_query: str) -> tuple[str, bool]:
+def static_fact_source(user_query: str) -> tuple[str, bool]:
     """提取显式附加的静态事实段，避免把用户期望误作已获事实。"""
     _, marker, fact_source = user_query.partition(_STATIC_FACT_SECTION_MARKER)
     if not marker:
@@ -848,7 +885,7 @@ def _normalize_static_plan(
     user_query = task.get("userQuery")
     if not isinstance(user_query, str):
         raise CompactPlanValidationError(["静态来源需求必须是字符串。"])
-    source_query, has_explicit_fact_source = _static_fact_source(user_query)
+    source_query, has_explicit_fact_source = static_fact_source(user_query)
     if not isinstance(raw_facts, list) or not 1 <= len(raw_facts) <= 24:
         raise CompactPlanValidationError(["静态计划必须包含 1–24 条事实或动作。"])
     warnings: list[str] = []
@@ -2460,43 +2497,73 @@ def _recovery_fact(fact: dict[str, Any]) -> CompactDslRecoveryFact | None:
     return None
 
 
+def _static_recovery_omitted_indexes(
+    compact_dsl: str,
+    plan: dict[str, Any],
+    allowed_indexes: tuple[int, ...],
+) -> set[int]:
+    from services.card_validation.compact_validation.semantic.static_content import (
+        static_fact_coverage,
+    )
+
+    facts = plan.get("info_required", [])
+    omitted = set()
+    for coverage in static_fact_coverage(compact_dsl, plan, allowed_indexes):
+        fact = facts[coverage.fact_index]
+        if coverage.visible or coverage.text_present or "actionId" in fact:
+            continue
+        if fact.get("protectedTexts") or fact.get("preserveVerbatim"):
+            continue
+        optional = fact.get("priority") == "should"
+        if optional or coverage.fact_index in allowed_indexes:
+            omitted.add(coverage.fact_index)
+    return omitted
+
+
 def compact_plan_recovery_facts(
     compact_dsl: str,
     plan: dict[str, Any] | None,
     task_spec: dict[str, Any],
+    *,
+    allowed_omitted_fact_indexes: tuple[int, ...] = (),
 ) -> tuple[tuple[CompactDslRecoveryFact, ...], tuple[CompactDslRecoveryFact, ...]]:
-    """按第一轮最后一次失败 DSL 的可见结果划分第二轮 Plan 事实。"""
+    """划分恢复事实；静态链路不能把失败源的未授权遗漏固化为取舍。"""
     if not plan:
         return (), ()
     facts = plan.get("info_required")
     if not isinstance(facts, list):
         return (), ()
-    non_action_indexes = tuple(
-        index
-        for index, fact in enumerate(facts)
-        if isinstance(fact, dict) and "actionId" not in fact
-    )
-    omitted = compact_plan_omitted_facts(
-        compact_dsl,
-        plan,
-        task_spec,
-        non_action_indexes,
-    )
+    from services.generation_content_policy import current_content_policy
+
+    is_static = current_content_policy().is_static
+    omitted_indexes: set[int] = set()
     omitted_targets = set()
-    for fact in omitted:
-        recovery_fact = _recovery_fact(fact)
-        if recovery_fact is not None:
-            omitted_targets.add((recovery_fact.target, recovery_fact.value))
+    if is_static:
+        omitted_indexes = _static_recovery_omitted_indexes(
+            compact_dsl, plan, allowed_omitted_fact_indexes,
+        )
+    else:
+        non_action_indexes = []
+        for index, fact in enumerate(facts):
+            if isinstance(fact, dict) and "actionId" not in fact:
+                non_action_indexes.append(index)
+        omitted = compact_plan_omitted_facts(
+            compact_dsl, plan, task_spec, tuple(non_action_indexes),
+        )
+        for fact in omitted:
+            recovery_fact = _recovery_fact(fact)
+            if recovery_fact is not None:
+                omitted_targets.add((recovery_fact.target, recovery_fact.value))
     retained_facts: list[CompactDslRecoveryFact] = []
     omitted_facts: list[CompactDslRecoveryFact] = []
-    for fact in facts:
+    for index, fact in enumerate(facts):
         if not isinstance(fact, dict):
             continue
         recovery_fact = _recovery_fact(fact)
         if recovery_fact is None:
             continue
         target = (recovery_fact.target, recovery_fact.value)
-        should_omit = target in omitted_targets
+        should_omit = index in omitted_indexes if is_static else target in omitted_targets
         if recovery_fact.target != "actionId" and should_omit:
             omitted_facts.append(recovery_fact)
         else:
@@ -2769,6 +2836,7 @@ def compact_plan_optional_drop_candidate(
     max_fact_count: int | None = None,
     allowed_fact_indexes: set[int] | None = None,
     allow_invalid_table_text: bool = False,
+    approved_omitted_fact_indexes: tuple[int, ...] = (),
 ) -> CompactOptionalDropCandidate | None:
     """优先选 should-only 组件，并按策略和损失上限决定是否允许 must 兜底。"""
     if not plan:
@@ -2786,6 +2854,7 @@ def compact_plan_optional_drop_candidate(
             plan,
             allowed_fact_indexes,
             allow_must_fallback=allow_must_fallback,
+            approved_indexes=approved_omitted_fact_indexes,
         )
     try:
         rows = parse_compact_dsl_rows(
@@ -2929,6 +2998,7 @@ def _static_optional_drop_candidate(
     allowed_indexes: set[int] | None,
     *,
     allow_must_fallback: bool,
+    approved_indexes: tuple[int, ...] = (),
 ) -> CompactOptionalDropCandidate | None:
     """静态删减按事实授权；优先 should，无候选时才允许 must 兜底。"""
     from services.card_validation.compact_validation.semantic.static_content import (
@@ -2939,12 +3009,13 @@ def _static_optional_drop_candidate(
     if not isinstance(facts, list):
         return None
     try:
-        coverage_rows = static_fact_coverage(source, plan)
+        coverage_rows = static_fact_coverage(source, plan, approved_indexes)
     except (TypeError, ValueError):
         return None
     visible_indexes = {
         coverage.fact_index for coverage in coverage_rows if coverage.visible
     }
+    visible_indexes.difference_update(approved_indexes)
     object_groups = []
     for group in plan.get("contentGroups", []):
         if group.get("kind") != "object":
@@ -2960,6 +3031,8 @@ def _static_optional_drop_candidate(
     must_candidates = []
     for coverage in coverage_rows:
         index = coverage.fact_index
+        if index in approved_indexes:
+            continue
         if allowed_indexes is not None and index not in allowed_indexes:
             continue
         fact = facts[index]

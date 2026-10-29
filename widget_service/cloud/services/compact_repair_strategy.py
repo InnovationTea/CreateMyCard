@@ -20,6 +20,7 @@ from services.compact_repair_context import (
     bounded_component_capacity_contexts,
     repair_topology_fingerprint,
     semantic_layout_repair_guidance,
+    static_component_capacity_contexts,
 )
 
 _CAPACITY_MARKERS = (
@@ -118,11 +119,23 @@ _PILL_ACTION_ANCHOR_MIGRATION_INSTRUCTION = (
     "改选其它能够闭合容量的合法组件组合或父布局。"
 )
 
-_ANCHOR_MIGRATION_SOURCE_LAYOUTS = frozenset(
+_PILL_ACTION_SOURCE_LAYOUTS = frozenset(
     {
         "S-title-content-action",
         "S-title-primary-secondary-action",
     }
+)
+
+_FIXED_EMPHASIS_WIDTH_INSTRUCTION = (
+    " 当前报错定位到EmphasisText的固定18fp单行主文本，不能通过增大height、"
+    "添加maxLines或在同一单行属性内插入换行来获得两行，也不能把读数降到12fp次文本。"
+    "按原文已有语义边界，用同字号合法组件及Group完整分行；保留所有字符、空格、"
+    "标签、值、单位、绑定和原动作，不自动改写受保护原文或拆开动态值。"
+    "分行后按完整正文高度选择当前尺寸已登记的父布局及变体。"
+    "S-title-primary-secondary-action只有standard/dense，不接受direct变体；"
+    "若该结构仍放不下，可保持标题及原PillButton，整体改为S-title-content-action，"
+    "以合法Group承载完整正文，再核算其已登记direct系列变体。"
+    "只调整报错信息组和必要父布局，保留其它已正确区域及组件内部UX，不省略事实。"
 )
 
 
@@ -459,6 +472,68 @@ def _has_component_type(compact_dsl: str, component_type: str) -> bool:
     )
 
 
+def _remaining_static_object_count(
+    plan: dict[str, Any] | None, approved_indexes: tuple[int, ...],
+) -> int | None:
+    """只数已接受分组中仍有必需事实的对象，不按失败源的删项反推。"""
+    if not isinstance(plan, dict):
+        return None
+    facts = plan.get("info_required")
+    groups = plan.get("contentGroups")
+    if not isinstance(facts, list) or not isinstance(groups, list):
+        return None
+    count = 0
+    for group in groups:
+        if not isinstance(group, dict):
+            return None
+        if group.get("kind") != "object":
+            continue
+        indexes = group.get("factIndexes")
+        if not isinstance(indexes, list) or not indexes:
+            return None
+        retained = False
+        for index in indexes:
+            if type(index) is not int or not 0 <= index < len(facts):
+                return None
+            if index not in approved_indexes:
+                retained = True
+        count += int(retained)
+    return count
+
+
+def _static_single_line_repair_instruction(
+    source: str, plan: dict[str, Any] | None, approved_indexes: tuple[int, ...],
+) -> str:
+    count = _remaining_static_object_count(plan, approved_indexes)
+    has_header = _has_component_type(source, "SingleLineTitle")
+    maximum = 2 if has_header else 3
+    contract = "当前含标题的TextList须为2项；" if has_header else "当前无标题的TextList须为2–3项；"
+    if count is None:
+        capacity = "无法可靠确定Plan剩余对象数，不预设TextList可以无损替换；"
+    elif count <= 1:
+        capacity = (
+            f"Plan仍需完整展示{count}个对象，对象数不等于展示项数；"
+            "单对象完整属性可逐行展示，须按实际属性数及原语义合同核对，"
+            "不能预设TextList无损可行，也不能补造占位条目；"
+        )
+    elif 2 <= count <= maximum:
+        capacity = (
+            f"Plan仍需完整展示{count}个对象，可尝试TextList承载各对象的主副信息；"
+            "转换后仍须完整保留公共说明，并通过原宽高及事实校验；"
+        )
+    else:
+        capacity = (
+            f"Plan仍需完整展示{count}个对象，不满足当前TextList项数合同，"
+            "不能通过删除或合并不同对象改成TextList；"
+            "应核对当前字段分配或其它现有合法形态，未闭合时如实保留容量失败；"
+        )
+    return (
+        "当前SingleLineList容量不满足；" + contract + capacity
+        + "本轮没有optionalDrop时不得自行删除；后续只删除明确授权的事实，"
+        "整树高度超出不能据此归咎于某一条事实。"
+    )
+
+
 def _capacity_overflow_limit(capacity_fits: list[dict[str, Any]]) -> int | None:
     """返回本轮已证明的最小溢出事实数，用于限制提前 Drop 的损失。"""
     counts: list[int] = []
@@ -527,13 +602,24 @@ def _duplicate_required_slot_instruction() -> str:
     )
 
 
+def _text_width_overflow_components(
+    quality_errors: list[dict[str, Any]],
+) -> set[str]:
+    """复用已有宽度诊断格式，定位实际报错的展开文字节点。"""
+    messages = "\n".join(str(issue.get("message") or "") for issue in quality_errors)
+    identifiers = set()
+    for match in re.finditer(r"component\s+([^:\s]+):\s+text width overflow", messages, re.I):
+        identifiers.add(match.group(1))
+    return identifiers
+
+
 def _fixed_side_slot_text_overflow(
     invalid_source_dsl: str,
     quality_errors: list[dict[str, Any]],
 ) -> bool:
     """识别侧双槽固定信息槽无法容纳完整单行内容的容量错误。"""
-    messages = "\n".join(str(issue.get("message") or "") for issue in quality_errors)
-    if "text width overflow" not in messages.lower():
+    overflow_components = _text_width_overflow_components(quality_errors)
+    if not overflow_components:
         return False
     fixed_slots: list[str] = []
     for line in invalid_source_dsl.splitlines():
@@ -555,11 +641,56 @@ def _fixed_side_slot_text_overflow(
         break
     if len(fixed_slots) != 2:
         return False
-    for match in re.finditer(r"component\s+([^:\s]+):\s+text width overflow", messages, re.I):
-        component_id = match.group(1)
+    for component_id in overflow_components:
         for slot_id in fixed_slots:
             if component_id == slot_id or component_id.startswith(f"{slot_id}_"):
                 return True
+    return False
+
+
+def _fixed_emphasis_text_overflow(
+    invalid_source_dsl: str,
+    quality_errors: list[dict[str, Any]],
+    task_spec: dict[str, Any] | None,
+) -> bool:
+    """小卡文字动作骨架中，真实主文本宽度错误才允许必要父级重组。"""
+    if task_spec is None or task_spec.get("size") != "2x2":
+        return False
+    overflow_components = _text_width_overflow_components(quality_errors)
+    if not overflow_components:
+        return False
+    try:
+        rows = parse_compact_dsl_rows(
+            invalid_source_dsl, expand_layouts=False, skip_compact_dsl_validation=True,
+        )
+    except (CompactDslConversionError, TypeError, ValueError):
+        return False
+    components = {}
+    for row in rows:
+        if isinstance(row, ComponentRow):
+            components[row.component_id] = row
+    root = components.get("root")
+    if root is None or root.component_type != "Layout":
+        return False
+    if root.props.get("layout") not in _PILL_ACTION_SOURCE_LAYOUTS:
+        return False
+    action = components.get(root.children[-1]) if root.children else None
+    if action is None or action.component_type != "PillButton" or not action.props.get("onClick"):
+        return False
+    seen = set()
+    pending = list(root.children)
+    while pending:
+        identifier = pending.pop()
+        if identifier in seen:
+            continue
+        seen.add(identifier)
+        row = components.get(identifier)
+        if row is None:
+            continue
+        if row.component_type == "EmphasisText":
+            if f"{identifier}_main" in overflow_components:
+                return True
+        pending.extend(row.children)
     return False
 
 
@@ -590,7 +721,7 @@ def _pill_action_anchor_migration_relevant(
     root = components.get("root")
     if root is None or root.component_type != "Layout" or not root.children:
         return False
-    if root.props.get("layout") not in _ANCHOR_MIGRATION_SOURCE_LAYOUTS:
+    if root.props.get("layout") not in _PILL_ACTION_SOURCE_LAYOUTS:
         return False
     action = components.get(root.children[-1])
     return action is not None and action.component_type == "PillButton"
@@ -859,6 +990,7 @@ def _layout_directive(
     force_parent_layout: bool = False,
     allow_text_compaction: bool = False,
     offer_anchor_action_migration: bool = False,
+    fixed_emphasis_text: bool = False,
 ) -> CompactRepairDirective:
     split_panels_instruction = ""
     if prefer_split_panels:
@@ -877,6 +1009,10 @@ def _layout_directive(
             "从已接受 Plan 的全部硬事实和动作重新构造完整 DSL。"
             f"{split_panels_instruction}"
         )
+    elif fixed_emphasis_text:
+        scope = "parent_layout"
+        strategy = "parent_layout_recompose"
+        instruction = "完整强调文字在当前单行槽超宽；按原字号分行后重新核算必要父布局。"
     elif force_parent_layout:
         scope = "parent_layout"
         strategy = "parent_layout_recompose"
@@ -915,7 +1051,9 @@ def _layout_directive(
         instruction += _TREE_RECOMPOSE_INSTRUCTION
     if category == "layout_capacity" and allow_text_compaction:
         instruction += _CAPACITY_TEXT_COMPACTION_INSTRUCTION
-    if category == "layout_capacity" and offer_anchor_action_migration:
+    if category == "layout_capacity" and fixed_emphasis_text:
+        instruction += _FIXED_EMPHASIS_WIDTH_INSTRUCTION
+    elif category == "layout_capacity" and offer_anchor_action_migration:
         instruction += _PILL_ACTION_ANCHOR_MIGRATION_INSTRUCTION
     return CompactRepairDirective(
         category=category,
@@ -1216,6 +1354,8 @@ def _drop_optional_component_fallback_directive(
 def _drop_candidate_is_fully_removed(
     compact_dsl: str,
     candidate: CompactOptionalDropCandidate,
+    compact_plan: dict[str, Any] | None = None,
+    approved_indexes: tuple[int, ...] = (),
 ) -> bool:
     """候选行及全部父级引用均消失后，才允许选择下一个候选。"""
     if candidate.partial:
@@ -1250,19 +1390,23 @@ def _drop_candidate_is_fully_removed(
                 )
             return True
         from services.card_validation.compact_validation.semantic.static_content import (
-            display_text,
+            _fact_covered,
             static_display_groups,
+            static_fact_coverage,
         )
-
+        if compact_plan is None:
+            return False
         try:
+            coverage = static_fact_coverage(compact_dsl, compact_plan, approved_indexes)
             objects, shared = static_display_groups(compact_dsl)
         except (TypeError, ValueError):
             return False
-        for group in objects + shared:
-            if group.component_id != candidate.component_id:
-                continue
-            visible = display_text("".join(group.parts))
-            if any(display_text(text) in visible for text in candidate.display_texts):
+        states = {item.fact_index: item.visible for item in coverage}
+        facts = compact_plan.get("info_required", [])
+        for index in candidate.fact_indexes:
+            if not 0 <= index < len(facts) or states.get(index) is not False:
+                return False
+            if any(_fact_covered(facts[index], display.parts) for display in objects + shared):
                 return False
         return True
     try:
@@ -1391,6 +1535,8 @@ class CompactRepairStrategyTracker:
         allow_invalid_table_text: bool = False,
     ) -> CompactOptionalDropCandidate | None:
         """从当前仍可见内容中选择下一轮唯一候选并累计省略授权。"""
+        if self._static_content and allowed_fact_indexes is None:
+            allowed_fact_indexes = self._capacity_overflow_fact_indexes
         candidate = compact_plan_optional_drop_candidate(
             compact_dsl,
             compact_plan,
@@ -1399,6 +1545,7 @@ class CompactRepairStrategyTracker:
             max_fact_count=max_fact_count,
             allowed_fact_indexes=allowed_fact_indexes,
             allow_invalid_table_text=allow_invalid_table_text,
+            approved_omitted_fact_indexes=tuple(self._allowed_omitted_fact_indexes),
         )
         if candidate is None:
             return None
@@ -1407,6 +1554,47 @@ class CompactRepairStrategyTracker:
             if fact_index not in self._allowed_omitted_fact_indexes:
                 self._allowed_omitted_fact_indexes.append(fact_index)
         return candidate
+
+    def _release_restored_static_drop(
+        self,
+        compact_dsl: str,
+        quality_errors: list[dict[str, Any]],
+        compact_plan: dict[str, Any] | None,
+    ) -> bool:
+        """只撤销当前已完整恢复、且不再受容量影响的候选后续省略资格。"""
+        candidate = self._optional_drop_candidate
+        if not self._static_content or candidate is None or compact_plan is None:
+            return False
+        if candidate.component_type != "static_content":
+            return False
+        from services.card_validation.compact_validation.semantic.static_content import (
+            static_fact_coverage,
+            static_group_errors,
+        )
+
+        remaining = tuple(
+            index for index in self._allowed_omitted_fact_indexes
+            if index not in candidate.fact_indexes
+        )
+        try:
+            coverage = static_fact_coverage(compact_dsl, compact_plan, remaining)
+            if static_group_errors(compact_dsl, compact_plan, remaining):
+                return False
+            states = {item.fact_index: item.visible for item in coverage}
+            if not all(states.get(index) is True for index in candidate.fact_indexes):
+                return False
+            # 暂不豁免当前候选，避免容量映射因已有授权而漏掉它仍然超宽的证据。
+            capacity = static_component_capacity_contexts(
+                compact_dsl, quality_errors, compact_plan, remaining,
+            )
+        except (TypeError, ValueError):
+            return False
+        affected = _capacity_overflow_fact_indexes(capacity)
+        if not affected or affected.intersection(candidate.fact_indexes):
+            return False
+        self._allowed_omitted_fact_indexes = list(remaining)
+        self._optional_drop_candidate = None
+        return True
 
     def next_directive(
         self,
@@ -1426,8 +1614,17 @@ class CompactRepairStrategyTracker:
                 previous_count is not None and duplicate_excess_count >= previous_count
             )
         self._previous_duplicate_excess_count = duplicate_excess_count
-        capacity_fits = _capacity_fits_from_issues(quality_errors)
-        if not capacity_fits:
+        if self._static_content:
+            capacity_fits = static_component_capacity_contexts(
+                invalid_source_dsl, quality_errors, compact_plan,
+                tuple(self._allowed_omitted_fact_indexes),
+            )
+            self._latest_capacity_fits = []
+            self._capacity_overflow_limit = None
+            self._capacity_overflow_fact_indexes = set()
+        else:
+            capacity_fits = _capacity_fits_from_issues(quality_errors)
+        if not capacity_fits and not self._static_content:
             capacity_fits = bounded_component_capacity_contexts(
                 invalid_source_dsl,
                 quality_errors,
@@ -1544,8 +1741,8 @@ class CompactRepairStrategyTracker:
         )
         static_capacity_followup = (
             self._static_content
-            and category == "layout_capacity"
-            and self._repair_submission_count >= 1
+            and bool(capacity_fits)
+            and self._capacity_pressure_repair_submitted
         )
         early_drop_due = (
             persistent_plan_coverage_followup
@@ -1577,6 +1774,11 @@ class CompactRepairStrategyTracker:
             or bounded_capacity_followup
         )
         drop_entry_due = drop_entry_due and not _has_duplicate_actions(quality_errors)
+        if self._static_content:
+            drop_entry_due = static_capacity_followup and not _has_duplicate_actions(quality_errors)
+            drop_relevant_failure = bool(capacity_fits)
+            if self._active_fallback == "drop_optional_component":
+                drop_entry_due = False
         if drop_entry_due and drop_relevant_failure and task_spec is not None:
             max_fact_count = self._capacity_overflow_limit if early_drop_due else None
             allowed_fact_indexes = None
@@ -1612,20 +1814,25 @@ class CompactRepairStrategyTracker:
                 duplicate_count_not_reduced=duplicate_count_not_reduced,
             )
         elif self._active_fallback == "drop_optional_component":
-            if self._optional_drop_candidate is None:
+            if self._optional_drop_candidate is None and not self._static_content:
                 raise RuntimeError("optional drop fallback has no selected candidate")
-            candidate_was_removed = _drop_candidate_is_fully_removed(
-                invalid_source_dsl,
-                self._optional_drop_candidate,
+            self._release_restored_static_drop(
+                invalid_source_dsl, quality_errors, compact_plan,
             )
-            candidate_was_removed = (
-                candidate_was_removed
-                and _protected_core_is_reattached(
+            pending_candidate = self._optional_drop_candidate
+            candidate_was_removed = pending_candidate is None
+            if pending_candidate is not None:
+                candidate_was_removed = _drop_candidate_is_fully_removed(
                     invalid_source_dsl,
-                    self._optional_drop_candidate,
+                    pending_candidate,
+                    compact_plan,
+                    tuple(self._allowed_omitted_fact_indexes),
                 )
-            )
-            if candidate_was_removed and not drop_relevant_failure:
+                candidate_was_removed = candidate_was_removed and _protected_core_is_reattached(
+                    invalid_source_dsl, pending_candidate,
+                )
+            static_noncapacity_failure = self._static_content and not capacity_fits
+            if static_noncapacity_failure or (candidate_was_removed and not drop_relevant_failure):
                 directive = _non_layout_directive(
                     category=category,
                     quality_errors=quality_errors,
@@ -1650,6 +1857,19 @@ class CompactRepairStrategyTracker:
                         allow_invalid_table_text=table_text_item_overflow,
                     )
                 if candidate is None:
+                    instruction = (
+                        "当前 Drop 候选已经移除且没有新的合法非 Action 候选；"
+                        "保留程序累计批准的省略结果，从已接受 Plan、剩余事实和动作"
+                        "重新构造完整 DSL。"
+                        "不得恢复已批准删除的组件，不得删除新的未授权事实或任何 Action。"
+                    )
+                    if self._static_content:
+                        instruction = (
+                            "当前没有待执行的有效 Drop 候选，也没有新的合法非 Action 候选；"
+                            "保留累计批准且当前实际发生的省略，按已接受 Plan 重组完整 DSL。"
+                            "已经完整恢复且不再获批省略的事实必须继续展示；"
+                            "不得删除新的未授权事实或任何 Action。"
+                        )
                     directive = _full_dsl_transition_directive(
                         category=category,
                         fingerprint=fingerprint,
@@ -1659,12 +1879,7 @@ class CompactRepairStrategyTracker:
                         fallback_stage=self._active_fallback,
                         fallback_attempt=self._fallback_submission_count,
                         fallback_attempt_limit=self._fallback_submission_limit,
-                        instruction=(
-                            "当前 Drop 候选已经移除且没有新的合法非 Action 候选；"
-                            "保留程序累计批准的省略结果，从已接受 Plan、剩余事实和动作"
-                            "重新构造完整 DSL。"
-                            "不得恢复已批准删除的组件，不得删除新的未授权事实或任何 Action。"
-                        ),
+                        instruction=instruction,
                     )
                 else:
                     directive = _drop_optional_component_fallback_directive(
@@ -1819,6 +2034,11 @@ class CompactRepairStrategyTracker:
                 invalid_source_dsl,
                 task_spec,
             )
+            fixed_emphasis_text = False
+            if category == "layout_capacity" and not self._static_content:
+                fixed_emphasis_text = _fixed_emphasis_text_overflow(
+                    invalid_source_dsl, quality_errors, task_spec,
+                )
             directive = _layout_directive(
                 category=category,
                 fingerprint=fingerprint,
@@ -1829,6 +2049,7 @@ class CompactRepairStrategyTracker:
                 force_parent_layout=force_parent_layout,
                 allow_text_compaction=allow_text_compaction,
                 offer_anchor_action_migration=offer_anchor_action_migration,
+                fixed_emphasis_text=fixed_emphasis_text,
             )
         else:
             directive = _non_layout_directive(
@@ -1924,17 +2145,18 @@ class CompactRepairStrategyTracker:
                 directive,
                 instruction=(
                     "按当前静态合同修复完整源，正文使用TextList、SingleLineList、ComparisonGroup或EmphasisText；固定标题和贴底内容区；"
-                    "保留must核心、保护片段和原文要求；无保护should可省略并反馈取舍。"
-                    "不得删除仍承载must的组件；混合组件只删除可选补充片段。"
+                    "保留全部已接受事实、保护片段和原文要求；"
+                    "仅optionalDrop或approvedOmissions明确授权的事实可省略并反馈取舍。"
+                    "混合组件不得连带删除未授权文字或整组。"
                     "先修语法与引用，再检查事实归属，最后调整组件；短键值可改SingleLineList。"
                     "对比对象名与主值分开，关键数值、日期时间、单位保持完整片段；"
                     "超宽时改全宽正文或列表；省略号只采用Plan已有展示版本，"
                     "主题放header，强调位置展示结论或读数；完整落实已接受文字，不缩字或隐式裁切。"
                     + (
-                        "当前SingleLineList的完整单行文字容量不成立；"
-                        "改用TextList承载长记录的主副信息，含标题时最多两项。"
-                        "本轮没有optionalDrop时不得自行删除；若无损转换仍失败，"
-                        "后续只删除optionalDrop明确授权的超出信息。"
+                        _static_single_line_repair_instruction(
+                            invalid_source_dsl, compact_plan,
+                            tuple(self._allowed_omitted_fact_indexes),
+                        )
                         if static_single_line_list_overflow
                         else ""
                     )

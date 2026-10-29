@@ -181,14 +181,14 @@ async def test_invalid_report_consumes_plan_budget_without_input_retry_authoriza
 def test_empty_data_accepts_static_and_action_plans_without_missing_input_error(action_only):
     from services.compact_plan import parse_compact_plan_call
     from services.generation_content_policy import (
-        STATIC_CONTENT_POLICY,
         content_policy_scope,
+        resolve_content_policy,
     )
 
     query = "写上每天开心" if not action_only else "点按打开电池设置"
     fact = {
         "requirement": "展示固定文字", "priority": "must", "text": "每天开心",
-        "sourceTexts": ["每天开心"], "componentHints": ["ContentBlock"],
+        "sourceTexts": ["每天开心"], "componentHints": ["EmphasisText"],
     }
     events = []
     groups = [{"id": "greeting", "kind": "object", "identity": None, "factIndexes": [0]}]
@@ -201,16 +201,31 @@ def test_empty_data_accepts_static_and_action_plans_without_missing_input_error(
         events = [{"id": "event.open.settings.battery", "call": "clickToDeeplink", "args": {}}]
         groups = []
         layouts = ["S-title-content-action"]
-    arguments = {"info_required": [fact], "contentGroups": groups, "layoutHints": layouts}
+    arguments = {"info_required": [fact], "layoutHints": layouts}
+    if not action_only:
+        arguments["contentGroups"] = groups
     raw = json.dumps({"name": "submit_card_plan", "arguments": arguments}, ensure_ascii=False)
     task = {
         "userQuery": query, "size": "2x2", "dataModelSchema": {"data": {}},
         "eventCandidates": events, "assetCandidates": [],
     }
-    with content_policy_scope(STATIC_CONTENT_POLICY):
+    policy = resolve_content_policy(
+        operation="generateWidgetCardCompactDsl", enabled=True, is_edit=False,
+        requested_data=False, effective_data=False,
+        requested_events=action_only, effective_events=action_only,
+    )
+    assert policy.is_static == (not action_only)
+    with content_policy_scope(policy):
         assert parse_missing_data_report(raw, query, allow_report=True) is None
         accepted = parse_compact_plan_call(raw, task)
-    assert accepted.plan.get("info_required")
+    facts = accepted.plan.get("info_required")
+    assert isinstance(facts, list)
+    assert len(facts) == 1
+    assert not facts[0].get("dataId")
+    if action_only:
+        assert facts[0].get("actionId") == "event.open.settings.battery"
+    else:
+        assert facts[0].get("text") == "每天开心"
 
 
 def test_websocket_final_exposes_structured_input_guidance(monkeypatch):

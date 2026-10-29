@@ -1,4 +1,4 @@
-"""原色 SVG 在组件展开、标题转换和末尾主题中的染色回归。"""
+"""原色素材在组件展开、标题转换和末尾主题中的染色回归。"""
 
 import json
 from pathlib import Path
@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
+from services.compact_high_level_components import CompactDslConversionError
 from services.layout_theme_contract import layout_only_prompt, strip_source_colors
 from services.post_layout_theme import apply_theme, foreground_signature, presets
 from services.theme_style_roles import layout_phase, native_asset
@@ -17,7 +18,7 @@ REGISTRY = (
 )
 NATIVE_NAMES = (
     "icon_id", "ic_charge", "ic_weatherWarning", "ic_uv_color", "ic_warning_color",
-    "ic_weather_color", "ic_hotspot", "ic_call_bule", "ic_call_yellow", "ic_ring_bule",
+    "emoji_default_weather_blue", "ic_hotspot", "ic_call_bule", "ic_call_yellow", "ic_ring_bule",
     "ic_ring_yellow", "ic_sportsHealth_bule", "ic_sportsHealth_yellow", "ic_sun",
     "ic_calender", "ic_sun_monochrome",
 )
@@ -44,6 +45,9 @@ def _images(source: str) -> list[dict[str, Any]]:
 
 def _source(kind: str, src: str) -> str:
     props: dict[str, Any] = {"icon": src, "fillColor": "#FFFF0000"}
+    if src.endswith(".png") and kind != "Image":
+        # 位图组件合同禁止声明染色；原色 SVG 仍保留显式红色以验证规范化。
+        props.pop("fillColor")
     if kind == "SingleLineTitle":
         props["title"] = "测试标题"
     elif kind == "PillButton":
@@ -114,6 +118,20 @@ def test_native_images_stay_unpainted_after_conversion_and_theme(
         styles = image.get("styles")
         assert isinstance(styles, dict)
         assert "fillColor" not in styles
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("kind", ["SingleLineTitle", "PillButton"])
+def test_native_bitmap_component_rejects_explicit_tint(size: str, kind: str) -> None:
+    asset = _asset("emoji_default_weather_blue")
+    src = asset.get("src")
+    assert isinstance(src, str)
+    rows = [json.loads(line) for line in _source(kind, src).splitlines()]
+    rows[1][2]["fillColor"] = "#FFFF0000"
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    with layout_phase(True, {"size": size, "assetCandidates": [asset]}):
+        with pytest.raises(CompactDslConversionError, match="fillColor"):
+            convert_compact_dsl_to_a2ui(source, size=size)
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

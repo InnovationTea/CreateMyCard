@@ -62,7 +62,7 @@ def fact(text: str, **extras) -> dict:
         "text": text,
         "sourceTexts": [text],
         "priority": "must",
-        "componentHints": ["ContentBlock"],
+        "componentHints": ["EmphasisText"],
     }
     result.update(extras)
     return result
@@ -91,6 +91,25 @@ def model_plan(value: dict) -> dict:
 def accept(value: dict, query: str, size: str = "2x2") -> dict:
     raw = json.dumps({"name": "submit_card_plan", "arguments": value}, ensure_ascii=False)
     return parse_compact_plan_call(raw, task(query, size)).plan
+
+
+def capacity_issue(dsl: str, size: str = "2x2") -> dict:
+    with pytest.raises(CompactDslConversionError) as caught:
+        convert_compact_dsl_to_a2ui(dsl, size=size)
+    return {
+        "stage": "conversion", "code": "COMPACT_DSL_CONVERSION_FAILED",
+        "message": str(caught.value),
+    }
+
+
+def review_response(messages) -> str | None:
+    try:
+        payload = json.loads(messages[-1].get("content", ""))
+    except (ValueError, TypeError):
+        return None
+    if isinstance(payload, dict) and "staticPlanReview" in payload:
+        return json.dumps({"decision": "keep", "sourceFidelity": "preserved", "findings": []})
+    return None
 
 
 @pytest.fixture
@@ -152,7 +171,7 @@ async def test_concurrent_request_policies_reset_on_success_and_failure() -> Non
 def test_default_registry_and_parser_do_not_admit_static_contract() -> None:
     assert "S-static-content" not in allowed_layout_ids("2x2", "S-plan-guided")
     with pytest.raises(CompactDslConversionError):
-        convert_compact_dsl_to_a2ui(source("ContentBlock", {"body": "带证件"}), size="2x2")
+        convert_compact_dsl_to_a2ui(source("EmphasisText", {"mainText": "带证件"}), size="2x2")
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -252,14 +271,14 @@ def test_explicit_static_fact_section_rejects_requested_device_status_as_source(
 
 
 @pytest.mark.usefixtures("static_policy")
-def test_action_group_membership_is_removed_with_warning() -> None:
+def test_registered_action_group_cannot_enter_static_only_plan() -> None:
     value = plan(
         [
             fact("通勤助手"),
             {
                 "requirement": "一键导航到公司",
                 "priority": "must",
-                "componentHints": ["CardButton"],
+                "componentHints": [],
                 "actionId": "event.startNavigate",
             },
         ],
@@ -272,23 +291,21 @@ def test_action_group_membership_is_removed_with_warning() -> None:
     current_task["eventCandidates"] = [{"id": "event.startNavigate"}]
     raw = json.dumps({"name": "submit_card_plan", "arguments": value}, ensure_ascii=False)
 
-    result = parse_compact_plan_call(raw, current_task)
-
-    assert result.plan.get("contentGroups") == [
-        {"id": "title", "kind": "shared", "factIndexes": [0]},
-    ]
-    assert any("已自动移出正文分组" in warning for warning in result.warnings)
+    before = copy.deepcopy(value)
+    with pytest.raises(CompactPlanValidationError, match="不支持Action"):
+        parse_compact_plan_call(raw, current_task)
+    assert value == before
 
 
 @pytest.mark.usefixtures("static_policy")
-def test_action_text_collision_keeps_registered_action_with_warning() -> None:
+def test_action_text_collision_does_not_turn_registered_action_into_static_text() -> None:
     action_id = "event.startNavigate"
     value = plan(
         [
             {
                 "requirement": "从家到公司的导航入口",
                 "priority": "must",
-                "componentHints": ["CardButton"],
+                "componentHints": [],
                 "text": "去公司导航",
                 "actionId": action_id,
                 "displayRole": "title",
@@ -300,18 +317,10 @@ def test_action_text_collision_keeps_registered_action_with_warning() -> None:
     current_task["eventCandidates"] = [{"id": action_id}]
     raw = json.dumps({"name": "submit_card_plan", "arguments": value}, ensure_ascii=False)
 
-    result = parse_compact_plan_call(raw, current_task)
-
-    assert result.plan.get("info_required") == [
-        {
-            "requirement": "从家到公司的导航入口",
-            "priority": "must",
-            "componentHints": ["CardButton"],
-            "actionId": action_id,
-        }
-    ]
-    assert result.plan.get("contentGroups") == []
-    assert any("已优先保留 Action" in warning for warning in result.warnings)
+    before = copy.deepcopy(value)
+    with pytest.raises(CompactPlanValidationError, match="不支持Action"):
+        parse_compact_plan_call(raw, current_task)
+    assert value == before
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -334,8 +343,8 @@ def test_model_summary_does_not_need_original_substrings(display, reference) -> 
 @pytest.mark.parametrize(
     "items",
     [
-        [{"title": "甲", "trailing": "免费"}, {"title": "乙", "trailing": "20元"}],
-        [{"title": "甲", "trailing": "20元"}],
+        [{"text": "甲", "assist": "免费"}, {"text": "乙", "assist": "20元"}],
+        [{"text": "甲", "assist": "20元"}],
     ],
 )
 def test_objects_cannot_borrow_facts_from_another_item(items: list[dict]) -> None:
@@ -346,14 +355,14 @@ def test_objects_cannot_borrow_facts_from_another_item(items: list[dict]) -> Non
             {"id": "b", "kind": "object", "factIndexes": [2, 3]},
         ],
     )
-    errors = static_group_errors(source("RecordList", {"items": items}), accepted)
+    errors = static_group_errors(source("SingleLineList", {"items": items}), accepted)
     assert errors and any("COMPACT_STATIC_CORE_MISSING" in error for error in errors)
 
 
 @pytest.mark.usefixtures("static_policy")
 def test_plan_should_authorizes_omission_without_waiting_for_repair() -> None:
     accepted = plan([fact("带证件"), fact("带雨伞", priority="should")])
-    value = source("ContentBlock", {"body": "带证件"})
+    value = source("EmphasisText", {"mainText": "带证件"})
     assert not static_group_errors(value, accepted)
     assert not static_group_errors(value, accepted, (1,))
     assert static_group_errors(value, accepted, (0,))
@@ -369,16 +378,16 @@ def test_plan_should_authorizes_omission_without_waiting_for_repair() -> None:
     [("连续中文" * 20, 126.0), ("https://example.test/" * 15, 70.0), ("甲\n乙\n丙\n丁\n戊", 126.0)],
 )
 def test_complete_text_capacity_rejects_overflow(text: str, width: float) -> None:
-    assert not measure_text(text, width, text_spec("body")).fits
+    assert not measure_text(text, width, text_spec("emphasisSecondary")).fits
 
 
 @pytest.mark.usefixtures("static_policy")
 @pytest.mark.parametrize(
     "component,props,size",
     [
-        ("ContentBlock", {"body": "长" * 100}, "2x2"),
-        ("ContentBlock", {"body": "内容", "onClick": []}, "2x2"),
-        ("RecordList", {"items": [{"title": "记录", "trailing": "长" * 30}]}, "2x2"),
+        ("EmphasisText", {"mainText": "长" * 100}, "2x2"),
+        ("EmphasisText", {"mainText": "内容", "onClick": []}, "2x2"),
+        ("SingleLineList", {"items": [{"text": "记录", "assist": "长" * 30}]}, "2x2"),
         ("ComparisonGroup", {"items": [{"primaryText": "甲"}, {"primaryText": "乙"}]}, "2x2"),
         ("ComparisonGroup", {"items": [{"primaryText": "长" * 30}, {"primaryText": "乙"}]}, "2x4"),
     ],
@@ -410,22 +419,26 @@ def test_all_static_fewshots_convert_validate_and_keep_theme_geometry(size, dsl,
         identifier, component, props = row[:3]
         objects = []
         kind = "object"
-        if component == "ContentBlock":
-            objects = [[props.get("title") or props.get("body")]]
-        elif component in {"RecordList", "ComparisonGroup"}:
+        if component == "EmphasisText":
+            objects = [[props.get("mainText"), props.get("secondaryText")]]
+        elif component in {"TextList", "SingleLineList", "ComparisonGroup"}:
             for item in props.get("items", []):
-                objects.append([item.get("title") or item.get("primaryText")])
-        elif identifier in {"header", "note"}:
+                parts = []
+                for key in ("primaryText", "secondaryText", "text", "assist", "value"):
+                    if isinstance(item.get(key), str):
+                        parts.append(item.get(key))
+                parts.extend(item.get("details", []))
+                objects.append(parts)
+        elif component == "SingleLineTitle":
             kind = "shared"
-            if identifier == "header":
-                objects = [[props.get("title")]]
-            else:
-                objects = [[props.get("items")[0].get("value")]]
+            objects = [[props.get("title")]]
         for parts in objects:
-            index = len(facts)
+            indexes = []
             for part in parts:
-                facts.append(fact(part))
-            groups.append({"id": str(index), "kind": kind, "factIndexes": [index]})
+                if isinstance(part, str) and part:
+                    indexes.append(len(facts))
+                    facts.append(fact(part))
+            groups.append({"id": str(len(groups)), "kind": kind, "factIndexes": indexes})
     accepted = plan(facts, groups)
     validate_compact_dsl(
         dsl,
@@ -449,15 +462,18 @@ def test_all_static_fewshots_convert_validate_and_keep_theme_geometry(size, dsl,
 @pytest.mark.parametrize(
     "component,props,size,repair",
     [
-        ("ContentBlock", {"title": "出发前检查", "body": "带证件"}, "2x2", False),
-        ("RecordList", {"items": [{"title": "带证件"}, {"title": "带雨伞"}]}, "2x2", False),
+        ("EmphasisText", {"mainText": "出发前检查", "secondaryText": "带证件"}, "2x2", False),
+        ("SingleLineList", {"items": [
+            {"text": "出发前", "assist": "带证件"},
+            {"text": "遇雨", "assist": "带雨伞"},
+        ]}, "2x2", False),
         (
             "ComparisonGroup",
             {"items": [{"primaryText": "128元/月"}, {"primaryText": "159元/月"}]},
             "2x4",
             False,
         ),
-        ("ContentBlock", {"title": "出发前检查", "body": "带证件"}, "2x2", True),
+        ("EmphasisText", {"mainText": "出发前检查", "secondaryText": "带证件"}, "2x2", True),
     ],
 )
 async def test_formal_service_uses_static_plan_and_real_processor(
@@ -481,7 +497,7 @@ async def test_formal_service_uses_static_plan_and_real_processor(
     objects = props.get("items", [props])
     for item in objects:
         indexes = []
-        for key in ("title", "body", "primaryText"):
+        for key in ("mainText", "secondaryText", "text", "assist", "primaryText"):
             text = item.get(key)
             if text is not None:
                 indexes.append(len(text_values))
@@ -498,13 +514,16 @@ async def test_formal_service_uses_static_plan_and_real_processor(
         model_format = (profile or {}).get("format")
         calls.append((model_format, copy.deepcopy(prompt)))
         if model_format == "raw-json":
+            review = review_response(prompt)
+            if review is not None:
+                return review
             return json.dumps(
                 {"name": "submit_card_plan", "arguments": model_plan(accepted)}, ensure_ascii=False
             )
         dsl_calls = sum(item[0] == "compact-dsl" for item in calls)
         value = props
         if repair and dsl_calls == 1:
-            value = {"title": "出发前检查"}
+            value = {"mainText": "出发前检查"}
         return source(component, value, size)
 
     def save(_store, artifact):
@@ -532,21 +551,23 @@ async def test_formal_service_uses_static_plan_and_real_processor(
     result = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
     assert result.status == GenerationStatus.SUCCESS, result
     assert len(saved) == 1
-    assert [call[0] for call in calls] == ["raw-json", "compact-dsl"]
+    expected = ["raw-json", "raw-json", "compact-dsl"]
+    assert [call[0] for call in calls] == expected
+    for text in text_values:
+        assert text in saved[0].genui
     assert not current_content_policy().is_static
     assert "contentGroups" in calls[0][1][0].get("content", "")
     assert "FEWSHOT" not in calls[0][1][0].get("content", "")
-    assert calls[-1][1][: len(calls[0][1])] == calls[0][1]
+    assert calls[-1][1][0].get("content", "").startswith(calls[0][1][0].get("content", ""))
     assert sum(message.get("role") == "system" for message in calls[-1][1]) == 1
 
 
-@pytest.mark.usefixtures("static_policy")
 def test_existing_action_layout_accepts_static_body_and_preserves_action() -> None:
     handler = {"call": "clickToDeeplink", "args": {"uri": "hww://calendar"}}
     rows = [
         ["root", "Layout", {"layout": "S-title-content-action"}, ["title", "content", "action"]],
         ["title", "SingleLineTitle", {"title": "出发", "fontSize": 12}],
-        ["content", "ContentBlock", {"body": "带证件"}],
+        ["content", "EmphasisText", {"mainText": "带证件"}],
         ["action", "PillButton", {"label": "打开日历", "onClick": [handler]}],
         ["/state/ready", True],
     ]
@@ -587,23 +608,22 @@ def test_minimal_should_drop_keeps_must_in_same_component() -> None:
     )
     from services.compact_repair_strategy import CompactRepairStrategyTracker
 
-    accepted = plan([fact("带证件"), fact("带雨伞", priority="should")])
-    dsl = source("ContentBlock", {"title": "带证件", "body": "带雨伞"})
+    optional = "完整雨具使用说明" * 30
+    accepted = plan([fact("带证件"), fact(optional, priority="should")])
+    dsl = source("EmphasisText", {"mainText": optional, "secondaryText": "带证件"})
     candidate = compact_plan_optional_drop_candidate(dsl, accepted, task())
     assert candidate is not None and candidate.partial
     assert candidate.fact_indexes == (1,)
     tracker = CompactRepairStrategyTracker(static_content=True, capacity_recovery=True)
-    issue = {
-        "stage": "validation",
-        "code": "COMPACT_STATIC_TEXT_CAPACITY",
-        "message": "COMPACT_STATIC_TEXT_CAPACITY: 完整文字超限",
-    }
+    issue = capacity_issue(dsl)
+    first = tracker.next_directive(dsl, [issue], compact_plan=accepted, task_spec=task())
+    assert first.optional_drop is None
     directive = tracker.next_directive(dsl, [issue], compact_plan=accepted, task_spec=task())
     assert directive.category == "layout_capacity"
     assert directive.optional_drop == candidate
     assert "由程序批准的should文字" in directive.instruction
     assert tracker.validation_omitted_fact_indexes(accepted, validate_drop_plan_facts=False) == (1,)
-    repaired = source("ContentBlock", {"title": "带证件"})
+    repaired = source("EmphasisText", {"mainText": "带证件"})
     assert not static_group_errors(repaired, accepted, (1,))
     assert len(compact_plan_omitted_facts(repaired, accepted, task(), (1,))) == 1
 
@@ -622,7 +642,7 @@ def test_static_drop_never_authorizes_protected_or_verbatim(extras) -> None:
 
     assert (
         compact_plan_optional_drop_candidate(
-            source("ContentBlock", {"body": "带证件"}),
+            source("EmphasisText", {"mainText": "带证件"}),
             plan([fact("带证件", **extras)]),
             task(),
             allow_must_fallback=True,
@@ -639,18 +659,19 @@ def test_static_drop_uses_lowest_must_after_should_candidates_are_exhausted() ->
     )
     from services.compact_repair_strategy import CompactRepairStrategyTracker
 
-    facts = [fact("甲场周六19:30"), fact("乙场周日20:00")]
+    extra = "乙场完整入场说明" * 30
+    facts = [fact("甲场周六19:30"), fact(extra)]
     groups = [
         {"id": "event0", "kind": "object", "factIndexes": [0]},
         {"id": "event1", "kind": "object", "factIndexes": [1]},
     ]
     accepted = plan(facts, groups)
     dsl = source(
-        "RecordList",
+        "SingleLineList",
         {
             "items": [
-                {"title": "甲场周六19:30"},
-                {"title": "乙场周日20:00"},
+                {"text": "甲场", "assist": "周六19:30"},
+                {"text": "乙场", "assist": extra.removeprefix("乙场")},
             ]
         },
     )
@@ -664,18 +685,16 @@ def test_static_drop_uses_lowest_must_after_should_candidates_are_exhausted() ->
         is None
     )
     tracker = CompactRepairStrategyTracker(static_content=True, capacity_recovery=True)
-    issue = {
-        "stage": "validation",
-        "code": "COMPACT_STATIC_TEXT_CAPACITY",
-        "message": "COMPACT_STATIC_TEXT_CAPACITY: 完整文字超限",
-    }
+    issue = capacity_issue(dsl)
+    first = tracker.next_directive(dsl, [issue], compact_plan=accepted, task_spec=task())
+    assert first.optional_drop is None
     directive = tracker.next_directive(dsl, [issue], compact_plan=accepted, task_spec=task())
     candidate = directive.optional_drop
     assert candidate is not None
     assert candidate.fact_indexes == (1,)
     assert candidate.contains_must_facts is True
     assert "由程序批准的must文字" in directive.instruction
-    repaired = source("RecordList", {"items": [{"title": "甲场周六19:30"}]})
+    repaired = source("SingleLineList", {"items": [{"text": "甲场", "assist": "周六19:30"}]})
     assert not static_group_errors(repaired, accepted, (1,))
     omitted = compact_plan_omitted_facts(repaired, accepted, task(), (1,))
     assert omitted[0].get("omissionReason") == "bounded_drop"
@@ -686,7 +705,7 @@ def test_static_drop_keeps_the_last_object() -> None:
     from services.compact_plan import compact_plan_optional_drop_candidate
 
     accepted = plan([fact("甲场周六19:30")])
-    dsl = source("RecordList", {"items": [{"title": "甲场周六19:30"}]})
+    dsl = source("SingleLineList", {"items": [{"text": "甲场", "assist": "周六19:30"}]})
     assert (
         compact_plan_optional_drop_candidate(
             dsl,
@@ -701,7 +720,9 @@ def test_static_drop_keeps_the_last_object() -> None:
 @pytest.mark.usefixtures("static_policy")
 @pytest.mark.parametrize("mutation", ["drop", "move", "hide", "font", "ancestor"])
 def test_final_theme_audit_rejects_changed_or_hidden_content(mutation) -> None:
-    original = convert_compact_dsl_to_a2ui(source("ContentBlock", {"body": "带证件"}), size="2x2")
+    original = convert_compact_dsl_to_a2ui(
+        source("EmphasisText", {"mainText": "带证件"}), size="2x2",
+    )
     records = [json.loads(line) for line in original.splitlines()]
     nodes = []
     for record in records:
@@ -732,7 +753,9 @@ def test_real_gradient_theme_keeps_complete_static_content(family) -> None:
     from services.theme_selection_policy import fusion_candidate_gate
     from services.theme_style_roles import layout_phase
 
-    dsl = source("RecordList", {"items": [{"title": "带证件"}, {"title": "带雨伞"}]})
+    dsl = source("SingleLineList", {"items": [
+        {"text": "出发前", "assist": "带证件"}, {"text": "遇雨", "assist": "带雨伞"},
+    ]})
     with layout_phase(task=task()):
         original = convert_compact_dsl_to_a2ui(dsl, size="2x2")
     themed = apply_theme(original, fallback_theme(family), task(), {})
@@ -744,9 +767,9 @@ def test_real_gradient_theme_keeps_complete_static_content(family) -> None:
 @pytest.mark.parametrize(
     "change",
     [
-        {"body": {"path": "/data/fake"}},
-        {"body": "${fake}"},
-        {"body": "{{fake}}"},
+        {"mainText": {"path": "/data/fake"}},
+        {"mainText": "${fake}"},
+        {"mainText": "{{fake}}"},
         {"variant": []},
         {"attributes": []},
         {"width": 10},
@@ -754,9 +777,9 @@ def test_real_gradient_theme_keeps_complete_static_content(family) -> None:
     ],
 )
 def test_static_component_shape_does_not_allow_dynamic_or_free_geometry(change) -> None:
-    props = {"body": "带证件", **change}
+    props = {"mainText": "带证件", **change}
     with pytest.raises(CompactDslConversionError):
-        convert_compact_dsl_to_a2ui(source("ContentBlock", props), size="2x2")
+        convert_compact_dsl_to_a2ui(source("EmphasisText", props), size="2x2")
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -772,7 +795,9 @@ def test_missing_static_plan_context_cannot_skip_required_validation() -> None:
         layout_scope=effective_layout_scope("2x2"),
         skip_compact_dsl_validation=True,
     )
-    result = DesignCompactProcessor().process(source("ContentBlock", {"body": "带证件"}), context)
+    result = DesignCompactProcessor().process(
+        source("EmphasisText", {"mainText": "带证件"}), context,
+    )
     assert result.issues
     assert not result.standard_dsl
 
@@ -806,37 +831,40 @@ def test_ambiguous_source_positions_are_bounded(monkeypatch) -> None:
     ],
 )
 def test_complete_multiline_text_fits_without_changing_content(body) -> None:
-    dsl = source("ContentBlock", {"body": body})
-    accepted = plan([fact(body)])
+    dsl = source("EmphasisText", {"mainText": "正文", "secondaryText": body}, "2x4")
+    accepted = plan([fact("正文"), fact(body)])
     validate_compact_dsl(
         dsl,
-        task_spec=task(body),
-        card_spec={"suggestSize": "2x2"},
+        task_spec=task(body, "2x4"),
+        card_spec={"suggestSize": "2x4"},
         compact_plan=accepted,
-        layout_scope=effective_layout_scope("2x2"),
+        layout_scope=effective_layout_scope("2x4"),
         enforce_model_component_types=True,
     )
     from services.static_content_context import standard_components
 
-    converted = convert_compact_dsl_to_a2ui(dsl, size="2x2")
+    converted = convert_compact_dsl_to_a2ui(dsl, size="2x4")
     texts = [
         node for node in standard_components(converted).values() if node.get("component") == "Text"
     ]
-    assert len(texts) > 1
-    assert "".join(node.get("content") for node in texts) == body
-    assert all(node.get("styles", {}).get("maxLines") == 1 for node in texts)
+    rendered = next(node for node in texts if node.get("content") == body)
+    assert measure_text(body, 276, text_spec("emphasisSecondary")).fits
+    assert rendered.get("styles", {}).get("maxLines") == 3
+    assert rendered.get("styles", {}).get("fontSize") == 12
 
 
 @pytest.mark.usefixtures("static_policy")
 def test_total_height_still_rejects_many_individually_valid_fields() -> None:
-    attributes = [{"label": str(index), "value": "完整值"} for index in range(6)]
-    dsl = source("ContentBlock", {"title": "信息卡", "body": "完整正文", "attributes": attributes})
+    items = [{"text": str(index), "assist": "完整值"} for index in range(8)]
+    dsl = source("SingleLineList", {"items": items})
+    facts = [fact(item.get("text") + "完整值") for item in items]
+    groups = [{"id": str(index), "kind": "object", "factIndexes": [index]} for index in range(8)]
     with pytest.raises(CompactDslValidationError, match="vertical layout requires"):
         validate_compact_dsl(
             dsl,
             task_spec=task("信息卡"),
             card_spec={"suggestSize": "2x2"},
-            compact_plan=plan([fact("信息卡")]),
+            compact_plan=plan(facts, groups),
             layout_scope=effective_layout_scope("2x2"),
         )
 
@@ -846,7 +874,7 @@ def test_static_capacity_error_keeps_structured_diagnostic_and_guidance() -> Non
     body = "完整文字" * 30
     with pytest.raises(CompactDslValidationError) as caught:
         validate_compact_dsl(
-            source("ContentBlock", {"body": body}),
+            source("EmphasisText", {"mainText": body}),
             task_spec=task(body),
             card_spec={"suggestSize": "2x2"},
             compact_plan=plan([fact(body)]),
@@ -855,12 +883,13 @@ def test_static_capacity_error_keeps_structured_diagnostic_and_guidance() -> Non
     diagnostic = next(
         item for item in caught.value.diagnostics if item.code == "COMPACT_STATIC_TEXT_CAPACITY"
     )
-    assert diagnostic.fix_hint and "最小10" in diagnostic.fix_hint
+    assert diagnostic.fix_hint and "固定文字规格" in diagnostic.fix_hint
+    assert "不修改字体" in diagnostic.fix_hint
 
 
 @pytest.mark.parametrize(
     "section,key",
-    [("text", "title"), ("components", "ComparisonGroup"), ("measurement", "safetyFactor")],
+    [("text", "header"), ("components", "ComparisonGroup"), ("measurement", "safetyFactor")],
 )
 def test_incomplete_static_recipe_is_rejected_before_enabling(
     monkeypatch, tmp_path, section, key
@@ -901,7 +930,6 @@ def test_empty_static_prompt_does_not_fall_back_to_dynamic_prompt(tmp_path) -> N
         "SummaryList",
         "InfoBlock",
         "TableText",
-        "EmphasisText",
         "DataDisplay",
     ],
 )
@@ -939,8 +967,8 @@ def test_static_plan_and_runtime_share_restricted_candidates(size) -> None:
 
 @pytest.mark.usefixtures("static_policy")
 def test_static_plan_rejects_old_component_hint() -> None:
-    with pytest.raises(CompactPlanValidationError, match="仅允许三类新正文"):
-        accept(plan([fact("带证件", componentHints=["EmphasisText"])]), "带证件")
+    with pytest.raises(CompactPlanValidationError, match="静态计划仅允许"):
+        accept(plan([fact("带证件", componentHints=["ContentBlock"])]), "带证件")
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -969,7 +997,7 @@ def test_record_list_plan_rejects_more_than_three_objects(records_style: bool) -
     ]
     for index in range(4):
         text = f"演出{index}周六19:30"
-        hints = ["ContentBlock"] if records_style else ["RecordList"]
+        hints = ["EmphasisText"] if records_style else ["TextList"]
         facts.append(fact(text, componentHints=hints))
         groups.append(
             {
@@ -983,7 +1011,7 @@ def test_record_list_plan_rejects_more_than_three_objects(records_style: bool) -
         value["presentationStyle"] = "records"
     query = "；".join(item.get("text") for item in facts)
 
-    with pytest.raises(CompactPlanValidationError, match="RecordList最多承载3个对象"):
+    with pytest.raises(CompactPlanValidationError, match="TextList"):
         accept(value, query, "2x2")
 
 
@@ -993,7 +1021,7 @@ def test_record_list_plan_accepts_three_objects() -> None:
     groups = []
     for index in range(3):
         text = f"演出{index}周六19:30"
-        facts.append(fact(text, componentHints=["RecordList"]))
+        facts.append(fact(text, componentHints=["TextList"]))
         groups.append(
             {
                 "id": f"concert{index}",
@@ -1015,7 +1043,7 @@ def test_plan_defers_height_to_selected_component_but_rejects_actual_overflow() 
     accepted = accept(plan([fact(body)]), body)
     with pytest.raises(CompactDslValidationError, match="COMPACT_STATIC_TEXT_CAPACITY"):
         validate_compact_dsl(
-            source("ContentBlock", {"body": body}),
+            source("EmphasisText", {"mainText": body}),
             task_spec=task(body),
             card_spec={"suggestSize": "2x2"},
             compact_plan=accepted,
@@ -1035,7 +1063,7 @@ def test_plan_defers_height_to_selected_component_but_rejects_actual_overflow() 
     ],
 )
 def test_readable_wrap_keeps_critical_numeric_fragments(text, fragment, width) -> None:
-    measured = measure_text(text, width, text_spec("body"))
+    measured = measure_text(text, width, text_spec("emphasisSecondary"))
     assert "".join(measured.wrapped_lines) == text
     assert any(fragment in line for line in measured.wrapped_lines)
 
@@ -1068,16 +1096,7 @@ def test_comparison_expands_price_as_complete_rendered_line() -> None:
 
 @pytest.mark.usefixtures("static_policy")
 def test_shared_note_cannot_hide_long_text_or_replace_body_object() -> None:
-    rows = [
-        ["root", "Layout", {"layout": "S-static-content"}, ["body", "note"]],
-        ["body", "ContentBlock", {"body": "带证件"}],
-        [
-            "note",
-            "SecondaryBody",
-            {"items": [{"value": "完整说明" * 30}], "columns": 1, "fontSize": 12},
-        ],
-        ["/state/ready", True],
-    ]
+    dsl = source("EmphasisText", {"mainText": "带证件", "secondaryText": "完整说明" * 30})
     value = plan(
         [fact("带证件"), fact("完整说明" * 30)],
         [
@@ -1085,9 +1104,13 @@ def test_shared_note_cannot_hide_long_text_or_replace_body_object() -> None:
             {"id": "shared", "kind": "shared", "factIndexes": [1]},
         ],
     )
-    with pytest.raises(CompactDslValidationError, match="COMPACT_STATIC_TEXT_CAPACITY"):
+    from services.static_content_components import complete_static_text_trial
+
+    with complete_static_text_trial(), pytest.raises(
+        CompactDslValidationError, match="COMPACT_STATIC_TEXT_CAPACITY",
+    ):
         validate_compact_dsl(
-            "\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+            dsl,
             task_spec=task(),
             card_spec={"suggestSize": "2x2"},
             compact_plan=value,
@@ -1120,7 +1143,7 @@ def test_source_key_reading_can_be_split_across_facts_in_same_object() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("isolated_theme_stage")
-async def test_four_short_objects_deliver_as_attributes_without_plan_rejection(monkeypatch):
+async def test_four_short_objects_deliver_as_comparison_without_plan_rejection(monkeypatch):
     from types import SimpleNamespace
 
     from api.schemas import GenerateWidgetCardRequest
@@ -1143,11 +1166,14 @@ async def test_four_short_objects_deliver_as_attributes_without_plan_rejection(m
         model_format = (profile or {}).get("format")
         calls.append(model_format)
         if model_format == "raw-json":
+            review = review_response(_prompt)
+            if review is not None:
+                return review
             return json.dumps(
                 {"name": "submit_card_plan", "arguments": model_plan(value)}, ensure_ascii=False,
             )
-        items = [{"title": name, "description": "周六"} for name in names]
-        return source("RecordList", {"items": items}, "2x4")
+        items = [{"primaryText": name, "secondaryText": "周六"} for name in names]
+        return source("ComparisonGroup", {"items": items}, "2x4")
 
     def save(_store, artifact):
         saved.append(artifact)
@@ -1170,7 +1196,7 @@ async def test_four_short_objects_deliver_as_attributes_without_plan_rejection(m
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
     assert response.status.value == "success", response
     assert len(saved) == 1
-    assert calls == ["raw-json", "compact-dsl"]
+    assert calls == ["raw-json", "raw-json", "compact-dsl"]
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1202,26 +1228,15 @@ def test_shared_note_split_accepts_punctuation_change_without_losing_date():
             {"id": "note", "kind": "shared", "factIndexes": [1]},
         ],
     )
-    rows = [
-        ["root", "Layout", {"layout": "S-static-content"}, ["body", "note"]],
-        ["body", "ContentBlock", {"body": "博物馆"}],
-        [
-            "note",
-            "SecondaryBody",
-            {
-                "items": [{"value": "来源：示例条目"}, {"value": "检索日期2026年9月21日"}],
-                "columns": 1,
-                "fontSize": 12,
-            },
-        ],
-    ]
-    dsl = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    dsl = source("EmphasisText", {
+        "mainText": "博物馆", "secondaryText": "来源：示例条目；检索日期2026年9月21日",
+    })
     assert not static_group_errors(dsl, value)
 
 
 @pytest.mark.usefixtures("static_policy")
 @pytest.mark.parametrize("changed", [False, True])
-def test_attributes_match_per_row_and_cannot_swap_values(changed):
+def test_single_line_items_match_per_row_and_cannot_swap_values(changed):
     value = plan(
         [fact("米饭35至40分钟"), fact("干面条4至6分钟")],
         [
@@ -1233,11 +1248,11 @@ def test_attributes_match_per_row_and_cannot_swap_values(changed):
     if changed:
         values.reverse()
     dsl = source(
-        "ContentBlock",
+        "SingleLineList",
         {
-            "attributes": [
-                {"label": "米饭", "value": values[0]},
-                {"label": "干面条", "value": values[1]},
+            "items": [
+                {"text": "米饭", "assist": values[0]},
+                {"text": "干面条", "assist": values[1]},
             ]
         },
         "2x4",
@@ -1248,7 +1263,9 @@ def test_attributes_match_per_row_and_cannot_swap_values(changed):
 @pytest.mark.usefixtures("static_policy")
 def test_price_labels_and_values_can_be_layered_without_rewriting_readings():
     value = plan([fact("票价三档"), fact("380元、680元、980元")])
-    dsl = source("ContentBlock", {"title": "票价三档", "body": "380元、680元、980元"}, "2x4")
+    dsl = source("EmphasisText", {
+        "mainText": "380元、680元、980元", "secondaryText": "票价三档",
+    }, "2x4")
     assert not static_group_errors(dsl, value)
 
 
@@ -1264,7 +1281,9 @@ def test_optional_object_between_core_groups_can_be_omitted_and_reported():
             {"id": "c", "kind": "object", "factIndexes": [2]},
         ],
     )
-    dsl = source("RecordList", {"items": [{"title": "甲场19:30"}, {"title": "丙场21:00"}]})
+    dsl = source("SingleLineList", {"items": [
+        {"text": "甲场", "assist": "19:30"}, {"text": "丙场", "assist": "21:00"},
+    ]})
     assert not static_group_errors(dsl, value)
     omitted = compact_plan_omitted_facts(dsl, value, task(), ())
     assert len(omitted) == 1
@@ -1291,7 +1310,7 @@ def test_optional_object_between_core_groups_can_be_omitted_and_reported():
 )
 def test_dsl_cannot_truncate_accepted_core_even_without_keyword_match(text, visible, extras, valid):
     value = plan([fact(text, **extras)])
-    dsl = source("ContentBlock", {"body": visible})
+    dsl = source("EmphasisText", {"mainText": visible})
     assert bool(static_group_errors(dsl, value)) is not valid
 
 
@@ -1304,24 +1323,26 @@ def test_plan_selection_notes_survive_and_feed_delivery_feedback(notes):
     value["selectionNotes"] = notes
     accepted = accept(value, "带证件")
     omitted = compact_plan_omitted_facts(
-        source("ContentBlock", {"body": "带证件"}), accepted, task(), ()
+        source("EmphasisText", {"mainText": "带证件"}), accepted, task(), ()
     )
     assert accepted.get("selectionNotes") == notes
     assert not omitted
 
 
 @pytest.mark.usefixtures("static_policy")
-def test_record_side_pressure_uses_full_width_instead_of_failing_narrow_column():
+def test_comparison_detail_keeps_complete_text_with_registered_multiline_layout():
     from services.static_content_context import standard_components
 
     trailing = "成人票20元儿童需由成人陪同"
-    dsl = source("RecordList", {"items": [{"title": "动物园", "trailing": trailing}]}, "2x4")
+    dsl = source("ComparisonGroup", {"items": [
+        {"primaryText": "动物园", "details": [trailing]}, {"primaryText": "展馆"},
+    ]}, "2x4")
     converted = convert_compact_dsl_to_a2ui(dsl, size="2x4")
     contents = []
     for node in standard_components(converted).values():
         if node.get("component") == "Text":
             contents.append(node.get("content"))
-    assert trailing == "".join(contents).removeprefix("动物园")
+    assert trailing == "".join(contents).removeprefix("动物园").removesuffix("展馆")
 
 
 @pytest.mark.asyncio
@@ -1337,7 +1358,7 @@ async def test_static_theme_rejects_texture_and_uses_light_background():
             seen.extend(payload.get("candidates", []))
             return json.dumps({"themeId": seen[0].get("themeId")})
 
-    dsl = source("ContentBlock", {"body": "带证件"})
+    dsl = source("EmphasisText", {"mainText": "带证件"})
     standard = convert_compact_dsl_to_a2ui(dsl, size="2x2")
     await select_theme(standard, task(), Client(), final_layout=dsl)
     assert seen
@@ -1379,15 +1400,19 @@ async def test_static_content_reduction_is_delivered_as_degraded(monkeypatch, mo
     if mode == "ellipsis":
         value = plan([fact(visible, sourceTexts=[text])])
         value["omittedContents"] = ["公园散步安排"]
+    value["layoutHints"] = ["W-static-content"]
     calls = []
 
     async def generate(_client, _prompt, profile=None, **_kwargs):
         calls.append((profile or {}).get("format"))
         if calls[-1] == "raw-json":
+            review = review_response(_prompt)
+            if review is not None:
+                return review
             return json.dumps(
                 {"name": "submit_card_plan", "arguments": model_plan(value)}, ensure_ascii=False,
             )
-        return source("ContentBlock", {"body": visible})
+        return source("EmphasisText", {"mainText": visible}, "2x4")
 
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_static_content_generation_policy", True)
@@ -1406,7 +1431,7 @@ async def test_static_content_reduction_is_delivered_as_degraded(monkeypatch, mo
             prdVer="11.7.7.331",
             device={"romVersion": "7.0"},
             userQuery=text + "；带雨伞",
-            size="2x2",
+            size="2x4",
             title="备忘",
             description="精简反馈回归",
         )
@@ -1420,7 +1445,7 @@ async def test_static_content_reduction_is_delivered_as_degraded(monkeypatch, mo
     assert response.artifactUrl
     if expected == "degraded":
         assert "空间限制" in response.message
-    assert calls == ["raw-json", "compact-dsl"]
+    assert calls == ["raw-json", "raw-json", "compact-dsl"]
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1438,9 +1463,9 @@ def test_capacity_trial_never_selects_or_rewrites_model_facts():
     assert selected.groups == groups
     assert not selected.notes
     assert not selected.omitted_contents
-    assert selected.presentation is not None
-    assert '"fontSize": 11' in selected.presentation
-    assert not selected.trial_errors
+    assert selected.presentation is None
+    assert selected.trial_errors
+    assert "不代表所有合法排版均不可行" in selected.trial_errors[0]
     assert facts == original
     complete = select_static_plan_content(facts, groups, "完整展示演唱会安排", "2x2")
     assert complete.facts == original
@@ -1457,14 +1482,13 @@ def test_record_table_normalization_preserves_all_text_and_does_not_hide_invalid
         items.append({"title": name, "description": "周六19:30", "trailing": "免费"})
     dsl = source("RecordList", {"items": items, **extra}, "2x4")
     changed = normalize_static_record_table(dsl)
-    if extra:
-        assert changed == dsl
-    else:
-        assert '"ContentBlock"' in changed
-        for name in ("甲", "乙", "丙", "丁"):
-            assert name in changed
-        assert changed.count("周六19:30") == 4
-        assert changed.count("免费") == 4
+    assert changed == dsl
+    for name in ("甲", "乙", "丙", "丁"):
+        assert name in changed
+    assert changed.count("周六19:30") == 4
+    assert changed.count("免费") == 4
+    with pytest.raises(CompactDslConversionError, match="unsupported component type RecordList"):
+        convert_compact_dsl_to_a2ui(changed, size="2x4")
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1541,7 +1565,7 @@ def test_term_and_decimal_rate_can_be_split_into_attribute_label_and_value():
     text = "首套住房5年以下含5年2.35%"
     accepted = plan([fact(text, protectedTexts=["含5年", "2.35%"])])
     dsl = source(
-        "ContentBlock", {"attributes": [{"label": "首套住房5年以下含5年", "value": "2.35%"}]}, "2x4"
+        "SingleLineList", {"items": [{"text": "首套住房5年以下含5年", "assist": "2.35%"}]}, "2x4"
     )
     validate_compact_dsl(
         dsl, task_spec=task(text, "2x4"), card_spec={"suggestSize": "2x4"}, compact_plan=accepted
@@ -1554,7 +1578,7 @@ def test_literal_source_ellipsis_is_not_an_actual_reduction():
 
     text = "备忘：看看下一步…"
     value = plan([fact(text)])
-    dsl = source("ContentBlock", {"body": text})
+    dsl = source("EmphasisText", {"mainText": text})
     assert not compact_plan_omitted_facts(dsl, value, task(text), ())
 
 
@@ -1581,7 +1605,7 @@ def test_related_claims_and_exceptions_are_selected_together(query, texts):
 
 
 @pytest.mark.usefixtures("static_policy")
-def test_capacity_trial_uses_real_geometry_and_finds_full_width_commute_table():
+def test_unenumerated_commute_table_preserves_all_facts_and_reports_capacity_feedback():
     from services.static_content_presentation import trial_static_presentation
 
     value = plan(
@@ -1591,11 +1615,12 @@ def test_capacity_trial_uses_real_geometry_and_finds_full_width_commute_table():
             {"id": "drive", "kind": "object", "factIndexes": [1]},
         ],
     )
+    before = copy.deepcopy(value)
     trial = trial_static_presentation(value, "展示通勤耗时", "2x2")
-    assert trial.source is not None
-    assert "ContentBlock" in trial.source
-    assert not static_group_errors(trial.source, value)
-    assert trial.attempted <= 3
+    assert trial.source is None
+    assert trial.errors
+    assert value == before
+    assert "不代表所有合法排版均不可行" in trial.errors[0]
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1604,7 +1629,7 @@ def test_static_repeated_failure_has_switch_instruction_then_stops_within_budget
 
     tracker = CompactRepairStrategyTracker(static_content=True)
     value = plan([fact("带证件")])
-    dsl = source("ContentBlock", {"body": "带证件"})
+    dsl = source("EmphasisText", {"mainText": "带证件"})
     issue = {"stage": "validation", "code": "COMPACT_STATIC_TEXT_CAPACITY", "message": "文字超限"}
     directives = []
     for _ in range(3):
@@ -1648,7 +1673,7 @@ def test_program_does_not_select_optional_background_on_behalf_of_model():
     assert selected.facts == facts
     assert not selected.omitted_contents
     assert selected.trial_errors
-    assert "省略" in selected.trial_errors[0]
+    assert "不代表所有合法排版均不可行" in selected.trial_errors[0]
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1662,9 +1687,10 @@ def test_explicit_horizontal_comparison_is_not_changed_into_a_list():
             {"id": "b", "kind": "object", "factIndexes": [1]},
         ],
     )
-    value["staticHorizontal"] = True
+    value["presentationStyle"] = "comparison"
     candidates = static_presentation_candidates(value, "2x4")
-    assert len(candidates) == 6
+    assert candidates
+    assert len(candidates) == len(set(candidates))
     assert all("ComparisonGroup" in candidate for candidate in candidates)
 
 
@@ -1718,8 +1744,8 @@ def test_summary_instructions_reuse_existing_stages_and_keep_semantic_responsibi
     assert "或/且" in create_prompt
     assert "omittedContents" in plan_prompt
     assert "原始输入" in dsl_prompt
-    assert "title-action" in create_prompt
-    assert "不得为看起来更完整而补造" in create_prompt
+    assert "静态" in create_prompt
+    assert "不补造事实" in create_prompt
     assert "title-action" not in dsl_prompt
     assert "不新增模型阶段" in plan_prompt
 
@@ -1732,7 +1758,7 @@ def test_equal_meaning_summary_does_not_trigger_omission_by_source_string_compar
     text = "周六19:30开始，须预约"
     accepted = accept(plan([fact(text, sourceTexts=[reference])]), reference)
     assert not compact_plan_omitted_facts(
-        source("ContentBlock", {"body": text}), accepted, task(reference), ()
+        source("EmphasisText", {"mainText": text}), accepted, task(reference), ()
     )
 
 
@@ -1741,7 +1767,7 @@ def test_equal_meaning_summary_does_not_trigger_omission_by_source_string_compar
 def test_dsl_cannot_drop_any_accepted_core_by_missing_program_keyword(part):
     text = "主体" + part
     value = plan([fact(text)])
-    assert static_group_errors(source("ContentBlock", {"body": "主体"}), value)
+    assert static_group_errors(source("EmphasisText", {"mainText": "主体"}), value)
 
 
 def test_closed_plan_keeps_paraphrased_text_with_warning():
@@ -1787,7 +1813,8 @@ def test_plan_budget_is_loaded_from_shared_contract():
     assert budget.get("width") == 150
     assert budget.get("height") == 150
     assert "text" not in budget
-    initial_budget = json.loads(static_capacity_prompt("2x2").splitlines()[-1])
-    assert initial_budget.get("text") == contract.get("text")
-    assert initial_budget.get("layout") == contract.get("layout")
-    assert initial_budget.get("components") == contract.get("components")
+    initial_budget = static_capacity_prompt("2x2")
+    assert "字体、行高及间距由Runtime固定" in initial_budget
+    assert "TextList" in initial_budget and "SingleLineList" in initial_budget
+    assert "TextList" in contract.get("components", {})
+    assert contract.get("text", {}).get("emphasis", {}).get("fontSize") == 18

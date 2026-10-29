@@ -197,23 +197,30 @@ class DesignCompactProcessor:
                     result = self._repair_duplicate_display(result, context)
             if context.content_policy.is_static and result.errors:
                 static_recovery_started_at = time.perf_counter()
+                from services.static_content_components import complete_static_text_trial
                 from services.static_content_presentation import static_presentation_candidates
 
                 plan = context.compact_plan or {}
-                sources = list(
+                original_sources = set(
                     static_presentation_candidates(
                         plan, context.size, context.allowed_omitted_plan_fact_indexes
                     )
                 )
+                sources = list(static_presentation_candidates(
+                    plan, context.size, context.allowed_omitted_plan_fact_indexes,
+                    include_fallback=True,
+                ))
                 frozen = plan.get("staticPresentation")
                 if isinstance(frozen, str) and not context.allowed_omitted_plan_fact_indexes:
                     sources.insert(0, frozen)
+                    original_sources.add(frozen)
                 tried = set()
                 for candidate_source in sources:
                     if candidate_source in tried:
                         continue
                     tried.add(candidate_source)
-                    candidate_result = self._process(candidate_source, context)
+                    with complete_static_text_trial(candidate_source not in original_sources):
+                        candidate_result = self._process(candidate_source, context)
                     if candidate_result.errors:
                         continue
                     trace_step(

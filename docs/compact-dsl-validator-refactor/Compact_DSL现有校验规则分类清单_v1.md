@@ -82,7 +82,8 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | 同组已选读数、单位及相应分句限定词完整性 | 语义／跨文件，semantic/cross_file.py | 核对来源与计划，允许同对象跨事实拆分，不跨对象借用 |
 | Plan 动作数量与正文角色 | 语义／布局，semantic/layout/text_capacity.py，由 compact_plan.py 委托 | 不以记录数替代全卡容量，不承担布局选择 |
 | 关键片段换行与详细文字容量 | 语义／布局，共享 static_text_capacity.py；text_capacity.py 发布原容量诊断 | 展开与校验同一度量，语义组件负责生成固定行 |
-| 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 只对请求授权及静态生成标记采用共享度量，闭域原判定不变 |
+| 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 静态生成标记继续采用共享静态文字度量和省略号合同，不改静态字号与行数 |
+| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 仅Runtime Recipe明确标记的EmphasisText.main与compact_composition_planner._text_width共用压力估算；其它普通Text、SummaryList等保持原保守估算，静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy，不在校验器改写文字或授权省略 |
 
 以上沿用已登记诊断，不新增规则码，不迁移其它检查或更改闭域严重程度。
 
@@ -91,7 +92,7 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | 检查项 | 分类与实际文件 | 归属理由 |
 | --- | --- | --- |
 | sourceTexts 当前输入引用、连续片段与完整数字词 | 语义／跨文件一致性，`semantic/cross_file.py` | 比较静态 Plan 与本轮来源，不能靠来源存在证明自由摘要正确 |
-| 对象顺序、同组覆盖、shared 位置、核心和原文保护 | 语义／展示，`semantic/static_content.py` | 比较已接受分组与原语义条目；覆盖、最小删减和实际省略反馈共用判定 |
+| 对象顺序、同组覆盖、shared 位置、核心和原文保护 | 语义／展示，`semantic/static_content.py` | 比较已接受分组与原语义条目；同对象连续属性行及合法组件内完整公共说明共用归属映射。多对象续行仅在对象名唯一、首行和续行明示本对象、完整补足本组新事实且不覆盖别组名称或事实时成立；同值或同名歧义、残词、未知文字及重复条目仍拒绝。覆盖、最小删减和实际省略反馈共用判定；不调整几何和容量 |
 | 静态上下文缺失 | 语义／跨文件一致性，`semantic/static_content.py` | 缺少受信服务上下文时拒绝，不能由模型标记授权 |
 | 单字宽、完整行数及固定行高 | 语义／布局，`semantic/layout/text_capacity.py`；度量合同 `static_text_capacity.py` | 共享文字度量及参数，不在入口复制容量判断；总高、横向预算仍委托原布局校验 |
 | 新组件属性与静态值形状 | 共享展开 `static_content_components.py`、组件／绑定准入模块 | 新组件展开为原 Text / Row / Column / Divider，保留旧组件默认合同 |
@@ -99,6 +100,8 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | 主题后文字、可达性及前景冻结 | 保存前语义复核 `static_content_context.py` | 复用既有主题前景签名；主题不能改变文字或祖先容量关系 |
 
 Plan 的来源字段、contentGroups 结构和去重索引映射归 `compact_plan.py`；
+静态名称与展示版本的核对提醒归 `static_content_planning.py`，只附于已有试排失败反馈，
+不是别名推断或新的校验门禁；最终名称及同对象事实覆盖仍归 `semantic/static_content.py`。
 建议格式化归 `repair_guidance.py` 和 `repair_hints.json`，调用编排归 `generation_pipeline.py`、
 `widget_generation_service.py`，有界修复授权归 `compact_repair_strategy.py`。
 六个新增诊断已登记到规则目录与回归清单，不进行其它校验整体迁移。
@@ -1421,3 +1424,21 @@ static_content_components.py的参数展开检查，不向公共入口或动态�
 
 修复只在一轮无损容量尝试仍失败后进入既有静态 Drop；保护原文、Action、
 未授权事实和最后一个正文对象仍为阻断边界。
+
+## 2026-10-29 静态容量恢复与事实定位
+
+| 检查或行为 | 分类、实际文件 | 归属理由 |
+| --- | --- | --- |
+| 既有候选失败后的有限换型与公共说明承载 | 生成恢复，`static_content_presentation.py`、`generation_pipeline.py` | 只组合已有静态组件；原候选及已成功输出优先，原模型调用与重试预算不增加 |
+| 新恢复候选全文能否容纳 | 共享展开，`static_content_components.py` 复用原 `require_static_text_capacity` | 请求作用域内检查实际字段宽度和固定行数，不能靠省略号把新候选判成全文恢复；正常组件的既有省略号样式不变 |
+| 显式展示方式与旧组件提示的优先关系 | 语义／布局，`semantic/layout/text_capacity.py` | 已接受的显式展示方式决定记录组织，不再由旧 TextList 提示覆盖；真正生成 TextList 时仍执行原项数上限 |
+| 当前容量错误的证据与定位 | 修复编排，`compact_repair_context.py` | 复用共享度量重新核对当前字段；字段超宽只定位该字段，纯项数上界定位当前列表；空字段、项数下界和未知位置不授权删除 |
+| 定位字段与所属事实对应 | 语义／展示，`semantic/static_content.py` | 复用已有对象顺序和完整事实覆盖，累计批准参与映射；不跨对象猜测同值事实，不把批准等同于实际遗漏 |
+| 一次无损容量修复后的逐条 Drop | 修复编排，`compact_repair_strategy.py`、`compact_plan.py` | 只对证据范围内事实沿用 should 优先、低顺位 must 兜底；前一次授权未落实不追加，语法修复不算无损容量尝试 |
+| 静态恢复前完整文字存在性 | 语义／展示元数据，`semantic/static_content.py`；恢复编排消费于 `compact_plan.py` | 复用单条可达展示的原匹配；只防止将错组但完整存在的事实排除，不改变 visible 或通过规则，不跨展示条目拼词 |
+| 恢复事实范围的提示交接 | 提示编排，`prompt_builder.py` | 静态恢复完整传递已有账本，与原严格事实校验一致；首次及动态提示、重试预算不变 |
+| 撤销省略授权后的真实损失反馈 | Plan 标准化与实际遗漏，`compact_plan.py` | 全部索引有效而因 must/保护被拒时只留诊断，由最终覆盖报告真实损失；未知引用和历史无索引说明保持保守反馈，不凭描述推断事实 |
+
+不新增错误码、字号档位、几何阈值或预算。纯整卡高度但缺少可靠当前事实定位的诊断仍进入原修复，
+不凭错误字符串给无关事实新增删除许可；有限候选未找到解不代表所有合法排版均不可行。
+Plan 试排原有的无保护 should 省略候选保持原优先级与遗漏反馈，不能把这种省略称作完整恢复。

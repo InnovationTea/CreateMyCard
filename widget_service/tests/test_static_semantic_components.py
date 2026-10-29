@@ -452,14 +452,20 @@ def test_candidates_keep_fixed_styles_and_do_not_modify_accepted_facts():
 
 
 def test_static_capacity_drop_follows_one_unsuccessful_space_repair_and_is_bounded():
-    source = encode("EmphasisText", {"mainText": "核心结论", "secondaryText": "可选补充"})
-    error = [{"code": "COMPACT_DSL_VALIDATION_FAILED", "stage": "validation",
-              "message": "component root: vertical layout requires at least 147vp within 126vp"}]
+    source = encode("SingleLineList", {"items": [
+        {"text": "对象甲", "assist": "完整的可选补充说明" * 12},
+        {"text": "对象乙", "assist": "核心说明"},
+    ]})
     with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(ValueError) as caught:
+            convert_compact_dsl_to_a2ui(source, size="2x2")
+        error = [{"code": "COMPACT_DSL_CONVERSION_FAILED", "stage": "conversion",
+                  "message": str(caught.value)}]
+        assert "body.item0_assist" in error[0].get("message", "")
         plan = plan_for(source, "测试原文")
         facts = plan.get("info_required", [])
         assert facts
-        facts[-1]["priority"] = "should"
+        facts[1]["priority"] = "should"
         tracker = CompactRepairStrategyTracker(max_repair_attempts=5, static_content=True)
         first = tracker.next_directive(source, error, compact_plan=plan, task_spec={"size": "2x2"})
         assert first.repair_strategy != "drop_optional_component"
@@ -467,22 +473,22 @@ def test_static_capacity_drop_follows_one_unsuccessful_space_repair_and_is_bound
         assert second.repair_strategy == "drop_optional_component"
         candidate = tracker.optional_drop_candidate
         assert candidate
-        assert candidate.fact_indexes == (len(facts) - 1,)
+        assert candidate.fact_indexes == (1,)
         assert not candidate.contains_must_facts
-        assert second.approved_omitted_fact_indexes == (len(facts) - 1,)
+        assert second.approved_omitted_fact_indexes == (1,)
 
 
-def test_single_line_list_capacity_repair_switches_to_text_list_then_allows_drop():
-    event_names = [f"演唱会{index}" for index in range(5)]
+def test_static_item_count_capacity_uses_current_body_and_one_fact_drop():
+    event_names = [f"演唱会{index}" for index in range(4)]
     items = [
-        {"text": name, "assist": f"{index + 1}月1日 上海体育场"}
-        for index, name in enumerate(event_names)
+        {"primaryText": name, "secondaryText": "待开始"} for name in event_names
     ]
-    source = encode("SingleLineList", {"items": items}, size="2x4", header=True)
+    source = encode("TextList", {"items": items}, size="2x4")
     facts = [
-        {"text": name, "requirement": name, "priority": "must"}
+        {"text": name + "；待开始", "requirement": name, "priority": "must"}
         for name in event_names
     ]
+    facts[0]["priority"] = "should"
     groups = [
         {
             "id": f"event{index}",
@@ -496,14 +502,11 @@ def test_single_line_list_capacity_repair_switches_to_text_list_then_allows_drop
         "contentGroups": groups,
         "layoutHints": ["W-static-content"],
     }
-    error = [
-        {
-            "code": "COMPACT_STATIC_TEXT_CAPACITY",
-            "stage": "validation",
-            "message": "COMPACT_STATIC_TEXT_CAPACITY: SingleLineList完整单行文字超限",
-        }
-    ]
     with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(ValueError) as caught:
+            convert_compact_dsl_to_a2ui(source, size="2x4")
+        error = [{"code": "COMPACT_DSL_CONVERSION_FAILED", "stage": "conversion",
+                  "message": str(caught.value)}]
         tracker = CompactRepairStrategyTracker(max_repair_attempts=5, static_content=True)
         first = tracker.next_directive(
             source,
@@ -512,7 +515,7 @@ def test_single_line_list_capacity_repair_switches_to_text_list_then_allows_drop
             task_spec={"size": "2x4"},
         )
         assert first.repair_strategy != "drop_optional_component"
-        assert "改用TextList承载长记录" in first.instruction
+        assert first.optional_drop is None
 
         second = tracker.next_directive(
             source,
@@ -523,25 +526,24 @@ def test_single_line_list_capacity_repair_switches_to_text_list_then_allows_drop
         assert second.repair_strategy == "drop_optional_component"
         candidate = second.optional_drop
         assert candidate is not None
-        assert candidate.fact_indexes == (len(facts) - 1,)
-        assert second.approved_omitted_fact_indexes == (len(facts) - 1,)
+        assert candidate.fact_indexes == (0,)
+        assert not candidate.contains_must_facts
+        assert second.approved_omitted_fact_indexes == (0,)
         repaired = encode(
-            "SingleLineList",
-            {"items": items[:-1]},
+            "TextList",
+            {"items": items[1:]},
             size="2x4",
-            header=True,
         )
         assert not static_group_errors(repaired, plan, candidate.fact_indexes)
+        assert convert_compact_dsl_to_a2ui(repaired, size="2x4")
         third = tracker.next_directive(
             repaired,
             error,
             compact_plan=plan,
             task_spec={"size": "2x4"},
         )
-        assert third.repair_strategy == "drop_optional_component"
-        assert third.optional_drop is not None
-        assert third.optional_drop.fact_indexes == (len(facts) - 2,)
-        assert third.approved_omitted_fact_indexes == (len(facts) - 2, len(facts) - 1)
+        assert third.optional_drop is None
+        assert third.approved_omitted_fact_indexes == (0,)
 
 
 def test_static_syntax_errors_cannot_authorize_drop():

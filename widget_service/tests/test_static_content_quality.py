@@ -66,10 +66,10 @@ def test_roles_create_readable_records_without_synthetic_labels():
     assert isinstance(dsl, str)
     rows = [json.loads(line) for line in dsl.splitlines()]
     body = next(row for row in rows if row[0] == "body")
-    assert body[1] == "RecordList"
+    assert body[1] == "TextList"
     assert body[2].get("items") == [
-        {"title": "甲对象", "description": "须预约", "trailing": "周六"},
-        {"title": "乙对象", "description": "无需预约", "trailing": "周日"},
+        {"primaryText": "甲对象", "secondaryText": "须预约；周六"},
+        {"primaryText": "乙对象", "secondaryText": "无需预约；周日"},
     ]
     assert '"信息"' not in dsl
 
@@ -128,14 +128,14 @@ def test_comparison_shape_comes_from_plan_and_preserves_object_names():
 
 
 @pytest.mark.usefixtures("static_scope")
-def test_unlabelled_attributes_keep_every_object_without_placeholder_cost():
+def test_unlabelled_records_keep_every_object_without_placeholder_cost():
     value = _plan()
-    value["presentationStyle"] = "attributes"
+    value["presentationStyle"] = "records"
     for fact in value.get("info_required", []):
         fact.pop("displayRole", None)
     accepted = _accept(value)
     dsl = accepted.get("staticPresentation")
-    assert dsl and "ContentBlock" in dsl and '"label"' not in dsl
+    assert dsl and "TextList" in dsl and '"label"' not in dsl
     for fact in value.get("info_required", []):
         assert fact.get("text") in dsl
 
@@ -164,19 +164,19 @@ def test_long_optional_note_can_be_omitted_without_mutating_accepted_core():
 
 
 @pytest.mark.usefixtures("static_scope")
-def test_attribute_value_columns_share_width_and_align_end():
+def test_single_line_values_keep_flexible_width_and_align_end():
     rows = [
         ["root", "Layout", {"layout": "W-static-content"}, ["body"]],
-        ["body", "ContentBlock", {"attributes": [
-            {"label": "甲", "value": "20元", "valueRole": "value"},
-            {"label": "较长标签", "value": "30元", "valueRole": "value"},
+        ["body", "SingleLineList", {"items": [
+            {"text": "甲", "assist": "20元"},
+            {"text": "较长标签", "assist": "30元"},
         ]}],
     ]
     source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
     nodes = standard_components(convert_compact_dsl_to_a2ui(source, size="2x4"))
-    first = nodes.get("body__static_attr0_value", {}).get("styles", {})
-    second = nodes.get("body__static_attr1_value", {}).get("styles", {})
-    assert first.get("width") == second.get("width")
+    first = nodes.get("body__static_item0_assist", {}).get("styles", {})
+    second = nodes.get("body__static_item1_assist", {}).get("styles", {})
+    assert first.get("layoutWeight") == second.get("layoutWeight") == 1
     assert first.get("textAlign") == second.get("textAlign") == "end"
 
 
@@ -246,12 +246,17 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
         if output_format == "raw-json":
             if calls.count("raw-json") == 2:
                 assert "capacityReference" in messages[-1].get("content", "")
+                assert "staticPlanReview" in json.loads(messages[-1].get("content", "{}"))
                 if refinement == "invalid":
                     return '{"invalid": true}'
+                return json.dumps({
+                    "decision": "correct", "sourceFidelity": "preserved", "findings": [],
+                    "correctedPlan": {"name": "submit_card_plan", "arguments": value},
+                }, ensure_ascii=False)
             return json.dumps({"name": "submit_card_plan", "arguments": value}, ensure_ascii=False)
         return '\n'.join([
             '["root","Layout",{"layout":"S-static-content"},["body"]]',
-            '["body","ContentBlock",{"body":"带证件"}]',
+            '["body","EmphasisText",{"mainText":"带证件"}]',
             '["/state/ready",true]',
         ])
 
@@ -293,6 +298,12 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
         userQuery="制作带证件的提醒卡", size="2x2", title="出发前", description="出发前提醒",
     )
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
+    if refinement == "invalid":
+        assert response.status.value == "failed"
+        assert calls == ["raw-json", "raw-json"]
+        assert saved == []
+        assert theme_tasks == []
+        return
     assert response.status.value == "success"
     assert calls == ["raw-json", "raw-json", "compact-dsl"]
     assert len(saved) == 1
