@@ -23,7 +23,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 38
+    assert len(registry.registered_themes("photos")) == 36
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -125,8 +125,7 @@ def test_a19_overlaps_meeting_wide_without_changing_meeting_placement(
     monkeypatch, button, expected,
 ):
     expected = expected | {
-        "photo-ux-meeting-room-chairs-wide", "photo-ux-meeting-room-table-wide",
-        "photo-ux-meeting-room-window-wide",
+        "photo-ux-meeting-room-brown-chairs-wide", "photo-ux-meeting-room-green-chairs-wide",
     }
     saved = sample(PATHS.get("calendar"), 3, wide=True, button=button)
     result, audit = choose(saved, monkeypatch)
@@ -160,9 +159,8 @@ def test_meeting_wide_keeps_business_line_count_and_wide_layout_gate():
 def test_only_approved_subject_photos_use_black_foreground():
     black_photos = {
         MEETING_SQUARE, MEETING_WIDE, "photo-ux-gradient-wide",
-        "photo-ux-meeting-room-chairs-square", "photo-ux-meeting-room-chairs-wide",
-        "photo-ux-meeting-room-table-square", "photo-ux-meeting-room-table-wide",
-        "photo-ux-meeting-room-window-square", "photo-ux-meeting-room-window-wide",
+        "photo-ux-meeting-room-brown-chairs-square", "photo-ux-meeting-room-brown-chairs-wide",
+        "photo-ux-meeting-room-green-chairs-square", "photo-ux-meeting-room-green-chairs-wide",
     }
     for photo in registry.registered_themes(include_disabled=True):
         if photo.get("kind") != "photo":

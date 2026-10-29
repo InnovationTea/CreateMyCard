@@ -160,14 +160,16 @@ def test_validation_fallback_retains_confirmed_tone_and_checks_contrast(monkeypa
 def test_no_model_preference_keeps_picture_priority_without_scanning_words(
     monkeypatch, wide, query,
 ):
-    saved = sample(PATHS.get("weather"), 2, wide=wide)
+    saved = sample(PATHS.get("weather"), 2, wide=wide, button=False)
     saved.task["userQuery"] = query
     result, audit = choose(saved, monkeypatch, reply([]))
     suffix = "wide" if wide else "square"
     expected = {
         "photo-ux-mountain-sunset-lake-" + suffix,
-        "photo-ux-pink-sunset-lake-" + suffix, "photo-ux-cumulus-blue-" + suffix,
+        "photo-ux-pink-sunset-lake-" + suffix,
     }
+    if wide:
+        expected.add("photo-ux-cumulus-blue-wide")
     assert set(audit.get("candidates")) == expected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert audit.get("userColors") == {}

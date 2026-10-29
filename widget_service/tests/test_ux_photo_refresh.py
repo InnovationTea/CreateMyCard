@@ -82,13 +82,14 @@ def test_eligible_weather_images_share_the_same_uniform_choice(monkeypatch, sele
         return selected
 
     monkeypatch.setattr(themes.secrets, "choice", choice)
-    saved = sample(PATHS.get("weather"), 3, button=False)
+    cloud = "photo-ux-cumulus-blue-square"
+    saved = sample(PATHS.get("weather"), 3 if selected == cloud else 2, button=False)
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
-    assert set(calls[0]) == {
+    expected = {cloud} if selected == cloud else {
         "photo-ux-mountain-sunset-lake-square", "photo-ux-pink-sunset-lake-square",
-        "photo-ux-cumulus-blue-square",
     }
+    assert set(calls[0]) == expected
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -99,8 +100,8 @@ def test_calendar_no_longer_uses_arch_and_can_fall_back_to_abstract(monkeypatch)
     assert rejection(saved, ARCH)
     _, audit = choose(saved, monkeypatch)
     assert set(audit.get("candidates", [])) == {
-        "photo-ux-meeting-room-square", "photo-ux-meeting-room-chairs-square",
-        "photo-ux-meeting-room-table-square", "photo-ux-meeting-room-window-square",
+        "photo-ux-meeting-room-square", "photo-ux-meeting-room-brown-chairs-square",
+        "photo-ux-meeting-room-green-chairs-square",
     }
     saved = sample(PATHS.get("calendar"), 2, align="center")
     _, audit = choose(saved, monkeypatch)

@@ -51,9 +51,8 @@ PATHS = {
 NEW_SUBJECT_FILES = {
     "car_night_lake_square.png", "car_night_lake_wide.png",
     "glass_hourglass_square.png", "glass_hourglass_wide.png",
-    "meeting_room_chairs_square.png", "meeting_room_chairs_wide.jpg",
-    "meeting_room_table_square.png", "meeting_room_table_wide.jpg",
-    "meeting_room_window_square.png", "meeting_room_window_wide.jpg",
+    "meeting_room_brown_chairs_square.png", "meeting_room_brown_chairs_wide.jpg",
+    "meeting_room_green_chairs_square.png", "meeting_room_green_chairs_wide.jpg",
     "metal_gear_square.png", "metal_gear_wide.jpg",
     "mountain_sunset_lake_square.png", "mountain_sunset_lake_wide.png",
     "pink_sunset_lake_square.png", "pink_sunset_lake_wide.png",
@@ -133,7 +132,7 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 51
+    assert len(subjects) == 49
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
     expected.update("bg_ux_" + name for name in NEW_SUBJECT_FILES)
     expected.add("bg_ux_road_wide.JPG")
@@ -158,6 +157,8 @@ def test_only_current_subject_and_abstract_assets_remain():
             expected_keys.add("placement")
         if item.get("contentEligibility", {}).get("wideLayout"):
             expected_keys.add("wideLayout")
+        if item.get("contentEligibility", {}).get("bodyRegions"):
+            expected_keys.add("bodyRegions")
         assert set(item.get("contentEligibility", {})) == expected_keys
         assert "https://" not in json.dumps(theme_description(item))
 
@@ -175,9 +176,14 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
     limit = 4 if wide_subject else 3
     if clouds:
         limit = 2
+    body_regions = item.get("contentEligibility", {}).get("bodyRegions")
+    if body_regions:
+        limit = body_regions.get("mainMaxLines")
     for count in (limit, limit + 1):
         placement = item.get("contentEligibility", {}).get("placement")
         button = not clouds and placement not in {"bottom-left", "bottom"}
+        if body_regions:
+            button = False
         saved = business_sample(
             business, count, wide=item.get("size") == "2x4", title="假期", button=button,
         )

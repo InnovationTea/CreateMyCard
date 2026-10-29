@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from services.card_validation.base import read_pointer
 from services.display_text import current_display_text
+from services.theme_body_regions import body_region_evidence
 from services.theme_style_roles import ROLE_PATTERN, is_role
 from services.theme_text_allocation import content_sized_width_ids
 
@@ -75,6 +76,10 @@ def photo_layout_evidence(nodes: list[dict], data_model: dict | None = None,
             )
             result["photoTopContent"] = top_content_evidence(
                 nodes, result.get("photoBodyTextFlow", {}), title_ids,
+            )
+            result["photoBodyRegions"] = body_region_evidence(
+                nodes, result.get("photoBodyTextFlow", {}), title_ids,
+                set(result.get("buttonIds", [])),
             )
     return result
 

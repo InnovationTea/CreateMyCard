@@ -21,7 +21,7 @@ CASES = json.loads((Path(__file__).parent / "fixtures/photo_weather_q16_q1.json"
 ))
 WEATHER = {
     "photo-ux-mountain-sunset-lake-square",
-    "photo-ux-pink-sunset-lake-square", "photo-ux-cumulus-blue-square",
+    "photo-ux-pink-sunset-lake-square",
 }
 
 
@@ -43,6 +43,7 @@ def test_weather_inline_support_is_two_lines_and_globally_left(case):
     assert flow.get("root", {}).get("lineCount") == 2
     for identity in WEATHER:
         assert rejection(saved, identity) is None
+    assert rejection(saved, "photo-ux-cumulus-blue-square")
     assert "下方留空" in rejection(saved, "photo-ux-clouds-weather-square")
     assert saved == before
 

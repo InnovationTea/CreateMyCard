@@ -6,6 +6,7 @@ import json
 
 from services.compact_high_level_components import ComponentRow
 from services.content_business import BusinessContext
+from services.theme_body_regions import body_region_evidence
 from services.theme_content_regions import body_text_flow_evidence, top_content_evidence
 from services.theme_photo_eligibility import _fully_centered
 from services.theme_photo_matching import PhotoMatchFacts, PhotoScopeFacts
@@ -228,9 +229,14 @@ def template_photo_facts(
             if orientation == "left":
                 scopes["left-main-dual"] = facts
     top = top_content_evidence(top_analysis, flows, excluded)
+    buttons = set(button_ids)
+    for node in scoped:
+        if node.get("component") == "Button":
+            buttons.add(node.get("id"))
+    regions = body_region_evidence(top_analysis, flows, excluded, buttons)
     split = "2x4左右两个大背板布局不使用图片背景" if count == 2 and size == "2x4" else None
     return PhotoMatchFacts(size, scopes=scopes, panel_count=count,
-                           top_content=top, subject_exclusion=split)
+                           top_content=top, subject_exclusion=split, body_regions=regions)
 
 
 def _children(node: dict, by_id: dict) -> list[dict]:

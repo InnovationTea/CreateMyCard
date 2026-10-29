@@ -24,22 +24,30 @@ from test_uniform_photo_eligibility import (
     rejection,
     sample,
 )
+from test_weather_body_regions import weather_regions
 from test_wide_photo_focus import focus_sample
 from theme_preference_samples import preference, reply
 
 GROUPS = [
     ("car-night-lake", "navigation"), ("glass-hourglass", "countdown"),
-    ("meeting-room-chairs", "calendar"), ("meeting-room-table", "calendar"),
-    ("meeting-room-window", "calendar"), ("metal-gear", "settings"),
+    ("meeting-room-brown-chairs", "calendar"), ("meeting-room-green-chairs", "calendar"),
+    ("metal-gear", "settings"),
     ("mountain-sunset-lake", "weather"), ("pink-sunset-lake", "weather"),
     ("cumulus-blue", "weather"),
 ]
 WEATHER = ("mountain-sunset-lake", "pink-sunset-lake", "cumulus-blue")
-MEETINGS = ("meeting-room-chairs", "meeting-room-table", "meeting-room-window")
+MEETINGS = ("meeting-room-brown-chairs", "meeting-room-green-chairs")
 
 
 def theme_id(group, wide=False):
     return "photo-ux-" + group + ("-wide" if wide else "-square")
+
+
+def admitted_sample(group, business, wide=False):
+    if business == "weather" and not wide:
+        main_lines = 3 if group == "cumulus-blue" else 2
+        return weather_regions(main_lines, "button")
+    return business_sample(business, 3, wide=wide)
 
 
 @pytest.mark.parametrize("group", MEETINGS)
@@ -80,7 +88,7 @@ def test_assets_have_exact_delivery_bytes_in_both_copies(filename):
     assert len(data) == source.get("assetBytes")
     assert hashlib.sha256(data).hexdigest() == source.get("assetSha256")
     remote = item.get("remoteUrl")
-    # 本地来源上传OBS后仍保留原始来源路径，交付地址必须已配置。
+    # 全部图片交付地址已补齐；原始PNG来源与OBS的JPG交付字节分别追溯。
     source_file = source.get("file")
     assert isinstance(source_file, str)
     if source_file.startswith("https://"):
@@ -98,7 +106,7 @@ def test_every_new_photo_delivers_in_both_routes_without_foreground_changes(
 ):
     identity = theme_id(group, wide)
     selected = only_photo(monkeypatch, identity)
-    saved = business_sample(business, 3, wide=wide)
+    saved = admitted_sample(group, business, wide)
     assert rejection(saved, identity) is None
     fusion, audit = choose(saved, monkeypatch)
     assert audit.get("themeId") == identity
@@ -135,11 +143,12 @@ def test_every_new_photo_delivers_in_both_routes_without_foreground_changes(
 def test_new_square_photos_keep_three_lines_left_and_single_business(group, business):
     identity = theme_id(group)
     assert rejection(business_sample(business, 4), identity)
-    saved = business_sample(business, 3)
+    saved = admitted_sample(group, business)
+    assert rejection(saved, identity) is None
     rows = themes.decode(saved.compact)
     next(row for row in rows if row[0] == "reading")[2]["textAlign"] = "center"
     assert rejection(expanded(rows, saved.task), identity)
-    saved = business_sample(business, 1)
+    saved = admitted_sample(group, business)
     rows = themes.decode(saved.compact)
     rows[0][3].append("other")
     rows.extend([
@@ -165,11 +174,10 @@ def test_new_wide_photos_keep_layout_and_four_line_limits(group, business):
 
 
 @pytest.mark.parametrize("group", WEATHER)
-@pytest.mark.parametrize("layout", ["square", "left", "right", "top"])
-def test_weather_has_only_three_equally_likely_regular_choices(monkeypatch, group, layout):
-    wide = layout != "square"
-    identity = theme_id(group, wide)
-    expected = {theme_id(name, wide) for name in WEATHER}
+@pytest.mark.parametrize("layout", ["left", "right", "top"])
+def test_wide_weather_has_three_equally_likely_regular_choices(monkeypatch, group, layout):
+    identity = theme_id(group, True)
+    expected = {theme_id(name, True) for name in WEATHER}
     calls = []
 
     def pick(items):
@@ -179,7 +187,7 @@ def test_weather_has_only_three_equally_likely_regular_choices(monkeypatch, grou
         return identity
 
     monkeypatch.setattr(themes.secrets, "choice", pick)
-    saved = focus_sample("weather", 4, layout) if wide else sample(PATHS.get("weather"), 3)
+    saved = focus_sample("weather", 4, layout)
     _, audit = choose(saved, monkeypatch)
     assert set(audit.get("candidates", [])) == expected
     assert audit.get("themeId") == identity
@@ -227,7 +235,7 @@ def test_new_photos_cannot_override_user_no_photo_or_color_cloud(
 ):
     identity = theme_id(group, wide)
     only_photo(monkeypatch, identity)
-    saved = business_sample(business, 1, wide=wide)
+    saved = admitted_sample(group, business, wide)
     saved.task["userQuery"] = "不要图片"
     preferences = [preference("backgroundKind", "photo", "不要图片", "avoid")]
     _, audit = choose(saved, monkeypatch, reply(preferences))

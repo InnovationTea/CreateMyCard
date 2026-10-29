@@ -191,13 +191,12 @@ def test_local_inline_baseline_alignment_is_not_card_bottom_alignment(stretched,
     assert (rejection(expanded(rows, saved.task), CLOUDS) is None) is allowed
 
 
-def test_unmatched_clouds_can_use_other_weather_photos_without_relayout(monkeypatch):
+def test_unanchored_weather_button_uses_abstract_without_relayout(monkeypatch):
     saved = sample(PATHS.get("weather"), 3, button=True)
     result, audit = choose(saved, monkeypatch)
     assert CLOUDS not in audit.get("candidates", [])
     weather_photos = {
-        "photo-ux-mountain-sunset-lake-square", "photo-ux-pink-sunset-lake-square",
-        "photo-ux-cumulus-blue-square",
+        "photo-ux-texture-blue-diamond-square", "photo-ux-texture-blue-diagonal-square",
     }
     assert set(audit.get("candidates", [])) == weather_photos
     assert audit.get("themeId") in weather_photos

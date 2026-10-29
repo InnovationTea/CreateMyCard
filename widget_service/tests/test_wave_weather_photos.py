@@ -10,6 +10,7 @@ from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
 from test_clouds_photo_top_content import CLOUDS, weather_sample
 from test_uniform_photo_eligibility import PATHS, choose, rejection, sample
+from test_weather_body_regions import weather_regions
 
 SQUARE = "photo-ux-mountain-sunset-lake-square"
 WIDE = "photo-ux-mountain-sunset-lake-wide"
@@ -26,7 +27,7 @@ def test_disabled_old_clouds_cannot_override_new_weather_photos(
     for identity in (CLOUDS, SQUARE, STARFIELD):
         assert rejection(saved, identity) is None
     result, audit = choose(saved, monkeypatch, response)
-    expected = {SQUARE, STARFIELD, LOCAL_CLOUD}
+    expected = {SQUARE, STARFIELD}
     assert set(audit.get("candidates", [])) == expected
     assert audit.get("themeId") in expected
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -34,7 +35,7 @@ def test_disabled_old_clouds_cannot_override_new_weather_photos(
 
 @pytest.mark.parametrize("selected", [SQUARE, STARFIELD, LOCAL_CLOUD])
 @pytest.mark.parametrize("response", ["invalid", json.dumps({"themeId": CLOUDS})])
-def test_wave_and_starfield_share_one_unweighted_draw_when_clouds_fail(
+def test_weather_qualified_region_pool_uses_one_unweighted_draw(
     monkeypatch, selected, response,
 ):
     calls = []
@@ -44,13 +45,15 @@ def test_wave_and_starfield_share_one_unweighted_draw_when_clouds_fail(
         return selected
 
     monkeypatch.setattr(themes.secrets, "choice", choice)
-    saved = sample(PATHS.get("weather"), 3)
+    main = 3 if selected == LOCAL_CLOUD else 2
+    saved = weather_regions(main, "button")
+    expected = {LOCAL_CLOUD} if main == 3 else {SQUARE, STARFIELD}
     assert rejection(saved, CLOUDS)
     result, audit = choose(saved, monkeypatch, response)
     assert len(calls) == 1
-    assert len(calls[0]) == 3
-    assert set(calls[0]) == {SQUARE, STARFIELD, LOCAL_CLOUD}
-    assert set(audit.get("candidates", [])) == {SQUARE, STARFIELD, LOCAL_CLOUD}
+    assert len(calls[0]) == len(expected)
+    assert set(calls[0]) == expected
+    assert set(audit.get("candidates", [])) == expected
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -62,14 +65,15 @@ def test_disabled_clouds_do_not_override_the_shared_weather_draw(monkeypatch):
     entry["enabled"] = False
     monkeypatch.setattr(registry, "load_theme_registry", lambda: copy.deepcopy(config))
     _, audit = choose(weather_sample(1), monkeypatch)
-    assert set(audit.get("candidates", [])) == {SQUARE, STARFIELD, LOCAL_CLOUD}
+    assert set(audit.get("candidates", [])) == {SQUARE, STARFIELD}
 
 
 @pytest.mark.parametrize("identity,wide", [(SQUARE, False), (WIDE, True)])
 @pytest.mark.parametrize("lines", [1, 2, 3, 4, 5])
 def test_wave_body_limit_excludes_title_and_button(identity, wide, lines):
-    saved = sample(PATHS.get("weather"), lines, wide=wide)
-    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 3))
+    saved = (sample(PATHS.get("weather"), lines, wide=True) if wide
+             else weather_regions(lines, "button"))
+    assert (rejection(saved, identity) is None) is (lines <= (4 if wide else 2))
 
 
 @pytest.mark.parametrize("business", ["sleep", "sport", "calendar", "earphone", "battery"])

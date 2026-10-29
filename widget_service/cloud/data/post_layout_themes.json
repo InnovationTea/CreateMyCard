@@ -134,7 +134,10 @@
   "themes": [
     {
       "id": "gradient-blue",
-      "paletteFamilies": ["blue", "cool"],
+      "paletteFamilies": [
+        "blue",
+        "cool"
+      ],
       "enabled": true,
       "kind": "gradient",
       "pool": "standard",
@@ -180,7 +183,9 @@
     },
     {
       "id": "gradient-purple",
-      "paletteFamilies": ["purple"],
+      "paletteFamilies": [
+        "purple"
+      ],
       "enabled": true,
       "kind": "gradient",
       "pool": "standard",
@@ -225,7 +230,12 @@
     },
     {
       "id": "gradient-warm",
-      "paletteFamilies": ["warm", "yellow", "orange", "red"],
+      "paletteFamilies": [
+        "warm",
+        "yellow",
+        "orange",
+        "red"
+      ],
       "enabled": true,
       "kind": "gradient",
       "pool": "standard",
@@ -391,7 +401,10 @@
     },
     {
       "id": "fusion-ball-battery-teal",
-      "paletteFamilies": ["green", "cyan"],
+      "paletteFamilies": [
+        "green",
+        "cyan"
+      ],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",
@@ -433,7 +446,10 @@
     },
     {
       "id": "fusion-ball-schedule-blue",
-      "paletteFamilies": ["blue", "cool"],
+      "paletteFamilies": [
+        "blue",
+        "cool"
+      ],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",
@@ -475,7 +491,9 @@
     },
     {
       "id": "fusion-ball-sleep-violet",
-      "paletteFamilies": ["purple"],
+      "paletteFamilies": [
+        "purple"
+      ],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",
@@ -517,7 +535,11 @@
     },
     {
       "id": "fusion-ball-sport-orange",
-      "paletteFamilies": ["orange", "red", "warm"],
+      "paletteFamilies": [
+        "orange",
+        "red",
+        "warm"
+      ],
       "enabled": true,
       "kind": "fusion",
       "pool": "standard",
@@ -4382,12 +4404,12 @@
       }
     },
     {
-      "id": "photo-ux-meeting-room-chairs-square",
+      "id": "photo-ux-meeting-room-brown-chairs-square",
       "enabled": true,
       "kind": "photo",
       "pool": "photos",
-      "name": "会议座椅",
-      "description": "会议座椅。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "name": "棕椅会议室",
+      "description": "棕椅会议室。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
       "sizes": [
         "2x2"
       ],
@@ -4403,23 +4425,23 @@
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
-        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/a3472ebb318a4671a233fc72344d0a36/254c82e827d84bf49011515be5c011b2.png",
-        "sourceSha256": "db052288277078f53cf252f3183d267c8828baef5211059789dadb22d9cd6569",
-        "assetSha256": "db052288277078f53cf252f3183d267c8828baef5211059789dadb22d9cd6569",
-        "assetBytes": 155232,
+        "file": "C:/Users/dingdong/AppData/Roaming/WeLink/download/1111/1111/bg_ux_meeting_room_brown_chairs_square.png",
+        "sourceSha256": "756b96f57b8b72d60568c6d6d36b751a99df636bcf7a9458d20dc995f4401acf",
+        "assetSha256": "756b96f57b8b72d60568c6d6d36b751a99df636bcf7a9458d20dc995f4401acf",
+        "assetBytes": 267971,
         "originalSize": [
-          450,
-          450
+          600,
+          600
         ],
         "assetSize": [
-          450,
-          450
+          600,
+          600
         ],
-        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+        "processing": "下载OBS原始交付字节，未本地裁切或编码；原始PNG来源哈希保留"
       },
       "background": {
-        "src": "resources/base/media/bg_ux_meeting_room_chairs_square.png",
-        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/a3472ebb318a4671a233fc72344d0a36/254c82e827d84bf49011515be5c011b2.png",
+        "src": "resources/base/media/bg_ux_meeting_room_brown_chairs_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/9f91055c72b84d2581bb7cac346b2ee0/9a346eb41c684269bd22d576478608aa.png",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -4450,12 +4472,12 @@
       }
     },
     {
-      "id": "photo-ux-meeting-room-chairs-wide",
+      "id": "photo-ux-meeting-room-brown-chairs-wide",
       "enabled": true,
       "kind": "photo",
       "pool": "photos",
-      "name": "会议座椅宽景",
-      "description": "会议座椅宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "name": "棕椅会议室宽景",
+      "description": "棕椅会议室宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -4471,10 +4493,10 @@
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
-        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c2211194e5ac40aabcac673875239a6b/6aecdfee8b5944c499ea03715b2c919a.jpg",
-        "sourceSha256": "4f405b252908db6cff058cb48e1c42317bebfe93f7fa8de5d17b3e55b7e1e4b5",
-        "assetSha256": "4f405b252908db6cff058cb48e1c42317bebfe93f7fa8de5d17b3e55b7e1e4b5",
-        "assetBytes": 218503,
+        "file": "C:/Users/dingdong/AppData/Roaming/WeLink/download/1111/1111/bg_ux_meeting_room_brown_chairs_wide.png",
+        "sourceSha256": "0ca5b8df097692ba030faaaac955c2cce299139855564b254696789e65fdd792",
+        "assetSha256": "b68ef2a425d742e0de9fc30df56fc2e0b155886efa61146c3a61e9981dd01bb0",
+        "assetBytes": 306203,
         "originalSize": [
           1200,
           600
@@ -4483,11 +4505,11 @@
           1200,
           600
         ],
-        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+        "processing": "下载OBS原始交付字节，未本地裁切或编码；原始PNG来源哈希保留"
       },
       "background": {
-        "src": "resources/base/media/bg_ux_meeting_room_chairs_wide.jpg",
-        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/c2211194e5ac40aabcac673875239a6b/6aecdfee8b5944c499ea03715b2c919a.jpg",
+        "src": "resources/base/media/bg_ux_meeting_room_brown_chairs_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/aac07f943f5445b39ebf73200aa056b4/49c8970d134b45f9bb6b0fb111dac7e8.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -4518,12 +4540,12 @@
       }
     },
     {
-      "id": "photo-ux-meeting-room-table-square",
+      "id": "photo-ux-meeting-room-green-chairs-square",
       "enabled": true,
       "kind": "photo",
       "pool": "photos",
-      "name": "会议桌",
-      "description": "会议桌。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "name": "绿椅会议室",
+      "description": "绿椅会议室。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
       "sizes": [
         "2x2"
       ],
@@ -4539,23 +4561,23 @@
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
-        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/046ab0711afa482780b54e2119ff3e38/3add260a7ae74d81bfd42b3a60c104d6.png",
-        "sourceSha256": "556482c0e622048cf9e82f535c7f78cf3dcbf361a82539f01a93f10961e75117",
-        "assetSha256": "556482c0e622048cf9e82f535c7f78cf3dcbf361a82539f01a93f10961e75117",
-        "assetBytes": 148156,
+        "file": "C:/Users/dingdong/AppData/Roaming/WeLink/download/1111/1111/bg_ux_meeting_room_green_chairs_square.png",
+        "sourceSha256": "0774293bff39d2684997e045834f42c09e8422010ae7ed43c3de26f8e2579a20",
+        "assetSha256": "0774293bff39d2684997e045834f42c09e8422010ae7ed43c3de26f8e2579a20",
+        "assetBytes": 257858,
         "originalSize": [
-          450,
-          450
+          600,
+          600
         ],
         "assetSize": [
-          450,
-          450
+          600,
+          600
         ],
-        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+        "processing": "下载OBS原始交付字节，未本地裁切或编码；原始PNG来源哈希保留"
       },
       "background": {
-        "src": "resources/base/media/bg_ux_meeting_room_table_square.png",
-        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/046ab0711afa482780b54e2119ff3e38/3add260a7ae74d81bfd42b3a60c104d6.png",
+        "src": "resources/base/media/bg_ux_meeting_room_green_chairs_square.png",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/730922808c484c9887556ca35f306eae/6632d629946b4e3a831c83b0f14f11e7.png",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -4586,12 +4608,12 @@
       }
     },
     {
-      "id": "photo-ux-meeting-room-table-wide",
+      "id": "photo-ux-meeting-room-green-chairs-wide",
       "enabled": true,
       "kind": "photo",
       "pool": "photos",
-      "name": "会议桌宽景",
-      "description": "会议桌宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "name": "绿椅会议室宽景",
+      "description": "绿椅会议室宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -4607,10 +4629,10 @@
       "matchingPolicy": "layout-only",
       "source": {
         "provider": "UX",
-        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/1107bdc7fb804b5aaf74b3ce8b4a0294/b19c04c19d694b7089e3729c00871535.jpg",
-        "sourceSha256": "8da3ddab325febfde7ed434fa70cf3f8fe38e0b81e246b8e8302951555f3b0cc",
-        "assetSha256": "8da3ddab325febfde7ed434fa70cf3f8fe38e0b81e246b8e8302951555f3b0cc",
-        "assetBytes": 228029,
+        "file": "C:/Users/dingdong/AppData/Roaming/WeLink/download/1111/1111/bg_ux_meeting_room_green_chairs_wide.png",
+        "sourceSha256": "d86e1aa034c172d9c966f7e6053e79918b516ab15a8642b6a5c7562ae332175c",
+        "assetSha256": "3d52f94a6e00cbc416f720d87e09b64d8a1f412e79876243600155169329ad1e",
+        "assetBytes": 304754,
         "originalSize": [
           1200,
           600
@@ -4619,147 +4641,11 @@
           1200,
           600
         ],
-        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
+        "processing": "下载OBS原始交付字节，未本地裁切或编码；原始PNG来源哈希保留"
       },
       "background": {
-        "src": "resources/base/media/bg_ux_meeting_room_table_wide.jpg",
-        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/1107bdc7fb804b5aaf74b3ce8b4a0294/b19c04c19d694b7089e3729c00871535.jpg",
-        "objectFit": "fill",
-        "frame": {
-          "slotWidth": 1,
-          "slotHeight": 1,
-          "imageWidth": 1,
-          "imageHeight": 1,
-          "align": "topStart"
-        }
-      },
-      "content": {
-        "roles": {
-          "primary": "#FF000000",
-          "secondary": "#CC000000",
-          "tertiary": "#99000000",
-          "graphicPrimary": "#FF000000",
-          "graphicSecondary": "#CC000000",
-          "graphicTertiary": "#99000000",
-          "componentSecondary": "#CCFFFFFF",
-          "componentTertiary": "#99FFFFFF"
-        },
-        "panelBySize": {
-          "2x4": "#CCFFFFFF"
-        },
-        "explicitTextAlpha": {
-          "secondary": 204,
-          "tertiary": 153
-        }
-      }
-    },
-    {
-      "id": "photo-ux-meeting-room-window-square",
-      "enabled": true,
-      "kind": "photo",
-      "pool": "photos",
-      "name": "窗边会议室",
-      "description": "窗边会议室。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
-      "sizes": [
-        "2x2"
-      ],
-      "business": "calendar",
-      "composition": "native",
-      "subjectless": false,
-      "contentEligibility": {
-        "kind": "uniform",
-        "businesses": [
-          "calendar"
-        ]
-      },
-      "matchingPolicy": "layout-only",
-      "source": {
-        "provider": "UX",
-        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7d101950d60447ff9279896a4e3b55a6/1feadb6a8f834032abf7ce33f4353e32.png",
-        "sourceSha256": "7fb51fbeee5f4210963ab5fdc25c28a87afe36362cab0e35d071f0cd38d8b54c",
-        "assetSha256": "7fb51fbeee5f4210963ab5fdc25c28a87afe36362cab0e35d071f0cd38d8b54c",
-        "assetBytes": 150865,
-        "originalSize": [
-          450,
-          450
-        ],
-        "assetSize": [
-          450,
-          450
-        ],
-        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
-      },
-      "background": {
-        "src": "resources/base/media/bg_ux_meeting_room_window_square.png",
-        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/7d101950d60447ff9279896a4e3b55a6/1feadb6a8f834032abf7ce33f4353e32.png",
-        "objectFit": "fill",
-        "frame": {
-          "slotWidth": 1,
-          "slotHeight": 1,
-          "imageWidth": 1,
-          "imageHeight": 1,
-          "align": "topStart"
-        }
-      },
-      "content": {
-        "roles": {
-          "primary": "#FF000000",
-          "secondary": "#CC000000",
-          "tertiary": "#99000000",
-          "graphicPrimary": "#FF000000",
-          "graphicSecondary": "#CC000000",
-          "graphicTertiary": "#99000000",
-          "componentSecondary": "#CCFFFFFF",
-          "componentTertiary": "#99FFFFFF"
-        },
-        "panelBySize": {
-          "2x2": "#CCFFFFFF"
-        },
-        "explicitTextAlpha": {
-          "secondary": 204,
-          "tertiary": 153
-        }
-      }
-    },
-    {
-      "id": "photo-ux-meeting-room-window-wide",
-      "enabled": true,
-      "kind": "photo",
-      "pool": "photos",
-      "name": "窗边会议室宽景",
-      "description": "窗边会议室宽景。2x4左主焦点为对应业务、右侧上下双槽，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
-      "sizes": [
-        "2x4"
-      ],
-      "business": "calendar",
-      "composition": "native",
-      "subjectless": false,
-      "contentEligibility": {
-        "kind": "uniform",
-        "businesses": [
-          "calendar"
-        ]
-      },
-      "matchingPolicy": "layout-only",
-      "source": {
-        "provider": "UX",
-        "file": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/0b405ef8c136493a9d9b67779d261204/72e87117545748f09b1ce42bc7addd7e.jpg",
-        "sourceSha256": "dbbd607576d99d3c2e3655e94ff274edb2990ae055c44aebd01e57cee55c8903",
-        "assetSha256": "dbbd607576d99d3c2e3655e94ff274edb2990ae055c44aebd01e57cee55c8903",
-        "assetBytes": 181045,
-        "originalSize": [
-          1200,
-          600
-        ],
-        "assetSize": [
-          1200,
-          600
-        ],
-        "processing": "从background.remoteUrl下载OBS原始字节，未裁切或重新编码"
-      },
-      "background": {
-        "src": "resources/base/media/bg_ux_meeting_room_window_wide.jpg",
-        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/0b405ef8c136493a9d9b67779d261204/72e87117545748f09b1ce42bc7addd7e.jpg",
+        "src": "resources/base/media/bg_ux_meeting_room_green_chairs_wide.jpg",
+        "remoteUrl": "https://lfcontentcenterdev.hwcloudtest.cn/pub_5/FaStore_fa_900_9/bb/v3/fa/osms/1/1/9da17c4737f843118d53083bd2b0af11/b14292d33ca04dc2830b46de7eb9b8f9.jpg",
         "objectFit": "fill",
         "frame": {
           "slotWidth": 1,
@@ -4931,7 +4817,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "山景夕阳湖泊",
-      "description": "山景夕阳湖泊。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "description": "山景夕阳湖泊。2x2天气单业务、正文整体居左、总正文最多3行；中间连续正文1至2行，底部留空或一行文字或一行按钮。标题和按钮文案不计正文行数；按真实布局分区，不移动前景。",
       "sizes": [
         "2x2"
       ],
@@ -4942,7 +4828,12 @@
         "kind": "uniform",
         "businesses": [
           "weather"
-        ]
+        ],
+        "bodyRegions": {
+          "mainMinLines": 1,
+          "mainMaxLines": 2,
+          "footerMaxRows": 1
+        }
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -5068,7 +4959,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "粉色夕阳湖泊",
-      "description": "粉色夕阳湖泊。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "description": "粉色夕阳湖泊。2x2天气单业务、正文整体居左、总正文最多3行；中间连续正文1至2行，底部留空或一行文字或一行按钮。标题和按钮文案不计正文行数；按真实布局分区，不移动前景。",
       "sizes": [
         "2x2"
       ],
@@ -5079,7 +4970,12 @@
         "kind": "uniform",
         "businesses": [
           "weather"
-        ]
+        ],
+        "bodyRegions": {
+          "mainMinLines": 1,
+          "mainMaxLines": 2,
+          "footerMaxRows": 1
+        }
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -5205,7 +5101,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "蓝底积云",
-      "description": "蓝底积云。2x2对应单业务、正文整体居左且最多3行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "description": "蓝底积云。2x2天气单业务、正文整体居左、总正文最多3行；中间连续正文3行，底部留空或一行文字或一行按钮。标题和按钮文案不计正文行数；按真实布局分区，不移动前景。",
       "sizes": [
         "2x2"
       ],
@@ -5216,7 +5112,12 @@
         "kind": "uniform",
         "businesses": [
           "weather"
-        ]
+        ],
+        "bodyRegions": {
+          "mainMinLines": 3,
+          "mainMaxLines": 3,
+          "footerMaxRows": 1
+        }
       },
       "matchingPolicy": "layout-only",
       "source": {

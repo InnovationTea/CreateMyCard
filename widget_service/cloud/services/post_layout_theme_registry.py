@@ -45,6 +45,15 @@ _CONTENT_ELIGIBILITY = {
         "kind": {"enum": ["uniform", "holiday-countdown", "weather-panels"]},
         "maxTextLines": {"type": "integer", "minimum": 1, "maximum": 3},
         "wideLayout": {"enum": ["main-focus", "side-focus"]},
+        "bodyRegions": {
+            "type": "object", "additionalProperties": False,
+            "required": ["mainMinLines", "mainMaxLines", "footerMaxRows"],
+            "properties": {
+                "mainMinLines": {"type": "integer", "minimum": 1, "maximum": 3},
+                "mainMaxLines": {"type": "integer", "minimum": 1, "maximum": 3},
+                "footerMaxRows": {"const": 1},
+            },
+        },
         "placement": {"enum": ["top-left-empty-bottom", "bottom-left", "not-bottom-left",
                                "center", "not-center", "bottom"]},
         "businesses": {"type": "array", "minItems": 0, "uniqueItems": True,

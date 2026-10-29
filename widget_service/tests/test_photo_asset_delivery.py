@@ -50,7 +50,7 @@ def artifact():
     )
 
 
-@pytest.mark.parametrize(("pool", "count"), [("photos", 51), ("texturePhotos", 18)])
+@pytest.mark.parametrize(("pool", "count"), [("photos", 49), ("texturePhotos", 18)])
 def test_current_photos_have_obs_addresses(pool, count):
     photos = registry.registered_themes(pool, include_disabled=True)
     assert len(photos) == count
@@ -66,7 +66,7 @@ def test_current_photos_have_obs_addresses(pool, count):
         assert address.lower().endswith((".jpg", ".png"))
         addresses.add(address)
     assert not pending
-    assert len(addresses) + len(pending) == len(photos)
+    assert len(addresses) == len(photos)
 
 
 @pytest.mark.parametrize(("photo_id", "size"), [
