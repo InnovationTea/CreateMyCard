@@ -28,10 +28,14 @@
     基础 Support 以天气现象为必需数据，温度、体感、城市和区县可选；另两种 Support 仍以温度为主数据，
     天气现象及各自风险指数为次要数据；城市和区县可选，
     可接收 `location` 兜底。不能让基础温度模板覆盖不存在的紫外线或感冒风险展示。
-  - `WeatherOverviewTemperatureHumiditySupport@1`：温度、天气现象、湿度和空气质量；纯文本，
-    不接收图标；可选内部事件 `actionId`。温度为主数据，天气现象为次要数据，
-    湿度为纯数值（展示时拼接“%”），湿度与空气质量均为可选辅行：同时存在时合并一行，
-    只有一个时单独展示，都缺失时省略辅助行；仅用于双业务 Support 组合布局。
+  - `WeatherOverviewTemperatureConditionSupport@1`：主行展示城市与温度，辅行展示天气现象。
+  - `WeatherOverviewTemperatureHumiditySupport@1`：主行展示城市与温度，辅行展示“天气现象|湿度N%”；
+    湿度为必需的纯数值，展示时拼接“%”，不展示空气质量。
+  - `WeatherOverviewTemperatureAirQualitySupport@1`：主行展示城市与温度，辅行展示“天气现象|空气质量等级”；
+    空气质量为必需字段，不展示湿度。
+    上述三种模板均为纯文本、不接收图标，主行 14vp、辅行 12vp；温度为主数据，天气现象及
+    各自指标为次要数据，城市与区县可选并支持可信 `location` 兜底。可选内部事件 `actionId`
+    只消费天气详情事件；仅用于双业务 Support 组合布局，不得混用指标或省略显式要求的字段。
   - `WeatherOverviewHero@1`：温度天气 Hero；可选空气质量、感冒指数与 `conditionIcon`。
     空气质量和感冒指数同时存在时都保留，只有其中一个时不生成多余分隔符。
     体感温度可选，可用时在温度下方以 12vp「体感 N°」子行展示；天气预警与风级可选，

@@ -57,7 +57,9 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | WeatherOverviewFeelsLikeWindSupport@1 | 空 |
 | WeatherOverviewHumidityWindLevelHero@1 | event.open.weather |
 | WeatherOverviewFeelsLikeHero@1 | event.open.weather |
+| WeatherOverviewTemperatureConditionSupport@1 | event.open.weather |
 | WeatherOverviewTemperatureHumiditySupport@1 | event.open.weather |
+| WeatherOverviewTemperatureAirQualitySupport@1 | event.open.weather |
 
 事件含义及参数以请求版本的 event_capabilities.json 为准。步数、训练及运动心率允许锻炼页作为关联入口，
 不得宣称直达步数、心率或某次训练详情。睡眠 Support 不能复用锻炼事件；普通耳机 Support 不能绑定
