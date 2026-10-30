@@ -2634,13 +2634,19 @@ def evaluate_compact_plan_coverage(
     overflow_action_ids = compact_plan_overflow_action_ids(components, plan, task_spec)
     allowed = set(allowed_omitted_fact_indexes)
     errors: list[str] = []
+    warnings: list[str] = []
     if static_content:
         from services.card_validation.compact_validation.semantic.static_content import (
             static_group_errors,
         )
 
-        errors.extend(static_group_errors(compact_dsl, plan, allowed_omitted_fact_indexes))
-    warnings: list[str] = []
+        static_errors = static_group_errors(
+            compact_dsl,
+            plan,
+            allowed_omitted_fact_indexes,
+        )
+        target = warnings if information_errors_as_warnings else errors
+        target.extend(static_errors)
     duplicate_facts: list[dict[str, Any]] = []
     facts = plan.get("info_required")
     if not isinstance(facts, list):
