@@ -64,7 +64,7 @@ async def generate(source: Path, output: Path) -> None:
             if TEMPLATE_ID not in str(prompt):
                 raise AssertionError("prompt does not contain the target template id")
             return (
-                'Template("WideFullTwoCompactLayout@1",{"compactRows":true},'
+                'Template("WideFullTwoCompactLayout@1",{},'
                 f'Template("{TEMPLATE_ID}",'
                 '{"deviceIcon":"resources/base/media/earphone_case_16644.svg"}),'
                 'Template("CompactAction@1",{"actionId":"event.open.settings.bluetooth",'

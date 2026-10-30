@@ -70,7 +70,7 @@
     },
     {
       "templateId": "WideFullTwoCompactLayout@1",
-      "description": "2x4 左 Full、右侧上下两个 Support 布局；旧 Compact 仅作为历史 Provider 兼容形态。",
+      "description": "2x4 左 Full、右侧上下两个 Support 布局；右侧两槽等分可用高度，间距 8vp；旧 Compact 仅作为历史 Provider 兼容形态。",
       "entry": "templates/layout.cardtpl"
     },
     {
@@ -460,7 +460,7 @@
     },
     {
       "name": "WideFullTwoCompactLayout",
-      "description": "仅用于 2x4；依次承载 Full/Hero、信息 Support，以及第二个信息 Support 或单行 Compact Action；也兼容历史 Compact Provider，并支持 Full 与两个 CompactAction。",
+      "description": "仅用于 2x4；依次承载 Full/Hero、信息 Support，以及第二个信息 Support 或单行 Compact Action；也兼容历史 Compact Provider，并支持 Full 与两个 CompactAction。右侧两槽按相同权重等分实际可用高度，间距 8vp，无布局参数。",
       "supportedCardSizes": [
         "2x4"
       ],
@@ -477,11 +477,7 @@
       },
       "parametersSchema": {
         "type": "object",
-        "properties": {
-          "compactRows": {
-            "type": "boolean"
-          }
-        },
+        "properties": {},
         "additionalProperties": false
       },
       "loweringBySize": {

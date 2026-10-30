@@ -64,13 +64,16 @@ def test_large_action_fits_wide_half_slot():
     ],
 )
 @pytest.mark.parametrize("compact_rows", [False, True])
-def test_wide_layout_fixed_slots_fit_content_budget(template_id, compact_rows):
+def test_wide_layout_slots_fit_content_budget(template_id, compact_rows):
     registry = CardPlanRegistry()
     definition = registry.require_template(template_id)
     child = Nested2Node("Text", ("content", {"height": 14}), ())
+    properties = {"compactRows": compact_rows}
+    if template_id == "WideFullTwoCompactLayout@1":
+        properties = {}
     root = _instantiate_blueprint(
         definition.variants[0].root,
-        {"compactRows": compact_rows},
+        properties,
         theme_values={
             "supportContentStyle.backgroundColor": "#FFFFFFFF",
             "supportContentStyle.borderRadius": 16,
@@ -89,6 +92,14 @@ def test_wide_layout_fixed_slots_fit_content_budget(template_id, compact_rows):
         assert action_options["height"] == 36
     else:
         assert estimated_height == budget
+    if template_id == "WideFullTwoCompactLayout@1":
+        compact_column = root.children[1]
+        assert compact_column.values[-1].get("height") == "matchParent"
+        assert compact_column.values[-1].get("itemMargin") == 8
+        assert len(compact_column.children) == 2
+        for slot in compact_column.children:
+            assert slot.values[-1].get("layoutWeight") == 1
+            assert "height" not in slot.values[-1]
 
 
 @pytest.mark.parametrize(
