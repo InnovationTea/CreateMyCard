@@ -57,7 +57,7 @@ def _beijing_now() -> datetime:
 def _report_usage_metric(metric_name: str, record: DailyUsageRecord) -> None:
     """打点调度失败不改变额度判断；后台网络失败由 ops_metrics 记录。"""
     try:
-        report_ops_metrics(body={metric_name: 1})
+        report_ops_metrics(body={metric_name: 1, "uidHash": record.uid_hash})
     except Exception as exc:
         diagnostic = {"exception_type": type(exc).__name__, "reason": str(exc)}
         logger.warning(
