@@ -1,4 +1,4 @@
-#Template BatteryOverviewPercentDetailsFull@1(props: {})
+#Template BatteryOverviewPercentDetailsFull@1(props: { title?: string })
 data = {
     percentText: $path("/batterySOCText"),
     charging: $path("/chargingStatusDesc"),
@@ -10,7 +10,7 @@ Column(
   {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
    "itemMargin": 4, "justifyContent": "start", "alignItems": "start",
    "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text("手机电量", {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
+  Text(#Expr(props.title ? props.title : "手机电量"), {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400,
     "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
   Text(data.percentText, {"width": "matchParent", "height": 32, "fontSize": 28, "fontWeight": 700,
     "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis"}),

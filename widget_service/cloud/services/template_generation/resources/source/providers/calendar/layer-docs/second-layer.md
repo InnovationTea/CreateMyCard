@@ -52,8 +52,9 @@
   - `ScheduleOverviewNextEventLocationFull@1`：下一个日程 Full；标题、开始时间和地点必需，结束时间可选；
     有结束时间时保持原时间段分支，缺少时只显示开始时间、不输出分隔符；可选
     `calendarIcon` 与 `headerLabel`。
-  - `ScheduleOverviewMeetingWideFull@1`：宽版会议摘要；展示标题、起止时间和地点；可选
-    `timeIcon` 与 `locationIcon`。
+  - `ScheduleOverviewMeetingWideFull@1`：宽版会议摘要；顶部为场景标题、下方保留日程标题、
+    起止时间和地点正文。非空请求 `title` 必须逐字传给可选 `title` Prop；未传或为空字符串
+    时显示“日程安排”。场景标题不替代正文日程标题；可选 `timeIcon` 与 `locationIcon`。
   - `ScheduleOverviewMeetingSourceWideFull@1`：带来源图标的宽版会议摘要；`sourceIcon` 必填，
     `timeIcon` 与 `locationIcon` 可选。
   - `ScheduleOverviewTwoEventsFull@1`：双日程 Full；按顺序展示前两项日程各自的标题和开始时间，

@@ -349,12 +349,15 @@ def compile_hybrid_card(
         root = _apply_theme_content_color(root, contract, registry)
         root = apply_photo_surfaces(root, theme)
     if fusion_palette is None:
-        root = apply_content_safe_inset(root, size=task_spec.size)
+        root = apply_content_safe_inset(
+            root, size=task_spec.size, template_ids=tuple(state.template_ids),
+        )
     else:
         root = apply_fusion_ball_background(
             root,
             size=task_spec.size,
             palette=fusion_palette,
+            template_ids=tuple(state.template_ids),
         )
     root = apply_photo_background(root, theme)
     root = _strip_advanced_component_markers(root)
@@ -536,12 +539,15 @@ def compile_ux_layout_card(
         raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
     if fusion_palette is None:
-        root = apply_content_safe_inset(root, size=task_spec.size)
+        root = apply_content_safe_inset(
+            root, size=task_spec.size, template_ids=tuple(state.template_ids),
+        )
     else:
         root = apply_fusion_ball_background(
             root,
             size=task_spec.size,
             palette=fusion_palette,
+            template_ids=tuple(state.template_ids),
         )
     root = apply_photo_background(root, theme)
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
@@ -944,13 +950,8 @@ def _expand_call(
             f"Template params are invalid for {wire_id}/{size}: {errors[0].message}"
         )
     title_fallback_template = (
-        wire_id in {
-            "BatteryOverviewChargingProgressHero@1",
-            "BatteryOverviewChargingTemperatureFull@1",
-            "BatteryOverviewCurrentVoltageFull@1",
-            "BatteryOverviewPercentStatusFull@1",
-        }
-        or definition.business_id == "BluetoothDeviceOverview"
+        definition.business_id in {"BatteryOverview", "BluetoothDeviceOverview"}
+        or wire_id == "ScheduleOverviewMeetingWideFull@1"
     )
     if title_fallback_template and params.get("title") == "":
         # 这些模板将空标题视为未传；模板条件原本只判断参数是否存在。

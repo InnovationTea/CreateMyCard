@@ -1,4 +1,4 @@
-#Template BatteryOverviewChargingDiagnosticsFull@1(props: {})
+#Template BatteryOverviewChargingDiagnosticsFull@1(props: { title?: string })
 data = {
     level: $path("/batteryCapacityLevelDesc"),
     current: $path("/nowCurrentText"),
@@ -10,7 +10,7 @@ Column(
   {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent",
    "itemMargin": 0, "justifyContent": "start", "alignItems": "start",
    "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text("手机电量", {"width": "matchParent", "height": 16, "margin": {"bottom": 8},
+  Text(#Expr(props.title ? props.title : "手机电量"), {"width": "matchParent", "height": 16, "margin": {"bottom": 8},
     "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'),
     "maxLines": 1, "flexShrink": 0, "textOverflow": "ellipsis"}),
   Text(data.level, {"width": "matchParent", "height": 40, "margin": {"bottom": 6},

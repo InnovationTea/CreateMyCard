@@ -15,6 +15,16 @@ _ROOT_ID = "root"
 _CONTENT_ROOT_ID = "root_1"
 _TEMPLATE_ROOT_ID = "template_root"
 _SKELETON_LAYOUT_TYPES = frozenset({"Column", "Row", "Stack"})
+_TOP_ALIGNED_CONTENT_TEMPLATES = frozenset({
+    "BatteryOverviewHealthLevelFull@1",
+    "BatteryOverviewPercentHealthDetailsFull@1",
+})
+
+
+def _content_alignment_options(template_ids: tuple[str, ...]) -> dict[str, str]:
+    if _TOP_ALIGNED_CONTENT_TEMPLATES.intersection(template_ids):
+        return {"alignContent": "topStart"}
+    return {}
 
 
 def build_fusion_ball_background(
@@ -89,6 +99,7 @@ def apply_fusion_ball_background(
     *,
     size: str,
     palette: FusionBallPalette | None,
+    template_ids: tuple[str, ...] = (),
 ) -> Nested2Node:
     """Expand an eligible 2x2/2x4 card into standard Tersel components."""
     if size not in FUSION_BALL_SIZES or palette is None:
@@ -103,6 +114,7 @@ def apply_fusion_ball_background(
                 "_id": build_fusion_ball_content_id(_TEMPLATE_ROOT_ID),
                 "width": "matchParent",
                 "height": "matchParent",
+                **_content_alignment_options(template_ids),
             },
         ),
         (skeleton,),
@@ -114,6 +126,7 @@ def apply_fusion_ball_background(
             {
                 "_id": _TEMPLATE_ROOT_ID,
                 "padding": 12,
+                **_content_alignment_options(template_ids),
             },
         ),
         (overflow_content,),
@@ -137,6 +150,7 @@ def apply_content_safe_inset(
     card: Nested2Node,
     *,
     size: str,
+    template_ids: tuple[str, ...] = (),
 ) -> Nested2Node:
     """Move the safe inset off a supported template skeleton and mark it for overflow."""
     if size not in {"2x2", "2x4"}:
@@ -163,6 +177,7 @@ def apply_content_safe_inset(
             {
                 "_id": _TEMPLATE_ROOT_ID,
                 "padding": safe_inset,
+                **_content_alignment_options(template_ids),
             },
         ),
         (skeleton,),

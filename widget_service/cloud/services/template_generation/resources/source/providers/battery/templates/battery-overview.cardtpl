@@ -1,4 +1,4 @@
-#Template BatteryOverviewFull@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewFull@1(props: { title?: string, batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -16,7 +16,7 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text("设备电量",
+    Text(#Expr(props.title ? props.title : "设备电量"),
         {
             "width": "matchParent",
             "fontSize": 16,
@@ -559,7 +559,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewWideFull@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewWideFull@1(props: { title?: string, batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -577,7 +577,7 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text("设备电量",
+    Text(#Expr(props.title ? props.title : "设备电量"),
         {
             "width": "matchParent",
             "fontSize": 16,
@@ -760,7 +760,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewHealthLevelHero@1(props: {})
+#Template BatteryOverviewHealthLevelHero@1(props: { title?: string })
 data = {
     health: $path("/healthStatusDesc"),
     level: $path("/batteryCapacityLevelDesc")
@@ -778,7 +778,7 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text("电池体检",
+    Text(#Expr(props.title ? props.title : "电池体检"),
         {
             "width": "matchParent",
             "height": 16,
@@ -989,7 +989,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewPercentLevelHero@1(props: {})
+#Template BatteryOverviewPercentLevelHero@1(props: { title?: string })
 data = {
     percentText: $path("/batterySOCText"),
     level: $path("/batteryCapacityLevelDesc")
@@ -1007,7 +1007,7 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text("手机电量",
+    Text(#Expr(props.title ? props.title : "手机电量"),
         {
             "width": "matchParent",
             "height": 16,
@@ -1056,7 +1056,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewChargingProgressFull@1(props: { batteryIcon: asset })
+#Template BatteryOverviewChargingProgressFull@1(props: { title?: string, batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     charging: $path("/chargingStatusDesc"),
@@ -1081,7 +1081,7 @@ Column(
             "justifyContent": "start",
             "alignItems": "start",
         },
-        Text("手机电量",
+        Text(#Expr(props.title ? props.title : "手机电量"),
             {
                 "width": "matchParent",
                 "height": 16,
@@ -1439,7 +1439,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewChargingDiagnosticsWideFull@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewChargingDiagnosticsWideFull@1(props: { title?: string, batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     current: $path("/nowCurrentText"),
@@ -1466,7 +1466,7 @@ Column(
             "clip": true,
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Text("电池诊断",
+        Text(#Expr(props.title ? props.title : "电池诊断"),
             {
                 "fontSize": 12,
                 "minFontSize": 10,
@@ -1819,7 +1819,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewTemperatureFull@1(props: { temperatureIcon?: asset })
+#Template BatteryOverviewTemperatureFull@1(props: { title?: string, temperatureIcon?: asset })
 data = {
     temperature: $path("/batteryTemperatureText"),
     pluggedType: $path("/pluggedTypeDesc"),
@@ -1855,7 +1855,7 @@ Column(
                 "clip": true,
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             },
-            Text("电池温度",
+            Text(#Expr(props.title ? props.title : "电池温度"),
                 {
                     "fontSize": 12,
                     "fontWeight": 500,
@@ -1946,7 +1946,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewStatusHero@1(props: { batteryIcon: asset })
+#Template BatteryOverviewStatusHero@1(props: { title?: string, batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     status: $path("/chargingStatusDesc")
@@ -1969,7 +1969,7 @@ Column(
             "justifyContent": "spaceBetween",
             "alignItems": "top"
         },
-        Text("手机电量",
+        Text(#Expr(props.title ? props.title : "手机电量"),
             {
                 "width": "matchParent",
                 "fontSize": 14,
@@ -2024,7 +2024,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewChargeStatusHero@1(props: { batteryIcon: asset })
+#Template BatteryOverviewChargeStatusHero@1(props: { title?: string, batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     temperature: $optionalPath("/batteryTemperatureText")
@@ -2054,7 +2054,7 @@ Column(
         }
     ),
     #else
-    Text("手机",
+    Text(#Expr(props.title ? props.title : "手机"),
         {
             "width": "matchParent",
             "height": 20,
@@ -2133,7 +2133,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewStatusWideFull@1(props: { batteryIcon?: asset, temperatureIcon?: asset, healthIcon?: asset, actionId?: string })
+#Template BatteryOverviewStatusWideFull@1(props: { title?: string, batteryIcon?: asset, temperatureIcon?: asset, healthIcon?: asset, actionId?: string })
 data = {
     percent: $path("/batterySOC"),
     health: $optionalPath("/healthStatusDesc"),
@@ -2173,7 +2173,7 @@ Column(
                 "alignItems": "start",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             },
-            Text("电池状态",
+            Text(#Expr(props.title ? props.title : "电池状态"),
                 {
                     "width": "matchParent",
                     "fontSize": 12,
@@ -2472,7 +2472,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewTemperatureHero@1(props: { temperatureIcon?: asset })
+#Template BatteryOverviewTemperatureHero@1(props: { title?: string, temperatureIcon?: asset })
 data = {
     temperature: $path("/batteryTemperatureText"),
     pluggedType: $optionalPath("/pluggedTypeDesc"),
@@ -2496,7 +2496,7 @@ Column(
             "justifyContent": "spaceBetween",
             "alignItems": "top"
         },
-        Text("手机电池温度",
+        Text(#Expr(props.title ? props.title : "手机电池温度"),
             {
                 "fontSize": 12,
                 "fontWeight": 500,
@@ -2569,7 +2569,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewTemperatureRingHero@1(props: { batteryIcon: asset })
+#Template BatteryOverviewTemperatureRingHero@1(props: { title?: string, batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     temperature: $path("/batteryTemperatureText"),
@@ -2596,7 +2596,7 @@ Column(
             "clip": true,
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Text("电池温度",
+        Text(#Expr(props.title ? props.title : "电池温度"),
             {
                 "fontSize": 12,
                 "fontWeight": 500,
@@ -2803,7 +2803,7 @@ Row(
 )
 #End
 
-#Template BatteryOverviewStatusRingHero@1(props: { batteryIcon: asset })
+#Template BatteryOverviewStatusRingHero@1(props: { title?: string, batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     charging: $path("/chargingStatusDesc")
@@ -2819,7 +2819,7 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text("手机电量",
+    Text(#Expr(props.title ? props.title : "手机电量"),
         {
             "width": "matchParent",
             "height": 20,

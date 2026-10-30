@@ -1,3 +1,10 @@
+## 场景标题回退规则
+
+以下规则优先于后文对默认标题文案的描述，不扩大用户明确要求的业务字段。
+`BatteryOverviewFull@1`、`BatteryOverviewWideFull@1`、`BatteryOverviewHealthLevelHero@1`、`BatteryOverviewHealthTemperatureHero@1`、`BatteryOverviewPercentLevelHero@1`、`BatteryOverviewChargingProgressFull@1`、`BatteryOverviewChargingDiagnosticsWideFull@1`、`BatteryOverviewTemperatureFull@1`、`BatteryOverviewTemperatureRingHero@1`、`BatteryOverviewStatusHero@1`、`BatteryOverviewStatusRingHero@1`、`BatteryOverviewStatusWideFull@1`、`BatteryOverviewTemperatureHero@1`、`BatteryOverviewPercentDetailsFull@1`、`BatteryOverviewPercentHealthCurrentDetailsFull@1`、`BatteryOverviewPercentTextFull@1`、`BatteryOverviewChargingDiagnosticsFull@1`、`BatteryOverviewPercentLevelFull@1` 的顶部固定文字仅为缺省文案；请求 title 非空时，第二层必须逐字传入可选 title；未传或为空字符串时使用原固定文字。
+- `BatteryOverviewChargeStatusHero@1`：仅未提供 /batteryTemperatureText 时，顶部优先非空 title，否则显示“手机”。保留其它条件分支。
+不替换字段标签、L/R/E 或按钮文案；已有设备名称及健康状态优先规则保持不变。
+
 # 第二层业务模板使用规则
 
 - `BatteryOverviewChargingTypePercentFull@1`：居中三段式无按钮 Full，顶部实际充电状态16fp，
@@ -37,7 +44,8 @@
     主数据：/batterySOCText；次要数据：/chargingStatusDesc、/healthStatusDesc、/nowCurrentText；
     无可选数据、图标参数或按钮，不要求数值电量、充电器类型、电压或电量等级。
   - `BatteryOverviewPercentHealthDetailsFull@1`：2x2 无动作百分比与健康详情，放入 `SingleFocusLayout@1`。
-    顶部“手机电量”12fp、百分比28fp加粗，下面三行依次展示充电状态、电池健康、充电类型。
+    请求标题非空时逐字传入可选 title；未传或为空字符串时回退“手机电量”。
+    顶部标题12fp、百分比28fp加粗，下面三行依次展示充电状态、电池健康、充电类型。
     主数据：/batterySOCText；次要数据：/chargingStatusDesc、/healthStatusDesc、/pluggedTypeDesc；
     无可选数据、图标参数或按钮，不要求 /batterySOC 或 /batteryCapacityLevelDesc。
   - `BatteryOverviewPercentLevelHero@1`：文本百分比与电量等级的单业务 2×2 兜底 Hero。
@@ -156,7 +164,7 @@
 
 - `BatteryOverviewChargingDiagnosticsFull@1`：2×2 诊断 Full，无按钮、无图标参数。手机电量标题 12fp/400，电量等级主值 30fp/700（长文本允许缩至18fp）；下方实时电流、电池电压、电池在位三行，12fp 标签400、值500，左对齐。主数据 /batteryCapacityLevelDesc；次要数据 /nowCurrentText、/voltageText、/isBatteryPresentText；均必需，无可选字段。沿用现有 Full 布局与模板排序。
 
-- `BatteryOverviewHealthLevelFull@1`：2×2 无动作健康等级 Full。必需 /healthStatusDesc、/batteryCapacityLevelDesc，可选 /batterySOCText、/chargingStatusDesc。顶部“电池健康”，健康主值30fp/700，详情行12fp、标签400/值500左对齐；不依赖素材，不新增模板选择优先级。
+- `BatteryOverviewHealthLevelFull@1`：2×2 无动作健康等级 Full。必需 /healthStatusDesc、/batteryCapacityLevelDesc，可选 /batterySOCText、/chargingStatusDesc。请求标题非空时逐字传入可选 title，未传或为空字符串时顶部回退“电池健康”；健康主值30fp/700，详情行12fp、标签400/值500左对齐；不依赖素材，不新增模板选择优先级。
 
 - `BatteryOverviewPercentLevelFull@1`：2×2 无动作百分比等级 Full。必需 /batterySOCText、/batteryCapacityLevelDesc，无可选字段。居中三段式：顶部“手机电量”16fp/400、百分比主值38fp/700、底部实际电量等级12fp/400；段间距8vp，不显示电量等级标签；不依赖素材，不新增模板选择优先级。
 

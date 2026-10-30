@@ -4537,7 +4537,6 @@ Row(
   {
     "_advancedComponent": "WeatherOverviewTemperatureSupport",
     "width": "matchParent",
-    "padding": { "left": 8, "top": 0, "right": 8, "bottom": 0 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,

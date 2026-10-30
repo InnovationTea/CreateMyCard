@@ -61,7 +61,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudPairHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机名称与左右电量 Hero：主行展示名称，下方左右耳图标与电量百分比并排；无需连接状态或仓电量，搭配一个操作按钮。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“蓝牙耳机”；其余字段与分支不变。耳机名称与左右电量 Hero：主行展示名称，下方左右耳图标与电量百分比并排；无需连接状态或仓电量，搭配一个操作按钮。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/earphoneName"
@@ -84,7 +84,7 @@
       "templateId": "BluetoothDeviceOverviewHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机 Hero，展示连接状态、名称，可选展示左右耳电量，可选左右耳图标。",
+      "description": "标题规则：仅 /leftBatteryLevel 与 /rightBatteryLevel 未同时提供时，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“耳机播控”；其余字段与分支不变。耳机 Hero，展示连接状态、名称，可选展示左右耳电量，可选左右耳图标。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/isConnected",
@@ -175,7 +175,7 @@
       },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机电量 Support：展示左右耳电量；设备图标可选，左右耳图标均提供时展示成对图标与百分比，否则回退为圆形底白字 L/R 标识和各自百分比。可放入双业务布局，并在根节点绑定蓝牙设置事件。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“耳机电量”；其余字段与分支不变。耳机电量 Support：展示左右耳电量；设备图标可选，左右耳图标均提供时展示成对图标与百分比，否则回退为圆形底白字 L/R 标识和各自百分比。可放入双业务布局，并在根节点绑定蓝牙设置事件。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/leftBatteryLevel",
@@ -575,7 +575,7 @@
       "templateId": "BluetoothDeviceOverviewCaseConnectionHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机仓电量和连接状态 Hero：电量环、百分比与连接状态，适配 Q058 耳机字段。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“耳机仓”；其余字段与分支不变。耳机仓电量和连接状态 Hero：电量环、百分比与连接状态，适配 Q058 耳机字段。",
       "entry": "templates/earphone-case-connection.cardtpl",
       "primaryData": [
         "/isConnected",
@@ -635,7 +635,7 @@
       "templateId": "BluetoothDeviceOverviewCaseSettingsHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机仓充电状态 Hero：标题与充电状态；动作通过 HeroActionLayout 组合。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“耳机仓”；其余字段与分支不变。耳机仓充电状态 Hero：标题与充电状态；动作通过 HeroActionLayout 组合。",
       "entry": "templates/earphone-case-settings.cardtpl",
       "primaryData": [
         "/chargingStatusDesc"
@@ -711,7 +711,7 @@
       "templateId": "BluetoothDeviceOverviewStatusHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机仓充电状态 Hero，展示耳机仓充电状态大字和副标签，可选充电盒图标；用于左右双焦点拼接布局。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“耳机盒”；其余字段与分支不变。耳机仓充电状态 Hero，展示耳机仓充电状态大字和副标签，可选充电盒图标；用于左右双焦点拼接布局。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/chargingStatusDesc"
@@ -760,7 +760,7 @@
       "templateId": "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机盒电量与充电状态 Full，居中三段式：顶部可选耳机名称，无名称时显示耳机电量；中间盒电量百分比大字；底部实际盒充电状态。盒电量与充电状态必需，无需动作、图标或连接状态。",
+      "description": "标题规则：仅未提供 /earphoneName 时，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“耳机电量”；其余字段与分支不变。耳机盒电量与充电状态 Full，居中三段式：顶部可选耳机名称，无名称时显示耳机电量；中间盒电量百分比大字；底部实际盒充电状态。盒电量与充电状态必需，无需动作、图标或连接状态。",
       "entry": "templates/earphone-case-percent-text-full.cardtpl",
       "primaryData": [
         "/batteryLevel"

@@ -1,8 +1,8 @@
-#Template BluetoothDeviceOverviewCaseConnectionHero@1(props: { deviceIcon: asset })
+#Template BluetoothDeviceOverviewCaseConnectionHero@1(props: { title?: string, deviceIcon: asset })
 data = { battery: $path("/batteryLevel"), connected: $path("/isConnected") }
 Column({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "height": "matchParent",
   "justifyContent": "start", "alignItems": "start", "itemMargin": 8},
-  Text("耳机仓", {"height": 16, "fontSize": 12, "fontWeight": 400,
+  Text(#Expr(props.title ? props.title : "耳机仓"), {"height": 16, "fontSize": 12, "fontWeight": 400,
     "fontColor": $theme('supportContentColor'), "maxLines": 1}),
   Row({"width": "matchParent", "itemMargin": 8, "alignItems": "center"},
     Stack({"width": 44, "height": 44, "alignContent": "center", "flexShrink": 0},

@@ -1,4 +1,4 @@
-#Template BluetoothDeviceOverviewEarbudPairHero@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
+#Template BluetoothDeviceOverviewEarbudPairHero@1(props: { title?: string, leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     name: $path("/earphoneName"),
     left: $path("/leftBatteryLevel"),
@@ -16,7 +16,7 @@ Column(
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text("蓝牙耳机",
+    Text(#Expr(props.title ? props.title : "蓝牙耳机"),
         {
             "width": "matchParent",
             "height": 16,
@@ -190,7 +190,7 @@ Column(
     )
     #endif
     #else
-    Text("耳机播控",
+    Text(#Expr(props.title ? props.title : "耳机播控"),
         {
             "width": "matchParent",
             "height": 16,
@@ -1018,7 +1018,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewEarbudsSupport@1(props: { deviceIcon?: asset, leftIcon?: asset, rightIcon?: asset, actionId?: string })
+#Template BluetoothDeviceOverviewEarbudsSupport@1(props: { title?: string, deviceIcon?: asset, leftIcon?: asset, rightIcon?: asset, actionId?: string })
 data = {
     left: $path("/leftBatteryLevel"),
     right: $path("/rightBatteryLevel")
@@ -1040,7 +1040,7 @@ Row(
             "justifyContent": "start",
             "layoutWeight": 1,
         },
-        Text('耳机电量',
+        Text(#Expr(props.title ? props.title : "耳机电量"),
             {
                 "fontSize": 14,
                 "fontWeight": 700,
@@ -1850,9 +1850,11 @@ Column(
     )
     #endif
   ),
-    Row({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 126 : "matchParent") : "matchParent") : "matchParent"), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 9,
-        "justifyContent": "start", "alignItems": "start" },
-        Column({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
+    Row({ "width": "matchParent", "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34),
+        "itemMargin": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 9) : 9) : 9),
+        "justifyContent": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "spaceBetween" : "start") : "start") : "start"),
+        "alignItems": "start" },
+        Column({ "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "constraintSize": {"minWidth": 0, "maxWidth": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "30%" : "100%") : "100%") : "100%")}, "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34), "itemMargin": 2,
             "justifyContent": "start", "alignItems": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "start" : "center") : "center") : "center") },
             Stack({ "width": 16, "height": 16, "alignContent": "center" },
                 #if props.leftEarIcon
@@ -1895,7 +1897,7 @@ Column(
             ),
             Text(Expr('' + data.left + '%'),
                 {
-                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"),
                     "height": 16,
                     "fontSize": 12,
                     "fontWeight": 500,
@@ -1909,7 +1911,7 @@ Column(
             #if data.caseCharge
             Text(data.leftCharge,
                 {
-                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"),
                     "height": 14,
                     "fontSize": 10,
                     "fontWeight": 400,
@@ -1924,7 +1926,7 @@ Column(
         ),
         Column(
             {
-                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1),
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "constraintSize": {"minWidth": 0, "maxWidth": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "30%" : "100%") : "100%") : "100%")},
                 "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34),
                 "itemMargin": 2,
                 "justifyContent": "start",
@@ -1976,7 +1978,7 @@ Column(
             ),
             Text(Expr('' + data.right + '%'),
                 {
-                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"),
                     "height": 16,
                     "fontSize": 12,
                     "fontWeight": 500,
@@ -1990,7 +1992,7 @@ Column(
             #if data.caseCharge
             Text(data.rightCharge,
                 {
-                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"),
                     "height": 14,
                     "fontSize": 10,
                     "fontWeight": 400,
@@ -2005,7 +2007,7 @@ Column(
         ),
         Column(
             {
-                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1),
+                "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"), "layoutWeight": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 0 : 1) : 1) : 1), "constraintSize": {"minWidth": 0, "maxWidth": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "30%" : "100%") : "100%") : "100%")},
                 "height": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 50 : 34) : 34) : 34),
                 "itemMargin": 2,
                 "justifyContent": "start",
@@ -2057,7 +2059,7 @@ Column(
             ),
             Text(Expr('' + data.case + '%'),
                 {
-                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"),
                     "height": 16,
                     "fontSize": 12,
                     "fontWeight": 500,
@@ -2071,7 +2073,7 @@ Column(
             #if data.caseCharge
             Text(data.caseCharge,
                 {
-                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? 36 : "matchParent") : "matchParent") : "matchParent"),
+                    "width": #Expr(data.leftCharge ? (data.rightCharge ? (data.caseCharge ? "wrapContent" : "matchParent") : "matchParent") : "matchParent"),
                     "height": 14,
                     "fontSize": 10,
                     "fontWeight": 400,
@@ -3431,7 +3433,7 @@ Column(
 )
 #End
 
-#Template BluetoothDeviceOverviewStatusHero@1(props: { deviceIcon?: asset })
+#Template BluetoothDeviceOverviewStatusHero@1(props: { title?: string, deviceIcon?: asset })
 data = {
     status: $path("/chargingStatusDesc")
 }
@@ -3453,7 +3455,7 @@ Column(
             "justifyContent": "spaceBetween",
             "alignItems": "top"
         },
-        Text("耳机盒",
+        Text(#Expr(props.title ? props.title : "耳机盒"),
             {
                 "width": "matchParent",
                 "fontSize": 14,

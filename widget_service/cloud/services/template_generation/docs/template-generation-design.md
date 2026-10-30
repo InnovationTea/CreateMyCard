@@ -5,6 +5,39 @@
 [云侧方案设计](../../../../../docs/云侧方案设计.md)；本文不扩展公共协议支持范围。
 详细作者语法和接入方式见 [Provider 模板接入约定](provider-template-contract.md)。
 
+## 2026-10-30 场景标题与内容对齐
+
+电池和耳机模板原固定场景标题支持可选 `title`：非空时逐字显示传入值，缺省或空字符串时
+保留原固定文案。编译器将这两个业务的空 `title` 归一化为未传，既有健康状态或设备名称优先规则不变。
+本轮覆盖电池 Full、WideFull、HealthLevelFull/Hero、HealthTemperatureHero、PercentLevelHero、
+ChargingProgressFull、ChargingDiagnosticsFull/WideFull、TemperatureFull/Hero、TemperatureRingHero、
+StatusHero/RingHero/WideFull、PercentDetailsFull、PercentHealthDetailsFull、PercentHealthCurrentDetailsFull、
+PercentTextFull、PercentLevelFull，以及耳机 EarbudPairHero、EarbudsSupport、CaseConnectionHero、
+CaseSettingsHero、StatusHero。三个条件分支仍沿用原条件：
+
+- `BatteryOverviewChargeStatusHero@1` 无温度字段时才应用场景标题回退。
+- `BluetoothDeviceOverviewHero@1` 左右耳电量字段不齐的原固定标题分支改为优先 `title`。
+- `BluetoothDeviceOverviewEarphoneCasePercentTextFull@1` 无耳机名称的原固定标题分支改为优先 `title`。
+
+`BatteryOverviewHealthLevelFull@1` 与 `BatteryOverviewPercentHealthDetailsFull@1` 的已有内容包装
+显式设置 `alignContent: "topStart"`：融合背景为两层内容 Stack，非融合背景为安全边距 Stack。
+只按实际模板 ID 生效，不新增容器，保留原 12vp 留白和其它模板的默认行为。
+
+`ScheduleOverviewMeetingWideFull@1` 增加顶部场景标题，非空 `title` 优先，缺省或空字符串回退
+“日程安排”。标题使用16fp/700，与正文槽间隔4vp；正文占据剩余高度，时间轴和文字列按内容
+高度垂直居中。原日程标题、起止时间、地点和可选图标保留，空标题归一化仅扩展到该日程模板。
+`ScheduleOverviewTimeSupport@1` 六个文字分支显式使用 `width: "matchParent"`、`textAlign: "start"`，
+使短占位符与正常内容都靠左。`WeatherOverviewTemperatureHumiditySupport@1` 去掉内部左右8vp留白，
+由 `TwoSupportLayout@1` 的外层12vp留白统一定位，保留纵向居中及可选辅助行。
+
+耳机三组电量的横向分布采用以下规则，外层12vp留白、图标完整性判定、L/R/E回退与动态绑定不变：
+
+- `BluetoothDeviceOverviewEarbudPairFull@1` 只有三个充电状态字段齐全时，底部三行使用
+  `spaceBetween`，各组 `wrapContent`、权重0、最大宽度30%，组内继续左对齐；去掉固定组间距。
+  状态字段不齐时仍使用原来的两行等宽居中分支。
+- `BluetoothDeviceOverviewEarbudPairChargingFull@1` 底部两行同样使用 `spaceBetween` 与内容宽度，
+  不参与权重均分，每组最大宽度30%；组内图标及电量继续居中。顶部整体充电状态保持原位置。
+
 ## 普通创建入口的模板失败策略
 
 普通 Compact 创建将模板作为黑盒调用，完整保留模板内部的公共模型重试、主备切换、正文空输出

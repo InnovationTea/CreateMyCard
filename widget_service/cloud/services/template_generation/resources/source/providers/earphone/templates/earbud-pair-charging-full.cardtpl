@@ -22,11 +22,11 @@ Column(
        "textOverflow": "ellipsis", "flexShrink": 0})
   ),
   Row(
-    {"width": "matchParent", "height": 34, "itemMargin": 9, "justifyContent": "start",
+    {"width": "matchParent", "height": 34, "itemMargin": 0, "justifyContent": "spaceBetween",
      "alignItems": "top", "flexShrink": 0, "constraintSize": {"minWidth": 0}},
     Column(
-      {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "center", "constraintSize": {"minWidth": 0}},
+      {"width": "wrapContent", "height": 34, "itemMargin": 2, "justifyContent": "start",
+       "alignItems": "center", "constraintSize": {"minWidth": 0, "maxWidth": "30%"}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
         #if props.leftEarIcon
         #if props.rightEarIcon
@@ -62,13 +62,13 @@ Column(
         #endif
       ),
       Text(Expr('' + data.left + '%'),
-        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
+        {"width": "wrapContent", "height": 16, "fontSize": 12, "fontWeight": 500,
          "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     ),
     Column(
-      {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "center", "constraintSize": {"minWidth": 0}},
+      {"width": "wrapContent", "height": 34, "itemMargin": 2, "justifyContent": "start",
+       "alignItems": "center", "constraintSize": {"minWidth": 0, "maxWidth": "30%"}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
         #if props.leftEarIcon
         #if props.rightEarIcon
@@ -104,13 +104,13 @@ Column(
         #endif
       ),
       Text(Expr('' + data.right + '%'),
-        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
+        {"width": "wrapContent", "height": 16, "fontSize": 12, "fontWeight": 500,
          "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     ),
     Column(
-      {"layoutWeight": 1, "height": 34, "itemMargin": 2, "justifyContent": "start",
-       "alignItems": "center", "constraintSize": {"minWidth": 0}},
+      {"width": "wrapContent", "height": 34, "itemMargin": 2, "justifyContent": "start",
+       "alignItems": "center", "constraintSize": {"minWidth": 0, "maxWidth": "30%"}},
       Stack({"width": 16, "height": 16, "alignContent": "center"},
         #if props.leftEarIcon
         #if props.rightEarIcon
@@ -146,7 +146,7 @@ Column(
         #endif
       ),
       Text(Expr('' + data.case + '%'),
-        {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500,
+        {"width": "wrapContent", "height": 16, "fontSize": 12, "fontWeight": 500,
          "textAlign": "center", "fontColor": $theme('primaryColor'), "maxLines": 1,
          "textOverflow": "ellipsis"})
     )

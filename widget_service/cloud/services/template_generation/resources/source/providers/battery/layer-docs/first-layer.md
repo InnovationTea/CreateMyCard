@@ -1,3 +1,10 @@
+## 场景标题回退规则
+
+以下规则优先于后文对默认标题文案的描述，不扩大用户明确要求的业务字段。
+`BatteryOverviewFull@1`、`BatteryOverviewWideFull@1`、`BatteryOverviewHealthLevelHero@1`、`BatteryOverviewHealthTemperatureHero@1`、`BatteryOverviewPercentLevelHero@1`、`BatteryOverviewChargingProgressFull@1`、`BatteryOverviewChargingDiagnosticsWideFull@1`、`BatteryOverviewTemperatureFull@1`、`BatteryOverviewTemperatureRingHero@1`、`BatteryOverviewStatusHero@1`、`BatteryOverviewStatusRingHero@1`、`BatteryOverviewStatusWideFull@1`、`BatteryOverviewTemperatureHero@1`、`BatteryOverviewPercentDetailsFull@1`、`BatteryOverviewPercentHealthCurrentDetailsFull@1`、`BatteryOverviewPercentTextFull@1`、`BatteryOverviewChargingDiagnosticsFull@1`、`BatteryOverviewPercentLevelFull@1` 的顶部固定文字仅为缺省文案；请求 title 非空时，第二层必须逐字传入可选 title；未传或为空字符串时使用原固定文字。
+- `BatteryOverviewChargeStatusHero@1`：仅未提供 /batteryTemperatureText 时，顶部优先非空 title，否则显示“手机”。保留其它条件分支。
+不替换字段标签、L/R/E 或按钮文案；已有设备名称及健康状态优先规则保持不变。
+
 # 手机电量高级组件首层规则
 
 ## BatteryOverview
@@ -65,6 +72,7 @@
 
 - `BatteryOverviewPercentHealthDetailsFull@1`：2x2 无动作的百分比与健康详情 Full。
   必需 /batterySOCText、/chargingStatusDesc、/healthStatusDesc、/pluggedTypeDesc，完整展示四项文本。
+  顶部使用非空请求标题；未传或为空字符串时回退“手机电量”。
   不依赖数值电量、电量等级或素材；沿用通用字段覆盖和布局排序，不改变用户明确需求。
 
 - 先读取本轮 userQuery，区分明确要求与可选候选；标题、描述、样例值、输入候选齐全都不能扩大明确需求。
@@ -78,7 +86,7 @@
 
 - `BatteryOverviewChargingDiagnosticsFull@1` 支持 2×2 无动作的电流、电压、电量等级和电池在位状态展示；四项输入都必需，无图标要求。电量等级为主值，其余三项为辅助行。
 
-- `BatteryOverviewHealthLevelFull@1`：2×2 无动作健康等级 Full。必需 /healthStatusDesc、/batteryCapacityLevelDesc，可选 /batterySOCText、/chargingStatusDesc。顶部“电池健康”，健康主值30fp/700，详情行12fp、标签400/值500左对齐；不依赖素材，不新增模板选择优先级。
+- `BatteryOverviewHealthLevelFull@1`：2×2 无动作健康等级 Full。必需 /healthStatusDesc、/batteryCapacityLevelDesc，可选 /batterySOCText、/chargingStatusDesc。顶部使用非空请求标题，未传或为空字符串时回退“电池健康”；健康主值30fp/700，详情行12fp、标签400/值500左对齐；不依赖素材，不新增模板选择优先级。
 
 - `BatteryOverviewPercentLevelFull@1`：2×2 无动作百分比等级 Full。必需 /batterySOCText、/batteryCapacityLevelDesc，无可选字段。居中三段式：顶部“手机电量”16fp/400、百分比主值38fp/700、底部实际电量等级12fp/400；段间距8vp，不显示电量等级标签；不依赖素材，不新增模板选择优先级。
 

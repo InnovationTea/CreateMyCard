@@ -80,7 +80,8 @@ async def test_full_charging_row_requires_all_three_fields(
         task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
     )
     assert template_id in result.template_ids
-    assert ("蓝牙耳机" in result.a2ui) == (header != "both")
+    # 名称与连接状态同时存在时，断开连接的运行时表达式也保留场景标题回退。
+    assert "蓝牙耳机" in result.a2ui
     assert ("/isConnected" in result.a2ui) == (header != "name")
     assert ("/earphoneName" in result.a2ui) == (header != "connected")
     assert ("未连接" in result.a2ui) == (header != "name")
@@ -99,8 +100,20 @@ async def test_full_charging_row_requires_all_three_fields(
         if any(field in content for field in charge_fields):
             charge_nodes.append(component)
     assert len(battery_columns) == 3
+    battery_row = next(
+        item for item in components
+        if battery_columns[0].get("id") in item.get("children", [])
+    )
+    row_styles = battery_row.get("styles", {})
+    assert row_styles.get("width") == "matchParent"
+    assert row_styles.get("justifyContent") == ("spaceBetween" if mask == 7 else "start")
+    assert battery_row.get("itemMargin") == (0 if mask == 7 else 9)
     for column in battery_columns:
-        assert column.get("styles", {}).get("alignItems") == "start"
+        column_styles = column.get("styles", {})
+        alignment = "start" if mask == 7 else "center"
+        assert column_styles.get("alignItems") == alignment
+        assert column_styles.get("width") == ("wrapContent" if mask == 7 else "matchParent")
+        assert column_styles.get("layoutWeight") == (0 if mask == 7 else 1)
         assert column.get("styles", {}).get("height") == (50 if mask == 7 else 34)
         children = column.get("children", [])
         assert len(children) == (3 if mask == 7 else 2)
@@ -108,10 +121,11 @@ async def test_full_charging_row_requires_all_three_fields(
         assert percent.get("styles", {}).get("fontSize") == 12
         assert percent.get("styles", {}).get("fontWeight") == 500
         assert percent.get("styles", {}).get("fontColor") == "#FFFFFFFF"
+        assert percent.get("styles", {}).get("textAlign") == alignment
     assert len(charge_nodes) == (3 if mask == 7 else 0)
     for component in charge_nodes:
         styles = component.get("styles", {})
-        assert styles.get("width") == 36
+        assert styles.get("width") == "wrapContent"
         assert styles.get("fontSize") == 10
         assert styles.get("fontWeight") == 400
         assert styles.get("fontColor") == "#99FFFFFF"

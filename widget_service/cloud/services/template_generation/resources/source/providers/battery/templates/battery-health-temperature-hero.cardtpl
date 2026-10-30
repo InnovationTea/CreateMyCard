@@ -1,4 +1,4 @@
-#Template BatteryOverviewHealthTemperatureHero@1(props: {})
+#Template BatteryOverviewHealthTemperatureHero@1(props: { title?: string })
 data = {
     health: $path("/healthStatusDesc"),
     temperature: $path("/batteryTemperatureText")
@@ -18,7 +18,7 @@ Column(
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
   Text(
-      "电池体检",
+      #Expr(props.title ? props.title : "电池体检"),
       {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(

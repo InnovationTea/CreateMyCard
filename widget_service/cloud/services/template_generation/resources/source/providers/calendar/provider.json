@@ -157,7 +157,7 @@
       "templateId": "ScheduleOverviewMeetingWideFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "宽版会议摘要，展示标题、时间范围和地点。",
+      "description": "宽版会议摘要，顶部场景标题优先逐字使用非空请求 title，未传或为空字符串时显示日程安排；下方正文继续展示首条日程标题、时间范围和地点。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/title",

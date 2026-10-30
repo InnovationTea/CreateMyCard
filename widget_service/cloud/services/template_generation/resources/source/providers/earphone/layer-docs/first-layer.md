@@ -1,3 +1,11 @@
+## 场景标题回退规则
+
+以下规则优先于后文对默认标题文案的描述，不扩大用户明确要求的业务字段。
+`BluetoothDeviceOverviewEarbudPairHero@1`、`BluetoothDeviceOverviewEarbudsSupport@1`、`BluetoothDeviceOverviewCaseConnectionHero@1`、`BluetoothDeviceOverviewCaseSettingsHero@1`、`BluetoothDeviceOverviewStatusHero@1` 的顶部固定文字仅为缺省文案；请求 title 非空时，第二层必须逐字传入可选 title；未传或为空字符串时使用原固定文字。
+- `BluetoothDeviceOverviewHero@1`：仅 /leftBatteryLevel 与 /rightBatteryLevel 未同时提供时，顶部优先非空 title，否则显示“耳机播控”。保留其它条件分支。
+- `BluetoothDeviceOverviewEarphoneCasePercentTextFull@1`：仅未提供 /earphoneName 时，顶部优先非空 title，否则显示“耳机电量”。保留其它条件分支。
+不替换字段标签、L/R/E 或按钮文案；已有设备名称及健康状态优先规则保持不变。
+
 # 蓝牙耳机第一层意图规则
 
 - `BluetoothDeviceOverviewEarbudPairChargingFull@1` 覆盖左耳、右耳、盒三处电量和整体/盒充电状态。

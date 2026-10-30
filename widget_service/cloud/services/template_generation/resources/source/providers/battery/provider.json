@@ -35,7 +35,7 @@
       "templateId": "BatteryOverviewFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Full，展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态；batteryIcon 可选，无素材时在进度环内显示字母 E 作为电量标识。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“设备电量”；其余字段与分支不变。手机电量 Full，展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态；batteryIcon 可选，无素材时在进度环内显示字母 E 作为电量标识。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -65,7 +65,7 @@
       "templateId": "BatteryOverviewWideFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 WideFull，横向展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“设备电量”；其余字段与分支不变。手机电量 WideFull，横向展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -109,7 +109,7 @@
       "templateId": "BatteryOverviewHealthLevelHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池健康与当前电量等级 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和当前电量等级。 组件形态：healthLevelHero。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“电池体检”；其余字段与分支不变。电池健康与当前电量等级 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和当前电量等级。 组件形态：healthLevelHero。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -123,7 +123,7 @@
       "templateId": "BatteryOverviewHealthTemperatureHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池健康与电池温度 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和电池温度。 组件形态：healthTemperatureHero。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“电池体检”；其余字段与分支不变。电池健康与电池温度 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和电池温度。 组件形态：healthTemperatureHero。",
       "optionalData": [],
       "entry": "templates/battery-health-temperature-hero.cardtpl",
       "primaryData": [
@@ -155,7 +155,7 @@
       "templateId": "BatteryOverviewPercentLevelHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "百分比文本与电量等级 Hero；仅单电量2x2明确要求这两项且原有模板均不能完整覆盖时作为兜底，不依赖数值电量或展示进度环。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。百分比文本与电量等级 Hero；仅单电量2x2明确要求这两项且原有模板均不能完整覆盖时作为兜底，不依赖数值电量或展示进度环。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -220,7 +220,7 @@
       "templateId": "BatteryOverviewChargingProgressFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量充电进度 Full；顶部标题，中部以 44vp 环形进度和电量图标展示百分比及充电状态，底部以两行相邻 key-value 展示电池健康和充电类型。组件形态：chargingProgressFull。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量充电进度 Full；顶部标题，中部以 44vp 环形进度和电量图标展示百分比及充电状态，底部以两行相邻 key-value 展示电池健康和充电类型。组件形态：chargingProgressFull。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -252,7 +252,7 @@
       "templateId": "BatteryOverviewChargingDiagnosticsWideFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "充电诊断 WideFull；2x4 横向诊断卡片，安全边距 12vp；标题“电池诊断”10vp，标题区右侧 20vp 图标；中部 20vp 主数值展示 /batterySOC 加百分号和“剩余电量”辅标签；下方通栏线性进度条；底部横向均匀排布三个胶囊，分别展示充电电流、充电电压和电池识别状态。无需动作。组件形态：chargingDiagnosticsWideFull。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“电池诊断”；其余字段与分支不变。充电诊断 WideFull；2x4 横向诊断卡片，安全边距 12vp；标题“电池诊断”10vp，标题区右侧 20vp 图标；中部 20vp 主数值展示 /batterySOC 加百分号和“剩余电量”辅标签；下方通栏线性进度条；底部横向均匀排布三个胶囊，分别展示充电电流、充电电压和电池识别状态。无需动作。组件形态：chargingDiagnosticsWideFull。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -335,7 +335,7 @@
       "templateId": "BatteryOverviewTemperatureFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池温度 Full，顶部展示标题和可选温度图标，中部展示当前温度与充电器类型，底部两行展示更新时间。无温度素材时省略图标，不影响模板选择。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“电池温度”；其余字段与分支不变。电池温度 Full，顶部展示标题和可选温度图标，中部展示当前温度与充电器类型，底部两行展示更新时间。无温度素材时省略图标，不影响模板选择。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -396,7 +396,7 @@
       "templateId": "BatteryOverviewTemperatureRingHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池温度电量环 Hero：标题行展示电池温度，中部电量环在左、环内固定展示 16x16 电池图标、百分比与充电状态在右，用于横版左 Full 右 Hero 布局。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“电池温度”；其余字段与分支不变。电池温度电量环 Hero：标题行展示电池温度，中部电量环在左、环内固定展示 16x16 电池图标、百分比与充电状态在右，用于横版左 Full 右 Hero 布局。",
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOC"
@@ -441,7 +441,7 @@
       "templateId": "BatteryOverviewStatusHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量状态 Hero，展示手机剩余电量百分比和充电状态，必选电量图标；用于左右双焦点拼接布局；batteryIcon 必填。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量状态 Hero，展示手机剩余电量百分比和充电状态，必选电量图标；用于左右双焦点拼接布局；batteryIcon 必填。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -460,7 +460,7 @@
       "templateId": "BatteryOverviewChargeStatusHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量三段式 Hero：顶部标题默认为“手机”，电池温度可用时替换为电池温度文本；中间 44vp 电量圆环（环内必选电池叶片图标 battery_leaf_fill.svg）加右侧电量百分比标题和“手机电量”副标题，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电状态与充电器类型不展示，仅作为可选数据进入字段覆盖契约；batteryIcon 必填。",
+      "description": "标题规则：仅未提供 /batteryTemperatureText 时，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机”；其余字段与分支不变。手机电量三段式 Hero：顶部标题默认为“手机”，电池温度可用时替换为电池温度文本；中间 44vp 电量圆环（环内必选电池叶片图标 battery_leaf_fill.svg）加右侧电量百分比标题和“手机电量”副标题，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电状态与充电器类型不展示，仅作为可选数据进入字段覆盖契约；batteryIcon 必填。",
       "optionalData": [
         "/chargingStatusDesc",
         "/pluggedTypeDesc",
@@ -482,7 +482,7 @@
       "templateId": "BatteryOverviewStatusRingHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量状态环形 Hero：顶部固定“手机电量”标题行，中部 40vp 电量圆环（环内固定 16vp 电池图标，必选 batteryIcon）加右侧电量百分比大字与充电状态辅行，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电器类型与电池温度不展示，仅作为可选数据进入字段覆盖契约。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量状态环形 Hero：顶部固定“手机电量”标题行，中部 40vp 电量圆环（环内固定 16vp 电池图标，必选 batteryIcon）加右侧电量百分比大字与充电状态辅行，底部按钮由布局 PillAction 槽位提供；用于左右双焦点拼接布局。充电器类型与电池温度不展示，仅作为可选数据进入字段覆盖契约。",
       "optionalData": [
         "/pluggedTypeDesc",
         "/batteryTemperatureText"
@@ -504,7 +504,7 @@
       "templateId": "BatteryOverviewStatusWideFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池状态完整横版：左侧电量环与充电器状态（可选），右侧电池温度（可选）与电池健康信息块，两个右侧信息块各自支持可选 24vp 图标（温度、电池健康），事件在模板内部。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“电池状态”；其余字段与分支不变。电池状态完整横版：左侧电量环与充电器状态（可选），右侧电池温度（可选）与电池健康信息块，两个右侧信息块各自支持可选 24vp 图标（温度、电池健康），事件在模板内部。",
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOC"
@@ -537,7 +537,7 @@
       "templateId": "BatteryOverviewTemperatureHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池温度 Hero：标题行、温度大字与充电状态辅行（可选），用于双焦点布局。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电池温度”；其余字段与分支不变。电池温度 Hero：标题行、温度大字与充电状态辅行（可选），用于双焦点布局。",
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batteryTemperatureText"
@@ -552,7 +552,7 @@
       "templateId": "BatteryOverviewPercentDetailsFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量百分比详情 Full；2x2 无按钮，标题手机电量、大字百分比，下方充电状态、电量等级、充电类型三行，右侧字段加粗。无需健康状态或数值电量。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量百分比详情 Full；2x2 无按钮，标题手机电量、大字百分比，下方充电状态、电量等级、充电类型三行，右侧字段加粗。无需健康状态或数值电量。",
       "optionalData": [],
       "entry": "templates/battery-percent-details-full.cardtpl",
       "primaryData": [
@@ -568,7 +568,7 @@
       "templateId": "BatteryOverviewPercentHealthDetailsFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量百分比与健康详情 Full；2x2 无按钮、无需图标。顶部手机电量、大字百分比，下方充电状态、电池健康、充电类型三行，右侧字段加粗。四项文本数据均必需，不依赖数值电量或电量等级。",
+      "description": "手机电量百分比与健康详情 Full；2x2 无按钮、无需图标。顶部优先使用可选 title，未传或为空时显示手机电量，请求标题非空时逐字传入 title。大字百分比，下方充电状态、电池健康、充电类型三行，右侧字段加粗。四项文本数据均必需，不依赖数值电量或电量等级。",
       "entry": "templates/battery-percent-health-details-full.cardtpl",
       "primaryData": [
         "/batterySOCText"
@@ -584,7 +584,7 @@
       "templateId": "BatteryOverviewPercentHealthCurrentDetailsFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量百分比、健康与电流详情 Full；2x2 无按钮、无需图标。顶部手机电量、大字百分比，下方充电状态、电池健康、当前电流三行，右侧字段加粗。四项文本数据均必需，不依赖数值电量或电量等级。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量百分比、健康与电流详情 Full；2x2 无按钮、无需图标。顶部手机电量、大字百分比，下方充电状态、电池健康、当前电流三行，右侧字段加粗。四项文本数据均必需，不依赖数值电量或电量等级。",
       "entry": "templates/battery-percent-health-current-details-full.cardtpl",
       "primaryData": [
         "/batterySOCText"
@@ -664,7 +664,7 @@
       "templateId": "BatteryOverviewPercentTextFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量百分比 Full，无按钮，顶部手机电量、中部百分比大字、底部电量状态；仅需 batterySOCText；可选 chargingStatusDesc 替换底部电量状态文案。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量百分比 Full，无按钮，顶部手机电量、中部百分比大字、底部电量状态；仅需 batterySOCText；可选 chargingStatusDesc 替换底部电量状态文案。",
       "optionalData": [
         "/chargingStatusDesc"
       ],
@@ -678,7 +678,7 @@
       "templateId": "BatteryOverviewChargingDiagnosticsFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量诊断 Full，2x2 无按钮、无需图标。顶部手机电量，30fp 大字展示电量等级，下方三行左对齐展示实时电流、电池电压、电池在位；标签12fp常规，字段值12fp中等字重。四项数据均为必需。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量诊断 Full，2x2 无按钮、无需图标。顶部手机电量，30fp 大字展示电量等级，下方三行左对齐展示实时电流、电池电压、电池在位；标签12fp常规，字段值12fp中等字重。四项数据均为必需。",
       "entry": "templates/battery-charging-diagnostics-full.cardtpl",
       "primaryData": [
         "/batteryCapacityLevelDesc"
@@ -694,7 +694,7 @@
       "templateId": "BatteryOverviewHealthLevelFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "电池健康等级 Full，2x2 无按钮、无需图标。顶部电池健康，30fp健康状态主值，下方必需电量等级，剩余电量文本与充电状态存在时分别追加；沿用左对齐标签和值的详情布局。",
+      "description": "电池健康等级 Full，2x2 无按钮、无需图标。顶部优先使用可选 title，未传或为空时显示电池健康，请求标题非空时逐字传入 title。30fp健康状态主值，下方必需电量等级，剩余电量文本与充电状态存在时分别追加；沿用左对齐标签和值的详情布局。",
       "entry": "templates/battery-health-level-full.cardtpl",
       "primaryData": [
         "/healthStatusDesc"
@@ -711,7 +711,7 @@
       "templateId": "BatteryOverviewPercentLevelFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量百分比与等级 Full，2x2 无按钮、无需图标。居中三段式：顶部手机电量16fp，中部38fp剩余电量文本，底部12fp实际等级值，不带电量等级标签；两项字段均为必需。",
+      "description": "标题规则：顶部场景标题，非空请求 title 逐字传入并优先显示，未传或为空字符串时回退“手机电量”；其余字段与分支不变。手机电量百分比与等级 Full，2x2 无按钮、无需图标。居中三段式：顶部手机电量16fp，中部38fp剩余电量文本，底部12fp实际等级值，不带电量等级标签；两项字段均为必需。",
       "entry": "templates/battery-percent-level-full.cardtpl",
       "primaryData": [
         "/batterySOCText"
