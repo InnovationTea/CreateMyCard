@@ -961,7 +961,7 @@ Column(
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
   Row(
-      {"width": "matchParent", "height": 20, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {"width": "matchParent", "height": 20, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
           "今日活动",
           {"fontSize": 12, "minFontSize": 10, "fontWeight": 600, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
@@ -1026,7 +1026,7 @@ Column(
           {"width": 0, "height": 47, "layoutWeight": 1, "padding": {"left": 10, "right": 10, "top": 6, "bottom": 6}, "itemMargin": 2, "justifyContent": "center", "alignItems": "start", "backgroundColor": $theme('actionStyle.backgroundColor'), "borderRadius": 12, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
           Text(
               data.updatedAt,
-              {"fontSize": 14, "minFontSize": 9, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              {"fontSize": 14, "maxFontSize": 14, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             ),
           Text(
               "更新时间",

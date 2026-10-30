@@ -165,6 +165,8 @@ Column(
                         Expr(data.heartRateAvg + "次/分钟"),
                         {
                             "fontSize": 14,
+                            "maxFontSize": 14,
+                            "minFontSize": 10,
                             "fontWeight": 700,
                             "fontColor": $theme('primaryColor'),
                             "maxLines": 1,

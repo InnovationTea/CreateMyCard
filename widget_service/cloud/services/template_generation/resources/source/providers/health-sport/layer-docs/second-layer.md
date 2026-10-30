@@ -97,3 +97,10 @@
 - `SleepOverviewScoreCompact@1`：得分 16vp、说明 12vp；进度环 36×36vp、环宽 4vp，环内图标可选且为 16×16vp。
 - `WorkoutOverviewTypeDurationCompact@1`：时长 16vp/20vp 行高，运动类型 12vp/16vp 行高，行间距与横向间距均为 2vp；右侧可选 24vp 图标不压缩。
 - 上述调整不改变各模板的数据准入、可选图标语义或动作归属，缺少可选图标时保留原有文字与数值。
+
+## 完整模板排版
+
+- `ActivityOverviewGoalProgressWideFull@1` 更新时间在 10–14vp 范围自适应，保留完整时间值；
+  标题 Row 的顶部对齐使用 `alignItems: top`。
+- `ActivityOverviewTrainingMetricsWideFull@1` 平均心率在 10–14vp 范围自适应，数值与单位共同缩放。
+- `WorkoutOverviewFull@1` 热量主值及无热量时的时长主值在 20–32vp 范围自适应，保留单位。
