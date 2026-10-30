@@ -287,6 +287,8 @@ def static_capacity_prompt(size: str) -> str:
         "# 首次Plan组件容量预算\n"
         f"当前尺寸 {size}。提交Plan前先按信息形态选组件，再核对标题和正文项数；"
         "不得用“最多5个object组”代替具体组件容量。\n"
+        "正文事实同样完整且容量合法时，优先带简短主题标题的结构；"
+        "确需三条TextList或四项对比时沿用无标题合同，不为标题删减必要记录。\n"
         "- TextList/records：带标题只能2项，无标题只能3项；适合对象名加说明、状态或多个限定。\n"
         "- SingleLineList/rows：必须带标题，正文1–5行；仅适合可完整单行读取的短标签加短值。\n"
         f"- {comparison}\n"

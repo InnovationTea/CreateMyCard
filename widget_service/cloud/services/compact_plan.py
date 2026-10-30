@@ -612,6 +612,8 @@ def _extend_static_plan_tool(
         "在同一次Plan中完成静态内容理解、摘要总结、must/should及对象分组。"
         "首次提交前按presentationStyle对应组件核算标题、对象条目和公共正文的实际容量。"
         "每个text必须在唯一contentGroups组的facts内提交；不输出info_required或factIndexes。"
+        "默认提炼有来源的简短共同主题放shared/title；正文同样完整且容量合法时优先带标题，"
+        "不为标题删减必要记录。"
         "Action不进入静态contentGroups；历史纯Action输入仅由兼容解析保留。"
         "同对象事实合组，共享标题或条件用shared；不同对象同文字不去重。"
         "优先可读出卡，按用途选择核心must和可省略补充should；取舍记selectionNotes。"

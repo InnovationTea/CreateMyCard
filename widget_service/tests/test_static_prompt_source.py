@@ -180,6 +180,21 @@ def test_small_fewshots_expand_under_current_static_contract():
         assert converted
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_fewshot_titles_are_referenced_and_fit_current_contract(size):
+    """小标题必须真正接入外框；仍按原组件容量转换，不能添加孤立标题。"""
+    content = read_static_prompt(SOURCE, "fewshot", size)
+    for source in re.findall(r"```genui\n(.*?)\n```", content, re.S):
+        rows = [json.loads(line) for line in source.splitlines() if line.strip()]
+        root = next(row for row in rows if row[0] == "root")
+        headings = [row for row in rows if len(row) >= 3 and row[1] == "SingleLineTitle"]
+        assert len(headings) <= 1
+        for heading in headings:
+            assert heading[0] in root[3]
+        with content_policy_scope(STATIC_CONTENT_POLICY):
+            assert convert_compact_dsl_to_a2ui(source, size=size)
+
+
 def test_reading_other_stages_does_not_reread_shared_files(source_root, monkeypatch):
     original = Path.read_text
     reads = []
