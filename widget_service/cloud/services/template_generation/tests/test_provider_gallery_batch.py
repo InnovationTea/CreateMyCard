@@ -263,7 +263,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     # 用例。
     # 两个 Q83 耳机 Support 只用于 2x4，不生成原有的 2x2 Compact 单模板用例。
     # 本次新增两款日程小卡 Full 和三条时间备注宽卡贡献三个用例。
-    assert len(all_cases) == 247
+    assert len(all_cases) == 248
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -271,6 +271,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
             is_single_or_hero_pair = case.providerSlug not in {"two-support", "current-time"}
             is_wide_pair = case.targetTemplateId in {
                 "WeatherOverviewThreeDayForecastFull@1", "ScheduleOverviewDateTitleFull@1",
+                "ScheduleOverviewTitleLocationHero@1",
             }
             assert case.expectsFusionBall is (is_single_or_hero_pair and not is_wide_pair)
     scenario_ids = {
@@ -358,7 +359,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 245
+    assert len(targeted_cases) == 246
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -720,11 +721,11 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 247
+    assert summary.total == 248
     assert summary.failed == 0
     assert summary.missing == 2
     assert summary.not_generated == 242
-    assert summary.not_applicable == 3
+    assert summary.not_applicable == 4
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9

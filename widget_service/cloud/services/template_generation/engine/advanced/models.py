@@ -19,6 +19,8 @@ UX_LAYOUT_COMPONENT_IDS = frozenset(
         "WideSingleFocusLayout",
         "WideFullOnlyLayout",
         "WideTwoFullLayout",
+        "WideHeroCompactLayout",
+        "WideFullCompactLayout",
         "WideFullHeroActionLayout",
         "WideHeroActionFullLayout",
         "WideFullTwoCompactLayout",

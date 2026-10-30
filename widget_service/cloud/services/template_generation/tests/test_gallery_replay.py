@@ -30,6 +30,7 @@ from services.template_generation.test_support.gallery_replay import (
     prepare_failed_replay,
 )
 
+
 def _load_fixtures() -> list[dict]:
     path = Path(__file__).parent / "fixtures/gallery_failed_plans.json"
     fixtures = json.loads(path.read_text(encoding="utf-8"))
@@ -47,6 +48,46 @@ def _required(mapping, key):
     value = mapping.get(key)
     assert value is not None, key
     return value
+
+
+def test_title_location_gallery_marks_removed_wide_pair_inapplicable_for_fresh_and_replay(tmp_path):
+    manifest = gallery.write_gallery_input_dataset(tmp_path)
+    matches = []
+    for provider in manifest.providers:
+        for case in provider.cases:
+            if case.targetTemplateId == "ScheduleOverviewTitleLocationHero@1":
+                matches.append(case)
+    assert len(matches) == 1
+    case = matches[0]
+    payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+    original_id = case.caseId
+    events = gallery._load_event_capabilities(gallery._CAPABILITY_ROOT)
+    legacy_case = case.model_copy(update={
+        "cardSize": "2x2", "partnerTemplateId": "", "compositionTemplateIds": [],
+        "expectedLayout": "HeroActionLayout", "expectedActionCount": 1,
+        "constrainLayout": False, "expectsFusionBall": True, "scenarioId": "single-one-action",
+    })
+    normalized, replay = normalize_gallery_case(legacy_case, payload, events)
+    assert normalized == case
+    assert replay == payload
+    assert normalized.caseId == original_id
+    assert normalized.cardSize == "2x4"
+    assert normalized.expectedLayout == "WideTwoFocusLayout"
+    assert normalized.compositionTemplateIds == [
+        "ScheduleOverviewTitleLocationHero@1", "WeatherOverviewConditionHero@1",
+    ]
+    assert normalized.expectedActionCount == 0
+    assert "无动作双 Hero 布局已移除" in normalized.notApplicableReason
+    assert normalized.constrainLayout
+    content = _required(payload, "content")
+    assert content.get("size") == "2x4"
+    assert content.get("candidateEventCandidates") == []
+    bindings = _required(content, "candidateDataBindings")
+    assert len(bindings) == 2
+    assert bindings[0].get("candidateOutputFields") == [
+        "/events/0/title", "/events/0/eventLocation",
+    ]
+    assert bindings[1].get("candidateOutputFields") == ["/current/condition"]
 
 
 def _build_failed_wide_prompt(fixture) -> UxMixedPromptProjection:
@@ -210,7 +251,7 @@ def test_fresh_and_replayed_inputs_keep_not_applicable_cases(tmp_path: Path) -> 
         replay_cases.extend(provider.cases)
     assert len(replay_cases) == len(cases)
     unavailable = [case for case in replay_cases if case.notApplicableReason]
-    assert len(unavailable) == 3
+    assert len(unavailable) == 4
     assert {case.caseId for case in replay_cases} == {case.get("caseId") for case in cases}
     for provider in manifest.providers:
         for case in provider.cases:
@@ -268,7 +309,7 @@ async def test_not_applicable_runner_skips_model_even_without_dry_run(tmp_path: 
     summary = await gallery.ProviderGalleryBatchRunner(service).run(
         tmp_path / "inputs", tmp_path / "output",
     )
-    assert summary.total == summary.not_applicable == 3
+    assert summary.total == summary.not_applicable == 4
     assert summary.failed == summary.success == 0
     assert not service.requests
 

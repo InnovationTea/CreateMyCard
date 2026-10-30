@@ -986,6 +986,8 @@ def _expand_call(
         ux_layout_id
         in {
             "WideTwoFullLayout",
+            "WideHeroCompactLayout",
+            "WideFullCompactLayout",
             "WideFullHeroActionLayout",
             "WideHeroActionFullLayout",
             "WideFullTwoCompactLayout",
@@ -6757,6 +6759,8 @@ def _validate_provider_template_layout_action_requirements(
         )
     wide_composition_contracts = {
         "WideTwoFullLayout": (("Full", "Full"), ()),
+        "WideHeroCompactLayout": (("Hero", "Compact"), ("PillAction",)),
+        "WideFullCompactLayout": (("Full", "Compact"), ()),
         "WideFullHeroActionLayout": (("Full", "Hero"), ("PillAction",)),
         "WideHeroActionFullLayout": (("Full", "Hero"), ("PillAction",)),
         "WideFullTwoCompactLayout": (("Full", "Compact", "Compact"), ()),
