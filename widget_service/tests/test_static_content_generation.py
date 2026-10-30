@@ -854,19 +854,18 @@ def test_complete_multiline_text_fits_without_changing_content(body) -> None:
 
 
 @pytest.mark.usefixtures("static_policy")
-def test_total_height_still_rejects_many_individually_valid_fields() -> None:
-    items = [{"text": str(index), "assist": "完整值"} for index in range(8)]
+def test_single_line_list_accepts_five_individually_valid_fields() -> None:
+    items = [{"text": str(index), "assist": "完整值"} for index in range(5)]
     dsl = source("SingleLineList", {"items": items})
     facts = [fact(item.get("text") + "完整值") for item in items]
-    groups = [{"id": str(index), "kind": "object", "factIndexes": [index]} for index in range(8)]
-    with pytest.raises(CompactDslValidationError, match="vertical layout requires"):
-        validate_compact_dsl(
-            dsl,
-            task_spec=task("信息卡"),
-            card_spec={"suggestSize": "2x2"},
-            compact_plan=plan(facts, groups),
-            layout_scope=effective_layout_scope("2x2"),
-        )
+    groups = [{"id": str(index), "kind": "object", "factIndexes": [index]} for index in range(5)]
+    validate_compact_dsl(
+        dsl,
+        task_spec=task("信息卡"),
+        card_spec={"suggestSize": "2x2"},
+        compact_plan=plan(facts, groups),
+        layout_scope=effective_layout_scope("2x2"),
+    )
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -955,7 +954,8 @@ def test_static_plan_and_runtime_share_restricted_candidates(size) -> None:
     function = tool.get("function")
     assert function is not None
     properties = function.get("parameters", {}).get("properties", {})
-    hints = properties.get("info_required", {}).get("items", {}).get("properties", {})
+    groups = properties.get("contentGroups", {}).get("items", {}).get("properties", {})
+    hints = groups.get("facts", {}).get("items", {}).get("properties", {})
     assert set(hints.get("componentHints", {}).get("items", {}).get("enum", [])) == set(
         static_model_components(size)
     )
@@ -972,8 +972,8 @@ def test_static_plan_rejects_old_component_hint() -> None:
 
 
 @pytest.mark.usefixtures("static_policy")
-@pytest.mark.parametrize("count", [4, 6, 8])
-def test_plan_does_not_confuse_list_limit_with_card_capacity(count) -> None:
+@pytest.mark.parametrize("count", [4, 5])
+def test_plan_accepts_up_to_five_complete_objects(count) -> None:
     facts = []
     groups = []
     for index in range(count):
@@ -982,6 +982,19 @@ def test_plan_does_not_confuse_list_limit_with_card_capacity(count) -> None:
     query = "完整展示：" + "；".join(item.get("text") for item in facts)
     accepted = accept(plan(facts, groups), query, "2x4")
     assert len(accepted.get("contentGroups", [])) == count
+
+
+@pytest.mark.usefixtures("static_policy")
+@pytest.mark.parametrize("count", [6, 8])
+def test_plan_rejects_more_than_five_complete_objects(count) -> None:
+    facts = []
+    groups = []
+    for index in range(count):
+        facts.append(fact(f"演出{index}周六19:30"))
+        groups.append({"id": f"concert{index}", "kind": "object", "factIndexes": [index]})
+    query = "完整展示：" + "；".join(item.get("text") for item in facts)
+    with pytest.raises(CompactPlanValidationError, match="最多五条完整对象信息"):
+        accept(plan(facts, groups), query, "2x4")
 
 
 @pytest.mark.usefixtures("static_policy")
@@ -1814,7 +1827,15 @@ def test_plan_budget_is_loaded_from_shared_contract():
     assert budget.get("height") == 150
     assert "text" not in budget
     initial_budget = static_capacity_prompt("2x2")
+    assert "# 首次Plan组件容量预算" in initial_budget
     assert "字体、行高及间距由Runtime固定" in initial_budget
-    assert "TextList" in initial_budget and "SingleLineList" in initial_budget
+    assert "TextList/records：带标题只能2项，无标题只能3项" in initial_budget
+    assert "SingleLineList/rows：必须带标题，正文1–5行" in initial_budget
+    assert "ComparisonGroup在2x2不可用" in initial_budget
+    assert "shared/body虽不计入object组数" in initial_budget
+    assert "omittedContents" in initial_budget
     assert "TextList" in contract.get("components", {})
     assert contract.get("text", {}).get("emphasis", {}).get("fontSize") == 18
+
+    wide_budget = static_capacity_prompt("2x4")
+    assert "ComparisonGroup仅2x4可用：带标题2–3项，无标题4项" in wide_budget

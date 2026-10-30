@@ -606,6 +606,7 @@ class DesignCompactProcessor:
                     enforce_model_component_types=True,
                     original_source=original_source_dsl,
                     repair_context=context.repair_context,
+                    skip_static_group_errors=context.plan_information_coverage_as_warning,
                     **(
                         {"allowed_omitted_fact_indexes": context.allowed_omitted_plan_fact_indexes}
                         if context.content_policy.is_static

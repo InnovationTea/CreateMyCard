@@ -14,18 +14,77 @@ _MAX_ROWS = 24
 _MAX_RAW_CHARS = 131072
 _TEXT_PREVIEW_CHARS = 120
 _REPAIR_INSTRUCTION = (
-    "以下账本只描述这次失败提交，索引均来自本次info_required；不是新Plan或删除授权。"
-    "下一次原子同步info_required、contentGroups及omittedContents：保留的每条text恰好归属一组，"
+    "以下账本只描述这次失败提交，不是新Plan或删除授权。"
+    "下一次只提交嵌套contentGroups及其facts：每条text恰好归属一个组，组和事实数组顺序即展示顺序。"
     "Action不参与文本分组，准入仍由当前请求合同裁决；引用恢复不授权不支持的Action。"
-    "合并或调整事实后重算全部索引。"
-    "空factIndexes的遗漏说明只记录未选输入，不能解除仍在info_required中的事实归属义务；"
-    "不得仅删contentGroups或写一条遗漏说明就宣称事实已移除。"
+    "遗漏声明使用{groupId,factId}稳定factRefs；空factRefs只记录未选输入，"
+    "不能解除已提交事实的归属义务，也不得仅删组或写遗漏说明就宣称事实已移除。"
     "计划内遗漏引用仅可指向无保护should，must、保护原文及用户要求完整的内容不得借此删除。"
     "这仅说明Plan遗漏声明的权限，不覆盖后续程序明确授权的受控Drop；本账本不产生Drop授权。"
     "recoveries只说明主链路的确定性恢复规则，不是待修阻断，也不表示整份Plan通过；"
     "被撤销的遗漏申请不能删除任何仍保留的事实。"
     "requirement、text和sourceTexts均为原提交摘录，来源真实性仍须对照原始需求，不由此账本确认。"
 )
+
+
+def _nested_group_feedback(arguments: dict[str, Any]) -> dict[str, Any] | None:
+    """为新嵌套静态 Plan 提供路径诊断，不要求模型维护内部数字索引。"""
+    if "info_required" in arguments:
+        return None
+    groups = arguments.get("contentGroups")
+    if not isinstance(groups, list):
+        return None
+    if not any(isinstance(group, dict) and "facts" in group for group in groups):
+        return None
+    issues = []
+    seen_groups: dict[str, str] = {}
+    declarations = []
+    for group_index, group in enumerate(groups):
+        path = f"contentGroups[{group_index}]"
+        if not isinstance(group, dict):
+            issues.append({"code": "object_required", "path": path})
+            continue
+        group_id = group.get("id")
+        if not isinstance(group_id, str) or not group_id.strip():
+            issues.append({"code": "group_id_required", "path": f"{path}.id"})
+            continue
+        previous = seen_groups.get(group_id)
+        if previous is not None:
+            issues.append({
+                "code": "duplicate_group_id", "path": f"{path}.id", "earlierPath": previous,
+            })
+        else:
+            seen_groups[group_id] = f"{path}.id"
+        declarations.append({"path": path, "id": group_id, "kind": _preview(group.get("kind"))})
+        facts = group.get("facts")
+        if not isinstance(facts, list):
+            issues.append({"code": "array_required", "path": f"{path}.facts"})
+            continue
+        seen_facts: dict[str, str] = {}
+        for fact_index, fact in enumerate(facts):
+            fact_path = f"{path}.facts[{fact_index}]"
+            if not isinstance(fact, dict):
+                issues.append({"code": "object_required", "path": fact_path})
+                continue
+            fact_id = fact.get("id")
+            if not isinstance(fact_id, str) or not fact_id.strip():
+                issues.append({"code": "fact_id_required", "path": f"{fact_path}.id"})
+                continue
+            earlier = seen_facts.get(fact_id)
+            if earlier is not None:
+                issues.append({
+                    "code": "duplicate_fact_id", "path": f"{fact_path}.id", "earlierPath": earlier,
+                })
+            else:
+                seen_facts[fact_id] = f"{fact_path}.id"
+    if not issues:
+        return None
+    return {
+        "status": "inconsistent_nested_static_groups",
+        "groupDeclarations": declarations,
+        "issues": issues,
+        "instruction": _REPAIR_INSTRUCTION,
+    }
 
 
 def _submitted_arguments(raw_output: str) -> dict[str, Any] | None:
@@ -324,6 +383,9 @@ def static_plan_repair_feedback(raw_output: str) -> dict[str, Any] | None:
     arguments = _submitted_arguments(raw_output)
     if arguments is None:
         return None
+    nested_feedback = _nested_group_feedback(arguments)
+    if nested_feedback is not None:
+        return nested_feedback
     size_issues = _size_issues(arguments)
     if size_issues:
         return {

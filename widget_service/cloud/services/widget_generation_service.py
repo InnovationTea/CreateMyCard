@@ -1164,7 +1164,7 @@ class WidgetGenerationService:
                                 "plan_validation_errors": "diagnostic",
                             },
                         )
-                        if review_fallback and review_plan is not None:
+                        if review_plan is not None:
                             validation = review_plan
                             if review_source is not None:
                                 raw_plan = review_source
@@ -1172,8 +1172,7 @@ class WidgetGenerationService:
                                 "static_content.plan.review.fallback", stage="plan",
                                 status="success",
                                 details={
-                                    "reason": "原计划语义已确认，修正版合同失败，保留结构合法"
-                                    "原计划继续DSL排版；有限试排无候选不代表容量已通过",
+                                    "reason": "复核修正版未通过Plan合同，保留复核前的合法计划",
                                     "hasFeasibleCandidate": bool(
                                         review_plan.plan.get("staticPresentation")
                                     ),
@@ -1208,6 +1207,19 @@ class WidgetGenerationService:
                                 json_artifacts={"plan_repair_prompt": plan_prompt},
                             )
                             continue
+                    if review_plan is not None:
+                        previous_candidate = review_plan.plan.get("staticPresentation")
+                        if previous_candidate and not validation.plan.get("staticPresentation"):
+                            validation = review_plan
+                            if review_source is not None:
+                                raw_plan = review_source
+                            trace_record(
+                                "static_content.plan.review.fallback", stage="plan",
+                                status="success",
+                                details={
+                                    "reason": "复核修正版无可行容量候选，保留复核前的可行计划",
+                                },
+                            )
                     if review_fallback and review_plan is not None:
                         lost_indexes = static_review_lost_must_indexes(
                             review_plan.plan, validation.plan,
@@ -1228,18 +1240,6 @@ class WidgetGenerationService:
                                     "factIndexes": list(lost_indexes),
                                 },
                             )
-                        previous_candidate = review_plan.plan.get("staticPresentation")
-                        if previous_candidate and not validation.plan.get("staticPresentation"):
-                            validation = review_plan
-                            if review_source is not None:
-                                raw_plan = review_source
-                            trace_record(
-                                "static_content.plan.review.fallback", stage="plan",
-                                status="success",
-                                details={
-                                    "reason": "原计划语义已确认，容量优化无可行候选，保留原候选",
-                                },
-                            )
                     if refinement_plan is not None:
                         previous_candidate = refinement_plan.plan.get("staticPresentation")
                         if previous_candidate and not validation.plan.get("staticPresentation"):
@@ -1252,6 +1252,29 @@ class WidgetGenerationService:
                                 details={"reason": "新计划未找到可行候选，保留此前合法候选与计划"},
                             )
                     if content_policy.is_static and attempt < max_plan_attempts:
+                        feedback = validation.plan.get("staticPresentationFeedback")
+                        has_feasible_candidate = bool(validation.plan.get("staticPresentation"))
+                        if not capacity_recovery and feedback and not has_feasible_candidate:
+                            refinement_plan = validation
+                            refinement_source = raw_plan
+                            plan_prompt = PromptBuilder.build_static_plan_refinement(
+                                plan_prompt,
+                                feedback,
+                                allow_priority_degradation=True,
+                            )
+                            trace_increment_retry("planCapacityRefinements")
+                            trace_record(
+                                "static_content.plan.refinement",
+                                stage="plan",
+                                status="scheduled",
+                                details={
+                                    "attempt": attempt,
+                                    "remainingAttempts": 1,
+                                    "mode": "pre_freeze_priority_replan",
+                                },
+                                json_artifacts={"capacity_reference": feedback},
+                            )
+                            continue
                         if not capacity_recovery:
                             review_plan = validation
                             review_source = raw_plan
@@ -1270,7 +1293,6 @@ class WidgetGenerationService:
                                 },
                             )
                             continue
-                        feedback = validation.plan.get("staticPresentationFeedback")
                         if feedback:
                             refinement_plan = validation
                             refinement_source = raw_plan
@@ -1735,9 +1757,8 @@ class WidgetGenerationService:
                 colorless_layout=colorless_source(),
                 compact_plan=accepted_compact_plan,
                 plan_information_coverage_as_warning=(
-                    quality_repair_attempt_count > 0
+                    (quality_repair_attempt_count > 0 or capacity_recovery)
                     and not settings.enable_drop_plan_fact_validation
-                    and not content_policy.is_static
                 ),
                 allowed_omitted_plan_fact_indexes=(
                     compact_repair_tracker.validation_omitted_fact_indexes(

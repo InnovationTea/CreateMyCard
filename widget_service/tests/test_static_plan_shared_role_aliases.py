@@ -5,16 +5,12 @@ import json
 
 import pytest
 
-from models.artifact import ArtifactMeta, WidgetArtifact
 from services.compact_plan import (
     CompactPlanValidationError,
     build_compact_plan_tool,
     parse_compact_plan_call,
 )
 from services.generation_content_policy import STATIC_CONTENT_POLICY, content_policy_scope
-from services.generation_pipeline import DesignCompactProcessor, DslProcessingContext
-from services.protocol_registry import A2UIProtocolRegistry
-from services.validator import ArtifactValidator
 
 
 @pytest.fixture(autouse=True)
@@ -135,7 +131,7 @@ def _three_records():
             "layoutHints": ["W-static-content"], "omittedContents": []}
 
 
-def test_three_records_shared_note_passes_real_processor_and_artifact_with_complete_text():
+def test_three_long_records_keep_shared_alias_and_report_new_panel_capacity():
     plan = _three_records()
     accepted = _accept(plan)
     canonical = copy.deepcopy(plan)
@@ -144,35 +140,15 @@ def test_three_records_shared_note_passes_real_processor_and_artifact_with_compl
     canonical_facts[6]["displayRole"] = "body"
     assert accepted == _accept(canonical)
     source = accepted.get("staticPresentation")
-    assert isinstance(source, str)
-    rows = [json.loads(line) for line in source.splitlines()]
-    header = next((row for row in rows if row[0] == "header"), None)
-    body = next((row for row in rows if row[0] == "body"), None)
-    assert header is not None and body is not None
-    assert header[1] == "SingleLineTitle"
-    assert header[2].get("title") == "服务费另收0.55元/度"
-    assert "服务费另收0.55元/度" not in json.dumps(body, ensure_ascii=False)
+    assert source is None
+    assert accepted.get("staticPresentationFeedback")
     accepted_facts = accepted.get("info_required")
     assert accepted_facts
     assert accepted_facts[6].get("displayRole") == "body"
-    task = _task(plan, "2x4")
-    card = {"suggestSize": "2x4", "title": "充电电价", "description": "完整时段及公共费用"}
-    profile = A2UIProtocolRegistry().get_profile()
-    result = DesignCompactProcessor().process(source, DslProcessingContext(
-        size="2x4", task_spec=task, card_spec=card, protocol_profile=profile,
-        compact_plan=accepted, content_policy=STATIC_CONTENT_POLICY,
-        layout_scope="W-static-content-guided", colorless_layout=True,
-    ))
-    assert result.errors == ()
-    for fact in plan.get("info_required", []):
-        assert fact.get("text") in result.source_dsl
-    artifact = WidgetArtifact(
-        genui=result.standard_dsl, taskSpec=task, cardSpec=card,
-        effectiveCapabilities={"data": [], "event": [], "asset": []},
-        meta=ArtifactMeta(protocolProfileId=profile.get("id"), createdAt=0,
-                          capabilityRegistryVersion="offline-test"),
-    )
-    assert ArtifactValidator({}).validate_layout(artifact, profile) == []
+    assert [fact.get("text") for fact in accepted_facts] == [
+        fact.get("text") for fact in canonical_facts
+    ]
+    assert all(fact.get("priority") == "must" for fact in accepted_facts)
 
 
 def test_real_required_title_without_legal_candidate_keeps_existing_rejection():
@@ -187,7 +163,8 @@ def test_real_required_title_without_legal_candidate_keeps_existing_rejection():
 def test_schema_explains_shared_and_object_aliases_without_removing_canonical_roles():
     tool = build_compact_plan_tool(_task(_plan(), "2x4"))
     fields = tool.get("function", {}).get("parameters", {}).get("properties", {})
-    role = fields.get("info_required", {}).get("items", {}).get("properties", {}).get("displayRole")
+    group_fields = fields.get("contentGroups", {}).get("items", {}).get("properties", {})
+    role = group_fields.get("facts", {}).get("items", {}).get("properties", {}).get("displayRole")
     assert isinstance(role, dict)
     assert {"title", "body", "secondaryText"}.issubset(role.get("enum", []))
     description = role.get("description", "")

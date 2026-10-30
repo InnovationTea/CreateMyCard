@@ -149,7 +149,7 @@ def test_static_plan_repair_keeps_summary_permission_and_dynamic_contract_is_unc
     assert isinstance(content, str)
     assert "忠于sourceTexts的摘要" in content
     assert "不得用自由摘要" not in content
-    assert "本次提交的info_required" in content
+    assert "嵌套contentGroups及组内facts" in content
     assert "全部展示" in content and "冲突来源" in content
     with content_policy_scope(EXISTING_CONTENT_POLICY):
         existing = PromptBuilder.build_compact_plan_repair(messages, "错误计划", ("索引错误",))

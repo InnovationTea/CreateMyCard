@@ -51,13 +51,16 @@ def _plan():
     }
 
 
-def _tariff_plan():
+def _tariff_plan(*, compact_times=False):
     facts = [
         _fact("谷段 23:00–次日7:00，0.42元/度", "value"),
         _fact("平段 7:00–10:00、15:00–18:00，0.78元/度", "value"),
         _fact("峰段 11:00–14:00、18:00–21:00，1.16元/度", "value"),
         _fact("另收服务费0.55元/度"),
     ]
+    if compact_times:
+        facts[1] = _fact("平段 7:00–10:00，0.78元/度", "value")
+        facts[2] = _fact("峰段 11:00–14:00，1.16元/度", "value")
     groups = []
     for index, name in enumerate(("谷段", "平段", "峰段")):
         groups.append({
@@ -115,7 +118,7 @@ def test_shared_notes_are_not_inserted_into_individual_object_candidates():
 
 
 def test_three_records_with_shared_fee_choose_legal_independent_header_layout():
-    plan = _tariff_plan()
+    plan = _tariff_plan(compact_times=True)
     before = copy.deepcopy(plan)
     trial = trial_static_presentation(plan, _task(plan).get("userQuery"), "2x4")
     assert trial.source is not None
@@ -126,8 +129,8 @@ def test_three_records_with_shared_fee_choose_legal_independent_header_layout():
     assert body[1] == "SingleLineList"
     assert body[2].get("items") == [
         {"text": "谷段", "assist": "23:00–次日7:00，0.42元/度"},
-        {"text": "平段", "assist": "7:00–10:00、15:00–18:00，0.78元/度"},
-        {"text": "峰段", "assist": "11:00–14:00、18:00–21:00，1.16元/度"},
+        {"text": "平段", "assist": "7:00–10:00，0.78元/度"},
+        {"text": "峰段", "assist": "11:00–14:00，1.16元/度"},
     ]
     coverage = static_fact_coverage(trial.source, plan)
     assert len(coverage) == 4
@@ -136,9 +139,19 @@ def test_three_records_with_shared_fee_choose_legal_independent_header_layout():
     assert plan == before
 
 
+def test_long_three_row_values_do_not_bypass_new_panel_capacity():
+    plan = _tariff_plan()
+    before = copy.deepcopy(plan)
+    trial = trial_static_presentation(plan, _task(plan).get("userQuery"), "2x4")
+    assert trial.source is None
+    assert trial.errors
+    assert any("COMPACT_STATIC_TEXT_CAPACITY" in error for error in trial.errors)
+    assert plan == before
+
+
 @pytest.mark.parametrize("plan_factory", [_plan, _tariff_plan])
 def test_complete_trial_and_processor_restore_without_omission_or_font_change(plan_factory):
-    plan = plan_factory()
+    plan = plan_factory(compact_times=True) if plan_factory is _tariff_plan else plan_factory()
     before = copy.deepcopy(plan)
     task = _task(plan)
     trial = trial_static_presentation(plan, task.get("userQuery"), "2x4")
@@ -234,7 +247,7 @@ def test_single_object_emphasis_keeps_shared_note_in_existing_secondary_field():
     rows = [json.loads(line) for line in sources[0].splitlines()]
     assert rows == [
         ["root", "Layout", {"layout": "W-static-content"}, ["body"]],
-        ["body", "EmphasisText", {"mainText": "当前19度", "secondaryText": "体感舒适"}],
+        ["body", "EmphasisText", {"mainText": "当前19度", "bottomText": "体感舒适"}],
         ["/state/ready", True],
     ]
 

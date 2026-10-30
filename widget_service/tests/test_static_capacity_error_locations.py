@@ -63,9 +63,11 @@ def issue_for(source):
 
 def numeric_case():
     items = [{"text": "第一档 180度以内", "assist": "0.51元/度"},
-             {"text": "对象1", "assist": "短说明"}]
+             {"text": "对象1", "assist": "短说明"},
+             {"text": "对象2", "assist": "短说明"},
+             {"text": "对象3", "assist": "短说明"}]
     source = make_source(items)
-    return source, make_plan(2, price=True), issue_for(source)
+    return source, make_plan(4, price=True), issue_for(source)
 
 
 def test_success_measurement_is_unchanged():

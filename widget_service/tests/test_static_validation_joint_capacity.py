@@ -10,6 +10,7 @@ from services.card_validation.compact_validation import api
 from services.card_validation.compact_validation.semantic.static_content import static_group_errors
 from services.compact_dsl_a2ui_converter import CompactDslConversionError
 from services.compact_layout_runtime import CompactLayoutRuntimeError
+from services.compact_plan import evaluate_compact_plan_coverage
 from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.generation_content_policy import (
     EXISTING_CONTENT_POLICY,
@@ -104,6 +105,60 @@ def test_static_group_failure_still_blocks_when_expansion_succeeds(monkeypatch):
             validate(source, plan)
     assert calls == [True]
     assert list(raised.value.errors) == group_errors
+
+
+def test_static_group_failure_becomes_warning_after_first_repair():
+    source, plan = make_case(long_values=False)
+    task = {
+        "size": "2x2",
+        "dataModelSchema": {"data": {}},
+        "eventCandidates": [],
+        "assetCandidates": [],
+    }
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        expected = static_group_errors(source, plan)
+        coverage = evaluate_compact_plan_coverage(
+            source,
+            plan,
+            task,
+            information_errors_as_warnings=True,
+        )
+        result = validate(source, plan, skip_static_group_errors=True)
+    assert coverage.errors == ()
+    assert list(coverage.warnings) == expected
+    assert not result.warnings
+
+
+def test_processor_downgrades_static_coverage_after_first_repair():
+    source, plan = make_case(long_values=False)
+    task = {
+        "size": "2x2",
+        "appVersion": "11.8.8.512",
+        "dataModelSchema": {"data": {}},
+        "eventCandidates": [],
+        "assetCandidates": [],
+    }
+    profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+    context = DslProcessingContext(
+        size="2x2",
+        task_spec=task,
+        card_spec={"suggestSize": "2x2"},
+        protocol_profile=profile,
+        design_profile_id="design-compact-dsl",
+        compact_plan=plan,
+        content_policy=STATIC_CONTENT_POLICY,
+        layout_scope="S-static-content-guided",
+        colorless_layout=True,
+        plan_information_coverage_as_warning=True,
+    )
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        result = DesignCompactProcessor().process(source, context)
+    assert not result.errors
+    assert result.standard_dsl
+    coverage_warnings = [
+        issue for issue in result.issues if issue.code == "COMPACT_PLAN_COVERAGE_WARNING"
+    ]
+    assert coverage_warnings
 
 
 def test_static_group_and_unknown_conversion_error_preserve_both_and_cause(monkeypatch):

@@ -353,12 +353,15 @@ def static_display_groups(
         if not isinstance(row, ComponentRow):
             continue
         if row.component_type == "EmphasisText":
-            parts = _strings(row.props.get("mainText")) + _strings(row.props.get("secondaryText"))
-            properties = tuple(
-                (key, tuple(_strings(row.props.get(key))))
-                for key in ("mainText", "secondaryText")
+            parts = []
+            properties = []
+            for key in ("mainText", "secondaryText", "bottomText"):
+                values = [value for value in _strings(row.props.get(key)) if value.strip()]
+                parts.extend(values)
+                properties.append((key, tuple(values)))
+            objects.append(
+                StaticDisplayGroup(row.component_id, parts, property_parts=tuple(properties))
             )
-            objects.append(StaticDisplayGroup(row.component_id, parts, property_parts=properties))
         elif row.component_type in {"TextList", "SingleLineList", "ComparisonGroup"}:
             items = row.props.get("items")
             if not isinstance(items, list):

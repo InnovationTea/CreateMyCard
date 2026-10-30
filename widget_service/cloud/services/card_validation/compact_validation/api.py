@@ -91,6 +91,7 @@ def validate_compact_dsl(
     original_source: str | None = None,
     repair_context: RepairGuidanceContext | None = None,
     allowed_omitted_fact_indexes: tuple[int, ...] = (),
+    skip_static_group_errors: bool = False,
 ) -> CompactDslValidationResult:
     """Validate expressions, first-frame data, and TaskSpec data boundaries."""
     try:
@@ -183,7 +184,7 @@ def validate_compact_dsl(
     from services.generation_content_policy import current_content_policy
 
     has_static_group_errors = False
-    if current_content_policy().is_static:
+    if current_content_policy().is_static and not skip_static_group_errors:
         from .semantic.static_content import collect_static_group_errors
 
         collect_static_group_errors(

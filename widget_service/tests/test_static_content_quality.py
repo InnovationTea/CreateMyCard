@@ -246,13 +246,21 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
         if output_format == "raw-json":
             if calls.count("raw-json") == 2:
                 assert "capacityReference" in messages[-1].get("content", "")
-                assert "staticPlanReview" in json.loads(messages[-1].get("content", "{}"))
+                feedback = json.loads(messages[-1].get("content", "{}"))
+                if refinement == "unfit":
+                    assert "staticPlanReview" in feedback
+                    return json.dumps({
+                        "decision": "correct", "sourceFidelity": "preserved", "findings": [],
+                        "correctedPlan": {"name": "submit_card_plan", "arguments": value},
+                    }, ensure_ascii=False)
+                assert feedback.get("toolResult", {}).get("capacityReference")
+                assert "原计划尚未冻结" in feedback.get("instruction", "")
                 if refinement == "invalid":
                     return '{"invalid": true}'
-                return json.dumps({
-                    "decision": "correct", "sourceFidelity": "preserved", "findings": [],
-                    "correctedPlan": {"name": "submit_card_plan", "arguments": value},
-                }, ensure_ascii=False)
+                return json.dumps(
+                    {"name": "submit_card_plan", "arguments": value},
+                    ensure_ascii=False,
+                )
             return json.dumps({"name": "submit_card_plan", "arguments": value}, ensure_ascii=False)
         return '\n'.join([
             '["root","Layout",{"layout":"S-static-content"},["body"]]',
@@ -298,12 +306,6 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
         userQuery="制作带证件的提醒卡", size="2x2", title="出发前", description="出发前提醒",
     )
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
-    if refinement == "invalid":
-        assert response.status.value == "failed"
-        assert calls == ["raw-json", "raw-json"]
-        assert saved == []
-        assert theme_tasks == []
-        return
     assert response.status.value == "success"
     assert calls == ["raw-json", "raw-json", "compact-dsl"]
     assert len(saved) == 1

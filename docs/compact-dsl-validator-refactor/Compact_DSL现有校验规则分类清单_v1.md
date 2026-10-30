@@ -201,6 +201,9 @@ enable_drop_plan_fact_validation 默认关闭；开启时在 Repair 阶段恢复
 未完整可见无条件写为 warning；首次 DSL 评估与数据事实一样生成覆盖 error，进入
 模型 Repair 后才按上述请求级政策决定是否降为 warning。归属仍为生成编排层的 Plan
 覆盖检查，不在 Compact 语法／语义校验器内重复实现。
+静态路线同样遵守该政策：首次修复后的非 Action 分组覆盖缺失由编排层记为 warning，
+Compact 静态分组检查不再对同一缺失重复生成阻断错误；其它静态组件与容量检查不变。
+容量恢复的第二轮接口继承该 warning 状态，不重复消耗同一请求的覆盖硬校验次数。
 
 2026-10-15：SecondaryBody.items数量上限由4改为6，归属语法／组件合同，仍委托
 compact_high_level_components.py的共享组件校验，不在分类入口重复实现。实际数量超过6时进入

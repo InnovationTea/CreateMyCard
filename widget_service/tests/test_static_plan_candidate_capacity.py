@@ -77,9 +77,9 @@ def test_optional_inventory_survives_legal_three_record_candidate():
     assert all(item.get("omissionReason") == "optional_omission" for item in omitted)
 
 
-def test_real_plan_parser_retains_optional_inventory_and_omission_audit():
-    plan = _plan()
-    plan["omittedContents"] = [{"description": "可选记录容量不足", "factIndexes": [3, 4, 5, 6, 7]}]
+def test_real_plan_parser_accepts_optional_declarations_within_object_limit():
+    plan = _plan(5)
+    plan["omittedContents"] = [{"description": "可选记录容量不足", "factIndexes": [3, 4]}]
     facts = plan.get("info_required")
     assert isinstance(facts, list)
     query = "；".join(fact.get("text", "") for fact in facts)
@@ -89,16 +89,16 @@ def test_real_plan_parser_retains_optional_inventory_and_omission_audit():
         require_static_identity=True, require_static_omission_refs=True,
     )
     accepted = result.plan
-    assert len(accepted.get("info_required", [])) == 8
-    assert len(accepted.get("contentGroups", [])) == 8
+    assert len(accepted.get("info_required", [])) == 5
+    assert len(accepted.get("contentGroups", [])) == 5
     assert accepted.get("omissionCandidates")
     source = accepted.get("staticPresentation")
     assert isinstance(source, str)
     coverage = static_fact_coverage(source, accepted)
-    assert [item.fact_index for item in coverage if not item.visible] == [3, 4, 5, 6, 7]
+    assert all(item.visible for item in coverage)
     omitted = compact_plan_omitted_facts(source, accepted, {"size": "2x4"}, ())
     optional = [item for item in omitted if item.get("omissionReason") == "optional_omission"]
-    assert len(optional) == 5
+    assert optional == []
 
 
 @pytest.mark.parametrize("protection", [

@@ -67,6 +67,7 @@ _STATIC_ROLE_ALIASES = {
 }
 _STATIC_FACT_SECTION_MARKER = "本轮卡片静态内容（用作展示的外部事实）："
 _MAX_MUST_FACTS_BY_SIZE = {"2x2": 6, "2x4": 10}
+_MAX_STATIC_OBJECT_GROUPS = 5
 _FRESHNESS_METADATA_NAMES = frozenset(
     {
         "lastrefreshedat",
@@ -502,11 +503,18 @@ def _extend_static_plan_tool(
     properties["presentationStyle"] = {
         "enum": ["auto", "content", "rows", "records", "comparison"],
         "description": (
-            "模型按用户用途选择结构；活动、日程等名称加时地的多条同构记录优先records，"
+            "首次提交前按用户用途选择结构并核对实际槽位；活动、日程等名称加时地的"
+            "多条同构记录优先records，"
             "每个object组对应一条真实记录，一项保留同一对象的主副信息；"
-            "records实际使用TextList时两到三项，含共同标题最多两项；rows为单行列表；"
-            "上述项数是实际组件承载限制，不是事实账本或contentGroups的数量上限；"
-            "comparison仅2x4，普通偏好不替代实际容量校验。"
+            "records/TextList带标题只能2项、无标题只能3项；"
+            "rows/SingleLineList必须带标题且只能1到5条完整单行；"
+            "短对象名加短月份、价格或状态能单行读完时优先rows；"
+            "comparison仅2x4，带标题2到3项、无标题4项；"
+            "content/EmphasisText只承载1个核心对象或结论。"
+            "最多五个object组只是账本上限；shared标题会占标题区，"
+            "shared公共说明仍须占所选正文组件的合法字段与高度；"
+            "任何最终渲染为正文行的shared说明、例外或提示都计入组件实际条目数，"
+            "不得因其不计object组数就在DSL中额外新增一行。"
         ),
     }
     properties["paletteFamily"] = {
@@ -518,34 +526,61 @@ def _extend_static_plan_tool(
         "maxItems": 24,
         "items": {
             "type": "object", "additionalProperties": False,
-            "required": ["description", "factIndexes"],
+            "required": ["description", "factRefs"],
             "properties": {
                 "description": {"type": "string", "minLength": 1, "maxLength": 200},
-                "factIndexes": {
+                "factRefs": {
                     "type": "array", "maxItems": 24, "uniqueItems": True,
-                    "items": {"type": "integer", "minimum": 0},
+                    "items": {
+                        "type": "object", "additionalProperties": False,
+                        "required": ["groupId", "factId"],
+                        "properties": {
+                            "groupId": {"type": "string", "minLength": 1},
+                            "factId": {"type": "string", "minLength": 1},
+                        },
+                    },
                 },
             },
         },
         "description": (
-            "实际未选输入写description且factIndexes为[]；计划内可能省略的should填写事实索引，"
-            "最终覆盖决定是否确实遗漏。等义摘要、去重和按用户要求不展示均不算损失。"
+            "实际未选输入写description且factRefs为[]；计划内可能省略的should以groupId和factId"
+            "稳定引用。最终覆盖决定是否确实遗漏。等义摘要、去重和按用户要求不展示均不算损失。"
         ),
     }
+    nested_fact_fields = copy.deepcopy(fields)
+    nested_fact_fields.pop("dataId", None)
+    nested_fact_fields.pop("actionId", None)
+    nested_fact_fields["id"] = {
+        "type": "string", "minLength": 1,
+        "description": "本组内稳定事实标识，仅供 omittedContents.factRefs 引用。",
+    }
+    nested_fact_item: dict[str, Any] = {
+        "type": "object",
+        "properties": nested_fact_fields,
+        "required": ["id", "requirement", "priority", "text"],
+        "additionalProperties": False,
+    }
+    item_constraints = item.get("allOf") if isinstance(item, dict) else None
+    if isinstance(item_constraints, list):
+        nested_fact_item["allOf"] = item_constraints
+    properties.pop("info_required", None)
+    required = parameters.get("required")
+    if isinstance(required, list) and "info_required" in required:
+        required.remove("info_required")
     properties["contentGroups"] = {
         "type": "array",
         "maxItems": 24,
         "description": (
-            "这是完整事实账本，每条保留text归属唯一object或shared组；"
-            "申请省略但仍在info_required中的should也必须归组。"
+            "这是完整事实账本，按数组顺序展示，每条facts内事实按数组顺序展开；"
+            "每条保留text只属于一个object或shared组。"
             "按真实对象分组，不按类别合并不同记录。TextList最多三项的限制针对实际展示，"
             "不能据此漏掉账本组；先完成归属，再选择可承载的合法组件。"
-            "共享标题引用独立且有来源的标题事实，不借用对象数值的索引。"
+            "共享标题使用独立且有来源的标题事实，不借用对象数值。"
         ),
         "items": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["id", "kind", "factIndexes", "identity"],
+            "required": ["id", "kind", "identity", "facts"],
             "properties": {
                 "id": {"type": "string", "minLength": 1},
                 "kind": {"enum": ["object", "shared"]},
@@ -557,14 +592,13 @@ def _extend_static_plan_tool(
                         "允许独立名称标签加正文；不必把identity重复写入每条text。"
                     ),
                 },
-                "factIndexes": {
+                "facts": {
                     "type": "array",
                     "minItems": 1,
-                    "uniqueItems": True,
-                    "items": {"type": "integer", "minimum": 0},
+                    "maxItems": 24,
+                    "items": nested_fact_item,
                     "description": (
-                        "仅引用本次提交info_required的零起始索引，最大值小于事实数；"
-                        "不是来源条目编号。合并或删减事实后同步引用。"
+                        "本组事实，按顺序提交；不得输出factIndexes或依赖数组位置的数字引用。"
                     ),
                 },
             },
@@ -576,7 +610,11 @@ def _extend_static_plan_tool(
         required.append("omittedContents")
     function["description"] = (
         "在同一次Plan中完成静态内容理解、摘要总结、must/should及对象分组。"
-        "每个text必须有sourceTexts和唯一contentGroups归属；Action不分组且必须保留。"
+        "首次提交前按presentationStyle对应组件核算标题、对象条目和公共正文的实际容量。"
+        "每个text必须在唯一contentGroups组的facts内提交；不输出info_required或factIndexes。"
+        "默认提炼有来源的简短共同主题放shared/title；正文同样完整且容量合法时优先带标题，"
+        "不为标题删减必要记录。"
+        "Action不进入静态contentGroups；历史纯Action输入仅由兼容解析保留。"
         "同对象事实合组，共享标题或条件用shared；不同对象同文字不去重。"
         "优先可读出卡，按用途选择核心must和可省略补充should；取舍记selectionNotes。"
         "允许等义改写而不改变数值和关系含义；必要范围须进入展示文字，不能只写在规划中。"
@@ -624,6 +662,8 @@ class _StaticPlanNormalization:
     presentation: str | None
     presentation_feedback: tuple[str, ...]
     index_map: dict[int, int]
+    raw_facts: list[Any]
+    omission_entries: list[Any]
 
 
 
@@ -950,16 +990,127 @@ def _static_presentation_consistency_errors(
     return errors
 
 
+def _nested_static_plan_input(
+    arguments: dict[str, Any],
+) -> tuple[list[Any], list[Any], list[Any]]:
+    """将模型侧嵌套分组确定性展开为内部索引账本的输入。"""
+    submitted_groups = arguments.get("contentGroups")
+    has_legacy_facts = "info_required" in arguments
+    has_nested_facts = False
+    if isinstance(submitted_groups, list):
+        has_nested_facts = any(
+            isinstance(group, dict) and "facts" in group for group in submitted_groups
+        )
+    if has_legacy_facts and has_nested_facts:
+        raise CompactPlanValidationError([
+            "静态Plan不能同时提交info_required和contentGroups.facts。"
+        ])
+    if has_legacy_facts:
+        raw_facts = arguments.get("info_required")
+        raw_omissions = arguments.get("omittedContents", [])
+        if not isinstance(raw_facts, list):
+            raise CompactPlanValidationError(["静态计划必须包含 1–24 条事实或动作。"])
+        return raw_facts, submitted_groups, raw_omissions
+    if not isinstance(submitted_groups, list):
+        raise CompactPlanValidationError(["静态计划必须包含嵌套contentGroups。"])
+    raw_facts: list[Any] = []
+    raw_groups: list[dict[str, Any]] = []
+    references: dict[tuple[str, str], int] = {}
+    group_ids: set[str] = set()
+    for group_index, group in enumerate(submitted_groups):
+        path = f"contentGroups[{group_index}]"
+        if not isinstance(group, dict):
+            raise CompactPlanValidationError([f"{path}: contentGroups 必须为对象数组。"])
+        required_keys = {"id", "kind", "identity", "facts"}
+        if set(group) != required_keys:
+            raise CompactPlanValidationError([f"{path}: 嵌套组只允许id、kind、identity、facts。"])
+        group_id = group.get("id")
+        if not isinstance(group_id, str) or not group_id.strip():
+            raise CompactPlanValidationError([f"{path}.id: 内容组 ID 必须非空。"])
+        if group_id in group_ids:
+            raise CompactPlanValidationError([f"{path}.id: 内容组 ID 重复。"])
+        group_ids.add(group_id)
+        group_facts = group.get("facts")
+        if not isinstance(group_facts, list) or not group_facts:
+            raise CompactPlanValidationError([f"{path}.facts: 内容组必须包含至少一条事实。"])
+        indexes: list[int] = []
+        fact_ids: set[str] = set()
+        for fact_index, fact in enumerate(group_facts):
+            fact_path = f"{path}.facts[{fact_index}]"
+            if not isinstance(fact, dict):
+                raise CompactPlanValidationError([f"{fact_path}: 事实必须是对象。"])
+            fact_id = fact.get("id")
+            if not isinstance(fact_id, str) or not fact_id.strip():
+                raise CompactPlanValidationError([f"{fact_path}.id: 组内事实 ID 必须非空。"])
+            if fact_id in fact_ids:
+                raise CompactPlanValidationError([f"{fact_path}.id: 组内事实 ID 重复。"])
+            if "actionId" in fact or "dataId" in fact:
+                raise CompactPlanValidationError([
+                    f"{fact_path}: 静态嵌套正文不允许Action或动态数据事实。"
+                ])
+            fact_ids.add(fact_id)
+            references[(group_id, fact_id)] = len(raw_facts)
+            normalized_fact = dict(fact)
+            normalized_fact.pop("id", None)
+            raw_facts.append(normalized_fact)
+            indexes.append(len(raw_facts) - 1)
+        raw_groups.append({
+            "id": group_id,
+            "kind": group.get("kind"),
+            "identity": group.get("identity"),
+            "factIndexes": indexes,
+        })
+    raw_omissions = _nested_static_omissions(arguments.get("omittedContents", []), references)
+    return raw_facts, raw_groups, raw_omissions
+
+
+def _nested_static_omissions(
+    raw: Any, references: dict[tuple[str, str], int],
+) -> list[dict[str, Any]]:
+    """把模型侧稳定引用转换成内部遗漏索引，不猜测未提交事实。"""
+    if not isinstance(raw, list) or len(raw) > 24:
+        raise CompactPlanValidationError(["omittedContents 必须为最多24项的实际删减数组。"])
+    converted = []
+    for entry_index, entry in enumerate(raw):
+        path = f"omittedContents[{entry_index}]"
+        if not isinstance(entry, dict) or set(entry) != {"description", "factRefs"}:
+            raise CompactPlanValidationError([f"{path}: 遗漏声明只允许description、factRefs。"])
+        refs = entry.get("factRefs")
+        if not isinstance(refs, list) or len(refs) > 24:
+            raise CompactPlanValidationError([f"{path}.factRefs: 必须为最多24项的数组。"])
+        indexes: list[int] = []
+        invalid_reference = False
+        for ref_index, reference in enumerate(refs):
+            ref_path = f"{path}.factRefs[{ref_index}]"
+            if not isinstance(reference, dict) or set(reference) != {"groupId", "factId"}:
+                raise CompactPlanValidationError([f"{ref_path}: 只允许groupId、factId。"])
+            group_id = reference.get("groupId")
+            fact_id = reference.get("factId")
+            if not isinstance(group_id, str) or not isinstance(fact_id, str):
+                raise CompactPlanValidationError([f"{ref_path}: groupId、factId必须为字符串。"])
+            index = references.get((group_id, fact_id))
+            if index is None:
+                invalid_reference = True
+                break
+            if index in indexes:
+                invalid_reference = True
+                break
+            indexes.append(index)
+        if invalid_reference:
+            indexes = []
+        converted.append({"description": entry.get("description"), "factIndexes": indexes})
+    return converted
+
+
 def _normalize_static_plan(
     arguments: dict[str, Any], task: dict[str, Any]
 ) -> _StaticPlanNormalization:
-    raw_facts = arguments.get("info_required")
-    raw_groups = arguments.get("contentGroups")
+    raw_facts, raw_groups, omission_entries = _nested_static_plan_input(arguments)
     user_query = task.get("userQuery")
     if not isinstance(user_query, str):
         raise CompactPlanValidationError(["静态来源需求必须是字符串。"])
     source_query, has_explicit_fact_source = static_fact_source(user_query)
-    if not isinstance(raw_facts, list) or not 1 <= len(raw_facts) <= 24:
+    if not 1 <= len(raw_facts) <= 24:
         raise CompactPlanValidationError(["静态计划必须包含 1–24 条事实或动作。"])
     warnings: list[str] = []
     normalized_facts: list[Any] = []
@@ -1001,6 +1152,13 @@ def _normalize_static_plan(
     group_normalization = _normalize_static_groups(raw_groups, raw_facts, errors, warnings)
     membership = group_normalization.membership
     raw_groups = group_normalization.groups
+    object_count = sum(group.get("kind") == "object" for group in raw_groups)
+    if object_count > _MAX_STATIC_OBJECT_GROUPS:
+        errors.append(
+            "静态正文最多五条完整对象信息（标题和shared公共说明不计入）；"
+            "当前为"
+            f"{object_count}条。请在Plan阶段按完整object组取舍，不能只删除对象的部分字段。"
+        )
     _collect_static_source_errors(
         raw_facts,
         source_query,
@@ -1133,7 +1291,7 @@ def _normalize_static_plan(
         raise CompactPlanValidationError([str(exc)]) from exc
     return _StaticPlanNormalization(
         facts, warnings, groups, selection.notes, selection.omitted_contents,
-        selection.presentation, selection.trial_errors, old_to_new,
+        selection.presentation, selection.trial_errors, old_to_new, raw_facts, omission_entries,
     )
 
 
@@ -1675,8 +1833,8 @@ def parse_compact_plan_call(
                 raise CompactPlanValidationError(["每项取舍说明最多200字符。"])
         plan["selectionNotes"] = notes + normalized_static.selection_notes
         omissions = _normalize_static_omissions(
-            arguments.get("omittedContents", []),
-            arguments.get("info_required", []), normalized_static.index_map,
+            normalized_static.omission_entries,
+            normalized_static.raw_facts, normalized_static.index_map,
             normalized_static.facts, allow_legacy=not require_static_omission_refs,
         )
         warnings.extend(omissions.warnings)
@@ -2480,13 +2638,19 @@ def evaluate_compact_plan_coverage(
     overflow_action_ids = compact_plan_overflow_action_ids(components, plan, task_spec)
     allowed = set(allowed_omitted_fact_indexes)
     errors: list[str] = []
+    warnings: list[str] = []
     if static_content:
         from services.card_validation.compact_validation.semantic.static_content import (
             static_group_errors,
         )
 
-        errors.extend(static_group_errors(compact_dsl, plan, allowed_omitted_fact_indexes))
-    warnings: list[str] = []
+        static_errors = static_group_errors(
+            compact_dsl,
+            plan,
+            allowed_omitted_fact_indexes,
+        )
+        target = warnings if information_errors_as_warnings else errors
+        target.extend(static_errors)
     duplicate_facts: list[dict[str, Any]] = []
     facts = plan.get("info_required")
     if not isinstance(facts, list):

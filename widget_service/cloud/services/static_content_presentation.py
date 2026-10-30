@@ -178,9 +178,9 @@ def _encode(
         return None
     if notes:
         if component == "EmphasisText":
-            supplemental = props.get("secondaryText")
+            supplemental = props.get("bottomText")
             values = [supplemental] if supplemental else []
-            props = {**props, "secondaryText": "；".join([*values, *notes])}
+            props = {**props, "bottomText": "；".join([*values, *notes])}
         else:
             # 公共说明不能借某个对象的字段承载，避免把共同条件变成该对象专属。
             return None

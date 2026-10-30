@@ -556,7 +556,10 @@ _STATIC_FIELD_STYLES = {
     "TextList": {"primaryText": "listPrimary", "secondaryText": "listSecondary",
                  "value": "listValue"},
     "ComparisonGroup": {"primaryText": "comparisonPrimary", "secondaryText": "comparisonSecondary"},
-    "EmphasisText": {"mainText": "emphasis", "secondaryText": "emphasisSecondary"},
+    "EmphasisText": {
+        "mainText": "emphasis", "secondaryText": "emphasisSecondary",
+        "bottomText": "emphasisSecondary",
+    },
     "SingleLineTitle": {"title": "header"},
 }
 
