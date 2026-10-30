@@ -30,13 +30,13 @@ from theme_preference_samples import preference, reply
 
 GROUPS = [
     ("car-night-lake", "navigation"), ("glass-hourglass", "countdown"),
-    ("meeting-room-brown-chairs", "calendar"), ("meeting-room-green-chairs", "calendar"),
+    ("meeting-room-brown-chairs", "calendar"),
     ("metal-gear", "settings"),
     ("mountain-sunset-lake", "weather"), ("pink-sunset-lake", "weather"),
     ("cumulus-blue", "weather"),
 ]
 WEATHER = ("mountain-sunset-lake", "pink-sunset-lake", "cumulus-blue")
-MEETINGS = ("meeting-room-brown-chairs", "meeting-room-green-chairs")
+MEETINGS = ("meeting-room-brown-chairs",)
 
 
 def theme_id(group, wide=False):

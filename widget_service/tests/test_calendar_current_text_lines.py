@@ -21,7 +21,6 @@ CALENDAR_ID = "photo-ux-texture-blue-diamond-square"
 CALENDAR_IDS = {
     "photo-ux-meeting-room-square",
     "photo-ux-meeting-room-brown-chairs-square",
-    "photo-ux-meeting-room-green-chairs-square",
 }
 
 

@@ -412,6 +412,24 @@ def _validate_selection(selection: dict, by_id: dict) -> None:
                                },
                            }},
                        }}, "selection")
+    routing = selection.get("backgroundPaletteRouting")
+    _check(routing, {
+        "type": "object", "additionalProperties": False,
+        "required": ["minSaturation", "minValue", "hueAnchors"],
+        "properties": {
+            "minSaturation": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+            "minValue": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+            "hueAnchors": {"type": "object", "minProperties": 1,
+                           "additionalProperties": {"type": "number", "minimum": 0,
+                                                    "exclusiveMaximum": 360}},
+        },
+    }, "backgroundPaletteRouting")
+    available_families = set()
+    for theme in by_id.values():
+        if theme.get("pool") == "standard":
+            available_families.update(theme_palette_families(theme))
+    if set(routing.get("hueAnchors", {})) - available_families:
+        raise ValueError("Background palette routing requires registered families")
     fallbacks = selection.get("fallbacks", {})
     families = set(selection.get("familyByDataRoot", {}).values())
     families.add(selection.get("defaultFamily"))

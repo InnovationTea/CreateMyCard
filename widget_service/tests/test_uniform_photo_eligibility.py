@@ -52,7 +52,6 @@ NEW_SUBJECT_FILES = {
     "car_night_lake_square.png", "car_night_lake_wide.png",
     "glass_hourglass_square.png", "glass_hourglass_wide.png",
     "meeting_room_brown_chairs_square.png", "meeting_room_brown_chairs_wide.jpg",
-    "meeting_room_green_chairs_square.png", "meeting_room_green_chairs_wide.jpg",
     "metal_gear_square.png", "metal_gear_wide.jpg",
     "mountain_sunset_lake_square.png", "mountain_sunset_lake_wide.png",
     "pink_sunset_lake_square.png", "pink_sunset_lake_wide.png",
@@ -132,7 +131,7 @@ def choose(saved, monkeypatch, response="{}"):
 
 def test_only_current_subject_and_abstract_assets_remain():
     subjects = registry.registered_themes("photos", include_disabled=True)
-    assert len(subjects) == 49
+    assert len(subjects) == 47
     expected = {"bg_ux_" + name + ".jpg" for name in SUBJECT_FILES}
     expected.update("bg_ux_" + name for name in NEW_SUBJECT_FILES)
     expected.add("bg_ux_road_wide.JPG")

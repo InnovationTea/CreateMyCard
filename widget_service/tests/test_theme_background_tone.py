@@ -280,7 +280,7 @@ def test_invalid_semantic_contract_rejected(items):
 
 
 def test_specific_color_beats_tone_without_named_color_keywords():
-    query = "深色背景，具体用墨绿色，字用米白"
+    query = "深色背景，精确背景色 #123456，字用米白"
     items = [
         preference("backgroundTone", "dark", query),
         preference("backgroundColor", "#123456", query),
@@ -346,7 +346,7 @@ def test_specific_background_color_keeps_generated_ink_and_panels_readable(
 ):
     saved = q52_sample()
     original = q52_artifact(saved) if size == "2x4" else artifact()
-    original.taskSpec["userQuery"] = "使用我指定的底色"
+    original.taskSpec["userQuery"] = f"使用我指定的底色 {color}"
     items = [preference("backgroundColor", color, original.taskSpec.get("userQuery"))]
     client = SimpleNamespace(generate=AsyncMock(return_value=reply(items)))
     validator = ArtifactValidator({})

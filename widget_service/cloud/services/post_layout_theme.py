@@ -480,6 +480,7 @@ async def select_theme(
     model_candidates = candidates + conditional_fusions
     selected = fallback_id
     preferences = []
+    model_preferences = None
     preference_status = "unavailable"
     choice_error = None
     try:
@@ -491,7 +492,8 @@ async def select_theme(
             raise ValueError("Theme selector must return a JSON object")
         if set(choice) - {"themeId", "preferences"}:
             raise ValueError("Theme selector returned extra properties")
-        preferences = parse_preferences(choice.get("preferences", []), task.get("userQuery", ""),
+        model_preferences = choice.get("preferences", [])
+        preferences = parse_preferences(model_preferences, task.get("userQuery", ""),
                                         model_candidates)
         preference_status = "confirmed" if "preferences" in choice else "legacy-unconfirmed"
         if not isinstance(choice.get("themeId"), str):
@@ -555,6 +557,7 @@ async def select_theme(
         "defaultPalette": family,
         "userColors": overrides,
         "userPreferences": preferences,
+        "modelPreferences": model_preferences,
         "preferenceStatus": preference_status,
         "preferenceWarning": None if preference_status == "confirmed" else (
             "模型未返回可确认的结构化偏好；已按默认策略降级，不能确认满足用户视觉要求"
