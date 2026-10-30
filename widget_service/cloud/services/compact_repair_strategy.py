@@ -534,6 +534,25 @@ def _static_single_line_repair_instruction(
     )
 
 
+def _static_text_list_header_repair_instruction(
+    quality_errors: list[dict[str, Any]],
+) -> str:
+    """对带标题的三项 TextList 给出确定的最小修复顺序。"""
+    messages = "\n".join(str(issue.get("message") or "") for issue in quality_errors)
+    if "TextList 含标题区时最多两项" not in messages:
+        return ""
+    return (
+        "当前是SingleLineTitle加三项TextList的容量冲突。"
+        "若标题仅为可省略的共同主题，或标题事实已在正文完整可见，"
+        "优先从root.children移除header并删除对应SingleLineTitle组件，"
+        "保留body的三项TextList及事实顺序不变。"
+        "若标题承载尚未在正文出现的必要主体、范围或条件，"
+        "先将该事实完整迁入首条合法字段后再移除header；"
+        "确实无法迁入时才回到Plan重新组织。"
+        "不要机械换成SingleLineList，也不要为保留标题删除正文项。"
+    )
+
+
 def _capacity_overflow_limit(capacity_fits: list[dict[str, Any]]) -> int | None:
     """返回本轮已证明的最小溢出事实数，用于限制提前 Drop 的损失。"""
     counts: list[int] = []
@@ -2160,6 +2179,7 @@ class CompactRepairStrategyTracker:
                         if static_single_line_list_overflow
                         else ""
                     )
+                    + _static_text_list_header_repair_instruction(quality_errors)
                     + (
                         "同一问题重复出现：必须切换组件形态，优先完整复制计划的staticPresentation；"
                         "若没有已验证候选，按试排容量重新分配主副字段，不能再次返回相同结构。"

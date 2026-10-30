@@ -955,7 +955,14 @@ def _compile_static_layout(
     if "header" in root.children and body.component_type == "TextList":
         items = body.props.get("items")
         if isinstance(items, list) and len(items) > 2:
-            _fail("body", "TextList 含标题区时最多两项；三项请改用单行列表或在Plan重新组织")
+            _fail(
+                "body",
+                "TextList 含标题区时最多两项；当前三项时，若 SingleLineTitle "
+                "只是可省略共同主题或其信息已在正文完整可见，优先删除 "
+                "header/SingleLineTitle 并保留三项 TextList；若标题承载尚未在正文"
+                "出现的必要主体、范围或条件，先将该事实完整迁入首条或在 Plan "
+                "重新组织，不要为保留标题删除正文项",
+            )
     if "header" in root.children and body.component_type == "ComparisonGroup":
         items = body.props.get("items")
         if isinstance(items, list) and len(items) == 4:

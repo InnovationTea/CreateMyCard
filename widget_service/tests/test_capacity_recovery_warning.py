@@ -144,6 +144,7 @@ async def test_service_passes_warning_evidence_to_interface_retry_context(
 
     def accept_recovery(source_dsl, context):
         assert context.compact_plan == retry.recovery_plan
+        assert context.plan_information_coverage_as_warning is True
         return DslProcessingResult(
             source_dsl=source_dsl,
             standard_dsl='{"createSurface":{"surfaceId":"surface_card"}}',
