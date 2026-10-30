@@ -214,6 +214,59 @@ Row({
 )
 #End
 
+#Template WideHeroCompactLayout@1(props: {}, ...children)
+data = {
+}
+
+Row({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+},
+  Column({"layoutWeight": 1, "height": "matchParent", "itemMargin": 0},
+    Column({"width": "matchParent", "layoutWeight": 1}, children[0]),
+    Column({"width": "matchParent", "height": 36}, children[2])
+  ),
+  Column({
+    "layoutWeight": 1,
+    "height": "matchParent",
+    "justifyContent": "center",
+    "alignItems": "start"
+  },
+    Column({"width": "matchParent", "height": 59,
+      "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+      "justifyContent": "center",
+      "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+      "borderRadius": $theme("supportContentStyle.borderRadius")}, children[1])
+  )
+)
+#End
+
+#Template WideFullCompactLayout@1(props: {}, ...children)
+data = {
+}
+
+Row({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+},
+  Column({"layoutWeight": 1, "height": "matchParent"}, children[0]),
+  Column({
+    "layoutWeight": 1,
+    "height": "matchParent",
+    "justifyContent": "center",
+    "alignItems": "start"
+  },
+    Column({"width": "matchParent", "height": 59,
+      "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+      "justifyContent": "center",
+      "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+      "borderRadius": $theme("supportContentStyle.borderRadius")}, children[1])
+  )
+)
+#End
+
 #Template WideFullHeroActionLayout@1(props: {}, ...children)
 data = {
 }

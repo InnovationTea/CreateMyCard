@@ -321,6 +321,8 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
         "WideSingleFocusLayout@1": 2,
         "WideFullOnlyLayout@1": 1,
         "WideTwoFullLayout@1": 2,
+        "WideHeroCompactLayout@1": 3,
+        "WideFullCompactLayout@1": 2,
         "WideFullHeroActionLayout@1": 3,
         "WideHeroActionFullLayout@1": 3,
         "WideFullTwoCompactLayout@1": 3,
@@ -337,6 +339,7 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
     }
     mirrored_slots = {
         "WideHeroActionFullLayout@1": [1, 2, 0],
+        "WideHeroCompactLayout@1": [0, 2, 1],
         "WideTwoFocusActionLayout@1": [0, 2, 1],
     }
 

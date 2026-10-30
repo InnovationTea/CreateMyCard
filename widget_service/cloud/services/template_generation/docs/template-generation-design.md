@@ -65,6 +65,8 @@ Fusion Info Plan 重新开始生成，不经由 JSX，也不重新调用模板�
 | `BluetoothDeviceOverviewEarbudPairHero@1` | 弹性内容槽 | 8vp |
 
 移除 Hero 所在父容器的 `backgroundColor`、`borderRadius`、`padding`，按名单设置 `itemMargin`。
+同时清除该父容器的主题背板标记及背景色角色，保留其它颜色角色；否则图片后处理会依据残留标记
+重新添加没有圆角的半透明矩形。按钮及内部业务背板的标记不随外层容器移除。
 内部业务面板与动作子树原样保留；126vp 内容区按 `82 + 8 + 36` 或 `84 + 6 + 36` 分配，
 不缩小字号、删除字段或修改业务模板自身内边距。移除外层底板不影响进度环的轨道背景。
 名单统一维护于 `engine/cardplan/layout_surface_policy.py`，不新增可由模型填写的 Props。

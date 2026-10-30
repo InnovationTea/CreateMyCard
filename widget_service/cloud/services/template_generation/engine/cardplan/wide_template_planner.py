@@ -63,6 +63,8 @@ _WIDE_LAYOUTS = (
     WideLayoutOption("WideFullOnlyLayout", ("WideFull",)),
     WideLayoutOption("WideTwoFullLayout", ("Full", "Full")),
     WideLayoutOption("WideTwoHalfLayout", ("WideHalf", "WideHalf")),
+    WideLayoutOption("WideHeroCompactLayout", ("Hero", "Compact"), ("PillAction",), (0,)),
+    WideLayoutOption("WideFullCompactLayout", ("Full", "Compact")),
     # 2x4 的窄业务槽位语义是 Support。旧 Compact 形态保留在后面，
     # 仅用于兼容尚未迁移的历史 Provider。
     WideLayoutOption(

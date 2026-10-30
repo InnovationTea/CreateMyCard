@@ -1,5 +1,12 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-29 模板宽卡组合修订：Hero + Compact 必须有一个 PillAction，Full + Compact 不接受动作。
+此项属于模板语义／布局组合合同，实际判定继续位于
+`template_generation/engine/cardplan/compiler.py::_validate_provider_template_layout_action_requirements`，
+复用布局注册表的子项数量检查，不向 Compact DSL 校验目录复制模板规则。
+`wide_template_planner.py` 负责合法候选与动作归属，`advanced/ux_mixed_prompt.py` 负责二层候选投影；
+回归见 `test_wide_hero_compact_layout.py`，画廊独立断言正例及缺按钮、错角色等反例。
+
 2026-10-28 日程条目点击：`items[].onClick` 的字段和单 handler 形状归语法／组件，
 委托 `compact_high_level_components.py` 共享合同及展开后 `syntax/components.py`；
 有效日程详情、展示与参数的同数组记录归属、重复详情入口归语义／有效能力，

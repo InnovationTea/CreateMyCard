@@ -29,6 +29,7 @@ from models.service import ArtifactSaveResult
 from services.artifact_store import ArtifactStore
 from services.template_generation import facade
 from services.template_generation.controls import TemplateControls, load_template_controls
+from services.template_generation.test_support.gallery_background import check_gallery_background
 from services.template_generation.test_support.gallery_case_contracts import (
     CURRENT_TIME_SAMPLE_VALUES,
     REQUIRED_ASSET_IDS,
@@ -1543,22 +1544,6 @@ def _count_a2ui_actions(messages: list[dict[str, Any]]) -> int:
     return count
 
 
-def _has_fusion_ball(messages: list[dict[str, Any]]) -> bool:
-    for message in messages:
-        update = message.get("updateComponents")
-        if not isinstance(update, dict):
-            continue
-        components = update.get("components")
-        if not isinstance(components, list):
-            continue
-        for component in components:
-            if not isinstance(component, dict):
-                continue
-            if component.get("id") == "fusionBallBackground":
-                return True
-    return False
-
-
 def _expected_action_count(scenario_id: str) -> int:
     return {
         "single-two-actions": 2,
@@ -1757,15 +1742,14 @@ class ProviderGalleryBatchRunner:
                 ),
                 generation_status=response.status.value,
             )
-        fusion_ball_rendered = _has_fusion_ball(messages)
-        if fusion_ball_rendered != case.expectsFusionBall:
+        background = check_gallery_background(
+            messages, expected_fusion=case.expectsFusionBall, app_version=request.prdVer,
+        )
+        if background.error:
             return self._base_result(
                 case,
                 "failed",
-                (
-                    "融球版本校验失败："
-                    f"期望 {case.expectsFusionBall}，实际 {fusion_ball_rendered}"
-                ),
+                background.error,
                 generation_status=response.status.value,
             )
         target_slug = _kebab_case(
@@ -1798,7 +1782,8 @@ class ProviderGalleryBatchRunner:
         result["a2uiFile"] = relative_path.as_posix()
         result["artifactDigest"] = response.artifactDigest
         result["messageCount"] = len(messages)
-        result["fusionBallRendered"] = fusion_ball_rendered
+        result["fusionBallRendered"] = background.fusion_rendered
+        result["backgroundKind"] = background.kind
         result["actualLayout"] = actual_layout
         result["actualTemplateIds"] = list(template_ids)
         return result
