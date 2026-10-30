@@ -15,8 +15,6 @@ from test_daily_usage_limiter import make_limiter
 from test_daily_usage_routes import OPERATION, payload, run_route
 from utils import ops_metrics
 
-_USER_HASH = hashlib.sha256(b"user").hexdigest()
-
 
 @pytest.fixture
 def metric_report(monkeypatch):
@@ -36,8 +34,8 @@ async def test_each_rejection_reports_even_for_same_request(metric_report, used_
             await limiter.check("user", "same-request")
         assert captured.value.code == ErrorCode.DAILY_USAGE_LIMIT_EXCEEDED
     assert metric_report.call_args_list == [
-        call(body={"dailyUsageLimitExceeded": 1, "uidHash": _USER_HASH}),
-        call(body={"dailyUsageLimitExceeded": 1, "uidHash": _USER_HASH}),
+        call(body={"dailyUsageLimitExceeded": 1}),
+        call(body={"dailyUsageLimitExceeded": 1}),
     ]
     repository.insert_success.assert_not_awaited()
 
@@ -51,8 +49,8 @@ async def test_each_write_confirmation_reports_including_idempotent_success(metr
     await limiter.record_success(record)
     await limiter.record_success(record)
     assert metric_report.call_args_list == [
-        call(body={"dailyUsageDeductSuccess": 1, "uidHash": record.uid_hash}),
-        call(body={"dailyUsageDeductSuccess": 1, "uidHash": record.uid_hash}),
+        call(body={"dailyUsageDeductSuccess": 1}),
+        call(body={"dailyUsageDeductSuccess": 1}),
     ]
     # 数据库模拟仓库只记一次；后续前置查询命中已计次不再上报。
     assert await limiter.repository.snapshot(record) == DailyUsageSnapshot(True, 1)
@@ -80,9 +78,7 @@ async def test_write_reports_only_after_confirmation(metric_report):
     finally:
         release.set()
         await task
-    metric_report.assert_called_once_with(
-        body={"dailyUsageDeductSuccess": 1, "uidHash": record.uid_hash}
-    )
+    metric_report.assert_called_once_with(body={"dailyUsageDeductSuccess": 1})
 
 
 @pytest.mark.asyncio
@@ -154,9 +150,7 @@ async def test_generation_delivery_controls_success_metric(monkeypatch, metric_r
     monkeypatch.setattr(routes, "get_service", lambda _runtime: Mock())
     await run_route(monkeypatch, make_limiter(), status=status)
     if status == "success":
-        metric_report.assert_called_once_with(
-            body={"dailyUsageDeductSuccess": 1, "uidHash": _USER_HASH}
-        )
+        metric_report.assert_called_once_with(body={"dailyUsageDeductSuccess": 1})
     else:
         metric_report.assert_not_called()
 
@@ -177,7 +171,7 @@ async def test_existing_metrics_switch_and_session_are_reused(monkeypatch, enabl
         send.assert_awaited_once()
         assert send.call_args.args[1] == {
             "sessionId": "usage-session",
-            "body": {"dailyUsageDeductSuccess": 1, "uidHash": record.uid_hash},
+            "body": {"dailyUsageDeductSuccess": 1},
         }
     else:
         send.assert_not_called()
@@ -185,7 +179,7 @@ async def test_existing_metrics_switch_and_session_are_reused(monkeypatch, enabl
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("uid", ["user", " 用户A ", "User"])
-async def test_both_metrics_reuse_repository_uid_hash(metric_report, uid):
+async def test_both_metrics_omit_identity_but_records_keep_uid_hash(metric_report, uid):
     limiter = make_limiter(limit=1)
     record = await limiter.check(uid, "first-request")
     assert record is not None
@@ -195,6 +189,6 @@ async def test_both_metrics_reuse_repository_uid_hash(metric_report, uid):
     with pytest.raises(DailyUsageError):
         await limiter.check(uid, "second-request")
     assert metric_report.call_args_list == [
-        call(body={"dailyUsageDeductSuccess": 1, "uidHash": expected_hash}),
-        call(body={"dailyUsageLimitExceeded": 1, "uidHash": expected_hash}),
+        call(body={"dailyUsageDeductSuccess": 1}),
+        call(body={"dailyUsageLimitExceeded": 1}),
     ]
