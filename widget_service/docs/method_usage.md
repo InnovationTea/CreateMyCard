@@ -903,6 +903,35 @@ installed_apps    已安装应用 bundleName 集合；不保留也不比较 vers
 
 默认 mock 文件为微服务内部的 `cloud/data/mock/ids_res.json`，只声明 mock 已安装应用。相对路径统一从 `cloud/` 解析，不读取仓库根目录或 Skill 目录。mock 文件是否存在不决定运行模式；运行模式只由 `enable_ids_mock` 决定。
 
+远程每次尝试在普通 INFO 日志 `ids_remote_response_diagnostic` 中记录响应诊断摘要：
+HTTP 状态、响应字节数、顶层及 namespace 的 `retCode` / `description` 等业务状态原值，
+`nameSpaces` 是否存在、类型、数量，`dataType`、`values` 类型、记录数及有效包名记录数。
+摘要最多展示 20 个 namespace，文本字段最多 512 字符并标记截断，不输出完整安装清单。
+错误描述中回显的请求设备标识和签名会遮蔽；非 JSON 响应只记录解析失败及字节数，不打印原文。
+结构解析异常记录 `ids_payload_parse_failed`；零安装记录记录 `ids_no_installed_app_records`，
+表示未获取到记录，不能据此断言用户未安装应用。未知业务状态码只记录，不新增判错或重试规则。
+可继续重试的请求失败使用 WARNING，最终失败使用 ERROR；异常详情与堆栈以 JSON 单行记录。
+IDS 请求体的 `requestId` 使用 `capability-overview&<router requestId>`，
+例如 `capability-overview&session123&2`，从 router 写入的请求上下文读取。
+同次 IDS 查询的重试保持相同 requestId；绕过 router 的直接调用缺少上下文时使用 UUID 后缀，
+避免所有查询共用固定标识。此处不新增 HTTP `request-id` 请求头。
+
+IDS 重试采用指数退避，按单调时钟的时间窗口控制，不再使用 `ids_request_retry_count`：
+
+```yaml
+ids_request_retry_budget_seconds: 10.0
+ids_request_retry_initial_delay_seconds: 0.5
+ids_request_retry_backoff_multiplier: 2.0
+```
+
+从首次远程尝试前开始计时，请求耗时、签名刷新和等待均占用窗口；失败后依次等待 0.5、1、2、4…秒。
+若假设请求立即失败，尝试开始时间为 0、0.5、1.5、3.5、7.5 秒；下一次完整等待会超出 10 秒，便停止重试。
+若等待后正好达到截止时间，同样不再发起请求；已发出的最后一次请求允许跨过窗口完成，成功仍采用结果。
+因此 10 秒是发起重试的窗口，不是总耗时的硬上限；单次请求仍使用 `ids_request_timeout_seconds`。
+预算为 0 时只请求一次；首次间隔必须大于 0、倍数必须大于 1，均拒绝布尔值及非有限数值。
+部署侧原来的 `ids_request_retry_count` 配置不再生效，需改用以上配置；mock 和不可重试错误规则不变。
+普通日志记录当前尝试、预算、已耗时、剩余时间、下次等待时长及最终停止原因。
+
 ### 6.4 DeviceCapabilityResolver._check_required_packages
 
 用途：对能力 `requiredPackages[].packageName` 中命中 `ids_installation_filter_package_names` 的包名做区分大小写的精确匹配；全部受检包名都存在才通过，不比较包版本。当前默认匹配天气、运动健康和日历包。

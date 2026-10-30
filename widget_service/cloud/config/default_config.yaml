@@ -28,8 +28,10 @@ osms_delete_url: ""
 hag_osms_ak: ""
 ids_query_url: "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
 ids_access_key: "23232323232"
-# IDS 远程查询额外重试次数；0 关闭，1 表示首次失败后最多再请求一次。
-ids_request_retry_count: 1
+# IDS 指数退避窗口；0 表示只请求一次。已发出的最后一次请求允许跨过窗口完成。
+ids_request_retry_budget_seconds: 10.0
+ids_request_retry_initial_delay_seconds: 0.5
+ids_request_retry_backoff_multiplier: 2.0
 sts_serverDomain: ""
 obs.use.edge: false
 obs.expire.time: 3600

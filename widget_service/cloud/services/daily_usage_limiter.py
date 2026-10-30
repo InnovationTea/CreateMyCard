@@ -8,9 +8,10 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Protocol
 
-from app.logger import logger
+from app.logger import json_for_log, logger
 from config.config import get_settings
 from core.errors import ErrorCode
+from utils.ops_metrics import report_ops_metrics
 
 _BEIJING = timezone(timedelta(hours=8))
 
@@ -51,6 +52,18 @@ class DailyUsageError(Exception):
 
 def _beijing_now() -> datetime:
     return datetime.now(_BEIJING)
+
+
+def _report_usage_metric(metric_name: str, record: DailyUsageRecord) -> None:
+    """打点调度失败不改变额度判断；后台网络失败由 ops_metrics 记录。"""
+    try:
+        report_ops_metrics(body={metric_name: 1})
+    except Exception as exc:
+        diagnostic = {"exception_type": type(exc).__name__, "reason": str(exc)}
+        logger.warning(
+            f"[Daily Usage] metric_dispatch_failed record_id={record.record_id} "
+            f"metric={metric_name} diagnostic={json_for_log(diagnostic)} action=continue"
+        )
 
 
 class DailyUsageLimiter:
@@ -114,6 +127,7 @@ class DailyUsageLimiter:
             )
             record = None
         elif snapshot.used_count >= self.limit:
+            _report_usage_metric("dailyUsageLimitExceeded", record)
             logger.warning(
                 f"[Daily Usage] rejected record_id={record.record_id} "
                 f"reason=limit_exceeded used_count={snapshot.used_count} limit={self.limit} "
@@ -148,6 +162,7 @@ class DailyUsageLimiter:
                 "reason=usage_api_record_failed action=continue_without_confirmation"
             )
         else:
+            _report_usage_metric("dailyUsageDeductSuccess", record)
             logger.info(
                 f"[Daily Usage] recorded record_id={record.record_id} attempt=1 "
                 f"uid_hash={record.uid_hash} "
