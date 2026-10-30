@@ -19,6 +19,7 @@ from .gallery_case_contracts import (
 )
 
 _DATE_TITLE = "ScheduleOverviewDateTitleFull@1"
+_TITLE_LOCATION = "ScheduleOverviewTitleLocationHero@1"
 _WEATHER_FULL = "WeatherOverviewFull@1"
 _PLAYLIST = "BluetoothDeviceOverviewEarbudsChargingWideFull@1"
 _UNREACHABLE_BATTERY = "BatteryOverviewPercentLevelHero@1"
@@ -59,33 +60,51 @@ def _not_applicable_reason(template_ids: list[str]) -> str:
 def _calendar_weather(
     case: gallery.GalleryInputCase, content: dict[str, Any],
 ) -> None:
+    calendar_fields = ["/events/0/title", "/events/0/startDate"]
+    weather_fields = ["/current/temperatureText", "/current/condition"]
+    weather_template = _WEATHER_FULL
+    layout = "WideTwoFullLayout"
+    query = "生成2×4卡片，左侧展示首项日程标题和开始日期，右侧展示当前温度和天气现象，无按钮。"
+    scenario_name = "日历日期标题 + 天气"
+    if case.targetTemplateId == _TITLE_LOCATION:
+        calendar_fields = ["/events/0/title", "/events/0/eventLocation"]
+        weather_fields = ["/current/condition"]
+        weather_template = "WeatherOverviewConditionHero@1"
+        layout = "WideTwoFocusLayout"
+        query = "生成2×4卡片，左侧展示首项日程标题和地点，右侧展示当前天气现象，无按钮。"
+        scenario_name = "日程标题地点 + 天气现象"
+        case.notApplicableReason = (
+            "日程标题地点模板仅支持 2×4；无动作双 Hero 布局已移除，"
+            "当前没有完整保留原字段和零动作要求的已登记组合。"
+        )
     content.update(
         size="2x4",
         candidateDataBindings=[
             {
                 "capabilityId": "GetCalendarEvents",
                 "writeResultTo": "/data/calendar",
-                "candidateOutputFields": ["/events/0/title", "/events/0/startDate"],
+                "candidateOutputFields": calendar_fields,
                 "arguments": {"futureDays": 7},
             },
             {
                 "capabilityId": "ViewWeather",
                 "writeResultTo": "/data/weather",
-                "candidateOutputFields": ["/current/temperatureText", "/current/condition"],
+                "candidateOutputFields": weather_fields,
                 "arguments": _arguments("ViewWeather"),
             },
         ],
         candidateEventCandidates=[],
-        userQuery="生成2×4卡片，左侧展示首项日程标题和开始日期，右侧展示当前温度和天气现象，无按钮。",
+        userQuery=query,
     )
     case.cardSize = "2x4"
-    case.partnerTemplateId = _WEATHER_FULL
-    case.compositionTemplateIds = [_DATE_TITLE, _WEATHER_FULL]
-    case.expectedLayout = "WideTwoFullLayout"
+    case.partnerTemplateId = weather_template
+    case.compositionTemplateIds = [case.targetTemplateId, weather_template]
+    case.expectedLayout = layout
     case.constrainLayout = True
     case.expectedActionCount = 0
     case.expectsFusionBall = False
-    case.scenarioName = "融球 · 日历日期标题 + 天气"
+    case.scenarioId = "single-content"
+    case.scenarioName = f"图片优先 · {scenario_name}"
 
 
 def _normalize_actions(
@@ -154,7 +173,7 @@ def normalize_gallery_case(
         content["candidateAssetIds"] = assets
     _normalize_actions(template_ids, content, events)
     _normalize_time_samples(payload, content)
-    if case.targetTemplateId == _DATE_TITLE:
+    if case.targetTemplateId in {_DATE_TITLE, _TITLE_LOCATION}:
         _calendar_weather(case, content)
     elif case.targetTemplateId == THREE_DAY_WEATHER_TEMPLATE:
         content = three_day_weather_content(

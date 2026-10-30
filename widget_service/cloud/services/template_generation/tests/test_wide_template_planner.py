@@ -7,6 +7,7 @@ import json
 import pytest
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
+from services.template_generation.engine.advanced.scope_planner import TemplateRouteNotApplicable
 from services.template_generation.engine.cardplan.compiler import (
     _expand_health_metric_generic_template,
     _validate_allowed_template_plan,
@@ -28,7 +29,6 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     build_template_retrieval_prompt,
     search_template_variants,
 )
-from services.template_generation.engine.advanced.scope_planner import TemplateRouteNotApplicable
 from services.template_generation.engine.cardplan.wide_template_planner import (
     _WIDE_LAYOUTS,
     _layout_geometry_fits,
@@ -286,19 +286,20 @@ def test_more_available_variants_do_not_reject_valid_two_business_layout(richer)
             "GetPhoneBatteryInfo": ("/batterySOC",),
         }
     )
-    if richer:
-        plans = _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
-        assert plans
-        for plan in plans:
-            assert {slot.capability_id for slot in plan.business_slots} == {
-                "ViewWeather",
-                "GetPhoneBatteryInfo",
-            }
-    else:
-        # The former 66vp two-focus layout was removed. The sparse fixture
-        # contains heroes taller than the retained 58vp two-hero budget.
-        with pytest.raises(TemplateRetrievalMiss, match="supported atomic plan"):
-            _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
+    plans = _plans(task, _WEATHER_BATTERY_BINDINGS, _weather_battery_card_spec(), intent)
+    assert plans
+    for plan in plans:
+        assert {slot.capability_id for slot in plan.business_slots} == {
+            "ViewWeather",
+            "GetPhoneBatteryInfo",
+        }
+        if not richer:
+            # 稀疏字段由完整 Full + Compact 覆盖，无需恢复已移除的双 Hero 布局。
+            assert plan.layout_template_id == "WideFullCompactLayout@1"
+            assert len(plan.business_slots) == 2
+            assert plan.business_slots[0].template_id.endswith("Full@1")
+            assert plan.business_slots[1].template_id.endswith("Compact@1")
+            assert plan.action_assignments == ()
 
 
 @pytest.mark.parametrize("reversed_events", (False, True))

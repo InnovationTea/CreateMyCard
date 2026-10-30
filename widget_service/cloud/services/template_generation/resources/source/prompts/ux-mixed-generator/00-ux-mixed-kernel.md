@@ -32,6 +32,9 @@ contractVersion: hybrid-body-contract/0.5
 8. 当 `WideFullHeroActionLayout@1` 与 `WideHeroActionFullLayout@1` 同时可用时，比较两个业务 Template
    的最大文本字号：字号更大的业务必须位于左侧；两者相同时使用 `WideFullHeroActionLayout@1`。
 9. PillAction@1 暂时只展示文本，仅允许 actionId、label Props，禁止设置 icon；IconAction@1 仍按签名填写图标。
+10. WideHeroCompactLayout@1 的 children 必须依次为 Hero、Compact、一个 PillAction，按钮属于 Hero
+    业务；WideFullCompactLayout@1 只接受 Full、Compact，不接受动作。缺少批准动作时不得拼接 Hero
+    无按钮组合，也不得补造动作或将 Hero 当作 Full。
 
 动作文案规则：候选 label 非 null 时必须逐字使用。仅 labelPolicy=generate-from-request 的候选允许
 根据 actionLabelRequest 中的用户需求，以及该候选 description/readOnlyAction 的实际含义生成 label。

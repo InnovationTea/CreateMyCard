@@ -19,6 +19,8 @@ _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
     "WideSingleFocusLayout",
     "WideFullOnlyLayout",
     "WideTwoFullLayout",
+    "WideHeroCompactLayout",
+    "WideFullCompactLayout",
     "WideFullHeroActionLayout",
     "WideHeroActionFullLayout",
     "WideFullTwoCompactLayout",

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import uuid
 from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from app.logger import json_for_log, logger
+from app.logger import json_for_log, logger, task_logger
 from config.config import get_settings
 from core.errors import ErrorCode
 from core.json_pointer import parse_json_pointer
@@ -57,9 +58,12 @@ class DeviceCapabilityResolver:
         ids_source = "provided"
         if ids_state is None:
             if self._has_ids_filtered_dependency(registered_capabilities):
+                router_request_id = task_logger.get_session_id()
+                if not router_request_id or router_request_id == "None":
+                    router_request_id = uuid.uuid4().hex
                 ids_state = self.ids_client.get_device_capability_state(
                     device,
-                    "get-widget-capability-overview",
+                    f"capability-overview&{router_request_id}",
                 )
                 ids_query_status = "queried"
                 ids_source = "mock" if self.settings.enable_ids_mock else "remote"

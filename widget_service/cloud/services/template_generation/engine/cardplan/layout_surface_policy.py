@@ -7,6 +7,7 @@ from typing import Any
 from services.template_generation.engine.tersel_converter import Nested2Node, TerselConversionError
 
 from .parser import ParsedCall
+from .photo_theme import STYLE_MARKER, SURFACE_MARKER
 
 _HERO_PANEL_INDEX_BY_LAYOUT = {
     "WideFullHeroActionLayout": 1,
@@ -60,6 +61,15 @@ def apply_layout_surface(
     options = dict(panel.values[0])
     for key in ("backgroundColor", "borderRadius", "padding"):
         options.pop(key, None)
+    options.pop(SURFACE_MARKER, None)
+    style_roles = options.get(STYLE_MARKER)
+    if isinstance(style_roles, dict):
+        remaining_roles = dict(style_roles)
+        remaining_roles.pop("backgroundColor", None)
+        if remaining_roles:
+            options[STYLE_MARKER] = remaining_roles
+        else:
+            options.pop(STYLE_MARKER, None)
     options["itemMargin"] = action_gap
     children = list(root.children)
     children[panel_index] = Nested2Node(panel.component_type, (options,), panel.children)

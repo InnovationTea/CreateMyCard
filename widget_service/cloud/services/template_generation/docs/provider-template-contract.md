@@ -148,9 +148,10 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 - `HeroContent`：双业务单 Action 的位置 1，前置一个 HeroTitle；
 - `Support`：Search 按数据覆盖返回候选；默认由 Planner 组成 2x2 双 Support，显式声明支持 2x4 后
   也可作为 `WideFullTwoCompactLayout@1` 右侧上下两个 1x2 支撑槽位；事件可按需绑定在 Support 内部；
-- `Compact`：约 `2x1`，只用于一个 Compact 加两个 PillAction；
-- `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
+- `Compact`：约 `2x1`，在 `2x2` 中用于一个 Compact 加两个 PillAction；横版复用遵循对应组合合同；
+- `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；横版复用遵循对应组合合同；
 - `Full`：完整 `2x2`，无 Action 时单独使用，或在存在语义匹配图标素材时加一个 IconAction；
+  横版可作为已登记组合中的完整业务列；
 - `WideHero`：约 `4x1.7`，用于 `2x4` 的 WideHero 加一个 PillAction；
 - `WideFull`：完整 `4x2`，单独使用。
 - `WideHalf`：约 `4x1`，用于 `2x4` 的半高组合布局。
@@ -172,6 +173,14 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 `props?.actionId` 只允许作为 `EventAction` 的参数；Prop 有值时解析为对应 Action ID，缺失或值为
 `None` 时返回 `None`，编译器随后省略整个 `onClick`，不创建 `EventAction`。没有已选事件时第二层省略
 该 Prop；事件值只能来自第一层已批准候选，并由服务端按原始 `call/args` 可信绑定。
+
+### `2x4` 主业务与单 Compact 组合
+
+`2x4` 单 Compact 搭配主业务时采用独立合同：`WideHeroCompactLayout@1` 的直接 children 为
+Hero、Compact、PillAction，左侧 Hero 自适应占据按钮上方空间，底部按钮高 36vp；右侧 Compact
+垂直居中。`WideFullCompactLayout@1` 的直接 children 为 Full、Compact，不接受动作；左侧 Full
+使用完整列高，右侧 Compact 同样垂直居中。两种布局仅支持 2x4，不能用改名替代业务模板。
+Hero 缺少批准的自身业务按钮时拒绝该组合；其它宽卡组合继续遵循各自已登记的合同。
 
 ### `2x2` 固定布局组合
 

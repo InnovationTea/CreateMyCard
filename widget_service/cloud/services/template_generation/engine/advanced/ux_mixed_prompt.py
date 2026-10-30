@@ -883,6 +883,8 @@ def _layout_output_option(
         "WideSingleFocusLayout": "WideHero" if selected_actions else "WideFull",
         "WideFullOnlyLayout": "WideFull",
         "WideTwoFullLayout": "Full",
+        "WideHeroCompactLayout": ("Hero", "Compact"),
+        "WideFullCompactLayout": ("Full", "Compact"),
         "WideFullHeroActionLayout": ("Full", "Hero"),
         "WideHeroActionFullLayout": ("Full", "Hero"),
         "WideFullTwoCompactLayout": "Full",
@@ -924,6 +926,7 @@ def _layout_output_option(
         "CompactTwoActionLayout": _PILL_ACTION_TEMPLATE_ID,
         "HeroTitleContentActionLayout": _PILL_ACTION_TEMPLATE_ID,
         "WideSingleFocusLayout": _PILL_ACTION_TEMPLATE_ID if selected_actions else None,
+        "WideHeroCompactLayout": _PILL_ACTION_TEMPLATE_ID,
         "WideFullHeroActionLayout": _PILL_ACTION_TEMPLATE_ID,
         "WideHeroActionFullLayout": _PILL_ACTION_TEMPLATE_ID,
         "WideFullTwoCompactLayout": (
@@ -1340,15 +1343,11 @@ def _second_layer_layout_selection(
                 )
             elif compact_secondary_present:
                 if "Full" in group_kinds[0]:
-                    raise ValueError(
-                        "2x4 Full + Compact composition is not supported; "
-                        "use WideFullTwoCompactLayout with two Compact children"
+                    layout_id, kinds, actions = (
+                        "WideFullCompactLayout", ("Full", "Compact"), ()
                     )
                 elif "Hero" in group_kinds[0]:
-                    raise ValueError(
-                        "2x4 Hero + Compact composition is not supported; "
-                        "use a supported Full + Support composition"
-                    )
+                    raise ValueError("2x4 Hero + Compact requires one PillAction")
                 else:
                     raise ValueError(
                         "2x4 primary business must provide Full or Hero beside Compact"
@@ -1389,9 +1388,9 @@ def _second_layer_layout_selection(
                     )
                 elif "Hero" in group_kinds[0]:
                     selection = _SecondLayerLayoutSelection(
-                        layout_ids=("WideFullTwoCompactLayout",),
+                        layout_ids=("WideHeroCompactLayout",),
                         layout_kinds=("Hero",),
-                        action_template_ids=(_COMPACT_ACTION_TEMPLATE_ID,),
+                        action_template_ids=(_PILL_ACTION_TEMPLATE_ID,),
                         business_layout_kinds_by_position=("Hero", "Compact"),
                     )
                 else:

@@ -335,6 +335,11 @@ Planner 原子 Plan 契约。
 
 ## 7. 横版组合规则
 
+单个 Compact 与主业务并排时，`WideHeroCompactLayout` 固定为 Hero、Compact、PillAction，
+动作归属第 0 个 Hero 业务；`WideFullCompactLayout` 固定为 Full、Compact，不接受动作。
+无动作 Hero + Compact 不产生合法 Plan，二层候选与编译器均拒绝；无动作请求可选择满足字段覆盖的
+Full + Compact，不补造事件。其它已登记组合的动作形态不因本次修订改变。
+
 `wide_template_planner.py` 为公共 Planner 提供完整横版组合，复用同一套主题裁决、排序、去重与编译契约。
 它按每个 capability 的显式字段枚举完整覆盖，再匹配已登记布局的业务形态与动作位置。布局失败仅淘汰
 该组合；不得因为候选集合中存在 Full + Compact 就拒绝其中可行的 Hero + Hero 或 Full + Full。

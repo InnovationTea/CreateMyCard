@@ -60,6 +60,13 @@ def test_compositions_stay_in_original_domain_and_preserve_existing_requests(
             assert layout is not None
             assert len(case.compositionTemplateIds) == len(layout.roles)
             assert case.expectedActionCount == len(layout.action_templates)
+            if case.expectedLayout == "WideHeroCompactLayout":
+                assert case.expectedActionCount == 1
+                assert layout.roles == ("Hero", "Compact")
+                assert layout.action_owners == (0,)
+            if case.expectedLayout == "WideFullCompactLayout":
+                assert case.expectedActionCount == 0
+                assert layout.roles == ("Full", "Compact")
             domains = []
             payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
             content = payload.get("content")
@@ -89,9 +96,7 @@ def test_compositions_stay_in_original_domain_and_preserve_existing_requests(
             assert domains[0] == provider.providerSlug
             assert len(domains) == len(set(domains))
     assert covered == set(layouts)
-    # 四个已删除的稀疏宽卡布局不再生成组合；其余布局仍需完整覆盖，
-    # 当前稳定组合数为 61（原 85 减去 24 个已移除布局组合）。
-    assert composition_count == 61
+    assert composition_count == 74
     audit = json.loads((tmp_path / "wide-composition-selection.json").read_text(encoding="utf-8"))
     excluded = audit.get("excluded")
     assert isinstance(excluded, list)

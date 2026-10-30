@@ -16,7 +16,7 @@ def test_specific_background_color_survives_family_choice_and_photo_priority(
     monkeypatch, wide, color, model_theme,
 ):
     saved = sample(PATHS.get("weather"), 2, wide=wide)
-    query = "这张卡使用指定的具体配色，气氛轻松"
+    query = f"这张卡背景使用精确色值 {color}，气氛轻松"
     saved.task["userQuery"] = query
     request = preference("backgroundColor", color, query)
     result, audit = choose(saved, monkeypatch, reply([request], model_theme))

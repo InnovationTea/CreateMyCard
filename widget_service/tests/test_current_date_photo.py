@@ -37,8 +37,7 @@ def test_current_date_card_is_three_lines_and_matches_calendar_subject(monkeypat
     assert rejection(saved, MEETING) is None
     assert rejection(saved, BLUE) is None
     final, audit = choose(saved, monkeypatch)
-    expected = {MEETING, "photo-ux-meeting-room-brown-chairs-square",
-                "photo-ux-meeting-room-green-chairs-square"}
+    expected = {MEETING, "photo-ux-meeting-room-brown-chairs-square"}
     assert audit.get("themeId") in expected
     assert set(audit.get("candidates", [])) == expected
     assert themes.foreground_signature(final) == themes.foreground_signature(saved.source)

@@ -20,8 +20,8 @@ def standard_candidates():
     return registry.registered_themes("standard")
 
 
-def select(candidates, items):
-    parsed = preferences.parse_preferences(items, "配色与要求由用户给定", candidates)
+def select(candidates, items, query="配色与要求由用户给定"):
+    parsed = preferences.parse_preferences(items, query, candidates)
     overrides = preferences.color_overrides(parsed, candidates=candidates)
     allowed = preferences.filter_with_fusion_fallback(candidates, parsed, overrides)
     return preferences.prioritize_candidates(allowed, parsed, "blue"), overrides
@@ -128,12 +128,12 @@ def test_registered_palette_without_eligible_preset_uses_readable_plain_color(mo
 @pytest.mark.parametrize("items", [
     [], [preference("paletteFamily", "red", "配色", "avoid")],
     [preference("backgroundKind", "fusion", "配色")],
-    [preference("backgroundColor", "#FFFF0000", "配色")],
+    [preference("backgroundColor", "#FFFF0000", "#FFFF0000")],
 ])
 def test_without_positive_palette_default_fusion_gate_is_unchanged(monkeypatch, items):
     monkeypatch.setattr(themes, "fusion_ball_enabled", lambda version: True)
     saved = sample(PATHS.get("weather"), 4)
-    saved.task["userQuery"] = "配色与要求由用户给定"
+    saved.task["userQuery"] = "配色与要求由用户给定，精确背景 #FFFF0000"
     result, audit = choose(saved, monkeypatch, reply(items, "fusion-ball-sport-orange"))
     assert audit.get("theme", {}).get("kind") != "fusion"
     assert not audit.get("fusionEligibility", {}).get("palettePreferenceTokens")
@@ -197,8 +197,8 @@ def test_unconfirmed_palette_does_not_bypass_content_gate(monkeypatch, response)
 
 @pytest.mark.parametrize("specific", ["#FF123456", "#FFFF0000", "#FFFFFFFF"])
 def test_exact_colors_are_not_quantized_to_a_palette(specific):
-    items = [preference("backgroundColor", specific, "配色")]
-    _, overrides = select(standard_candidates(), items)
+    items = [preference("backgroundColor", specific, specific)]
+    _, overrides = select(standard_candidates(), items, query=specific)
     assert overrides.get("background", {}).get("color") == specific
 
 

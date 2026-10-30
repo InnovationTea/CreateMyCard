@@ -9,6 +9,7 @@ from services.post_layout_theme_registry import (
     theme_palette_families,
     user_background_roles,
 )
+from services.theme_background_color import normalize_background_colors
 
 _KINDS = frozenset({"photo", "fusion", "gradient", "solid"})
 _PROPERTIES = frozenset({
@@ -30,6 +31,7 @@ preferences为数组；无明确偏好返回[]。每项严格为
   登记色系本轮没有合格融球或渐变时由程序提供普通底色，不需要伪造候选或精确色值。
 - backgroundColor/textColor: 明确纯色、精确色值或现有候选无法承接的背景色，以及明确文字色，
   规范化为#RRGGBB或#AARRGGBB；不要据普通配色需求额外生成背景色覆盖。
+  明确纯色还需返回backgroundKind=solid；精确背景色证据须包含用户给出的同值HEX/RGB。
 - themeId: 仅用户明确要求/排除某张登记素材时使用，值须来自本轮候选。
 先确定颜色指向的对象和具体程度，图标或文字颜色不改成整卡颜色。氛围需求可选择已有色系，
 不虚构精确色值；纯业务标题不构成视觉要求。精确色值和明确纯色仍按用户原意保留。
@@ -58,8 +60,6 @@ def parse_preferences(value: object, query: str, candidates: list[dict]) -> list
         families.update(theme_palette_families(candidate))
     identities = {item.get("id") for item in candidates}
     result = []
-    preferred = {}
-    avoided: dict[str, set[str]] = {}
     for item in value:
         if not isinstance(item, dict) or set(item) != _FIELDS:
             raise ValueError("Invalid theme preference fields")
@@ -90,6 +90,18 @@ def parse_preferences(value: object, query: str, candidates: list[dict]) -> list
         elif requested not in choices.get(attribute, set()):
             raise ValueError("Preference value is not in the registered choices")
         normalized = {**item, "value": requested}
+        result.append(normalized)
+    return _merge_preferences(normalize_background_colors(result), candidates)
+
+
+def _merge_preferences(items: list[dict], candidates: list[dict]) -> list[dict]:
+    result = []
+    preferred = {}
+    avoided: dict[str, set[str]] = {}
+    for normalized in items:
+        attribute = normalized.get("property")
+        operation = normalized.get("operator")
+        requested = normalized.get("value")
         if operation == "prefer":
             previous = preferred.get(attribute)
             if previous is not None:

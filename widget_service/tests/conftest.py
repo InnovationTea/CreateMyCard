@@ -4,6 +4,26 @@ import pytest
 
 
 @pytest.fixture
+def ids_retry_clock(monkeypatch):
+    """IDS 退避使用虚拟单调时钟，不真实等待、不影响全局 time 模块。"""
+    import time
+    from types import SimpleNamespace
+
+    from services import ids_client
+
+    clock = SimpleNamespace(now=0.0, sleeps=[])
+
+    def sleep(delay):
+        clock.sleeps.append(delay)
+        clock.now += delay
+
+    monkeypatch.setattr(ids_client, "time", SimpleNamespace(
+        time=time.time, monotonic=lambda: clock.now, sleep=sleep,
+    ))
+    return clock
+
+
+@pytest.fixture
 def daily_usage_auth(monkeypatch):
     """每日次数 HTTP 测试使用独立假密钥，不访问真实 STS。"""
     from services import daily_usage_api
