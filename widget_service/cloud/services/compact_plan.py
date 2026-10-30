@@ -503,12 +503,16 @@ def _extend_static_plan_tool(
     properties["presentationStyle"] = {
         "enum": ["auto", "content", "rows", "records", "comparison"],
         "description": (
-            "模型按用户用途选择结构；活动、日程等名称加时地的多条同构记录优先records，"
+            "首次提交前按用户用途选择结构并核对实际槽位；活动、日程等名称加时地的"
+            "多条同构记录优先records，"
             "每个object组对应一条真实记录，一项保留同一对象的主副信息；"
-            "静态正文最多五个object组，共享标题和公共说明不计入；"
-            "records实际使用TextList时两到三项，含共同标题最多两项；rows为单行列表；"
-            "上述项数是实际组件承载限制，不是事实账本或contentGroups的数量上限；"
-            "comparison仅2x4，普通偏好不替代实际容量校验。"
+            "records/TextList带标题只能2项、无标题只能3项；"
+            "rows/SingleLineList必须带标题且只能1到5条完整单行；"
+            "短对象名加短月份、价格或状态能单行读完时优先rows；"
+            "comparison仅2x4，带标题2到3项、无标题4项；"
+            "content/EmphasisText只承载1个核心对象或结论。"
+            "最多五个object组只是账本上限；shared标题会占标题区，"
+            "shared公共说明仍须占所选正文组件的合法字段与高度。"
         ),
     }
     properties["paletteFamily"] = {
@@ -604,6 +608,7 @@ def _extend_static_plan_tool(
         required.append("omittedContents")
     function["description"] = (
         "在同一次Plan中完成静态内容理解、摘要总结、must/should及对象分组。"
+        "首次提交前按presentationStyle对应组件核算标题、对象条目和公共正文的实际容量。"
         "每个text必须在唯一contentGroups组的facts内提交；不输出info_required或factIndexes。"
         "Action不进入静态contentGroups；历史纯Action输入仅由兼容解析保留。"
         "同对象事实合组，共享标题或条件用shared；不同对象同文字不去重。"

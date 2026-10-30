@@ -383,6 +383,12 @@ def test_review_focuses_on_uncited_context_without_treating_it_as_required_displ
     assert evidence.get("candidateDisplayText", {}).get("status") == "unknown"
     instruction = payload.get("instruction", "")
     assert "公共主体或范围未进入Plan" in instruction
+    assert "在findings中使用sourceText、factIndexes:[]和issue报告完全漏项" in instruction
+    assert "factRefs仅用于correctedPlan的omittedContents" in instruction
+    missing = _correct(plan, [_finding(source, indexes=[])])
+    Draft202012Validator(payload.get("reviewOutput")).validate(missing)
+    parsed = parse_static_plan_review(json.dumps(missing), source=source, fact_count=1)
+    assert parsed.findings[0].get("factIndexes") == []
     assert "不是必须全部展示的清单" in instruction
     assert "已声明且不改变剩余内容含义的合法省略不单独构成needs_correction" in instruction
     # 这些证据不会在本地强行把原 keep 改成错误，也不修改已有省略声明。
@@ -535,7 +541,7 @@ async def test_invalid_review_or_timeout_never_saves_original(monkeypatch, revie
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("semantic_issue", [False, True])
-async def test_only_semantically_confirmed_original_can_survive_bad_optimization(
+async def test_invalid_corrected_plan_keeps_original_even_with_semantic_findings(
     monkeypatch, semantic_issue,
 ):
     findings = [_finding()] if semantic_issue else []
@@ -543,16 +549,15 @@ async def test_only_semantically_confirmed_original_can_survive_bad_optimization
         _call(_plan()), _correct({"info_required": []}, findings),
     ])
     response = await service.generate_widget_card_compact_dsl(_request())
-    if semantic_issue:
-        assert response.status != GenerationStatus.SUCCESS
-        assert len(calls) == 2 and not saved
-    else:
-        assert response.status == GenerationStatus.SUCCESS
-        assert len(calls) == 3 and len(saved) == 1
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(calls) == 3 and len(saved) == 1
 
 
 @pytest.mark.asyncio
-async def test_confirmed_original_survives_optimization_without_feasible_candidate(monkeypatch):
+@pytest.mark.parametrize("semantic_issue", [False, True])
+async def test_original_survives_corrected_plan_without_feasible_candidate(
+    monkeypatch, semantic_issue,
+):
     source = "完整说明" * 70
     original = _plan("完整说明", source)
     corrected = _plan(source, source)
@@ -561,8 +566,9 @@ async def test_confirmed_original_survives_optimization_without_feasible_candida
             "userQuery": source, "size": "2x2",
         }).plan
     assert not parsed.get("staticPresentation")
+    findings = [_finding(source)] if semantic_issue else []
     service, calls, saved = _service(monkeypatch, [
-        _call(original), _correct(corrected),
+        _call(original), _correct(corrected, findings),
     ], display="完整说明")
     response = await service.generate_widget_card_compact_dsl(_request(source))
     assert response.status == GenerationStatus.SUCCESS

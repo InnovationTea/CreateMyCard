@@ -317,6 +317,19 @@ def test_dynamic_plan_tool_has_no_static_identity_roles_or_capacity_feedback():
         assert static_key not in encoded
 
 
+def test_static_plan_tool_describes_initial_component_capacity_budget():
+    task = {"size": "2x4", "userQuery": "静态内容", "dataModelSchema": {"data": {}}}
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        tool = build_compact_plan_tool(task)
+    function = tool.get("function", {})
+    properties = function.get("parameters", {}).get("properties", {})
+    description = properties.get("presentationStyle", {}).get("description", "")
+    assert "TextList带标题只能2项、无标题只能3项" in description
+    assert "SingleLineList必须带标题且只能1到5条完整单行" in description
+    assert "最多五个object组只是账本上限" in description
+    assert "shared公共说明仍须占所选正文组件" in description
+
+
 def test_single_line_identity_candidate_keeps_names_and_complete_values():
     from services.static_content_presentation import static_presentation_candidates
 

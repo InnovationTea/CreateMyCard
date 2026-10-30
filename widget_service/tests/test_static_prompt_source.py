@@ -266,7 +266,7 @@ def test_complete_capacity_and_shared_rules_are_loaded_once_across_history(monke
         )
     history = "\n".join(message.get("content", "") for message in repaired)
     assert history.count("# 信息理解与组织") == 1
-    assert history.count("# 静态容量参考") == 1
+    assert history.count("# 首次Plan组件容量预算") == 1
     assert history.count("# 静态Plan提交") == 1
     assert history.count("## 2x2-V91") == 1
     assert "# 静态修复" in history

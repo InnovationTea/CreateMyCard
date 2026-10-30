@@ -1827,7 +1827,15 @@ def test_plan_budget_is_loaded_from_shared_contract():
     assert budget.get("height") == 150
     assert "text" not in budget
     initial_budget = static_capacity_prompt("2x2")
+    assert "# 首次Plan组件容量预算" in initial_budget
     assert "字体、行高及间距由Runtime固定" in initial_budget
-    assert "TextList" in initial_budget and "SingleLineList" in initial_budget
+    assert "TextList/records：带标题只能2项，无标题只能3项" in initial_budget
+    assert "SingleLineList/rows：必须带标题，正文1–5行" in initial_budget
+    assert "ComparisonGroup在2x2不可用" in initial_budget
+    assert "shared/body虽不计入object组数" in initial_budget
+    assert "omittedContents" in initial_budget
     assert "TextList" in contract.get("components", {})
     assert contract.get("text", {}).get("emphasis", {}).get("fontSize") == 18
+
+    wide_budget = static_capacity_prompt("2x4")
+    assert "ComparisonGroup仅2x4可用：带标题2–3项，无标题4项" in wide_budget

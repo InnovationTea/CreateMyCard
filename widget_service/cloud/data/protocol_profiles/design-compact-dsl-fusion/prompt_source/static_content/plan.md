@@ -32,7 +32,8 @@ contentGroups数组顺序就是对象展示顺序，facts数组顺序就是组�
 同一文本位于不同对象时仍分别提交，不因文字相同去重；不得猜测或借用其它组的事实归属。
 
 object表示语义对象；多个对象按原顺序分别对应各自条目，不把显示行数直接当成对象数。
-静态正文最多5个object组；SingleLineTitle和shared公共说明不计入。超过时在本阶段选择至多5个完整对象，
+静态事实账本最多5个object组；这不代表任意正文组件都能展示5项。SingleLineTitle使用标题区，
+shared公共说明不计入object组数，但仍必须占用所选正文组件的合法字段与高度。超过时在本阶段选择至多5个完整对象，
 将未选对象完整记录到omittedContents；不得保留对象名却删除它的数值、条件或说明，也不得把多个对象拼成一条伪对象。
 单一对象的关联事实可合组并连续分行，每行完整承载本组事实，分行标签使用Plan已声明的展示文字。
 shared可声明共同标题或完整公共说明；标题放header，说明放所选正文组件已有字段，不新建note组件。
@@ -54,6 +55,23 @@ presentationStyle必须与对象事实的首选componentHints一致：records对
 identity填写最终要显示的名称；若本组text已含同对象简称，在Plan内同步统一名称版本，
 不要让后续DSL同时承担长名称与另一简称。来源原文仍保留在sourceTexts，不改写来源。
 独立名称标签加正文是合法结构，不必把identity重复塞入每条text；数字、限定语及保护文字仍须保留。
+
+## 首次提交容量预算
+
+提交Plan前必须先选定一种正文结构，再按下表核算实际占用；不得用“最多5个object组”代替具体组件容量。
+
+| presentationStyle / 组件 | 标题组合 | 正文容量 | 适用信息 |
+|---|---|---|---|
+| records / TextList | 2项必须有SingleLineTitle；3项不使用独立标题 | 2条或3条完整对象 | 对象名加说明、状态、趋势或多个限定 |
+| rows / SingleLineList | 必须有SingleLineTitle | 1–5条完整单行 | 短标签加短值，每条text与assist均能单行完整读取 |
+| comparison / ComparisonGroup | 2–3项必须有SingleLineTitle；4项不使用标题 | 仅2x4可用，承载2–4个可比对象 | 同维度方案、读数或条件比较 |
+| content / EmphasisText | 可选择一个SingleLineTitle | 1个核心对象或结论；主文本最多2行，次文本最多3行 | 单一结论与从属说明，不承载多个平级对象 |
+
+按以下顺序自查：
+1. 先数完整object条目，再核对shared/title和shared/body；标题会改变TextList和ComparisonGroup的可用项数。
+2. shared/body必须落入所选正文组件的现有字段；列表或对比结构没有额外公共说明槽位时，不能把它当作“不占容量”。
+3. 短对象名加短月份、价格或状态能单行读完时优先rows；不因对象数多就默认选records。
+4. 如果实际条目数或公共说明超出所选组件容量，在首次Plan内先不选should，必要时按priority省略完整低优先级object组并记录omittedContents；不先提交确定超容量的组合等待重规划。
 
 ## 展示提示
 
