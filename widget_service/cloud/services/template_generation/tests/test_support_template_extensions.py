@@ -15,6 +15,10 @@ from services.template_generation.engine.cardplan.compiler import (
 )
 from services.template_generation.engine.cardplan.preview_dataset import _sample_value, _set_path
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
+from services.template_generation.engine.cardplan.template_retrieval import (
+    TemplateSearchIntent,
+    search_template_variants,
+)
 from services.template_generation.engine.pipeline import (
     TemplateRouteNotApplicable,
     generate_template_a2ui,
@@ -25,7 +29,12 @@ _BATTERY = "BatteryOverviewPluggedTypeSupport@1"
 _CONNECTION = "BluetoothDeviceOverviewNameAndConnectionSupport@1"
 _CHARGE = "BluetoothDeviceOverviewNameAndChargeSupport@1"
 _WEATHER = "WeatherOverviewConditionSupport@1"
-_TEMPLATES = (_BATTERY, _CONNECTION, _CHARGE, _WEATHER)
+_WEATHER_TEXT_TEMPLATES = (
+    "WeatherOverviewTemperatureConditionSupport@1",
+    "WeatherOverviewTemperatureHumiditySupport@1",
+    "WeatherOverviewTemperatureAirQualitySupport@1",
+)
+_TEMPLATES = (_BATTERY, _CONNECTION, _CHARGE, _WEATHER, *_WEATHER_TEXT_TEMPLATES)
 
 
 @pytest.fixture(scope="module")
@@ -70,7 +79,7 @@ class _PlanModel:
 async def test_support_minimal_fields_through_search_and_compilation(
     registry: CardPlanRegistry, template_id: str, edge_value: bool,
 ) -> None:
-    partner = _BATTERY if template_id == _WEATHER else _WEATHER
+    partner = _BATTERY if template_id.startswith("WeatherOverview") else _WEATHER
     template_ids = (template_id, partner)
     schema = _schema(registry, template_ids)
     if template_id == _CONNECTION:
@@ -80,6 +89,10 @@ async def test_support_minimal_fields_through_search_and_compilation(
     if template_id == _CHARGE and edge_value:
         _set_path(schema, "/data/earphone/batteryLevel", {
             "type": "integer", "sampleValue": 0,
+        })
+    if template_id == "WeatherOverviewTemperatureHumiditySupport@1" and edge_value:
+        _set_path(schema, "/data/weather/current/humidityPercent", {
+            "type": "number", "sampleValue": 0,
         })
     bindings: list[CandidateDataBinding] = []
     fields_by_capability: dict[str, list[str]] = {}
@@ -134,6 +147,90 @@ async def test_support_minimal_fields_through_search_and_compilation(
         assert (earphone_icon in output.a2ui) is not edge_value
     if template_id == _BATTERY:
         assert "${/data/phoneBattery/batterySOC}" not in output.a2ui
+    if template_id in _WEATHER_TEXT_TEMPLATES:
+        assert "${/data/weather/current/temperatureText}" in output.a2ui
+        assert "${/data/weather/current/condition}" in output.a2ui
+        assert "当前城市" in output.a2ui
+        assert "{data.humidity}" not in output.a2ui
+        assert "{data.airQuality}" not in output.a2ui
+        assert ("${/data/weather/current/humidityPercent}" in output.a2ui) is (
+            template_id == "WeatherOverviewTemperatureHumiditySupport@1"
+        )
+        assert ("${/data/weather/current/airQuality}" in output.a2ui) is (
+            template_id == "WeatherOverviewTemperatureAirQualitySupport@1"
+        )
+
+
+@pytest.mark.parametrize("template_id", _WEATHER_TEXT_TEMPLATES)
+@pytest.mark.parametrize(
+    ("city", "district", "location", "expected"),
+    [
+        (True, True, "深圳市", "${data.weather.location.prefectureName}"),
+        (False, True, "深圳市", "${data.weather.location.districtName}"),
+        (False, False, "深圳市", "深圳市"),
+        (False, False, None, "当前城市"),
+    ],
+)
+def test_weather_text_support_city_fallback(
+    registry: CardPlanRegistry, template_id: str,
+    city: bool, district: bool, location: str | None, expected: str,
+) -> None:
+    definition = registry.require_template(template_id)
+    schema = _schema(registry, (template_id,))
+    for present, name in ((city, "prefectureName"), (district, "districtName")):
+        if present:
+            _set_path(schema, "/data/weather/location/" + name, {"type": "string"})
+    task = TaskSpec(userQuery="天气城市兜底", size="2x2", dataModelSchema=schema)
+    bindings = _provider_template_binding_values(
+        definition, definition.variants[0], task, {"ViewWeather": ("/data/weather",)},
+    )
+    params = {} if location is None else {"location": location}
+    root = _instantiate_blueprint(
+        definition.variants[0].root, params, bindings,
+        registry.theme_reference_values("2x2-two-support"),
+    )
+    title = root.children[0].children[0].children[0]
+    assert expected in title.values[0]
+    assert definition.optional_data == (
+        "/location/prefectureName", "/location/districtName",
+    )
+    assert definition.supported_event_ids == ("event.open.weather",)
+
+
+@pytest.mark.parametrize(
+    ("extra_fields", "expected"),
+    [
+        ((), _WEATHER_TEXT_TEMPLATES),
+        (("/current/humidityPercent",), ("WeatherOverviewTemperatureHumiditySupport@1",)),
+        (("/current/airQuality",), ("WeatherOverviewTemperatureAirQualitySupport@1",)),
+        (("/current/humidityPercent", "/current/airQuality"), ()),
+    ],
+)
+def test_weather_text_support_search_preserves_requested_metrics(
+    registry: CardPlanRegistry, extra_fields: tuple[str, ...], expected: tuple[str, ...],
+) -> None:
+    schema = _schema(registry, _WEATHER_TEXT_TEMPLATES)
+    task = TaskSpec(userQuery="天气指标", size="2x2", dataModelSchema=schema)
+    paths = ("/current/temperatureText", "/current/condition", *extra_fields)
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather", writeResultTo="/data/weather",
+        candidateOutputFields=list(paths),
+    )
+    result = search_template_variants(
+        TemplateSearchIntent(requiredOutputFieldsByCapability={"ViewWeather": paths}),
+        task, registry, (binding,), {
+            "suggestSize": "2x2",
+            "dataBindings": [
+                {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            ],
+        },
+    )
+    actual: set[str] = set()
+    for group in result.business_candidates:
+        for candidate in group.candidates:
+            if candidate.template_id in _WEATHER_TEXT_TEMPLATES:
+                actual.add(candidate.template_id)
+    assert actual == set(expected)
 
 
 @pytest.mark.parametrize("template_id", _TEMPLATES)

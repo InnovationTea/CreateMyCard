@@ -25,7 +25,7 @@ Column(
             "itemMargin": 4,
             "justifyContent": "center",
             "alignItems": "center",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
+            "constraintSize": {"minWidth": 0, "minHeight": 0},
         },
         #if data.workoutType
             Text(
@@ -62,12 +62,12 @@ Column(
     #if data.workoutCalories
     Text(
         data.workoutCalories,
-        { "width": "matchParent", "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+        { "width": "matchParent", "maxFontSize": 32, "minFontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
     ),
     #else
     Text(
         data.duration,
-        { "width": "matchParent", "fontSize": 32, "minFontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+        { "width": "matchParent", "maxFontSize": 32, "minFontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
     ),
     #endif
     Column(

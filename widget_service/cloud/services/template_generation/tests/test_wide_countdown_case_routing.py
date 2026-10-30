@@ -738,7 +738,7 @@ def test_q084_routes_health_full_countdown_compact_and_compact_action() -> None:
 
     action = _only_action(routed.projection)
     source = (
-        'Template("WideFullTwoCompactLayout@1",{"compactRows":true},'
+        'Template("WideFullTwoCompactLayout@1",{},'
         f'Template("{_HEALTH_FULL}",{{}}),'
         f'Template("{_COUNTDOWN_COMPACT}",'
         f'{{"countdownIcon":"{_COUNTDOWN_ICON}"}}),'
@@ -755,11 +755,17 @@ def test_q084_routes_health_full_countdown_compact_and_compact_action() -> None:
     layout_root = _content_layout(components_by_id)
     health_slot = components_by_id[layout_root["children"][0]]
     compact_column = components_by_id[layout_root["children"][1]]
-    assert compact_column.get("itemMargin") == 12
-    compact_slots = [components_by_id[item] for item in compact_column["children"]]
-    assert len(compact_slots) == 2
-    assert all(slot["styles"].get("height") == 57 for slot in compact_slots)
-    assert 57 * 2 + 12 == _TARGET_BODY_HEIGHT
+    assert compact_column.get("itemMargin") == 8
+    compact_children = compact_column.get("children")
+    assert isinstance(compact_children, list)
+    assert len(compact_children) == 2
+    for child_id in compact_children:
+        compact_slot = components_by_id.get(child_id)
+        assert isinstance(compact_slot, dict)
+        styles = compact_slot.get("styles")
+        assert isinstance(styles, dict)
+        assert styles.get("layoutWeight") == 1
+        assert "height" not in styles
 
     health_root = components_by_id[health_slot["children"][0]]
     assert health_root["styles"].get("justifyContent") == "spaceBetween"

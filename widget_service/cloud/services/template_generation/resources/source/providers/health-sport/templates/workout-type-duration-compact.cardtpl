@@ -4,12 +4,12 @@ data = {
   workoutType: $path("/exerciseTypeName")
 }
 Row({"_advancedComponent": "WorkoutOverview", "width": "matchParent", "height": "matchParent",
-  "itemMargin": 8, "alignItems": "center"},
-  Column({"layoutWeight": 1, "itemMargin": 4},
-    Text(data.duration, {"width": "matchParent", "height": 22, "fontSize": 16,
+  "itemMargin": 2, "alignItems": "center", "justifyContent": "spaceBetween",},
+  Column({"layoutWeight": 1, "itemMargin": 2},
+    Text(data.duration, {"width": "matchParent", "height": 20, "fontSize": 16,
       "fontWeight": 700, "fontColor": $theme('primaryColor'),
       "maxLines": 1, "textOverflow": "ellipsis"}),
-    Text(data.workoutType, {"width": "matchParent", "height": 14, "fontSize": 10,
+    Text(data.workoutType, {"width": "matchParent", "height": 16, "fontSize": 12,
       "fontWeight": 400, "fontColor": $theme('supportContentColor'),
       "maxLines": 1, "textOverflow": "ellipsis"})
   ),
