@@ -79,21 +79,22 @@ def check(source, size="2x2", query="测试原文"):
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
 @pytest.mark.parametrize("header,note", [(False, False), (True, False)])
-def test_fixed_frame_keeps_header_top_and_all_content_bottom(size, header, note):
+def test_fixed_frame_keeps_header_and_emphasis_top_aligned(size, header, note):
     nodes = check(encode("EmphasisText", {"mainText": "核心结论"},
                          size=size, header=header, note=note), size)
     root = nodes.get("root")
     assert root
-    assert root.get("styles", {}).get("padding") == 12
-    wrappers = []
-    for node in nodes.values():
-        styles = node.get("styles", {})
-        if styles.get("layoutWeight") == 1 and styles.get("justifyContent") == "end":
-            wrappers.append(node)
-    assert len(wrappers) == 1
-    wrapper = wrappers[0]
-    assert wrapper.get("children") == (["body", "note"] if note else ["body"])
-    expected = ["header", wrapper.get("id")] if header else [wrapper.get("id")]
+    assert root.get("styles", {}).get("padding") == {
+        "top": 12, "bottom": 12, "left": 0, "right": 0,
+    }
+    wrapper = nodes.get("__layout__root__static_body")
+    assert wrapper
+    assert wrapper.get("styles", {}).get("justifyContent") == "start"
+    assert wrapper.get("styles", {}).get("padding") == {"left": 12, "right": 12}
+    assert wrapper.get("children") == ["body"]
+    expected = [wrapper.get("id")]
+    if header:
+        expected.insert(0, "__layout__root__static_header")
     assert root.get("children") == expected
 
 
@@ -146,14 +147,21 @@ def test_text_list_ellipsizes_main_text_without_covering_optional_value():
     row_with_value = nodes.get("body__static_item0")
     value = nodes.get("body__static_item0_value")
     assert row_with_value and value
-    assert row_with_value.get("children") == ["body__static_item0_main", "body__static_item0_value"]
+    assert row_with_value.get("children") == ["body__static_item0_badge", "body__static_item0_text"]
+    text_with_value = nodes.get("body__static_item0_text")
+    assert text_with_value
+    assert text_with_value.get("children") == [
+        "body__static_item0_main", "body__static_item0_value",
+    ]
     assert value.get("content") == "09:00–11:30"
     assert value.get("styles", {}).get("flexShrink") == 0
     assert value.get("styles", {}).get("width", 0) > 0
 
     row_without_value = nodes.get("body__static_item1")
     assert row_without_value
-    assert row_without_value.get("children") == ["body__static_item1_main"]
+    text_without_value = nodes.get("body__static_item1_text")
+    assert text_without_value
+    assert text_without_value.get("children") == ["body__static_item1_main"]
     assert row_without_value.get("styles", {}).get("width") == "matchParent"
 
 
@@ -334,12 +342,12 @@ def test_wide_museum_fewshot_keeps_secondary_text_with_three_line_limit():
     secondary = nodes.get("body__static_secondaryText")
     assert secondary
     assert secondary.get("component") == "Text"
-    assert secondary.get("content") == (
-        "来源：维基百科上海博物馆条目，检索日期2026年9月21日"
-    )
+    assert secondary.get("content") == "来源：维基百科上海博物馆条目"
+    bottom = nodes.get("body__static_bottomText")
+    assert bottom and bottom.get("content") == "检索日期2026年9月21日"
     styles = secondary.get("styles", {})
     assert styles.get("maxLines") == 3
-    assert styles.get("height") == 32
+    assert styles.get("height") == 16
     assert styles.get("textOverflow") == "ellipsis"
 
 
@@ -374,6 +382,12 @@ def test_single_line_list_preserves_units_and_uses_fixed_spacing(size):
     assert "28℃" in texts
     assert "60%" in texts
     assert not any(node.get("component") == "Divider" for node in nodes.values())
+
+
+def test_single_line_list_rejects_six_body_items():
+    items = [{"text": f"标签{index}", "assist": f"数值{index}"} for index in range(6)]
+    with pytest.raises(ValueError, match="最多五条信息"):
+        check(encode("SingleLineList", {"items": items}))
 
 
 @pytest.mark.parametrize("kind,props", [

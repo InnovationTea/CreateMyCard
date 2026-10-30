@@ -10,7 +10,7 @@
       "fontSize": 12,
       "lineHeight": 16,
       "maxLines": 1,
-      "fontWeight": 700
+      "fontWeight": 400
     },
     "emphasis": {
       "fontSize": 18,
@@ -57,6 +57,18 @@
       "maxLines": 1,
       "fontWeight": 500
     },
+    "singlePanelAssist": {
+      "fontSize": 12,
+      "lineHeight": 16,
+      "maxLines": 1,
+      "fontWeight": 700
+    },
+    "listBadge": {
+      "fontSize": 10,
+      "lineHeight": 16,
+      "maxLines": 1,
+      "fontWeight": 500
+    },
     "comparisonPrimary": {
       "fontSize": 16,
       "lineHeight": 22,
@@ -83,11 +95,16 @@
       "iconGap": 4
     },
     "EmphasisText": {
-      "gap": 2
+      "gap": 2,
+      "minimumSupportGap": 6
     },
     "SingleLineList": {
       "gap": 4,
-      "sideGap": 8
+      "sideGap": 8,
+      "panelHeight": 32,
+      "panelPadding": 12,
+      "panelRadius": 8,
+      "wideInset": 8
     },
     "TextList": {
       "innerGap": 4,
@@ -95,7 +112,11 @@
       "twoItemGap": 12,
       "threeItemGap": 6,
       "dividerWidth": 1,
-      "dividerAlpha": 0.12
+      "dividerAlpha": 0.12,
+      "badgePadding": 6,
+      "badgeGap": 8,
+      "badgeRadius": 8,
+      "badgeAlpha": 0.2
     },
     "ComparisonGroup": {
       "minimumItems": 2,

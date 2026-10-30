@@ -18,6 +18,7 @@ from services.compact_component_runtime import (
     secondary_body_text_width,
     visual_recipe_part,
 )
+from services.compact_region_layout import RegionBox
 from services.theme_style_roles import (
     alpha_role,
     component_roles,
@@ -270,7 +271,7 @@ def expand_high_level_component_rows(
     from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
     from services.static_content_components import expand_static_component
 
-    static_widths = _static_content_widths(components, size)
+    static_boxes = _static_content_boxes(components, size)
     generated_ids: set[str] = set()
     expanded: list[ComponentRow] = []
     expanders = {
@@ -304,10 +305,13 @@ def expand_high_level_component_rows(
             and component.component_type in {"SingleLineTitle", "EmphasisText"}
         )
         if static_type or static_support:
-            width = static_widths.get(component.component_id)
-            if width is None:
+            box = static_boxes.get(component.component_id)
+            if box is None or box.width is None:
                 raise CompactDslConversionError("静态组件参考宽度无法确定。")
-            rows = expand_static_component(component, size, width=width, palette=color_palette)
+            rows = expand_static_component(
+                component, size, width=box.width, palette=color_palette,
+                available_height=box.height,
+            )
             rows[0] = _place_high_level_root(component, rows[0], parent)
         elif expander is None:
             rows = [component]
@@ -375,9 +379,10 @@ def expand_high_level_component_rows(
     return expanded
 
 
-def _static_content_widths(components: list[ComponentRow], size: str) -> dict[str, float]:
+def _static_content_boxes(components: list[ComponentRow], size: str) -> dict[str, RegionBox]:
     from services.compact_region_layout import reference_region_boxes
     from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+    from services.static_text_capacity import number, text_spec
 
     targets = []
     nodes = []
@@ -390,6 +395,8 @@ def _static_content_widths(components: list[ComponentRow], size: str) -> dict[st
         )
         if kind in STATIC_COMPONENTS or static_support:
             targets.append(component.component_id)
+            if kind == "SingleLineTitle":
+                props = {**props, "height": number(text_spec("header"), "lineHeight")}
             kind = "Column"
             props = {"width": "matchParent", **props}
         nodes.append(
@@ -403,11 +410,11 @@ def _static_content_widths(components: list[ComponentRow], size: str) -> dict[st
     if not targets:
         return {}
     boxes = reference_region_boxes(nodes, size=size)
-    result: dict[str, float] = {}
+    result: dict[str, RegionBox] = {}
     for identifier in targets:
         box = boxes.get(identifier)
         if box is not None and box.width is not None:
-            result[identifier] = box.width
+            result[identifier] = box
     return result
 
 

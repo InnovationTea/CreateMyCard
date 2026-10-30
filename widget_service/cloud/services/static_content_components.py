@@ -54,7 +54,7 @@ def validate_static_model_props(component: Any) -> None:
         "TextList": {"items"},
         "SingleLineList": {"items"},
         "ComparisonGroup": {"items"},
-        "EmphasisText": {"mainText", "secondaryText"},
+        "EmphasisText": {"mainText", "secondaryText", "bottomText"},
     }
     fields = allowed.get(component.component_type)
     if fields is None:
@@ -68,11 +68,11 @@ def _fields(value: Any, allowed: set[str], location: str) -> dict[str, Any]:
     return value
 
 
-def _color_alpha(color: str) -> str:
+def _color_alpha(color: str, opacity: float = 0.6) -> str:
     if is_role(color):
-        return alpha_role(color, 0.6)
+        return alpha_role(color, opacity)
     if len(color) == 9 and color.startswith("#"):
-        return "#99" + color[3:]
+        return f"#{round(opacity * 255):02X}" + color[3:]
     _fail("静态组件缺少合法主题文字色。")
     return color
 
@@ -80,10 +80,12 @@ def _color_alpha(color: str) -> str:
 class _Builder:
     def __init__(
         self, component: Any, width: float, palette: dict[str, str], font_size: int = 12,
+        available_height: float | None = None,
     ) -> None:
         self.component = component
         self.font_size = font_size
         self.width = width
+        self.available_height = available_height
         self.rows: list[Any] = []
         self.ink = palette.get("primary")
         self.panel = palette.get("componentSecondary")
@@ -225,18 +227,65 @@ class _Builder:
         )
 
     def emphasis(self, props: dict[str, Any]) -> None:
-        values = _fields(props, {"mainText", "secondaryText"}, "EmphasisText")
+        values = _fields(props, {"mainText", "secondaryText", "bottomText"}, "EmphasisText")
         main_id, height = self.text("mainText", values.get("mainText"), self.width, "emphasis")
         children = [main_id]
-        gap = number(component_spec("EmphasisText"), "gap")
-        if "secondaryText" in values:
+        spec = component_spec("EmphasisText")
+        gap = number(spec, "gap")
+        supports = []
+        for key in ("secondaryText", "bottomText"):
+            value = values.get(key)
+            if value is None:
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            supports.append((key, static_string(value, f"EmphasisText.{key}")))
+        if len(supports) == 2:
+            key, value = supports.pop(0)
             secondary_id, secondary_height = self.text(
-                "secondaryText", values.get("secondaryText"), self.width,
-                "emphasisSecondary", secondary=True,
+                key, value, self.width, "emphasisSecondary", secondary=True,
             )
             children.append(secondary_id)
             height += gap + secondary_height
-        self.column(self.component.component_id, children, height, gap)
+        top_id = self.identifier("top")
+        self.column(top_id, children, height, gap)
+        body_children = [top_id]
+        location = f"mainText上部{height:g}vp"
+        if supports:
+            key, value = supports.pop()
+            bottom_id, bottom_height = self.text(
+                key, value, self.width, "emphasisSecondary", secondary=True,
+            )
+            minimum_gap = number(spec, "minimumSupportGap")
+            for row in self.rows:
+                if row.component_id == top_id:
+                    row.props.pop("height", None)
+                    row.props.update(
+                        layoutWeight=1, constraintSize={"minHeight": height + minimum_gap},
+                        padding={"bottom": minimum_gap},
+                    )
+            body_children.append(bottom_id)
+            location = (
+                f"mainText/secondaryText上部{height:g}vp + "
+                f"{self.component.component_id}.{key}底部{bottom_height:g}vp + "
+                f"间隔{minimum_gap:g}vp"
+            )
+            height += minimum_gap + bottom_height
+        self._fill_body(body_children, height, 0.0, location)
+
+    def _fill_body(self, children: list[str], minimum: float, gap: float, location: str) -> None:
+        available = self.available_height
+        if available is None:
+            _fail(f"COMPACT_STATIC_TEXT_CAPACITY: {location} 缺少可用内容区高度。")
+        if minimum > available:
+            _fail(
+                f"COMPACT_STATIC_TEXT_CAPACITY: {self.component.component_id} {location}"
+                f"至少需要{minimum:g}vp，可用{available:g}vp；保持文字与字号，改用合法承载组件。"
+            )
+        self.column(self.component.component_id, children, minimum, gap, extra={
+            "height": "matchParent", "layoutWeight": 1,
+            "constraintSize": {"minHeight": minimum},
+        })
 
     def text_list(self, props: dict[str, Any]) -> None:
         values = _fields(props, {"items"}, "TextList")
@@ -259,7 +308,11 @@ class _Builder:
                 value = static_string(value, f"items[{index}].value")
                 value_width = text_width(value, number(self.spec("listValue"), "fontSize"))
                 side_gap = number(spec, "sideGap")
-            main_width = self.width - value_width - side_gap
+            badge_gap = number(spec, "badgeGap")
+            badge_style = self.spec("listBadge")
+            badge_width = text_width(str(index + 1), number(badge_style, "fontSize"))
+            badge_width += number(spec, "badgePadding") * 2
+            main_width = self.width - value_width - side_gap - badge_width - badge_gap
             if main_width <= 0:
                 _fail("TextList.value 占满正文宽度，无法为主副文本保留空间。")
             primary, primary_height = self.text(
@@ -274,19 +327,33 @@ class _Builder:
             self.column(main_id, [primary, secondary], main_height, inner_gap,
                         extra={"layoutWeight": 1, "constraintSize": {"minWidth": 0},
                                "flexShrink": 1})
-            row_children = [main_id]
+            badge_id, _badge_height = self.text(
+                f"item{index}_badge", str(index + 1), badge_width, "listBadge",
+            )
+            badge_color = _color_alpha(self.ink, number(spec, "badgeAlpha"))
+            self.rows[-1].props.update(
+                width=badge_width, textAlign="center", backgroundColor=badge_color,
+                borderRadius=number(spec, "badgeRadius"),
+            )
+            text_children = [main_id]
             if "value" in item:
                 value_id, value_height = self.text(
                     f"item{index}_value", value, value_width, "listValue", secondary=True,
                 )
                 self.rows[-1].props.update(width=value_width, textAlign="end")
-                row_children.append(value_id)
+                text_children.append(value_id)
                 main_height = max(main_height, value_height)
+            text_id = self.identifier(f"item{index}_text")
+            self.add(text_id, "Row", {
+                "width": "matchParent", "height": main_height, "layoutWeight": 1,
+                "itemMargin": side_gap, "alignItems": "center", "flexShrink": 0,
+                "constraintSize": {"minWidth": 0},
+            }, text_children)
             row_id = self.identifier(f"item{index}")
             self.add(row_id, "Row", {
-                "width": "matchParent", "height": main_height, "itemMargin": side_gap,
+                "width": "matchParent", "height": main_height, "itemMargin": badge_gap,
                 "alignItems": "center", "flexShrink": 0,
-            }, row_children)
+            }, [badge_id, text_id])
             children.append(row_id)
             heights.append(main_height)
             if index < len(items) - 1:
@@ -308,11 +375,13 @@ class _Builder:
     def single_lines(self, props: dict[str, Any]) -> None:
         values = _fields(props, {"items"}, "SingleLineList")
         items = values.get("items")
-        if not isinstance(items, list) or not 1 <= len(items) <= 24:
-            _fail("SingleLineList.items 必须为非空条目数组，最多24项并须通过容量校验。")
+        if not isinstance(items, list) or not 1 <= len(items) <= 5:
+            _fail("SingleLineList.items 必须为1–5项；静态正文最多五条信息，标题不计入。")
         spec = component_spec("SingleLineList")
         gap = number(spec, "gap")
         side_gap = number(spec, "sideGap")
+        panels = len(items) <= 3
+        padding = number(spec, "panelPadding") if panels else 0.0
         children = []
         heights = []
         for index, raw in enumerate(items):
@@ -323,24 +392,41 @@ class _Builder:
                 assist = str(assist)
             assist = static_string(assist, f"items[{index}].assist")
             extent = text_width(text, number(self.spec("singleText"), "fontSize"))
+            assist_width = self.width - extent - side_gap - padding * 2
+            if assist_width <= 0:
+                _fail(
+                    f"COMPACT_STATIC_TEXT_CAPACITY: {self.component.component_id}.item{index}_text "
+                    f"占用{extent:g}vp，扣除背板内边距与间距后item{index}_assist无可用宽度；"
+                    "保持完整标签和值，换用能分层承载的合法组件。"
+                )
             text_id, text_height = self.text(
                 f"item{index}_text", text, extent, "singleText", secondary=True,
             )
             self.rows[-1].props["width"] = extent
             assist_id, assist_height = self.text(
-                f"item{index}_assist", assist, self.width - extent - side_gap, "singleAssist",
+                f"item{index}_assist", assist, assist_width,
+                "singlePanelAssist" if panels else "singleAssist",
             )
             self.rows[-1].props.update(layoutWeight=1, textAlign="end")
             row_id = self.identifier(f"item{index}")
             height = max(text_height, assist_height)
-            self.add(row_id, "Row", {
+            styles = {
                 "width": "matchParent", "height": height, "itemMargin": side_gap,
                 "alignItems": "center", "flexShrink": 0,
-            }, [text_id, assist_id])
+            }
+            if panels:
+                height = number(spec, "panelHeight")
+                styles.update(height=height, padding={"left": padding, "right": padding},
+                              borderRadius=number(spec, "panelRadius"), backgroundColor=self.panel)
+            self.add(row_id, "Row", styles, [text_id, assist_id])
             children.append(row_id)
             heights.append(height)
-        self.column(self.component.component_id, children,
-                    sum(heights) + gap * (len(items) - 1), gap)
+        minimum = sum(heights) + gap * (len(items) - 1)
+        if panels and len(items) == 3:
+            self._fill_body(children, minimum, gap, "三项单行背板")
+            self.rows[-1].props["justifyContent"] = "spaceBetween"
+        else:
+            self.column(self.component.component_id, children, minimum, gap)
 
     def comparison(self, props: dict[str, Any], size: str) -> None:
         values = _fields(props, {"items"}, "ComparisonGroup")
@@ -466,7 +552,8 @@ class _Builder:
 
 
 def expand_static_component(
-    component: Any, size: str, *, width: float, palette: dict[str, str]
+    component: Any, size: str, *, width: float, palette: dict[str, str],
+    available_height: float | None = None,
 ) -> list[Any]:
     if not current_content_policy().is_static:
         _fail("静态内容组件需要服务端请求上下文授权。")
@@ -479,7 +566,7 @@ def expand_static_component(
         props.pop("fontColor", None)
     for key in ("width", "height", "layoutWeight", "flexShrink"):
         props.pop(key, None)
-    builder = _Builder(component, width, palette)
+    builder = _Builder(component, width, palette, available_height=available_height)
     try:
         if component.component_type == "SingleLineTitle":
             builder.header(props)

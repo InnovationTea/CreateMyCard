@@ -76,7 +76,11 @@ def load_layout_contract() -> dict[str, Any]:
                 "rules": [{
                     "path": [], "types": ["Column"],
                     "props": {
-                        "padding": number(spec, "padding"),
+                        "padding": {
+                            "top": number(spec, "padding"),
+                            "bottom": number(spec, "padding"),
+                            "left": 0, "right": 0,
+                        },
                         "itemMargin": number(spec, gap_name),
                         "_staticLayout": identifier,
                     },

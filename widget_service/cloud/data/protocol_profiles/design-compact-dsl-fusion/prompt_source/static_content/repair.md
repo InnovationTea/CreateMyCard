@@ -8,12 +8,18 @@ description: 按真实诊断修复语法、引用、信息落实和组件容量�
 根据本轮finding定位组件ID和具体字段，输出完整genui源。
 先修复语法和引用，再修复对象归属与已接受文字落实，最后处理组件空间。
 仅绑定或字段错误时保留已经合法的组件和排版。
+已接受的静态Plan正文至多包含5个完整对象；修复不得新增第6个对象，也不得通过删字段把对象改成半条信息。
+任何最终渲染为正文行的shared说明、例外或提示都计入所选组件的实际条目数；不得因其不计object组数就在列表中额外新增一行。
+Plan修复只调整嵌套contentGroups及其facts；不得输出info_required或factIndexes。组和facts的顺序即展示顺序，
+遗漏声明只用{groupId,factId}稳定引用，不能用数组位置计算数字索引。
 
 空间错误先看哪个组件的哪个字段过长、哪一项超出容量。保持必要名称、读数、单位及限定，
 换用允许的组件或重新分配同对象主副字段，父外框与固定样式继续由Runtime管理。
 TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无标题。
-3项时优先去除可省略标题，
-或将必要主题归入首条后保持三条TextList，不得先删减为两条记录来保留标题。
+3项且已有SingleLineTitle时，若标题只是可省略共同主题，或标题信息已在正文完整可见，
+优先从root.children移除header并删除对应SingleLineTitle组件，保持body的三条TextList与事实顺序不变。
+标题承载尚未在正文出现的必要主体、范围或条件时，先将该事实完整归入首条合法字段再删header；
+确实无法迁入时才回到Plan重新组织。不机械换成SingleLineList，不得先删减为两条记录来保留标题。
 只有短键值才用SingleLineList，长说明、趋势或多个限定不硬塞单行。
 SingleLineList必须与SingleLineTitle标题配套使用；修复时不得删除header后只保留body列表。
 SingleLineList的text或assist无法完整单行展示时，仅在记录数为2–3、含标题最多两项且主副字段均能承载时，才改用TextList。

@@ -67,7 +67,7 @@ def test_allowed_ellipsis_adds_exact_pressure_without_replacing_source(role, fie
     assert "正式组件UX允许省略号，原候选仍可用" in message
     assert "不是新增发布门禁或事实删减授权" in message
     assert f"body.item1_{field}" in message
-    assert "126vp" in message
+    assert "100.12vp" in message
     assert "仅允许 1 行" in message
     assert convert_compact_dsl_to_a2ui(source, size="2x2") == standard
     assert plan == original

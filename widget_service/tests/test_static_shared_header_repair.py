@@ -93,6 +93,7 @@ def test_real_same_body_source_and_capacity_reach_existing_drop_route():
     assert not result.standard_dsl
     assert len(result.errors) == 1
     assert "TextList 含标题区时最多两项" in result.errors[0].message
+    assert "优先删除 header/SingleLineTitle 并保留三项 TextList" in result.errors[0].message
     with content_policy_scope(STATIC_CONTENT_POLICY):
         assert static_group_errors(result.source_dsl, plan) == []
         tracker = CompactRepairStrategyTracker(static_content=True, max_repair_attempts=5)
@@ -107,6 +108,8 @@ def test_real_same_body_source_and_capacity_reach_existing_drop_route():
         ).to_prompt_payload()
     assert first.get("optionalDrop") is None
     assert first.get("repairStrategy") == "semantic_layout_contract_repair"
+    assert "优先从root.children移除header" in first.get("instruction", "")
+    assert "不要机械换成SingleLineList" in first.get("instruction", "")
     assert second.get("repairStrategy") == "drop_optional_component"
     assert second.get("optionalDrop", {}).get("allowedOmittedFactIndexes") == [2]
 

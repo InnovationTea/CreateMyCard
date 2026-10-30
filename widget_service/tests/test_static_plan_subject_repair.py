@@ -158,7 +158,7 @@ def test_unaccepted_static_plan_repair_can_choose_records_and_reports_real_omiss
     assert "可以合理未选完整记录" in instruction
     assert "明确要求全部、完整或逐字展示时不得擅自省略" in instruction
     assert "已声明未选的完整记录不能仍以must保留在展示账本中" in instruction
-    assert "description和空factIndexes记入omittedContents" in instruction
+    assert "description和空factRefs记入omittedContents" in instruction
     assert "切换presentationStyle时同步正文componentHints" in instruction
     assert "SingleLineList仅适合实际能单行承载的短键值" in instruction
     assert "不是记录数超限的通用解法" in instruction

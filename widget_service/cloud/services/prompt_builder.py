@@ -103,12 +103,14 @@ def _capacity_recovery_plan_instruction(
     instruction = _CAPACITY_RECOVERY_PLAN_INSTRUCTION
     if static_content:
         instruction = (
-            "<interface_retry_context>上一轮容量未闭合。本轮重新选择分组、组件和布局；"
+            "<interface_retry_context>上一轮容量未闭合。先检查冻结事实能否组成合法结构；"
+            "本轮只重新选择分组、组件和布局，不能以删除冻结事实解决无解结构。"
             "下面requiredFacts是本轮必须保留的已接受事实，包括上一轮未授权遗漏的内容。"
             "逐条保持text和priority原样，不合并或改写事实条目；可通过contentGroups"
             "重新组织同对象事实，不重复展示，不以扩尺寸、省略核心解决容量。"
             "excludedFacts是程序已确认可省略且未完整展示的事实，本轮不得重新加入。"
-            "这份恢复范围优先于普通Plan的摘要或装饰标题取舍；不删除保留清单中的标题。"
+            "若冻结事实本身超过正文对象上限或不满足组件条数合同，如实保留失败，"
+            "不删除保留清单中的标题、核心对象或其它冻结事实来伪造可行计划。"
             "保护原文和全部Action继续保留，不生成DSL或恢复蓝图。"
             "</interface_retry_context>"
         )
@@ -1930,12 +1932,12 @@ class PromptBuilder:
             selection_instruction = (
                 "静态text仍允许忠于sourceTexts的摘要、合并和简洁表达，不要求逐字提取。"
                 "本轮普通Plan尚未接受，修复时沿用首次按用途与容量选取内容的规则："
-                "可以合理未选完整记录，并将实际未选内容以description和空factIndexes记入"
+                "可以合理未选完整记录，并将实际未选内容以description和空factRefs记入"
                 "omittedContents；不得改变剩余内容的主体、年份、共同条件或关系含义。"
                 "明确要求全部、完整或逐字展示时不得擅自省略。"
-                "选取结果须落实到info_required和contentGroups；已声明未选的完整记录"
+                "选取结果须落实到contentGroups及其facts；已声明未选的完整记录"
                 "不能仍以must保留在展示账本中，再让DSL硬挤全部记录。"
-                "申请省略但仍在本次展示计划内的should继续按原合同填写其事实索引；"
+                "申请省略但仍在本次展示计划内的should继续按原合同填写其稳定factRefs；"
                 "未选来源与条件性省略不可混记，不从自由文字说明自动删除事实。"
             )
             if retry_context is not None and retry_context.capacity_recovery:
@@ -1948,9 +1950,9 @@ class PromptBuilder:
                     "没有可行结构时保留真实失败，后续只沿既有明确授权Drop处理。"
                 )
             text_instruction = selection_instruction + (
-                "修正全部已报告的结构问题；contentGroups.factIndexes只引用本次提交的"
-                "info_required零起始索引，不引用来源条目；重排事实索引后，"
-                "须原子同步info_required、contentGroups及omittedContents全部引用。"
+                "修正全部已报告的结构问题；只提交嵌套contentGroups及组内facts，"
+                "不得输出info_required或contentGroups.factIndexes。组和facts的数组顺序即展示顺序；"
+                "omittedContents仅用{groupId,factId}稳定factRefs，不计算数组位置。"
                 "先完成事实与对象的唯一归属，再按实际展示对象数选择presentationStyle和组件。"
                 "切换presentationStyle时同步正文componentHints：records对应TextList，"
                 "rows对应SingleLineList，comparison对应ComparisonGroup；"
@@ -2086,13 +2088,13 @@ class PromptBuilder:
                 "instruction": (
                     "这是冻结前的明确复核，不是已接受结果。reviewOutput是JSON Schema，"
                     "只输出符合它的一个纯JSON对象，不输出Schema本身。"
-                    "correctedPlan与其arguments必须是真实JSON对象，factIndexes必须是数组，"
+                    "correctedPlan与其arguments必须是真实JSON对象，contentGroups必须嵌套facts，"
                     "都不能序列化成字符串。"
                     "candidatePlan是程序归一化后的对照对象，不是新提交格式；"
                     "originalSubmission保留原提交作格式参考，实际仍以系统中的工具Schema为准。"
                     "不得把omissionCandidates等程序字段抄入correctedPlan；"
-                    "新omittedContents须按原合同提交description/factIndexes对象，"
-                    "索引对应修正后的事实数组，不得从归一化说明猜造遗漏许可。"
+                    "新omittedContents须按原合同提交description/factRefs对象，"
+                    "每项引用groupId和factId，不得从归一化说明猜造遗漏许可。"
                     "先从originalFactSource检查整卡共同主体、年份、时间范围和公共条件，再逐项核对。"
                     "unreferencedSourceFragments只是原文未被sourceTexts引用的片段，"
                     "可能包含制作指令、无关背景或已合法省略内容，不是必须全部展示的清单；"
@@ -2112,7 +2114,9 @@ class PromptBuilder:
                     "放不下允许按原合同合理省略，不要求把所有场次或背景硬挤进卡片；"
                     "已声明且不改变剩余内容含义的合法省略不单独构成needs_correction。"
                     "公共主体或范围未进入Plan、且使剩余内容身份或适用范围不明时，才以原文证据"
-                    "和空factIndexes报告漏项，在现有合法展示位置补足必要上下文。"
+                    "在findings中使用sourceText、factIndexes:[]和issue报告完全漏项，"
+                    "在现有合法展示位置补足必要上下文。findings引用首份candidatePlan的"
+                    "factIndexes；factRefs仅用于correctedPlan的omittedContents。"
                     "shared声明不等于实际仍共同适用；若candidateDisplayText把共同条件只放进一个"
                     "对象字段而造成归属歧义，也应修正。"
                     "仅真实丢失、改变、编造或错误归属才标needs_correction；"
@@ -2140,6 +2144,7 @@ class PromptBuilder:
     def build_static_plan_refinement(
         conversation: list[dict[str, str]], feedback: list[str],
         *, retry_context: CompactDslRetryContext | None = None,
+        allow_priority_degradation: bool = False,
     ) -> list[dict[str, str]]:
         """在已有Plan预算内反馈有限试排参考，不宣称所有合法布局无解。"""
         instruction = (
@@ -2169,6 +2174,20 @@ class PromptBuilder:
                 "切换presentationStyle时同步componentHints。"
                 "本次只提交完整submit_card_plan，不输出DSL或恢复蓝图。"
                 "最后一次结构合法计划仍将交由DSL尝试，不新增模型阶段或调用预算。"
+            )
+        elif allow_priority_degradation:
+            instruction = (
+                "首次Plan的有限容量预检没有可行候选，原计划尚未冻结；"
+                "本轮必须重新按用户用途和priority选择可承载的完整对象组，不要只换组件后保留原清单。"
+                "用户明确要求全部、完整、原文、指定条目或受保护文字不得删除、降级或改写；"
+                "其余未明确要求的补充可从should开始不选，必要时省略整个低优先级object组，"
+                "不得只删除同一对象的一部分名称、数值、日期、条件或说明。"
+                "未选对象用omittedContents记录并使用空factRefs；仍选入的should才可引用本组factRefs。"
+                "先减少对象和可选共同标题，再精简重复表达、选择真实可承载的records/rows结构；"
+                "保留对象间的顺序、主体、日期时间、条件、数值单位、或/且关系和核心用途。"
+                "不得把用户明确内容假标为should，也不得把容量失败解释成可删除全部核心内容。"
+                "本次只提交完整submit_card_plan，不输出DSL或原样重复不可行计划。"
+                "这是冻结前的最后一次Plan机会；提交后只冻结实际选入且可行的内容。"
             )
         updated = copy.deepcopy(conversation)
         updated.append({

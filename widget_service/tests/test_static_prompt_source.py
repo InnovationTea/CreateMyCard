@@ -122,6 +122,16 @@ def test_single_line_list_guidance_always_requires_title():
         assert required in read_static_prompt(SOURCE, stage, "2x4")
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_shared_body_line_always_counts_toward_component_capacity(size):
+    subject = "任何最终渲染为正文行的shared说明、例外或提示"
+    accounting = "都计入所选组件的实际条目数"
+    for stage in ("plan", "create", "repair"):
+        prompt = read_static_prompt(SOURCE, stage, size)
+        assert subject in prompt
+        assert accounting in prompt
+
+
 def test_text_list_guidance_requires_title_for_two_items_only():
     required = "TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无标题"
     for stage in ("plan", "create", "repair"):
@@ -168,6 +178,21 @@ def test_small_fewshots_expand_under_current_static_contract():
         with content_policy_scope(STATIC_CONTENT_POLICY):
             converted = convert_compact_dsl_to_a2ui(match.group(1), size="2x2")
         assert converted
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_fewshot_titles_are_referenced_and_fit_current_contract(size):
+    """小标题必须真正接入外框；仍按原组件容量转换，不能添加孤立标题。"""
+    content = read_static_prompt(SOURCE, "fewshot", size)
+    for source in re.findall(r"```genui\n(.*?)\n```", content, re.S):
+        rows = [json.loads(line) for line in source.splitlines() if line.strip()]
+        root = next(row for row in rows if row[0] == "root")
+        headings = [row for row in rows if len(row) >= 3 and row[1] == "SingleLineTitle"]
+        assert len(headings) <= 1
+        for heading in headings:
+            assert heading[0] in root[3]
+        with content_policy_scope(STATIC_CONTENT_POLICY):
+            assert convert_compact_dsl_to_a2ui(source, size=size)
 
 
 def test_reading_other_stages_does_not_reread_shared_files(source_root, monkeypatch):
@@ -266,7 +291,7 @@ def test_complete_capacity_and_shared_rules_are_loaded_once_across_history(monke
         )
     history = "\n".join(message.get("content", "") for message in repaired)
     assert history.count("# 信息理解与组织") == 1
-    assert history.count("# 静态容量参考") == 1
+    assert history.count("# 首次Plan组件容量预算") == 1
     assert history.count("# 静态Plan提交") == 1
     assert history.count("## 2x2-V91") == 1
     assert "# 静态修复" in history

@@ -76,19 +76,33 @@ def tool_schema_from(messages):
 
 def recovery_submission():
     return {
-        "info_required": [
-            {"text": "演出安排", "requirement": "主题", "priority": "must"},
-            {
-                "text": "11月7日–9日 每日19:30", "requirement": "日期与时间",
-                "priority": "must",
-            },
-        ],
         "contentGroups": [
-            {"id": "topic", "kind": "shared", "identity": None, "factIndexes": [0]},
-            {"id": "record", "kind": "object", "identity": None, "factIndexes": [1]},
+            {"id": "topic", "kind": "shared", "identity": None, "facts": [
+                {"id": "title", "text": "演出安排", "requirement": "主题", "priority": "must"},
+            ]},
+            {"id": "record", "kind": "object", "identity": None, "facts": [
+                {
+                    "id": "time",
+                    "text": "11月7日–9日 每日19:30",
+                    "requirement": "日期与时间",
+                    "priority": "must",
+                },
+            ]},
         ],
         "omittedContents": [],
     }
+
+
+def submitted_facts(submitted):
+    groups = submitted.get("contentGroups")
+    assert isinstance(groups, list)
+    facts = []
+    for group in groups:
+        assert isinstance(group, dict)
+        group_facts = group.get("facts")
+        assert isinstance(group_facts, list)
+        facts.extend(group_facts)
+    return facts
 
 
 def test_recovery_schema_keeps_visible_text_and_priority_together():
@@ -97,8 +111,7 @@ def test_recovery_schema_keeps_visible_text_and_priority_together():
     validator = Draft202012Validator(schema)
     submitted = recovery_submission()
     assert not list(validator.iter_errors(submitted))
-    facts = submitted.get("info_required")
-    assert isinstance(facts, list)
+    facts = submitted_facts(submitted)
     facts[1]["text"] = "11月7日–9日"
     assert list(validator.iter_errors(submitted))
     facts[1]["text"] = "11月7日–9日 每日19:30"
@@ -112,10 +125,17 @@ def test_recovery_schema_keeps_visible_text_and_priority_together():
 def test_recovery_schema_rejects_splitting_a_retained_fact_into_new_entries():
     schema = tool_schema_from(prompt(STATIC_CONTENT_POLICY, context()))
     submitted = recovery_submission()
-    facts = submitted.get("info_required")
-    assert isinstance(facts, list)
+    facts = submitted_facts(submitted)
     facts[1]["text"] = "11月7日–9日"
-    facts.append({"text": "每日19:30", "requirement": "时间", "priority": "must"})
+    groups = submitted.get("contentGroups")
+    assert isinstance(groups, list)
+    record = groups[1]
+    assert isinstance(record, dict)
+    record_facts = record.get("facts")
+    assert isinstance(record_facts, list)
+    record_facts.append({
+        "id": "time_extra", "text": "每日19:30", "requirement": "时间", "priority": "must",
+    })
     assert list(Draft202012Validator(schema).iter_errors(submitted))
 
 
@@ -127,8 +147,7 @@ def test_same_visible_text_in_distinct_objects_does_not_make_schema_ambiguous():
     )
     schema = tool_schema_from(prompt(STATIC_CONTENT_POLICY, retry))
     submitted = recovery_submission()
-    facts = submitted.get("info_required")
-    assert isinstance(facts, list)
+    facts = submitted_facts(submitted)
     for value in facts:
         value["text"] = "每日19:30"
     assert not list(Draft202012Validator(schema).iter_errors(submitted))
@@ -138,9 +157,15 @@ def test_first_static_schema_allows_selection_but_recovery_is_frozen():
     schema = tool_schema_from(prompt(STATIC_CONTENT_POLICY))
     properties = schema.get("properties")
     assert isinstance(properties, dict)
-    facts = properties.get("info_required")
+    groups = properties.get("contentGroups")
+    assert isinstance(groups, dict)
+    group_item = groups.get("items")
+    assert isinstance(group_item, dict)
+    group_fields = group_item.get("properties")
+    assert isinstance(group_fields, dict)
+    facts = group_fields.get("facts")
     assert isinstance(facts, dict)
-    assert "全部原文清单" in facts.get("description", "")
+    assert "本组事实" in facts.get("description", "")
     item = facts.get("items")
     assert isinstance(item, dict)
     assert "allOf" not in item
@@ -271,6 +296,22 @@ def test_refinement_default_payload_is_unchanged_with_noncapacity_context():
     }
 
 
+def test_pre_freeze_refinement_allows_priority_based_object_selection():
+    messages = [{"role": "system", "content": "原合同"}]
+    refined = PromptBuilder.build_static_plan_refinement(
+        messages,
+        ["有限候选尚未排下"],
+        allow_priority_degradation=True,
+    )
+    payload = json.loads(refined[-1].get("content", ""))
+    instruction = payload.get("instruction", "")
+    assert "原计划尚未冻结" in instruction
+    assert "重新按用户用途和priority选择可承载的完整对象组" in instruction
+    assert "从should开始不选" in instruction
+    assert "省略整个低优先级object组" in instruction
+    assert "用户明确要求全部、完整、原文、指定条目或受保护文字不得删除" in instruction
+
+
 def test_recovery_refinement_keeps_frozen_scope_and_existing_schema():
     retry = context()
     messages = prompt(STATIC_CONTENT_POLICY, retry)
@@ -290,8 +331,7 @@ def test_recovery_refinement_keeps_frozen_scope_and_existing_schema():
     submitted = recovery_submission()
     validator = Draft202012Validator(tool_schema_from(refined))
     assert not list(validator.iter_errors(submitted))
-    facts = submitted.get("info_required")
-    assert isinstance(facts, list)
+    facts = submitted_facts(submitted)
     facts[1]["text"] = "11月7日–9日"
     assert list(validator.iter_errors(submitted))
 
