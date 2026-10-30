@@ -96,7 +96,7 @@ class IDSClient:
             headers=IDSRequestHeaders(
                 **{
                     "Content-Type": "application/json",
-                    "devFakeId": self.settings.ids_dev_fake_id,
+                    "devFakeId": self.settings.ids_flow_control_id,
                     "idsSign": ids_sign,
                 }
             ),
