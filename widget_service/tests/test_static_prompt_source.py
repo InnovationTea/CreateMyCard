@@ -122,6 +122,16 @@ def test_single_line_list_guidance_always_requires_title():
         assert required in read_static_prompt(SOURCE, stage, "2x4")
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_shared_body_line_always_counts_toward_component_capacity(size):
+    subject = "任何最终渲染为正文行的shared说明、例外或提示"
+    accounting = "都计入所选组件的实际条目数"
+    for stage in ("plan", "create", "repair"):
+        prompt = read_static_prompt(SOURCE, stage, size)
+        assert subject in prompt
+        assert accounting in prompt
+
+
 def test_text_list_guidance_requires_title_for_two_items_only():
     required = "TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无标题"
     for stage in ("plan", "create", "repair"):

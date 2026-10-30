@@ -512,7 +512,9 @@ def _extend_static_plan_tool(
             "comparison仅2x4，带标题2到3项、无标题4项；"
             "content/EmphasisText只承载1个核心对象或结论。"
             "最多五个object组只是账本上限；shared标题会占标题区，"
-            "shared公共说明仍须占所选正文组件的合法字段与高度。"
+            "shared公共说明仍须占所选正文组件的合法字段与高度；"
+            "任何最终渲染为正文行的shared说明、例外或提示都计入组件实际条目数，"
+            "不得因其不计object组数就在DSL中额外新增一行。"
         ),
     }
     properties["paletteFamily"] = {
