@@ -29,9 +29,9 @@
     天气现象及各自风险指数为次要数据；城市和区县可选，
     可接收 `location` 兜底。不能让基础温度模板覆盖不存在的紫外线或感冒风险展示。
   - `WeatherOverviewTemperatureConditionSupport@1`：主行展示城市与温度，辅行展示天气现象。
-  - `WeatherOverviewTemperatureHumiditySupport@1`：主行展示城市与温度，辅行展示“天气现象|湿度N%”；
+  - `WeatherOverviewTemperatureHumiditySupport@1`：主行展示城市与温度，辅行展示“天气现象 | 湿度N%”；
     湿度为必需的纯数值，展示时拼接“%”，不展示空气质量。
-  - `WeatherOverviewTemperatureAirQualitySupport@1`：主行展示城市与温度，辅行展示“天气现象|空气质量等级”；
+  - `WeatherOverviewTemperatureAirQualitySupport@1`：主行展示城市与温度，辅行展示“天气现象 | 空气质量等级”；
     空气质量为必需字段，不展示湿度。
     上述三种模板均为纯文本、不接收图标，主行 14vp、辅行 12vp；温度为主数据，天气现象及
     各自指标为次要数据，城市与区县可选并支持可信 `location` 兜底。可选内部事件 `actionId`

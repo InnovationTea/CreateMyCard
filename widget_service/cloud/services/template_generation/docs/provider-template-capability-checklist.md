@@ -229,7 +229,7 @@
 | ✅ | `SleepOverviewScoreFull@1` | 完整 2x2；无 Action 的单 Full，宽版下用于通栏槽位：顶部睡眠健康状态、大号得分数字、底部总睡眠行（深睡眠可选） | `/sleepScore` | `/nightSleepDurationText` | `/sleepStatus`<br>`/deepSleepDurationText` |
 | ✅ | `SleepOverviewScoreDetailWideFull@1` | 完整 2x4；无 Action 的单 WideFull：左侧大号得分数字配“睡眠得分”副标题和睡眠状况行，右侧两个带图标的胶囊块——上块总睡眠时长（时间大字+副标题），下块小睡时长和深睡眠时长（缺失时隐藏对应指标行或胶囊块） | `/sleepScore` | `/nightSleepDurationText` | `/sleepStatus`<br>`/totalNapDurationText`<br>`/deepSleepDurationText` |
 | ✅ | `SleepOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/nightSleepDurationText` | 无 | `/sleepStatus`<br>`/sleepScore`<br>`/fallAsleepTimeText`<br>`/wakeupTimeText` |
-| ✅ | `SleepOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
+| ✅ | `SleepOverviewCompact@1` | 约 2x1；16vp 时长和 12vp 说明，右侧可选睡眠图标；Compact + 2 个 PillAction | `/nightSleepDurationText` | 无 | 无 |
 | ✅ | `SleepOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/nightSleepDurationText` | 无 | 无 |
 
 ## WeatherOverview

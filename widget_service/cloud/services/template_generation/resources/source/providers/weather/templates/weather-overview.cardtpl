@@ -4643,7 +4643,7 @@ Row(
       )
     ),
     Text(
-      Expr(data.condition + "|湿度" + data.humidity + "%"),
+      Expr(data.condition + " | 湿度" + data.humidity + "%"),
       {
         "width": "matchParent",
         "height": 16,
@@ -4710,7 +4710,7 @@ Row(
       )
     ),
     Text(
-      `${data.condition}|空气质量${data.airQuality}`,
+      `${data.condition} | 空气质量${data.airQuality}`,
       {
         "width": "matchParent",
         "height": 16,

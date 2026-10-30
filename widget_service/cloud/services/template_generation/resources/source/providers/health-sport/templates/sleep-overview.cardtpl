@@ -1913,7 +1913,7 @@ Column(
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Row(
-        { "itemMargin": 4, "width": "matchParent", "justifyContent": "start", "alignItems": "top" },
+        { "itemMargin": 4, "width": "matchParent", "justifyContent": "spaceBetween", "alignItems": "top" },
         Column(
             {
                 "width": "matchParent",
@@ -1924,11 +1924,11 @@ Column(
             },
             Text(
                 data.duration,
-                { "height": 24, "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             ),
             Text(
                 "睡眠监测时长",
-                { "fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             )
         ),
         #if props.sourceIcon
@@ -1969,30 +1969,31 @@ Column(
             },
             Text(
                 data.score,
-                { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             ),
             Text(
                 "睡眠得分",
-                { "fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             )
         ),
         Stack(
-            {"width": 44, "height": 44, "alignContent": "center", "flexShrink": 0},
+            {"width": 36, "height": 36, "alignContent": "center", "flexShrink": 0},
             Progress(
                 {"value": data.score,
                 "total": 100,
                 "type": "ring",
                 "color": $theme('progressColor'),
                 "backgroundColor": $theme('progressBackgroundColor'),
-                "width": 44,
-                "height": 44,
-                "strokeWidth": 6}
+                "width": 36,
+                "height": 36,
+                "strokeWidth": 4
+                }
             ),
             #if props.sourceIcon
                 Image(
                     props.sourceIcon,
-                    {"width": 20,
-                    "height": 20,
+                    {"width": 16,
+                    "height": 16,
                     "objectFit": "contain",
                     "fillColor": $theme('supportContentColor')}
                 )
