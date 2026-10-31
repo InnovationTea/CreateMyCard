@@ -28,6 +28,7 @@ from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import GenerationRoutePolicy
 from services.generation_preflight import GenerationPreflight
 from services.generation_trace_recorder import trace_record, trace_span
+from services.operational_logging import exception_summary
 from services.post_layout_theme_registry import registered_themes
 from services.single_step_edit import _load_json
 from services.source_artifact_repository import SourceArtifactError, SourceArtifactRepository
@@ -78,7 +79,8 @@ class WidgetEditService:
             loaded = await to_thread.run_sync(SourceArtifactRepository().load,
                                              request.sourceArtifactUrl or "")
         except SourceArtifactError as exc:
-            _log_edit("source_load_failed", level="WARNING", errorCode=exc.error_code.value)
+            _log_edit("source_load_failed", level="WARNING", errorCode=exc.error_code.value,
+                      **exception_summary(exc))
             return self._response(request, GenerationStatus.FAILED,
                                   "上一版卡片无法安全读取，原卡片不受影响。", exc.error_code)
         original = loaded.artifact.model_copy(deep=True)
