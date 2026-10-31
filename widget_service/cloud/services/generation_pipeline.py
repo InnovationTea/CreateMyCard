@@ -286,12 +286,15 @@ class DesignCompactProcessor:
     def _repair_missing_shared_header(
         self, original: DslProcessingResult, context: DslProcessingContext,
     ) -> DslProcessingResult:
+        from services.static_content_layout import is_missing_static_header_error
         from services.static_content_presentation import missing_shared_header_candidate
 
         if context.skip_compact_dsl_validation or not context.compact_plan:
             return original
         for issue in original.errors:
-            if not issue.message.startswith("COMPACT_STATIC_CORE_MISSING:"):
+            if issue.message.startswith("COMPACT_STATIC_CORE_MISSING:"):
+                continue
+            if not is_missing_static_header_error(issue.message):
                 return original
         started_at = time.perf_counter()
         candidate = missing_shared_header_candidate(

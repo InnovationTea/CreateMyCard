@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from widget_service.tests.static_title_fixtures import titled_plan, titled_rows
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.card_validation.compact_validation.semantic.static_content import static_group_errors
@@ -43,7 +44,7 @@ def source(body: str, props: dict, size: str = "2x2", extra: list | None = None)
         ["/state/ready", True],
     ]
     rows.extend(extra or [])
-    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in titled_rows(rows))
 
 
 def task(query: str = "制作备忘卡：带证件", size: str = "2x2") -> dict:
@@ -503,7 +504,7 @@ async def test_formal_service_uses_static_plan_and_real_processor(
                 indexes.append(len(text_values))
                 text_values.append(text)
         groups.append({"id": str(len(groups)), "kind": "object", "factIndexes": indexes})
-    accepted = plan([fact(text) for text in text_values], groups)
+    accepted = titled_plan(plan([fact(text) for text in text_values], groups))
     prefix = "S" if size == "2x2" else "W"
     accepted["layoutHints"] = [f"{prefix}-static-content"]
     query = "制作静态卡片：" + "；".join(text_values)
@@ -1156,7 +1157,7 @@ def test_source_key_reading_can_be_split_across_facts_in_same_object() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("isolated_theme_stage")
-async def test_four_short_objects_deliver_as_comparison_without_plan_rejection(monkeypatch):
+async def test_four_short_objects_deliver_as_titled_rows_without_deleting_items(monkeypatch):
     from types import SimpleNamespace
 
     from api.schemas import GenerateWidgetCardRequest
@@ -1170,7 +1171,7 @@ async def test_four_short_objects_deliver_as_comparison_without_plan_rejection(m
     groups = []
     for index in range(4):
         groups.append({"id": f"item{index}", "kind": "object", "factIndexes": [index]})
-    value = plan(facts, groups)
+    value = titled_plan(plan(facts, groups))
     value["layoutHints"] = ["W-static-content"]
     calls = []
     saved = []
@@ -1185,8 +1186,8 @@ async def test_four_short_objects_deliver_as_comparison_without_plan_rejection(m
             return json.dumps(
                 {"name": "submit_card_plan", "arguments": model_plan(value)}, ensure_ascii=False,
             )
-        items = [{"primaryText": name, "secondaryText": "周六"} for name in names]
-        return source("ComparisonGroup", {"items": items}, "2x4")
+        items = [{"text": name, "assist": "周六"} for name in names]
+        return source("SingleLineList", {"items": items}, "2x4")
 
     def save(_store, artifact):
         saved.append(artifact)
@@ -1355,7 +1356,7 @@ def test_comparison_detail_keeps_complete_text_with_registered_multiline_layout(
     for node in standard_components(converted).values():
         if node.get("component") == "Text":
             contents.append(node.get("content"))
-    assert trailing == "".join(contents).removeprefix("动物园").removesuffix("展馆")
+    assert trailing == "".join(contents).removeprefix("共同主题动物园").removesuffix("展馆")
 
 
 @pytest.mark.asyncio
@@ -1663,7 +1664,7 @@ def test_same_group_source_can_support_short_label_but_not_another_objects_claim
             sourceTexts=["依据机动车交通事故责任强制保险条例（国务院令第462号）"],
         ),
     ]
-    accepted = accept(plan(facts), query)
+    accepted = accept(titled_plan(plan(facts)), query)
     assert accepted.get("staticPresentation")
     split = [
         {"id": "a", "kind": "object", "factIndexes": [0]},
@@ -1838,4 +1839,4 @@ def test_plan_budget_is_loaded_from_shared_contract():
     assert contract.get("text", {}).get("emphasis", {}).get("fontSize") == 18
 
     wide_budget = static_capacity_prompt("2x4")
-    assert "ComparisonGroup仅2x4可用：带标题2–3项，无标题4项" in wide_budget
+    assert "ComparisonGroup仅2x4可用：带标题2–3项，四个对象改选可带标题的合法结构" in wide_budget

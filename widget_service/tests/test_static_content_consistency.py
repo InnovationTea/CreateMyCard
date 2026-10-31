@@ -4,6 +4,7 @@ import copy
 import json
 
 import pytest
+from widget_service.tests.static_title_fixtures import titled_rows
 
 from services.card_validation import validate_compact_dsl
 from services.card_validation.compact_validation.semantic.static_content import (
@@ -50,7 +51,7 @@ def source(component, props, *, size="2x4", variant=None, header=None):
         layout_props["variant"] = variant
     rows.insert(0, ["root", "Layout", layout_props, children])
     rows.extend([["body", component, props], ["/state/ready", True]])
-    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in titled_rows(rows))
 
 
 def accept(value, query, size="2x4"):
@@ -240,7 +241,7 @@ def _single_line_omission_source(text):
         ["body", "SingleLineList", {"items": [{"text": text}]}],
         ["/state/ready", True],
     ]
-    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in titled_rows(rows))
 
 
 @pytest.mark.usefixtures("static_scope")
