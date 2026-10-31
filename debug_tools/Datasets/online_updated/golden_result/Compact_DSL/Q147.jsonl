@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-title-content-action","variant":"title-action"},["title","action"]]
+["title","SingleLineTitle",{"title":"呼叫赵红","fontSize":12}]
+["action","PillButton",{"label":"呼叫赵红","icon":"resources/base/media/ic_call_bule.svg","onClick":[{"call":"clickToApi","args":{"intentName":"CallPhone","params":{"phoneNumber":"1388888888"}}}]}]
+["/state/ready",true]

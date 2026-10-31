@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":{"path":"/data/earphone/earphoneName"},"secondaryText":{"path":"/data/earphone/chargingStatusDesc"},"visual":{"type":"icon","icon":"resources/base/media/emoji_bluetooth_earbuds_black.png"}}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","secondaryText":"{{ '右耳 ' + ${/data/earphone/rightBatteryLevel} + '%' }}"}]
+["/data/earphone/earphoneName","示例耳机"]
+["/data/earphone/batteryLevel",80]
+["/data/earphone/chargingStatusDesc","未充电"]
+["/data/earphone/leftBatteryLevel",76]
+["/data/earphone/rightBatteryLevel",78]

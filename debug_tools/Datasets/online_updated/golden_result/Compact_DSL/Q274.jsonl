@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"南京三天降雨概率","fontSize":12}]
+["content","Group",{"variant":"hero-support"},["content_primary","content_support"]]
+["content_primary","EmphasisText",{"mainText":"{{ ${/data/weather/daily/0/rainProbabilityPercent} + '%' }}","fontSize":18}]
+["content_support","SecondaryBody",{"items":[{"label":"第二天","value":"{{ ${/data/weather/daily/1/rainProbabilityPercent} + '%' }}"},{"label":"第三天","value":"{{ ${/data/weather/daily/2/rainProbabilityPercent} + '%' }}"}],"columns":1,"fontSize":12}]
+["/data/weather/daily/0/rainProbabilityPercent",20]
+["/data/weather/daily/1/rainProbabilityPercent",20]
+["/data/weather/daily/2/rainProbabilityPercent",20]

@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"W-split-panels"},["left","right"]]
+["left","Region",{"variant":"title-content"},["left_title","left_body"]]
+["left_title","SingleLineTitle",{"title":"阿瑞生日","icon":"resources/base/media/cake_fill.svg","fontSize":12}]
+["left_body","EmphasizedData",{"value":"{{ ${/data/countdown/countdownDays} + '天' }}","fontSize":30}]
+["right","Region",{"variant":"center"},["right_body"]]
+["right_body","EmphasisText",{"mainText":"生日倒计时","fontSize":18}]
+["/data/countdown/countdownDays",30]

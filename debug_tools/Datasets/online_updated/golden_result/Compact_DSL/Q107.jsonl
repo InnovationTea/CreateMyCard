@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"杭州2天1晚秋日漫游","icon":"resources/base/media/ic_calender.svg","fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/countdown/countdownDays"},"unit":"天","fontSize":30}]
+["support","SecondaryBody",{"items":[{"label":"Day1","value":"灵隐寺祈福、知竹素菜馆午餐、浙江省博物馆新馆、清河坊历史文化街区、赵府私厨晚餐、如家商旅酒店住宿","maxLines":2},{"label":"Day2","value":"小河直街、胜利河美食街午餐、拱宸桥桥西直街","maxLines":2}],"columns":1,"fontSize":12}]
+["/data/countdown/countdownDays",30]

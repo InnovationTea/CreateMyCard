@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"天气","icon":"resources/base/media/ic_weather_monochrome.svg","fontSize":12}]
+["content","EventCard",{"items":[{"title":{"path":"/data/weather/current/condition"},"time":{"path":"/data/weather/current/temperatureText"}}]}]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/temperatureText","29℃"]

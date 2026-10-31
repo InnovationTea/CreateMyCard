@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"今日天气"}]
+["body","EmphasisText",{"mainText":"中雨 16~22℃","secondaryText":"上海青浦 北风3-4级 空气优"}]
+["/state/ready",true]
