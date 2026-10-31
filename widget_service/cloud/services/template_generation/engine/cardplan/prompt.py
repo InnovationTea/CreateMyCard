@@ -703,7 +703,8 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "禁止从 request 截取标题。",
             "Action 类型由业务模板后缀和布局共同决定：Compact/Hero/WideHero 使用 "
             'Template("PillAction@1", props)，Full 仅在 FullIconActionLayout 中使用 '
-            'Template("IconAction@1", props)，需要大型图标操作槽的 2x4 布局使用 '
+            'Template("IconAction@1", props)，且 Full 必须属于本轮视觉验收白名单候选；'
+            '需要大型图标操作槽的 2x4 布局使用 '
             'Template("LargeIconAction@1", props)，WideFull 仅可在对应组合布局中使用 Action；'
             "Support 仅使用内部 "
             "actionId Prop。Action 不得被改写、丢弃或重复；Support 内部事件需按语义归属业务；"

@@ -6699,6 +6699,12 @@ def _validate_ux_layout_root(
         if _parsed_ux_action_component(child) is not None
     )
     content_children = tuple(child for child in node.children if child not in action_children)
+    if layout_id == "FullIconActionLayout":
+        approved_ids = registry.full_icon_action_template_ids
+        if len(content_children) != 1 or content_children[0].name not in approved_ids:
+            raise TerselConversionError(
+                "FullIconActionLayout requires a visually approved Full Template."
+            )
     _validate_provider_template_layout_action_requirements(
         layout_id,
         content_children,

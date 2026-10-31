@@ -194,7 +194,7 @@ Hero 缺少批准的自身业务按钮时拒绝该组合；其它宽卡组合继
 | --- | ---: | --- | --- |
 | 1 | 0 | `Full` | `SingleFocusLayout`，不生成 Action |
 | 1 | 1 | `Hero` | `HeroActionLayout` + 1 个 `PillAction` |
-| 1 | 1 | `Full` | 仅存在语义匹配的已批准图标素材时，使用 `FullIconActionLayout` + 1 个 `IconAction` |
+| 1 | 1 | `Full` | 完整模板 ID 命中视觉验收白名单，且存在语义匹配的已批准图标素材时，使用 `FullIconActionLayout` + 1 个 `IconAction` |
 | 1 | 2 | `Compact` | `CompactTwoActionLayout` + 2 个连续的 `PillAction` |
 | 2 | 0～2 | 两个独立覆盖各自显式字段的 `Support` | `TwoSupportLayout`；已选事件由对应业务模板的 `actionId` 各消费一次 |
 | 2 | 1 | 位置 0 为 `HeroTitle`；位置 1 为 `HeroContent` | `HeroTitleContentActionLayout` + 1 个末尾 `PillAction` |

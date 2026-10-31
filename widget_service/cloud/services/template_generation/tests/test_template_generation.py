@@ -3221,7 +3221,8 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。"
         ),
         "SleepOverviewScoreCompact@1": (
-            "睡眠得分紧凑摘要，展示睡眠得分和得分进度环，可使用睡眠图标。 组件形态：compact。"
+            "睡眠得分紧凑摘要，16vp 得分附带分单位，与 12vp 说明及 36vp 得分环整体垂直居中，"
+            "环宽 6vp，环内可选 16vp 睡眠图标。 组件形态：compact。"
         ),
         "SleepOverviewNapFull@1": (
             "作息提醒完整摘要，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 "
@@ -5719,8 +5720,9 @@ async def test_bluetooth_hero_supports_connection_action() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("request_title", [None, "耳机与音乐"])
 @pytest.mark.parametrize("has_connection", [False, True])
-async def test_bluetooth_music_action_can_use_full_with_icon_action(
-    request_title: str | None, has_connection: bool,
+@pytest.mark.parametrize("has_action", [False, True])
+async def test_bluetooth_full_preserves_title_without_action_and_rejects_unapproved_icon(
+    request_title: str | None, has_connection: bool, has_action: bool,
 ) -> None:
     binding = CandidateDataBinding(
         capabilityId="GetEarphoneInfo",
@@ -5755,6 +5757,8 @@ async def test_bluetooth_music_action_can_use_full_with_icon_action(
         }
     )
     card_spec = _bluetooth_card_spec()
+    if not has_action:
+        task_spec = task_spec.model_copy(update={"eventCandidates": []})
     props = {}
     if request_title is not None:
         card_spec["title"] = request_title
@@ -5778,14 +5782,27 @@ async def test_bluetooth_music_action_can_use_full_with_icon_action(
         available_template_ids=("BluetoothDeviceOverviewEarbudPairFull@1",),
         capability_id="GetEarphoneInfo",
         required_fields=tuple(required_fields),
-        action_id="event.open.music.daily",
+        action_id="event.open.music.daily" if has_action else None,
         body=(
             'Template("FullIconActionLayout@1",{},'
             f'Template("BluetoothDeviceOverviewEarbudPairFull@1",{json.dumps(props)}),'
             'Template("IconAction@1",{"actionId":"event.open.music.daily",'
             '"icon":"resources/base/media/icon_music.svg"}));'
+            if has_action else (
+                'Template("SingleFocusLayout@1",{},'
+                f'Template("BluetoothDeviceOverviewEarbudPairFull@1",{json.dumps(props)}));'
+            )
         ),
     )
+
+    if has_action:
+        with pytest.raises(TemplateRouteNotApplicable, match="supported atomic plan"):
+            await generate_template_a2ui(
+                task_spec, card_spec, (binding,), model,
+                trusted_template_candidate_ids=("BluetoothDeviceOverviewEarbudPairFull@1",),
+            )
+        assert model.second_layer_prompt is None
+        return
 
     output = await generate_template_a2ui(
         task_spec,
@@ -5797,11 +5814,9 @@ async def test_bluetooth_music_action_can_use_full_with_icon_action(
 
     assert output.template_ids == (
         "BluetoothDeviceOverviewEarbudPairFull@1",
-        "IconAction@1",
-        "FullIconActionLayout@1",
+        "SingleFocusLayout@1",
     )
-    assert "event.open.music.daily" in output.a2ui
-    assert "resources/base/media/icon_music.svg" in output.a2ui
+    assert "event.open.music.daily" not in output.a2ui
     assert model.second_layer_prompt is not None
     prompt_text = json.dumps(model.second_layer_prompt, ensure_ascii=False)
     assert "businessTitleCandidate" in prompt_text
@@ -8162,7 +8177,7 @@ async def test_q034_dual_city_template_compiles_both_runtime_roots() -> None:
 
 
 @pytest.mark.asyncio
-async def test_q043_care_weather_compiles_with_phone_action() -> None:
+async def test_q043_user_approved_care_weather_preserves_fields_and_phone_action() -> None:
     class CareWeatherModel:
         async def generate_json(
             self,
@@ -8261,16 +8276,10 @@ async def test_q043_care_weather_compiles_with_phone_action() -> None:
     }
 
     output = await generate_template_a2ui(
-        task_spec,
-        card_spec,
-        (binding,),
-        CareWeatherModel(),
+        task_spec, card_spec, (binding,), CareWeatherModel(),
     )
-
     assert output.template_ids == (
-        "WeatherOverviewCareAlertFull@1",
-        "IconAction@1",
-        "FullIconActionLayout@1",
+        "WeatherOverviewCareAlertFull@1", "IconAction@1", "FullIconActionLayout@1",
     )
     assert "${/data/weather/current/alertLevel}" in output.a2ui
     assert "${/data/weather/current/uvIndex}" in output.a2ui

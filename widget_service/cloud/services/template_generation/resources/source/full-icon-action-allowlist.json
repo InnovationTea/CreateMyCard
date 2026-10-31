@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "full-icon-action-allowlist/1",
+  "layoutDigest": "97319538a46fd1cd8f51afd0782e23c0a25bca696dfcf33c94362d55407203d6",
+  "actionDigest": "b57ffe5310572e9c127401587b064d43bf3bf8ea68349a92a31a9549865a4ac1",
+  "reviewDate": "2026-10-31",
+  "scope": "真机 150x150vp；4 项初审通过，20 项用户于 2026-10-31 确认纳入；初审观测保留，不等价于所有设备或在线端到端验收",
+  "templates": [
+    {
+      "templateId": "BatteryOverviewFull@1",
+      "templateDigest": "88a75e4ab208c52f6d53522d57ddc6609b80e7864e8f593624850487d107fc60",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI008"
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewConnectionTextFull@1",
+      "templateDigest": "6f6de10ec9cfa189a46eb1d780de556b63469ae23cb0ff86e3d12f5a3b1c0554",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI018"
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarphonePercentTextFull@1",
+      "templateDigest": "cd52ed89a9b65f65d22bb29a8725b0edeb2961c004efa6774c2808a8bf07e0b0",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI024"
+    },
+    {
+      "templateId": "CountdownOverviewFull@1",
+      "templateDigest": "d5c56e75786a931f924cd014ada7f6655e9a54644c6ce86eb9f581346fc3ee79",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI026"
+    },
+    {
+      "templateId": "ScheduleOverviewDateAllDayFull@1",
+      "templateDigest": "4e3c0f8148b469edbd9bbc2251521a5e57583ef12d768f745b8198415b0de73b",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI034",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "ScheduleOverviewDateEndFull@1",
+      "templateDigest": "235e15fa0c7f06b6251b118c84327b95ee3d026f1edb365798a1c4df2a972502",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI036",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "ScheduleOverviewTimezoneDateEndFull@1",
+      "templateDigest": "f82d14afa3191203b2cbf12d342239d9db6fadcc672fe867e02c391081fdeedc",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI056",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "ScheduleOverviewTimezoneTimeFull@1",
+      "templateDigest": "919ce6dd72d11ac3ab6f79a193ca6c2a194f207eb81fa9c944d62dbf1999e133",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI058",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "ScheduleOverviewTitleStartFull@1",
+      "templateDigest": "f5a807949ef7d109609f546b656e0d4f9cb5b125b06284ff5cc0cf9fb09b53f2",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI059",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "ScheduleOverviewTitleTimeFull@1",
+      "templateDigest": "d58a8f1ddf4aafb10db9e56f909f5a65e35e4c97acaaf06468a4427f9236c56c",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI060",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewAlertInfoFull@1",
+      "templateDigest": "8626201bd42294489a7a7d11ed9913210283abb1fbe13b8c101382bb3dd6bbfd",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI067",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewCareAlertFull@1",
+      "templateDigest": "46412b81e78792a2d323b542a4a875722696b3189326562c7cfda820114124fb",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI068",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewConditionFeelsLikeAlertFull@1",
+      "templateDigest": "e0042d1230af02bd968dc52464ac6a2230079cbe255367efc4d80d8d0e2dc6d2",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI069",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewDailyDateFull@1",
+      "templateDigest": "f4fdf2855ae7a9971f25812b1b7ba9d1013e726d8437beda1ab48e021bd118a4",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI072",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewDailyHealthFull@1",
+      "templateDigest": "1c0b84eaf7ad93fe8d22573260d1787f1d5bbaf95c2d66e100161b39f34b9f7e",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI073",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewDailyRainFull@1",
+      "templateDigest": "6d686a5c81f87cdb51a6d5a0daca1c6be51eb70e27be0ddb2c8c849deabd1dc8",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI074",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewDailyUvColdFull@1",
+      "templateDigest": "57dba5f83ec2b3bf8f3c5aacca8c284e8d7bc42526bed82bb133d4cf1e7fea9d",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI076",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewFeelsLikeAlertFull@1",
+      "templateDigest": "8eb514688be0a43c3e42fa2e8bf6d0d8f5e30a92f51d16cc9b4c290962d13a11",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI079",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewFull@1",
+      "templateDigest": "fdc6cb9db78f9f7611b53b5c8d702e93f7efb3db64f8aee7a207453d7037e4d0",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI080",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewHumidityWindFull@1",
+      "templateDigest": "6a95fc691c8c7b2942e18a60638182bd33e714b7508a8f6f87896c0ebbf8c151",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI082",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewRainWindFull@1",
+      "templateDigest": "457de20cda92f659992b4db2f7273d1ae618ac02af708fb3cca60cfcbff1a1e9",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI084",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewTargetDayHealthFull@1",
+      "templateDigest": "7b9f115346770e72d0bf283f52a4d0142d30fd0c73d3f2f0af930a8ac1873c59",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI085",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewUvColdFull@1",
+      "templateDigest": "3246942b1a69b613c5413ac1c50cbeef27348fd484908d5465db38ce10a09764",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI088",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    },
+    {
+      "templateId": "WeatherOverviewUvOnlyFull@1",
+      "templateDigest": "142426c8367b38ca9f948802cd0d89be3b0114a30e4dc2695ea7385a215d3329",
+      "status": "passed",
+      "evidence": "full-icon-action-20261031:FI090",
+      "approvalSource": "user_confirmation",
+      "approvalDate": "2026-10-31"
+    }
+  ],
+  "reviewManifestSha256": "7dc26f9cd0eaa8438a4d30949746b5456b035c39cb462386ccb16edbc07259d6"
+}

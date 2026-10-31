@@ -193,6 +193,18 @@ def build_ux_mixed_prompt(
             preferred_template_ids=preferred_template_ids,
         )
     )
+    if task_spec.size == "2x2" and len(scope.advanced_component_ids) == 1:
+        if len(task_spec.eventCandidates) == 1:
+            satisfiable_template_ids = {
+                template_id for template_id in satisfiable_template_ids
+                if _allows_single_action_template(template_id, registry)
+            }
+            filtered_groups = []
+            for group in required_template_groups:
+                filtered_groups.append(tuple(
+                    template_id for template_id in group if template_id in satisfiable_template_ids
+                ))
+            required_template_groups = tuple(filtered_groups)
     candidate_ids_by_component = {
         component_id: tuple(
             template_id
@@ -1251,6 +1263,12 @@ def _order_two_focus_component_slots(
     return ordered_components, ordered_groups
 
 
+def _allows_single_action_template(template_id: str, registry: CardPlanRegistry) -> bool:
+    if provider_template_layout_kind(template_id) != "Full":
+        return True
+    return template_id in registry.full_icon_action_template_ids
+
+
 def _second_layer_layout_selection(
     scope: AdvancedScopeBrief,
     task_spec: TaskSpec,
@@ -1284,7 +1302,11 @@ def _second_layer_layout_selection(
             layout_ids = ["HeroActionLayout"]
             layout_kinds = ["Hero"]
             action_template_ids = [_PILL_ACTION_TEMPLATE_ID]
-            if _has_semantic_action_icon(task_spec):
+            approved_full_ids = set(registry.full_icon_action_template_ids)
+            candidate_full_ids: set[str] = set()
+            for group in required_template_groups:
+                candidate_full_ids.update(group)
+            if _has_semantic_action_icon(task_spec) and approved_full_ids & candidate_full_ids:
                 layout_ids.append("FullIconActionLayout")
                 layout_kinds.append("Full")
                 action_template_ids.append(_ICON_ACTION_TEMPLATE_ID)

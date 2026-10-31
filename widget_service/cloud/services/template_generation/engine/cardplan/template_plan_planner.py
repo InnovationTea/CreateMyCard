@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 from itertools import permutations, product
 from typing import NamedTuple
 
+from app.logger import logger
 from models.generation import CandidateDataBinding, TaskSpec
 from services.template_generation.engine.advanced.models import (
     AdvancedScopeBrief,
@@ -478,6 +479,13 @@ def _single_business_drafts(
         for candidate in group.candidates:
             if provider_template_layout_kind(candidate.template_id) != role:
                 continue
+            if layout_template_id == "FullIconActionLayout@1":
+                if candidate.template_id not in registry.full_icon_action_template_ids:
+                    logger.info(
+                        "[Template Planner] full_icon_action_rejected "
+                        f"template_id={candidate.template_id} reason=visual_allowlist_miss"
+                    )
+                    continue
             definition = registry.require_template(candidate.template_id)
             slot = _business_slot(0, group, candidate.template_id, role, intent, definition)
             assignments = _root_action_assignments(action_ids, action_template_id)

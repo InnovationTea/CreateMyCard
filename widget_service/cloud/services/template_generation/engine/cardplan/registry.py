@@ -17,6 +17,7 @@ from services.template_generation.engine.advanced.models import (
     UxLayoutComponentCapability,
 )
 
+from .full_icon_action_policy import load_full_icon_action_allowlist
 from .models import BusinessTemplateGroup, TemplateDefinition, TemplateVariant, ThemeDefinition
 from .prompt_guidance import selected_template_guidance
 from .provider_bundle import (
@@ -109,6 +110,13 @@ class CardPlanRegistry:
             if enable_fusion_ball or theme.fusion_ball_style is None
         )
         self.templates = self._unique_by_wire_id(provider_templates)
+        self.full_icon_action_template_ids = load_full_icon_action_allowlist(
+            self.source_root, self.templates,
+        )
+        logger.info(
+            "[Template Control] full_icon_action_allowlist_loaded "
+            f"approved_count={len(self.full_icon_action_template_ids)}"
+        )
         self.template_variant_search_records: tuple[TemplateVariantSearchRecord, ...] = (
             build_template_variant_search_records(self.templates)
         )
