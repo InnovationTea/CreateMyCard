@@ -1426,6 +1426,11 @@ static_content_components.py的参数展开检查，不向公共入口或动态�
 
 ## 2026-10-28 静态 SingleLineList 容量修复与受控 Drop
 
+2026-10-31 静态标题履约归语义／布局合同：`static_content_layout.requires_static_header`登记
+仅三项TextList可无标题，`compact_semantic_layout`展开静态外框时检查可达header/SingleLineTitle。
+原校验入口与最终转换共用展开，不复制覆盖或几何判定；缺标题不属于容量超限，不授权Drop。
+不合成模型标题、不改变字号、安全区、单行背板尺寸或间距，动态路线不变。
+
 | 检查或行为 | 分类、实际文件 | 归属理由 |
 | --- | --- | --- |
 | SingleLineList 完整单行容量失败 | 语义／布局与视觉，`semantic/layout/text_capacity.py`、`static_content_components.py` | 继续使用既有 `COMPACT_STATIC_TEXT_CAPACITY`，不新增检查或放宽单行合同 |

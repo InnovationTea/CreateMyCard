@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
+from widget_service.tests.static_title_fixtures import titled_plan
 
 from api.schemas import GenerateWidgetCardRequest
 from config.config import get_settings
@@ -93,7 +94,8 @@ def _request(query="制作静态卡片：带证件", size="2x2"):
 
 def _dsl(text):
     return "\n".join(json.dumps(row, ensure_ascii=False) for row in [
-        ["root", "Layout", {"layout": "S-static-content"}, ["body"]],
+        ["root", "Layout", {"layout": "S-static-content"}, ["header", "body"]],
+        ["header", "SingleLineTitle", {"title": "提醒"}],
         ["body", "EmphasisText", {"mainText": text}], ["/state/ready", True],
     ])
 
@@ -477,7 +479,7 @@ def test_review_allows_shared_units_and_visible_identity_without_new_plan_gate()
 
 @pytest.mark.asyncio
 async def test_keep_uses_two_plan_calls_then_existing_dsl_and_exact_candidate(monkeypatch):
-    plan = _plan()
+    plan = titled_plan(_plan(), title="提醒")
     with content_policy_scope(STATIC_CONTENT_POLICY):
         accepted = parse_compact_plan_call(json.dumps(_call(plan)), {
             "userQuery": "制作静态卡片：带证件", "size": "2x2",
@@ -501,8 +503,8 @@ async def test_keep_uses_two_plan_calls_then_existing_dsl_and_exact_candidate(mo
 async def test_q19_style_omission_is_corrected_before_dsl(monkeypatch):
     source = "甲活动在上海体育场"
     fixed = "甲活动 上海体育场"
-    original = _plan("甲活动", source)
-    corrected = _plan(fixed, source)
+    original = titled_plan(_plan("甲活动", source), title="提醒")
+    corrected = titled_plan(_plan(fixed, source), title="提醒")
     service, calls, saved = _service(monkeypatch, [
         _call(original), _correct(corrected, [_finding(source)]),
     ], display=fixed)
@@ -529,7 +531,9 @@ async def test_q19_style_omission_is_corrected_before_dsl(monkeypatch):
     {"decision": "unknown"}, "not-json", TimeoutError("offline timeout"),
 ])
 async def test_invalid_review_or_timeout_never_saves_original(monkeypatch, review):
-    service, calls, saved = _service(monkeypatch, [_call(_plan()), review])
+    service, calls, saved = _service(
+        monkeypatch, [_call(titled_plan(_plan(), title="提醒")), review],
+    )
     try:
         response = await service.generate_widget_card_compact_dsl(_request())
     except (A2UIModelGenerationError, TimeoutError):
@@ -722,13 +726,17 @@ async def test_first_contract_error_uses_second_contract_repair_without_third_ca
 
 @pytest.mark.asyncio
 async def test_capacity_recovery_does_not_review_or_rewrite_frozen_facts(monkeypatch):
-    request = _request()
+    request = _request("制作提醒卡片：带证件")
     request._compact_dsl_retry_context = CompactDslRetryContext(
         failure_category="layout_capacity", capacity_recovery=True,
-        retained_facts=(CompactDslRecoveryFact("text", "带证件", "带证件", "must"),),
+        retained_facts=(
+            CompactDslRecoveryFact("text", "带证件", "带证件", "must"),
+            CompactDslRecoveryFact("text", "提醒", "提醒", "must"),
+        ),
         omitted_facts=(CompactDslRecoveryFact("text", "带雨伞", "带雨伞", "must"),),
     )
-    service, calls, saved = _service(monkeypatch, [_call(_plan())])
+    recovery_plan = titled_plan(_plan(), title="提醒")
+    service, calls, saved = _service(monkeypatch, [_call(recovery_plan)])
     response = await service.generate_widget_card_compact_dsl(request)
     assert response.status == GenerationStatus.DEGRADED
     assert response.omittedRequirements == ["带雨伞"]

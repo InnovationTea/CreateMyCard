@@ -31,7 +31,10 @@ SOURCE = (
 )
 
 
-def encode(kind, props, *, size="2x2", header=False, note=False, root_props=None):
+def encode(kind, props, *, size="2x2", header=None, note=False, root_props=None):
+    if header is None:
+        items = props.get("items")
+        header = not (kind == "TextList" and isinstance(items, list) and len(items) == 3)
     children = ["header"] if header else []
     children.append("body")
     rows = [["body", kind, props]]
@@ -56,6 +59,7 @@ def plan_for(source, query):
                 indexes.append(len(facts))
                 facts.append({
                     "text": part, "priority": "must", "requirement": part, "sourceTexts": [query],
+                    "displayRole": "title" if kind == "shared" else "body",
                 })
             groups.append({
                 "id": str(len(groups)), "kind": kind, "identity": None, "factIndexes": indexes,
@@ -78,7 +82,7 @@ def check(source, size="2x2", query="测试原文"):
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
-@pytest.mark.parametrize("header,note", [(False, False), (True, False)])
+@pytest.mark.parametrize("header,note", [(True, False)])
 def test_fixed_frame_keeps_header_and_emphasis_top_aligned(size, header, note):
     nodes = check(encode("EmphasisText", {"mainText": "核心结论"},
                          size=size, header=header, note=note), size)
@@ -171,6 +175,67 @@ def test_three_item_list_with_header_is_rejected_without_changing_spec():
         check(encode("TextList", {"items": items}, header=True))
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("kind,count", [
+    ("SingleLineList", 1), ("SingleLineList", 2), ("SingleLineList", 3),
+    ("SingleLineList", 4), ("SingleLineList", 5), ("TextList", 2),
+])
+def test_required_list_header_is_checked_in_validation_and_conversion(size, kind, count):
+    if kind == "SingleLineList":
+        items = [{"text": f"项{index}", "assist": "20元"} for index in range(count)]
+    else:
+        items = [{"primaryText": f"项{index}", "secondaryText": "说明"} for index in range(count)]
+    source = encode(kind, {"items": items}, size=size, header=False)
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(ValueError, match="root.children缺少header"):
+            convert_compact_dsl_to_a2ui(source, size=size)
+    with pytest.raises(ValueError, match="root.children缺少header"):
+        check(source, size)
+    assert check(encode(kind, {"items": items}, size=size, header=True), size)
+
+
+@pytest.mark.parametrize("count", [2, 3])
+def test_horizontal_comparison_requires_connected_title(count):
+    items = [{"primaryText": "20元", "secondaryText": f"方案{index}"} for index in range(count)]
+    with pytest.raises(ValueError, match="root.children缺少header"):
+        check(encode("ComparisonGroup", {"items": items}, size="2x4", header=False), "2x4")
+    assert check(encode("ComparisonGroup", {"items": items}, size="2x4", header=True), "2x4")
+
+
+def test_missing_required_header_does_not_authorize_information_drop():
+    source = encode("TextList", {"items": [
+        {"primaryText": "对象甲", "secondaryText": "说明甲"},
+        {"primaryText": "对象乙", "secondaryText": "说明乙"},
+    ]}, header=False)
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        with pytest.raises(ValueError) as caught:
+            convert_compact_dsl_to_a2ui(source, size="2x2")
+        errors = [{"code": "COMPACT_DSL_CONVERSION_FAILED", "message": str(caught.value)}]
+        plan = plan_for(source, "测试原文")
+        tracker = CompactRepairStrategyTracker(max_repair_attempts=5, static_content=True)
+        for _ in range(3):
+            directive = tracker.next_directive(
+                source, errors, compact_plan=plan, task_spec={"size": "2x2"},
+            )
+            assert directive.optional_drop is None
+            assert directive.repair_strategy != "drop_optional_component"
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_emphasis_also_requires_a_header(size):
+    with pytest.raises(ValueError, match="root.children缺少header"):
+        check(encode("EmphasisText", {"mainText": "实际结论"}, size=size, header=False), size)
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_disconnected_title_does_not_satisfy_required_header(size):
+    source = encode("SingleLineList", {"items": [{"text": "票价", "assist": "20元"}]},
+                    size=size, header=False)
+    source += '\n["header","SingleLineTitle",{"title":"参观信息"}]'
+    with pytest.raises(ValueError):
+        check(source, size)
+
+
 def test_three_text_records_omit_only_an_optional_shared_title_in_candidates():
     facts = [{
         "text": "附近小区房价",
@@ -213,51 +278,11 @@ def test_three_text_records_omit_only_an_optional_shared_title_in_candidates():
         assert not static_group_errors(candidates[0], plan)
 
 
-def test_four_item_comparison_uses_full_width_two_by_two_grid():
-    items = [
-        {"primaryText": f"{price}元/月", "secondaryText": name}
-        for price, name in ((128, "甲"), (159, "乙"), (199, "丙"), (239, "丁"))
-    ]
-    nodes = check(encode("ComparisonGroup", {"items": items}, size="2x4"), "2x4")
-    body = nodes.get("body")
-    assert body
-    assert body.get("component") == "Column"
-    assert body.get("styles", {}).get("height") == 126
-    assert body.get("itemMargin") == 12
-    rows = [nodes.get(identifier) for identifier in body.get("children", [])]
-    assert len(rows) == 2
-    assert all(row and row.get("component") == "Row" for row in rows)
-    assert all(row.get("styles", {}).get("height") == 57 for row in rows if row)
-    assert all(len(row.get("children", [])) == 2 for row in rows if row)
-
-    with pytest.raises(ValueError, match="不能同时使用公共标题"):
-        check(
-            encode("ComparisonGroup", {"items": items}, size="2x4", header=True),
-            "2x4",
-        )
-
-
-def test_four_item_comparison_ellipsizes_primary_and_secondary_text():
-    long_primary = "159元/月畅享套餐超值版"
-    long_secondary = "乙方案 · 60GB乙方案"
-    items = [
-        {"primaryText": "128元/月", "secondaryText": "甲方案 · 30GB"},
-        {"primaryText": long_primary, "secondaryText": long_secondary},
-        {"primaryText": "199元/月", "secondaryText": "丙方案 · 100GB"},
-        {"primaryText": "239元/月", "secondaryText": "丁方案 · 150GB"},
-    ]
-    nodes = check(encode("ComparisonGroup", {"items": items}, size="2x4"), "2x4")
-    for field, content in (("primaryText", long_primary), ("secondaryText", long_secondary)):
-        node = nodes.get(f"body__static_item1_{field}")
-        assert node
-        assert node.get("content") == content
-        styles = node.get("styles", {})
-        assert styles.get("maxLines") == 1
-        assert styles.get("textOverflow") == "ellipsis"
-        assert styles.get("constraintSize") == {"minWidth": 0}
-        assert styles.get("flexShrink") == 1
-    assert not any("item1_primaryText_line" in identifier for identifier in nodes)
-    assert not any("item1_secondaryText_line" in identifier for identifier in nodes)
+@pytest.mark.parametrize("header", [False, True])
+def test_four_item_comparison_is_not_a_legal_titled_selection(header):
+    items = [{"primaryText": "20元", "secondaryText": f"方案{index}"} for index in range(4)]
+    with pytest.raises(ValueError, match="缺少header|不能同时使用公共标题"):
+        check(encode("ComparisonGroup", {"items": items}, size="2x4", header=header), "2x4")
 
 
 def test_three_item_comparison_ellipsizes_secondary_text_after_two_lines():
@@ -282,7 +307,7 @@ def test_three_item_comparison_ellipsizes_secondary_text_after_two_lines():
     assert styles.get("constraintSize") == {"minWidth": 0}
 
 
-def test_four_item_comparison_candidate_requires_headerless_layout():
+def test_four_item_comparison_candidates_do_not_pass_titled_generation_contract():
     facts = []
     groups = []
     for index, name in enumerate(("甲", "乙", "丙", "丁")):
@@ -312,9 +337,9 @@ def test_four_item_comparison_candidate_requires_headerless_layout():
         "presentationStyle": "comparison",
     }
     candidates = static_presentation_candidates(plan, "2x4")
-    assert len(candidates) == 1
-    assert '"ComparisonGroup"' in candidates[0]
-    assert '"header"' not in candidates[0]
+    for candidate in candidates:
+        with pytest.raises(ValueError, match="缺少header"):
+            check(candidate, "2x4")
 
     titled_plan = {
         **plan,

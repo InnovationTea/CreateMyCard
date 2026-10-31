@@ -48,7 +48,7 @@ TextList为2项时必须与SingleLineTitle标题配套使用；3项时允许无�
 不能为了保留标题删除核心记录。对象名之外有说明、状态、趋势或多个限定时选records；
 仅短标签加短值且完整单行可读时选rows，并同时保留可见的shared共同主题。
 SingleLineList必须与SingleLineTitle标题配套使用。
-ComparisonGroup为2或3项时必须与SingleLineTitle标题配套使用；4项宫格允许无标题。
+ComparisonGroup仅规划带SingleLineTitle标题的2或3项；四个对象改选可带标题且完整承载的正文结构。
 presentationStyle必须与对象事实的首选componentHints一致：records对应TextList，rows对应SingleLineList，comparison对应ComparisonGroup。
 对象名称是展示合同的一部分；来源中真实命名的商品、方案、模型、城市或项目须填identity，
 并在本对象内可见；单一主体可放在整卡header，多对象须在各自条目内可见。未命名对象和shared显式填null；
@@ -65,8 +65,8 @@ identity填写最终要显示的名称；若本组text已含同对象简称，�
 |---|---|---|---|
 | records / TextList | 2项必须有SingleLineTitle；3项不使用独立标题 | 2条或3条完整对象 | 对象名加说明、状态、趋势或多个限定 |
 | rows / SingleLineList | 必须有SingleLineTitle | 1–5条完整单行 | 短标签加短值，每条text与assist均能单行完整读取 |
-| comparison / ComparisonGroup | 2–3项必须有SingleLineTitle；4项不使用标题 | 仅2x4可用，承载2–4个可比对象 | 同维度方案、读数或条件比较 |
-| content / EmphasisText | 默认配一个SingleLineTitle，容量不足时可省略 | 1个核心对象或结论；主文本最多2行，两段辅助各最多3行且共享剩余高度 | 单一结论与从属说明，不承载多个平级对象 |
+| comparison / ComparisonGroup | 必须有SingleLineTitle | 仅2x4可用，承载2–3个可比对象 | 同维度方案、读数或条件比较 |
+| content / EmphasisText | 必须有SingleLineTitle | 1个核心对象或结论；主文本最多2行，两段辅助各最多3行且共享剩余高度 | 单一结论与从属说明，不承载多个平级对象 |
 
 按以下顺序自查：
 1. 先数完整object条目，再核对shared/title和shared/body；标题会改变TextList和ComparisonGroup的可用项数。
@@ -86,9 +86,9 @@ identity填写最终要显示的名称；若本组text已含同对象简称，�
 | paletteFamily | auto/blue/purple/warm | 用户明确偏好才登记对应色系，默认auto |
 
 单一主体或整卡主题用shared/title；实际结论用object/body或value，单行条目用label/value，文本列表的补充用body，短数值可用trailing。
-默认在shared组规划一个简短主题标题，displayRole为title，componentHints为["SingleLineTitle"]；
+除三项TextList外，在shared组规划一个简短主题标题，displayRole为title，componentHints为["SingleLineTitle"]；
 sourceTexts引用支持该主题的输入内容，text可忠实概括，不要求输入已有独立标题句。标题不重复正文主句，
-也不把概括当作新增事实；不为保留标题删减必要记录。仅作装饰时用should，必要主体或范围仍用must。
+也不把概括当作新增事实；不为保留标题删减必要记录。标题用must；三项TextList不单独规划可省略主题，必要主体或范围仍须可见。
 对比的value是主读数、title是对象名。列表和对比的名称用object/title；共同条件在正文内承载，不另建辅助组件。
 替代/并列关系和必要限定须在展示文字中保留，不得仅放requirement或组ID。
 

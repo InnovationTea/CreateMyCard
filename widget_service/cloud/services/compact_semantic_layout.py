@@ -925,7 +925,12 @@ def _compile_static_layout(
     rows: list[CompactRow] | tuple[CompactRow, ...], size: str
 ) -> SemanticLayoutExpansion:
     from services.generation_content_policy import static_components_for_size
-    from services.static_content_layout import static_body_inset, stretches_static_body
+    from services.static_content_layout import (
+        STATIC_HEADER_MISSING,
+        requires_static_header,
+        static_body_inset,
+        stretches_static_body,
+    )
     from services.static_text_capacity import contract_section, number, text_spec
 
     compiler = _Compiler(rows)
@@ -948,6 +953,12 @@ def _compile_static_layout(
     body = compiler.node("body")
     if body.component_type not in static_components_for_size(size):
         _fail("body", "静态正文组件与尺寸不匹配")
+    if "header" not in root.children and requires_static_header(body.component_type, body.props):
+        _fail(
+            "header",
+            f"静态{body.component_type}必须配套SingleLineTitle标题区；"
+            + STATIC_HEADER_MISSING,
+        )
     if "header" in root.children:
         if compiler.node("header").component_type != "SingleLineTitle":
             _fail("header", "静态标题必须使用 SingleLineTitle")
