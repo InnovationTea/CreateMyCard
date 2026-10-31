@@ -9,6 +9,7 @@ import re
 from typing import Any
 
 from app.logger import logger
+from services.compact_action_instances import event_card_detail_action, plan_action_candidates
 
 JOINT_RECOMPOSITION_INSTRUCTION = (
     "此前布局已失败，本轮把结构、容量、事实、动作和素材作为同一重组问题处理，"
@@ -819,9 +820,23 @@ def joint_repair_contract(
                 protected[key] = copy.deepcopy(fact.get(key))
         facts.append(protected)
     actions = []
-    for candidate in task.get("eventCandidates", []):
-        if isinstance(candidate, dict) and candidate.get("id") in action_ids:
-            actions.append(copy.deepcopy(candidate))
+    carriers = []
+    for reference, candidate in plan_action_candidates(task).items():
+        if reference not in action_ids:
+            continue
+        actions.append(copy.deepcopy(candidate))
+        if reference == plan.get("wholeCardActionId"):
+            allowed = ["root.onClick"]
+        elif event_card_detail_action(task, reference):
+            allowed = ["EventCard.items[].onClick（同一日程记录）", "独立按钮"]
+        else:
+            allowed = ["独立按钮"]
+        carriers.append({
+            "actionId": reference,
+            "call": candidate.get("call"),
+            "args": copy.deepcopy(candidate.get("args")),
+            "allowedCarriers": allowed,
+        })
     assignments = plan.get("assetAssignments")
     selected_assets: set[str] = set()
     if isinstance(assignments, dict):
@@ -854,6 +869,7 @@ def joint_repair_contract(
         "facts": facts,
         "actionIds": sorted(action_ids),
         "actions": actions,
+        "actionCarriers": carriers,
         "assetAssignments": copy.deepcopy(plan.get("assetAssignments")),
         "assignedAssets": assigned_assets,
         "approvedOmissions": authorized,
