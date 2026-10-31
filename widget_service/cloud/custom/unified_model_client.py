@@ -18,6 +18,7 @@ from services.generation_trace_recorder import (
     trace_record,
     trace_span,
 )
+from services.operational_logging import exception_summary
 
 _MODULE = "[Unified Model Client]"
 
@@ -244,7 +245,8 @@ class UnifiedModelClient:
                             f"attempt={provider_attempt} max_attempts={max_attempts} "
                             f"will_retry={json_for_log(should_retry)} "
                             f"retry_delay_seconds={delay_seconds} "
-                            f"exception_type={type(exc).__name__}"
+                            f"exception_type={type(exc).__name__} "
+                            f"failure={json_for_log(exception_summary(exc))}"
                         )
                         if not should_retry:
                             raise

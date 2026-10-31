@@ -22,12 +22,14 @@ from models.preflight import GenerationPreflightError, GenerationPreflightResult
 from services.artifact_store import ArtifactStore, ArtifactUploadError
 from services.card_validation.edit_validation.artifact import (
     edit_expectation_errors,
+    unmet_edit_summary,
     validate_edit_artifact,
 )
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import GenerationRoutePolicy
 from services.generation_preflight import GenerationPreflight
 from services.generation_trace_recorder import trace_record, trace_span
+from services.operational_logging import exception_summary
 from services.post_layout_theme_registry import registered_themes
 from services.single_step_edit import _load_json
 from services.source_artifact_repository import SourceArtifactError, SourceArtifactRepository
@@ -78,7 +80,8 @@ class WidgetEditService:
             loaded = await to_thread.run_sync(SourceArtifactRepository().load,
                                              request.sourceArtifactUrl or "")
         except SourceArtifactError as exc:
-            _log_edit("source_load_failed", level="WARNING", errorCode=exc.error_code.value)
+            _log_edit("source_load_failed", level="WARNING", errorCode=exc.error_code.value,
+                      **exception_summary(exc))
             return self._response(request, GenerationStatus.FAILED,
                                   "上一版卡片无法安全读取，原卡片不受影响。", exc.error_code)
         original = loaded.artifact.model_copy(deep=True)
@@ -179,15 +182,23 @@ class WidgetEditService:
             saved = await saved
         if not saved.artifactUrl or saved.artifactUrl == request.sourceArtifactUrl:
             raise ArtifactUploadError("编辑保存必须产生独立的新产物地址")
-        _log_edit("completed", targetSize=intent.targetSize, mode=intent.mode,
+        unmet = edit_expectation_errors(original.genui, final.genui, intent)
+        status = GenerationStatus.DEGRADED if unmet else GenerationStatus.SUCCESS
+        _log_edit("completed", outcome=status.value, targetSize=intent.targetSize, mode=intent.mode,
                   artifactDigest=saved.artifactDigest)
-        trace_record("edit.completed", stage="edit", status="success", details={
+        trace_record("edit.completed", stage="edit", status=status.value, details={
             "targetSize": intent.targetSize, "mode": intent.mode,
         }, json_artifacts={"edit_final_artifact": final.model_dump(mode="json", exclude_none=True)})
+        feedback = None
+        if unmet:
+            summary = unmet_edit_summary(original.genui, final.genui, intent)
+            feedback = f"已完成部分修改，{summary}目标尚未完全满足，已保留可用卡片。"
+        _log_edit("delivery", outcome=status.value, unmetCount=len(unmet), actualChange=True)
         return GenerateWidgetCardResponse(
-            status=GenerationStatus.SUCCESS, artifactUrl=saved.artifactUrl,
+            status=status, artifactUrl=saved.artifactUrl,
             artifactDigest=saved.artifactDigest, suggestSize=intent.targetSize,
-            message="已按你的要求修改卡片。", effectiveCapabilities=final.effectiveCapabilities,
+            message=feedback or "已按你的要求修改卡片。",
+            editFeedback=feedback, effectiveCapabilities=final.effectiveCapabilities,
         )
 
     async def _intent(self, client: A2UIModelClient, original: str, query: str,
@@ -223,19 +234,40 @@ class WidgetEditService:
     async def _execute(self, client: A2UIModelClient, original: WidgetArtifact,
                        candidate: WidgetArtifact, query: str, intent: EditIntent) -> WidgetArtifact:
         messages = execution_prompt(original.genui, query, intent)
+        best: WidgetArtifact | None = None
+        best_unmet: int | None = None
+        previous_output: str | None = None
         budget = get_settings().widget_edit_max_repair_attempts
         for attempt in range(budget + 1):
             _log_edit("execute_attempt_started", attempt=attempt + 1, maxAttempts=budget + 1)
-            output = await self._call(client, messages, "edit_execute")
+            try:
+                output = await self._call(client, messages, "edit_execute")
+            except A2UIModelGenerationError as exc:
+                if best is None:
+                    raise
+                _log_edit("candidate_retained_after_model_failure", level="WARNING",
+                          **_exception_details(exc))
+                return best
+            if best is not None and output == previous_output:
+                _log_edit("repair_no_progress", attempt=attempt + 1, unmetCount=best_unmet)
+                return best
+            previous_output = output
             current = candidate.model_copy(deep=True)
             errors: list[str] = []
             try:
-                current.genui = apply_edit_output(original.genui, output, intent)
+                current.genui = apply_edit_output(original.genui, output, intent, recover=True)
                 if original.cardSpec.get("suggestSize") != intent.targetSize:
                     if not has_layout_change(original.genui, current.genui):
                         raise ValueError("尺寸适配必须实际调整布局，不能只改变颜色或元信息")
                 result = await to_thread.run_sync(validate_edit_artifact, original, current, intent)
-                errors = result.errors
+                errors = list(result.errors)
+                if not errors and result.unmet:
+                    if best_unmet is None or len(result.unmet) < best_unmet:
+                        best = current.model_copy(deep=True)
+                        best_unmet = len(result.unmet)
+                        _log_edit("partial_candidate_retained", attempt=attempt + 1,
+                                  unmetCount=best_unmet)
+                    errors.extend(result.unmet)
                 _log_edit("execute_validation_completed", attempt=attempt + 1,
                           errors=errors, warnings=result.warnings)
                 trace_record("edit.validation.completed", stage="edit.validation",
@@ -251,6 +283,9 @@ class WidgetEditService:
             _log_edit("execute_validation_failed", level="WARNING", attempt=attempt + 1,
                       maxAttempts=budget + 1, willRetry=attempt < budget, errors=errors)
             messages.extend(repair_feedback(output, errors, "execute"))
+        if best is not None:
+            _log_edit("partial_candidate_selected", unmetCount=best_unmet)
+            return best
         raise ValueError("编辑执行修复次数耗尽")
 
     @staticmethod

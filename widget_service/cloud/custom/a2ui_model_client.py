@@ -30,6 +30,7 @@ from services.compact_dsl_a2ui_converter import (
     convert_compact_dsl_to_a2ui,
 )
 from services.generation_trace_recorder import trace_record, trace_step
+from services.operational_logging import exception_summary
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
@@ -218,6 +219,10 @@ class A2UIModelClient:
             )
             return require_generated_dsl(result)
         except A2UIModelGenerationError as exc:
+            logger.warning(
+                f"{_MODULE} model_output_failed phase={phase} "
+                f"details={json_for_log(exception_summary(exc))}"
+            )
             trace_record(
                 "model.output.failed",
                 stage=f"{phase}.model",

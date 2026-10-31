@@ -752,6 +752,12 @@ def _build_plugin_stream_response(
         )
         if legacy_message.status == "unsupported":
             message_payload["agentInstruction"] = "停止本轮调用，按不支持流程向用户说明原因。"
+    if is_failure or legacy_message.status in {"failed", "unsupported"}:
+        logger.info(
+            f"{_MODULE} agent_feedback operation={legacy_message.operation} "
+            f"request_id={legacy_message.requestId} error_code={legacy_message.errorCode} "
+            f"details={json_for_log(message_payload)}"
+        )
     stream_content = json.dumps(
         message_payload,
         ensure_ascii=False,
@@ -808,6 +814,11 @@ async def _send_websocket_json(
     """发送 WebSocket JSON 帧，并处理客户端已断开的情况。"""
     try:
         await websocket.send_json(payload)
+        if frame_type in {"final", "final_error"}:
+            logger.info(
+                f"{_MODULE} widget_operation_ws_final_sent request_id={request_id} "
+                f"operation={operation} frame_type={frame_type} transport_sent=true"
+            )
         return True
     except (WebSocketDisconnect, RuntimeError) as exc:
         logger.error(
@@ -1194,6 +1205,10 @@ async def _serve_operation_websocket(
 
                     if operation == COMPACT_DSL_OPERATION:
                         settings = get_settings()
+                        logger.info(
+                            f"{_MODULE} retry_policy_configured "
+                            f"details={json_for_log(retry_policy_details(settings))}"
+                        )
                         trace_record(
                             "retry.policy.configured",
                             stage="configuration",

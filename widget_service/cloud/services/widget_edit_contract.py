@@ -70,6 +70,7 @@ class EditIntent(BaseModel):
     explanation: str = Field(min_length=1)
     mode: Literal["patch", "layout"] = "patch"
     targetSize: WidgetSize
+    allowPartial: bool = True
     dimensions: list[EditDimension] = Field(default_factory=list)
     targets: list[str] = Field(default_factory=list)
     linkedTargets: list[str] = Field(default_factory=list)
@@ -276,9 +277,9 @@ def _validate_expectations(intent: EditIntent, nodes: dict) -> None:
         if intent.outcome != "ready" or expected.operator == "preserve":
             continue
         if expected.componentId not in allowed:
-            raise ValueError("编辑目标约束超出已接受范围")
+            raise ValueError(f"编辑目标约束超出已接受范围：{expected.componentId}.{prop}")
         if prop.startswith("styles.") and prop.removeprefix("styles.") not in style_fields:
-            raise ValueError("编辑目标属性未获得对应维度授权")
+            raise ValueError(f"编辑目标属性未获得对应维度授权：{expected.componentId}.{prop}")
         if prop == "content":
             matching = False
             for change in intent.textChanges:
@@ -365,7 +366,9 @@ def _apply_patch(original: str, patch: dict, intent: EditIntent) -> str:
     return result
 
 
-def apply_edit_output(original: str, raw: str, intent: EditIntent) -> str:
+def apply_edit_output(
+    original: str, raw: str, intent: EditIntent, *, recover: bool = False,
+) -> str:
     payload = _load_json(raw)
     if not isinstance(payload, dict) or payload.get("sourceDigest") != source_digest(original):
         raise ValueError("编辑结果必须携带不可变原卡摘要")
@@ -380,6 +383,10 @@ def apply_edit_output(original: str, raw: str, intent: EditIntent) -> str:
         if not isinstance(rows, list):
             raise ValueError("布局编辑的 genui 必须是标准消息数组")
         result = dump_rows(rows)
+        if recover:
+            from services.widget_edit_recovery import recover_layout
+
+            result = recover_layout(original, result, intent)
         validate_edit_diff(original, result, intent)
     if _same(_messages(original), _messages(result)):
         raise ValueError("编辑结果没有实际变化，不能声称完成修改")
@@ -424,7 +431,10 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
             raise ValueError(f"编辑不得删除原有内容或组件：{identity}")
         changes = _node_changes(before, after)
         if changes and identity not in allowed:
-            raise ValueError(f"修改超出已接受目标范围：{identity}")
+            raise ValueError(
+                f"修改超出已接受目标范围：{identity}；变更字段={sorted(changes)}；"
+                "请恢复该节点原值，保留其它获准修改"
+            )
         _validate_node(identity, before, after, changes, intent, texts)
         _validate_styles(identity, before, after, style_fields, intent, style_rules)
     for identity, node in after_nodes.items():

@@ -8,6 +8,7 @@ import json
 import math
 from typing import Any
 
+from app.logger import json_for_log, logger
 from config.config import get_settings
 from services.content_business import BusinessContext, FinalBusinessContext
 from services.fusion_ball_expander import (
@@ -15,6 +16,7 @@ from services.fusion_ball_expander import (
     fusion_ball_enabled,
 )
 from services.generation_trace_recorder import trace_operation, trace_record, trace_span
+from services.operational_logging import exception_summary
 from services.post_layout_theme_registry import (
     fallback_theme,
     load_theme_registry,
@@ -500,6 +502,9 @@ async def select_theme(
             raise ValueError("Theme ID must be a string")
         selected = choice.get("themeId")
     except (ValueError, RuntimeError) as exc:
+        logger.warning(
+            f"[Theme] selector_failed details={json_for_log(exception_summary(exc))}"
+        )
         choice_error = str(exc)
     palette_fusions = palette_fusion_candidates(conditional_fusions, preferences)
     fusion_gate["palettePreferenceTokens"] = [item.get("id") for item in palette_fusions]
@@ -540,10 +545,30 @@ async def select_theme(
         else:
             result = apply_theme(source, theme, task, overrides)
     except ValueError as exc:
+        logger.warning(
+            f"[Theme] application_failed theme_id={selected} "
+            f"details={json_for_log(exception_summary(exc))}"
+        )
         choice_error = str(exc)
         theme = preference_fallback(task, preferences, overrides)
         selected = theme.get("id")
         result = apply_theme(source, theme, task, overrides)
+    rejected_reasons: dict[str, int] = {}
+    for reason in rejected.values():
+        rejected_reasons[reason] = rejected_reasons.get(reason, 0) + 1
+    photo_candidate_count = 0
+    for candidate in allowed.values():
+        if candidate.get("kind") == "photo":
+            photo_candidate_count += 1
+    logger.info(
+        f"[Theme] selection_completed details={json_for_log({
+            'themeId': selected, 'candidateCount': len(allowed),
+            'photoCandidateCount': photo_candidate_count, 'rejectedReasons': rejected_reasons,
+            'fallbackUsed': choice_error is not None,
+            'fallbackReason': (exception_summary(ValueError(choice_error))
+                               if choice_error is not None else None),
+        })}"
+    )
     audit = {
         "themeId": selected,
         "theme": theme,
@@ -650,6 +675,10 @@ async def theme_artifact(
         errors = [e for e in errors if not e.startswith("VISUAL.CONTRAST")]
     audit["finalValidationErrors"] = errors
     if errors:
+        logger.warning(
+            f"[Theme] validation_fallback theme_id={audit.get('themeId')} "
+            f"errors={json_for_log(errors)}"
+        )
         trace_record(
             "theme.fallback", stage="theme", status="scheduled",
             json_artifacts={"theme_rejected_audit": audit},
@@ -661,6 +690,10 @@ async def theme_artifact(
         themed.genui = apply_theme(source, fallback, task, audit.get("userColors", {}))
         fallback_errors = _validate_theme(themed, validator, profile, fallback=True)
         if fallback_errors:
+            logger.error(
+                f"[Theme] fallback_failed theme_id={fallback.get('id')} "
+                f"errors={json_for_log(fallback_errors)}"
+            )
             raise ValueError("Final gradient validation failed: " + str(fallback_errors))
         audit["themeId"] = fallback.get("id")
         audit["rejectedTheme"] = audit.get("theme")
@@ -668,6 +701,11 @@ async def theme_artifact(
         audit["outputSize"] = task.get("size")
         audit["fallbackReason"] = "所选主题最终校验失败，使用纯色渐变；不重新排版"
         record_unmet_fusion_preference(audit)
+    logger.info(
+        f"[Theme] completed theme_id={audit.get('themeId')} "
+        f"fallback_reason={json_for_log(audit.get('fallbackReason'))} "
+        f"unmet_preferences={json_for_log(audit.get('unmetPreferences'))}"
+    )
     trace_record(
         "theme.completed",
         stage="theme",

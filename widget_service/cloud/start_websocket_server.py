@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import asyncio
 from contextlib import asynccontextmanager, suppress
+from pathlib import Path
 
 import uvicorn
 from anyio import to_thread
@@ -13,6 +14,7 @@ from app.websocket_metrics import report_websocket_metrics, websocket_metrics
 from config.config import get_settings
 from custom.model_runtime import ModelExecutionRuntime
 from services.daily_usage_api import create_daily_usage_limiter
+from services.operational_logging import log_service_fingerprints
 
 _MODULE = "[Main]"
 
@@ -38,6 +40,7 @@ def create_app() -> FastAPI:
     """
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        log_service_fingerprints(Path(__file__).resolve().parent)
         configure_anyio_thread_pool()
         model_runtime = ModelExecutionRuntime()
         _app.state.model_runtime = model_runtime

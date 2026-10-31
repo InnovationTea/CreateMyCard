@@ -93,7 +93,6 @@ async def run_compact_dsl_with_retry(
                 ArtifactUploadError,
                 TimeoutError,
                 ConnectionError,
-                ValueError,
             ) as exc:
                 reason = type(exc).__name__
                 attempt_span.outcome("failed", exceptionType=reason)

@@ -28,6 +28,8 @@ osms_delete_url: ""
 hag_osms_ak: ""
 ids_query_url: "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
 ids_access_key: "23232323232"
+# 本地 mock 不使用；真实 IDS 查询需由部署配置或环境变量提供流控标识。
+ids_flow_control_id: ""
 # IDS 指数退避窗口；0 表示只请求一次。已发出的最后一次请求允许跨过窗口完成。
 ids_request_retry_budget_seconds: 10.0
 ids_request_retry_initial_delay_seconds: 0.5

@@ -97,6 +97,7 @@ from services.generation_trace_recorder import (
     trace_step,
 )
 from services.multi_step_generation.core.bridge import JsxA2UIBridge
+from services.operational_logging import exception_summary
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
     A2UIProtocolRegistry,
@@ -2092,7 +2093,8 @@ class WidgetGenerationService:
                 f"error_code={failure_code} "
                 f"model_failure_retry_count={model_failure_retry_count} "
                 f"quality_repair_count={quality_repair_count} "
-                f"exception_type={type(exc).__name__} validation_continued=false "
+                f"exception_type={type(exc).__name__} "
+                f"failure={json_for_log(exception_summary(exc))} validation_continued=false "
                 "artifact_saved=false"
             )
             response = GenerateWidgetCardResponse(
@@ -2331,6 +2333,10 @@ class WidgetGenerationService:
 
                     final_errors = final_static_display_errors(unthemed_genui, artifact.genui)
                     if final_errors:
+                        logger.warning(
+                            f"{_MODULE} final_validation_rejected stage=staticContent "
+                            f"errors={json_for_log(final_errors)} artifact_saved=false"
+                        )
                         trace_record(
                             "static_content.final.failed",
                             stage="artifactValidation",
@@ -2358,6 +2364,10 @@ class WidgetGenerationService:
             artifact.genui, artifact.taskSpec.get("dataModelSchema"),
         )
         if progress_errors:
+            logger.warning(
+                f"{_MODULE} final_validation_rejected stage=progressSources "
+                f"errors={json_for_log(progress_errors)} artifact_saved=false"
+            )
             trace_record(
                 "artifact.progress_sources.failed", stage="artifactValidation", status="failed",
                 json_artifacts={"progress_source_errors": progress_errors},

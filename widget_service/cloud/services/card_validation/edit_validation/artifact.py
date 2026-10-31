@@ -26,6 +26,7 @@ from services.widget_edit_contract import (
 class EditValidationResult:
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    unmet: list[str] = field(default_factory=list)
 
 
 def _quality_signature(item: Diagnostic) -> tuple[str, str, str]:
@@ -40,7 +41,12 @@ def validate_edit_artifact(
     try:
         validate_edit_diff(original.genui, candidate.genui, intent)
         _visibility_errors(original.genui, candidate.genui, result)
-        result.errors.extend(edit_expectation_errors(original.genui, candidate.genui, intent))
+        expectation_errors = edit_expectation_errors(original.genui, candidate.genui, intent)
+        partial_safe = partial_expectations_safe(original.genui, candidate.genui, intent)
+        if intent.allowPartial and partial_safe:
+            result.unmet.extend(expectation_errors)
+        else:
+            result.errors.extend(expectation_errors)
     except (ValueError, TypeError, RecursionError) as exc:
         result.errors.append(f"EDIT_SCOPE_INVALID: {exc}")
         return result
@@ -193,3 +199,49 @@ def _text_height_deficit(parent_styles: dict, text_styles: dict) -> float:
     if height is not None and minimum is not None:
         deficit = max(0.0, minimum - height)
     return deficit
+
+
+def partial_expectations_safe(original: str, candidate: str, intent: EditIntent) -> bool:
+    """部分目标不能朝相反方向变化，用户要求保持的属性不能降级。"""
+    before_nodes = _components(_messages(original))
+    after_nodes = _components(_messages(candidate))
+    for expected in intent.expectations:
+        before = read_edit_property(before_nodes.get(expected.componentId, {}), expected.property)
+        after = read_edit_property(after_nodes.get(expected.componentId, {}), expected.property)
+        if _expectation_matches(expected, before, after):
+            continue
+        if expected.operator == "preserve":
+            return False
+        if before.exists == after.exists and same_edit_value(
+            expected.property, before.value, after.value,
+        ):
+            continue
+        old_number = _number(before.value)
+        new_number = _number(after.value)
+        target = _number(expected.value)
+        if old_number is None or new_number is None:
+            return False
+        if expected.operator == "equal" and target is not None:
+            if abs(new_number - target) < abs(old_number - target):
+                continue
+        return False
+    return True
+
+
+def unmet_edit_summary(original: str, candidate: str, intent: EditIntent) -> str:
+    """用户反馈只说明未完成目标的类别，不暴露节点或业务值。"""
+    labels = []
+    before_nodes = _components(_messages(original))
+    after_nodes = _components(_messages(candidate))
+    names = {"fontSize": "字号", "fontWeight": "文字强调", "fontColor": "文字颜色",
+             "backgroundColor": "背景颜色", "height": "承载高度", "width": "承载宽度",
+             "content": "文案"}
+    for expected in intent.expectations:
+        before = read_edit_property(before_nodes.get(expected.componentId, {}), expected.property)
+        after = read_edit_property(after_nodes.get(expected.componentId, {}), expected.property)
+        if _expectation_matches(expected, before, after):
+            continue
+        label = names.get(expected.property.removeprefix("styles."), "样式")
+        if label not in labels:
+            labels.append(label)
+    return "、".join(labels)
