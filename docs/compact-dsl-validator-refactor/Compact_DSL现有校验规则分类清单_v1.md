@@ -1,5 +1,11 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-31：InfoBlock 与其它组件重复展示同一事实时，优先保留 InfoBlock 必填文本，
+建议从其它组件删除合同允许的重复属性或条目；无合法删除位置时沿既有范围重组。
+本项归修复建议，落点为 `compact_repair_strategy.py::_duplicate_fact_instruction` 与
+Fusion `prompt_source/repair.md`，不改变 `compact_plan.py` 的 error 判定、组件合同或重试预算。
+回归由 `test_design_compact_repair_prompt.py` 验证策略进入模型反馈及具体重复位置保持不变。
+
 2026-10-29 模板宽卡组合修订：Hero + Compact 必须有一个 PillAction，Full + Compact 不接受动作。
 此项属于模板语义／布局组合合同，实际判定继续位于
 `template_generation/engine/cardplan/compiler.py::_validate_provider_template_layout_action_requirements`，

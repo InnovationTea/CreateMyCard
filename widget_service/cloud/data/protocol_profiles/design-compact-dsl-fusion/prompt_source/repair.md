@@ -40,6 +40,7 @@ expanded 位置来自模板展开，不是模型 Props。回到原语义 Layout/
 
 展示事实重复时，每个报错 dataId 只保留一个具有明确对象、标签、完整值和单位的位置，不因字号更大保留含义不清的裸值。SecondaryBody 仅删重复 item；多字段 Expression 仅移除重复引用，保留其它事实。组件仍有内容则保留，变空才删除组件行及直接父引用。不得改 Plan、删唯一展示或数据行、静态化动态值、影响未报错事实与 Action。去重后确认报错字段各出现一次、无空组件或孤立引用，核心组件及信息组语义仍成立。
 普通重复保持信息组内修复。只有 requiredDisplayPositions 确认同一事实占据至少两个不同必填展示槽时，才按 repairStrategy 的范围调整必要父布局和合法组合；不能清空必填槽、虚构新事实或无条件重建整卡。
+当重复位置同时包含 InfoBlock.primaryText/secondaryText 和其它组件时，优先保留 InfoBlock 必填文本及完整绑定，从其它组件删除可合法移除的重复属性或 item；不要把 InfoBlock 改绑到另一项已展示事实。比如 upper.primaryText 与 content_support.items[2].value 重复，保留 upper，删除 content_support.items[2] 整项，而不是只清空 value；实际组件和索引以本轮 occurrences 为准。删除后仍须满足最少项数、必填属性和父槽合同，保留独有事实；没有合法删除位置时按既有 scope 重组必要信息组或父布局。重复展示仍是 error，这不是允许省略事实的 Drop。
 
 ## 2. 按 scope 控制改动
 
