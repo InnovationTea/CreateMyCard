@@ -1007,13 +1007,13 @@
       ]
     },
     {
-      "templateId": "WeatherOverviewTemperatureHumiditySupport@1",
+      "templateId": "WeatherOverviewTemperatureConditionSupport@1",
       "supportedEventIds": [
         "event.open.weather"
       ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "湿度天气 Support：主行展示温度和天气现象，辅助行展示湿度与空气质量（可选，缺失时省略）；纯文本形态，可绑定根节点事件；用于双业务 Support 组合布局。",
+      "description": "温度天气 Support：主行展示城市和温度，辅助行展示天气现象；纯文本形态，可绑定根节点事件；用于双业务 Support 组合布局。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
@@ -1022,8 +1022,50 @@
         "/current/condition"
       ],
       "optionalData": [
-        "/current/humidityPercent",
+        "/location/prefectureName",
+        "/location/districtName"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewTemperatureHumiditySupport@1",
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "温度天气 Support：主行展示城市和温度，辅助行展示天气现象和湿度（数值追加百分号）；纯文本形态，可绑定根节点事件；用于双业务 Support 组合布局。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition",
+        "/current/humidityPercent"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewTemperatureAirQualitySupport@1",
+      "supportedEventIds": [
+        "event.open.weather"
+      ],
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "温度天气 Support：主行展示城市和温度，辅助行展示天气现象和空气质量；纯文本形态，可绑定根节点事件；用于双业务 Support 组合布局。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/current/condition",
         "/current/airQuality"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName"
       ]
     },
     {

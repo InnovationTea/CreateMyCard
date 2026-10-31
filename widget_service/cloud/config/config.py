@@ -93,15 +93,23 @@ class Settings(BaseSettings):
     mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = CONFIG.get("ids_query_url")
     ids_calling_uid: str = "decisionhub"
-    ids_dev_fake_id: str = "123**********postmantestdevFakeId"
+    ids_flow_control_id: str = CONFIG.get("ids_flow_control_id")
     ids_sign_secret: str = "postman-test-secret"
     artifact_base_url: str = "https://obs.todo.local/widget"
     server_host: str = "127.0.0.1"
     server_port: int = 8855
     sts_server: str = CONFIG.get("sts_serverDomain")
     ids_request_timeout_seconds: int = 30
-    ids_request_retry_count: int = Field(
-        default=CONFIG.get("ids_request_retry_count", 1), ge=0
+    ids_request_retry_budget_seconds: float = Field(
+        default=CONFIG.get("ids_request_retry_budget_seconds", 10.0), ge=0, allow_inf_nan=False
+    )
+    ids_request_retry_initial_delay_seconds: float = Field(
+        default=CONFIG.get("ids_request_retry_initial_delay_seconds", 0.5),
+        gt=0,
+        allow_inf_nan=False,
+    )
+    ids_request_retry_backoff_multiplier: float = Field(
+        default=CONFIG.get("ids_request_retry_backoff_multiplier", 2.0), gt=1, allow_inf_nan=False
     )
     ids_access_key: str = CONFIG.get("ids_access_key")
     obs_preview_supported_file_format: list = ["html"]
@@ -394,12 +402,17 @@ class Settings(BaseSettings):
             raise ValueError("daily usage integer settings must not be boolean or float")
         return value
 
-    @field_validator("ids_request_retry_count", mode="before")
+    @field_validator(
+        "ids_request_retry_budget_seconds",
+        "ids_request_retry_initial_delay_seconds",
+        "ids_request_retry_backoff_multiplier",
+        mode="before",
+    )
     @classmethod
-    def validate_ids_retry_count(cls, value: object) -> object:
-        """重试次数允许整数字符串，不接受布尔值或浮点数。"""
-        if isinstance(value, (bool, float)):
-            raise ValueError("ids_request_retry_count must be a non-negative integer")
+    def validate_ids_retry_number(cls, value: object) -> object:
+        """允许配置文件中的数值字符串，不把布尔值解释为秒数或倍数。"""
+        if isinstance(value, bool):
+            raise ValueError("IDS retry settings must not be boolean")
         return value
 
     @field_validator("compact_dsl_interface_retry_count", mode="before")

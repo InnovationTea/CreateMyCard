@@ -28,13 +28,15 @@ def _response(status=200, content=None):
 
 
 @pytest.fixture
-def ids_client(monkeypatch, tmp_path):
+def ids_client(monkeypatch, tmp_path, ids_retry_clock):
     client = IDSClient(mock_response_path=tmp_path / "missing.json")
     monkeypatch.setattr(client.settings, "enable_ids_mock", False)
     monkeypatch.setattr(client.settings, "ids_query_url", "http://ids.local/query")
-    monkeypatch.setattr(client.settings, "ids_request_retry_count", 1)
-    monkeypatch.setattr(client, "build_ids_sign", Mock(side_effect=["sign1", "sign2", "sign3"]))
-    monkeypatch.setattr("services.ids_client.time.sleep", Mock())
+    monkeypatch.setattr(client.settings, "ids_request_retry_budget_seconds", 10.0)
+    monkeypatch.setattr(client.settings, "ids_request_retry_initial_delay_seconds", 0.5)
+    monkeypatch.setattr(client.settings, "ids_request_retry_backoff_multiplier", 2.0)
+    signatures = [f"sign{number}" for number in range(1, 100)]
+    monkeypatch.setattr(client, "build_ids_sign", Mock(side_effect=signatures))
     return client
 
 
@@ -44,18 +46,18 @@ def _query(client):
     )
 
 
-@pytest.mark.parametrize("retry_count", [0, 1, 2])
-def test_retry_count_is_extra_attempts(ids_client, monkeypatch, retry_count):
-    monkeypatch.setattr(ids_client.settings, "ids_request_retry_count", retry_count)
+@pytest.mark.parametrize("budget,attempts", [(0.0, 1), (0.5, 1), (1.0, 2), (10.0, 5)])
+def test_time_window_limits_attempts(ids_client, monkeypatch, budget, attempts):
+    monkeypatch.setattr(ids_client.settings, "ids_request_retry_budget_seconds", budget)
     request = Mock(side_effect=requests.Timeout("timeout"))
     monkeypatch.setattr("services.ids_client.requests.request", request)
     log = Mock()
     monkeypatch.setattr("services.ids_client.logger", log)
 
     assert _query(ids_client).installed_apps == set()
-    assert request.call_count == retry_count + 1
-    assert ids_client.build_ids_sign.call_count == retry_count + 1
-    assert "reason=exhausted" in str(log.warning.call_args)
+    assert request.call_count == attempts
+    assert ids_client.build_ids_sign.call_count == attempts
+    assert "budget" in str(log.warning.call_args_list)
 
 
 @pytest.mark.parametrize(
@@ -136,17 +138,119 @@ def test_placeholder_url_does_not_query_remote(ids_client, monkeypatch):
     request.assert_not_called()
 
 
-@pytest.mark.parametrize("value", [-1, True, False, 1.0, 1.5, "-1", "bad", "1.5"])
-def test_invalid_retry_configuration(value):
-    with pytest.raises(ValidationError, match="ids_request_retry_count"):
-        Settings(ids_request_retry_count=value)
+@pytest.mark.parametrize("name", [
+    "ids_request_retry_budget_seconds",
+    "ids_request_retry_initial_delay_seconds",
+    "ids_request_retry_backoff_multiplier",
+])
+@pytest.mark.parametrize("value", [-1, True, False, "bad", "nan", "inf", "-inf"])
+def test_invalid_retry_configuration(name, value):
+    with pytest.raises(ValidationError, match=name):
+        Settings(**{name: value})
 
 
-@pytest.mark.parametrize("value,expected", [(0, 0), (2, 2), ("3", 3)])
+@pytest.mark.parametrize("value,expected", [(0, 0.0), (2.5, 2.5), ("3.5", 3.5)])
 def test_valid_retry_configuration(value, expected):
-    assert Settings(ids_request_retry_count=value).ids_request_retry_count == expected
+    settings = Settings(ids_request_retry_budget_seconds=value)
+    assert settings.ids_request_retry_budget_seconds == expected
 
 
 def test_retry_configuration_from_environment(monkeypatch):
-    monkeypatch.setenv("WIDGET_SERVICE_IDS_REQUEST_RETRY_COUNT", "4")
-    assert Settings().ids_request_retry_count == 4
+    monkeypatch.setenv("WIDGET_SERVICE_IDS_REQUEST_RETRY_BUDGET_SECONDS", "4")
+    monkeypatch.setenv("WIDGET_SERVICE_IDS_REQUEST_RETRY_INITIAL_DELAY_SECONDS", "0.25")
+    monkeypatch.setenv("WIDGET_SERVICE_IDS_REQUEST_RETRY_BACKOFF_MULTIPLIER", "3")
+    settings = Settings()
+    assert settings.ids_request_retry_budget_seconds == 4.0
+    assert settings.ids_request_retry_initial_delay_seconds == 0.25
+    assert settings.ids_request_retry_backoff_multiplier == 3.0
+
+
+@pytest.mark.parametrize("name,value", [
+    ("ids_request_retry_initial_delay_seconds", 0),
+    ("ids_request_retry_backoff_multiplier", 0),
+    ("ids_request_retry_backoff_multiplier", 1),
+])
+def test_non_increasing_backoff_is_rejected(name, value):
+    with pytest.raises(ValidationError, match=name):
+        Settings(**{name: value})
+
+
+@pytest.mark.parametrize("initial,multiplier,expected", [
+    (0.5, 2.0, [0.5, 1.0, 2.0, 4.0]),
+    (1.0, 3.0, [1.0, 3.0]),
+])
+def test_exponential_delays(
+    ids_client, ids_retry_clock, monkeypatch, initial, multiplier, expected
+):
+    monkeypatch.setattr(ids_client.settings, "ids_request_retry_initial_delay_seconds", initial)
+    monkeypatch.setattr(ids_client.settings, "ids_request_retry_backoff_multiplier", multiplier)
+    request = Mock(side_effect=requests.Timeout("timeout"))
+    monkeypatch.setattr("services.ids_client.requests.request", request)
+    assert _query(ids_client).installed_apps == set()
+    assert ids_retry_clock.sleeps == expected
+    assert request.call_count == len(expected) + 1
+
+
+@pytest.mark.parametrize("succeed", [False, True])
+def test_inflight_last_request_can_finish_after_deadline(
+    ids_client, ids_retry_clock, monkeypatch, succeed
+):
+    attempts = []
+
+    def send(**_kwargs):
+        attempts.append(ids_retry_clock.now)
+        if len(attempts) == 1:
+            ids_retry_clock.now += 8.0
+            raise requests.Timeout("first request failed")
+        ids_retry_clock.now += 3.0
+        if not succeed:
+            raise requests.Timeout("last request failed")
+        return _response(content=(
+            b'{"nameSpaces":[{"dataType":"t_ids_kv_ohos_installed_apps",'
+            b'"values":[{"data":{"bundleName":"app"}}]}]}'
+        ))
+
+    monkeypatch.setattr("services.ids_client.requests.request", send)
+    state = _query(ids_client)
+    assert attempts == [0.0, 8.5]
+    assert ids_retry_clock.now == 11.5
+    assert state.installed_apps == ({"app"} if succeed else set())
+    assert ids_retry_clock.sleeps == [0.5]
+
+
+def test_request_time_consumes_budget(ids_client, ids_retry_clock, monkeypatch):
+    def send(**_kwargs):
+        ids_retry_clock.now += 10.0
+        raise requests.Timeout("deadline reached")
+
+    request = Mock(side_effect=send)
+    monkeypatch.setattr("services.ids_client.requests.request", request)
+    assert _query(ids_client).installed_apps == set()
+    request.assert_called_once()
+    assert ids_retry_clock.sleeps == []
+
+
+@pytest.mark.parametrize("overrun_stage", ["sleep", "sign"])
+def test_no_request_after_sleep_or_signature_exhausts_window(
+    ids_client, ids_retry_clock, monkeypatch, overrun_stage
+):
+    def overrun(*_args, **_kwargs):
+        ids_retry_clock.now = 10.0
+        return "sign"
+
+    if overrun_stage == "sleep":
+        monkeypatch.setattr("services.ids_client.time.sleep", overrun)
+    else:
+        monkeypatch.setattr(ids_client, "build_ids_sign", Mock(side_effect=["first", "second"]))
+        original_sign = ids_client.build_ids_sign
+
+        def sign(**kwargs):
+            if not kwargs:
+                return overrun()
+            return original_sign(**kwargs)
+
+        monkeypatch.setattr(ids_client, "build_ids_sign", sign)
+    request = Mock(side_effect=requests.Timeout("timeout"))
+    monkeypatch.setattr("services.ids_client.requests.request", request)
+    assert _query(ids_client).installed_apps == set()
+    request.assert_called_once()

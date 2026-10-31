@@ -22,6 +22,7 @@ from models.service import (
     IDSQueryRequestData,
     IDSRequestHeaders,
 )
+from services.ids_response_logging import ids_response_diagnostic
 from services.json_loader import load_json
 from utils.base_utils import sts_config
 
@@ -95,7 +96,7 @@ class IDSClient:
             headers=IDSRequestHeaders(
                 **{
                     "Content-Type": "application/json",
-                    "devFakeId": self.settings.ids_dev_fake_id,
+                    "devFakeId": self.settings.ids_flow_control_id,
                     "idsSign": ids_sign,
                 }
             ),
@@ -160,11 +161,25 @@ class IDSClient:
             f"body={json_for_log(ids_query.body.model_dump(mode='json'))}"
         )
         payload = self._query_remote_ids(ids_query, request_id)
-        state = self._parse_ids_payload(payload)
+        try:
+            state = self._parse_ids_payload(payload)
+        except Exception as exc:
+            logger.error(
+                f"{_MODULE} ids_payload_parse_failed request_id={request_id} "
+                f"exception_type={type(exc).__name__} "
+                f"diagnostic={self._response_log_text({'error': str(exc)}, ids_query)}"
+            )
+            raise
         logger.info(
             f"{_MODULE} ids_device_capability_state_loaded request_id={request_id} "
             f"source=remote installed_app_count={len(state.installed_apps)}"
         )
+        if not state.installed_apps:
+            logger.warning(
+                f"{_MODULE} ids_no_installed_app_records request_id={request_id} "
+                "installation_state=unknown reason=no_records_obtained "
+                "note=未获取到安装记录，不代表设备未安装应用"
+            )
         return state
 
     def _load_mock_state(self, request_id: str) -> IDSDeviceCapabilityState:
@@ -212,42 +227,75 @@ class IDSClient:
             )
             return {"nameSpaces": []}
 
-        max_attempts = self.settings.ids_request_retry_count + 1
-        for attempt in range(1, max_attempts + 1):
+        started_at = time.monotonic()
+        budget = self.settings.ids_request_retry_budget_seconds
+        deadline = started_at + budget
+        delay = self.settings.ids_request_retry_initial_delay_seconds
+        multiplier = self.settings.ids_request_retry_backoff_multiplier
+        attempt = 1
+        while True:
             headers = ids_query.headers.model_dump(mode="json", by_alias=True)
             if attempt > 1:
+                if time.monotonic() >= deadline:
+                    logger.warning(
+                        f"{_MODULE} ids_remote_query_stopped request_id={request_id} "
+                        f"attempt={attempt - 1} budget_seconds={budget} reason=budget_exhausted"
+                    )
+                    break
                 headers["idsSign"] = self.build_ids_sign()
+                if time.monotonic() >= deadline:
+                    logger.warning(
+                        f"{_MODULE} ids_remote_query_stopped request_id={request_id} "
+                        f"attempt={attempt - 1} budget_seconds={budget} "
+                        "reason=budget_exhausted_after_sign"
+                    )
+                    break
             try:
                 payload = self._query_remote_ids_once(
-                    ids_query, request_id, headers, attempt, max_attempts
+                    ids_query, request_id, headers, attempt
                 )
             except (requests.RequestException, ValueError) as exc:
                 retryable = self._is_retryable_error(exc)
-                will_retry = retryable and attempt < max_attempts
-                logger.error(
+                elapsed = time.monotonic() - started_at
+                remaining = budget - elapsed
+                will_retry = retryable and delay < remaining
+                log_failure = logger.warning if will_retry else logger.error
+                diagnostic = {"error": str(exc), "traceback": traceback.format_exc()}
+                log_failure(
                     f"{_MODULE} ids_remote_query_failed request_id={request_id} "
-                    f"attempt={attempt} max_attempts={max_attempts} "
+                    f"attempt={attempt} budget_seconds={budget} elapsed_seconds={elapsed:.3f} "
+                    f"remaining_seconds={max(remaining, 0.0):.3f} "
                     f"retryable={retryable} will_retry={will_retry} "
-                    f"exception_type={type(exc).__name__} error={exc} "
-                    f"traceback={traceback.format_exc()}"
+                    f"exception_type={type(exc).__name__} "
+                    f"diagnostic={self._response_log_text(diagnostic, ids_query, headers)}"
                 )
                 if not will_retry:
+                    stop_reason = "delay_exceeds_remaining_budget"
+                    if not retryable:
+                        stop_reason = "non_retryable"
+                    elif remaining <= 0:
+                        stop_reason = "budget_exhausted"
                     logger.warning(
                         f"{_MODULE} ids_remote_query_stopped request_id={request_id} "
-                        f"attempt={attempt} max_attempts={max_attempts} "
-                        f"reason={'exhausted' if retryable else 'non_retryable'}"
+                        f"attempt={attempt} budget_seconds={budget} "
+                        f"elapsed_seconds={elapsed:.3f} reason={stop_reason}"
                     )
                     break
-                logger.info(
+                logger.warning(
                     f"{_MODULE} ids_remote_query_retry_scheduled request_id={request_id} "
-                    f"next_attempt={attempt + 1} max_attempts={max_attempts} delay_seconds=0.2"
+                    f"next_attempt={attempt + 1} budget_seconds={budget} "
+                    f"remaining_seconds={remaining:.3f} delay_seconds={delay} "
+                    f"backoff_multiplier={multiplier}"
                 )
-                time.sleep(0.2)
+                time.sleep(delay)
+                delay = min(delay * multiplier, budget)
+                attempt += 1
                 continue
             if attempt > 1:
                 logger.info(
                     f"{_MODULE} ids_remote_query_recovered request_id={request_id} "
-                    f"attempt={attempt} max_attempts={max_attempts}"
+                    f"attempt={attempt} budget_seconds={budget} "
+                    f"elapsed_seconds={time.monotonic() - started_at:.3f}"
                 )
             return payload
         return {"nameSpaces": []}
@@ -258,12 +306,11 @@ class IDSClient:
         request_id: str,
         headers: dict[str, Any],
         attempt: int,
-        max_attempts: int,
     ) -> dict[str, Any]:
         """执行一次远程查询；可重试错误交给外层统一处理。"""
         logger.info(
             f"{_MODULE} ids_remote_query_started request_id={request_id} "
-            f"attempt={attempt} max_attempts={max_attempts} "
+            f"attempt={attempt} budget_seconds={self.settings.ids_request_retry_budget_seconds} "
             f"method={ids_query.method} url={ids_query.url} "
             f"timeout_seconds={self.settings.ids_request_timeout_seconds}"
         )
@@ -279,22 +326,59 @@ class IDSClient:
         )
         logger.info(
             f"{_MODULE} ids_remote_query_response_received request_id={request_id} "
-            f"attempt={attempt} max_attempts={max_attempts} "
+            f"attempt={attempt} "
             f"status_code={response.status_code} response_bytes={len(response.content)}"
         )
+        try:
+            payload = response.json()
+        except ValueError:
+            logger.warning(
+                f"{_MODULE} ids_remote_response_diagnostic request_id={request_id} "
+                f"attempt={attempt} "
+                f"status_code={response.status_code} response_bytes={len(response.content)} "
+                "reason=invalid_json body_omitted=true"
+            )
+            response.raise_for_status()
+            raise
+        diagnostic = ids_response_diagnostic(payload)
+        logger.info(
+            f"{_MODULE} ids_remote_response_diagnostic request_id={request_id} "
+            f"attempt={attempt} "
+            f"status_code={response.status_code} response_bytes={len(response.content)} "
+            f"diagnostic={self._response_log_text(diagnostic, ids_query, headers)}"
+        )
         response.raise_for_status()
-        payload = response.json()
         if not isinstance(payload, dict):
-            logger.error(
+            logger.warning(
                 f"{_MODULE} ids_remote_query_invalid_response_type request_id={request_id} "
                 f"response_type={type(payload).__name__}"
             )
             raise ValueError("IDS response must be a JSON object")
-        logger.debug(
-            f"{_MODULE} ids_remote_query_payload_loaded request_id={request_id} "
-            f"namespace_count={len(payload.get('nameSpaces', []))}"
-        )
         return payload
+
+    @staticmethod
+    def _response_log_text(
+        diagnostic: dict[str, Any],
+        ids_query: IDSHttpRequest,
+        headers: dict[str, Any] | None = None,
+    ) -> str:
+        """响应错误描述可能回显身份或签名，即使开启敏感日志也不输出这些原值。"""
+        text = json_for_log(diagnostic)
+        sensitive_values = [
+            ids_query.body.callingUid, ids_query.headers.idsSign, ids_query.headers.devFakeId
+        ]
+        if headers is not None:
+            current_sign = headers.get("idsSign")
+            if isinstance(current_sign, str):
+                sensitive_values.append(current_sign)
+        for namespace in ids_query.body.nameSpaces:
+            for query in namespace.queryRequestData:
+                sensitive_values.append(query.keys.odid)
+        for value in sensitive_values:
+            if value:
+                # 在序列化后的文本上替换，兼容回显值包含换行或引号。
+                text = text.replace(json_for_log(value)[1:-1], "[REDACTED]")
+        return text
 
     @staticmethod
     def _is_retryable_error(exc: Exception) -> bool:

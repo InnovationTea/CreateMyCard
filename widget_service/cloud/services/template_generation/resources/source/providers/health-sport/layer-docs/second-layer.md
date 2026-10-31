@@ -21,7 +21,7 @@
     /sleepScore 同时可用。
   - `ActivityOverviewCompact@1`：每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
   - `ActivityOverviewFull@1`：今日活动完整摘要，展示步数与固定万步基准进度，可补充消耗热量和运动距离，可使用步数图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/dailySteps；次要数据：无；可选数据：/dailyTotalCaloriesText, /dailyDistanceText。
-  - `ActivityOverviewTrainingSummaryFull@1`：备赛或训练综合摘要，展示每日步数、最近一次运动时长和运动平均心率，可传本轮可信 `title`。组件形态：full。主数据：/dailySteps；次要数据：/exerciseDurationText, /exerciseHeartRateAvg；可选数据：无。三项字段同时被明确要求时优先使用该模板；2x4 可与 `CountdownOverviewTargetCompact@1` 及承载 `event.open.health.sport` 的 `CompactAction@1` 放入 `WideFullTwoCompactLayout@1`，300×150 卡片需传 `compactRows: true` 使两行加间距恰好为 126vp；事件由 Action 模板承载，不向本 Full 传 `actionId`。
+  - `ActivityOverviewTrainingSummaryFull@1`：备赛或训练综合摘要，展示每日步数、最近一次运动时长和运动平均心率，可传本轮可信 `title`。组件形态：full。主数据：/dailySteps；次要数据：/exerciseDurationText, /exerciseHeartRateAvg；可选数据：无。三项字段同时被明确要求时优先使用该模板；2x4 可与 `CountdownOverviewTargetCompact@1` 及承载 `event.open.health.sport` 的 `CompactAction@1` 放入 `WideFullTwoCompactLayout@1`，布局不传 `compactRows`，右侧两槽以相同权重分配实际可用高度，间距固定为 8vp；事件由 Action 模板承载，不向本 Full 传 `actionId`。
   - `ActivityOverviewTrainingMetricsWideFull@1`：训练概览四宫格宽卡，完整 4x2 内以两行两列排布四个 2x1 指标格：左上大号步数配“今日步数”副标题，右上平均心率配“平均心率”副标题，左下运动时长配“用时”副标题，右下热量配“总消耗热量”副标题，每格右侧可选对应语义图标。 组件形态：wideFull。 布局场景：完整 4x2；单独使用。主数据：/dailySteps；次要数据：/exerciseDurationText, /exerciseHeartRateAvg, /exerciseCalorieText；可选数据：无。
   - `ActivityOverviewHero@1`：今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
   - `ActivityOverviewWideHero@1`：每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideHero。 布局场景：约 4x1.7；WideHero + 1 个 PillAction。 主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText, /targetDateText；可选数据：无。
@@ -89,3 +89,18 @@
 不宣称直达当前日期或某次训练详情；睡眠仍使用原睡眠详情事件。完整白名单以模板声明为准。
 
 - 活动、运动、心率和睡眠小卡模板中明确标记的右上角标题区图标，在 2x4 中由编译器统一隐藏；2x2 保留原规则。素材参数仍按各模板契约传入，正文指标、环内及按钮图标不受影响。适用的 12 个健康运动模板及其它垂域清单见模板生成专项设计“小卡标题区图标在宽卡中的显示规则”。
+
+## 紧凑模板排版
+
+- `HeartRateOverviewCompact@1`：说明、平均心率与单位整体垂直居中，保持左对齐；不增加图标或数据字段。
+- `SleepOverviewCompact@1`：时长 16vp、说明 12vp，时长不锁定文本高度；文字与右侧可选 20vp 图标分列。
+- `SleepOverviewScoreCompact@1`：得分 16vp、说明 12vp；进度环 36×36vp、环宽 4vp，环内图标可选且为 16×16vp。
+- `WorkoutOverviewTypeDurationCompact@1`：时长 16vp/20vp 行高，运动类型 12vp/16vp 行高，行间距与横向间距均为 2vp；右侧可选 24vp 图标不压缩。
+- 上述调整不改变各模板的数据准入、可选图标语义或动作归属，缺少可选图标时保留原有文字与数值。
+
+## 完整模板排版
+
+- `ActivityOverviewGoalProgressWideFull@1` 更新时间在 10–14vp 范围自适应，保留完整时间值；
+  标题 Row 的顶部对齐使用 `alignItems: top`。
+- `ActivityOverviewTrainingMetricsWideFull@1` 平均心率在 10–14vp 范围自适应，数值与单位共同缩放。
+- `WorkoutOverviewFull@1` 热量主值及无热量时的时长主值在 20–32vp 范围自适应，保留单位。
