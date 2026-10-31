@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -10,6 +11,7 @@ from core.errors import ErrorCode
 from custom.a2ui_model_client import A2UIModelClient
 from models.preflight import GenerationPreflightError
 from services.capability_registry import CapabilityRegistry
+from services.compact_dsl_interface_retry import run_compact_dsl_with_retry
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_preflight import GenerationPreflight
 from services.widget_generation_service import WidgetGenerationService
@@ -435,11 +437,17 @@ async def test_generation_preflight_failure_does_not_call_model_or_start_directi
         ]
     )
 
-    with pytest.raises(GenerationPreflightError) as exc_info:
-        await WidgetGenerationService().generate_widget_card_compact_dsl(
-            request,
-            before_model_call=before_model_call,
+    async def generate(attempt_request):
+        return await WidgetGenerationService().generate_widget_card_compact_dsl(
+            attempt_request, before_model_call=before_model_call,
         )
+
+    operation = AsyncMock(side_effect=generate)
+    with pytest.raises(GenerationPreflightError) as exc_info:
+        await run_compact_dsl_with_retry(
+            operation, request, enabled=True, retry_count=2, request_id="preflight-once",
+        )
+    operation.assert_awaited_once()
 
     details = exc_info.value.details()
     assert details.get("stage") == "generationPreflight"

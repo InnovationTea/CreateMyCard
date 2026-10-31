@@ -220,7 +220,7 @@ async def test_non_retryable_results_preserved(status, code):
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "error_type",
-    [A2UIModelGenerationError, ArtifactUploadError, TimeoutError, ConnectionError, ValueError],
+    [A2UIModelGenerationError, ArtifactUploadError, TimeoutError, ConnectionError],
 )
 @pytest.mark.parametrize("recovers", [True, False])
 async def test_retryable_exceptions_recover_or_preserve_last_exception(error_type, recovers):
@@ -248,7 +248,7 @@ async def test_retryable_exceptions_recover_or_preserve_last_exception(error_typ
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "error_type", [RuntimeError, KeyError, FileNotFoundError, asyncio.CancelledError]
+    "error_type", [RuntimeError, KeyError, FileNotFoundError, ValueError, asyncio.CancelledError]
 )
 async def test_non_retryable_exceptions_and_cancellation_propagate(error_type):
     calls = []
