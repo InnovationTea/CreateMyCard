@@ -727,10 +727,12 @@ def _preview_root(
     content: Nested2Node,
     content_height: int,
     theme_root_style: dict[str, Any],
+    *,
+    fill_available_height: bool = False,
 ) -> Nested2Node:
     slot_options = {
         "width": "matchParent",
-        "height": content_height,
+        "height": "matchParent" if fill_available_height else content_height,
         "justifyContent": "start",
         "alignItems": "start",
         "clip": True,
