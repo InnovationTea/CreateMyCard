@@ -68,6 +68,10 @@ class IDSClient:
         - request_id：本次 IDS 查询请求 ID。
         出参：结构化 IDS HTTP 请求定义；后续真实 HTTP 调用可直接使用。
         """
+        flow_control_id = self.settings.ids_flow_control_id
+        if not isinstance(flow_control_id, str) or not flow_control_id.strip():
+            logger.error(f"{_MODULE} ids_configuration_missing key=ids_flow_control_id")
+            raise ValueError("真实IDS查询缺少非空ids_flow_control_id配置。")
         # 请求结构来自一次性 Postman 导出样例，代码内固化成实体对象后不再依赖 collection 文件。
         odid = device.odid or "790d8366-cd45-c4d5-6784-06727a549e61"
         query_data = [IDSQueryRequestData(keys=IDSQueryKeys(odid=odid))]
@@ -96,7 +100,7 @@ class IDSClient:
             headers=IDSRequestHeaders(
                 **{
                     "Content-Type": "application/json",
-                    "devFakeId": self.settings.ids_flow_control_id,
+                    "devFakeId": flow_control_id,
                     "idsSign": ids_sign,
                 }
             ),
