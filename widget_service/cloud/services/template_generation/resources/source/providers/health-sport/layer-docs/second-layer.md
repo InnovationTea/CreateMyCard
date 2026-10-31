@@ -46,7 +46,7 @@
   - `SleepOverviewHero@1`：睡眠情况主视觉，展示时长，可选展示得分进度、睡眠状态或完整睡眠时段，可使用睡眠图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：/sleepStatus, /sleepScore, /fallAsleepTimeText, /wakeupTimeText。
   - `SleepOverviewNapHero@1`：作息提醒主视觉，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/totalNapDurationText；次要数据：无；可选数据：/fallAsleepTimeText, /wakeupTimeText, /dailySteps；今日步数可选展示；`supportedEventIds` 含 `event.open.health.sport`，可在 2x4 组合中承载打开锻炼页动作胶囊。
   - `SleepOverviewCompact@1`：睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：无。
-  - `SleepOverviewScoreCompact@1`：睡眠得分紧凑摘要，展示睡眠得分和得分进度环，可使用睡眠图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/sleepScore；次要数据：无；可选数据：无。
+  - `SleepOverviewScoreCompact@1`：睡眠得分紧凑摘要，16vp 得分附带分单位，与 12vp 说明及 36vp 得分环整体垂直居中，环宽 6vp，环内可选 16vp 睡眠图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/sleepScore；次要数据：无；可选数据：无。
   - `SleepOverviewScoreFull@1`：睡眠得分完整摘要，以大号数字展示睡眠得分并配“分”单位，顶部展示睡眠健康状态，底部展示总睡眠时长，可选展示深睡眠时长，可使用睡眠图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/sleepScore；次要数据：/nightSleepDurationText；可选数据：/sleepStatus, /deepSleepDurationText。
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和
   素材。
@@ -94,7 +94,7 @@
 
 - `HeartRateOverviewCompact@1`：说明、平均心率与单位整体垂直居中，保持左对齐；不增加图标或数据字段。
 - `SleepOverviewCompact@1`：时长 16vp、说明 12vp，时长不锁定文本高度；文字与右侧可选 20vp 图标分列。
-- `SleepOverviewScoreCompact@1`：得分 16vp、说明 12vp；进度环 36×36vp、环宽 4vp，环内图标可选且为 16×16vp。
+- `SleepOverviewScoreCompact@1`：得分 16vp 并附带“分”单位、说明 12vp；进度环 36×36vp、环宽 6vp，环内图标可选且为 16×16vp。模板根 Column 与内容 Row 均垂直居中；进度环继续直接绑定数值得分，单位仅用于文字展示。
 - `WorkoutOverviewTypeDurationCompact@1`：时长 16vp/20vp 行高，运动类型 12vp/16vp 行高，行间距与横向间距均为 2vp；右侧可选 24vp 图标不压缩。
 - 上述调整不改变各模板的数据准入、可选图标语义或动作归属，缺少可选图标时保留原有文字与数值。
 

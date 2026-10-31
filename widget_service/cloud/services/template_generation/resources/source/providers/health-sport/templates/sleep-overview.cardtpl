@@ -1952,13 +1952,13 @@ Column(
         "width": "matchParent",
         "height": "matchParent",
         "itemMargin": 4,
-        "justifyContent": "start",
+        "justifyContent": "center",
         "alignItems": "start",
         "clip": true,
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Row(
-        { "itemMargin": 4, "width": "matchParent", "justifyContent": "start", "alignItems": "top" },
+        { "itemMargin": 4, "width": "matchParent", "justifyContent": "start", "alignItems": "center" },
         Column(
             {
                 "width": "matchParent",
@@ -1968,7 +1968,7 @@ Column(
                 "layoutWeight": 1
             },
             Text(
-                data.score,
+                Expr(data.score + "分"),
                 { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             ),
             Text(
@@ -1986,7 +1986,7 @@ Column(
                 "backgroundColor": $theme('progressBackgroundColor'),
                 "width": 36,
                 "height": 36,
-                "strokeWidth": 4
+                "strokeWidth": 6
                 }
             ),
             #if props.sourceIcon

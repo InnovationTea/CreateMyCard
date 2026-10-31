@@ -3221,7 +3221,8 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。"
         ),
         "SleepOverviewScoreCompact@1": (
-            "睡眠得分紧凑摘要，展示睡眠得分和得分进度环，可使用睡眠图标。 组件形态：compact。"
+            "睡眠得分紧凑摘要，16vp 得分附带分单位，与 12vp 说明及 36vp 得分环整体垂直居中，"
+            "环宽 6vp，环内可选 16vp 睡眠图标。 组件形态：compact。"
         ),
         "SleepOverviewNapFull@1": (
             "作息提醒完整摘要，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 "

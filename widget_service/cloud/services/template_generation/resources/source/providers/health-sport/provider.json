@@ -576,7 +576,7 @@
       "templateId": "SleepOverviewScoreCompact@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠得分紧凑摘要，16vp 得分与 12vp 说明配合 36vp 得分环，环宽 4vp，环内可选 16vp 睡眠图标。 组件形态：compact。",
+      "description": "睡眠得分紧凑摘要，16vp 得分附带分单位，与 12vp 说明及 36vp 得分环整体垂直居中，环宽 6vp，环内可选 16vp 睡眠图标。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
