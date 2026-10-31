@@ -108,7 +108,7 @@ def test_pure_actions_still_reject_overlong_button_label() -> None:
     task = _task()
     rows = _rows(task)
     rows[2][2]["label"] = "bluetooth"
-    with pytest.raises(CompactDslValidationError, match="at most 5 visible characters"):
+    with pytest.raises(CompactDslValidationError, match="at most 6 visible characters"):
         validate_compact_dsl(
             _source(rows), task_spec=task, card_spec={"suggestSize": "2x2"},
             compact_plan=_plan(task),

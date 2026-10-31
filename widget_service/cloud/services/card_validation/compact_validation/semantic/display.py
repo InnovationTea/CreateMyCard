@@ -32,7 +32,7 @@ from services.compact_dsl_a2ui_converter import (
 )
 
 _ACTION_LABEL_COMPONENTS = frozenset({"PillButton", "CardButton"})
-_MAX_ACTION_LABEL_VISIBLE_CHARACTERS = 5
+_MAX_ACTION_LABEL_VISIBLE_CHARACTERS = 6
 
 
 def _collect_action_label_length_errors(
@@ -54,7 +54,7 @@ def _collect_action_label_length_errors(
                 code="COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG",
                 validation_class="semantic",
                 category="display",
-                message="按钮可见文案超过 5 个字符。",
+                message=f"按钮可见文案超过 {_MAX_ACTION_LABEL_VISIBLE_CHARACTERS} 个字符。",
                 expected={
                     "maxVisibleCharacters": _MAX_ACTION_LABEL_VISIBLE_CHARACTERS,
                     "preserveActionHandler": True,
@@ -69,7 +69,8 @@ def _collect_action_label_length_errors(
                 property_path="/label",
                 legacy_message=(
                     f"component {component.component_id}: {component.component_type}.label "
-                    "must contain at most 5 visible characters "
+                    f"must contain at most {_MAX_ACTION_LABEL_VISIBLE_CHARACTERS} "
+                    "visible characters "
                     f"(got {visible_character_count}): {label!r}. Shorten only the visible "
                     "action wording while preserving the complete onClick handler and action "
                     "target; for example, replace '一键导航去公司' with '导航去公司'."

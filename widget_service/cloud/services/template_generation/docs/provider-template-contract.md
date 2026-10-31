@@ -156,6 +156,9 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 - `WideFull`：完整 `4x2`，单独使用。
 - `WideHalf`：约 `4x1`，用于 `2x4` 的半高组合布局。
 
+`WideFullTwoCompactLayout@1` 的右列使用实际可用高度，两个槽位以相同权重等分，槽间距为 8vp。
+该布局不接收 `compactRows` 参数，不再设置 57vp/60vp 固定槽高；槽位顺序、业务组合及动作归属不变。
+
 业务模板通常不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。
 模板需要复用跨尺寸骨架槽位，或历史模板的后缀与实际目标尺寸不一致时，可以在该模板条目中显式声明
 `supportedCardSizes`（例如 `["2x4"]`）覆盖后缀推导；这样它不会参与 2x2 检索。业务语义或需要区分的

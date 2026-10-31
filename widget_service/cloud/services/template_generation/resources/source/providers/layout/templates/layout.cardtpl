@@ -334,7 +334,7 @@ Row({
 )
 #End
 
-#Template WideFullTwoCompactLayout@1(props: { compactRows?: boolean }, ...children)
+#Template WideFullTwoCompactLayout@1(props: {}, ...children)
 data = {
 }
 
@@ -344,14 +344,14 @@ Row({
   "itemMargin": 8
 },
   Column({"layoutWeight": 1, "height": "matchParent"}, children[0]),
-  Column({"layoutWeight": 1, "height": #Expr(props.compactRows ? 126 : "matchParent"),
-    "itemMargin": #Expr(props.compactRows ? 12 : 8)},
-    Column({"width": "matchParent", "height": #Expr(props.compactRows ? 57 : 60),
+  Column({"layoutWeight": 1, "height": "matchParent",
+    "itemMargin": 8},
+    Column({"width": "matchParent", "layoutWeight": 1,
       "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
       "justifyContent": "center",
       "backgroundColor": $theme("supportContentStyle.backgroundColor"),
       "borderRadius": $theme("supportContentStyle.borderRadius")}, children[1]),
-    Column({"width": "matchParent", "height": #Expr(props.compactRows ? 57 : 60),
+    Column({"width": "matchParent", "layoutWeight": 1,
       "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
       "justifyContent": "center",
       "backgroundColor": $theme("supportContentStyle.backgroundColor"),

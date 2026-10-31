@@ -279,7 +279,7 @@ def _wrap_paragraph(paragraph: str, width: float, font: float) -> list[str]:
 def static_capacity_prompt(size: str) -> str:
     """Plan 首次提交前给出与 Runtime 一致的组件容量预算。"""
     comparison = (
-        "ComparisonGroup仅2x4可用：带标题2–3项，无标题4项。"
+        "ComparisonGroup仅2x4可用：带标题2–3项，四个对象改选可带标题的合法结构。"
         if size == "2x4"
         else "ComparisonGroup在2x2不可用。"
     )
@@ -287,12 +287,11 @@ def static_capacity_prompt(size: str) -> str:
         "# 首次Plan组件容量预算\n"
         f"当前尺寸 {size}。提交Plan前先按信息形态选组件，再核对标题和正文项数；"
         "不得用“最多5个object组”代替具体组件容量。\n"
-        "正文事实同样完整且容量合法时，优先带简短主题标题的结构；"
-        "确需三条TextList或四项对比时沿用无标题合同，不为标题删减必要记录。\n"
+        "只有三条TextList可以无标题；其它正文形态均须有简短主题标题，不为标题删减必要记录。\n"
         "- TextList/records：带标题只能2项，无标题只能3项；适合对象名加说明、状态或多个限定。\n"
         "- SingleLineList/rows：必须带标题，正文1–5行；仅适合可完整单行读取的短标签加短值。\n"
         f"- {comparison}\n"
-        "- EmphasisText/content：只承载1个核心对象或结论；mainText最多2行，"
+        "- EmphasisText/content：必须带标题，只承载1个核心对象或结论；mainText最多2行，"
         "secondaryText与bottomText各最多3行，并共同满足剩余高度。\n"
         "shared/title使用标题区；shared/body虽不计入object组数，仍必须放入所选正文组件的合法字段与高度。"
         "如果实际占用超出上限，首次Plan即先不选should，必要时省略完整低优先级对象并记录omittedContents。"

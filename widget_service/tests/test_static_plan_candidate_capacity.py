@@ -4,6 +4,7 @@ import copy
 import json
 
 import pytest
+from widget_service.tests.static_title_fixtures import titled_plan
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.card_validation.compact_validation.semantic.layout.text_capacity import (
@@ -78,7 +79,7 @@ def test_optional_inventory_survives_legal_three_record_candidate():
 
 
 def test_real_plan_parser_accepts_optional_declarations_within_object_limit():
-    plan = _plan(5)
+    plan = titled_plan(_plan(5))
     plan["omittedContents"] = [{"description": "可选记录容量不足", "factIndexes": [3, 4]}]
     facts = plan.get("info_required")
     assert isinstance(facts, list)
@@ -89,8 +90,8 @@ def test_real_plan_parser_accepts_optional_declarations_within_object_limit():
         require_static_identity=True, require_static_omission_refs=True,
     )
     accepted = result.plan
-    assert len(accepted.get("info_required", [])) == 5
-    assert len(accepted.get("contentGroups", [])) == 5
+    assert len(accepted.get("info_required", [])) == 6
+    assert len(accepted.get("contentGroups", [])) == 6
     assert accepted.get("omissionCandidates")
     source = accepted.get("staticPresentation")
     assert isinstance(source, str)
@@ -158,7 +159,8 @@ def test_valid_alternative_component_is_measured_instead_of_records_preference()
     plan = _plan(4)
     for fact in plan.get("info_required", []):
         fact["priority"] = "must"
-    plan["staticPresentation"] = _source(4, component="SingleLineList")
+    plan = titled_plan(plan)
+    plan["staticPresentation"] = _source(4, component="SingleLineList", header="共同主题")
     assert static_plan_candidate_preserves_required_content(plan, "2x4")
     assert not static_plan_capacity_errors(plan, "2x4")
     assert all(item.visible for item in static_fact_coverage(plan["staticPresentation"], plan))

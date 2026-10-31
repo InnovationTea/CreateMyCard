@@ -115,7 +115,7 @@ def test_long_button_label_repair_only_rewrites_visible_wording() -> None:
         {
             "stage": "validation",
             "code": "COMPACT_DSL_VALIDATION_FAILED",
-            "message": "PillButton.label must contain at most 5 visible characters.",
+            "message": "PillButton.label must contain at most 6 visible characters.",
             "compactDiagnostics": [
                 {
                     "code": "COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG",
@@ -130,7 +130,7 @@ def test_long_button_label_repair_only_rewrites_visible_wording() -> None:
 
     assert directive.repair_strategy == "component_contract_repair"
     assert directive.scope == "component"
-    assert "label缩短到最多5个字符" in directive.instruction
+    assert "label缩短到最多6个字符" in directive.instruction
     assert "一键导航去公司”改为“导航去公司" in directive.instruction
     assert "完整保留onClick的call、args、动作目标" in directive.instruction
     assert "不得复制、删除、改目标或虚构第二个Action" in directive.instruction

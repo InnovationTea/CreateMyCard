@@ -18,6 +18,7 @@ from services.card_validation.compact_validation.diagnostics import (
 from services.card_validation.compact_validation.model_feedback import compact_issue_for_model
 from services.card_validation.compact_validation.repair_guidance import resolve_fix_hint
 from services.card_validation.compact_validation.semantic.display import (
+    _collect_action_label_length_errors,
     _collect_progress_readout_object_errors,
 )
 from services.card_validation.compact_validation.source_locations import SourceLocations
@@ -44,7 +45,7 @@ def _errors(source: str, **kwargs: object) -> CompactDslValidationError:
 
 
 @pytest.mark.parametrize("component_type", ["PillButton", "CardButton"])
-def test_button_label_is_limited_to_five_visible_characters(component_type: str) -> None:
+def test_button_label_is_limited_to_six_visible_characters(component_type: str) -> None:
     handler = {"call": "startNavigate", "args": {"location": "company"}}
     task_spec = {
         "size": "2x2",
@@ -72,6 +73,12 @@ def test_button_label_is_limited_to_five_visible_characters(component_type: str)
         task_spec=task_spec,
         card_spec={"suggestSize": "2x2", "dataBindings": []},
     )
+    for label in ("拨打领事保护", " 拨打 领事保护 "):
+        errors = []
+        _collect_action_label_length_errors(
+            [ComponentRow("action", component_type, {"label": label}, ())], errors,
+        )
+        assert not errors
 
     with pytest.raises(CompactDslValidationError) as captured:
         validate_compact_dsl(
@@ -87,7 +94,7 @@ def test_button_label_is_limited_to_five_visible_characters(component_type: str)
     )
     assert diagnostic.component_id == "action"
     assert diagnostic.property_path == "/label"
-    assert diagnostic.expected.get("maxVisibleCharacters") == 5
+    assert diagnostic.expected.get("maxVisibleCharacters") == 6
     assert diagnostic.actual.get("visibleCharacterCount") == 7
     hint = resolve_fix_hint(diagnostic)
     assert hint is not None and "一键导航去公司”改为“导航去公司" in hint

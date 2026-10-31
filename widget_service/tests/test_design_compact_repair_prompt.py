@@ -5,6 +5,7 @@ import json
 import pytest
 
 from models.generation import TaskSpec
+from services.compact_repair_strategy import CompactRepairStrategyTracker
 from services.prompt_builder import REPAIR_SYSTEM_PROMPT, PromptBuilder
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID
 
@@ -66,27 +67,35 @@ def test_missing_display_fact_rechecks_completed_group_capacity(size: str) -> No
     assert feedback.get("qualityErrors") == errors
 
 
-def test_duplicate_display_fact_receives_structured_targeted_guidance() -> None:
+@pytest.mark.parametrize("component_type,value_property,data_id,requirement,item_index", [
+    ("EmphasizedData", "value", "/data/health/max", "最高心率", 0),
+    ("InfoBlock", "primaryText", "/data/weather/daily/3/airQuality", "空气质量", 2),
+    ("InfoBlock", "primaryText", "/data/weather/daily/3/temperatureRangeText", "温度范围", 0),
+])
+def test_duplicate_display_fact_receives_structured_targeted_guidance(
+    component_type: str, value_property: str, data_id: str,
+    requirement: str, item_index: int,
+) -> None:
     task = TaskSpec(
-        userQuery="显示最高心率",
+        userQuery=f"显示{requirement}",
         size="2x2",
         dataModelSchema={"data": {}},
     )
     duplicate_fact = {
-        "requirement": "最高心率",
-        "dataId": "/data/health/max",
+        "requirement": requirement,
+        "dataId": data_id,
         "expectedVisibleCount": 1,
         "actualVisibleCount": 2,
         "occurrences": [
             {
                 "componentId": "primary",
-                "componentType": "EmphasizedData",
-                "property": "value",
+                "componentType": component_type,
+                "property": value_property,
             },
             {
                 "componentId": "support",
                 "componentType": "SecondaryBody",
-                "property": "items[0].value",
+                "property": f"items[{item_index}].value",
             },
         ],
     }
@@ -99,6 +108,9 @@ def test_duplicate_display_fact_receives_structured_targeted_guidance() -> None:
         }
     ]
 
+    strategy = CompactRepairStrategyTracker().next_directive("source", errors)
+    assert strategy.scope == "information_group"
+    assert strategy.repair_strategy == "deduplicate_visible_facts"
     messages = PromptBuilder().build_repair(
         [
             {"role": "system", "content": "contract"},
@@ -108,11 +120,7 @@ def test_duplicate_display_fact_receives_structured_targeted_guidance() -> None:
         errors,
         dsl_format=DESIGN_COMPACT_PROFILE_ID,
         task_spec=task,
-        repair_strategy={
-            "scope": "information_group",
-            "repairStrategy": "deduplicate_visible_facts",
-            "instruction": "局部去重。",
-        },
+        repair_strategy=strategy.to_prompt_payload(),
     )
 
     feedback = _repair_feedback(messages)
@@ -125,6 +133,11 @@ def test_duplicate_display_fact_receives_structured_targeted_guidance() -> None:
     assert "只删除该 item" in instruction
     assert "同步删除直接父级 children 引用" in instruction
     assert "SecondaryBody 仍只能作为辅助信息" in instruction
+    assert "优先保留InfoBlock 的必填文本" in instruction
+    assert "只删除 content_support.items[2]" in instruction
+    assert "实际组件和索引以本轮 occurrences 为准" in instruction
+    assert "不要把 upper 改绑到另一项已展示事实" in instruction
+    assert "组件最少项数、必填属性和父槽合同" in instruction
     assert "本次没有布局或容量错误" not in instruction
 
 

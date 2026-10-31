@@ -216,7 +216,7 @@
       "templateId": "WorkoutOverviewTypeDurationCompact@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "最近运动类型和时长 Compact：时长大字、类型小字，右侧可选运动图标；不要求热量。",
+      "description": "最近运动类型和时长 Compact：16vp 时长主行、12vp 类型辅行，行间距 2vp，右侧可选 24vp 运动图标；不要求热量。",
       "entry": "templates/workout-type-duration-compact.cardtpl",
       "primaryData": ["/exerciseDurationText", "/exerciseTypeName"],
       "secondaryData": [],
@@ -340,7 +340,7 @@
       "templateId": "HeartRateOverviewCompact@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要。 组件形态：support。",
+      "description": "运动平均心率紧凑摘要，说明、心率和单位整体垂直居中，左对齐。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
@@ -564,7 +564,7 @@
       "templateId": "SleepOverviewCompact@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。",
+      "description": "睡眠情况紧凑摘要，16vp 时长与 12vp 睡眠监测说明纵向排列，整体垂直居中，右侧可选 20vp 睡眠图标。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
@@ -576,7 +576,7 @@
       "templateId": "SleepOverviewScoreCompact@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠得分紧凑摘要，展示睡眠得分和得分进度环，可使用睡眠图标。 组件形态：compact。",
+      "description": "睡眠得分紧凑摘要，16vp 得分与 12vp 说明配合 36vp 得分环，环宽 4vp，环内可选 16vp 睡眠图标。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
