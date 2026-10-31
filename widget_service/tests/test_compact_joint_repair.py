@@ -49,6 +49,39 @@ def _task() -> dict:
     }
 
 
+def test_joint_actions_resolve_distinct_instances_without_dropping_parameters():
+    task = _task()
+    task["eventCandidates"].append({
+        "id": "settings", "call": "clickToIntent", "args": {"enabled": True},
+    })
+    plan = {"info_required": [{"actionId": "settings#candidate-1"}]}
+    ledger = joint_repair_contract(plan, task, [])
+    assert ledger.get("actions") == [task.get("eventCandidates")[1]]
+    assert ledger.get("actionCarriers") == [{
+        "actionId": "settings#candidate-1", "call": "clickToIntent",
+        "args": {"enabled": True}, "allowedCarriers": ["独立按钮"],
+    }]
+
+
+def test_duplicate_fact_guidance_does_not_hide_missing_action_guidance(monkeypatch):
+    monkeypatch.setattr(get_settings(), "enable_design_compact_runtime_prompt_context", False)
+    errors = _errors("coverage")
+    errors.append({
+        "code": "COMPACT_PLAN_COVERAGE_FAILED", "stage": "validation",
+        "message": "Plan fact is displayed more than once in visible DSL: value.",
+        "duplicateFacts": [{"dataId": "/data/value", "actualVisibleCount": 2}],
+    })
+    task = TaskSpec(**_task())
+    messages = PromptBuilder().build_repair(
+        [{"role": "system", "content": "合同"}, {"role": "user", "content": "{}"}],
+        _source(), errors, dsl_format="design-compact-dsl", task_spec=task, compact_plan=_plan(),
+    )
+    instruction = json.loads(messages[-1].get("content")).get("instruction")
+    assert "duplicateFacts 是本轮必须消除" in instruction
+    assert "动作覆盖失败时先核对按钮是否从 root 可达" in instruction
+    assert "本次没有布局或容量错误，不重做组合选型" not in instruction
+
+
 def _errors(category: str) -> list[dict]:
     cases = {
         "capacity": "component root: vertical layout requires at least 160vp within 126vp",
