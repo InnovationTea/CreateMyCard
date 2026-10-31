@@ -223,6 +223,44 @@ def test_static_or_wide_policy_keeps_existing_route(size, static):
     assert directive.scope == "sublayout"
 
 
+@pytest.mark.parametrize("size,secondary,component,static,expected", [
+    ("2x4", False, "primary_main", False, True),
+    ("2x2", False, "primary_main", False, False),
+    ("2x4", True, "primary_main", False, False),
+    ("2x4", False, "other_main", False, False),
+    ("2x4", False, "primary_main", True, False),
+])
+def test_wide_main_width_repair_offers_bounded_secondary_reassignment(
+    size, secondary, component, static, expected,
+):
+    rows, context = _case()
+    if secondary:
+        rows[2][2]["secondaryText"] = "已有补充"
+    directive = CompactRepairStrategyTracker(static_content=static).next_directive(
+        _source(rows), [_issue(component)], task_spec={**context.task_spec, "size": size},
+    )
+    assert ("将报错mainText的完整原值或绑定移入secondaryText" in directive.instruction) == expected
+    if expected:
+        assert "不得编造主文本、覆盖已有次文本、截断号码或删除事实" in directive.instruction
+        assert "用户和已接受Plan未要求该值保持大字强调" in directive.instruction
+        assert "onClick的call、args和目标" in directive.instruction
+        assert directive.optional_drop is None
+
+
+def test_phone_number_secondary_reassignment_preserves_complete_text_and_fits():
+    source = _source([
+        ["root", "Column", {"width": 116}, ["phone"]],
+        ["phone", "EmphasisText", {
+            "mainText": "领事保护", "secondaryText": "+82-2-755-0572", "fontSize": 18,
+        }],
+    ])
+    result = validate_compact_dsl(
+        source, task_spec={"size": "2x4", "dataModelSchema": {"data": {}}},
+        card_spec={"suggestSize": "2x4"},
+    )
+    assert not result.warnings
+
+
 def test_fixed_width_does_not_increase_retry_budget_or_authorize_drop():
     rows, context = _case()
     tracker = CompactRepairStrategyTracker(max_repair_attempts=1)

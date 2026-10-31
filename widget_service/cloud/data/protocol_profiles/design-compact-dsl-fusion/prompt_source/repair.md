@@ -89,13 +89,14 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 | SecondaryBody 是整卡唯一业务正文 | 同一对象有 2–3 项同级等权的短标签—值时，优先改为可承担核心角色的 TableText；两项高 38vp/fontSize 12，三项高 52vp/fontSize 10。逐项保留 label、value 和绑定，按父区剩余高度核算；事件、比例、强调主值不表格化，超出项不得未授权删除 |
 | SecondaryBody 项数/字号/宽度 | 最多6项，只移除未被 Plan 要求的重复或可选项；必要项改组合。按最终单/多行使用规定字号；长值可 columns:1、maxLines:2并计新增行高 |
 | EmphasizedData 误装多段时长 | 完整绑定迁入 EmphasisText.mainText 固定18fp，辅助时长保持正文规格；不截数字或删单位 |
+| 2x4 EmphasisText.mainText 超宽且无已有次文本 | 用户与Plan未要求大字强调、且原输入已有同对象核心名称或状态时，可将完整原值或绑定移入secondaryText，以已有名称或状态作为mainText；例如mainText为“领事保护”，secondaryText为完整电话号码。字段为secondaryText而非subText；不编造正文、不覆盖已有次文本，完整保留事实和拨号参数，复检12fp次文本单行宽度与总高；仍放不下时重组布局 |
 | TextBlock 项目被拆散或超出槽宽 | 恢复全部分配的事实并按当前容量合同重组选型；不强塞四项，不留下单项占位，不删项或丢失绑定 |
 | EventCard 缺 title / 地点超宽 / 时间序列过长 | 无真实事件标题则普通属性合组，不伪造名称；长地点用普通密度或更宽合法内容区。多事件默认合并一实例；仅W-top-bottom可将同一序列有序分入primary/details两个EventCard，但不因分段跳过总高校验 |
 | EventCard 总高超出父槽 | 若 accepted Plan 只保留 2–3 条同级短事件，且每条的 title、time 和可选 location 合并后仍能单行完整显示，优先比较改用 `SummaryList`：按原顺序将同一 item 的完整文本合为一个显示值，动态字段用 Expression 保留全部 PathBinding。2项按64vp、3项按102vp重算高度并复查单行宽度。超过3项、存在多行长地点，或任一事实未获准省略时，不得借此删项、截断或改写事实；继续比较 compact EventCard、更宽合法区域或父布局重组 |
-| PillButton/CardButton 标签超过5个字符 | 只缩短可见label为最多5个字符，使用“动作+必要目标”，例如“一键导航去公司”改为“导航去公司”；完整保留onClick、参数、真实目标、图标和唯一Action，不靠labelLines绕过 |
+| PillButton/CardButton 标签超过6个字符 | 只缩短可见label为最多6个字符，使用“动作+必要目标”，例如“一键导航去公司”改为“导航去公司”；完整保留onClick、参数、真实目标、图标和唯一Action，不靠labelLines绕过 |
 | CardButton 图标不一致 | accepted Plan 已为动作分配素材时，恢复对应原始 src；Plan 为 null 或没有素材候选时保留 CardButton 也合法，原始 DSL 必须省略业务 icon，由转换器展示固定回退图标 `resources/base/media/ic_fallback_light.svg` |
 
-InfoBlock.secondaryText、TextBlock 的 label/value，以及不超过5个字符但仍因固定槽宽溢出的 CardButton.label，允许其合同的单行省略并只产生 warning；按钮label超过5个字符仍须先缩短。其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
+InfoBlock.secondaryText、TextBlock 的 label/value，以及不超过6个字符但仍因固定槽宽溢出的 CardButton.label，允许其合同的单行省略并只产生 warning；按钮label超过6个字符仍须先缩短。其它必要单行内容须完整，按合法原字号行或分区解决，不能裁单位/对象、移必要前缀到小字或隐藏溢出。
 2x4 强调读数组合确实放不下、整卡其它地方已有核心组件且用户未要求大号强调/进度/事件形式时，可把该读数与同对象短补充无损合为一个 SecondaryBody.items。保留全部值、标签、单位和绑定，采用该组件合法单/多行规格，不补造核心组件；纯绑定/Props 错误不启用此容量例外。
 
 ## 5. 后段策略及删除权限

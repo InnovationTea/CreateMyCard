@@ -157,7 +157,7 @@ def test_duplicate_action_and_other_contract_failures_are_both_reported():
     source = _source(rows)
     result = DesignCompactProcessor().process(source, context)
     assert result.errors
-    assert any("at most 5 visible characters" in issue.message for issue in result.errors)
+    assert any("at most 6 visible characters" in issue.message for issue in result.errors)
     assert any(issue.prompt_context.get("duplicateActions") for issue in result.errors)
     assert serialize_compact_dsl_source(result.source_dsl) == serialize_compact_dsl_source(source)
 

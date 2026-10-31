@@ -439,8 +439,8 @@ def test_button_label_contract_preserves_action_while_limiting_visible_text() ->
     plan = (DEFAULT_SOURCE / "plan.md").read_text(encoding="utf-8")
     repair = (DEFAULT_SOURCE / "repair.md").read_text(encoding="utf-8")
 
-    assert common.count("最多5个可见字符") >= 2
-    assert "最多5个可见字符，保留动作与必要目标" in wide
+    assert common.count("最多6个可见字符") >= 2
+    assert "最多6个可见字符，保留动作与必要目标" in wide
     assert "Plan 中 Action 的 requirement 保留完整操作语义" in plan
     assert "一键导航去公司”改为“导航去公司" in repair
     assert "完整保留onClick、参数、真实目标" in repair

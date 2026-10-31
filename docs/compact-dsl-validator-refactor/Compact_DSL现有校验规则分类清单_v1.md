@@ -90,7 +90,7 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | Plan 动作数量与正文角色 | 语义／布局，semantic/layout/text_capacity.py，由 compact_plan.py 委托 | 不以记录数替代全卡容量，不承担布局选择 |
 | 关键片段换行与详细文字容量 | 语义／布局，共享 static_text_capacity.py；text_capacity.py 发布原容量诊断 | 展开与校验同一度量，语义组件负责生成固定行 |
 | 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 静态生成标记继续采用共享静态文字度量和省略号合同，不改静态字号与行数 |
-| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 仅Runtime Recipe明确标记的EmphasisText.main与compact_composition_planner._text_width共用压力估算；其它普通Text、SummaryList等保持原保守估算，静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy，不在校验器改写文字或授权省略 |
+| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 仅Runtime Recipe明确标记的EmphasisText.main与compact_composition_planner._text_width共用压力估算；其它普通Text、SummaryList等保持原保守估算，静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy；2x4主文超宽且无次文本时，由该策略附条件化主次字段重排建议，不在校验器改写文字或授权省略 |
 
 以上沿用已登记诊断，不新增规则码，不迁移其它检查或更改闭域严重程度。
 
@@ -255,7 +255,7 @@ warning；共享 Runtime 继续确定性展开原顺序，版本化物理布局�
 | 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | CardButton 图标字段合法性 | 共享高阶组件合同，语法／组件 | `CardButton.icon` 可省略；存在时必须是非空静态字符串。省略业务 icon 时，转换器注入固定回退图标 `resources/base/media/ic_fallback_light.svg`，保留图标槽及对应文字宽度预算；不生成额外圆形、分隔线等占位视觉 |
 | CardButton 与 Plan 素材分配一致性 | `semantic/plan_contracts.py`，语义／跨文件一致性 | Plan 为动作分配非空素材时，DSL 继续使用该 ID 的原始 `src`；Plan 为空或没有素材候选时允许 DSL 省略业务 icon，由转换器注入固定回退图标，不得伪造业务素材或额外占位视觉 |
-| 按钮可见文案长度 | `semantic/display.py`，语义／展示，`COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG` | 原始 `PillButton`、`CardButton` 的静态 `label` 最多5个非空白字符；超限只授权缩短可见文案，完整保留 `onClick`、动作目标、组件与布局；由既有 DSL 质量修复处理，不占 Plan 重试预算 |
+| 按钮可见文案长度 | `semantic/display.py`，语义／展示，`COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG` | 原始 `PillButton`、`CardButton` 的静态 `label` 最多6个非空白字符；超限只授权缩短可见文案，完整保留 `onClick`、动作目标、组件与布局；由既有 DSL 质量修复处理，不占 Plan 重试预算 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
