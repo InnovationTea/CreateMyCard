@@ -5,6 +5,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from widget_service.tests.static_title_fixtures import titled_plan
 
 from services.card_validation import validate_compact_dsl
 from services.compact_dsl_a2ui_converter import (
@@ -275,7 +276,7 @@ async def test_wrong_stage_output_recovers_via_existing_candidates_without_extra
     from services.artifact_store import ArtifactStore
     from services.widget_generation_service import WidgetGenerationService
 
-    plan = _plan([_fact("甲：完整说明"), _fact("乙：完整说明")])
+    plan = titled_plan(_plan([_fact("甲：完整说明"), _fact("乙：完整说明")]))
     raw = json.dumps({"name": "submit_card_plan", "arguments": plan}, ensure_ascii=False)
     calls = []
     saved = []
