@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = CONFIG.get("ids_query_url")
     ids_calling_uid: str = "decisionhub"
-    ids_flow_control_id: str | None = CONFIG.get("ids_flow_control_id", None)
+    ids_flow_control_id: str = CONFIG.get("ids_flow_control_id")
     ids_sign_secret: str = "postman-test-secret"
     artifact_base_url: str = "https://obs.todo.local/widget"
     server_host: str = "127.0.0.1"
