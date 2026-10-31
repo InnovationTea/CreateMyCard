@@ -355,6 +355,44 @@ def _review_payload(plan, query):
     return json.loads(reviewed[-1].get("content", ""))
 
 
+def test_review_does_not_replay_first_stage_output_instructions():
+    messages = [
+        {"role": "system", "content": "当前工具合同"},
+        {"role": "user", "content": "ordinary-plan-only"},
+        {"role": "assistant", "content": "previous-plan-example"},
+    ]
+    reviewed = PromptBuilder.build_static_plan_review(
+        messages, _plan(), "原始需求", original_submission="首份提交数据",
+    )
+    assert [item.get("role") for item in reviewed] == ["system", "user"]
+    assert "ordinary-plan-only" not in json.dumps(reviewed)
+    payload = json.loads(reviewed[-1].get("content"))
+    assert payload.get("staticPlanReview", {}).get("originalUserQuery") == "原始需求"
+    assert payload.get("staticPlanReview", {}).get("originalSubmission") == "首份提交数据"
+
+
+def test_review_schema_rejects_empty_semantic_evidence():
+    payload = _review_payload(_plan(), "带证件")
+    with pytest.raises(ValidationError):
+        Draft202012Validator(payload.get("reviewOutput")).validate({
+            "decision": "correct", "sourceFidelity": "needs_correction", "findings": [],
+        })
+
+
+def test_source_repair_exposes_only_current_fact_source():
+    messages = [{"role": "system", "content": "合同"},
+                {"role": "user", "content": "输入"},
+                {"role": "assistant", "content": "{}"}]
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        repaired = PromptBuilder.build_compact_plan_repair(
+            messages, "{}", ("COMPACT_STATIC_SOURCE_NOT_ALLOWED",),
+            user_query="做卡片\n本轮卡片静态内容（用作展示的外部事实）：\n有效来源",
+        )
+    payload = json.loads(repaired[-1].get("content"))
+    assert payload.get("validFactSource") == "有效来源"
+    assert payload.get("hasExplicitFactSection") is True
+
+
 def test_review_output_is_a_typed_schema_not_string_placeholder_examples():
     payload = _review_payload(_plan(), "带证件")
     schema = payload.get("reviewOutput")
