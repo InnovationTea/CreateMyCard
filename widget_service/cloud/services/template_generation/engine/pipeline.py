@@ -85,7 +85,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 from services.template_generation.engine.tersel_converter import (
     TerselConversionError,
 )
-from services.template_generation.postprocessing import remove_bitmap_fill_colors
+from services.template_generation.postprocessing import remove_disallowed_image_fill_colors
 from services.template_generation.profile import (
     TERSEL_PROTOCOL_PROFILE_ID,
     read_tersel_protocol_profile,
@@ -578,7 +578,9 @@ async def _generate_selected_templates(
         f"repair_count={repair_count}"
     )
     return TemplateEngineOutput(
-        a2ui=remove_bitmap_fill_colors(compilation.a2ui),
+        a2ui=remove_disallowed_image_fill_colors(
+            compilation.a2ui, projected_task_spec.assetCandidates,
+        ),
         tersel=compilation.effective_output,
         projected_task_spec=projected_task_spec,
         template_ids=tuple(compilation.stats.template_used_ids),
