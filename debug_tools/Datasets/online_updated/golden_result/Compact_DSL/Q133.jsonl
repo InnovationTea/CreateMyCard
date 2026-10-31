@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":{"path":"/data/weather/current/temperatureText"},"secondaryText":"当前温度"}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/healthSport/dailySteps} + '步' }}","secondaryText":"昨日步数"}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/healthSport/dailySteps",6200]

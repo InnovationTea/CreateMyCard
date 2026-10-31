@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"女儿小布出生计时","fontSize":12}]
+["primary","EmphasizedData",{"value":{"path":"/data/countdown/countdownDays"},"unit":"天","fontSize":30}]
+["support","SecondaryBody",{"items":[{"label":"出生日期 ","value":"2026-09-19"}],"fontSize":14}]
+["/data/countdown/countdownDays",30]

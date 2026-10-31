@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"icon":"resources/base/media/emoji_default_weather_blue.png","value":{"path":"/data/weather/current/temperatureText"},"supportingText":"{{ ${/data/weather/current/condition} + ' | 空气质量 ' + ${/data/weather/current/airQuality} }}"}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/current/airQuality","良"]

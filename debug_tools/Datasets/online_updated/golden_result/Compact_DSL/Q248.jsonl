@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-content-dual-action"},["content","weather_action","clock_action"]]
+["content","Group",{"variant":"label-value"},["content_label","content_value"]]
+["content_label","SingleLineTitle",{"title":"当前时间","fontSize":12}]
+["content_value","EmphasisText",{"mainText":{"path":"/data/time/currentDate"},"fontSize":18}]
+["weather_action","CardButton",{"label":"天气","icon":"resources/base/media/ic_weather_monochrome.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
+["clock_action","CardButton",{"label":"时钟","icon":"resources/base/media/emoji_time.png","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.clock.phone","bundleName":"com.huawei.hmos.clock","intentName":"Clock","uri":""}}]}]
+["/data/time/currentDate","示例"]
+["/data/weather/location/cityCode","60814"]

@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-title-content-action","variant":"title-action"},["title","action"]]
+["title","SingleLineTitle",{"title":"心脏健康","icon":"resources/base/media/emoji_heartRate.png","fontSize":12}]
+["action","PillButton",{"label":"心脏健康","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Health","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}]}]
+["/state/ready",true]

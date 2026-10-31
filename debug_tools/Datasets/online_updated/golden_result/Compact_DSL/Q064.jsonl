@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-title-content-action","variant":"title-action"},["title","action"]]
+["title","SingleLineTitle",{"title":"回家导航","fontSize":12}]
+["action","PillButton",{"label":"导航去公司","icon":"resources/base/media/location_north_up_right_fill.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"StartNavigate","params":{"dstLocation":{"latitude":"","location":"company","longitude":""}}}}]}]
+["/state/ready",true]

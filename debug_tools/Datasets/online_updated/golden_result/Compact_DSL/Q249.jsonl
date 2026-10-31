@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"今日天气","icon":"resources/base/media/ic_weather_monochrome.svg","fontSize":12}]
+["content","TableText",{"items":[{"label":"天气 ","value":"今日大连市金州区多云转晴"},{"label":"气温 ","value":"10℃～16℃"},{"label":"空气 ","value":"优"}],"fontSize":10}]
+["/state/ready",true]

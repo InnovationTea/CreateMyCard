@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-content-dual-action"},["summary","weather_action","clock_action"]]
+["summary","EmphasisText",{"mainText":"{{ ${/data/weather/current/temperatureText} + ' ' + ${/data/weather/current/condition} }}","secondaryText":"{{ ${/data/time/currentDate} + ' · ' + '铁东区' }}","fontSize":18}]
+["weather_action","CardButton",{"label":"天气","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
+["clock_action","CardButton",{"label":"时钟","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.clock.phone","bundleName":"com.huawei.hmos.clock","intentName":"Clock","uri":""}}]}]
+["/data/time/currentDate","2026-07-09"]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/location/cityCode","60814"]
