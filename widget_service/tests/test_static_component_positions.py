@@ -150,6 +150,13 @@ def test_single_line_panel_contract_and_dense_fallback(size, expected_width, cou
     if count == 3:
         assert body.get("styles", {}).get("justifyContent") in {"space-between", "spaceBetween"}
         assert body.get("styles", {}).get("constraintSize") == {"minHeight": 104}
+        header_box = boxes.get("__layout__root__static_header")
+        body_box = boxes.get("__layout__root__static_body")
+        last_box = boxes.get("body__static_item2")
+        assert header_box and body_box and last_box
+        assert header_box.height == 16
+        assert body_box.height == 104
+        assert last_box.height == 32
     elif count < 3:
         wrapper = nodes.get("__layout__root__static_body")
         assert wrapper and wrapper.get("styles", {}).get("justifyContent") == "end"

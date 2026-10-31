@@ -138,6 +138,16 @@ _FIXED_EMPHASIS_WIDTH_INSTRUCTION = (
     "只调整报错信息组和必要父布局，保留其它已正确区域及组件内部UX，不省略事实。"
 )
 
+_EMPHASIS_SECONDARY_REPAIR_INSTRUCTION = (
+    " 2x4 EmphasisText主文超宽且尚无secondaryText时，可比较同对象主次字段重排："
+    "仅当用户和已接受Plan未要求该值保持大字强调，且原输入已有可作为核心的对象名称或状态时，"
+    "将报错mainText的完整原值或绑定移入secondaryText，以该已有名称或状态作为mainText。"
+    "例如原对象为领事保护电话时，可用mainText为‘领事保护’，secondaryText保留完整号码。"
+    "字段名为secondaryText，不是subText；mainText仍用18fp，secondaryText沿用12fp单行Recipe。"
+    "不得编造主文本、覆盖已有次文本、截断号码或删除事实；完整保留onClick的call、args和目标。"
+    "主次字段重排后复检完整文字宽度与正文总高；没有合法主文本来源或仍超宽时，继续合法布局重组。"
+)
+
 
 @dataclass(frozen=True)
 class CompactRepairDirective:
@@ -592,7 +602,15 @@ def _duplicate_fact_instruction(*, duplicate_count_not_reduced: bool) -> str:
     instruction = (
         "修复 duplicateFacts 列出的重复展示事实。逐项核对 occurrences，确保每个报错 "
         "dataId 最终只在一个可见属性中出现。优先保留同时具有明确对象、标签、完整值和单位的"
-        "语义表达，不因字号更大就保留含义不清的裸值或生硬拼接。只删除其它重复绑定："
+        "语义表达，不因字号更大就保留含义不清的裸值或生硬拼接。"
+        "若同一事实同时出现在 InfoBlock.primaryText/secondaryText 与其它组件，优先保留"
+        "InfoBlock 的必填文本、完整绑定、标签和单位，从其它组件删除可合法移除的重复属性或条目。"
+        "例如 upper.primaryText 与 content_support.items[2].value 重复时，保留 upper，"
+        "只删除 content_support.items[2]；实际组件和索引以本轮 occurrences 为准，"
+        "不要把 upper 改绑到另一项已展示事实。"
+        "不得只清空条目的 value 而留下 label；删除后仍须满足组件最少项数、必填属性和父槽合同。"
+        "若其它重复位置也是必填属性或含独有信息，不能硬删，按既有范围重组必要信息组或父布局。"
+        "只删除其它重复绑定："
         "重复位于 SecondaryBody 单个 item 时只删除该 item；表达式同时包含多个 dataId 时只"
         "移除报错的重复引用，不连带删除未报错事实。组件仍有其它有效内容时保留组件；组件"
         "变空时删除组件行并同步删除直接父级 children 引用。不得修改 accepted Plan、删除"
@@ -713,6 +731,33 @@ def _fixed_emphasis_text_overflow(
     return False
 
 
+def _emphasis_secondary_repair_relevant(
+    invalid_source_dsl: str,
+    quality_errors: list[dict[str, Any]],
+    task_spec: dict[str, Any] | None,
+) -> bool:
+    """只为2x4未使用次文本的强调主文宽度错误提供字段重排选项。"""
+    if task_spec is None or task_spec.get("size") != "2x4":
+        return False
+    overflow_components = _text_width_overflow_components(quality_errors)
+    if not overflow_components:
+        return False
+    try:
+        rows = parse_compact_dsl_rows(
+            invalid_source_dsl, expand_layouts=False, skip_compact_dsl_validation=True,
+        )
+    except (CompactDslConversionError, TypeError, ValueError):
+        return False
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        if row.component_type != "EmphasisText" or "secondaryText" in row.props:
+            continue
+        if f"{row.component_id}_main" in overflow_components:
+            return True
+    return False
+
+
 def _capacity_text_compaction_relevant(invalid_source_dsl: str) -> bool:
     """只有当前 DSL 同时具备强调值与等权详情时才发送该受控例外。"""
     return '"EmphasizedData"' in invalid_source_dsl and '"TextBlock"' in invalid_source_dsl
@@ -803,7 +848,7 @@ def _component_contract_instruction(quality_errors: list[dict[str, Any]]) -> str
         quality_errors, "COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG"
     ):
         return (
-            f"{base_instruction} 只把报错按钮的可见label缩短到最多5个字符，"
+            f"{base_instruction} 只把报错按钮的可见label缩短到最多6个字符，"
             "使用简洁的“动作+必要目标”文案，例如将“一键导航去公司”改为“导航去公司”；"
             "完整保留onClick的call、args、动作目标、图标、组件、父布局和唯一Action，"
             "不得复制、删除、改目标或虚构第二个Action。"
@@ -2125,6 +2170,16 @@ class CompactRepairStrategyTracker:
                     f"{directive.instruction}{_TEXT_ONLY_TABLE_REPAIR_INSTRUCTION}"
                 ),
             )
+        if (
+            not self._static_content
+            and category == "layout_capacity"
+            and directive.repair_strategy != "drop_optional_component"
+        ):
+            if _emphasis_secondary_repair_relevant(invalid_source_dsl, quality_errors, task_spec):
+                directive = replace(
+                    directive,
+                    instruction=directive.instruction + _EMPHASIS_SECONDARY_REPAIR_INSTRUCTION,
+                )
         if directive.retryable:
             self._repair_submission_count += 1
             # 去重轮消耗总修复预算，但不能冒充容量／缺失事实修复来提前授权 Drop。

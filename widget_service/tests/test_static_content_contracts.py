@@ -4,6 +4,7 @@ import copy
 import json
 
 import pytest
+from widget_service.tests.static_title_fixtures import titled_plan, titled_rows
 
 from services.card_validation.compact_validation.semantic.static_content import (
     _fact_covered,
@@ -34,7 +35,7 @@ def source(component, props):
         ["root", "Layout", {"layout": "W-static-content"}, ["body"]],
         ["body", component, props], ["/state/ready", True],
     ]
-    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in titled_rows(rows))
 
 
 @pytest.mark.parametrize("text,parts", [
@@ -72,7 +73,7 @@ def test_named_objects_survive_candidate_recovery_and_cannot_share_names():
     }
     query = "模型甲输入2.50；输出10.00；模型乙输入3.00；输出15.00"
     with content_policy_scope(STATIC_CONTENT_POLICY):
-        trial = trial_static_presentation(plan, query, "2x4")
+        trial = trial_static_presentation(titled_plan(plan), query, "2x4")
         assert trial.source is not None
         assert not static_group_errors(trial.source, plan)
         missing = trial.source.replace("模型甲", "")

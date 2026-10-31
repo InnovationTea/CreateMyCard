@@ -1072,6 +1072,11 @@ class WidgetGenerationService:
                                 fact_count=len(review_plan.plan.get("info_required", [])),
                             )
                         except StaticPlanReviewError as exc:
+                            logger.warning(
+                                "[Generation Service] static_plan_review_rejected "
+                                "attempt={} max_attempts={} reason={}",
+                                attempt, max_plan_attempts, str(exc),
+                            )
                             plan_span.outcome("failed", reason="invalid_static_review")
                             trace_record(
                                 "static_content.plan.review.completed", stage="plan",
@@ -1199,6 +1204,7 @@ class WidgetGenerationService:
                             plan_prompt = PromptBuilder.build_compact_plan_repair(
                                 plan_prompt, raw_plan, exc.errors,
                                 retry_context=compact_retry_context,
+                                user_query=request.userQuery,
                             )
                             trace_step(
                                 "plan.prompt.built", stage="plan.promptBuild", status="success",

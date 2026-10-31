@@ -5,6 +5,7 @@ import json
 import socket
 
 import pytest
+from widget_service.tests.static_title_fixtures import titled_rows
 
 from services.card_validation.compact_validation.semantic.static_content import static_group_errors
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
@@ -37,10 +38,10 @@ def source(kind, items, *, header=False):
     if header:
         rows.append(["header", "SingleLineTitle", {"title": "对象摘要"}])
     rows.append(["body", kind, {"items": items}])
-    return "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    return "\n".join(json.dumps(row, ensure_ascii=False) for row in titled_rows(rows))
 
 
-def list_case(kind="SingleLineList", count=2, *, header=False, long_first=False):
+def list_case(kind="SingleLineList", count=2, *, header=True, long_first=False):
     items, facts, groups = [], [], []
     first_key, second_key = (
         ("text", "assist") if kind == "SingleLineList" else ("primaryText", "secondaryText")

@@ -4,6 +4,7 @@ import copy
 import json
 
 import pytest
+from widget_service.tests.static_title_fixtures import titled_plan, titled_rows
 
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.compact_plan import CompactPlanValidationError, parse_compact_plan_call
@@ -32,7 +33,7 @@ def _fact(text, role=None, **extras):
 
 
 def _plan():
-    return {
+    return titled_plan({
         "info_required": [
             _fact("甲对象", "title"), _fact("须预约", "body"), _fact("周六", "trailing"),
             _fact("乙对象", "title"), _fact("无需预约", "body"), _fact("周日", "trailing"),
@@ -43,7 +44,7 @@ def _plan():
         ],
         "presentationStyle": "records",
         "paletteFamily": "auto",
-    }
+    })
 
 
 def _accept(plan, size="2x4"):
@@ -132,7 +133,8 @@ def test_unlabelled_records_keep_every_object_without_placeholder_cost():
     value = _plan()
     value["presentationStyle"] = "records"
     for fact in value.get("info_required", []):
-        fact.pop("displayRole", None)
+        if fact.get("componentHints") != ["SingleLineTitle"]:
+            fact.pop("displayRole", None)
     accepted = _accept(value)
     dsl = accepted.get("staticPresentation")
     assert dsl and "TextList" in dsl and '"label"' not in dsl
@@ -147,7 +149,7 @@ def test_long_optional_note_can_be_omitted_without_mutating_accepted_core():
     groups = value.get("contentGroups")
     assert facts and groups
     facts.append(_fact("来源说明" * 100, priority="should"))
-    groups.append({"id": "note", "kind": "shared", "factIndexes": [6]})
+    groups.append({"id": "note", "kind": "shared", "factIndexes": [len(facts) - 1]})
     before = copy.deepcopy(value)
     accepted = _accept(value)
     dsl = accepted.get("staticPresentation")
@@ -172,7 +174,7 @@ def test_single_line_values_keep_flexible_width_and_align_end():
             {"text": "较长标签", "assist": "30元"},
         ]}],
     ]
-    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in titled_rows(rows))
     nodes = standard_components(convert_compact_dsl_to_a2ui(source, size="2x4"))
     first = nodes.get("body__static_item0_assist", {}).get("styles", {})
     second = nodes.get("body__static_item1_assist", {}).get("styles", {})
@@ -263,7 +265,8 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
                 )
             return json.dumps({"name": "submit_card_plan", "arguments": value}, ensure_ascii=False)
         return '\n'.join([
-            '["root","Layout",{"layout":"S-static-content"},["body"]]',
+            '["root","Layout",{"layout":"S-static-content"},["header","body"]]',
+            '["header","SingleLineTitle",{"title":"提醒"}]',
             '["body","EmphasisText",{"mainText":"带证件"}]',
             '["/state/ready",true]',
         ])

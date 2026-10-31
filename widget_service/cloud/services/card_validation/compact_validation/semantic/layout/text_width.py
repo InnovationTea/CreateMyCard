@@ -168,7 +168,7 @@ def _collect_text_width_budget_errors(
                 f"but its {width_description} is {available:g}vp. Keep every label, prefix, "
                 "value and action; use legal lines at the same font or regroup into a wider "
                 "region. A fixed single-line component needs same-font separate lines or a "
-                "different legal composition, not clipping, smaller secondary text or weight."
+                "different legal composition, not clipping, unsupported font overrides or weight."
             )
 
 

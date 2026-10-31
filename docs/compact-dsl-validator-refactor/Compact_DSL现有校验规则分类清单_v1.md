@@ -1,5 +1,11 @@
 # Compact DSL 现有校验规则分类清单 v1
 
+2026-10-31：InfoBlock 与其它组件重复展示同一事实时，优先保留 InfoBlock 必填文本，
+建议从其它组件删除合同允许的重复属性或条目；无合法删除位置时沿既有范围重组。
+本项归修复建议，落点为 `compact_repair_strategy.py::_duplicate_fact_instruction` 与
+Fusion `prompt_source/repair.md`，不改变 `compact_plan.py` 的 error 判定、组件合同或重试预算。
+回归由 `test_design_compact_repair_prompt.py` 验证策略进入模型反馈及具体重复位置保持不变。
+
 2026-10-29 模板宽卡组合修订：Hero + Compact 必须有一个 PillAction，Full + Compact 不接受动作。
 此项属于模板语义／布局组合合同，实际判定继续位于
 `template_generation/engine/cardplan/compiler.py::_validate_provider_template_layout_action_requirements`，
@@ -90,7 +96,7 @@ Plan selectionNotes 仅为内部取舍字段，由 compact_plan.py 校验形状�
 | Plan 动作数量与正文角色 | 语义／布局，semantic/layout/text_capacity.py，由 compact_plan.py 委托 | 不以记录数替代全卡容量，不承担布局选择 |
 | 关键片段换行与详细文字容量 | 语义／布局，共享 static_text_capacity.py；text_capacity.py 发布原容量诊断 | 展开与校验同一度量，语义组件负责生成固定行 |
 | 静态生成单行宽度 | 语义／布局，semantic/layout/text_width.py | 静态生成标记继续采用共享静态文字度量和省略号合同，不改静态字号与行数 |
-| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 仅Runtime Recipe明确标记的EmphasisText.main与compact_composition_planner._text_width共用压力估算；其它普通Text、SummaryList等保持原保守估算，静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy，不在校验器改写文字或授权省略 |
+| 普通完整单行文字宽度 | 语义／布局，semantic/layout/text_width.py | 仅Runtime Recipe明确标记的EmphasisText.main与compact_composition_planner._text_width共用压力估算；其它普通Text、SummaryList等保持原保守估算，静态专用度量及省略号合同保持。固定强调文字的必要父级修复范围归compact_repair_strategy；2x4主文超宽且无次文本时，由该策略附条件化主次字段重排建议，不在校验器改写文字或授权省略 |
 
 以上沿用已登记诊断，不新增规则码，不迁移其它检查或更改闭域严重程度。
 
@@ -255,7 +261,7 @@ warning；共享 Runtime 继续确定性展开原顺序，版本化物理布局�
 | 可染色 SVG 漏色 | `semantic/layout/assets.py`，语义／布局与视觉约束，`COMPACT_SVG_FILL_COLOR_MISSING` | 仅 ProgressCircle；CardButton 等自动着色组件和 PNG 不触发 |
 | CardButton 图标字段合法性 | 共享高阶组件合同，语法／组件 | `CardButton.icon` 可省略；存在时必须是非空静态字符串。省略业务 icon 时，转换器注入固定回退图标 `resources/base/media/ic_fallback_light.svg`，保留图标槽及对应文字宽度预算；不生成额外圆形、分隔线等占位视觉 |
 | CardButton 与 Plan 素材分配一致性 | `semantic/plan_contracts.py`，语义／跨文件一致性 | Plan 为动作分配非空素材时，DSL 继续使用该 ID 的原始 `src`；Plan 为空或没有素材候选时允许 DSL 省略业务 icon，由转换器注入固定回退图标，不得伪造业务素材或额外占位视觉 |
-| 按钮可见文案长度 | `semantic/display.py`，语义／展示，`COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG` | 原始 `PillButton`、`CardButton` 的静态 `label` 最多5个非空白字符；超限只授权缩短可见文案，完整保留 `onClick`、动作目标、组件与布局；由既有 DSL 质量修复处理，不占 Plan 重试预算 |
+| 按钮可见文案长度 | `semantic/display.py`，语义／展示，`COMPACT_DISPLAY_ACTION_LABEL_TOO_LONG` | 原始 `PillButton`、`CardButton` 的静态 `label` 最多6个非空白字符；超限只授权缩短可见文案，完整保留 `onClick`、动作目标、组件与布局；由既有 DSL 质量修复处理，不占 Plan 重试预算 |
 | 数值组件选型 | `semantic/numeric_display.py`，语义／展示，`COMPACT_DISPLAY_NUMERIC_COMPONENT_MISUSE` | 仅原始 EmphasizedData 的确定误用；未知字符串类型、表达式、配速及占位值不一概拒绝 |
 
 2026-10-12 合入标题图标：`SingleLineTitle.icon` 纳入原始素材引用登记，继续使用上述两个素材错误码。
@@ -1425,6 +1431,11 @@ static_content_components.py的参数展开检查，不向公共入口或动态�
 四项宫格的主副文字单行省略、两到三项的次文字两行省略，以及 EmphasisText 次文本的实际行高和三行省略。
 
 ## 2026-10-28 静态 SingleLineList 容量修复与受控 Drop
+
+2026-10-31 静态标题履约归语义／布局合同：`static_content_layout.requires_static_header`登记
+仅三项TextList可无标题，`compact_semantic_layout`展开静态外框时检查可达header/SingleLineTitle。
+原校验入口与最终转换共用展开，不复制覆盖或几何判定；缺标题不属于容量超限，不授权Drop。
+不合成模型标题、不改变字号、安全区、单行背板尺寸或间距，动态路线不变。
 
 | 检查或行为 | 分类、实际文件 | 归属理由 |
 | --- | --- | --- |

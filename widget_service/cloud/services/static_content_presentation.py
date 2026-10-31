@@ -512,7 +512,7 @@ def trial_static_presentation(
         count = sum(group.get("kind") == "object" for group in plan.get("contentGroups", []))
         errors.append(
             f"静态试排无可用候选：{count}个对象；单行列表须完整单行，文本列表2–3项且含标题最多2项，"
-            "对比仅宽卡2–4项，四项宫格不能带公共标题。"
+            "除三项文本列表外均须标题；对比仅宽卡带标题2–3项，四个对象应改用其它合法结构。"
             "请在Plan内按用途重新组织或精简，保留必要对象名称、数值与限定；"
             "有限候选未找到结构不代表所有合法排版均不可行。"
         )

@@ -110,7 +110,7 @@ def test_wide_examples_are_grouped_by_body_component():
         "TextList",
         "ComparisonGroup",
         "ComparisonGroup",
-        "ComparisonGroup",
+        "SingleLineList",
         "SingleLineList",
     ]
 
@@ -140,12 +140,13 @@ def test_text_list_guidance_requires_title_for_two_items_only():
 
 
 def test_comparison_group_guidance_requires_title_for_two_or_three_items():
-    required = (
-        "ComparisonGroup为2或3项时必须与SingleLineTitle标题配套使用；"
-        "4项宫格允许无标题"
-    )
-    for stage in ("plan", "create", "repair"):
-        assert required in read_static_prompt(SOURCE, stage, "2x4")
+    for stage in ("plan", "create"):
+        prompt = read_static_prompt(SOURCE, stage, "2x4")
+        assert "ComparisonGroup仅规划带SingleLineTitle标题的2或3项" in prompt
+        assert "4项宫格允许无标题" not in prompt
+    repair = read_static_prompt(SOURCE, "repair", "2x4")
+    assert "只有三项TextList可以无标题" in repair
+    assert "四项ComparisonGroup满高宫格无法带标题" in repair
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

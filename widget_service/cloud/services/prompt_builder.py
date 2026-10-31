@@ -1911,6 +1911,7 @@ class PromptBuilder:
         errors: tuple[str, ...],
         *,
         retry_context: CompactDslRetryContext | None = None,
+        user_query: str | None = None,
     ) -> list[dict[str, str]]:
         """把失败 Plan 与校验工具结果追加到同一条对话。"""
         from services.generation_content_policy import current_content_policy
@@ -1998,6 +1999,16 @@ class PromptBuilder:
         }
         if reference_feedback is not None:
             feedback_payload["staticPlanReferences"] = reference_feedback
+        source_error = any("COMPACT_STATIC_SOURCE_NOT_ALLOWED" in error for error in errors)
+        if current_content_policy().is_static and source_error and user_query is not None:
+            source, explicit = static_fact_source(user_query)
+            feedback_payload["validFactSource"] = source
+            feedback_payload["hasExplicitFactSection"] = explicit
+            feedback_payload["instruction"] += (
+                " sourceTexts逐段从validFactSource复制连续原文，标题也不例外。"
+                "不要再次引用事实段外的制作指令；展示text可按原合同摘要，来源引用不能摘要。"
+                "修正来源后仍须同时处理本轮条数、分组和容量错误。"
+            )
         repaired.append(
             {
                 "role": "user",
@@ -2026,7 +2037,7 @@ class PromptBuilder:
             key: value for key, value in plan.items()
             if key not in {"staticPresentation", "staticPresentationFeedback"}
         }
-        updated = copy.deepcopy(conversation)
+        updated = [{"role": "system", "content": system_content}]
         updated[0]["content"] = system_content + (
             "\n本次为同一Plan阶段最后一次静态复核，先前普通submit_card_plan输出格式"
             "仅用于correctedPlan内部；本次唯一返回格式以最后消息的reviewOutput为准。"
@@ -2036,6 +2047,7 @@ class PromptBuilder:
             "role": "user",
             "content": json.dumps({
                 "staticPlanReview": {
+                    "originalUserQuery": user_query,
                     "candidatePlan": candidate,
                     "originalSubmission": original_submission,
                     "originalFactSource": source,
@@ -2048,6 +2060,10 @@ class PromptBuilder:
                     "type": "object",
                     "required": ["decision", "sourceFidelity", "findings"],
                     "additionalProperties": False,
+                    "allOf": [{
+                        "if": {"properties": {"sourceFidelity": {"const": "needs_correction"}}},
+                        "then": {"properties": {"findings": {"minItems": 1}}},
+                    }],
                     "properties": {
                         "decision": {"type": "string", "enum": ["keep", "correct"]},
                         "sourceFidelity": {
@@ -2663,7 +2679,7 @@ class PromptBuilder:
                     "SecondaryBody 仍只能作为辅助信息；若去重导致核心组件或信息组语义不成立，"
                     "按 repairStrategy.scope 在允许范围内重组选型，但不得重新引入重复绑定。"
                 )
-            elif task_spec is not None and missing_action:
+            if task_spec is not None and missing_action:
                 payload["instruction"] += (
                     "动作覆盖失败时先核对按钮是否从 root 可达，不能仅新增孤立组件行。"
                     "优先使用现有合法动作位；没有可用动作位时允许最小必要的语义组合"
@@ -2678,7 +2694,7 @@ class PromptBuilder:
                     "不把超过项目数的条目塞入单个辅助组件，不裁切、静态化或删除字段来补覆盖。"
                     "已有正确事实、绑定和Action保持不变，不打散同级关系或混入无关对象。"
                 )
-            elif not capacity_errors and not recompose_requested:
+            elif not (capacity_errors or recompose_requested or duplicate_fact):
                 payload["instruction"] += (
                     "本次没有布局或容量错误，不重做组合选型；"
                     "保持待修树的合法布局，仅修属性、绑定、事件或覆盖问题。"
