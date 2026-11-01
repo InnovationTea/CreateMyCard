@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在桌面放一个3D动态日历卡片，显示当前日期、星期和农历信息，具有3D动态视觉效果。本轮卡片静态内容（用作展示的外部事实）：无",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "3D动态日历",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "3D动态日历卡片",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030165717473"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "bbe8a84f-ecfa-4074-99d7-82893de41d94"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在桌面放一个3D动态日历卡片，显示当前日期、星期和农历信息，具有3D动态视觉效果。本轮卡片静态内容（用作展示的外部事实）：无",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在桌面放一个3D动态日历卡片，显示当前日期、星期和农历信息，具有3D动态视觉效果。本轮卡片静态内容（用作展示的外部事实）：无",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "3D动态日历",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "3D动态日历卡片",
+  "candidateAssetIds": []
+}

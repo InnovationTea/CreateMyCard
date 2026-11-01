@@ -1,0 +1,179 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "帮我做一个今日日程安排的卡片，把今天日程安排展示出来，提醒我什么时间要做什么，并带有一键加入会议日程的入口",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 1
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/eventLocation",
+          "/events/0/countdownDays",
+          "/events/0/oneClickServiceLink",
+          "/events/0/isServiceValid",
+          "/events/0/entityId",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/dtEnd",
+          "/events/1/eventLocation",
+          "/events/1/countdownDays",
+          "/events/1/oneClickServiceLink",
+          "/events/1/isServiceValid",
+          "/events/1/entityId",
+          "/events/2/title",
+          "/events/2/dtStart",
+          "/events/2/dtEnd",
+          "/events/2/eventLocation",
+          "/events/2/countdownDays",
+          "/events/2/oneClickServiceLink",
+          "/events/2/isServiceValid",
+          "/events/2/entityId",
+          "/eventCount"
+        ]
+      }
+    ],
+    "title": "今日日程",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.enter.meeting",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "EnterMeeting",
+            "uri": "{{ ${/data/calendar/events/0/oneClickServiceLink} }}"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "description": "今日日程安排",
+    "candidateAssetIds": [
+      "asset.icon_schedule",
+      "asset.icon_meeting",
+      "asset.calendar_fill",
+      "asset.bell_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.372",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030082636579"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": false,
+    "sessionId": "450fb013-95a7-454b-8c36-8980255ee86b"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "帮我做一个今日日程安排的卡片，把今天日程安排展示出来，提醒我什么时间要做什么，并带有一键加入会议日程的入口",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.120",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "帮我做一个今日日程安排的卡片，把今天日程安排展示出来，提醒我什么时间要做什么，并带有一键加入会议日程的入口",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 1
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/eventLocation",
+        "/events/0/countdownDays",
+        "/events/0/oneClickServiceLink",
+        "/events/0/isServiceValid",
+        "/events/0/entityId",
+        "/events/1/title",
+        "/events/1/dtStart",
+        "/events/1/dtEnd",
+        "/events/1/eventLocation",
+        "/events/1/countdownDays",
+        "/events/1/oneClickServiceLink",
+        "/events/1/isServiceValid",
+        "/events/1/entityId",
+        "/events/2/title",
+        "/events/2/dtStart",
+        "/events/2/dtEnd",
+        "/events/2/eventLocation",
+        "/events/2/countdownDays",
+        "/events/2/oneClickServiceLink",
+        "/events/2/isServiceValid",
+        "/events/2/entityId",
+        "/eventCount"
+      ]
+    }
+  ],
+  "title": "今日日程",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.enter.meeting",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "EnterMeeting",
+          "uri": "{{ ${/data/calendar/events/0/oneClickServiceLink} }}"
+        }
+      }
+    },
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "description": "今日日程安排",
+  "candidateAssetIds": [
+    "asset.icon_schedule",
+    "asset.icon_meeting",
+    "asset.calendar_fill",
+    "asset.bell_fill"
+  ]
+}

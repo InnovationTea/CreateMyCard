@@ -1,0 +1,151 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建手机封面卡片，展示近期日程安排",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/eventLocation",
+          "/events/1/title",
+          "/events/1/startDate",
+          "/events/1/dtStart",
+          "/events/1/eventLocation",
+          "/events/2/title",
+          "/events/2/startDate",
+          "/events/2/dtStart",
+          "/events/2/eventLocation"
+        ]
+      }
+    ],
+    "title": "我的日程",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.enter.meeting",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "EnterMeeting",
+            "uri": "{{ ${/data/calendar/events/0/oneClickServiceLink} }}"
+          }
+        }
+      }
+    ],
+    "description": "近期日程一览",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_schedule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030165454695"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "f1fbc585-d25a-46de-845c-9e46dc7c8626"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建手机封面卡片，展示近期日程安排",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建手机封面卡片，展示近期日程安排",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/1/title",
+        "/events/1/startDate",
+        "/events/1/dtStart",
+        "/events/1/eventLocation",
+        "/events/2/title",
+        "/events/2/startDate",
+        "/events/2/dtStart",
+        "/events/2/eventLocation"
+      ]
+    }
+  ],
+  "title": "我的日程",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    },
+    {
+      "capabilityId": "event.enter.meeting",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "EnterMeeting",
+          "uri": "{{ ${/data/calendar/events/0/oneClickServiceLink} }}"
+        }
+      }
+    }
+  ],
+  "description": "近期日程一览",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_schedule"
+  ]
+}

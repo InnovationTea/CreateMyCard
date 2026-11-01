@@ -1,0 +1,91 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "添加天气时间卡片，显示当前天气和当前时间。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ]
+      },
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek"
+        ]
+      }
+    ],
+    "title": "天气时间",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "天气时间速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030140344452"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "cd917e3f-70c9-4ffd-a2f8-a3fbf1f2678e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "添加天气时间卡片，显示当前天气和当前时间。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "添加天气时间卡片，显示当前天气和当前时间。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition"
+      ]
+    },
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek"
+      ]
+    }
+  ],
+  "title": "天气时间",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "天气时间速览",
+  "candidateAssetIds": []
+}

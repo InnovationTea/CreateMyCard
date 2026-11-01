@@ -1,0 +1,101 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在桌面上添加一个电池电量显示的小组件，显示手机当前电池电量百分比。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batterySOC"
+        ]
+      }
+    ],
+    "title": "电池电量",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.battery",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "battery"
+          }
+        }
+      }
+    ],
+    "description": "手机电量显示",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030060430971"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "73c1895c-044c-4ef3-a2de-8c2507cfb3b5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在桌面上添加一个电池电量显示的小组件，显示手机当前电池电量百分比。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在桌面上添加一个电池电量显示的小组件，显示手机当前电池电量百分比。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batterySOC"
+      ]
+    }
+  ],
+  "title": "电池电量",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.battery",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "battery"
+        }
+      }
+    }
+  ],
+  "description": "手机电量显示",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill"
+  ]
+}

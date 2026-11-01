@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在桌面添加日期卡片，显示当前日期、星期和农历信息。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "今日日期",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "日期速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031070201344"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "10",
+    "isNew": false,
+    "sessionId": "5ef864ae-91b4-4b52-bbcd-10228f12760e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在桌面添加日期卡片，显示当前日期、星期和农历信息。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.115",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在桌面添加日期卡片，显示当前日期、星期和农历信息。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "今日日期",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "日期速览",
+  "candidateAssetIds": []
+}

@@ -1,0 +1,83 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "今天是我老婆钟招英的生日，你帮我制作一个生日贺卡，我要是那一种呃，看起来比较好呃，比较可以翻页的那一种，配上音乐",
+    "candidateDataBindings": [],
+    "title": "生日快乐",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.music.favorite",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Music",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+          }
+        }
+      }
+    ],
+    "description": "老婆钟招英生日贺卡",
+    "candidateAssetIds": [
+      "asset.cake_fill",
+      "asset.heart_fill",
+      "asset.emoji_music"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029102325030"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "964d2884-b9aa-4bc7-a287-560ecd164f9b"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "今天是我老婆钟招英的生日，你帮我制作一个生日贺卡，我要是那一种呃，看起来比较好呃，比较可以翻页的那一种，配上音乐",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "今天是我老婆钟招英的生日，你帮我制作一个生日贺卡，我要是那一种呃，看起来比较好呃，比较可以翻页的那一种，配上音乐",
+  "candidateDataBindings": [],
+  "title": "生日快乐",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.music.favorite",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Music",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        }
+      }
+    }
+  ],
+  "description": "老婆钟招英生日贺卡",
+  "candidateAssetIds": [
+    "asset.cake_fill",
+    "asset.heart_fill",
+    "asset.emoji_music"
+  ]
+}

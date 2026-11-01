@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"W-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"今日新闻热点"}]
+["body","EmphasisText",{"mainText":"暂无具体新闻内容可展示","secondaryText":"数据就绪后将自动更新今日热点"}]
+["/state/ready",true]

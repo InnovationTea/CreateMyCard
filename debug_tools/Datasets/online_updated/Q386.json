@@ -1,0 +1,129 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "制作一张3D动态日历桌面卡片，显示当前日期、星期和农历信息，同时展示最近的日程安排，点击日程可查看日程详情。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/countdownDays",
+          "/events/0/entityId"
+        ]
+      }
+    ],
+    "title": "3D动态日历",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "description": "日期与日程速览",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.emoji_calendar2"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031051800420"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "e132e0e9-f3ac-4e07-bf18-54938af2e5db"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "制作一张3D动态日历桌面卡片，显示当前日期、星期和农历信息，同时展示最近的日程安排，点击日程可查看日程详情。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "制作一张3D动态日历桌面卡片，显示当前日期、星期和农历信息，同时展示最近的日程安排，点击日程可查看日程详情。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    },
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/countdownDays",
+        "/events/0/entityId"
+      ]
+    }
+  ],
+  "title": "3D动态日历",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "description": "日期与日程速览",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.emoji_calendar2"
+  ]
+}

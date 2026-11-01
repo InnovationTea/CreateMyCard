@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一个桌面卡片，显示当前连接的耳机的左右耳电量。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/earphoneName",
+          "/leftBatteryLevel",
+          "/rightBatteryLevel"
+        ]
+      }
+    ],
+    "title": "耳机电量",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "Sanag S6S 耳机电量速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029110758197"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "f3b157c3-1f68-44c2-880b-684901435af6"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一个桌面卡片，显示当前连接的耳机的左右耳电量。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一个桌面卡片，显示当前连接的耳机的左右耳电量。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/earphoneName",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ]
+    }
+  ],
+  "title": "耳机电量",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "Sanag S6S 耳机电量速览",
+  "candidateAssetIds": []
+}

@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"心脏健康","icon":"resources/base/media/emoji_heartRate.png","fontSize":12}]
+["content","EmphasizedData",{"value":{"path":"/data/healthSport/exerciseHeartRateAvg"},"unit":"次/分钟","fontSize":30}]
+["action","PillButton",{"label":"查看记录","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Health","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}]}]
+["/data/healthSport/exerciseHeartRateAvg",135]

@@ -1,0 +1,119 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成一个异常天气家人关怀提醒卡片，显示天气和温度变化，具备天气预警功能，有一个可以直接联系家人的电话按钮。家人电话号码绑定王苏东，手机号码15251852906。本轮卡片静态内容（用作展示的外部事实）：家人王苏东的电话号码为15251852906。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 3
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/alertLevel",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/temperatureRangeText",
+          "/daily/0/condition",
+          "/daily/1/condition",
+          "/daily/2/condition"
+        ]
+      }
+    ],
+    "title": "异常天气关怀",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "15251852906"
+            }
+          }
+        }
+      }
+    ],
+    "description": "天气预警与家人关怀",
+    "candidateAssetIds": [
+      "asset.ic_weatherWarning",
+      "asset.ic_call_bule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.372",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030081433585"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "10399fab-8594-4320-ae71-cd16263d4e64"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成一个异常天气家人关怀提醒卡片，显示天气和温度变化，具备天气预警功能，有一个可以直接联系家人的电话按钮。家人电话号码绑定王苏东，手机号码15251852906。本轮卡片静态内容（用作展示的外部事实）：家人王苏东的电话号码为15251852906。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.120",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成一个异常天气家人关怀提醒卡片，显示天气和温度变化，具备天气预警功能，有一个可以直接联系家人的电话按钮。家人电话号码绑定王苏东，手机号码15251852906。本轮卡片静态内容（用作展示的外部事实）：家人王苏东的电话号码为15251852906。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "forecastDays": 3
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/alertLevel",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/temperatureRangeText",
+        "/daily/0/condition",
+        "/daily/1/condition",
+        "/daily/2/condition"
+      ]
+    }
+  ],
+  "title": "异常天气关怀",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "15251852906"
+          }
+        }
+      }
+    }
+  ],
+  "description": "天气预警与家人关怀",
+  "candidateAssetIds": [
+    "asset.ic_weatherWarning",
+    "asset.ic_call_bule"
+  ]
+}

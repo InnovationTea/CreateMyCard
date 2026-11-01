@@ -1,0 +1,97 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成一个二乘四比例的透明的时间桌面卡片，仅显示时间，不显示日期、天气等其他信息",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "透明时间",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "description": "透明时间卡片，仅显示当前时间",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029075033572"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "8",
+    "isNew": false,
+    "sessionId": "f1f8b14b-4af4-408f-a252-6239d6f6092a"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成一个二乘四比例的透明的时间桌面卡片，仅显示时间，不显示日期、天气等其他信息",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成一个二乘四比例的透明的时间桌面卡片，仅显示时间，不显示日期、天气等其他信息",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "透明时间",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.clock.alarm",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "bundleName": "com.huawei.hmos.clock",
+          "intentName": "Clock",
+          "uri": ""
+        }
+      }
+    }
+  ],
+  "description": "透明时间卡片，仅显示当前时间",
+  "candidateAssetIds": []
+}

@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-title-content-action","variant":"title-action"},["title","action"]]
+["title","SingleLineTitle",{"title":"流量管理","fontSize":12}]
+["action","PillButton",{"label":"查看流量","icon":"resources/base/media/mobiledata_circle_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.settings.MainAbility","bundleName":"com.huawei.hmos.settings","intentName":"Settings","uri":"mobile_data_manage_entry"}}]}]
+["/state/ready",true]

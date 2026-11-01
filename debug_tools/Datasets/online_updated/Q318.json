@@ -1,0 +1,111 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张2x2的桌面卡片，显示每天的睡眠情况，包括睡眠得分、睡眠状态、夜间睡眠总时长、深睡时长、入睡时间和醒来时间。点击卡片可打开运动健康应用的睡眠详情页。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/sleepScore",
+          "/sleepStatus",
+          "/nightSleepDurationText",
+          "/deepSleepDurationText",
+          "/fallAsleepTimeText",
+          "/wakeupTimeText"
+        ]
+      }
+    ],
+    "title": "每日睡眠",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.health.sleep",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          }
+        }
+      }
+    ],
+    "description": "每日睡眠情况速览",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029121306173"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "8",
+    "isNew": false,
+    "sessionId": "42c3fbdc-1619-4a94-95d3-02f35aa43527"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张2x2的桌面卡片，显示每天的睡眠情况，包括睡眠得分、睡眠状态、夜间睡眠总时长、深睡时长、入睡时间和醒来时间。点击卡片可打开运动健康应用的睡眠详情页。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张2x2的桌面卡片，显示每天的睡眠情况，包括睡眠得分、睡眠状态、夜间睡眠总时长、深睡时长、入睡时间和醒来时间。点击卡片可打开运动健康应用的睡眠详情页。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ]
+    }
+  ],
+  "title": "每日睡眠",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.health.sleep",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        }
+      }
+    }
+  ],
+  "description": "每日睡眠情况速览",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1"
+  ]
+}

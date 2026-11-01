@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"今日日期","fontSize":12}]
+["content","TableText",{"items":[{"label":"公历","value":{"path":"/data/time/currentDate"}},{"label":"星期","value":{"path":"/data/time/dayOfWeek"}},{"label":"农历","value":{"path":"/data/time/lunarDate"}}],"fontSize":10}]
+["/data/time/currentDate","2026-07-09"]
+["/data/time/dayOfWeek","星期四"]
+["/data/time/lunarDate","五月廿六"]
+["/state/ready",true]

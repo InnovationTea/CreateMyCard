@@ -1,0 +1,129 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成一张日历卡片，显示当前日期、星期、农历信息，以及最近的日程安排和倒计时。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/countdownDays"
+        ]
+      }
+    ],
+    "title": "日历卡片",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "description": "日期与日程速览",
+    "candidateAssetIds": [
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.343",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031014910839"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "20",
+    "isNew": false,
+    "sessionId": "7414dcaf-3327-4f3f-952b-2ae1d8205118"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成一张日历卡片，显示当前日期、星期、农历信息，以及最近的日程安排和倒计时。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.115",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成一张日历卡片，显示当前日期、星期、农历信息，以及最近的日程安排和倒计时。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    },
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/countdownDays"
+      ]
+    }
+  ],
+  "title": "日历卡片",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "description": "日期与日程速览",
+  "candidateAssetIds": [
+    "asset.calendar_fill"
+  ]
+}

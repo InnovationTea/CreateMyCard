@@ -1,0 +1,77 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "把生日提醒卡片添加到桌面，展示妈妈花丽的生日（11月13日）和爸爸何红青的生日（5月7日）的倒计时提醒。本轮卡片静态内容（用作展示的外部事实）：妈妈花丽的生日是11月13日，爸爸何红青的生日是5月7日。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-05-07"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "生日提醒",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "爸妈生日倒计时",
+    "candidateAssetIds": [
+      "asset.cake_fill",
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029135217475"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "c47d8d17-5a1a-4c52-996a-b576dd304fa7"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "把生日提醒卡片添加到桌面，展示妈妈花丽的生日（11月13日）和爸爸何红青的生日（5月7日）的倒计时提醒。本轮卡片静态内容（用作展示的外部事实）：妈妈花丽的生日是11月13日，爸爸何红青的生日是5月7日。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "把生日提醒卡片添加到桌面，展示妈妈花丽的生日（11月13日）和爸爸何红青的生日（5月7日）的倒计时提醒。本轮卡片静态内容（用作展示的外部事实）：妈妈花丽的生日是11月13日，爸爸何红青的生日是5月7日。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-05-07"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "生日提醒",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "爸妈生日倒计时",
+  "candidateAssetIds": [
+    "asset.cake_fill",
+    "asset.calendar_fill"
+  ]
+}

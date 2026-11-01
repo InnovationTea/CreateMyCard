@@ -1,0 +1,107 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "按照用户提供的图片风格设计一个血氧显示页面卡片，显示血氧数据。图片风格为：蓝色星空背景，显示日期、时间、心率、血氧、电量信息。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {},
+        "writeResultTo": "/data/health"
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/battery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/batterySOC"
+        ]
+      },
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek"
+        ]
+      },
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "title": "血氧监测",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "实时血氧数据",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029025410294"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "0c52edd3-1433-4e44-bfe3-dcb4150ec178"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "按照用户提供的图片风格设计一个血氧显示页面卡片，显示血氧数据。图片风格为：蓝色星空背景，显示日期、时间、心率、血氧、电量信息。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "按照用户提供的图片风格设计一个血氧显示页面卡片，显示血氧数据。图片风格为：蓝色星空背景，显示日期、时间、心率、血氧、电量信息。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {},
+      "writeResultTo": "/data/health"
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/battery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/batterySOC"
+      ]
+    },
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek"
+      ]
+    },
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone"
+    }
+  ],
+  "title": "血氧监测",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "实时血氧数据",
+  "candidateAssetIds": []
+}

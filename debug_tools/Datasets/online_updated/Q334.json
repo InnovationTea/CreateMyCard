@@ -1,0 +1,49 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "帮我制作一个于田县喀拉克尔乡初级中学学生生日贺卡，要求：精简打气，适合初中生，内容：亲爱的同学：\n      祝你生日快乐！\n       今天是你＿＿周岁。愿你感恩党、感恩祖国，勤学上进、学业有成；强健体魄、阳光成长；与各族同学像石榴籽一样紧紧相拥，铸牢中华民族共同体意识，共筑中国梦！\n＿＿＿年＿＿月＿＿日\n\n本轮卡片静态内容（用作展示的外部事实）：\n亲爱的同学：祝你生日快乐！今天是你＿＿周岁。愿你感恩党、感恩祖国，勤学上进、学业有成；强健体魄、阳光成长；与各族同学像石榴籽一样紧紧相拥，铸牢中华民族共同体意识，共筑中国梦！＿＿＿年＿＿月＿＿日",
+    "candidateDataBindings": [],
+    "title": "生日贺卡",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "学生生日祝福",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030030522152"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "b5e7ab81-7160-4de8-a21f-26fce0daa60c"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "帮我制作一个于田县喀拉克尔乡初级中学学生生日贺卡，要求：精简打气，适合初中生，内容：亲爱的同学：\n      祝你生日快乐！\n       今天是你＿＿周岁。愿你感恩党、感恩祖国，勤学上进、学业有成；强健体魄、阳光成长；与各族同学像石榴籽一样紧紧相拥，铸牢中华民族共同体意识，共筑中国梦！\n＿＿＿年＿＿月＿＿日\n\n本轮卡片静态内容（用作展示的外部事实）：\n亲爱的同学：祝你生日快乐！今天是你＿＿周岁。愿你感恩党、感恩祖国，勤学上进、学业有成；强健体魄、阳光成长；与各族同学像石榴籽一样紧紧相拥，铸牢中华民族共同体意识，共筑中国梦！＿＿＿年＿＿月＿＿日",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "帮我制作一个于田县喀拉克尔乡初级中学学生生日贺卡，要求：精简打气，适合初中生，内容：亲爱的同学：\n      祝你生日快乐！\n       今天是你＿＿周岁。愿你感恩党、感恩祖国，勤学上进、学业有成；强健体魄、阳光成长；与各族同学像石榴籽一样紧紧相拥，铸牢中华民族共同体意识，共筑中国梦！\n＿＿＿年＿＿月＿＿日\n\n本轮卡片静态内容（用作展示的外部事实）：\n亲爱的同学：祝你生日快乐！今天是你＿＿周岁。愿你感恩党、感恩祖国，勤学上进、学业有成；强健体魄、阳光成长；与各族同学像石榴籽一样紧紧相拥，铸牢中华民族共同体意识，共筑中国梦！＿＿＿年＿＿月＿＿日",
+  "candidateDataBindings": [],
+  "title": "生日贺卡",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "学生生日祝福",
+  "candidateAssetIds": []
+}

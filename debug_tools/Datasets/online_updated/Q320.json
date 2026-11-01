@@ -1,0 +1,53 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "制作一张生日贺卡，上面写明祝沈大哥生日快乐。本轮卡片静态内容（用作展示的外部事实）：祝沈大哥生日快乐",
+    "candidateDataBindings": [],
+    "title": "生日快乐",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "生日贺卡",
+    "candidateAssetIds": [
+      "asset.cake_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029132737963"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "87c1c9c1-7841-48b5-bb05-f0cfaae4eab8"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "制作一张生日贺卡，上面写明祝沈大哥生日快乐。本轮卡片静态内容（用作展示的外部事实）：祝沈大哥生日快乐",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "制作一张生日贺卡，上面写明祝沈大哥生日快乐。本轮卡片静态内容（用作展示的外部事实）：祝沈大哥生日快乐",
+  "candidateDataBindings": [],
+  "title": "生日快乐",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "生日贺卡",
+  "candidateAssetIds": [
+    "asset.cake_fill"
+  ]
+}

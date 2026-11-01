@@ -1,0 +1,83 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "帮我弄个卡片，查看运动心率数据，包括最近一次运动的平均心率、最大心率和最低心率，以及运动类型和运动时间，同时显示数据更新时间。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/exerciseTypeName",
+          "/exerciseStartTimeText",
+          "/exerciseEndTimeText",
+          "/exerciseHeartRateAvg",
+          "/exerciseHeartRateMax",
+          "/exerciseHeartRateMin",
+          "/updatedAt"
+        ]
+      }
+    ],
+    "title": "运动心率",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "运动心率速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029070642335"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "23",
+    "isNew": false,
+    "sessionId": "84f02a17-6fd5-40d4-959f-fc97ed67e0c6"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "帮我弄个卡片，查看运动心率数据，包括最近一次运动的平均心率、最大心率和最低心率，以及运动类型和运动时间，同时显示数据更新时间。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "帮我弄个卡片，查看运动心率数据，包括最近一次运动的平均心率、最大心率和最低心率，以及运动类型和运动时间，同时显示数据更新时间。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/updatedAt"
+      ]
+    }
+  ],
+  "title": "运动心率",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "运动心率速览",
+  "candidateAssetIds": []
+}

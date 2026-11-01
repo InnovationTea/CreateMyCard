@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张2027年高考倒计时桌面卡片，显示距离2027年6月7日高考还有多少天。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-06-07"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "高考倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "2027年高考倒计时",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029001751463"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "6c2c3670-35b3-4588-9db2-b6a46311f04d"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张2027年高考倒计时桌面卡片，显示距离2027年6月7日高考还有多少天。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张2027年高考倒计时桌面卡片，显示距离2027年6月7日高考还有多少天。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-06-07"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "高考倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "2027年高考倒计时",
+  "candidateAssetIds": []
+}

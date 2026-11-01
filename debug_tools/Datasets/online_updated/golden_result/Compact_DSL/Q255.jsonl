@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"闹钟","fontSize":12}]
+["content","EmphasisText",{"mainText":{"path":"/data/time/currentDate"},"fontSize":18}]
+["action","PillButton",{"label":"打开闹钟","icon":"resources/base/media/alarm_fill_1.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.clock.phone","bundleName":"com.huawei.hmos.clock","intentName":"Clock","parameters":{"tabActive":"ALARM_CLOCK_TAB"},"uri":""}}]}]
+["/data/time/currentDate","示例"]

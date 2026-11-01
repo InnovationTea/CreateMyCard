@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "帮我生成一张日历图片\n\n本轮卡片静态内容（用作展示的外部事实）：",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/currentTime",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "日历",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "日历海报",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029084657714"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "a77e7392-f4e0-4073-a657-fcd9f29e34fa"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "帮我生成一张日历图片\n\n本轮卡片静态内容（用作展示的外部事实）：",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "帮我生成一张日历图片\n\n本轮卡片静态内容（用作展示的外部事实）：",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/currentTime",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "日历",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "日历海报",
+  "candidateAssetIds": []
+}

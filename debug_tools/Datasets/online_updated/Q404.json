@@ -1,0 +1,49 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张桌面卡片，展示图片中的密码信息。本轮卡片静态内容（用作展示的外部事实）：图片显示操作成功，密码为 88122092，类型为永久。",
+    "candidateDataBindings": [],
+    "title": "密码卡片",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "密码卡片",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031135327827"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "47b5785b-00bf-46e8-b77f-e10bdc977c9e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张桌面卡片，展示图片中的密码信息。本轮卡片静态内容（用作展示的外部事实）：图片显示操作成功，密码为 88122092，类型为永久。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张桌面卡片，展示图片中的密码信息。本轮卡片静态内容（用作展示的外部事实）：图片显示操作成功，密码为 88122092，类型为永久。",
+  "candidateDataBindings": [],
+  "title": "密码卡片",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "密码卡片",
+  "candidateAssetIds": []
+}

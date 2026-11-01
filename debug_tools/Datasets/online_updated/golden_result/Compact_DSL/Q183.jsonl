@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-content-dual-action"},["summary","weather","clock"]]
+["summary","TableText",{"items":[{"label":"温度","value":{"path":"/data/weather/current/temperatureText"}},{"label":"天气","value":{"path":"/data/weather/current/condition"}}],"fontSize":12}]
+["weather","CardButton",{"label":"天气详情","icon":"resources/base/media/ic_weather_monochrome.svg","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
+["clock","CardButton",{"label":"打开时钟","icon":"resources/base/media/emoji_time.png","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.clock.phone","bundleName":"com.huawei.hmos.clock","intentName":"Clock","uri":""}}]}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/location/cityCode","60814"]

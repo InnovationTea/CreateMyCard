@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一个倒计时桌面卡片，目标日期为2026年12月19日，每天显示距离12月19日还有多少天。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-12-19"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "距离12月19日还有多少天",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030120836207"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "6e0536f8-2a96-4a3b-8419-66467def2386"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一个倒计时桌面卡片，目标日期为2026年12月19日，每天显示距离12月19日还有多少天。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一个倒计时桌面卡片，目标日期为2026年12月19日，每天显示距离12月19日还有多少天。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-12-19"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "距离12月19日还有多少天",
+  "candidateAssetIds": []
+}

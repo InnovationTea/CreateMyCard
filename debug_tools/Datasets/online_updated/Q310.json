@@ -1,0 +1,55 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成一张生日卡片，祝福喜欢的女孩子生日快乐，愿你新的一岁，眼里有光，心中有暖，万事皆如愿。卡片风格温馨浪漫，适合表达对喜欢女生的生日祝福。",
+    "candidateDataBindings": [],
+    "title": "生日快乐",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "生日祝福卡片",
+    "candidateAssetIds": [
+      "asset.cake_fill",
+      "asset.heart_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029085925036"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "27e042e7-a688-4660-a270-332b8a773ee9"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成一张生日卡片，祝福喜欢的女孩子生日快乐，愿你新的一岁，眼里有光，心中有暖，万事皆如愿。卡片风格温馨浪漫，适合表达对喜欢女生的生日祝福。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成一张生日卡片，祝福喜欢的女孩子生日快乐，愿你新的一岁，眼里有光，心中有暖，万事皆如愿。卡片风格温馨浪漫，适合表达对喜欢女生的生日祝福。",
+  "candidateDataBindings": [],
+  "title": "生日快乐",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "生日祝福卡片",
+  "candidateAssetIds": [
+    "asset.cake_fill",
+    "asset.heart_fill"
+  ]
+}

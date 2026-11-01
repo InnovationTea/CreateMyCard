@@ -1,0 +1,97 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在桌面上创建一张日期和天气卡片，显示当前日期、星期和今日天气信息（温度、天气现象）。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "东胜区",
+          "forecastDays": 1,
+          "prefectureName": "鄂尔多斯市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ]
+      }
+    ],
+    "title": "日期天气",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "日期与天气速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029031031186"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "dca00932-a185-4abf-aa65-d076120520b3"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在桌面上创建一张日期和天气卡片，显示当前日期、星期和今日天气信息（温度、天气现象）。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在桌面上创建一张日期和天气卡片，显示当前日期、星期和今日天气信息（温度、天气现象）。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    },
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "东胜区",
+        "forecastDays": 1,
+        "prefectureName": "鄂尔多斯市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition"
+      ]
+    }
+  ],
+  "title": "日期天气",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "日期与天气速览",
+  "candidateAssetIds": []
+}

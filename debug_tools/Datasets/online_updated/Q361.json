@@ -1,0 +1,97 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张桌面天气卡片，显示当前温度、天气现象、大风预警，以及未来几天的天气预报。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "河间市",
+          "forecastDays": 3,
+          "prefectureName": "沧州市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/alertLevel",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/weekday",
+          "/daily/2/condition",
+          "/daily/2/temperatureRangeText"
+        ]
+      }
+    ],
+    "title": "天气卡片",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "河间实时天气与预报",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030142702650"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "9",
+    "isNew": false,
+    "sessionId": "c4103754-48e3-49ef-9975-d3d1d275ae7c"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张桌面天气卡片，显示当前温度、天气现象、大风预警，以及未来几天的天气预报。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张桌面天气卡片，显示当前温度、天气现象、大风预警，以及未来几天的天气预报。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "河间市",
+        "forecastDays": 3,
+        "prefectureName": "沧州市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/alertLevel",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/weekday",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/weekday",
+        "/daily/2/condition",
+        "/daily/2/temperatureRangeText"
+      ]
+    }
+  ],
+  "title": "天气卡片",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "河间实时天气与预报",
+  "candidateAssetIds": []
+}

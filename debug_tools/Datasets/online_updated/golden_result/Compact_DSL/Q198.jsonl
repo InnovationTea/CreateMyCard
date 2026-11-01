@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"W-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"三年级单位换算"}]
+["body","SingleLineList",{"items":[{"text":"长度","assist":"1厘米=10毫米 1米=100厘米 1千米=1000米"},{"text":"质量","assist":"1千克=1000克 1吨=1000千克"},{"text":"时间","assist":"1时=60分 1日=24时"},{"text":"面积","assist":"1平方米=100平方分米"}]}]
+["/state/ready",true]

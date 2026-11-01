@@ -1,0 +1,115 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成一个异常天气家人关怀提醒卡片，显示当前天气和温度变化，具备天气预警功能，有一个可以直接联系家人王苏东的电话按钮，电话号码15251852906",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 3
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/alertLevel",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/temperatureRangeText"
+        ]
+      }
+    ],
+    "title": "天气关怀",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "15251852906"
+            }
+          }
+        }
+      }
+    ],
+    "description": "异常天气家人关怀",
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome",
+      "asset.ic_warning_monochrome",
+      "asset.phone_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.372",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029025717640"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "8",
+    "isNew": false,
+    "sessionId": "8db97a8d-7925-4416-b3ff-62721f7db045"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成一个异常天气家人关怀提醒卡片，显示当前天气和温度变化，具备天气预警功能，有一个可以直接联系家人王苏东的电话按钮，电话号码15251852906",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.115",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成一个异常天气家人关怀提醒卡片，显示当前天气和温度变化，具备天气预警功能，有一个可以直接联系家人王苏东的电话按钮，电话号码15251852906",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "forecastDays": 3
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/alertLevel",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/temperatureRangeText"
+      ]
+    }
+  ],
+  "title": "天气关怀",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "15251852906"
+          }
+        }
+      }
+    }
+  ],
+  "description": "异常天气家人关怀",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome",
+    "asset.ic_warning_monochrome",
+    "asset.phone_fill"
+  ]
+}

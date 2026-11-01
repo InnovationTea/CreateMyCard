@@ -1,0 +1,129 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在桌面上创建一张天气卡片，显示鄂尔多斯市东胜区当前天气信息，包括当前温度、天气现象、空气质量、湿度和未来天气预报。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "东胜区",
+          "forecastDays": 3,
+          "prefectureName": "鄂尔多斯市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/airQuality",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/weekday",
+          "/daily/2/condition",
+          "/daily/2/temperatureRangeText"
+        ]
+      }
+    ],
+    "title": "今日天气",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "天气速览",
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029031153353"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "dca00932-a185-4abf-aa65-d076120520b3"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在桌面上创建一张天气卡片，显示鄂尔多斯市东胜区当前天气信息，包括当前温度、天气现象、空气质量、湿度和未来天气预报。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在桌面上创建一张天气卡片，显示鄂尔多斯市东胜区当前天气信息，包括当前温度、天气现象、空气质量、湿度和未来天气预报。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "东胜区",
+        "forecastDays": 3,
+        "prefectureName": "鄂尔多斯市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/airQuality",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/weekday",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/weekday",
+        "/daily/2/condition",
+        "/daily/2/temperatureRangeText"
+      ]
+    }
+  ],
+  "title": "今日天气",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "天气速览",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome"
+  ]
+}

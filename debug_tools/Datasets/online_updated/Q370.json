@@ -1,0 +1,103 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "给手机桌面增加天气卡片，显示当前天气和温度。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName",
+          "/location/districtName"
+        ]
+      }
+    ],
+    "title": "今日天气",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "天气速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030193646320"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "a16713f1-5996-4a5d-8080-b1c5f55d1115"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "给手机桌面增加天气卡片，显示当前天气和温度。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "给手机桌面增加天气卡片，显示当前天气和温度。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName",
+        "/location/districtName"
+      ]
+    }
+  ],
+  "title": "今日天气",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "天气速览",
+  "candidateAssetIds": []
+}

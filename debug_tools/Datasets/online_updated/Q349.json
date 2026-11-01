@@ -1,0 +1,137 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成一个在异常天气时能对家人进行关怀提醒的卡片，卡片上显示天气和温度的变化，具备天气预警功能，有一个可以直接联系家人的电话按钮，电话号码是15251852906",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 3
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/alertLevel",
+          "/daily/0/date",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/date",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/date",
+          "/daily/2/weekday",
+          "/daily/2/condition",
+          "/daily/2/temperatureRangeText",
+          "/location/prefectureName",
+          "/location/districtName"
+        ]
+      }
+    ],
+    "title": "异常天气关怀",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "phoneNumber": "15251852906"
+            }
+          }
+        }
+      }
+    ],
+    "description": "异常天气关怀提醒",
+    "candidateAssetIds": [
+      "asset.ic_weatherWarning",
+      "asset.ic_call_bule",
+      "asset.ic_weather_monochrome"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.372",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030094656833"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "9",
+    "isNew": false,
+    "sessionId": "d8a43ca7-dac8-4ad8-88f0-5ab8c11e575a"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成一个在异常天气时能对家人进行关怀提醒的卡片，卡片上显示天气和温度的变化，具备天气预警功能，有一个可以直接联系家人的电话按钮，电话号码是15251852906",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.120",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成一个在异常天气时能对家人进行关怀提醒的卡片，卡片上显示天气和温度的变化，具备天气预警功能，有一个可以直接联系家人的电话按钮，电话号码是15251852906",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "forecastDays": 3
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/alertLevel",
+        "/daily/0/date",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/date",
+        "/daily/1/weekday",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/date",
+        "/daily/2/weekday",
+        "/daily/2/condition",
+        "/daily/2/temperatureRangeText",
+        "/location/prefectureName",
+        "/location/districtName"
+      ]
+    }
+  ],
+  "title": "异常天气关怀",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "phoneNumber": "15251852906"
+          }
+        }
+      }
+    }
+  ],
+  "description": "异常天气关怀提醒",
+  "candidateAssetIds": [
+    "asset.ic_weatherWarning",
+    "asset.ic_call_bule",
+    "asset.ic_weather_monochrome"
+  ]
+}

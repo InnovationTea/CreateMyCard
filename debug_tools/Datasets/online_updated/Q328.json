@@ -1,0 +1,89 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在日历中添加黄历信息，显示农历日期。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {},
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart"
+        ]
+      },
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "日历黄历",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "农历日期速览",
+    "candidateAssetIds": [
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029224452654"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "df8d946e-bcf3-4a57-a2e1-9bf1bc5789cb"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在日历中添加黄历信息，显示农历日期。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在日历中添加黄历信息，显示农历日期。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {},
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart"
+      ]
+    },
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "日历黄历",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "农历日期速览",
+  "candidateAssetIds": [
+    "asset.calendar_fill"
+  ]
+}

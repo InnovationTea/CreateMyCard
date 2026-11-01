@@ -1,0 +1,53 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在桌面生成取件码卡片，展示取件码34-4-2009，取件地点新天地华庭3座2单元妈妈驿站，明天下午6:10提醒拿快递。本轮卡片静态内容（用作展示的外部事实）：取件码34-4-2009，取件地点新天地华庭3座2单元妈妈驿站，提醒时间明天下午6:10",
+    "candidateDataBindings": [],
+    "title": "取件提醒",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "取件码 34-4-2009",
+    "candidateAssetIds": [
+      "asset.bell_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030114608001"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "fdb87a56-eb64-4c38-95c6-e8309cff3d66"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在桌面生成取件码卡片，展示取件码34-4-2009，取件地点新天地华庭3座2单元妈妈驿站，明天下午6:10提醒拿快递。本轮卡片静态内容（用作展示的外部事实）：取件码34-4-2009，取件地点新天地华庭3座2单元妈妈驿站，提醒时间明天下午6:10",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在桌面生成取件码卡片，展示取件码34-4-2009，取件地点新天地华庭3座2单元妈妈驿站，明天下午6:10提醒拿快递。本轮卡片静态内容（用作展示的外部事实）：取件码34-4-2009，取件地点新天地华庭3座2单元妈妈驿站，提醒时间明天下午6:10",
+  "candidateDataBindings": [],
+  "title": "取件提醒",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "取件码 34-4-2009",
+  "candidateAssetIds": [
+    "asset.bell_fill"
+  ]
+}

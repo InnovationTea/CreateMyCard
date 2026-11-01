@@ -1,0 +1,137 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "将天气时钟添加到桌面，显示当前天气和当前时间。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ]
+      },
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek"
+        ]
+      }
+    ],
+    "title": "天气时钟",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}}"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Clock",
+            "bundleName": "com.huawei.hmos.clock",
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "description": "天气与时间速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031092030904"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "34aede96-4172-4e1f-ae18-0169b073a590"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "将天气时钟添加到桌面，显示当前天气和当前时间。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "将天气时钟添加到桌面，显示当前天气和当前时间。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition"
+      ]
+    },
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek"
+      ]
+    }
+  ],
+  "title": "天气时钟",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}}"
+        }
+      }
+    },
+    {
+      "capabilityId": "event.open.clock.alarm",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Clock",
+          "bundleName": "com.huawei.hmos.clock",
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "uri": ""
+        }
+      }
+    }
+  ],
+  "description": "天气与时间速览",
+  "candidateAssetIds": []
+}

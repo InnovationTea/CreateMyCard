@@ -1,0 +1,145 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张聚合卡片，显示当前天气、手机电量、今日运动健康数据和耗电应用排行。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batterySOC"
+        ]
+      },
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {},
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/dailySteps",
+          "/dailyTotalCaloriesText",
+          "/exerciseTypeName",
+          "/exerciseDurationText"
+        ]
+      },
+      {
+        "capabilityId": "GetAppPowerConsumptionRanking",
+        "arguments": {
+          "limit": 3
+        },
+        "writeResultTo": "/data/powerRanking",
+        "candidateOutputFields": [
+          "/rankingList/0/appName",
+          "/rankingList/0/powerText",
+          "/rankingList/1/appName",
+          "/rankingList/1/powerText",
+          "/rankingList/2/appName",
+          "/rankingList/2/powerText"
+        ]
+      }
+    ],
+    "title": "桌面聚合卡片",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "聚合天气、电量、健康和耗电排行的桌面卡片",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030100829720"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "7",
+    "isNew": false,
+    "sessionId": "1564aecc-77ba-4e9d-aebd-a9928abc9f93"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张聚合卡片，显示当前天气、手机电量、今日运动健康数据和耗电应用排行。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张聚合卡片，显示当前天气、手机电量、今日运动健康数据和耗电应用排行。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batterySOC"
+      ]
+    },
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {},
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ]
+    },
+    {
+      "capabilityId": "GetAppPowerConsumptionRanking",
+      "arguments": {
+        "limit": 3
+      },
+      "writeResultTo": "/data/powerRanking",
+      "candidateOutputFields": [
+        "/rankingList/0/appName",
+        "/rankingList/0/powerText",
+        "/rankingList/1/appName",
+        "/rankingList/1/powerText",
+        "/rankingList/2/appName",
+        "/rankingList/2/powerText"
+      ]
+    }
+  ],
+  "title": "桌面聚合卡片",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "聚合天气、电量、健康和耗电排行的桌面卡片",
+  "candidateAssetIds": []
+}

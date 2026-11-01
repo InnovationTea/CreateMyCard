@@ -1,0 +1,111 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "使用桌面卡片生成技能创建一个卡片，卡片上要有下一个日程的开始时间和结束时间，以及提前15分钟之后开启，同时可以点击按钮进入专注模式。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {},
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/startDate",
+          "/events/0/countdownDays",
+          "/events/0/remindTime"
+        ]
+      }
+    ],
+    "title": "日程卡片",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.dnd",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "intelligent_scene_entry"
+          }
+        }
+      }
+    ],
+    "description": "下一个日程时间与专注模式入口",
+    "candidateAssetIds": [
+      "asset.icon_focus",
+      "asset.calendar_fill",
+      "asset.icon_schedule"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030080600584"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "8",
+    "isNew": false,
+    "sessionId": "cef3f082-29ac-41d7-aa11-5c51f8a388ae"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "使用桌面卡片生成技能创建一个卡片，卡片上要有下一个日程的开始时间和结束时间，以及提前15分钟之后开启，同时可以点击按钮进入专注模式。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "使用桌面卡片生成技能创建一个卡片，卡片上要有下一个日程的开始时间和结束时间，以及提前15分钟之后开启，同时可以点击按钮进入专注模式。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {},
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/startDate",
+        "/events/0/countdownDays",
+        "/events/0/remindTime"
+      ]
+    }
+  ],
+  "title": "日程卡片",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.dnd",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "bundleName": "com.huawei.hmos.settings",
+          "intentName": "Settings",
+          "uri": "intelligent_scene_entry"
+        }
+      }
+    }
+  ],
+  "description": "下一个日程时间与专注模式入口",
+  "candidateAssetIds": [
+    "asset.icon_focus",
+    "asset.calendar_fill",
+    "asset.icon_schedule"
+  ]
+}

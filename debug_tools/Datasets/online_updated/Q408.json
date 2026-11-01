@@ -1,0 +1,101 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "做一张时间卡片，显示当前时间、日期、星期和农历。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "时间卡片",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.clock.alarm",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "description": "实时时间日期速览",
+    "candidateAssetIds": [
+      "asset.emoji_time"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031235755311"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "8281ed71-359a-400b-bb17-2f4f518c14c1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "做一张时间卡片，显示当前时间、日期、星期和农历。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "做一张时间卡片，显示当前时间、日期、星期和农历。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "时间卡片",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.clock.alarm",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "bundleName": "com.huawei.hmos.clock",
+          "intentName": "Clock",
+          "uri": ""
+        }
+      }
+    }
+  ],
+  "description": "实时时间日期速览",
+  "candidateAssetIds": [
+    "asset.emoji_time"
+  ]
+}

@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-content-dual-action"},["content","weather_action","battery_action"]]
+["content","EmphasisText",{"mainText":{"path":"/data/weather/current/temperatureText"},"secondaryText":{"path":"/data/phoneBattery/batterySOCText"},"fontSize":18}]
+["weather_action","CardButton",{"label":"天气详情","icon":"resources/base/media/ic_weather_monochrome.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","bundleName":"","abilityName":"","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]}]
+["battery_action","CardButton",{"label":"电池设置","icon":"resources/base/media/battery_leaf_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/phoneBattery/batterySOCText","68%"]
+["/data/weather/location/cityCode","60814"]

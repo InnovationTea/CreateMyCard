@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张结婚纪念日倒数日卡片，纪念日为2023年10月29日，展示距离该日期的天数。本轮卡片静态内容（用作展示的外部事实）：结婚纪念日为2023年10月29日。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2023-10-29"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "结婚纪念日",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "我们的结婚纪念日",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029100626204"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "9dbe98f3-3137-45b1-9d81-98a2df58d2a6"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张结婚纪念日倒数日卡片，纪念日为2023年10月29日，展示距离该日期的天数。本轮卡片静态内容（用作展示的外部事实）：结婚纪念日为2023年10月29日。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张结婚纪念日倒数日卡片，纪念日为2023年10月29日，展示距离该日期的天数。本轮卡片静态内容（用作展示的外部事实）：结婚纪念日为2023年10月29日。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2023-10-29"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "结婚纪念日",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "我们的结婚纪念日",
+  "candidateAssetIds": []
+}

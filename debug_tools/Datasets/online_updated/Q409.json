@@ -1,0 +1,187 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "用户想要在桌面上设置一个天气和日历堆叠在一起的卡片，展示当前天气信息和近期日程安排。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "相城区",
+          "forecastDays": 3,
+          "prefectureName": "苏州市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/location/prefectureName",
+          "/location/districtName",
+          "/current/temperatureText",
+          "/current/condition",
+          "/daily/0/weekday",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/weekday",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/weekday",
+          "/daily/2/temperatureRangeText"
+        ]
+      },
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/countdownDays",
+          "/events/1/title",
+          "/events/1/startDate",
+          "/events/1/dtStart",
+          "/events/1/countdownDays"
+        ]
+      }
+    ],
+    "title": "天气日历",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "description": "天气与日历堆叠卡片",
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome",
+      "asset.calendar_fill",
+      "asset.emoji_calendar2"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101003522301"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "876951c5-5c8d-44e8-9912-e198590a0ae6"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "用户想要在桌面上设置一个天气和日历堆叠在一起的卡片，展示当前天气信息和近期日程安排。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "用户想要在桌面上设置一个天气和日历堆叠在一起的卡片，展示当前天气信息和近期日程安排。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "相城区",
+        "forecastDays": 3,
+        "prefectureName": "苏州市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/daily/0/weekday",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/weekday",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/weekday",
+        "/daily/2/temperatureRangeText"
+      ]
+    },
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/countdownDays",
+        "/events/1/title",
+        "/events/1/startDate",
+        "/events/1/dtStart",
+        "/events/1/countdownDays"
+      ]
+    }
+  ],
+  "title": "天气日历",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    },
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "description": "天气与日历堆叠卡片",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome",
+    "asset.calendar_fill",
+    "asset.emoji_calendar2"
+  ]
+}

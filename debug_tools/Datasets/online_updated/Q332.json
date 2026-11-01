@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "帮我把农历添加到日历卡片里，制作一张显示当前日期和农历的日历卡片，展示公历日期、星期和农历日期。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "日历农历",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "日期农历速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030002234808"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "5f0b5af5-42dd-4af7-a6e9-833e6036ae14"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "帮我把农历添加到日历卡片里，制作一张显示当前日期和农历的日历卡片，展示公历日期、星期和农历日期。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "帮我把农历添加到日历卡片里，制作一张显示当前日期和农历的日历卡片，展示公历日期、星期和农历日期。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "日历农历",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "日期农历速览",
+  "candidateAssetIds": []
+}

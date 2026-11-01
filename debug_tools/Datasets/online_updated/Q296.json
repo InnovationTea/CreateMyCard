@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成一个倒计时卡片，倒计时到2029年9月1日，显示距离该日期还有多少天。本轮卡片静态内容（用作展示的外部事实）：倒计时目标日期为2029年9月1日。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2029-09-01"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "距离2029年9月1日还有多少天",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029014156476"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "4feb2286-62a9-4c68-996c-0ef7772bb88d"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成一个倒计时卡片，倒计时到2029年9月1日，显示距离该日期还有多少天。本轮卡片静态内容（用作展示的外部事实）：倒计时目标日期为2029年9月1日。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成一个倒计时卡片，倒计时到2029年9月1日，显示距离该日期还有多少天。本轮卡片静态内容（用作展示的外部事实）：倒计时目标日期为2029年9月1日。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2029-09-01"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "距离2029年9月1日还有多少天",
+  "candidateAssetIds": []
+}
