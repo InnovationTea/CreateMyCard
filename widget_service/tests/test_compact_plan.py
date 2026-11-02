@@ -582,6 +582,8 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     fact_properties = properties["info_required"]["items"]["properties"]
     assert fact_properties["dataId"]["enum"] == list(compact_plan_data_paths(spec))
     assert fact_properties["actionId"]["enum"] == ["event.open.calendar"]
+    assert fact_properties["displayLabel"]["maxLength"] == 12
+    assert {"required": ["dataId", "displayLabel"]} in properties["info_required"]["items"]["oneOf"]
     assert "EventCard" in fact_properties["componentHints"]["items"]["enum"]
     assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
     assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
@@ -595,6 +597,107 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "priority" in properties["info_required"]["items"]["required"]
     assert "composition" not in properties
     assert tool["function"]["parameters"]["required"] == ["info_required"]
+
+
+def test_plan_data_label_must_share_a_visible_information_unit_with_its_readout() -> None:
+    spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "windLevel": {"type": "integer", "sampleValue": 2},
+                    "rainProbabilityPercent": {"type": "integer", "sampleValue": 20},
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "当前风力",
+                "dataId": "/data/weather/windLevel",
+                "displayLabel": "风力",
+            },
+            {
+                "requirement": "今天降雨概率",
+                "dataId": "/data/weather/rainProbabilityPercent",
+                "displayLabel": "降雨概率",
+            },
+        ]
+    }
+    bare_source = "\n".join(
+        [
+            '["root","Column",{},["reading"]]',
+            '["reading","EmphasisText",{"mainText":"{{ ${/data/weather/windLevel} + \'级\' }}",'
+            '"secondaryText":"{{ ${/data/weather/rainProbabilityPercent} + \'%\' }}"}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(bare_source, plan, spec)
+
+    assert len(errors) == 2
+    assert all("not visible with its readout" in error for error in errors)
+    labeled_source = bare_source.replace(
+        "{{ ${/data/weather/windLevel}",
+        "{{ '风力 ' + ${/data/weather/windLevel}",
+    )
+    labeled_source = labeled_source.replace(
+        "{{ ${/data/weather/rainProbabilityPercent}",
+        "{{ '降雨概率 ' + ${/data/weather/rainProbabilityPercent}",
+    )
+    assert compact_plan_coverage_errors(labeled_source, plan, spec) == ()
+
+
+def test_plan_preserves_a_data_display_label_and_rejects_it_for_actions() -> None:
+    payload = json.loads(plan_call())
+    payload["arguments"]["info_required"][0]["displayLabel"] = "会议名称"
+
+    result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), task_spec())
+
+    assert result.plan["info_required"][0]["displayLabel"] == "会议名称"
+    payload["arguments"]["info_required"][2]["displayLabel"] = "日历"
+    with pytest.raises(CompactPlanValidationError, match="only supported for dataId"):
+        parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), task_spec())
+
+
+def test_plan_data_label_cannot_borrow_a_neighboring_list_item() -> None:
+    spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "earphone": {
+                    "batteryLevel": {"type": "integer", "sampleValue": 80},
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "耳机仓电量",
+                "dataId": "/data/earphone/batteryLevel",
+                "displayLabel": "耳机仓电量",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["details","SecondaryBody",{"items":['
+            '{"label":"耳机仓电量","value":"已连接"},'
+            '{"label":"","value":"{{ ${/data/earphone/batteryLevel} + \'%\' }}"}]}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(source, plan, spec)
+
+    assert errors == (
+        "Plan data label is not visible with its readout in DSL: 耳机仓电量 "
+        "(/data/earphone/batteryLevel) requires displayLabel '耳机仓电量' in details "
+        "(SecondaryBody).",
+    )
 
 
 @pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 6), ("2x4", 10)])
@@ -1306,11 +1409,12 @@ def test_two_by_four_action_plan_removes_top_bottom_layout_hint() -> None:
     assert result.plan.get("layoutHints") == ["W-content-side-slots"]
     assert result.warnings[-1] == (
         "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
-        "an Action and this layout has no legal action slot."
+        "an Action and this layout has no legal action slot; action-compatible "
+        "layout hints were supplied."
     )
 
 
-def test_two_by_four_action_plan_does_not_invent_replacement_layout_hint() -> None:
+def test_two_by_four_action_plan_supplies_action_compatible_layout_hints() -> None:
     spec = task_spec()
     spec["size"] = "2x4"
     payload = json.loads(plan_call())
@@ -1320,10 +1424,11 @@ def test_two_by_four_action_plan_does_not_invent_replacement_layout_hint() -> No
 
     result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), spec)
 
-    assert "layoutHints" not in result.plan
+    assert result.plan.get("layoutHints") == ["W-content-side-slots", "W-split-panels"]
     assert result.warnings[-1] == (
         "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
-        "an Action and this layout has no legal action slot."
+        "an Action and this layout has no legal action slot; action-compatible "
+        "layout hints were supplied."
     )
 
 

@@ -296,7 +296,7 @@
     },
     "W-top-bottom": {
       "size": "2x4",
-      "actionCount": {"min": 0, "max": 1},
+      "actionCount": {"min": 0, "max": 0},
       "patterns": [
         {
           "rules": [

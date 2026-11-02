@@ -55,7 +55,9 @@ from services.event_matching import event_handlers_match
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
 _BINDING_PATH = re.compile(r"\$\{(?P<path>/[^}\s]+)\}")
-_FACT_KEYS = frozenset({"requirement", "priority", "dataId", "actionId", "text", "componentHints"})
+_FACT_KEYS = frozenset(
+    {"requirement", "priority", "dataId", "actionId", "text", "displayLabel", "componentHints"}
+)
 _TARGET_KEYS = ("dataId", "actionId", "text")
 _FACT_PRIORITIES = frozenset({"must", "should"})
 _STATIC_DISPLAY_ROLES = ("title", "body", "label", "value", "leading", "trailing", "detail")
@@ -192,7 +194,7 @@ def build_compact_plan_tool(
     asset_ids = list(compact_plan_asset_ids(task_spec))
     target_variants: list[dict[str, Any]] = []
     if data_paths:
-        target_variants.append({"required": ["dataId"]})
+        target_variants.append({"required": ["dataId", "displayLabel"]})
     if action_ids:
         target_variants.append({"required": ["actionId"]})
     if allowed_texts is None or allowed_texts:
@@ -211,6 +213,16 @@ def build_compact_plan_tool(
                 "should 仅用于未明确要求、且省略后不改变主要用途的入选补充。"
                 "不得为容量将明确要求降为 should。所有入选 actionId 必须为 must。"
                 f"当前 {size} 最多可提交 {max_must_facts} 条 must 信息，Action 计入该数量。"
+            ),
+        },
+        "displayLabel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12,
+            "description": (
+                "dataId 的短中文展示标签，例如“风力”“降雨概率”“耳机仓电量”。"
+                "必须和该读数在同一可见组件或同一个列表项中出现；不能只用通用标题代替，"
+                "也不能把标签写进 data 行、事件参数或另一个信息项。actionId 与 text 不填写此字段。"
             ),
         },
         "componentHints": {
@@ -319,6 +331,11 @@ def build_compact_plan_tool(
         "Layout、Region、Group 的名称及 variant 只能逐字使用当前尺寸文档登记的完整值，"
         "不得自行缩写、拼接或增删后缀。选择布局候选前确认全部必要事实与动作都有合法落点。"
     )
+    if size == "2x2":
+        description += (
+            "若提交两个不同的独立动作，正文只能选择至多两条完整非动作信息组；"
+            "超量内容须在本阶段按 priority 取舍，不交给 TableText 或 DSL 修复。"
+        )
     if size == "2x2" and not include_composition:
         description += (
             "单业务唯一天气城市详情或单条日程详情，未明确要求按钮时，由服务端判断整卡点击。"
@@ -1886,6 +1903,12 @@ def parse_compact_plan_call(
         task_spec.get("size"),
     )
     warnings.extend(dual_action_warnings)
+    dual_action_body_errors = _two_by_two_dual_action_body_errors(
+        facts,
+        task_spec.get("size"),
+    )
+    if dual_action_body_errors:
+        raise CompactPlanValidationError(dual_action_body_errors)
     layout_hints, action_layout_warnings = _normalize_two_by_four_action_layouts(
         facts,
         layout_hints,
@@ -2135,6 +2158,19 @@ def compact_plan_context(
             "不能删动作、改为子节点点击或因修复补回按钮。该动作没有按钮图标。"
         )
     facts = plan.get("info_required")
+    wide_action_instruction = ""
+    has_wide_button_action = (
+        isinstance(facts, list)
+        and not whole_card_instruction
+        and any(_requires_action_button(fact) for fact in facts)
+    )
+    if has_wide_button_action:
+        wide_action_instruction = (
+            "本轮2x4包含独立按钮动作：W-top-bottom只允许[标题?, 主体, 明细]，"
+            "没有动作角色，禁止选择它、追加根子节点或定义游离按钮。"
+            "仅从W-content-side-slots、W-split-panels或其它登记的动作兼容布局中，"
+            "为每个动作安排可从root到达的合法按钮槽。"
+        )
     fixed_dual_action = (
         plan.get("layoutHints") == ["S-content-dual-action"]
         and _has_two_distinct_actions(facts)
@@ -2216,6 +2252,7 @@ def compact_plan_context(
             "局部修复保持待修树的合法结构，只处理明确错误。"
             f"{asset_instruction}"
             f"{whole_card_instruction}"
+            f"{wide_action_instruction}"
             f"{pure_action_instruction}"
             "按参考蓝图的父子关系和事实索引落实真实绑定、完整文案与所属动作；"
             "索引从0开始，不能把索引或压力样值写入最终 DSL。标题绑定保留指定标题职责。"
@@ -2254,6 +2291,7 @@ def compact_plan_context(
         "TaskSpec 中对应 actionId 的完整事件候选。最终组件与布局仍按完整合同和容量选择。\n"
         f"{asset_instruction}\n"
         f"{whole_card_instruction}\n"
+        f"{wide_action_instruction}\n"
         "若有 composition，按它的 layout/variant、region.path 与顺序 groups 实现，"
         "factIndexes 引用下面去重后的 info_required，placements 指明每条事实的可见 Prop。"
         "空映射 SingleLineTitle 只是装饰标题的容量预留，不是遗漏事实；"
@@ -2277,6 +2315,8 @@ def compact_plan_context(
         "不得从 sampleValue 提取数字写成静态进度。\n"
         "有路径引用不等于读数能看全。逐项检查标签、值、单位在扣除 padding 和图标后"
         "的实际文字区：使用当前路径所属对象的短名称加完整动态读数，不复制示例的对象标签。"
+        "每个 dataId 的 displayLabel 是冻结的短标签；必须与该读数放在同一可见组件或同一个"
+        "列表项中，不能只由卡片标题、相邻条目、数据行或事件参数间接说明。"
         "耳机数据不能标为手机，左右读数必须区分；长说明不能挤掉数值。"
         "平均、最高、最低各有独立统计含义，不能拼成无标签区间；动作短名保留必要目标限定。"
         "第二行只放另一项必要事实，不重复主行标签；取消可选图标仍放不下时改用基础组合。"
@@ -2330,6 +2370,7 @@ class _CompactVisibleState:
     item_literals: tuple[str, ...]
     handlers: tuple[dict[str, Any], ...]
     value_unit_literals: tuple[str, ...] = ()
+    component_visible_values: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -2364,6 +2405,7 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
     item_literals: list[str] = []
     value_unit_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
+    component_visible_values: dict[str, Any] = {}
     reachable_ids = _reachable_component_ids(tuple(components))
     for component in components:
         from services.generation_content_policy import current_content_policy
@@ -2389,6 +2431,7 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         )
         if has_separate_progress_readout:
             visible_props.pop("value", None)
+        component_visible_values[component.component_id] = visible_props
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
         _collect_structured_item_literals(
             component,
@@ -2415,7 +2458,49 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         item_literals=tuple(_normalize_text(value) for value in item_literals),
         handlers=tuple(handlers),
         value_unit_literals=tuple(_normalize_text(value) for value in value_unit_literals),
+        component_visible_values=component_visible_values,
     )
+
+
+def _display_label_is_visible_with_fact(
+    display_label: str,
+    occurrence: _CompactVisiblePathOccurrence,
+    component_values: dict[str, Any] | None,
+) -> bool:
+    """确认动态读数和 Plan 短标签位于同一可见信息单元。"""
+    if not component_values:
+        return False
+    component_value = component_values.get(occurrence.component_id)
+    if not isinstance(component_value, dict):
+        return False
+    value_scope = _fact_visible_value_scope(component_value, occurrence.property_path)
+    visible_text = _visible_text_fragment(value_scope)
+    return _normalize_text(display_label) in _normalize_text(visible_text)
+
+
+def _fact_visible_value_scope(component_value: dict[str, Any], property_path: str) -> Any:
+    """列表项内的绑定只能使用同一项的标签，不能借用相邻条目的文本。"""
+    match = re.match(r"items\[(\d+)](?:\.|$)", property_path)
+    if match is None:
+        return component_value
+    items = component_value.get("items")
+    if not isinstance(items, list):
+        return component_value
+    item_index = int(match.group(1))
+    if not 0 <= item_index < len(items):
+        return component_value
+    return items[item_index]
+
+
+def _visible_text_fragment(value: Any) -> str:
+    """提取可见属性中的静态文字片段，保留混合表达式的标签与单位。"""
+    if isinstance(value, str):
+        return _BINDING_PATH.sub("", value)
+    if isinstance(value, dict):
+        return "".join(_visible_text_fragment(item) for item in value.values())
+    if isinstance(value, list):
+        return "".join(_visible_text_fragment(item) for item in value)
+    return ""
 
 
 def compact_plan_overflow_action_ids(
@@ -2583,6 +2668,22 @@ def _compact_fact_coverage_result(
                 warnings=(),
                 duplicate_facts=(duplicate_fact,),
             )
+        display_label = fact.get("displayLabel")
+        if isinstance(display_label, str) and display_label.strip():
+            occurrence = occurrences[0]
+            if not _display_label_is_visible_with_fact(
+                display_label,
+                occurrence,
+                state.component_visible_values,
+            ):
+                return CompactPlanCoverageResult(
+                    errors=(
+                        "Plan data label is not visible with its readout in DSL: "
+                        f"{label} ({data_id}) requires displayLabel {display_label!r} in "
+                        f"{occurrence.component_id} ({occurrence.component_type}).",
+                    ),
+                    warnings=(),
+                )
     action_id = fact.get("actionId")
     if isinstance(action_id, str):
         expected = event_handlers.get(action_id)
@@ -3707,6 +3808,18 @@ def _validate_facts(
             "priority": priority,
             target: target_value,
         }
+        display_label = raw_fact.get("displayLabel")
+        if display_label is not None:
+            if target != "dataId":
+                errors.append(f"{location}.displayLabel is only supported for dataId facts.")
+                continue
+            if not isinstance(display_label, str) or not display_label.strip():
+                errors.append(f"{location}.displayLabel must be non-empty text.")
+                continue
+            if len(display_label.strip()) > 12:
+                errors.append(f"{location}.displayLabel must contain at most 12 characters.")
+                continue
+            fact["displayLabel"] = display_label.strip()
         hints = raw_fact.get("componentHints")
         if hints is not None:
             if not isinstance(hints, list):
@@ -3775,6 +3888,16 @@ def _validate_facts(
             previous["requirement"] += "; " + fact["requirement"]
         if fact["priority"] == "must":
             previous["priority"] = "must"
+        display_label = fact.get("displayLabel")
+        previous_label = previous.get("displayLabel")
+        if display_label and previous_label and display_label != previous_label:
+            errors.append(
+                f"{location}.displayLabel conflicts with the existing dataId label: "
+                f"{previous_label!r} and {display_label!r}."
+            )
+            continue
+        if display_label and not previous_label:
+            previous["displayLabel"] = display_label
         merged_hints = list(
             dict.fromkeys([*previous.get("componentHints", []), *fact.get("componentHints", [])])
         )
@@ -3846,9 +3969,12 @@ def _normalize_two_by_four_action_layouts(
         return layout_hints, []
 
     accepted = [layout for layout in layout_hints if layout != "W-top-bottom"]
+    if not accepted:
+        accepted = ["W-content-side-slots", "W-split-panels"]
     warning = (
         "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
-        "an Action and this layout has no legal action slot."
+        "an Action and this layout has no legal action slot; action-compatible "
+        "layout hints were supplied."
     )
     return accepted, [warning]
 
@@ -3891,6 +4017,23 @@ def _is_two_by_two_dual_action_plan(
     if size != "2x2":
         return False
     return _has_two_distinct_actions(facts)
+
+
+def _two_by_two_dual_action_body_errors(
+    facts: list[dict[str, Any]],
+    size: Any,
+) -> list[str]:
+    """双动作小卡的正文仅能规划两条完整信息组。"""
+    if not _is_two_by_two_dual_action_plan(facts, size):
+        return []
+    body_fact_count = sum(1 for fact in facts if not _requires_action_button(fact))
+    if body_fact_count <= 2:
+        return []
+    return [
+        "2x2 双动作布局的正文最多两条完整信息组；"
+        "请在 Plan 阶段按 priority 重新选择至多两条非动作事实，"
+        "保留两个动作，不要把超量事实交给 TableText 或 DSL 修复。"
+    ]
 
 
 def _has_two_distinct_actions(facts: Any) -> bool:

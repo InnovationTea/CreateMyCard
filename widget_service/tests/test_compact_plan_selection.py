@@ -1,4 +1,4 @@
-"""Plan 展示取舍边界与双动作软候选回归；不调用模型或裁剪用户事实。"""
+"""Plan 展示取舍边界与双动作正文预算回归。"""
 
 import copy
 import json
@@ -7,6 +7,7 @@ import pytest
 
 from models.generation import CompactDslRecoveryFact
 from services.compact_plan import (
+    CompactPlanValidationError,
     build_compact_plan_tool,
     build_compact_recovery_plan,
     compact_plan_context,
@@ -203,9 +204,9 @@ def test_capacity_recovery_plan_rejects_reintroduced_or_missing_facts() -> None:
     assert any("不得重新加入" in error for error in errors)
 
 
-@pytest.mark.parametrize("content_count", [0, 1, 2, 3, 5])
+@pytest.mark.parametrize("content_count", [0, 1, 2])
 @pytest.mark.parametrize("include_hints", [False, True])
-def test_dual_actions_never_select_content_by_fact_count(
+def test_dual_actions_accept_at_most_two_body_facts(
     content_count: int, include_hints: bool,
 ) -> None:
     task = _selection_task()
@@ -225,6 +226,19 @@ def test_dual_actions_never_select_content_by_fact_count(
     context = compact_plan_context(plan)
     assert "不按事实数量强制表格" in context
     assert "保留全部事实、两个动作及其完整参数" in context
+
+
+@pytest.mark.parametrize("content_count", [3, 5])
+@pytest.mark.parametrize("include_hints", [False, True])
+def test_dual_actions_reject_excess_body_facts_at_plan_stage(
+    content_count: int, include_hints: bool,
+) -> None:
+    task = _selection_task()
+    content = _content_facts(content_count, include_hints=include_hints)
+    facts = [*content, _action_fact("action.first"), _action_fact("action.second")]
+
+    with pytest.raises(CompactPlanValidationError, match="正文最多两条完整信息组"):
+        _parse(facts, task, ["S-title-content-action"])
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -259,25 +273,20 @@ def test_unselected_candidates_do_not_become_plan_obligations(size: str) -> None
     assert action_id.get("enum") == ["action.first", "action.second", "action.details"]
 
 
-def test_accepted_optional_content_and_actions_are_not_automatically_deleted() -> None:
+def test_dual_actions_reject_excess_optional_content_at_plan_stage() -> None:
     task = _selection_task()
     content = _content_facts(5)
     content[-1]["priority"] = "should"
     facts = [*content, _action_fact("action.first"), _action_fact("action.second")]
     facts[-1]["priority"] = "should"
-    plan = _parse(facts, task, ["S-content-dual-action"])
-    accepted = plan.get("info_required")
-    assert isinstance(accepted, list)
-    assert accepted[:5] == content
-    assert len(accepted) == 7
-    assert accepted[-1].get("actionId") == "action.second"
-    assert accepted[-1].get("priority") == "must"
+    with pytest.raises(CompactPlanValidationError, match="正文最多两条完整信息组"):
+        _parse(facts, task, ["S-content-dual-action"])
 
 
 @pytest.mark.parametrize("missing_target", ["/data/device/field0", "action.second"])
 def test_first_dsl_still_rejects_missing_requested_content_or_action(missing_target: str) -> None:
     task = _selection_task()
-    facts = [*_content_facts(5), _action_fact("action.first"), _action_fact("action.second")]
+    facts = [*_content_facts(2), _action_fact("action.first"), _action_fact("action.second")]
     plan = _parse(facts, task, ["S-content-dual-action"])
     rows: list[list] = []
     candidates = task.get("eventCandidates")

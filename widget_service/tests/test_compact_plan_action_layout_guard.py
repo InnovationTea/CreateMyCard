@@ -5,7 +5,11 @@ import json
 
 import pytest
 
-from services.compact_plan import compact_plan_context, parse_compact_plan_call
+from services.compact_plan import (
+    CompactPlanValidationError,
+    compact_plan_context,
+    parse_compact_plan_call,
+)
 
 
 def _task(size: str = "2x2") -> dict:
@@ -36,6 +40,15 @@ def _data() -> dict:
         "requirement": "通勤时间",
         "priority": "must",
         "dataId": "/data/duration",
+        "componentHints": ["EmphasisText"],
+    }
+
+
+def _data_at(path: str, requirement: str) -> dict:
+    return {
+        "requirement": requirement,
+        "priority": "must",
+        "dataId": path,
         "componentHints": ["EmphasisText"],
     }
 
@@ -119,3 +132,34 @@ def test_valid_single_action_plan_unchanged(size: str, hints: list[str]) -> None
     result = _parse(facts, hints, size)
     assert result.plan == {"info_required": facts, "layoutHints": hints}
     assert result.warnings == ()
+
+
+def test_wide_action_context_forbids_top_bottom_and_requires_reachable_button() -> None:
+    facts = [_data(), _action("event.company")]
+    result = _parse(facts, ["W-top-bottom"], "2x4")
+
+    context = compact_plan_context(result.plan)
+
+    assert result.plan.get("layoutHints") == ["W-content-side-slots", "W-split-panels"]
+    assert "W-top-bottom只允许[标题?, 主体, 明细]" in context
+    assert "定义游离按钮" in context
+
+
+def test_two_by_two_dual_action_plan_rejects_more_than_two_body_facts() -> None:
+    task = _task()
+    schema = task["dataModelSchema"]["data"]
+    schema["weather"] = {"type": "string", "sampleValue": "多云"}
+    schema["battery"] = {"type": "string", "sampleValue": "68%"}
+    facts = [
+        _data(),
+        _data_at("/data/weather", "天气"),
+        _data_at("/data/battery", "电量"),
+        _action("event.company"),
+        _action("event.home"),
+    ]
+    raw = json.dumps({"name": "submit_card_plan", "arguments": {
+        "info_required": facts, "layoutHints": ["S-content-dual-action"],
+    }}, ensure_ascii=False)
+
+    with pytest.raises(CompactPlanValidationError, match="正文最多两条完整信息组"):
+        parse_compact_plan_call(raw, task)
