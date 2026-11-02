@@ -310,8 +310,7 @@ class _Builder:
                 side_gap = number(spec, "sideGap")
             badge_gap = number(spec, "badgeGap")
             badge_style = self.spec("listBadge")
-            badge_width = text_width(str(index + 1), number(badge_style, "fontSize"))
-            badge_width += number(spec, "badgePadding") * 2
+            badge_width = number(badge_style, "lineHeight")
             main_width = self.width - value_width - side_gap - badge_width - badge_gap
             if main_width <= 0:
                 _fail("TextList.value 占满正文宽度，无法为主副文本保留空间。")

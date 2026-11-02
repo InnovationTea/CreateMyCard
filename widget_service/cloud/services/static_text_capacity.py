@@ -94,7 +94,7 @@ def _validate_contract_fields(payload: dict[str, Any]) -> None:
             "gap", "sideGap", "panelHeight", "panelPadding", "panelRadius", "wideInset",
         ),
         "TextList": ("innerGap", "sideGap", "twoItemGap", "threeItemGap",
-                     "dividerWidth", "dividerAlpha", "badgePadding", "badgeGap", "badgeRadius",
+                     "dividerWidth", "dividerAlpha", "badgeGap", "badgeRadius",
                      "badgeAlpha"),
         "ComparisonGroup": (
             "minimumItems", "maximumItems", "gap", "padding", "innerGap",
