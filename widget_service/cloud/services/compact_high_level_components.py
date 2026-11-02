@@ -923,7 +923,9 @@ def _expand_secondary_body(
                     "layoutWeight": 1,
                 },
             )
-            if uses_predicted_multiline:
+            labeled_multiline = label is not None and max_lines > 1
+            if uses_predicted_multiline or labeled_multiline:
+                # Reserve line capacity in the outer row, not in the text's glyph box.
                 value_row = _without_fixed_height(value_row)
             rows.append(value_row)
             item_row = _visual_row(
