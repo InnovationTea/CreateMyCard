@@ -222,7 +222,8 @@ def build_compact_plan_tool(
             "maxLength": 12,
             "description": (
                 "dataId 的短中文展示标签，例如“风力”“降雨概率”“耳机仓电量”。"
-                "必须和该读数在同一可见组件或同一个列表项中出现；不能只用通用标题代替，"
+                "必须和该读数在同组件、同列表项、Group(label-value)或单读数的直接Row中出现；"
+                "同行独立Text或仅mainText的EmphasisText须完整展示短标签，不能只用通用标题代替，"
                 "也不能把标签写进 data 行、事件参数或另一个信息项。actionId 与 text 不填写此字段。"
             ),
         },
@@ -334,8 +335,8 @@ def build_compact_plan_tool(
     )
     if size == "2x2":
         description += (
-            "若提交两个不同的独立动作，正文只能选择至多两条完整非动作信息组；"
-            "超量内容须在本阶段按 priority 取舍，不交给 TableText 或 DSL 修复。"
+            "若提交两个不同的独立动作，按真实正文槽位组合信息；事实条数不等于显示行数，"
+            "允许同对象字段合法合组，保留两个动作，实际容量仍须通过既有校验与修复。"
         )
     if size == "2x2" and not include_composition:
         description += (
@@ -1904,12 +1905,6 @@ def parse_compact_plan_call(
         task_spec.get("size"),
     )
     warnings.extend(dual_action_warnings)
-    dual_action_body_errors = _two_by_two_dual_action_body_errors(
-        facts,
-        task_spec.get("size"),
-    )
-    if dual_action_body_errors:
-        raise CompactPlanValidationError(dual_action_body_errors)
     layout_hints, action_layout_warnings = _normalize_two_by_four_action_layouts(
         facts,
         layout_hints,
@@ -2326,8 +2321,11 @@ def compact_plan_context(
         "不得从 sampleValue 提取数字写成静态进度。\n"
         "有路径引用不等于读数能看全。逐项检查标签、值、单位在扣除 padding 和图标后"
         "的实际文字区：使用当前路径所属对象的短名称加完整动态读数，不复制示例的对象标签。"
-        "每个 dataId 的 displayLabel 是冻结的短标签；必须与该读数放在同一可见组件或同一个"
-        "列表项中，不能只由卡片标题、相邻条目、数据行或事件参数间接说明。"
+        "每个 dataId 的 displayLabel 是冻结的短标签；必须与该读数放在同一可见组件、同一个"
+        "列表项、Group(label-value)的[标签,读数]两个直接子节点或单读数的直接Row中。"
+        "独立静态Text或仅mainText的EmphasisText"
+        "须完整展示短标签，"
+        "不跨嵌套容器、标题、按钮或其它读数借标签，数据行和事件参数不能替代可见标签。"
         "耳机数据不能标为手机，左右读数必须区分；长说明不能挤掉数值。"
         "平均、最高、最低各有独立统计含义，不能拼成无标签区间；动作短名保留必要目标限定。"
         "第二行只放另一项必要事实，不重复主行标签；取消可选图标仍放不下时改用基础组合。"
@@ -2382,6 +2380,7 @@ class _CompactVisibleState:
     handlers: tuple[dict[str, Any], ...]
     value_unit_literals: tuple[str, ...] = ()
     component_visible_values: dict[str, Any] | None = None
+    grouped_readout_labels: dict[str, tuple[str, ...]] | None = None
 
 
 @dataclass(frozen=True)
@@ -2409,7 +2408,11 @@ class CompactPlanCoverageResult:
     duplicate_actions: tuple[dict[str, Any], ...] = ()
 
 
-def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleState:
+def _compact_visible_state(
+    components: list[ComponentRow],
+    *,
+    label_components: list[ComponentRow] | None = None,
+) -> _CompactVisibleState:
     visible_paths: set[str] = set()
     path_occurrences: list[_CompactVisiblePathOccurrence] = []
     visible_literals: list[str] = []
@@ -2470,13 +2473,90 @@ def _compact_visible_state(components: list[ComponentRow]) -> _CompactVisibleSta
         handlers=tuple(handlers),
         value_unit_literals=tuple(_normalize_text(value) for value in value_unit_literals),
         component_visible_values=component_visible_values,
+        grouped_readout_labels=_grouped_readout_labels(
+            components if label_components is None else label_components,
+            path_occurrences,
+            reachable_ids,
+        ),
     )
+
+
+def _grouped_readout_labels(
+    components: list[ComponentRow],
+    occurrences: list[_CompactVisiblePathOccurrence],
+    reachable_ids: set[str],
+) -> dict[str, tuple[str, ...]]:
+    """识别单读数 Row 和已有 label-value 组合，不跨其它容器借标签。"""
+    by_id = {component.component_id: component for component in components}
+    if len(by_id) != len(components):
+        return {}
+    parent_counts: dict[str, int] = {}
+    for component in components:
+        for child_id in component.children:
+            parent_counts[child_id] = parent_counts.get(child_id, 0) + 1
+    labels: dict[str, tuple[str, ...]] = {}
+    for row in components:
+        if row.component_id not in reachable_ids or not _is_readout_group(row):
+            continue
+        if row.props.get("onClick"):
+            continue
+        children = [by_id.get(child_id) for child_id in row.children]
+        if not all(_is_readout_row_leaf(child, parent_counts) for child in children):
+            continue
+        row_occurrences = [item for item in occurrences if item.component_id in row.children]
+        if len(row_occurrences) != 1:
+            continue
+        readout_id = row_occurrences[0].component_id
+        if row.component_type == "Group" and readout_id != row.children[1]:
+            continue
+        label_texts = []
+        for child in children:
+            if child is None or child.component_id == readout_id:
+                continue
+            text = _static_row_label(child)
+            if text:
+                label_texts.append(_normalize_text(text))
+        labels[readout_id] = tuple(label_texts)
+    return labels
+
+
+def _is_readout_group(component: ComponentRow) -> bool:
+    if component.component_type == "Row":
+        return True
+    return (
+        component.component_type == "Group"
+        and component.props.get("variant") == "label-value"
+        and len(component.children) == 2
+    )
+
+
+def _is_readout_row_leaf(component: ComponentRow | None, parent_counts: dict[str, int]) -> bool:
+    if component is None or component.children or component.props.get("onClick"):
+        return False
+    if parent_counts.get(component.component_id) != 1:
+        return False
+    return component.component_type in {"Text", "EmphasizedData", "EmphasisText"}
+
+
+def _static_row_label(component: ComponentRow) -> str:
+    if component.component_type == "Text":
+        content = component.props.get("content")
+    elif component.component_type == "EmphasisText" and not component.props.get("secondaryText"):
+        content = component.props.get("mainText")
+    else:
+        return ""
+    if not isinstance(content, str):
+        return ""
+    if "{{" in content or "${" in content:
+        return ""
+    return content
 
 
 def _display_label_is_visible_with_fact(
     display_label: str,
     occurrence: _CompactVisiblePathOccurrence,
     component_values: dict[str, Any] | None,
+    row_labels: dict[str, tuple[str, ...]] | None,
 ) -> bool:
     """确认动态读数和 Plan 短标签位于同一可见信息单元。"""
     if not component_values:
@@ -2486,7 +2566,10 @@ def _display_label_is_visible_with_fact(
         return False
     value_scope = _fact_visible_value_scope(component_value, occurrence.property_path)
     visible_text = _visible_text_fragment(value_scope)
-    return _normalize_text(display_label) in _normalize_text(visible_text)
+    normalized_label = _normalize_text(display_label)
+    if normalized_label in _normalize_text(visible_text):
+        return True
+    return normalized_label in (row_labels or {}).get(occurrence.component_id, ())
 
 
 def _fact_visible_value_scope(component_value: dict[str, Any], property_path: str) -> Any:
@@ -2688,6 +2771,7 @@ def _compact_fact_coverage_result(
                 display_label,
                 occurrence,
                 state.component_visible_values,
+                state.grouped_readout_labels,
             ):
                 return CompactPlanCoverageResult(
                     errors=(
@@ -2747,7 +2831,13 @@ def evaluate_compact_plan_coverage(
         return CompactPlanCoverageResult(errors=(), warnings=())
     rows = parse_compact_dsl_rows(compact_dsl)
     components = [row for row in rows if isinstance(row, ComponentRow)]
-    state = _compact_visible_state(components)
+    label_components = None
+    facts = plan.get("info_required")
+    if isinstance(facts, list):
+        if any(isinstance(fact, dict) and fact.get("displayLabel") for fact in facts):
+            source_rows = parse_compact_dsl_rows(compact_dsl, expand_layouts=False)
+            label_components = [row for row in source_rows if isinstance(row, ComponentRow)]
+    state = _compact_visible_state(components, label_components=label_components)
     event_handlers = _event_handlers_by_id(task_spec)
     overflow_action_ids = compact_plan_overflow_action_ids(components, plan, task_spec)
     allowed = set(allowed_omitted_fact_indexes)
@@ -4030,23 +4120,6 @@ def _is_two_by_two_dual_action_plan(
     if size != "2x2":
         return False
     return _has_two_distinct_actions(facts)
-
-
-def _two_by_two_dual_action_body_errors(
-    facts: list[dict[str, Any]],
-    size: Any,
-) -> list[str]:
-    """双动作小卡的正文仅能规划两条完整信息组。"""
-    if not _is_two_by_two_dual_action_plan(facts, size):
-        return []
-    body_fact_count = sum(1 for fact in facts if not _requires_action_button(fact))
-    if body_fact_count <= 2:
-        return []
-    return [
-        "2x2 双动作布局的正文最多两条完整信息组；"
-        "请在 Plan 阶段按 priority 重新选择至多两条非动作事实，"
-        "保留两个动作，不要把超量事实交给 TableText 或 DSL 修复。"
-    ]
 
 
 def _has_two_distinct_actions(facts: Any) -> bool:

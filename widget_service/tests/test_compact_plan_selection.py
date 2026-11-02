@@ -6,8 +6,8 @@ import json
 import pytest
 
 from models.generation import CompactDslRecoveryFact
+from services.card_validation import CompactDslValidationError, validate_compact_dsl
 from services.compact_plan import (
-    CompactPlanValidationError,
     build_compact_plan_tool,
     build_compact_recovery_plan,
     compact_plan_context,
@@ -206,7 +206,7 @@ def test_capacity_recovery_plan_rejects_reintroduced_or_missing_facts() -> None:
 
 @pytest.mark.parametrize("content_count", [0, 1, 2])
 @pytest.mark.parametrize("include_hints", [False, True])
-def test_dual_actions_accept_at_most_two_body_facts(
+def test_dual_actions_preserve_existing_small_body_plans(
     content_count: int, include_hints: bool,
 ) -> None:
     task = _selection_task()
@@ -230,15 +230,19 @@ def test_dual_actions_accept_at_most_two_body_facts(
 
 @pytest.mark.parametrize("content_count", [3, 5])
 @pytest.mark.parametrize("include_hints", [False, True])
-def test_dual_actions_reject_excess_body_facts_at_plan_stage(
+def test_dual_actions_preserve_groupable_body_facts_at_plan_stage(
     content_count: int, include_hints: bool,
 ) -> None:
     task = _selection_task()
     content = _content_facts(content_count, include_hints=include_hints)
     facts = [*content, _action_fact("action.first"), _action_fact("action.second")]
 
-    with pytest.raises(CompactPlanValidationError, match="正文最多两条完整信息组"):
-        _parse(facts, task, ["S-title-content-action"])
+    plan = _parse(facts, task, ["S-title-content-action"])
+    accepted = plan.get("info_required")
+    assert isinstance(accepted, list)
+    assert accepted[:content_count] == content
+    assert len(accepted) == content_count + 2
+    assert plan.get("layoutHints") == ["S-content-dual-action"]
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
@@ -273,14 +277,53 @@ def test_unselected_candidates_do_not_become_plan_obligations(size: str) -> None
     assert action_id.get("enum") == ["action.first", "action.second", "action.details"]
 
 
-def test_dual_actions_reject_excess_optional_content_at_plan_stage() -> None:
+def test_dual_actions_do_not_automatically_drop_optional_content_at_plan_stage() -> None:
     task = _selection_task()
     content = _content_facts(5)
     content[-1]["priority"] = "should"
     facts = [*content, _action_fact("action.first"), _action_fact("action.second")]
     facts[-1]["priority"] = "should"
-    with pytest.raises(CompactPlanValidationError, match="正文最多两条完整信息组"):
-        _parse(facts, task, ["S-content-dual-action"])
+    plan = _parse(facts, task, ["S-content-dual-action"])
+    accepted = plan.get("info_required")
+    assert isinstance(accepted, list)
+    assert accepted[:5] == content
+    assert len(accepted) == 7
+
+
+@pytest.mark.parametrize("fits", [True, False])
+def test_dual_action_multiple_facts_still_require_actual_capacity(fits: bool) -> None:
+    task = _selection_task()
+    samples = [str(index) if fits else "状态" * 30 for index in range(3)]
+    task["dataModelSchema"] = {"data": {"device": {
+        f"field{index}": {"type": "string", "sampleValue": samples[index]}
+        for index in range(3)
+    }}}
+    facts = [*_content_facts(3), _action_fact("action.first"), _action_fact("action.second")]
+    plan = _parse(facts, task, ["S-content-dual-action"])
+    values = [
+        {"value": "{{ ${/data/device/field0} + '/' + ${/data/device/field1} }}"},
+        {"value": {"path": "/data/device/field2"}},
+    ]
+    rows = [
+        ["root", "Layout", {"layout": "S-content-dual-action"}, ["body", "first", "second"]],
+        ["body", "SecondaryBody", {"items": values, "fontSize": 14, "columns": 1}],
+        ["first", "CardButton", {"label": "操作一", "onClick": [
+            {"call": "clickToDeeplink", "args": {"uri": "app://one"}},
+        ]}],
+        ["second", "CardButton", {"label": "操作二", "onClick": [
+            {"call": "clickToDeeplink", "args": {"uri": "app://two"}},
+        ]}],
+    ]
+    for index in range(3):
+        rows.append([f"/data/device/field{index}", samples[index]])
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    assert compact_plan_coverage_errors(source, plan, task) == ()
+    card = {"suggestSize": "2x2", "dataBindings": []}
+    if fits:
+        validate_compact_dsl(source, task_spec=task, card_spec=card, compact_plan=plan)
+    else:
+        with pytest.raises(CompactDslValidationError, match="text width overflow"):
+            validate_compact_dsl(source, task_spec=task, card_spec=card, compact_plan=plan)
 
 
 @pytest.mark.parametrize("missing_target", ["/data/device/field0", "action.second"])

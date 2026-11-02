@@ -672,6 +672,84 @@ def test_plan_display_label_cannot_be_satisfied_by_an_invisible_binding_path() -
     assert compact_plan_coverage_errors(labeled, plan, spec) == ()
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("case", [
+    "same_row", "reverse_order", "high_level_label", "other_row", "title", "button", "two_readouts",
+    "nested", "list_item", "dynamic_label", "unreachable", "shared_child", "partial_label",
+    "label_value", "reversed_label_value", "hero_support",
+])
+def test_plan_display_label_respects_unambiguous_row_boundary(size: str, case: str) -> None:
+    path = "/data/wind"
+    task = {
+        "size": size,
+        "dataModelSchema": {"data": {"wind": {"type": "integer", "sampleValue": 2}}},
+        "eventCandidates": [],
+    }
+    plan = {"info_required": [{
+        "requirement": "当前风力", "dataId": path, "displayLabel": "风力",
+    }]}
+    rows = [
+        ["root", "Column", {}, ["pair"]],
+        ["pair", "Row", {}, ["label", "reading"]],
+        ["label", "Text", {"content": "风力", "fontSize": 12}],
+        ["reading", "EmphasizedData", {"value": {"path": path}, "unit": "级"}],
+    ]
+    if case == "reverse_order":
+        rows[1][3].reverse()
+    elif case == "high_level_label":
+        rows[2] = ["label", "EmphasisText", {"mainText": "风力", "fontSize": 18}]
+    elif case == "other_row":
+        rows[0][3].append("other")
+        rows[1][3].remove("label")
+        rows.append(["other", "Row", {}, ["label"]])
+    elif case == "title":
+        rows[2] = ["label", "SingleLineTitle", {"title": "风力"}]
+    elif case == "button":
+        rows[2][2]["onClick"] = [{"call": "example", "args": {}}]
+    elif case == "two_readouts":
+        rows[1][3].append("other")
+        rows.append(["other", "Text", {"content": {"path": "/data/temperature"}}])
+    elif case == "nested":
+        rows[1][3][0] = "wrapper"
+        rows.append(["wrapper", "Column", {}, ["label"]])
+    elif case == "list_item":
+        rows[3] = ["reading", "SecondaryBody", {"items": [{"value": {"path": path}}]}]
+    elif case == "dynamic_label":
+        rows[2][2]["content"] = "{{ '风力' }}"
+    elif case == "unreachable":
+        rows[0][3] = ["reading"]
+    elif case == "shared_child":
+        rows[0][3].append("other")
+        rows.append(["other", "Row", {}, ["label"]])
+    elif case == "partial_label":
+        rows[2][2]["content"] = "风力预警"
+    elif case in {"label_value", "reversed_label_value", "hero_support"}:
+        variant = "hero-support" if case == "hero_support" else "label-value"
+        rows[1] = ["pair", "Group", {"variant": variant}, ["label", "reading"]]
+        rows[2] = ["label", "EmphasisText", {"mainText": "风力", "fontSize": 18}]
+        if size == "2x2":
+            rows[0] = ["root", "Layout", {"layout": "S-title-content"}, ["title", "pair"]]
+            rows.append(["title", "SingleLineTitle", {"title": "天气"}])
+        else:
+            rows[0] = ["root", "Layout", {"layout": "W-top-bottom"}, ["pair", "details"]]
+            rows.append(["details", "TextBlock", {"items": [{"value": "今日"}]}])
+        if case == "reversed_label_value":
+            rows[1][3].reverse()
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    original_rows = json.loads(json.dumps(rows))
+    if case == "unreachable":
+        with pytest.raises(CompactDslConversionError, match="Unreachable"):
+            compact_plan_coverage_errors(source, plan, task)
+        return
+    errors = compact_plan_coverage_errors(source, plan, task)
+    if case in {"same_row", "reverse_order", "high_level_label", "label_value"}:
+        assert errors == ()
+    else:
+        assert len(errors) == 1
+        assert "not visible with its readout" in errors[0]
+    assert rows == original_rows
+
+
 def test_plan_preserves_a_data_display_label_and_rejects_it_for_actions() -> None:
     payload = json.loads(plan_call())
     payload["arguments"]["info_required"][0]["displayLabel"] = "会议名称"

@@ -6,7 +6,6 @@ import json
 import pytest
 
 from services.compact_plan import (
-    CompactPlanValidationError,
     compact_plan_context,
     parse_compact_plan_call,
 )
@@ -156,7 +155,7 @@ def test_small_action_context_does_not_request_wide_layouts(facts) -> None:
     assert "仅从W-content-side-slots、W-split-panels" not in context
 
 
-def test_two_by_two_dual_action_plan_rejects_more_than_two_body_facts() -> None:
+def test_two_by_two_dual_action_plan_preserves_more_than_two_body_facts() -> None:
     task = _task()
     schema = task["dataModelSchema"]["data"]
     schema["weather"] = {"type": "string", "sampleValue": "多云"}
@@ -172,5 +171,9 @@ def test_two_by_two_dual_action_plan_rejects_more_than_two_body_facts() -> None:
         "info_required": facts, "layoutHints": ["S-content-dual-action"],
     }}, ensure_ascii=False)
 
-    with pytest.raises(CompactPlanValidationError, match="正文最多两条完整信息组"):
-        parse_compact_plan_call(raw, task)
+    result = parse_compact_plan_call(raw, task)
+    accepted = result.plan.get("info_required")
+    assert isinstance(accepted, list)
+    assert accepted[:3] == facts[:3]
+    assert len(accepted) == 5
+    assert result.plan.get("layoutHints") == ["S-content-dual-action"]
