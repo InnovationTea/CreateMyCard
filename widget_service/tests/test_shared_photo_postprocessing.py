@@ -13,7 +13,9 @@ from services import post_layout_theme_registry as registry
 from services.protocol_registry import A2UIProtocolRegistry
 from services.template_generation.engine.cardplan.compiler import (
     HybridCompilation,
+    _expand_health_metric_generic_template,
     _lower_action_template_tree,
+    _strip_advanced_component_markers,
     compile_ux_layout_card,
 )
 from services.template_generation.engine.cardplan.models import (
@@ -41,6 +43,90 @@ from test_holiday_weather_panel_photos import panels
 from test_photo_asset_delivery import artifact
 from test_uniform_photo_eligibility import PATHS, evidence, sample
 from test_wide_photo_focus import focus_sample
+
+
+def generic_metric_source(dual, size):
+    task = TaskSpec(userQuery="查看运动数据", size=size, dataModelSchema={
+        "data": {"healthSport": {
+            "dailySteps": {"type": "integer", "sampleValue": 6200},
+            "exerciseHeartRateAvg": {"type": "integer", "sampleValue": 118},
+        }},
+    })
+    params = {"title": "步数", "valuePath": "/dailySteps", "sourceIcon": "run.svg"}
+    wire_id = "GenericMetricOverviewCompact@1"
+    if dual:
+        wire_id = "GenericMetricOverviewDualCompact@1"
+        params = {"firstTitle": "步数", "firstValuePath": "/dailySteps",
+                  "secondTitle": "平均心率", "secondValuePath": "/exerciseHeartRateAvg"}
+    colors = get_cardplan_registry(enable_fusion_ball=True).theme_reference_values(
+        "fusion-weather-blue",
+    )
+    metric = _expand_health_metric_generic_template(
+        wire_id, params, task_spec=task,
+        provider_binding_roots={"GetHealthAndSportSummary": ("/data/healthSport",)},
+        theme_values=colors,
+    )
+    # 相邻显式文字和原色图标不能因修复通用指标而被公共配色覆盖。
+    content = Nested2Node("Column", ({},), (
+        metric, Nested2Node("Text", ("自有颜色", {"fontColor": "#FF123456"}), ()),
+        Nested2Node("Image", ("original.svg", {"fillColor": "#FF123456",
+                                             "_preserveOriginalColor": True}), ()),
+    ))
+    shell = Nested2Node("Stack", ({},), (content,))
+    ownership = collect_photo_style_context(shell)
+    clean = _strip_advanced_component_markers(shell)
+    nodes = []
+
+    def visit(node, identity):
+        styles = next((value for value in node.values if isinstance(value, dict)), {})
+        item = {"id": identity, "component": node.component_type, "styles": dict(styles)}
+        if node.component_type == "Text":
+            item["content"] = node.values[0]
+        elif node.component_type == "Image":
+            item["src"] = node.values[0]
+        nodes.append(item)
+        prefix = identity.removeprefix("__genui_render_component__")
+        for index, child in enumerate(node.children):
+            visit(child, f"{prefix}_{index}")
+
+    visit(clean.children[0], "__genui_render_component__root_1")
+    return nodes, ownership, colors
+
+
+@pytest.mark.parametrize("dual", [False, True])
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("photo_id", [
+    "photo-ux-mountain-sunset-lake-wide", "photo-ux-meeting-room-brown-chairs-wide",
+])
+def test_generic_metric_photo_colors_follow_roles_without_changing_foreground(dual, size, photo_id):
+    # 此处只覆盖配色适配；图片尺寸与业务准入由共用匹配专项测试覆盖。
+    nodes, ownership, colors = generic_metric_source(dual, size)
+    original = copy.deepcopy(nodes)
+    photo = next(item for item in registry.registered_themes() if item.get("id") == photo_id)
+    palette = photo.get("content", {}).get("roles", {})
+    primary = palette.get("primary")
+    secondary = palette.get("secondary")
+    assert primary is not None and secondary is not None
+    apply_content_palette(nodes, palette, None, surface_style={}, legacy_panels=[],
+                          ownership=ownership)
+    expected_count = 4 if dual else 3
+    recolored = 0
+    for before, after in zip(original, nodes, strict=True):
+        styles = before.get("styles", {})
+        for key in ("fontColor", "fillColor"):
+            old = styles.get(key)
+            if old == colors.get("primaryColor"):
+                assert after.get("styles", {}).get(key) == primary
+                styles[key] = primary
+                recolored += 1
+            elif old == colors.get("supportContentColor"):
+                assert after.get("styles", {}).get(key) == secondary
+                styles[key] = secondary
+                recolored += 1
+        # 除已知主题颜色以外，内容、绑定、几何和显式颜色必须全部保持。
+        assert after == before
+    assert recolored == expected_count
+    assert "_templateTheme" not in str(nodes)
 
 
 def template_source(saved):
