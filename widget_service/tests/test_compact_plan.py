@@ -582,6 +582,8 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     fact_properties = properties["info_required"]["items"]["properties"]
     assert fact_properties["dataId"]["enum"] == list(compact_plan_data_paths(spec))
     assert fact_properties["actionId"]["enum"] == ["event.open.calendar"]
+    assert fact_properties["displayLabel"]["maxLength"] == 12
+    assert {"required": ["dataId", "displayLabel"]} in properties["info_required"]["items"]["oneOf"]
     assert "EventCard" in fact_properties["componentHints"]["items"]["enum"]
     assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
     assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
@@ -595,6 +597,208 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert "priority" in properties["info_required"]["items"]["required"]
     assert "composition" not in properties
     assert tool["function"]["parameters"]["required"] == ["info_required"]
+
+
+def test_plan_data_label_must_share_a_visible_information_unit_with_its_readout() -> None:
+    spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "windLevel": {"type": "integer", "sampleValue": 2},
+                    "rainProbabilityPercent": {"type": "integer", "sampleValue": 20},
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "当前风力",
+                "dataId": "/data/weather/windLevel",
+                "displayLabel": "风力",
+            },
+            {
+                "requirement": "今天降雨概率",
+                "dataId": "/data/weather/rainProbabilityPercent",
+                "displayLabel": "降雨概率",
+            },
+        ]
+    }
+    bare_source = "\n".join(
+        [
+            '["root","Column",{},["reading"]]',
+            '["reading","EmphasisText",{"mainText":"{{ ${/data/weather/windLevel} + \'级\' }}",'
+            '"secondaryText":"{{ ${/data/weather/rainProbabilityPercent} + \'%\' }}"}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(bare_source, plan, spec)
+
+    assert len(errors) == 2
+    assert all("not visible with its readout" in error for error in errors)
+    labeled_source = bare_source.replace(
+        "{{ ${/data/weather/windLevel}",
+        "{{ '风力 ' + ${/data/weather/windLevel}",
+    )
+    labeled_source = labeled_source.replace(
+        "{{ ${/data/weather/rainProbabilityPercent}",
+        "{{ '降雨概率 ' + ${/data/weather/rainProbabilityPercent}",
+    )
+    assert compact_plan_coverage_errors(labeled_source, plan, spec) == ()
+
+
+def test_plan_display_label_cannot_be_satisfied_by_an_invisible_binding_path() -> None:
+    path = "/data/风力"
+    spec = {
+        "size": "2x4",
+        "dataModelSchema": {"data": {"风力": {"type": "integer", "sampleValue": 2}}},
+        "eventCandidates": [],
+    }
+    plan = {"info_required": [{
+        "requirement": "当前风力", "dataId": path, "displayLabel": "风力",
+    }]}
+    rows = [
+        ["root", "Column", {}, ["reading"]],
+        ["reading", "EmphasisText", {"mainText": {"path": path}}],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    errors = compact_plan_coverage_errors(source, plan, spec)
+    assert len(errors) == 1
+    assert "not visible with its readout" in errors[0]
+    rows[1][2]["secondaryText"] = "风力"
+    labeled = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    assert compact_plan_coverage_errors(labeled, plan, spec) == ()
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("case", [
+    "same_row", "reverse_order", "high_level_label", "other_row", "title", "button", "two_readouts",
+    "nested", "list_item", "dynamic_label", "unreachable", "shared_child", "partial_label",
+    "label_value", "reversed_label_value", "hero_support",
+])
+def test_plan_display_label_respects_unambiguous_row_boundary(size: str, case: str) -> None:
+    path = "/data/wind"
+    task = {
+        "size": size,
+        "dataModelSchema": {"data": {"wind": {"type": "integer", "sampleValue": 2}}},
+        "eventCandidates": [],
+    }
+    plan = {"info_required": [{
+        "requirement": "当前风力", "dataId": path, "displayLabel": "风力",
+    }]}
+    rows = [
+        ["root", "Column", {}, ["pair"]],
+        ["pair", "Row", {}, ["label", "reading"]],
+        ["label", "Text", {"content": "风力", "fontSize": 12}],
+        ["reading", "EmphasizedData", {"value": {"path": path}, "unit": "级"}],
+    ]
+    if case == "reverse_order":
+        rows[1][3].reverse()
+    elif case == "high_level_label":
+        rows[2] = ["label", "EmphasisText", {"mainText": "风力", "fontSize": 18}]
+    elif case == "other_row":
+        rows[0][3].append("other")
+        rows[1][3].remove("label")
+        rows.append(["other", "Row", {}, ["label"]])
+    elif case == "title":
+        rows[2] = ["label", "SingleLineTitle", {"title": "风力"}]
+    elif case == "button":
+        rows[2][2]["onClick"] = [{"call": "example", "args": {}}]
+    elif case == "two_readouts":
+        rows[1][3].append("other")
+        rows.append(["other", "Text", {"content": {"path": "/data/temperature"}}])
+    elif case == "nested":
+        rows[1][3][0] = "wrapper"
+        rows.append(["wrapper", "Column", {}, ["label"]])
+    elif case == "list_item":
+        rows[3] = ["reading", "SecondaryBody", {"items": [{"value": {"path": path}}]}]
+    elif case == "dynamic_label":
+        rows[2][2]["content"] = "{{ '风力' }}"
+    elif case == "unreachable":
+        rows[0][3] = ["reading"]
+    elif case == "shared_child":
+        rows[0][3].append("other")
+        rows.append(["other", "Row", {}, ["label"]])
+    elif case == "partial_label":
+        rows[2][2]["content"] = "风力预警"
+    elif case in {"label_value", "reversed_label_value", "hero_support"}:
+        variant = "hero-support" if case == "hero_support" else "label-value"
+        rows[1] = ["pair", "Group", {"variant": variant}, ["label", "reading"]]
+        rows[2] = ["label", "EmphasisText", {"mainText": "风力", "fontSize": 18}]
+        if size == "2x2":
+            rows[0] = ["root", "Layout", {"layout": "S-title-content"}, ["title", "pair"]]
+            rows.append(["title", "SingleLineTitle", {"title": "天气"}])
+        else:
+            rows[0] = ["root", "Layout", {"layout": "W-top-bottom"}, ["pair", "details"]]
+            rows.append(["details", "TextBlock", {"items": [{"value": "今日"}]}])
+        if case == "reversed_label_value":
+            rows[1][3].reverse()
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    original_rows = json.loads(json.dumps(rows))
+    if case == "unreachable":
+        with pytest.raises(CompactDslConversionError, match="Unreachable"):
+            compact_plan_coverage_errors(source, plan, task)
+        return
+    errors = compact_plan_coverage_errors(source, plan, task)
+    if case in {"same_row", "reverse_order", "high_level_label", "label_value"}:
+        assert errors == ()
+    else:
+        assert len(errors) == 1
+        assert "not visible with its readout" in errors[0]
+    assert rows == original_rows
+
+
+def test_plan_preserves_a_data_display_label_and_rejects_it_for_actions() -> None:
+    payload = json.loads(plan_call())
+    payload["arguments"]["info_required"][0]["displayLabel"] = "会议名称"
+
+    result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), task_spec())
+
+    assert result.plan["info_required"][0]["displayLabel"] == "会议名称"
+    payload["arguments"]["info_required"][2]["displayLabel"] = "日历"
+    with pytest.raises(CompactPlanValidationError, match="only supported for dataId"):
+        parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), task_spec())
+
+
+def test_plan_data_label_cannot_borrow_a_neighboring_list_item() -> None:
+    spec = {
+        "size": "2x4",
+        "dataModelSchema": {
+            "data": {
+                "earphone": {
+                    "batteryLevel": {"type": "integer", "sampleValue": 80},
+                }
+            }
+        },
+        "eventCandidates": [],
+    }
+    plan = {
+        "info_required": [
+            {
+                "requirement": "耳机仓电量",
+                "dataId": "/data/earphone/batteryLevel",
+                "displayLabel": "耳机仓电量",
+            }
+        ]
+    }
+    source = "\n".join(
+        [
+            '["root","Column",{},["details"]]',
+            '["details","SecondaryBody",{"items":['
+            '{"label":"耳机仓电量","value":"已连接"},'
+            '{"label":"","value":"{{ ${/data/earphone/batteryLevel} + \'%\' }}"}]}]',
+        ]
+    )
+
+    errors = compact_plan_coverage_errors(source, plan, spec)
+
+    assert errors == (
+        "Plan data label is not visible with its readout in DSL: 耳机仓电量 "
+        "(/data/earphone/batteryLevel) requires displayLabel '耳机仓电量' in details "
+        "(SecondaryBody).",
+    )
 
 
 @pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 6), ("2x4", 10)])
@@ -1306,11 +1510,12 @@ def test_two_by_four_action_plan_removes_top_bottom_layout_hint() -> None:
     assert result.plan.get("layoutHints") == ["W-content-side-slots"]
     assert result.warnings[-1] == (
         "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
-        "an Action and this layout has no legal action slot."
+        "an Action and this layout has no legal action slot; action-compatible "
+        "layout hints were supplied."
     )
 
 
-def test_two_by_four_action_plan_does_not_invent_replacement_layout_hint() -> None:
+def test_two_by_four_action_plan_supplies_action_compatible_layout_hints() -> None:
     spec = task_spec()
     spec["size"] = "2x4"
     payload = json.loads(plan_call())
@@ -1320,10 +1525,11 @@ def test_two_by_four_action_plan_does_not_invent_replacement_layout_hint() -> No
 
     result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), spec)
 
-    assert "layoutHints" not in result.plan
+    assert result.plan.get("layoutHints") == ["W-content-side-slots", "W-split-panels"]
     assert result.warnings[-1] == (
         "W-top-bottom was removed from layoutHints because the 2x4 Plan contains "
-        "an Action and this layout has no legal action slot."
+        "an Action and this layout has no legal action slot; action-compatible "
+        "layout hints were supplied."
     )
 
 
