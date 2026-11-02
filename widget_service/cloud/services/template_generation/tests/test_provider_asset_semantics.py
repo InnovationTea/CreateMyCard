@@ -80,7 +80,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 26
+    assert slot_count == 24
 
 
 @pytest.mark.parametrize("description", (
@@ -200,7 +200,7 @@ def test_phone_battery_support_icon_does_not_change_single_business_asset_semant
 @pytest.mark.parametrize("template_id", (
     "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
     "WeatherOverviewTemperatureSupport@1",
-    "WeatherOverviewDaily2TravelSupport@1", "WeatherOverviewTravelSupport@1",
+    "WeatherOverviewDaily2TravelSupport@1",
     "WeatherOverviewHero@1", "WeatherOverviewFull@1", "WeatherOverviewConditionSupport@1",
 ))
 def test_weather_slot_separates_single_and_dual_business_assets(

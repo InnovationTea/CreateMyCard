@@ -602,3 +602,18 @@ Support延续左右图标齐全才显示图标的规则。
 | health-sport/sleep-overview | SleepOverviewHero、SleepOverviewCompact、SleepOverviewNapFull、SleepOverviewNapHero |
 | health-sport/workout-overview | WorkoutOverviewCompact、WorkoutOverviewHero、WorkoutOverviewTrainingRecordHero |
 | weather/weather-overview | WeatherOverviewCompact、WeatherOverviewUvCompact、WeatherOverviewHero、WeatherOverviewDailyDateFull、WeatherOverviewDailyRainFull、WeatherOverviewDailyHealthFull、WeatherOverviewNextDayHealthFull、WeatherOverviewTargetDayHealthFull、WeatherOverviewCareAlertFull、WeatherOverviewAlertFull、WeatherOverviewWindHero、WeatherOverviewWindFull、WeatherOverviewConditionHero、WeatherOverviewFull、WeatherOverviewAlertInfoFull、WeatherOverviewFeelsLikeAlertFull、WeatherOverviewHumidityWindFull、WeatherOverviewUvColdFull、WeatherOverviewConditionFeelsLikeAlertFull |
+
+### 关闭端侧布局优化的模板复验（2026-11-02）
+
+- 带动作的横版分栏只缩减内容面板上下装饰内边距，左右仍为 12vp、上下改为 4vp；按钮保持 36vp。
+  模板内部通过减少重复留白、合并说明和分配剩余宽度适配；不按画廊机型修改云侧 `matchParent` 的尺寸估算。
+- `ScheduleOverviewTitleHero` 将日期放入标题行，日期、标题、起止时间和可选倒计时不再挤入固定 48vp 子容器。
+  耳机双耳 Hero 去掉名称上下重复外边距；电量与耳机 Support 的文字列占剩余宽度，固定圆环不裁边。
+- 活动 WideHero 保留独立注册，采用日期标题行和三个并列指标；与已有 WideFull 的标识保持唯一。
+- 按本地布局调整将湿度风力模板迁移为 `WeatherOverviewHumidityWindLevelFull@1`，仅进入 Full 槽位，
+  注册、提示文档和画廊输入同步；风向风力不再依赖可选预警出现。
+- 时间 Support 只覆盖更新时间；完整时间允许两行，日期/星期的独立需求由 Full 变体承接。
+  运动心率保留数值和“次/分”单位，宽版活动更新时间改用整行，避免通过 8vp 字体掩盖内容缺失。
+- 验证须分别记录源模板检查、真实模型生成和 `smartlayout=false` 真机截图；参考高度检查不代替真机证据。
+- 二轮真机复核：天气 Hero 将城市和温度合并为标题行，将预警和风力合为末行，完整可选分支仍保留全部业务值。
+  湿度风力 Full 的风况、预警分行；电量与耳机 Support 的主值直接显示百分比，避免前缀挤占数字空间。

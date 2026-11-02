@@ -10,8 +10,8 @@ Column(
    "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Text(
     #Expr(props.title ? props.title : "手机电量"),
-    {"width": 112, "height": 24, "fontSize": 16, "fontWeight": 400,
-     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1, "flexShrink": 0}
+    {"width": "matchParent", "height": 24, "fontSize": 16, "fontWeight": 400,
+     "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 0}
   ),
   Text(
     data.percentText,
