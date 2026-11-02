@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from services.compact_plan_output import decode_plan_json
+from services.compact_plan_output import decode_plan_json, normalize_plan_json_fence
 
 
 class StaticPlanReviewError(ValueError):
@@ -152,16 +152,19 @@ def static_review_lost_must_indexes(
 
 def _decode_review(raw_output: str) -> tuple[Any, tuple[str, ...]]:
     """仅恢复缺失的最外层闭合符，不补值、内部结构或重复键。"""
-    text = raw_output.strip()
+    envelope = normalize_plan_json_fence(raw_output)
+    text = envelope.text
     try:
-        return decode_plan_json(text), ()
+        return decode_plan_json(text), envelope.warnings
     except json.JSONDecodeError as exc:
         if exc.pos != len(text) or not text.startswith("{"):
             raise
         if not text.endswith(("}", "]")):
             raise
         payload = decode_plan_json(text + "}")
-        return payload, ("Static review outer JSON closing brace restored; values unchanged.",)
+        return payload, envelope.warnings + (
+            "Static review outer JSON closing brace restored; values unchanged.",
+        )
 
 
 def _findings(value: Any, source: str, fact_count: int) -> tuple[dict[str, Any], ...]:

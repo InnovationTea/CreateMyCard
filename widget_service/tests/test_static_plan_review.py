@@ -19,6 +19,11 @@ from services.compact_plan import (
     parse_compact_plan_call,
     static_fact_source,
 )
+from services.compact_plan_output import (
+    PLAN_JSON_OUTPUT_INSTRUCTION,
+    PLAN_STAGE_OUTPUT_INSTRUCTION,
+    REVIEW_JSON_OUTPUT_INSTRUCTION,
+)
 from services.generation_content_policy import (
     EXISTING_CONTENT_POLICY,
     STATIC_CONTENT_POLICY,
@@ -291,6 +296,45 @@ def test_invalid_transport_is_rejected(raw):
 
 
 @pytest.mark.parametrize("payload", [_keep(), _correct(_plan(), [_finding()])])
+@pytest.mark.parametrize("opening,closing", [
+    ("```json\n", "\n```"), ("```JSON\r\n", "```"), ("```\n", "\n```"),
+    ("```json\n", ""), ("", "\n```"),
+])
+def test_review_fence_preserves_result_and_records_transport_only(payload, opening, closing):
+    plain = json.dumps(payload, ensure_ascii=False)
+    expected = parse_static_plan_review(plain, source="带证件", fact_count=1)
+    actual = parse_static_plan_review(opening + plain + closing, source="带证件", fact_count=1)
+    assert actual.decision == expected.decision
+    assert actual.source_fidelity == expected.source_fidelity
+    assert actual.findings == expected.findings
+    assert actual.corrected_source == expected.corrected_source
+    assert len(actual.warnings) == 1
+    assert expected.warnings == ()
+
+
+@pytest.mark.parametrize("raw", [
+    '```json\n{"decision":"keep","decision":"keep",'
+    '"sourceFidelity":"preserved","findings":[]}\n```',
+    '```json\n{"decision":"keep","sourceFidelity":"preserved","findings":[]}{}\n```',
+    '说明\n```json\n{"decision":"keep","sourceFidelity":"preserved","findings":[]}\n```',
+    '```json\n{"decision":"keep","sourceFidelity":"preserved","findings":[]}\n```说明',
+    '```json\n{"decision":"keep","sourceFidelity":"preserved","findings":[\n```',
+    '```json\n{"name":"submit_card_plan","arguments":{}}\n```',
+    '```json\n{"decision":"keep","sourceFidelity":"preserved","findings":[]}}\n```',
+    '```python\n{"decision":"keep","sourceFidelity":"preserved","findings":[]}\n```',
+])
+def test_fence_adapter_does_not_accept_ambiguous_or_wrong_stage_outputs(raw):
+    with pytest.raises(StaticPlanReviewError):
+        parse_static_plan_review(raw, source="带证件", fact_count=1)
+
+
+def test_fenced_review_still_checks_source_evidence():
+    raw = json.dumps(_correct(_plan(), [_finding("不存在的原文")]), ensure_ascii=False)
+    with pytest.raises(StaticPlanReviewError, match="不在本轮有效事实源"):
+        parse_static_plan_review("```json\n" + raw + "\n```", source="带证件", fact_count=1)
+
+
+@pytest.mark.parametrize("payload", [_keep(), _correct(_plan(), [_finding()])])
 def test_only_missing_outer_review_brace_is_restored_without_changing_values(payload):
     complete = json.dumps(payload, ensure_ascii=False)
     result = parse_static_plan_review(complete[:-1], source="带证件", fact_count=1)
@@ -371,6 +415,37 @@ def test_review_does_not_replay_first_stage_output_instructions():
     payload = json.loads(reviewed[-1].get("content"))
     assert payload.get("staticPlanReview", {}).get("originalUserQuery") == "原始需求"
     assert payload.get("staticPlanReview", {}).get("originalSubmission") == "首份提交数据"
+
+
+def test_review_replaces_system_output_stage_but_preserves_contract_and_original_messages():
+    contract = '事实与组件合同\n{"name":"submit_card_plan","parameters":{"type":"object"}}'
+    original_system = contract + "\n" + PLAN_STAGE_OUTPUT_INSTRUCTION
+    messages = [{"role": "system", "content": original_system}]
+    reviewed = PromptBuilder.build_static_plan_review(
+        messages, _plan(), "带证件", original_submission=json.dumps(_call(_plan())),
+    )
+    system = reviewed[0].get("content", "")
+    assert contract in system
+    assert PLAN_JSON_OUTPUT_INSTRUCTION not in system
+    assert PLAN_STAGE_OUTPUT_INSTRUCTION not in system
+    assert REVIEW_JSON_OUTPUT_INSTRUCTION in system
+    assert messages[0].get("content") == original_system
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("decision", ["keep", "correct"])
+async def test_fenced_review_reaches_dsl_with_same_accepted_plan_and_budget(monkeypatch, decision):
+    plan = titled_plan(_plan(), title="提醒")
+    review = _keep() if decision == "keep" else _correct(plan)
+    raw = "```json\n" + json.dumps(review) + "\n```"
+    service, calls, saved = _service(monkeypatch, [_call(plan), raw])
+    response = await service.generate_widget_card_compact_dsl(_request())
+    assert response.status in (GenerationStatus.SUCCESS, GenerationStatus.DEGRADED)
+    assert len(saved) == 1
+    assert [call.get("phase") for call in calls] == ["plan", "plan", None]
+    accepted = _accepted_plan(calls[-1].get("messages", []))
+    texts = [fact.get("text") for fact in accepted.get("info_required", [])]
+    assert "带证件" in texts
 
 
 def test_review_schema_rejects_empty_semantic_evidence():

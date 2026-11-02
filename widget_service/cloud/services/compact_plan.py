@@ -45,6 +45,7 @@ from services.compact_layout_runtime import (
 from services.compact_plan_output import (
     PlanDuplicateKeyError,
     decode_plan_json,
+    normalize_plan_json_fence,
     normalize_plan_output,
     normalize_plan_root_arguments,
 )
@@ -53,7 +54,6 @@ from services.event_matching import event_handlers_match
 
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
-_JSON_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
 _BINDING_PATH = re.compile(r"\$\{(?P<path>/[^}\s]+)\}")
 _FACT_KEYS = frozenset({"requirement", "priority", "dataId", "actionId", "text", "componentHints"})
 _TARGET_KEYS = ("dataId", "actionId", "text")
@@ -3922,10 +3922,7 @@ def _parse_json_object(
 ) -> dict[str, Any]:
     if not isinstance(raw_output, str) or not raw_output.strip():
         raise CompactPlanValidationError(["Plan output must be non-empty JSON."])
-    text = raw_output.strip()
-    match = _JSON_FENCE.fullmatch(text)
-    if match is not None:
-        text = match.group(1).strip()
+    text = normalize_plan_json_fence(raw_output).text
     try:
         payload = decode_plan_json(text)
     except PlanDuplicateKeyError as exc:

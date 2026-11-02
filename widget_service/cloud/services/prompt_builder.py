@@ -32,6 +32,8 @@ from services.compact_plan import (
 from services.compact_plan_feedback import static_plan_repair_feedback
 from services.compact_plan_output import (
     PLAN_JSON_OUTPUT_INSTRUCTION,
+    PLAN_STAGE_OUTPUT_INSTRUCTION,
+    REVIEW_JSON_OUTPUT_INSTRUCTION,
     plan_output_format_feedback,
 )
 from services.compact_repair_context import joint_repair_contract
@@ -1869,10 +1871,7 @@ class PromptBuilder:
         effective_system_prompt = (
             f"{system_prompt}{capacity_context}{recovery_context}\n\n"
             f"# 可用工具合同\n\n{tool_payload}\n\n"
-            "这是同一条生成对话的第一阶段。正常 Plan 未被工具结果接受前，提交"
-            ' {"name":"submit_card_plan","arguments":{...}}；'
-            "收到 submit_card_plan 成功结果后，按后续消息继续生成 Compact DSL。"
-            f"\n{PLAN_JSON_OUTPUT_INSTRUCTION}"
+            f"{PLAN_STAGE_OUTPUT_INSTRUCTION}"
             f"{input_contract}"
         )
         if current_content_policy().is_static:
@@ -2037,12 +2036,12 @@ class PromptBuilder:
             key: value for key, value in plan.items()
             if key not in {"staticPresentation", "staticPresentationFeedback"}
         }
-        updated = [{"role": "system", "content": system_content}]
-        updated[0]["content"] = system_content + (
-            "\n本次为同一Plan阶段最后一次静态复核，先前普通submit_card_plan输出格式"
-            "仅用于correctedPlan内部；本次唯一返回格式以最后消息的reviewOutput为准。"
-            "不输出DSL，不调用新工具。"
-        )
+        review_system = system_content.replace(PLAN_STAGE_OUTPUT_INSTRUCTION, "")
+        review_system = review_system.replace(PLAN_JSON_OUTPUT_INSTRUCTION, "")
+        updated = [{
+            "role": "system",
+            "content": review_system + "\n" + REVIEW_JSON_OUTPUT_INSTRUCTION,
+        }]
         updated.append({
             "role": "user",
             "content": json.dumps({

@@ -16,6 +16,22 @@ PLAN_JSON_OUTPUT_INSTRUCTION = (
     "Markdown 代码围栏、解释和多个调用。第一个非空字符必须是 {，最后一个必须是 }。"
 )
 
+PLAN_STAGE_OUTPUT_INSTRUCTION = (
+    "这是同一条生成对话的第一阶段。正常 Plan 未被工具结果接受前，提交"
+    ' {"name":"submit_card_plan","arguments":{...}}；'
+    "收到 submit_card_plan 成功结果后，按后续消息继续生成 Compact DSL。"
+    f"\n{PLAN_JSON_OUTPUT_INSTRUCTION}"
+)
+
+REVIEW_JSON_OUTPUT_INSTRUCTION = (
+    "当前只执行静态Plan复核。唯一顶层输出为一个纯JSON对象，包含decision、"
+    "sourceFidelity、findings；correct时额外包含完整correctedPlan。"
+    "submit_card_plan的name/arguments合同仅用于correctedPlan内部，不是本次顶层输出。"
+    '无需修正时返回 {"decision":"keep","sourceFidelity":"preserved","findings":[]}。'
+    "不输出普通Plan、DSL、工具调用、Schema、解释或Markdown围栏。"
+    "严格按本次reviewOutput核对字段和类型。"
+)
+
 _DSML = "｜｜DSML｜｜"
 _DSML_PREFIX = re.compile(
     rf'<{_DSML} calls>\s*<{_DSML} invoke name="submit_card_plan">\s*'
@@ -44,6 +60,7 @@ _PLAN_ARGUMENT_KEYS = frozenset({
 })
 _OPEN_JSON_FENCE = re.compile(r"^```(?:json)?[ \t]*\r?\n", re.IGNORECASE)
 _CLOSE_JSON_FENCE = re.compile(r"\r?\n[ \t]*```[ \t]*$")
+_JSON_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
 
 
 class PlanDuplicateKeyError(ValueError):
@@ -178,6 +195,18 @@ def normalize_plan_output(raw_output: str) -> PlanOutputEnvelope:
         text=json.dumps(normalized.payload, ensure_ascii=False),
         warnings=envelope.warnings + normalized.warnings,
     )
+
+
+def normalize_plan_json_fence(raw_output: str) -> PlanOutputEnvelope:
+    """普通计划与复核共用围栏适配；内容及阶段合同仍由各自解析器检查。"""
+    text = raw_output.strip()
+    match = _JSON_FENCE.fullmatch(text)
+    if match is not None:
+        return PlanOutputEnvelope(
+            text=match.group(1).strip(),
+            warnings=("Plan Markdown fence removed; JSON content unchanged.",),
+        )
+    return _normalize_single_sided_fence(PlanOutputEnvelope(text=text))
 
 
 def _root_parameter_feedback(payload: Any) -> dict[str, Any]:
