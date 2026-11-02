@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"当前时间","icon":"resources/base/media/emoji_time.png","fontSize":12}]
+["content","EventCard",{"items":[{"title":{"path":"/data/time/currentDate"},"time":{"path":"/data/time/dayOfWeek"}}]}]
+["/data/time/currentDate","示例"]
+["/data/time/dayOfWeek","示例"]

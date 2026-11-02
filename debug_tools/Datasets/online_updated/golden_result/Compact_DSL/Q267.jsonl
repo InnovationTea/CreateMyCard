@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-anchor"},["title","display","support","action"]]
+["title","SingleLineTitle",{"title":"当前时间","fontSize":12}]
+["display","EmphasisText",{"mainText":{"path":"/data/time/currentDate"},"fontSize":18}]
+["support","SecondaryBody",{"items":[{"value":{"path":"/data/time/dayOfWeek"}}],"fontSize":14}]
+["action","CircleButton",{"icon":"resources/base/media/emoji_time.png","accessibility":{"label":"打开华为时钟应用"},"onClick":[{"call":"clickToDeeplink","args":{"abilityName":"com.huawei.hmos.clock.phone","bundleName":"com.huawei.hmos.clock","intentName":"Clock","uri":""}}]}]
+["/data/time/currentDate","示例"]
+["/data/time/dayOfWeek","示例"]

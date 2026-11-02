@@ -1,0 +1,105 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "做一个低电模式卡片，显示当前电量情况，支持一键开启省电模式。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryCapacityLevelDesc",
+          "/batterySOC"
+        ]
+      }
+    ],
+    "title": "低电模式",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.setPowerSavingMode",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "battery_saving_mode"
+            }
+          }
+        }
+      }
+    ],
+    "description": "电量速览与省电开关",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CLS-AL30",
+    "prdVer": "11.7.8.354",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030020245580"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "5fe0cf09-d8d3-40a4-b361-6f80a0e6c308"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "做一个低电模式卡片，显示当前电量情况，支持一键开启省电模式。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CLS-AL30 7.0.0.102",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "做一个低电模式卡片，显示当前电量情况，支持一键开启省电模式。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/batterySOC"
+      ]
+    }
+  ],
+  "title": "低电模式",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.setPowerSavingMode",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "battery_saving_mode"
+          }
+        }
+      }
+    }
+  ],
+  "description": "电量速览与省电开关",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill"
+  ]
+}

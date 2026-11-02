@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "做一张西安地铁北大街站的时间桌面卡片，显示当前日期、星期和农历信息。本轮卡片静态内容（用作展示的外部事实）：西安地铁北大街站。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "北大街站",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "西安地铁北大街站时间",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031032847888"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "521937a0-69be-4dc2-8065-1be2c68634db"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "做一张西安地铁北大街站的时间桌面卡片，显示当前日期、星期和农历信息。本轮卡片静态内容（用作展示的外部事实）：西安地铁北大街站。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "做一张西安地铁北大街站的时间桌面卡片，显示当前日期、星期和农历信息。本轮卡片静态内容（用作展示的外部事实）：西安地铁北大街站。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "北大街站",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "西安地铁北大街站时间",
+  "candidateAssetIds": []
+}

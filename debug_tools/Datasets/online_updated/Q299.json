@@ -1,0 +1,143 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "帮我做一个每天能查看睡眠情况的桌面卡片，显示每天的睡眠时长、睡眠得分和睡眠状态，睡眠不足时给出健康提醒，还可以设置早睡闹钟。卡片需要动态展示每日睡眠数据，点击可查看睡眠详情和设置早睡闹钟。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/nightSleepDurationText",
+          "/sleepScore",
+          "/sleepStatus",
+          "/fallAsleepTimeText",
+          "/wakeupTimeText",
+          "/deepSleepDurationText"
+        ]
+      }
+    ],
+    "title": "睡眠管理",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.health.sleep",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.open.clock.alarmTab",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "bundleName": "com.huawei.hmos.clock",
+            "intentName": "Clock",
+            "parameters": {
+              "tabActive": "ALARM_CLOCK_TAB"
+            },
+            "uri": ""
+          }
+        }
+      }
+    ],
+    "description": "每日睡眠健康速览",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.alarm_fill_1"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "DPX-AL00",
+    "prdVer": "11.7.8.372",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029025447928"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "8db97a8d-7925-4416-b3ff-62721f7db045"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "帮我做一个每天能查看睡眠情况的桌面卡片，显示每天的睡眠时长、睡眠得分和睡眠状态，睡眠不足时给出健康提醒，还可以设置早睡闹钟。卡片需要动态展示每日睡眠数据，点击可查看睡眠详情和设置早睡闹钟。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "DPX-AL00 6.0.0.115",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "帮我做一个每天能查看睡眠情况的桌面卡片，显示每天的睡眠时长、睡眠得分和睡眠状态，睡眠不足时给出健康提醒，还可以设置早睡闹钟。卡片需要动态展示每日睡眠数据，点击可查看睡眠详情和设置早睡闹钟。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/nightSleepDurationText",
+        "/sleepScore",
+        "/sleepStatus",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/deepSleepDurationText"
+      ]
+    }
+  ],
+  "title": "睡眠管理",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.health.sleep",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        }
+      }
+    },
+    {
+      "capabilityId": "event.open.clock.alarmTab",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "bundleName": "com.huawei.hmos.clock",
+          "intentName": "Clock",
+          "parameters": {
+            "tabActive": "ALARM_CLOCK_TAB"
+          },
+          "uri": ""
+        }
+      }
+    }
+  ],
+  "description": "每日睡眠健康速览",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1",
+    "asset.alarm_fill_1"
+  ]
+}

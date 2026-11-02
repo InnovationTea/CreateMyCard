@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "添加时间组件，在桌面卡片上显示当前时间、日期、星期和农历信息。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "时间",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "当前时间日期",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031005852928"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "6a39d930-aca0-4c46-8c46-db7a3afd684e"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "添加时间组件，在桌面卡片上显示当前时间、日期、星期和农历信息。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "添加时间组件，在桌面卡片上显示当前时间、日期、星期和农历信息。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "时间",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "当前时间日期",
+  "candidateAssetIds": []
+}

@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"银行卡信息"}]
+["body","EmphasisText",{"mainText":"户名：张强","secondaryText":"卡号：6228481006218970461；开户行：农行廊坊和平丽景支行"}]
+["/state/ready",true]

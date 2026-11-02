@@ -1,0 +1,53 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "老婆过生日，制作一张生日贺卡，表达对老婆的生日祝福和爱意。",
+    "candidateDataBindings": [],
+    "title": "生日快乐",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "给老婆的生日贺卡",
+    "candidateAssetIds": [
+      "asset.cake_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030092743060"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "8ec42591-b5dd-44c0-84d4-ca053dbba531"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "老婆过生日，制作一张生日贺卡，表达对老婆的生日祝福和爱意。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "老婆过生日，制作一张生日贺卡，表达对老婆的生日祝福和爱意。",
+  "candidateDataBindings": [],
+  "title": "生日快乐",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "给老婆的生日贺卡",
+  "candidateAssetIds": [
+    "asset.cake_fill"
+  ]
+}

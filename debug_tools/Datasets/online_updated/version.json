@@ -1,6 +1,6 @@
 {
-  "current_version": "v5",
-  "update_date": "2026-10-28",
+  "current_version": "v6",
+  "update_date": "2026-11-01",
   "history_versions": [
     {
       "update_date": "2026-10-17",
@@ -114,6 +114,16 @@
         "新增 Q157-Q284 共 128 条现网请求样本，样本总数从 146 调整为 274。",
         "补齐 22 条历史样本的金样本渲染结果（A2UI_DSL、Compact_DSL、Screenshot）：Q001、Q002、Q004、Q019、Q022、Q026、Q045、Q049、Q051、Q067、Q069、Q079、Q081、Q087、Q110、Q127、Q143、Q148、Q149、Q151、Q153、Q155。",
         "Q175、Q177、Q183、Q216、Q221、Q223、Q248、Q249、Q282：asset.ic_weather_color 未在当前能力快照注册，改为 asset.ic_weather_monochrome，内容层与外层素材列表同步替换。"
+      ]
+    },
+    {
+      "version": "v6",
+      "update_date": "2026-11-01",
+      "commits": [],
+      "changes": [
+        "新增 Q285-Q412 共 128 条现网请求样本，样本总数从 274 调整为 402。",
+        "补齐 36 条在线样本的金样本产物（A2UI_DSL、Compact_DSL、Screenshot）：Q042、Q050、Q108、Q126、Q146、Q152、Q154、Q156、Q160、Q164、Q168、Q172、Q183、Q188、Q193、Q198、Q200、Q203、Q205、Q210、Q217、Q224、Q229、Q230、Q231、Q238、Q250、Q251、Q255、Q256、Q257、Q265、Q267、Q269、Q271、Q284。",
+        "Q160 按真实日期卡数据替换 A2UI/Compact 并重新渲染截图；Q271 补齐缺失的 A2UI/Compact/Screenshot。"
       ]
     }
   ]

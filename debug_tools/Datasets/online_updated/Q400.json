@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "制作一张数字时钟桌面卡片，显示当前时间（数字时钟样式）、日期和星期，风格简洁美观。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "数字时钟",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "实时时间显示",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031132057121"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "532bc0d9-d42e-4ba8-8c64-71cb86e803d9"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "制作一张数字时钟桌面卡片，显示当前时间（数字时钟样式）、日期和星期，风格简洁美观。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "制作一张数字时钟桌面卡片，显示当前时间（数字时钟样式）、日期和星期，风格简洁美观。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "数字时钟",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "实时时间显示",
+  "candidateAssetIds": []
+}

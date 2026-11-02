@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "做一张农历十一月廿五倒计时卡片，显示距离2027年1月2日还有多少天。本轮卡片静态内容（用作展示的外部事实）：农历十一月廿五对应公历2027年1月2日。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-01-02"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "农历十一月廿五倒计时",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028224937288"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "fef29092-a885-4015-9d4e-b3431a113d12"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "做一张农历十一月廿五倒计时卡片，显示距离2027年1月2日还有多少天。本轮卡片静态内容（用作展示的外部事实）：农历十一月廿五对应公历2027年1月2日。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "做一张农历十一月廿五倒计时卡片，显示距离2027年1月2日还有多少天。本轮卡片静态内容（用作展示的外部事实）：农历十一月廿五对应公历2027年1月2日。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-01-02"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "农历十一月廿五倒计时",
+  "candidateAssetIds": []
+}

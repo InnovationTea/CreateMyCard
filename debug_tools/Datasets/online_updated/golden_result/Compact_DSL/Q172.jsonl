@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"my BMW"}]
+["body","EmphasisText",{"mainText":"您的 BMW 车辆信息"}]
+["/state/ready",true]

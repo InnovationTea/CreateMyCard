@@ -1,0 +1,77 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张电池状态卡片，显示当前电量、充电状态、电池温度、电流、电压等电池信息。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryTemperatureText",
+          "/nowCurrentText",
+          "/voltageText",
+          "/batterySOC"
+        ]
+      }
+    ],
+    "title": "电池状态",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "电池信息速览",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030130425457"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "2dbb6f29-1df8-4113-9942-018b109b4a75"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张电池状态卡片，显示当前电量、充电状态、电池温度、电流、电压等电池信息。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张电池状态卡片，显示当前电量、充电状态、电池温度、电流、电压等电池信息。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryTemperatureText",
+        "/nowCurrentText",
+        "/voltageText",
+        "/batterySOC"
+      ]
+    }
+  ],
+  "title": "电池状态",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "电池信息速览",
+  "candidateAssetIds": []
+}

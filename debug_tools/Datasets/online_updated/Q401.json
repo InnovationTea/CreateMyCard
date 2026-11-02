@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "设计一张简洁大气的数字时钟桌面卡片，显示当前时间（大号数字时钟样式）、日期和星期，整体风格干净通透，与桌面壁纸自然融合，不突兀。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "数字时钟",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "实时时间显示",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031132142099"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "532bc0d9-d42e-4ba8-8c64-71cb86e803d9"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "设计一张简洁大气的数字时钟桌面卡片，显示当前时间（大号数字时钟样式）、日期和星期，整体风格干净通透，与桌面壁纸自然融合，不突兀。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "设计一张简洁大气的数字时钟桌面卡片，显示当前时间（大号数字时钟样式）、日期和星期，整体风格干净通透，与桌面壁纸自然融合，不突兀。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "数字时钟",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "实时时间显示",
+  "candidateAssetIds": []
+}

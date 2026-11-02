@@ -1,0 +1,109 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "做一张桌面卡片，显示时间、日期、电量、步数和小艺简报内容。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/battery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batterySOC"
+        ]
+      },
+      {
+        "capabilityId": "GetDailyMostUsage",
+        "arguments": {},
+        "writeResultTo": "/data/steps",
+        "candidateOutputFields": [
+          "/mostUsedApps/0/appName",
+          "/mostUsedApps/0/totalDuration"
+        ]
+      }
+    ],
+    "title": "桌面信息",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "时间日期电量步数简报",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030071056142"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "6c80dd46-d7b5-45b2-9d26-91cc38302ab9"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "做一张桌面卡片，显示时间、日期、电量、步数和小艺简报内容。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "做一张桌面卡片，显示时间、日期、电量、步数和小艺简报内容。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/battery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batterySOC"
+      ]
+    },
+    {
+      "capabilityId": "GetDailyMostUsage",
+      "arguments": {},
+      "writeResultTo": "/data/steps",
+      "candidateOutputFields": [
+        "/mostUsedApps/0/appName",
+        "/mostUsedApps/0/totalDuration"
+      ]
+    }
+  ],
+  "title": "桌面信息",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "时间日期电量步数简报",
+  "candidateAssetIds": []
+}

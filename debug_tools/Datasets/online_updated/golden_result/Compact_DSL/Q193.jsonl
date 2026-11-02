@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"W-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"购物清单"}]
+["body","TextList",{"items":[{"primaryText":"厨房调味和小电","secondaryText":"待购：醋、研磨瓶（黑胡椒和盐）","value":"小电饭煲、非金属铲"},{"primaryText":"卧室大件和运动","secondaryText":"待购：床垫（1.8×2米）、运动地胶","value":"沙发、挂衣架"}]}]
+["/state/ready",true]

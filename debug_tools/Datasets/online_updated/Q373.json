@@ -1,0 +1,53 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "生成结婚邀请函卡片，红色喜庆风格。\n\n本轮卡片静态内容（用作展示的外部事实）：\n吕鸿先生与孙雅丽女士将于农历十月初八（公历2026年11月16日，星期一）在青岛李沧区亨通大酒店举行婚礼。",
+    "candidateDataBindings": [],
+    "title": "结婚邀请函",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "吕鸿&孙雅丽婚礼邀请",
+    "candidateAssetIds": [
+      "asset.heart_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030234222663"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "7",
+    "isNew": false,
+    "sessionId": "556b7d6d-5e00-4981-8c81-9ead5e542082"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "生成结婚邀请函卡片，红色喜庆风格。\n\n本轮卡片静态内容（用作展示的外部事实）：\n吕鸿先生与孙雅丽女士将于农历十月初八（公历2026年11月16日，星期一）在青岛李沧区亨通大酒店举行婚礼。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "生成结婚邀请函卡片，红色喜庆风格。\n\n本轮卡片静态内容（用作展示的外部事实）：\n吕鸿先生与孙雅丽女士将于农历十月初八（公历2026年11月16日，星期一）在青岛李沧区亨通大酒店举行婚礼。",
+  "candidateDataBindings": [],
+  "title": "结婚邀请函",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "吕鸿&孙雅丽婚礼邀请",
+  "candidateAssetIds": [
+    "asset.heart_fill"
+  ]
+}

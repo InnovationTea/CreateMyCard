@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"女儿年龄正计时"}]
+["body","EmphasisText",{"mainText":"出生于10月11日","secondaryText":"记录从出生到现在的年龄"}]
+["/state/ready",true]

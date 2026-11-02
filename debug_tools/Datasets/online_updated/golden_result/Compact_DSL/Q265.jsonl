@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"W-static-content"},["header","body"]]
+["header","SingleLineTitle",{"title":"长度单位换算"}]
+["body","SingleLineList",{"items":[{"text":"1千米=1000米","assist":"换算"},{"text":"1米=10分米","assist":"换算"},{"text":"1分米=10厘米","assist":"换算"},{"text":"1厘米=10毫米","assist":"换算"},{"text":"1米=100厘米=1000毫米","assist":"换算"}]}]
+["/state/ready",true]

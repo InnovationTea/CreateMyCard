@@ -1,0 +1,131 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "设计一张2x4的数字时钟与天气组合桌面卡片，上方显示大号数字时钟（当前时间、日期、星期），下方显示当前天气（天气现象、温度、空气质量），整体风格简洁通透，与桌面壁纸自然融合。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/airQuality",
+          "/location/prefectureName",
+          "/location/districtName"
+        ]
+      }
+    ],
+    "title": "时钟天气",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "时间天气组合卡片",
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome",
+      "asset.emoji_time"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031132228421"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "532bc0d9-d42e-4ba8-8c64-71cb86e803d9"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "设计一张2x4的数字时钟与天气组合桌面卡片，上方显示大号数字时钟（当前时间、日期、星期），下方显示当前天气（天气现象、温度、空气质量），整体风格简洁通透，与桌面壁纸自然融合。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "设计一张2x4的数字时钟与天气组合桌面卡片，上方显示大号数字时钟（当前时间、日期、星期），下方显示当前天气（天气现象、温度、空气质量），整体风格简洁通透，与桌面壁纸自然融合。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    },
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/location/prefectureName",
+        "/location/districtName"
+      ]
+    }
+  ],
+  "title": "时钟天气",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "时间天气组合卡片",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome",
+    "asset.emoji_time"
+  ]
+}

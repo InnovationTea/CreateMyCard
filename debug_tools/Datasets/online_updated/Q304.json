@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "设置2027年高考倒计时日历卡片，显示距离2027年高考还有多少天。本轮卡片静态内容（用作展示的外部事实）：2027年高考时间为2027年6月7日。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-06-07"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "高考倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "2027年高考倒计时",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029041830291"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "914cc61d-4615-42ff-95ab-640563c8ada0"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "设置2027年高考倒计时日历卡片，显示距离2027年高考还有多少天。本轮卡片静态内容（用作展示的外部事实）：2027年高考时间为2027年6月7日。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "设置2027年高考倒计时日历卡片，显示距离2027年高考还有多少天。本轮卡片静态内容（用作展示的外部事实）：2027年高考时间为2027年6月7日。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-06-07"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "高考倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "2027年高考倒计时",
+  "candidateAssetIds": []
+}

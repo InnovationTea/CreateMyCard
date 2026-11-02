@@ -1,0 +1,49 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "制作一个轮休表格卡片，从1号到31号，展示轮休安排。本轮卡片静态内容（用作展示的外部事实）：轮休表格，从1号到31号",
+    "candidateDataBindings": [],
+    "title": "轮休表格",
+    "size": "2x4",
+    "candidateEventCandidates": [],
+    "description": "1号到31号轮休安排",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030133825998"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "e507384d-3b3c-44dd-bfb7-7af07a187cdf"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "制作一个轮休表格卡片，从1号到31号，展示轮休安排。本轮卡片静态内容（用作展示的外部事实）：轮休表格，从1号到31号",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "制作一个轮休表格卡片，从1号到31号，展示轮休安排。本轮卡片静态内容（用作展示的外部事实）：轮休表格，从1号到31号",
+  "candidateDataBindings": [],
+  "title": "轮休表格",
+  "size": "2x4",
+  "candidateEventCandidates": [],
+  "description": "1号到31号轮休安排",
+  "candidateAssetIds": []
+}

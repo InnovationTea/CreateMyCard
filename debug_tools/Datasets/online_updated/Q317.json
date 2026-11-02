@@ -1,0 +1,71 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "搞个卡片，倒计时显示离国庆还有几天。目标日期为2026年10月1日（国庆节），使用GetCountdownDays动态计算距离国庆的天数并展示。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2026-10-01"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "国庆倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "距离国庆还有几天",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.9.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029114812638"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": false,
+    "sessionId": "cef3f082-29ac-41d7-aa11-5c51f8a388ae"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "搞个卡片，倒计时显示离国庆还有几天。目标日期为2026年10月1日（国庆节），使用GetCountdownDays动态计算距离国庆的天数并展示。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "SGT-AL10 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "搞个卡片，倒计时显示离国庆还有几天。目标日期为2026年10月1日（国庆节），使用GetCountdownDays动态计算距离国庆的天数并展示。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2026-10-01"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "国庆倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "距离国庆还有几天",
+  "candidateAssetIds": []
+}

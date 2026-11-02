@@ -1,0 +1,75 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "制作一张距离过年还有多少天的倒计时桌面卡片，显示距离春节（2027年2月6日）还有多少天。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-02-06"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ],
+    "title": "过年倒计时",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "距离过年还有多少天",
+    "candidateAssetIds": [
+      "asset.ic_calender"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261028173542347"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "6d7da806-db55-40c3-8451-e9d1ceb3aa88"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "制作一张距离过年还有多少天的倒计时桌面卡片，显示距离春节（2027年2月6日）还有多少天。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "制作一张距离过年还有多少天的倒计时桌面卡片，显示距离春节（2027年2月6日）还有多少天。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-02-06"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ],
+  "title": "过年倒计时",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "距离过年还有多少天",
+  "candidateAssetIds": [
+    "asset.ic_calender"
+  ]
+}

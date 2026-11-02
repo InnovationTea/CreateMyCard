@@ -1,0 +1,321 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建手机桌面卡片，展示近期日程和待办任务列表，将日程和待办任务逐项罗列展示，展示3-5个任务项，每项展示标题、时间和地点等关键信息，点击日程可查看详情，点击待办可打开备忘录",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/eventLocation",
+          "/events/1/title",
+          "/events/1/startDate",
+          "/events/1/dtStart",
+          "/events/1/eventLocation",
+          "/events/2/title",
+          "/events/2/startDate",
+          "/events/2/dtStart",
+          "/events/2/eventLocation",
+          "/events/3/title",
+          "/events/3/startDate",
+          "/events/3/dtStart",
+          "/events/3/eventLocation",
+          "/events/4/title",
+          "/events/4/startDate",
+          "/events/4/dtStart",
+          "/events/4/eventLocation"
+        ]
+      },
+      {
+        "capabilityId": "GetMemoData",
+        "arguments": {},
+        "writeResultTo": "/data/memo",
+        "candidateOutputFields": [
+          "/todoPendingCount",
+          "/todos/0/title",
+          "/todos/0/reminderTimeText",
+          "/todos/0/location",
+          "/todos/1/title",
+          "/todos/1/reminderTimeText",
+          "/todos/1/location",
+          "/todos/2/title",
+          "/todos/2/reminderTimeText",
+          "/todos/2/location",
+          "/todos/3/title",
+          "/todos/3/reminderTimeText",
+          "/todos/3/location",
+          "/todos/4/title",
+          "/todos/4/reminderTimeText",
+          "/todos/4/location"
+        ]
+      }
+    ],
+    "title": "我的任务",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/1/entityId} }}"
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/2/entityId} }}"
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/3/entityId} }}"
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/4/entityId} }}"
+            }
+          }
+        }
+      },
+      {
+        "capabilityId": "event.viewNote",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          }
+        }
+      }
+    ],
+    "description": "日程与待办任务一览",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_schedule",
+      "asset.list_book_fill",
+      "asset.checkmark_circle_fill",
+      "asset.local_and_rectangle_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261030170601006"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "6fbc360c-3c2c-4060-aa58-528f3e03f0b0"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建手机桌面卡片，展示近期日程和待办任务列表，将日程和待办任务逐项罗列展示，展示3-5个任务项，每项展示标题、时间和地点等关键信息，点击日程可查看详情，点击待办可打开备忘录",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建手机桌面卡片，展示近期日程和待办任务列表，将日程和待办任务逐项罗列展示，展示3-5个任务项，每项展示标题、时间和地点等关键信息，点击日程可查看详情，点击待办可打开备忘录",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/1/title",
+        "/events/1/startDate",
+        "/events/1/dtStart",
+        "/events/1/eventLocation",
+        "/events/2/title",
+        "/events/2/startDate",
+        "/events/2/dtStart",
+        "/events/2/eventLocation",
+        "/events/3/title",
+        "/events/3/startDate",
+        "/events/3/dtStart",
+        "/events/3/eventLocation",
+        "/events/4/title",
+        "/events/4/startDate",
+        "/events/4/dtStart",
+        "/events/4/eventLocation"
+      ]
+    },
+    {
+      "capabilityId": "GetMemoData",
+      "arguments": {},
+      "writeResultTo": "/data/memo",
+      "candidateOutputFields": [
+        "/todoPendingCount",
+        "/todos/0/title",
+        "/todos/0/reminderTimeText",
+        "/todos/0/location",
+        "/todos/1/title",
+        "/todos/1/reminderTimeText",
+        "/todos/1/location",
+        "/todos/2/title",
+        "/todos/2/reminderTimeText",
+        "/todos/2/location",
+        "/todos/3/title",
+        "/todos/3/reminderTimeText",
+        "/todos/3/location",
+        "/todos/4/title",
+        "/todos/4/reminderTimeText",
+        "/todos/4/location"
+      ]
+    }
+  ],
+  "title": "我的任务",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    },
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/1/entityId} }}"
+          }
+        }
+      }
+    },
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/2/entityId} }}"
+          }
+        }
+      }
+    },
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/3/entityId} }}"
+          }
+        }
+      }
+    },
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/4/entityId} }}"
+          }
+        }
+      }
+    },
+    {
+      "capabilityId": "event.viewNote",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        }
+      }
+    }
+  ],
+  "description": "日程与待办任务一览",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_schedule",
+    "asset.list_book_fill",
+    "asset.checkmark_circle_fill",
+    "asset.local_and_rectangle_fill"
+  ]
+}

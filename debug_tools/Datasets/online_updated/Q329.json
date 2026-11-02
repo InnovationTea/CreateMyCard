@@ -1,0 +1,77 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "在日历中添加黄历，显示农历日期信息。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      }
+    ],
+    "title": "日历黄历",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "农历日期速览",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.emoji_calendar2"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261029224552202"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "6e89cd3b-8b4a-40f0-88c8-b21da877cf4c"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "在日历中添加黄历，显示农历日期信息。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "在日历中添加黄历，显示农历日期信息。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    }
+  ],
+  "title": "日历黄历",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "农历日期速览",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.emoji_calendar2"
+  ]
+}

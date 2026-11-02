@@ -1,0 +1,79 @@
+{
+  "content": {
+    "bundleName": "com.huawei.genui",
+    "userQuery": "创建一张耳机电量卡片，显示当前蓝牙连接的耳机名称、耳机盒电量、左右耳电量及充电状态。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/earphoneName",
+          "/batteryLevel",
+          "/leftBatteryLevel",
+          "/rightBatteryLevel",
+          "/chargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "耳机电量",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "耳机状态速览",
+    "candidateAssetIds": [
+      "asset.emoji_bluetooth_earbuds_black"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261031023342005"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "fa3658ae-222e-4f43-8c2a-5fae72332e06"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "创建一张耳机电量卡片，显示当前蓝牙连接的耳机名称、耳机盒电量、左右耳电量及充电状态。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "bundleName": "com.huawei.genui",
+  "userQuery": "创建一张耳机电量卡片，显示当前蓝牙连接的耳机名称、耳机盒电量、左右耳电量及充电状态。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/earphoneName",
+        "/batteryLevel",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel",
+        "/chargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "耳机电量",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "耳机状态速览",
+  "candidateAssetIds": [
+    "asset.emoji_bluetooth_earbuds_black"
+  ]
+}
