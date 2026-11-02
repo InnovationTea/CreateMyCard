@@ -112,7 +112,6 @@ Row(
         "_advancedComponent": "BatteryOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "start",
         "alignItems": "center",
         "clip": true,
@@ -122,14 +121,15 @@ Row(
     Row(
         {
             "width": "matchParent",
-            "itemMargin": 8,
+            "itemMargin": 2,
             "justifyContent": "spaceBetween",
             "alignItems": "center",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
         Column(
             {
-                "itemMargin": 4,
+                "layoutWeight": 1,
+                "itemMargin": #Expr(data.charging ? 4 : (data.temperature ? 2 : 4)),
                 "justifyContent": "start",
                 "alignItems": "start",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
@@ -137,8 +137,8 @@ Row(
             #if data.percent
             Text(Expr("电量 " + data.percent + "%"),
                 {
-                    "fontSize": 14,
-                    "fontWeight": 700,
+                    "fontSize": 12,
+                    "fontWeight": 500,
                     "fontColor": $theme('primaryColor'),
                     "maxLines": 1,
                     "textOverflow": "ellipsis",
@@ -148,8 +148,8 @@ Row(
             #elseif data.percentText
             Text(Expr("电量 " + data.percentText),
                 {
-                    "fontSize": 14,
-                    "fontWeight": 700,
+                    "fontSize": 12,
+                    "fontWeight": 500,
                     "fontColor": $theme('primaryColor'),
                     "maxLines": 1,
                     "textOverflow": "ellipsis",
@@ -159,8 +159,8 @@ Row(
             #else
             Text("电量信息异常",
                 {
-                    "fontSize": 14,
-                    "fontWeight": 700,
+                    "fontSize": 12,
+                    "fontWeight": 500,
                     "fontColor": $theme('primaryColor'),
                     "maxLines": 1,
                     "textOverflow": "ellipsis",
@@ -180,7 +180,17 @@ Row(
                 }
             ),
             #elseif data.temperature
-            Text(Expr('电池 ' + data.temperature),
+            Text("电池温度",
+                {
+                    "fontSize": 12,
+                    "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
+            ),
+            Text(data.temperature,
                 {
                     "fontSize": 12,
                     "fontWeight": 500,
@@ -1743,9 +1753,8 @@ Column(
         "_layoutActionBackgroundOpacity": 0.2,
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 0, "top": 8, "right": 0, "bottom": 0},
         "itemMargin": 4,
-        "justifyContent": "start",
+        "justifyContent": "center",
         "alignItems": "center",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
@@ -1805,7 +1814,7 @@ Column(
     Text(data.chargingStatus,
         {
             "width": "matchParent",
-            "height": 28,
+            "height": 20,
             "fontSize": 14,
             "minFontSize": 12,
             "fontWeight": 500,

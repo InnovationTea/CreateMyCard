@@ -287,6 +287,24 @@ def _options(node: Nested2Node) -> dict[str, Any]:
     return next((value for value in node.values if isinstance(value, dict)), {})
 
 
+@pytest.mark.parametrize("omitted", [
+    frozenset(), frozenset({"end"}), frozenset({"date"}), frozenset({"date", "end", "countdown"}),
+])
+def test_title_hero_groups_date_and_time_above_action(omitted: frozenset[str]) -> None:
+    hero = _expanded("ScheduleOverviewTitleHero@1", omitted=omitted)
+    header, title, timing, *footer = hero.children
+    assert [_options(n).get("height") for n in (header, title, timing)] == [20, 22, 16]
+    assert timing.component_type == "Row"
+    assert len(timing.children) == (1 if "date" in omitted else 2)
+    time_text = _serialize_node(timing.children[-1])
+    assert "dtStart" in time_text
+    assert ("dtEnd" in time_text) == ("end" not in omitted)
+    assert ("startDate" in _serialize_node(timing)) == ("date" not in omitted)
+    assert bool(footer) == ("countdown" not in omitted)
+    if footer:
+        assert "countdownDays" in _serialize_node(footer[0])
+
+
 def _a2ui(case: CalendarCase) -> str:
     definition = _registry().require_template(case.template_id)
     available = set(case.fields)

@@ -89,8 +89,8 @@
     和地点全部必需，不要求结束时间或时区；可选 `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewTitleHero@1`：标题日程 Hero；展示标题和开始时间，可选结束时间；可选
     `calendarIcon` 与 `headerLabel`。真实日期（/events/0/startDate）与距会议天数
-    （/events/0/countdownDays）可选，可用时分别在标题上方（12vp 日期行）和卡片底部
-    （12vp「距会议还有 N 天」）展示。
+    （/events/0/countdownDays）可选。日期与开始时间在会议名称下方同排展示，提供结束时间时显示时间范围。
+    倒计时单独一行显示「距会议还有 N 天」。
   - `ScheduleOverviewEventCountDetailsHero@1`：近期日程清点 Hero；展示日程总数及首项日程的标题、
     开始时间和备注，不接收展示 Prop。
   - `ScheduleOverviewEventCountTwoEventsFull@1`：双日程清点 Full；展示日程总数，以及前两项日程各自的

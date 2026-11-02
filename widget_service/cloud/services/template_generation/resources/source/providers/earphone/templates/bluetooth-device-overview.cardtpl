@@ -206,13 +206,13 @@ Column(
     Text(Expr(`${data.connected}? '已连接' : '未连接'`),
         {
             "width": "matchParent",
+            "height": 22,
             "fontSize": 18,
             "fontWeight": 700,
             "fontColor": $theme('primaryColor'),
             "maxLines": 1,
             "textOverflow": "ellipsis",
-            "constraintSize": {"minWidth": 0, "minHeight": 0},
-            "margin": {"top": 6, "bottom": 4, "left": 0, "right": 0}
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
     ),
     #if data.left && data.right
@@ -326,96 +326,110 @@ Column(
         }
     ),
     #endif
-    #if data.leftChargingStatus
+    #if data.leftChargingStatus || data.rightChargingStatus
     Row(
         {
             "width": "matchParent",
             "height": 16,
-            "itemMargin": 2,
-            "justifyContent": "start",
-            "alignItems": "center",
+            "itemMargin": 4,
+            "alignItems": "center"
         },
-        #if props.leftEarIcon
-        #if props.rightEarIcon
-        Image(props.leftEarIcon,
+        #if data.leftChargingStatus
+        Row(
             {
-                "width": 12,
-                "height": 12,
-                "fillColor": $theme('supportContentColor')
-            }
-        ),
-        #else
-        Stack({"width": 12, "height": 12, "borderRadius": 6,
-          "alignContent": "center", "flexShrink": 0,
-          "backgroundColor": $theme('supportContentColor')},
-          Text("L", {"width": 12, "height": 12, "fontSize": 10,
-            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
-            "maxLines": 1})
+                "layoutWeight": 1,
+                "height": 16,
+                "itemMargin": 2,
+                "justifyContent": "start",
+                "alignItems": "center",
+            },
+            #if props.leftEarIcon
+            #if props.rightEarIcon
+            Image(props.leftEarIcon,
+                {
+                    "width": 12,
+                    "height": 12,
+                    "fillColor": $theme('supportContentColor')
+                }
+            ),
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("L", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            Text(data.leftChargingStatus,
+                {
+                    "layoutWeight": 1,
+                    "textOverflow": "ellipsis",
+                    "fontColor": $theme('supportContentColor'),
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "maxLines": 1
+                }
+            )
         ),
         #endif
-        #else
-        Stack({"width": 12, "height": 12, "borderRadius": 6,
-          "alignContent": "center", "flexShrink": 0,
-          "backgroundColor": $theme('supportContentColor')},
-          Text("L", {"width": 12, "height": 12, "fontSize": 10,
-            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
-            "maxLines": 1})
-        ),
-        #endif
-        Text(data.leftChargingStatus,
+        #if data.rightChargingStatus
+        Row(
             {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 12,
-                "fontWeight": 400,
-                "maxLines": 1
-            }
+                "layoutWeight": 1,
+                "height": 16,
+                "itemMargin": 2,
+                "justifyContent": "start",
+                "alignItems": "center",
+            },
+            #if props.leftEarIcon
+            #if props.rightEarIcon
+            Image(props.rightEarIcon,
+                {
+                    "width": 12,
+                    "height": 12,
+                    "fillColor": $theme('supportContentColor')
+                }
+            ),
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            #else
+            Stack({"width": 12, "height": 12, "borderRadius": 6,
+              "alignContent": "center", "flexShrink": 0,
+              "backgroundColor": $theme('supportContentColor')},
+              Text("R", {"width": 12, "height": 12, "fontSize": 10,
+                "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
+                "maxLines": 1})
+            ),
+            #endif
+            Text(data.rightChargingStatus,
+                {
+                    "layoutWeight": 1,
+                    "textOverflow": "ellipsis",
+                    "fontColor": $theme('supportContentColor'),
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "maxLines": 1
+                }
+            )
         )
-    ),
-    #endif
-    #if data.rightChargingStatus
-    Row(
-        {
-            "width": "matchParent",
-            "height": 16,
-            "itemMargin": 2,
-            "justifyContent": "start",
-            "alignItems": "center",
-        },
-        #if props.leftEarIcon
-        #if props.rightEarIcon
-        Image(props.rightEarIcon,
-            {
-                "width": 12,
-                "height": 12,
-                "fillColor": $theme('supportContentColor')
-            }
-        ),
-        #else
-        Stack({"width": 12, "height": 12, "borderRadius": 6,
-          "alignContent": "center", "flexShrink": 0,
-          "backgroundColor": $theme('supportContentColor')},
-          Text("R", {"width": 12, "height": 12, "fontSize": 10,
-            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
-            "maxLines": 1})
-        ),
         #endif
-        #else
-        Stack({"width": 12, "height": 12, "borderRadius": 6,
-          "alignContent": "center", "flexShrink": 0,
-          "backgroundColor": $theme('supportContentColor')},
-          Text("R", {"width": 12, "height": 12, "fontSize": 10,
-            "fontWeight": 500, "fontColor": "#FFFFFFFF", "textAlign": "center",
-            "maxLines": 1})
-        ),
-        #endif
-        Text(data.rightChargingStatus,
-            {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 12,
-                "fontWeight": 400,
-                "maxLines": 1
-            }
-        )
     )
     #endif
 )
@@ -1145,7 +1159,6 @@ Row(
         "_advancedComponent": "BluetoothDeviceOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "start",
         "alignItems": "center",
         "clip": true,
@@ -1155,13 +1168,14 @@ Row(
     Row(
         {
             "width": "matchParent",
-            "itemMargin": 8,
+            "itemMargin": 2,
             "justifyContent": "spaceBetween",
             "alignItems": "center",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
         Column(
             {
+                "layoutWeight": 1,
                 "itemMargin": 4,
                 "justifyContent": "start",
                 "alignItems": "start",
