@@ -39,6 +39,7 @@ from services.compact_dsl_a2ui_converter import (
 )
 from services.compact_layout_runtime import (
     CompactLayoutRuntimeError,
+    layout_ids_for_size,
     load_layout_contract,
     match_compact_layout,
 )
@@ -2135,6 +2136,16 @@ def _composition_groups_freshness_with_core(
     return False
 
 
+def _has_wide_layout_candidate(plan: dict[str, Any]) -> bool:
+    hints = plan.get("layoutHints")
+    candidates = list(hints) if isinstance(hints, list) else []
+    composition = plan.get("composition")
+    if isinstance(composition, dict):
+        candidates.append(composition.get("layout"))
+    wide_layouts = layout_ids_for_size("2x4")
+    return any(candidate in wide_layouts for candidate in candidates)
+
+
 def compact_plan_context(
     plan: dict[str, Any],
     *,
@@ -2164,7 +2175,7 @@ def compact_plan_context(
         and not whole_card_instruction
         and any(_requires_action_button(fact) for fact in facts)
     )
-    if has_wide_button_action:
+    if has_wide_button_action and _has_wide_layout_candidate(plan):
         wide_action_instruction = (
             "本轮2x4包含独立按钮动作：W-top-bottom只允许[标题?, 主体, 明细]，"
             "没有动作角色，禁止选择它、追加根子节点或定义游离按钮。"
@@ -2497,6 +2508,8 @@ def _visible_text_fragment(value: Any) -> str:
     if isinstance(value, str):
         return _BINDING_PATH.sub("", value)
     if isinstance(value, dict):
+        if set(value) == {"path"} and isinstance(value.get("path"), str):
+            return ""
         return "".join(_visible_text_fragment(item) for item in value.values())
     if isinstance(value, list):
         return "".join(_visible_text_fragment(item) for item in value)

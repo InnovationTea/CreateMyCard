@@ -649,6 +649,29 @@ def test_plan_data_label_must_share_a_visible_information_unit_with_its_readout(
     assert compact_plan_coverage_errors(labeled_source, plan, spec) == ()
 
 
+def test_plan_display_label_cannot_be_satisfied_by_an_invisible_binding_path() -> None:
+    path = "/data/风力"
+    spec = {
+        "size": "2x4",
+        "dataModelSchema": {"data": {"风力": {"type": "integer", "sampleValue": 2}}},
+        "eventCandidates": [],
+    }
+    plan = {"info_required": [{
+        "requirement": "当前风力", "dataId": path, "displayLabel": "风力",
+    }]}
+    rows = [
+        ["root", "Column", {}, ["reading"]],
+        ["reading", "EmphasisText", {"mainText": {"path": path}}],
+    ]
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    errors = compact_plan_coverage_errors(source, plan, spec)
+    assert len(errors) == 1
+    assert "not visible with its readout" in errors[0]
+    rows[1][2]["secondaryText"] = "风力"
+    labeled = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    assert compact_plan_coverage_errors(labeled, plan, spec) == ()
+
+
 def test_plan_preserves_a_data_display_label_and_rejects_it_for_actions() -> None:
     payload = json.loads(plan_call())
     payload["arguments"]["info_required"][0]["displayLabel"] = "会议名称"

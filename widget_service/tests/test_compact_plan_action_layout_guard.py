@@ -145,6 +145,17 @@ def test_wide_action_context_forbids_top_bottom_and_requires_reachable_button() 
     assert "定义游离按钮" in context
 
 
+@pytest.mark.parametrize("facts", [
+    [_data(), _action("event.company")],
+    [_data(), _action("event.company"), _action("event.home")],
+])
+def test_small_action_context_does_not_request_wide_layouts(facts) -> None:
+    result = _parse(facts, ["S-title-content-action"])
+    context = compact_plan_context(result.plan)
+    assert "本轮2x4包含独立按钮动作" not in context
+    assert "仅从W-content-side-slots、W-split-panels" not in context
+
+
 def test_two_by_two_dual_action_plan_rejects_more_than_two_body_facts() -> None:
     task = _task()
     schema = task["dataModelSchema"]["data"]
