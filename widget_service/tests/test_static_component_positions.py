@@ -162,20 +162,33 @@ def test_single_line_panel_contract_and_dense_fallback(size, expected_width, cou
         assert wrapper and wrapper.get("styles", {}).get("justifyContent") == "end"
 
 
-def test_numbered_list_keeps_model_facts_separate_from_generated_badges():
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("with_value", [False, True])
+def test_numbered_list_keeps_model_facts_separate_from_generated_badges(size, with_value):
     props = {"items": [{"primaryText": "公园", "secondaryText": "免费"},
                        {"primaryText": "展馆", "secondaryText": "20元"}]}
-    nodes = convert("TextList", props)
-    source = source_for("TextList", props)
+    if with_value:
+        for item in props.get("items", []):
+            item["value"] = "开放"
+    nodes = convert("TextList", props, size)
+    source = source_for("TextList", props, size)
     with content_policy_scope(STATIC_CONTENT_POLICY):
         groups, _shared = static_display_groups(source)
     assert len(groups) == 2
-    assert groups[0].parts == ["公园", "免费"]
+    assert groups[0].parts == ["公园", "免费"] + (["开放"] if with_value else [])
     for index in range(2):
         badge = nodes.get(f"body__static_item{index}_badge")
         assert badge and badge.get("content") == str(index + 1)
-        assert badge.get("styles", {}).get("height") == 16
-        assert badge.get("styles", {}).get("fontSize") == 10
+        styles = badge.get("styles", {})
+        assert styles.get("width") == styles.get("height") == 16
+        assert styles.get("borderRadius") == 8
+        assert styles.get("fontSize") == 10
+        assert styles.get("fontSize") * styles.get("lineHeight") == 16
+        assert styles.get("textAlign") == "center"
+        assert styles.get("flexShrink") == 0
+        boxes = reference_region_boxes(list(nodes.values()), size=size)
+        badge_box = boxes.get(f"body__static_item{index}_badge")
+        assert badge_box and badge_box.width == badge_box.height == 16
 
 
 def test_bottom_text_is_covered_and_missing_bottom_text_is_reported():
