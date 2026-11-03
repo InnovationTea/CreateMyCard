@@ -634,7 +634,6 @@ data = {
     workoutDuration: $optionalPath("/exerciseDurationText"),
     heartRateMin: $optionalPath("/exerciseHeartRateMin")
 }
-
 Column(
     {
         "_advancedComponent": "WorkoutOverview",
@@ -648,47 +647,99 @@ Column(
         "onClick": EventAction(props?.actionId)
     },
     Row(
-        {"width": "matchParent", "height": 16, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top"},
-        Text(
-            data.workoutDate,
-            {"height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        {
+            "width": "matchParent",
+            "height": 16,
+            "itemMargin": 4,
+            "justifyContent": "spaceBetween",
+            "alignItems": "top"
+        },
+        Text(data.workoutDate,
+            {
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
         ),
         #if props.sourceIcon
-            Image(
-                props.sourceIcon,
-                {"_wideHeaderIcon": true, "fillColor": $theme('supportContentColor'), "width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
-            )
+        Image(props.sourceIcon,
+            {
+                "_wideHeaderIcon": true,
+                "fillColor": $theme('supportContentColor'),
+                "width": 16,
+                "height": 16,
+                "objectFit": "contain",
+                "flexShrink": 0
+            }
+        )
         #endif
     ),
-    Text(
-        data.workoutType,
-        {"width": "matchParent", "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    Text(data.workoutType,
+        {
+            "width": "matchParent",
+            "fontSize": 18,
+            "fontWeight": 700,
+            "fontColor": $theme('primaryColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
     ),
     #if data.workoutDuration
-        Row(
-            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-            Text(
-                "时长",
-                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-            ),
-            Text(
-                data.workoutDuration,
-                {"fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-            )
+    Row(
+        {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "start",
+            "alignItems": "center"
+        },
+        Text("时长",
+            {
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1
+            }
+        ),
+        Text(data.workoutDuration,
+            {
+                "fontSize": 12,
+                "fontWeight": 700,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1
+            }
         )
+    ),
     #endif
     #if data.heartRateMin
-        Row(
-            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-            Text(
-                "最低",
-                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-            ),
-            Text(
-                Expr(data.heartRateMin + " 次/分"),
-                {"fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-            )
+    Row(
+        {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "start",
+            "alignItems": "center"
+        },
+        Text("最低",
+            {
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1
+            }
+        ),
+        Text(Expr(data.heartRateMin + " 次/分"),
+            {
+                "fontSize": 12,
+                "fontWeight": 700,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1
+            }
         )
+    )
     #endif
 )
 #End
