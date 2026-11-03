@@ -35,6 +35,21 @@ test("预览样例覆盖共享 Runtime 的全部高阶组件", () => {
   assert.deepEqual([...covered].sort(), [...HIGH_LEVEL_COMPONENT_TYPES].sort());
 });
 
+test("DataDisplay 文本模式接受1–10个字符", () => {
+  const source = (value: string) => [
+    '["root","Column",{"backgroundColor":"#FFF1F6FE"},["display"]]',
+    '["display","DataDisplay",{"label":"今天","value":{"path":"/data/value"},"supportingText":"星期日"}]',
+    JSON.stringify(["/data/value", value]),
+  ].join("\n");
+
+  assert.doesNotThrow(() => compileMiniDsl(source("优"), { size: "2x2" }));
+  assert.doesNotThrow(() => compileMiniDsl(source("2026-11-01"), { size: "2x2" }));
+  assert.throws(
+    () => compileMiniDsl(source("一二三四五六七八九十甲"), { size: "2x2" }),
+    /DataDisplay\.value 必须为 1–10 个字符/,
+  );
+});
+
 test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal(VISUAL_RECIPE_VERSION, "visual-recipes-v1");
   assert.deepEqual(visualRecipePart("InfoBlock", "icon", "2x2").styles, {
@@ -394,11 +409,6 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
       fontSize: 12,
     },
     {
-      type: "DataDisplay",
-      props: { label: "倒计时", value: 3, supportingText: "天" },
-      fontSize: 48,
-    },
-    {
       type: "TableText",
       props: { items: [{ label: "湿度", value: "48%" }, { label: "风力", value: "2级" }] },
       fontSize: 12,
@@ -436,7 +446,19 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
   }
 });
 
-test("DataDisplay 文本模式展开居中图标、24fp 双行结论和动态支撑文本", () => {
+test("DataDisplay 按绑定值选 Recipe，忽略历史 DSL 的字号", () => {
+  for (const [sample, legacyFont, expected] of [[68, 24, 48], ["68%", 21, 48], ["优", 48, 21]] as const) {
+    const source = [
+      ["display", "DataDisplay", {
+        label: "状态", value: { path: "/value" }, supportingText: "当前", fontSize: legacyFont,
+      }], ["/value", sample],
+    ].map(row => JSON.stringify(row)).join("\n");
+    const graph = compileMiniDsl(source, { size: "2x2" }).graph;
+    assert.equal((graph.getNode("display_value")?.props.styles as Record<string, unknown>).fontSize, expected);
+  }
+});
+
+test("DataDisplay 文本模式展开居中图标、21fp 双行结论和动态支撑文本", () => {
   const source = [
     ["root", "Layout", {
       layout: "S-center",
@@ -468,7 +490,7 @@ test("DataDisplay 文本模式展开居中图标、24fp 双行结论和动态支
   assert.deepEqual(valueArea?.children, ["display_value"]);
   assert.equal(valueAreaStyles.height, 60);
   assert.equal(valueAreaStyles.justifyContent, "center");
-  assert.equal((value?.props.styles as Record<string, unknown>).fontSize, 24);
+  assert.equal((value?.props.styles as Record<string, unknown>).fontSize, 21);
   assert.equal((value?.props.styles as Record<string, unknown>).lineHeight, 1.25);
   assert.equal((value?.props.styles as Record<string, unknown>).maxLines, 2);
   assert.equal((value?.props.styles as Record<string, unknown>).height, undefined);
@@ -611,7 +633,7 @@ test("SecondaryBody 支持 1–6 项，保留全部绑定并拒绝超过上限",
   }
 });
 
-test("SecondaryBody 按完整日期与星期自动分行，宽槽保留自然占宽和分隔空格", () => {
+test("SecondaryBody 无上限的日期与星期在两种尺寸都分行", () => {
   const source = [
     '["root","Column",{"width":"matchParent","padding":12},["meta"]]',
     '["meta","SecondaryBody",{"width":"matchParent","fontSize":14,"items":[{"value":{"path":"/date"}},{"value":"{{ ${/weekday} }}"}]}]',
@@ -626,11 +648,25 @@ test("SecondaryBody 按完整日期与星期自动分行，宽槽保留自然占
   assert.equal((smallValue?.styles as Record<string, unknown>).height, 12);
   assert.equal(small.getNode("meta_row0_separator"), null);
   const wide = compileMiniDsl(source, { size: "2x4" }).graph;
-  assert.deepEqual(wide.getNode("meta")?.children, ["meta_row0"]);
-  assert.equal(wide.getNode("meta_row0_separator")?.props.content, " | ");
-  const first = wide.getNode("meta_item0")?.props.styles as Record<string, unknown>;
-  const second = wide.getNode("meta_item1")?.props.styles as Record<string, unknown>;
-  assert.ok(Number(first.width) > Number(second.width));
+  assert.deepEqual(wide.getNode("meta")?.children, ["meta_row0", "meta_row1"]);
+  assert.equal(wide.getNode("meta_row0_separator"), null);
+});
+
+test("SecondaryBody 只按显示上限并排，不按绑定当前值定宽", () => {
+  for (const [value, sample, rowCount] of [
+    [{ path: "/value" }, "示例", 2], ["{{ ${/value} + '级' }}", "示例", 2],
+    [{ path: "/value" }, "好", 2], [{ path: "/value" }, 0, 2], ["示例", "示例", 1],
+    ["{{ ${/value} ? '好' : '待确认' }}", true, 1],
+    ["{{ ${/value} ? '好' : '这段文字超出当前条目的可用宽度' }}", true, 2],
+  ] as const) {
+    const source = [
+      ["root", "SecondaryBody", { width: 126, items: [{ value: "短" }, { label: "值", value }] }],
+      ["/value", sample],
+    ].map(entry => JSON.stringify(entry)).join("\n");
+    const graph = compileMiniDsl(source, { size: "2x2" }).graph;
+    assert.equal(graph.getNode("root")?.children.length, rowCount);
+    assert.equal(Boolean(graph.getNode("root_row0_separator")), rowCount === 1);
+  }
 });
 
 test("SecondaryBody 长单项声明两行，未知绑定保持原布局", () => {

@@ -1289,7 +1289,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["metadata_item0_value"]["styles"]["fontSize"], 14)
         self.assertEqual(components["metadata_item0_value"]["styles"]["fontWeight"], 400)
         self.assertEqual(components["metadata_item0_value"]["styles"]["maxLines"], 1)
-        self.assertEqual(components["supporting_item0_label"]["content"], "状态 ")
+        self.assertEqual(components["supporting_item0_label"]["content"], "状态")
+        self.assertEqual(components["supporting_item0"]["itemMargin"], 4)
         self.assertEqual(
             components["supporting_item0_label"]["styles"]["flexShrink"],
             0,
@@ -1356,13 +1357,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                                     "columns": columns,
                                     "fontSize": font_size,
                                     "items": [
-                                        {"label": "电 ", "value": {"path": "/data/percent"}},
-                                        {"value": "{{ '状态 ' + ${/data/status} }}"},
+                                        {
+                                            "label": "电 ",
+                                            "value": "{{ ${/data/low} ? '低' : '高' }}",
+                                        },
+                                        {"value": "未充电"},
                                     ],
                                 },
                             ],
-                            ["/data/percent", 68],
-                            ["/data/status", "未充电"],
+                            ["/data/low", False],
                         ]
                     )
                     result = convert_compact_dsl_to_a2ui(source, size=size)
@@ -1376,7 +1379,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     self.assertEqual(details.get("children"), children)
                     value = by_id.get("details_item0_value")
                     assert isinstance(value, dict)
-                    self.assertEqual(value.get("content"), "{{ ${/data/percent} }}")
+                    self.assertEqual(value.get("content"), "{{ ${/data/low} ? '低' : '高' }}")
                     styles = value.get("styles")
                     assert isinstance(styles, dict)
                     self.assertEqual(styles.get("fontSize"), font_size)
@@ -1390,11 +1393,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                     else:
                         self.assertIsNone(separator)
 
-    def test_secondary_body_automatically_packs_known_text_without_losing_bindings(self) -> None:
-        for size, font, row_ids in (
-            ("2x2", 12, ["meta_row0", "meta_row1"]),
-            ("2x4", 14, ["meta_row0"]),
-        ):
+    def test_secondary_body_keeps_unbounded_date_and_weekday_on_separate_rows(self) -> None:
+        for size in ("2x2", "2x4"):
             with self.subTest(size=size):
                 source = _serialize([
                     ["root", "Column", {"width": "matchParent", "padding": 12}, ["meta"]],
@@ -1418,27 +1418,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 value = by_id.get("meta_item0_value")
                 assert isinstance(meta, dict)
                 assert isinstance(value, dict)
-                self.assertEqual(meta.get("children"), row_ids)
+                self.assertEqual(meta.get("children"), ["meta_row0", "meta_row1"])
                 self.assertEqual(value.get("content"), "{{ ${/data/date} }}")
                 styles = value.get("styles")
                 assert isinstance(styles, dict)
-                self.assertEqual(styles.get("fontSize"), font)
-                self.assertEqual(styles.get("height"), font)
-                separator = by_id.get("meta_row0_separator")
-                if size == "2x2":
-                    self.assertIsNone(separator)
-                else:
-                    assert isinstance(separator, dict)
-                    self.assertEqual(separator.get("content"), " | ")
-                    first = by_id.get("meta_item0")
-                    second = by_id.get("meta_item1")
-                    assert isinstance(first, dict)
-                    assert isinstance(second, dict)
-                    first_styles = first.get("styles")
-                    second_styles = second.get("styles")
-                    assert isinstance(first_styles, dict)
-                    assert isinstance(second_styles, dict)
-                    self.assertGreater(first_styles.get("width"), second_styles.get("width"))
+                self.assertEqual(styles.get("fontSize"), 12)
+                self.assertEqual(styles.get("height"), 12)
+                self.assertIsNone(by_id.get("meta_row0_separator"))
                 data_update = json.loads(messages[2]).get("updateDataModel")
                 assert isinstance(data_update, dict)
                 self.assertEqual(data_update.get("value"), {

@@ -65,7 +65,7 @@ def test_data_display_registers_text_conclusion_recipe() -> None:
     assert numeric_recipe["parts"]["value"]["styles"]["fontSize"] == 48
     assert recipe["parts"]["root"]["styles"]["height"] == 122
     assert recipe["parts"]["value"]["styles"]["height"] == 60
-    assert recipe["parts"]["value"]["styles"]["fontSize"] == 24
+    assert recipe["parts"]["value"]["styles"]["fontSize"] == 21
     assert recipe["parts"]["value"]["styles"]["lineHeight"] == 1.25
     assert recipe["parts"]["value"]["styles"]["maxLines"] == 2
     assert recipe["parts"]["valueArea"]["component"] == "Column"

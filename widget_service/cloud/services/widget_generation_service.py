@@ -55,6 +55,7 @@ from services.compact_plan import (
     compact_plan_omitted_facts,
     compact_plan_recovery_facts,
     compact_recovery_plan_errors,
+    fusion_display_task_spec,
     parse_compact_plan_call,
     static_fact_source,
 )
@@ -635,7 +636,14 @@ class WidgetGenerationService:
         )
         from services.prompt_builder import PromptBuilder
 
-        business_context = PromptBuilder.business_context(task_spec)
+        display_task = task_spec
+        if (
+            generation_mode == "create"
+            and policy.operation == "generateWidgetCardCompactDsl"
+            and not policy.single_step
+        ):
+            display_task = fusion_display_task_spec(task_spec)
+        business_context = PromptBuilder.business_context(display_task)
         latency_by_stage["generationPreflight"] = self._elapsed_ms(stage_started_at)
         trace_step(
             "generation_preflight.completed",
@@ -772,7 +780,7 @@ class WidgetGenerationService:
                     size=task_spec.size,
                 )
                 prompt = PromptBuilder().build_design_token(
-                    task_spec,
+                    display_task,
                     design_system_prompt,
                     policy.source_format,
                     previous_design_token=previous_design_token,
@@ -878,7 +886,7 @@ class WidgetGenerationService:
             event_candidates=effective_events,
             repair_context=RepairGuidanceContext(mode="edit" if source_load_result else "create"),
             layout_scope=(
-                PromptBuilder.layout_scope(task_spec)
+                PromptBuilder.layout_scope(display_task)
                 if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT
                 else None
             ),
@@ -886,6 +894,9 @@ class WidgetGenerationService:
         latest_processing_result = DslProcessingResult(source_dsl="")
         source_generated_by_jsx = False
         source_generated_by_template = False
+        fusion_validation_task = processing_context.task_spec
+        if display_task is not task_spec:
+            fusion_validation_task = {**fusion_validation_task, "excludeUpdatedAtFromDisplay": True}
         validated_template_source: str | None = None
         accepted_compact_plan: dict | None = None
         accepted_compact_plan_warnings: tuple[str, ...] = ()
@@ -939,7 +950,7 @@ class WidgetGenerationService:
             plan_system_prompt = f"{prompt[0]['content']}\n\n{plan_contract.strip()}"
             plan_prompt_started_at = time.perf_counter()
             plan_prompt = PromptBuilder().build_compact_plan(
-                task_spec,
+                display_task,
                 plan_system_prompt,
                 prompt[1]["content"],
                 retry_context=compact_retry_context,
@@ -1132,7 +1143,7 @@ class WidgetGenerationService:
                         if not review_keep:
                             validation = parse_compact_plan_call(
                                 raw_plan,
-                                task_spec.model_dump(mode="json", exclude_none=True),
+                                display_task.model_dump(mode="json", exclude_none=True),
                                 static_text_source=previous_design_token,
                                 require_static_identity=content_policy.is_static,
                                 require_composition=(
@@ -1491,7 +1502,7 @@ class WidgetGenerationService:
                     raise RuntimeError("Compact Agent conversation is missing after Plan")
                 compact_agent_messages = PromptBuilder.build_compact_dsl_continuation(
                     compact_agent_messages,
-                    task_spec,
+                    display_task,
                     accepted_compact_plan,
                     plan_warnings=accepted_compact_plan_warnings,
                 )
@@ -1579,7 +1590,7 @@ class WidgetGenerationService:
                     invalid_source_dsl,
                     quality_error_payloads,
                     compact_plan=accepted_compact_plan,
-                    task_spec=task_spec.model_dump(mode="json", exclude_none=True),
+                    task_spec=display_task.model_dump(mode="json", exclude_none=True),
                 )
                 repair_strategy = directive.to_prompt_payload()
                 trace_record(
@@ -1626,7 +1637,7 @@ class WidgetGenerationService:
                     invalid_source_dsl,
                     quality_error_payloads,
                     dsl_format=policy.source_format,
-                    task_spec=task_spec,
+                    task_spec=display_task,
                     compact_plan=accepted_compact_plan,
                     previous_failures=(
                         quality_repair_failure_history
@@ -1760,6 +1771,10 @@ class WidgetGenerationService:
                 return []
             processing_context_for_source = replace(
                 processing_context,
+                task_spec=(
+                    processing_context.task_spec if source_generated_by_template
+                    else fusion_validation_task
+                ),
                 skip_compact_dsl_validation=source_generated_by_template,
                 colorless_layout=colorless_source(),
                 compact_plan=accepted_compact_plan,
@@ -2227,7 +2242,7 @@ class WidgetGenerationService:
                         retained_facts, omitted_facts = compact_plan_recovery_facts(
                             latest_processing_result.source_dsl,
                             accepted_compact_plan,
-                            task_spec.model_dump(mode="json", exclude_none=True),
+                            display_task.model_dump(mode="json", exclude_none=True),
                             allowed_omitted_fact_indexes=(
                                 compact_repair_tracker.allowed_omitted_fact_indexes
                                 if compact_repair_tracker is not None

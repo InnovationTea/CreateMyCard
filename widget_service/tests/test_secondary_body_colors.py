@@ -134,6 +134,31 @@ def test_secondary_labels_are_dim_and_bound_values_use_primary_color(size, colum
             assert row.props.get("fontColor") == "#99" + color[3:]
 
 
+@pytest.mark.parametrize("placeholder_first", [False, True])
+@pytest.mark.parametrize("value,sample,rows", [
+    ({"path": "/status"}, "示例", 2),
+    ("{{ ${/status} + '级' }}", "示例", 2),
+    ({"path": "/status"}, "好", 2),
+    ({"path": "/status"}, 0, 2),
+    ("{{ ${/status} ? '好' : '待确认' }}", True, 1),
+    ("{{ ${/status} ? '好' : '这段文字超出当前条目的可用宽度' }}", True, 2),
+    ("示例", "示例", 1),
+])
+def test_pair_decision_uses_display_bounds_instead_of_sample_width(
+    value, sample, rows, placeholder_first,
+):
+    items = [{"label": "值", "value": value}, {"value": "短"}]
+    if not placeholder_first:
+        items.reverse()
+    component = ComponentRow("support", "SecondaryBody", {"fontColor": "#FFFFFFFF", "items": items})
+    expanded = _expand_secondary_body(
+        component, "2x2", data_model={"status": sample}, available_width=126,
+    )
+    nodes = {row.component_id: row for row in expanded}
+    assert len(nodes["support"].children) == rows
+    assert ("support_row0_separator" in nodes) == (rows == 1)
+
+
 def test_standalone_supporting_text_keeps_existing_dim_color():
     component = ComponentRow("support", "SecondaryBody", {
         "fontColor": "#FFFFFFFF", "items": [{"value": "夜间睡眠时长"}],
@@ -141,6 +166,24 @@ def test_standalone_supporting_text_keeps_existing_dim_color():
     rows = _expand_secondary_body(component, "2x2")
     value = next(row for row in rows if row.component_id == "support_item0_value")
     assert value.props.get("fontColor") == "#99FFFFFF"
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("width,expected_rows", [(60, 2), (70, 1)])
+def test_labeled_pair_spacing_counts_towards_available_width(size, width, expected_rows):
+    component = ComponentRow("support", "SecondaryBody", {
+        "fontColor": "#FFFFFFFF", "columns": 2, "separator": "|",
+        "items": [{"label": "甲", "value": "a"}, {"label": "乙 ", "value": "b"}],
+    })
+    rows = _expand_secondary_body(component, size, available_width=width)
+    nodes = {row.component_id: row for row in rows}
+    assert len(nodes["support"].children) == expected_rows
+    for index, label in enumerate(["甲", "乙"]):
+        assert nodes[f"support_item{index}_label"].props["content"] == label
+        props = nodes[f"support_item{index}"].props
+        assert props["itemMargin"] == 4
+        if expected_rows == 1:
+            assert props["width"] == pytest.approx(14 + 8.4 + 4)
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])
