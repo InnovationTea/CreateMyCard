@@ -281,7 +281,7 @@ PillButton、CardButton 的静态 label 最多 5 个非空白字符，使用简�
 
 - PillButton 只进入登记的底部动作角色，宽度填满所属动作区、高 36。
 - CircleButton 只用于 S-title-anchor：一个显式动作、准确 SVG、独立左下支撑事实，且用户没有明确要求显示按钮文案；不是文字按钮失败后的通用替代。
-- 双 CardButton 只用于 S-content-dual-action：标准变体使用单行紧凑动作，actions-only 可合法两行；两个动作都必须真实必要。当前固定高度及正文参考余量见附录 A，不将该内部规格推广到所有 CardButton。
+- S-content-dual-action 的标准变体使用两个单行 PillButton；只有无展示事实的 actions-only 才使用两个 CardButton，并可合法两行。两个动作都必须真实必要。当前固定高度及正文参考余量见附录 A，不将该内部规格推广到所有 CardButton。
 - 唯一只读详情的整卡点击仅限服务端接受 wholeCardActionId 的 S-title-content / S-title-dual-content；没有独立按钮槽，不额外预留按钮高度。明确按钮要求及副作用动作不走此例外。
 
 #### 2×4 按钮规格
@@ -429,7 +429,7 @@ root 使用 Layout，角色 ID 为 header / body / note；没有共同标题或�
 
 **适用：** 一个紧凑内容及两个必要操作，或只有两个操作。
 
-**尺寸与排布：** 标准为 [内容, CardButton, CardButton]，两个动作按当前固定高度占位，相邻间隔 8，正文承接剩余空间。actions-only 只有两个动作及其间距，在安全区内整体居中，不因没有正文就拉伸为等高满屏区域；固定高度见附录 A。
+**尺寸与排布：** 标准为 [内容, PillButton, PillButton]，两个单行动作各占 36 高、相邻间隔 8，正文承接剩余空间。actions-only 为 [CardButton, CardButton]，两个动作各占 57 高、相邻间隔 8，在安全区内整体居中；不因没有正文就拉伸为等高满屏区域。
 
 **禁止 / 边界：** 无总标题或第三操作；有事实时不能选 actions-only 把正文丢掉，不把动态读数藏入按钮 label。
 

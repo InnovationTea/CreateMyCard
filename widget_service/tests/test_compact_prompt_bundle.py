@@ -299,6 +299,10 @@ def test_two_by_two_layout_prompt_delegates_geometry_to_semantic_templates() -> 
     ):
         assert retained_contract in layouts
 
+    assert "[content, PillButton, PillButton]" in layouts
+    assert '`variant:"actions-only"`，children 为 `[CardButton, CardButton]`' in layouts
+    assert '`variant:"actions-only"`，children 为 `[PillButton, PillButton]`' not in layouts
+
 
 def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() -> None:
     source = (DEFAULT_SOURCE / "layouts/2x4.md").read_text(encoding="utf-8")
