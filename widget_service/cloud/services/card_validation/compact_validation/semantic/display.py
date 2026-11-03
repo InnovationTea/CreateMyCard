@@ -263,8 +263,46 @@ def _has_dangling_range_separator(content: Any) -> bool:
     return bool(re.search("(?:'|\\\")\\s*(?:-|~|～|至|–|—)\\s*(?:'|\\\")\\s*$", body))
 
 
+def _weather_readout_context(
+    component: ComponentRow,
+    parents: dict[str, str],
+    nodes: dict[str, ComponentRow],
+) -> str:
+    parts = [_static_text_fragments(component.props.get("content"))]
+    parts.append(_paired_recipe_label_context(component, parents, nodes))
+    parent = nodes.get(parents.get(component.component_id))
+    if parent is None:
+        return " ".join(parts)
+    sibling_parts = []
+    for child_id in parent.children:
+        sibling = nodes.get(child_id)
+        if sibling is None or sibling.component_type != "Text" or sibling is component:
+            continue
+        # 另一条动态读数携带的前缀不能充当本条读数的标签。
+        if _component_content_paths(sibling):
+            return " ".join(parts)
+        sibling_parts.append(_static_text_fragments(sibling.props.get("content")))
+    parts.extend(sibling_parts)
+    # Group(label-value) 展开后，读数和值标签各自可能还有一层文字组件包装。
+    if _uses_visual_recipe_part(parent, "EmphasizedData.root") or _uses_visual_recipe_part(
+        parent, "EmphasisText.root",
+    ):
+        group = nodes.get(parents.get(parent.component_id))
+        if group and len(group.children) == 2 and group.children[1] == parent.component_id:
+            caption = nodes.get(group.children[0])
+            if caption and _uses_visual_recipe_part(caption, "EmphasisText.root"):
+                caption = nodes.get(caption.children[0]) if len(caption.children) == 1 else None
+            if (
+                caption and caption.component_type == "Text"
+                and not _component_content_paths(caption)
+            ):
+                parts.append(_static_text_fragments(caption.props.get("content")))
+    return " ".join(parts)
+
+
 def _collect_semantic_text_errors(
-    components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str]
+    components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str],
+    *, weather_readouts: dict[str, tuple[str, ...]] | None = None,
 ) -> None:
     components_by_id = {component.component_id: component for component in components}
     parent_by_child: dict[str, str] = {}
@@ -295,6 +333,15 @@ def _collect_semantic_text_errors(
                 ),
             )
         paths = _component_content_paths(component)
+        for path in paths:
+            labels = (weather_readouts or {}).get(path)
+            if labels:
+                context = _weather_readout_context(component, parent_by_child, components_by_id)
+                if not any(label in context for label in labels):
+                    errors.append(
+                        f"component {component.component_id}: {path} 须在同一项显示“{labels[0]}”"
+                        "和完整动态读数；保留原绑定和单位，不为其它字段添加标签。"
+                    )
         normalized_paths = [path.casefold() for path in paths]
         nearby_text = _nearby_text_context(component, parent_by_child, components_by_id)
         has_reminder_path = any(

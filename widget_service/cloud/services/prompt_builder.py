@@ -2225,6 +2225,7 @@ class PromptBuilder:
         compact_plan: dict[str, Any],
         *,
         plan_warnings: tuple[str, ...] = (),
+        card_spec: dict | None = None,
     ) -> list[dict[str, str]]:
         """Plan 通过后，在同一条消息历史中追加 DSL 阶段上下文。"""
         if len(conversation) < 4 or conversation[0].get("role") != "system":
@@ -2294,7 +2295,14 @@ class PromptBuilder:
                 task=task_value,
             )
 
+        from services.compact_weather_readouts import selected_weather_readouts
+
         context_parts: list[str] = []
+        for path, labels in selected_weather_readouts(card_spec or {}, compact_plan).items():
+            context_parts.append(
+                f"{path} 的可见读数须在同一项说明“{labels[0]}”，保留动态绑定及一个单位。"
+                "已有键值标签时直接绑定值，不重复拼接。"
+            )
         few_shot_context = PromptBuilder._compact_few_shot_context(
             task_spec,
             compact_plan,
