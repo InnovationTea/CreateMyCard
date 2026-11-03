@@ -409,11 +409,6 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
       fontSize: 12,
     },
     {
-      type: "DataDisplay",
-      props: { label: "倒计时", value: 3, supportingText: "天" },
-      fontSize: 48,
-    },
-    {
       type: "TableText",
       props: { items: [{ label: "湿度", value: "48%" }, { label: "风力", value: "2级" }] },
       fontSize: 12,
@@ -448,6 +443,18 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
       () => compileMiniDsl(invalid, { size: "2x2" }),
       /fontSize.*固定 Recipe 值/,
     );
+  }
+});
+
+test("DataDisplay 按绑定值选 Recipe，忽略历史 DSL 的字号", () => {
+  for (const [sample, legacyFont, expected] of [[68, 24, 48], ["68%", 21, 48], ["优", 48, 21]] as const) {
+    const source = [
+      ["display", "DataDisplay", {
+        label: "状态", value: { path: "/value" }, supportingText: "当前", fontSize: legacyFont,
+      }], ["/value", sample],
+    ].map(row => JSON.stringify(row)).join("\n");
+    const graph = compileMiniDsl(source, { size: "2x2" }).graph;
+    assert.equal((graph.getNode("display_value")?.props.styles as Record<string, unknown>).fontSize, expected);
   }
 });
 
