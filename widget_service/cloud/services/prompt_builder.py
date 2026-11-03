@@ -1253,8 +1253,8 @@ class PromptBuilder:
             if layout_scope == "S-content-dual-action":
                 return (
                     "# 本轮双动作预算\n\n"
-                    "使用 S-content-dual-action：正文38、间距8、CardButton36、间距8、CardButton36；"
-                    "不得改用PillButton。"
+                    "使用 S-content-dual-action：正文38、间距8、PillButton36、间距8、PillButton36；"
+                    "不得改用CardButton。"
                     "不增加 SingleLineTitle 或独立标题，不使用融球；必要对象名并入正文短行。"
                     "正文不放30/38fp大值，两个动作完整、各自可点击，不允许正文侵入按钮。"
                 )

@@ -480,7 +480,7 @@ def test_bluetooth_legacy_asset_name_preserves_existing_input_reference() -> Non
         ("2x2-V01", {"DataDisplay"}),
         ("2x2-V15", {"DataDisplay"}),
         ("2x2-V02", {"SingleLineTitle", "NumericRatioStack", "CircleButton"}),
-        ("2x2-V03", {"TableText", "CardButton"}),
+            ("2x2-V03", {"TableText", "PillButton"}),
         ("2x2-V04", {"SingleLineTitle", "EventCard", "PillButton"}),
         ("2x2-V05", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),
         ("2x2-V06", {"SingleLineTitle", "EmphasizedData", "SecondaryBody", "PillButton"}),

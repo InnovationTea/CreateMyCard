@@ -65,14 +65,14 @@ def _layout_source(layout: str, variant: str = "standard", action: bool = False)
         ],
         "S-title-dual-column-action": ["SingleLineTitle", "ProgressCircle", "ProgressCircle"],
         "S-title-anchor": ["SingleLineTitle", "EmphasisText", "EmphasisText", "CircleButton"],
-        "S-content-dual-action": ["EmphasisText", "CardButton", "CardButton"],
+        "S-content-dual-action": ["EmphasisText", "PillButton", "PillButton"],
         "S-dual-info": ["InfoBlock", "InfoBlock"],
     }.get(layout)
     assert kinds is not None
     if variant == "stacked-info":
         kinds = ["SingleLineTitle", "InfoBlock", "InfoBlock"]
     if layout == "S-content-dual-action" and variant == "actions-only":
-        kinds = ["CardButton", "CardButton"]
+        kinds = ["PillButton", "PillButton"]
     if layout == "S-title-content-action" and variant == "title-action":
         kinds = ["SingleLineTitle", "PillButton"]
     if action:

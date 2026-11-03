@@ -953,8 +953,8 @@ def test_dual_action_plan_preserves_content_hints_and_normalizes_buttons() -> No
     assert isinstance(facts, list)
     assert facts[0].get("componentHints") == ["ProgressCircleSingle", "EmphasizedData"]
     assert facts[1].get("componentHints") == ["SecondaryBody", "TableText"]
-    assert facts[2].get("componentHints") == ["CardButton"]
-    assert facts[3].get("componentHints") == ["CardButton"]
+    assert facts[2].get("componentHints") == ["PillButton"]
+    assert facts[3].get("componentHints") == ["PillButton"]
 
 
 def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:

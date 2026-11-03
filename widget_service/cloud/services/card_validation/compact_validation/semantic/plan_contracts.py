@@ -47,8 +47,16 @@ def collect_actions_only_plan_errors(
         buttons = []
         for child_id in root.children:
             child = by_id.get(child_id)
-            if child is not None and child.component_type == "CardButton":
+            if child is None:
+                continue
+            if child.component_type == "PillButton":
                 buttons.append(child)
+                continue
+            if child.component_type != "Column" or len(child.children) != 1:
+                continue
+            nested_child = by_id.get(child.children[0])
+            if nested_child is not None and nested_child.component_type == "PillButton":
+                buttons.append(nested_child)
         actions_only = len(root.children) == 2 and len(buttons) == 2
     if not actions_only and not title_action_only:
         return

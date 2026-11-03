@@ -93,13 +93,13 @@ dataId/text 不推荐按钮，actionId 仅推荐合法动作组件。标题按�
 仅有条目详情动作时可使用 W-top-bottom，无须为详情预留动作槽；
 保留2x2已登记单对象整卡点击例外，不同时生成条目点击和整卡点击。
 2x4 含独立按钮 actionId 时不推荐无合法动作槽的 W-top-bottom。2x2 图标操作只有满足 CircleButton 的全部条件才首选 S-title-anchor，缺独立支撑事实时排除它；不能为偏好某布局增造事实。
-2x2 两个入选 Action 使用 S-content-dual-action，两个按钮均为 CardButton。先扣除动作与固定间距，再核算完整内容组合；不因非 Action 事实至少两项就推荐 TableText。表格仍须满足等权语义，按实际条数、行数与 Recipe 高度核算；有明确核心时按核心与补充关系选型。不得把三个事实机械变成三行表格，不用 SecondaryBody 独自承担整卡核心，也不为纯动作需求补造展示事实。
+2x2 两个入选 Action 使用 S-content-dual-action，两个按钮均为 PillButton。先扣除动作与固定间距，再核算完整内容组合；不因非 Action 事实至少两项就推荐 TableText。表格仍须满足等权语义，按实际条数、行数与 Recipe 高度核算；有明确核心时按核心与补充关系选型。不得把三个事实机械变成三行表格，不用 SecondaryBody 独自承担整卡核心，也不为纯动作需求补造展示事实。
 2x2 恰好一个入选 Action，且至多一个标记 displayRole:title 或首选 SingleLineTitle 的标题事实时，使用 S-title-content-action 的 title-action 变体：保留请求可得的稳定标题和一个 PillButton，不补造正文事实；只要有任一正文或 dataId 展示事实，就必须使用该布局的标准三角色结构。
 
 ## 3. 素材分配（仅 Schema 含 assetAssignments 时）
 
 纯双动作需求可以只提交两个 actionId，不添加展示事实；DSL 使用
-S-content-dual-action 的 actions-only 变体，直接放两个 CardButton，不补内容槽或占位正文。
+S-content-dual-action 的 actions-only 变体，直接放两个 PillButton，不补内容槽或占位正文。
 若有任何 dataId/text 展示事实，使用带内容的标准变体并按完整内容核算容量。
 
 actions 按 info_required 动作顺序逐项分配：先结合动作对象、完整操作语义和候选 description，选择语义最匹配的 assetId；不同动作允许复用同一准确素材。无任何准确匹配才填 null 及具体 reason。CardButton 的 icon 可选：assetId 非空时必须使用对应真实素材；assetId 为 null 或本轮没有素材候选时仍可把 CardButton 放入 componentHints 或 composition，原始 DSL 省略业务 icon，转换器固定展示 `resources/base/media/ic_fallback_light.svg`，不规划额外圆形、分隔线或占位。之后 title 只能从未被卡片其它内容使用且语义匹配的候选中选择；有匹配不能仅以“装饰/空间紧张”填 null。不得为标题牺牲准确的内容图标。SingleLineTitle 无图标按12vp、带图标按20vp计入容量。

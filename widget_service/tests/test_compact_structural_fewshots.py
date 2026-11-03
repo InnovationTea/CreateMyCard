@@ -41,7 +41,7 @@ def _task(size: str = "2x2") -> dict:
 def _plan(actions: int = 2) -> dict:
     facts = [{"dataId": "/data/device/reading", "componentHints": ["EmphasizedData"]}]
     for number in range(actions):
-        facts.append({"actionId": f"action.{number}", "componentHints": ["CardButton"]})
+        facts.append({"actionId": f"action.{number}", "componentHints": ["PillButton"]})
     return {"info_required": facts, "layoutHints": ["S-content-dual-action"]}
 
 
@@ -56,7 +56,7 @@ def test_dual_buttons_retrieve_all_three_valid_structures_not_single_buttons() -
     assert _identifiers(result.content) == set(result.identifiers)
     for match in result.matches:
         assert match.example.features.buttons == 2
-        assert "CardButton" in match.example.features.components[0]
+        assert "PillButton" in match.example.features.components[0]
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

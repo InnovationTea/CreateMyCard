@@ -67,10 +67,9 @@ def _rows(task: dict, variant: str | None = "actions-only") -> list:
         params = args.get("params")
         assert isinstance(params, dict)
         params["switchFlag"] = 1
-        rows.append([name, "CardButton", {
+        rows.append([name, "PillButton", {
             "label": "Wi-Fi" if name == "wlan" else "蓝牙",
             "icon": f"resources/base/media/{name}.svg",
-            "fillColor": "#FF1F4799",
             "onClick": [{"call": candidate.get("call"), "args": args}],
         }])
     return rows
@@ -93,7 +92,9 @@ def test_pure_actions_validate_convert_and_preserve_flag(variant: str | None) ->
     assert match_compact_layout(
         components, size="2x2", layout_scope="S-content-dual-action",
     ).layout_id == "S-content-dual-action"
-    assert {row.component_id for row in components} == {"root", "wlan", "bluetooth"}
+    assert {"root", "wlan", "bluetooth"}.issubset(
+        {row.component_id for row in components}
+    )
     root = next(row for row in components if row.component_id == "root")
     assert root.props.get("justifyContent") == "center"
     converted = convert_compact_dsl_to_a2ui(source, size="2x2")

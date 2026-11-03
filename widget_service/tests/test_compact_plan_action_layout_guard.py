@@ -101,7 +101,7 @@ def test_two_distinct_actions_keep_original_contract(with_body: bool) -> None:
     assert isinstance(accepted, list)
     for fact in accepted:
         if "actionId" in fact:
-            assert fact.get("componentHints") == ["CardButton"]
+            assert fact.get("componentHints") == ["PillButton"]
         else:
             assert fact == _data()
     context = compact_plan_context(result.plan)
