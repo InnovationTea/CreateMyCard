@@ -466,6 +466,14 @@ PercentStatusFull 仅必需电量文本，充电状态、健康、等级、温�
 ### 电量等级主值的无动作诊断 Full
 
 新增 BatteryOverviewChargingDiagnosticsFull@1，覆盖 2×2 无候选动作、同时提供 nowCurrentText、voltageText、batteryCapacityLevelDesc、isBatteryPresentText 的请求。主数据为电量等级，其余三项必需，使用 SingleFocusLayout；无需图标，不扩展动作、字段筛选或排序规则。
+`BatteryOverviewChargingRingHero@1` 将 52vp 电量环和 20vp 充电状态行垂直居中，二者间距为 4vp。在 150vp 高的预览中，扣除上下安全区、36vp 按钮和 8vp 区块间距，Hero 可用 82vp，内容占 76vp。
+
+同一按钮布局中，`BluetoothDeviceOverviewHero@1` 的左右耳充电状态共用一行，完整四行占 82vp。单侧状态使用整行，断开连接时仍隐藏作为补充信息的耳机名称。`ScheduleOverviewTitleHero@1` 把会议名称、日期与时间、可选倒计时放在场景标题下，四行总高 80vp。
+
+`BatteryOverviewSupport@1` 使用双业务底板的左右内边距。左侧电量为 12fp、500 字重，文字列占用右侧 40vp 圆环与 2vp 间距之外的剩余宽度。
+
+`BluetoothDeviceOverviewConnectionSupport@1` 使用相同的底板边距与 2vp 图文间距。文字列左对齐，右侧的电量环或独立设备图标固定靠右。
+
 
 参照 150×150vp UX：12vp 外边距、左对齐，标题“手机电量”12fp/400；主值从 y=36vp 开始，30fp/700、40vp 行高以容纳中文，长值可缩至18fp；三行从 y=82vp 开始、行高16vp、间距4vp，标签12fp/400、值12fp/500，依次为实时电流、电池电压、电池在位。标题用辅助色，主值和详情用主题主色，融球沿用电量青绿主题。保留既有诊断 Hero 与 WideFull。
 

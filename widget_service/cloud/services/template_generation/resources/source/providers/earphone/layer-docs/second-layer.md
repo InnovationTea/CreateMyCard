@@ -25,7 +25,7 @@
     名称和左右电量必需，不要求连接状态或仓电量。图标可选，缺失显示左/右文字；用于 HeroActionLayout 加一个按钮。
   - `BluetoothDeviceOverviewHero@1`：展示连接状态、设备名，左右耳电量可选；可选左右耳图标；用于
     `HeroActionLayout@1` 加一个 `PillAction@1`。左右耳充电状态可选，各自可用时以 12vp
-    「左/右耳图标 + 状态文本」行展示。
+    「左/右耳图标 + 状态文本」同排展示，仅一侧有状态时该侧占整行。
   - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon`、`leftIcon`、`rightIcon`
     均可选。左右图标齐全时显示对应图标和百分比，右耳图标左边距为 4vp；缺任意一侧时使用圆形底白字 L/R 标识和各自百分比，不互换左右素材。
     Planner 可将其用于 `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。

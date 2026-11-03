@@ -4004,6 +4004,13 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
         "default",
     ).root
     assert [child.component for child in charging_ring.children] == ["Stack", "Text"]
+    hero_style = _template_node_options(charging_ring)
+    ring, caption = charging_ring.children
+    assert hero_style.get("justifyContent") == "center"
+    assert "padding" not in hero_style
+    assert hero_style.get("itemMargin") == 4
+    assert _template_node_options(ring).get("height") == 52
+    assert _template_node_options(caption).get("height") == 20
     ring_progress = _template_nodes(charging_ring, "Progress")[0]
     assert _template_node_options(ring_progress)["strokeWidth"] == 6
 

@@ -69,3 +69,28 @@ def test_hero_renders_earbud_pair_only_once(
     # 连接状态可在标题/说明等多个表达式中复用；左右耳读数仍须各出现一次。
     assert "isConnected" in source
     assert source.count("耳机播控") == int(not has_pair)
+
+
+@pytest.mark.parametrize("sides", [(), ("left",), ("right",), ("left", "right")])
+def test_optional_charging_statuses_share_one_row(sides: tuple[str, ...]) -> None:
+    bundle = load_provider_bundle(_EARPHONE_ROOT)
+    template = next(t for t in bundle.templates if t.wire_id == "BluetoothDeviceOverviewHero@1")
+    bindings = {
+        "connected": "${data.earphone.isConnected}",
+        "name": "${data.earphone.earphoneName}",
+    }
+    for side in sides:
+        bindings[f"{side}ChargingStatus"] = "${data.earphone." + side + "ChargingStatusDesc}"
+    root = _instantiate_blueprint(
+        template.variants[0].root, {}, bindings=bindings,
+        theme_values={"primaryColor": "#FFFFFFFF", "supportContentColor": "#99FFFFFF"},
+    )
+    assert len(root.children) == (4 if sides else 3)
+    if sides:
+        row = root.children[-1]
+        assert row.component_type == "Row"
+        assert row.values[0].get("height") == 16
+        assert len(row.children) == len(sides)
+        for side, group in zip(sides, row.children, strict=True):
+            assert group.values[0].get("layoutWeight") == 1
+            assert side + "ChargingStatusDesc" in _serialize_node(group)

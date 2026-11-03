@@ -56,11 +56,11 @@
   - `BatteryOverviewWideFull@1`：完整 4x2 电量摘要；横向展示电量进度环、剩余电量文本、充电状态和电量等级。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewStatusWideFull@1`：电池状态完整横版（2x4）；左侧“电池状态”标题、44vp 电量环（`/batterySOC` 驱动，环内可选 16vp 电量图标）与剩余电量百分比，充电器类型或充电状态为可选辅行；右侧“电池温度”与“电池健康”两个圆角信息块（字段可选，缺失时展示占位符），各自支持可选 24vp 图标。事件在模板内部绑定 `actionId`（仅限打开电池设置、电池健康或省电模式）。主数据：/batterySOC；次要数据：无；可选数据：/healthStatusDesc, /batteryTemperatureText, /pluggedTypeDesc, /chargingStatusDesc。`batteryIcon`、`temperatureIcon`、`healthIcon` 均为可选参数，仅在本轮存在匹配素材时传入，否则省略。
   - `BatteryOverviewCompact@1`：约 2x1 的电量摘要，用于一个 Compact 加两个 `PillAction@1`；左侧以 36vp 环形进度展示 `/batterySOC`，环内必选电量图标，右侧展示“电量 /batterySOC%”和 `/chargingStatusDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：无。
-  - `BatteryOverviewSupport@1`：约 2x1 的双业务电量摘要；左侧展示电量主行，右侧 40vp 电量环，环内可选 16vp 手机设备图标。
+  - `BatteryOverviewSupport@1`：约 2x1 的双业务电量摘要。左侧电量主行使用 12fp、500 字重，文字列占剩余宽度。右侧预留 40vp 电量环，环内可选 16vp 手机设备图标。
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /batterySOCText, /batteryTemperatureText。
     数值电量必需且 0% 合法；不得用文本、异常提示或零值伪造缺失的数值电量。
-    充电状态为可选辅行：存在时左侧双行文本，缺失时回退展示可选电池温度，都缺失时只保留电量行，电量环不受辅行影响。
-  - `BatteryOverviewSupportHero@1`：约 1.5x2 的竖版电量面板，文字布局与 `BatteryOverviewSupport@1` 一致；
+    有充电状态时在电量下方显示充电状态。仅有温度作为补充信息时，将“电池温度”和带单位的温度原值分成两行。两项均缺失时只显示电量。
+  - `BatteryOverviewSupportHero@1`：约 1.5x2 的竖版电量面板，电量主行使用 14fp、700 字重；
     左侧展示电量主行，充电状态为可选辅行（存在时双行文本，缺失时回退展示可选电池温度，都缺失时只保留电量行），
     右侧 40vp 电量环，环内必选 16vp 电池叶片图标 `battery_leaf_fill.svg`，可在根节点绑定事件。
     主数据：/batterySOC；次要数据：无；可选数据：/chargingStatusDesc, /batterySOCText, /batteryTemperatureText。

@@ -1800,20 +1800,29 @@ Column(
         )
         #endif
     ),
-    Column(
+    Text(data.title,
         {
             "width": "matchParent",
-            "height": 48,
-            "itemMargin": 4,
-            "justifyContent": "start",
-            "alignItems": "start",
-            "clip": true,
+            "height": 22,
+            "fontSize": 18,
+            "fontWeight": 700,
+            "fontColor": $theme('primaryColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    ),
+    Row(
+        {
+            "width": "matchParent",
+            "height": 16,
+            "itemMargin": 4,
+            "alignItems": "center"
         },
         #if data.date
         Text(data.date,
             {
-                "width": "matchParent",
+                "flexShrink": 0,
                 "height": 16,
                 "fontSize": 12,
                 "fontWeight": 400,
@@ -1824,40 +1833,32 @@ Column(
             }
         ),
         #endif
-        Text(data.title,
+        #if data.end
+        Text(`${data.start} - ${data.end}`,
             {
-                "width": "matchParent",
-                "height": 28,
-                "fontSize": 18,
-                "fontWeight": 700,
-                "fontColor": $theme('primaryColor'),
+                "layoutWeight": 1,
+                "height": 16,
+                "fontSize": 12,
+                "minFontSize": 10,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
                 "maxLines": 1,
                 "textOverflow": "ellipsis",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
         ),
-        #if data.end
-        Text(`${data.start} - ${data.end}`,
-            {
-                "height": 16,
-                "fontSize": 12,
-                "fontWeight": 400,
-                "fontColor": $theme('supportContentColor'),
-                "maxLines": 1,
-                "textOverflow": "ellipsis",
-                "constraintSize": {"minWidth": 0, "minHeight": 0, "maxWidth": 136}
-            }
-        ),
         #else
         Text(data.start,
             {
+                "layoutWeight": 1,
                 "height": 16,
                 "fontSize": 12,
+                "minFontSize": 10,
                 "fontWeight": 400,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1,
                 "textOverflow": "ellipsis",
-                "constraintSize": {"minWidth": 0, "minHeight": 0, "maxWidth": 136}
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
         )
         #endif

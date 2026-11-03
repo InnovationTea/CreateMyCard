@@ -160,12 +160,12 @@ def test_support_ux_spacing_typography_and_right_icon(
         large_primary = template_id == "BatteryOverviewPhoneTextSupport@1"
         if large_primary and index == 0:
             font_size = 16
+        weight_options = (700,) if primary else (400, 500)
+        if template_id == "BatteryOverviewSupport@1" and primary:
+            font_size = 12
+            weight_options = (500,)
         assert styles.get("fontSize") == font_size
-        if primary:
-            assert styles.get("fontWeight") == 700
-        else:
-            # 电量/天气升级模板的辅助行已改为 500 中等字重。
-            assert styles.get("fontWeight") in (400, 500)
+        assert styles.get("fontWeight") in weight_options
         assert styles.get("minFontSize", font_size) == font_size
 
     for index, node in enumerate(_standalone_images(root)):
@@ -220,6 +220,26 @@ def test_battery_support_places_progress_to_the_right_of_text(template_id: str) 
     styles = content.values[0]
     assert isinstance(styles, dict)
     assert styles.get("justifyContent") == "spaceBetween"
+
+
+@pytest.mark.parametrize(("template_id", "with_optional", "visual_kind", "visual_size"), (
+    ("BatteryOverviewSupport@1", False, "Stack", 40),
+    ("BluetoothDeviceOverviewConnectionSupport@1", True, "Stack", 40),
+    ("BluetoothDeviceOverviewConnectionSupport@1", False, "Image", 24),
+))
+def test_device_support_uses_panel_inset_and_reserves_right_visual(
+    template_id: str, with_optional: bool, visual_kind: str, visual_size: int,
+) -> None:
+    root = _support_ux_root(template_id, with_optional=with_optional, with_action=False)
+    row = root.children[0]
+    text_column, visual = row.children
+    assert "padding" not in root.values[0]
+    assert row.values[0].get("itemMargin") == 2
+    assert text_column.values[0].get("layoutWeight") == 1
+    assert text_column.values[0].get("alignItems") == "start"
+    assert visual.component_type == visual_kind
+    assert visual.values[-1].get("width") == visual.values[-1].get("height") == visual_size
+    assert visual.values[-1].get("flexShrink") == 0
 
 
 def test_heart_rate_support_keeps_two_direct_text_lines_without_forced_width() -> None:
@@ -351,12 +371,15 @@ def test_battery_support_aux_line_prefers_charging_over_temperature(
         bindings["charging"] = "${data.phoneBattery.chargingStatusDesc}"
     root = _instantiate("BatteryOverviewSupport@1", bindings)
     texts = _nodes(root, "Text")
-    assert len(texts) == 2
-    # 辅行为编译期分支：充电状态存在时优先展示，温度只在充电状态缺失时回退展示。
-    assert texts[1].values[0] == (
-        "${data.phoneBattery.chargingStatusDesc}" if with_charging
-        else "{{ '电池 ' + ${/data/phoneBattery/temperature} }}"
-    )
+    details = [text.values[0] for text in texts[1:]]
+    column, ring = root.children[0].children
+    assert ring.values[0].get("width") == 40
+    if with_charging:
+        assert details == ["${data.phoneBattery.chargingStatusDesc}"]
+        assert column.values[0].get("itemMargin") == 4
+    else:
+        assert details == ["电池温度", "${data.phoneBattery.temperature}"]
+        assert column.values[0].get("itemMargin") == 2
 
 
 @pytest.mark.parametrize("with_action", (False, True))
