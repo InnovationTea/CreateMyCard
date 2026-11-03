@@ -437,6 +437,13 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     assert "| `items[].label` | 显示值 |" in catalog
 
 
+def test_emphasis_text_prompt_suggests_labels_without_a_validation_requirement() -> None:
+    source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+
+    assert "`mainText` 承载动态读数时，生成时需" in source
+    assert "这只是生成提示，不属于 Plan 或 DSL 的强制校验。" in source
+
+
 def test_button_label_contract_preserves_action_while_limiting_visible_text() -> None:
     common = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
     wide = (DEFAULT_SOURCE / "components/2x4.md").read_text(encoding="utf-8")

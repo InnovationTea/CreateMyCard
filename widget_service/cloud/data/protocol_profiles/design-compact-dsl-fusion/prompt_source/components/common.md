@@ -171,6 +171,8 @@ Expression 仍按原合同使用，不根据字段类型为 string 就改写或�
 构成一个完整摘要时，可以使用 `EmphasisText`：主读数进入 `mainText`，紧密关联的状态进入
 `secondaryText`。这种组合以完整表达同一语义组为目的，不把互不相关的字段或仍需30fp强调的独立量化
 主值降为次要文本。
+`mainText` 承载动态读数时，生成时需在 `mainText` 或 `secondaryText` 中附上可独立理解的短标签；优先在
+Expression 中将标签和读数一并组织，例如“当前温度 29°C”。这只是生成提示，不属于 Plan 或 DSL 的强制校验。
 但在2x2无动作卡片中，若1–8字短文本结论是整卡唯一核心且只有更新时间等紧密支撑，优先使用
 `S-center` + `DataDisplay`；只有存在动作、独立补充事实或其它内容分区时，才保留 `EmphasisText`，
 并按需与 `SecondaryBody` 组合。
