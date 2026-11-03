@@ -3649,7 +3649,7 @@ def _data_display_route_fits_fact(
     if numeric_text is not None:
         return True
     character_count = len(re.sub(r"\s+", "", normalized))
-    return 1 <= character_count <= 8
+    return 1 <= character_count <= 10
 
 
 def _task_schema_sample(task_spec: dict[str, Any], data_id: str) -> Any:
@@ -4103,13 +4103,17 @@ def _normalize_dual_action_plan(
     if layout_hints != normalized_layouts:
         warnings.append("Two required 2x2 actions force layoutHints to S-content-dual-action.")
 
+    actions_only = len(facts) == 2 and all("actionId" in fact for fact in facts)
+    component_hint = "CardButton" if actions_only else "PillButton"
     for fact in facts:
         if not _requires_action_button(fact):
             continue
         hints = fact.get("componentHints")
-        if hints != ["CardButton"]:
-            fact["componentHints"] = ["CardButton"]
-            warnings.append("A 2x2 dual-action fact uses CardButton in S-content-dual-action.")
+        if hints != [component_hint]:
+            fact["componentHints"] = [component_hint]
+            warnings.append(
+                f"A 2x2 dual-action fact uses {component_hint} in S-content-dual-action."
+            )
     return normalized_layouts, warnings
 
 

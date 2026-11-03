@@ -4,6 +4,7 @@ import copy
 import json
 
 import pytest
+
 from services.compact_action_instances import (
     action_instance_instruction,
     plan_action_candidates,
@@ -221,7 +222,7 @@ def test_stale_dual_action_hint_does_not_count_item_clicks_as_buttons(
         facts.append({
             "requirement": "独立操作",
             "actionId": "event.independent",
-            "componentHints": ["CardButton"],
+            "componentHints": ["PillButton"],
         })
     plan["layoutHints"] = ["S-content-dual-action"]
     context = compact_plan_context(plan, implementation_conflicts=[])

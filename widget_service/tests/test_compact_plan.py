@@ -953,8 +953,8 @@ def test_dual_action_plan_preserves_content_hints_and_normalizes_buttons() -> No
     assert isinstance(facts, list)
     assert facts[0].get("componentHints") == ["ProgressCircleSingle", "EmphasizedData"]
     assert facts[1].get("componentHints") == ["SecondaryBody", "TableText"]
-    assert facts[2].get("componentHints") == ["CardButton"]
-    assert facts[3].get("componentHints") == ["CardButton"]
+    assert facts[2].get("componentHints") == ["PillButton"]
+    assert facts[3].get("componentHints") == ["PillButton"]
 
 
 def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
@@ -2056,6 +2056,20 @@ def test_anchor_composition_cannot_be_replaced_by_text_action_layout() -> None:
 
 def test_single_focus_data_display_route_cannot_be_downgraded_during_repair() -> None:
     spec = task_spec()
+    schema = spec.get("dataModelSchema")
+    assert isinstance(schema, dict)
+    data = schema.get("data")
+    assert isinstance(data, dict)
+    calendar = data.get("calendar")
+    assert isinstance(calendar, dict)
+    events = calendar.get("events")
+    assert isinstance(events, list)
+    assert events
+    first_event = events[0]
+    assert isinstance(first_event, dict)
+    title = first_event.get("title")
+    assert isinstance(title, dict)
+    title["sampleValue"] = "2026-11-01"
     plan = {
         "info_required": [
             {
@@ -2091,22 +2105,8 @@ def test_single_focus_data_display_route_cannot_be_downgraded_during_repair() ->
     )
     assert compact_plan_coverage_errors(preserved, plan, spec) == ()
 
-    long_value_spec = task_spec()
-    schema = long_value_spec.get("dataModelSchema")
-    assert isinstance(schema, dict)
-    data = schema.get("data")
-    assert isinstance(data, dict)
-    calendar = data.get("calendar")
-    assert isinstance(calendar, dict)
-    events = calendar.get("events")
-    assert isinstance(events, list)
-    assert events
-    first_event = events[0]
-    assert isinstance(first_event, dict)
-    title = first_event.get("title")
-    assert isinstance(title, dict)
-    title["sampleValue"] = "这是明确超过八个字的文本结论"
-    assert compact_plan_coverage_errors(downgraded, plan, long_value_spec) == ()
+    title["sampleValue"] = "一二三四五六七八九十甲"
+    assert compact_plan_coverage_errors(downgraded, plan, spec) == ()
 
 
 def test_optional_drop_candidate_prefers_should_only_component() -> None:

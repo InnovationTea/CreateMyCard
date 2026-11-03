@@ -224,7 +224,8 @@ def test_malformed_or_rootless_sources_do_not_mask_original_errors(source):
     "W-content-side-slots", "W-four-slots", "S-content-dual-action",
 ])
 def test_fixed_slots_keep_accurate_parent_roles_in_diagnostic(layout):
-    rows = _buttons(kind="CardButton")
+    button_kind = "PillButton" if layout == "S-content-dual-action" else "CardButton"
+    rows = _buttons(kind=button_kind)
     rows[0][1] = "Layout"
     rows[0][2] = {"layout": layout}
     if layout == "W-content-side-slots":
