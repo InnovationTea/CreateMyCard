@@ -26,7 +26,7 @@ def test_small_card_pressure_keeps_complete_label_and_value(width: int) -> None:
         combined = [message for message in pressure if "compound value" in message]
         assert len(combined) == 1
         assert "完整状态标签" in combined[0] and "正常" in combined[0]
-        assert "96vp" in combined[0] and "40vp" in combined[0]
+        assert "100vp" in combined[0] and "40vp" in combined[0]
     assert small_card_text_pressure(source, {**task, "size": "2x4"}) == []
 
 

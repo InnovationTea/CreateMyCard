@@ -830,15 +830,21 @@ def _expand_secondary_body(
     items = _secondary_body_items(component)
     task = {"dataModelSchema": _secondary_sample_schema(data_model or {})}
     texts: list[str | None] = []
-    for item in items:
-        text = small_card_display_text(item.get("value"), task)
-        if text is not None:
-            text = item.get("label", "") + text
-        texts.append(text)
+    bounds: list[str | None] = []
+    labels = [(item.get("label") or "").rstrip(" ") for item in items]
+    for index, item in enumerate(items):
+        value = item.get("value")
+        bound = small_card_display_text(value, task, bounded_only=True)
+        bounds.append(labels[index] + bound if bound is not None else None)
+        text = bound if bound is not None else small_card_display_text(value, task)
+        texts.append(labels[index] + text if text is not None else None)
     columns = component.props.get("columns", 2)
     separator = component.props.get("separator", " | ")
+    _, item_styles = _visual_recipe_part_for_converter("SecondaryBody", "item", size=size)
+    label_gap = item_styles["itemMargin"]
     layout = secondary_body_layout(
         items, columns=columns, texts=texts, width=available_width, separator=separator,
+        label_gap=label_gap, bounds=bounds,
     )
     variant = "multiline" if layout.multiline else None
     recipe = _visual_recipe("SecondaryBody", size=size, variant=variant)
@@ -853,9 +859,6 @@ def _expand_secondary_body(
         row_children: list[str] = []
         row_end = start + row_size
         row_items = items[start:row_end]
-        natural_row = available_width is not None and all(
-            text is not None for text in texts[start:row_end]
-        )
         row_height = line_height * max(layout.max_lines[start:row_end])
         row_uses_predicted_multiline = False
         for item_index, item in enumerate(row_items, start=start):
@@ -885,10 +888,10 @@ def _expand_secondary_body(
             item_id = f"{component.component_id}_item{item_index}"
             row_children.append(item_id)
             text_children: list[str] = []
-            label = item.get("label")
+            label = labels[item_index] or None
             value = copy.deepcopy(item.get("value"))
             if uses_predicted_multiline and isinstance(label, str):
-                value = _secondary_prefixed_value(label, value)
+                value = _secondary_prefixed_value(label + " ", value)
                 label = None
             if label is not None:
                 label_id = f"{item_id}_label"
@@ -935,10 +938,11 @@ def _expand_secondary_body(
                 size=size,
                 variant=variant,
                 props=_secondary_item_layout(
-                    texts[item_index] if natural_row else None,
+                    bounds[item_index],
                     row_size,
                     item_height,
                     layout.multiline,
+                    label_gap if label is not None else 0,
                 ),
                 children=tuple(text_children),
             )
@@ -980,12 +984,13 @@ def _secondary_value_color(item: dict[str, Any], color: str) -> str:
 
 
 def _secondary_item_layout(
-    text: str | None, row_size: int, height: float, multiline: bool,
+    text: str | None, row_size: int, height: float, multiline: bool, label_gap: float,
 ) -> dict[str, Any]:
     props: dict[str, Any] = {"height": height, "alignItems": "start", "layoutWeight": 1}
+    props["itemMargin"] = label_gap
     if row_size == 2 and text is not None:
         props.pop("layoutWeight")
-        props["width"] = secondary_body_text_width(text, 12.0 if multiline else 14.0)
+        props["width"] = secondary_body_text_width(text, 12.0 if multiline else 14.0) + label_gap
     return props
 
 

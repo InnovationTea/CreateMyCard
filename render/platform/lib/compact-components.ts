@@ -515,13 +515,13 @@ function secondaryTextWidth(text: string, font: number) {
   return [...text].reduce((width, character) => width + font * (character.codePointAt(0)! < 128 ? 0.6 : 1), 0);
 }
 
-function secondaryDisplayText(item: RecordValue, data?: ExpansionDataContext): string | undefined {
+function secondaryDisplayText(item: RecordValue, data?: ExpansionDataContext, boundedOnly = false): string | undefined {
   const value = item.value;
+  if (typeof value === "number") return String(item.label ?? "") + String(value);
   if (typeof value === "string" && !value.includes("{{")) return String(item.label ?? "") + value;
-  if (!data) return undefined;
   if (typeof value === "string") {
     const references = [...value.matchAll(/\$\{(\/[^{}]+)\}/g)];
-    if (references.length !== 1 || data.get(references[0][1]) === undefined) return undefined;
+    if (references.length !== 1 || (!boundedOnly && data?.get(references[0][1]) === undefined)) return undefined;
     const body = value.replace(/^\s*\{\{/, "").replace(/\}\}\s*$/, "");
     const literal = '(?:"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')';
     const conditional = body.match(new RegExp(
@@ -529,17 +529,19 @@ function secondaryDisplayText(item: RecordValue, data?: ExpansionDataContext): s
       + literal + ')\\s*:\\s*(' + literal + ')\\s*$',
     ));
     if (conditional) {
-      const actual = data.get(conditional[1]);
-      if (conditional[2] ? typeof actual !== "number" : typeof actual !== "boolean") return undefined;
+      const actual = data?.get(conditional[1]);
+      if (!boundedOnly && (conditional[2] ? typeof actual !== "number" : typeof actual !== "boolean")) return undefined;
       const branches = [conditional[3], conditional[4]].map(branch =>
-        resolvePathBindingsInValue("{{ " + branch + " }}", data.get));
+        resolvePathBindingsInValue("{{ " + branch + " }}", path => data?.get(path)));
       if (!branches.every(branch => typeof branch === "string")) return undefined;
+      if (boundedOnly && branches.some(branch => /[\r\n\t]/.test(String(branch)))) return undefined;
       branches.sort((left, right) => secondaryTextWidth(String(right), 1) - secondaryTextWidth(String(left), 1));
       return String(item.label ?? "") + String(branches[0]);
     }
     const tokens = /\$\{\/[^{}]+\}|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
     if (!/^\s*(?:\+\s*)*$/.test(body.replace(tokens, ""))) return undefined;
   }
+  if (boundedOnly || !data) return undefined;
   const result = resolvePathBindingsInValue(value, data.get);
   if (typeof result !== "string" && typeof result !== "number") return undefined;
   return String(item.label ?? "") + String(result);
@@ -547,23 +549,27 @@ function secondaryDisplayText(item: RecordValue, data?: ExpansionDataContext): s
 
 function secondaryBodyLayout(
   items: RecordValue[], texts: Array<string | undefined>, columns: number,
-  separator: string, width?: number,
+  separator: string, labelGap: number, bounds: Array<string | undefined>, width?: number,
 ) {
   const rowSizes: number[] = [];
   const maxLines = items.map(item => Number(item.maxLines ?? 1));
+  const gaps = items.map(item => item.label ? labelGap : 0);
   let multiline = items.length > columns || maxLines.includes(2);
   for (let index = 0; index < items.length;) {
     let rowSize = Math.min(columns, items.length - index);
+    if (rowSize === 2) {
+      const first = bounds[index], second = bounds[index + 1];
+      if (width === undefined || first === undefined || second === undefined) rowSize = 1;
+      else {
+        const pair = first + separator + second;
+        if (/[\r\n\t]/.test(pair) || secondaryTextWidth(pair, 14) + gaps[index] + gaps[index + 1] > width) rowSize = 1;
+      }
+    }
     const text = texts[index];
     if (width !== undefined && text !== undefined) {
-      if (text.includes("\n") || secondaryTextWidth(text, 14) > width) {
+      if (text.includes("\n") || secondaryTextWidth(text, 14) + gaps[index] > width) {
         multiline = true;
         rowSize = 1;
-      }
-      const next = texts[index + 1];
-      if (rowSize === 2 && next !== undefined && secondaryTextWidth(text + separator + next, 14) > width) {
-        rowSize = 1;
-        multiline = true;
       }
     }
     rowSizes.push(rowSize);
@@ -573,7 +579,7 @@ function secondaryBodyLayout(
   if (multiline && width !== undefined) {
     texts.forEach((text, index) => {
       if (text === undefined) return;
-      const required = secondaryTextWidth(text, 12);
+      const required = secondaryTextWidth(text, 12) + gaps[index];
       if (text.includes("\n") || (width < required && required <= width * 2)) maxLines[index] = 2;
     });
   }
@@ -763,7 +769,7 @@ function expandHighLevel(
       if (!Number.isInteger(maxLines) || ![1, 2].includes(maxLines as number)) {
         throw new Error(`${id}: SecondaryBody.items[${index}].maxLines 只接受 1 或 2。`);
       }
-      return item;
+      return typeof item.label === "string" ? { ...item, label: item.label.replace(/ +$/, "") } : item;
     });
     const separator = p.separator ?? " | ";
     const columns = p.columns ?? 2;
@@ -777,8 +783,10 @@ function expandHighLevel(
       || items.some(item => item.maxLines === 2);
     let variant = multiline ? "multiline" : undefined;
     requireRecipeFontSize(id, type, p, size, "text", variant);
-    const texts = items.map(item => secondaryDisplayText(item, data));
-    const layout = secondaryBodyLayout(items, texts, Number(columns), separator, availableWidth);
+    const bounds = items.map(item => secondaryDisplayText(item, data, true));
+    const texts = items.map((item, index) => bounds[index] ?? secondaryDisplayText(item, data));
+    const labelGap = Number(recipe(type, size).parts.item.styles.itemMargin);
+    const layout = secondaryBodyLayout(items, texts, Number(columns), separator, labelGap, bounds, availableWidth);
     variant = layout.multiline ? "multiline" : undefined;
     const textStyles = recipe(type, size, variant).parts.text.styles;
     const lineHeight = Number(textStyles.height) / Number(textStyles.maxLines ?? 1);
@@ -791,8 +799,6 @@ function expandHighLevel(
       rootChildren.push(rowId);
       const rowChildren: string[] = [];
       const rowItems = items.slice(start, start + rowSize);
-      const naturalRow = availableWidth !== undefined
-        && texts.slice(start, start + rowSize).every(text => text !== undefined);
       const rowHeight = lineHeight * Math.max(...layout.maxLines.slice(start, start + rowSize));
       rowItems.forEach((item, localIndex) => {
         const maxLines = layout.maxLines[start + localIndex];
@@ -822,16 +828,17 @@ function expandHighLevel(
         const valueId = `${itemId}_value`;
         itemChildren.push(valueId);
         rows.push(row(valueId, type, "text", size, {
-          content: prefixValue ? secondaryPrefixedValue(String(item.label), item.value) : item.value,
+          content: prefixValue ? secondaryPrefixedValue(String(item.label) + " ", item.value) : item.value,
           fontColor: item.label !== undefined || isSecondaryValue(item.value)
             ? p.fontColor : colorWithAlpha(p.fontColor as string, 0.6),
           height: itemHeight, maxLines, layoutWeight: 1,
         }, [], variant));
-        const itemLayout: RecordValue = { layoutWeight: 1, height: itemHeight, alignItems: "start" };
-        const text = texts[itemIndex];
-        if (rowSize === 2 && naturalRow && text !== undefined) {
+        const gap = itemChildren.length > 1 ? labelGap : 0;
+        const itemLayout: RecordValue = { layoutWeight: 1, height: itemHeight, alignItems: "start", itemMargin: gap };
+        const text = bounds[itemIndex];
+        if (rowSize === 2 && text !== undefined) {
           delete itemLayout.layoutWeight;
-          itemLayout.width = secondaryTextWidth(text, layout.multiline ? 12 : 14);
+          itemLayout.width = secondaryTextWidth(text, layout.multiline ? 12 : 14) + gap;
         }
         rows.push(row(itemId, type, "item", size, itemLayout, itemChildren, variant));
       });

@@ -626,7 +626,7 @@ test("SecondaryBody 支持 1–6 项，保留全部绑定并拒绝超过上限",
   }
 });
 
-test("SecondaryBody 按完整日期与星期自动分行，宽槽保留自然占宽和分隔空格", () => {
+test("SecondaryBody 无上限的日期与星期在两种尺寸都分行", () => {
   const source = [
     '["root","Column",{"width":"matchParent","padding":12},["meta"]]',
     '["meta","SecondaryBody",{"width":"matchParent","fontSize":14,"items":[{"value":{"path":"/date"}},{"value":"{{ ${/weekday} }}"}]}]',
@@ -641,11 +641,25 @@ test("SecondaryBody 按完整日期与星期自动分行，宽槽保留自然占
   assert.equal((smallValue?.styles as Record<string, unknown>).height, 12);
   assert.equal(small.getNode("meta_row0_separator"), null);
   const wide = compileMiniDsl(source, { size: "2x4" }).graph;
-  assert.deepEqual(wide.getNode("meta")?.children, ["meta_row0"]);
-  assert.equal(wide.getNode("meta_row0_separator")?.props.content, " | ");
-  const first = wide.getNode("meta_item0")?.props.styles as Record<string, unknown>;
-  const second = wide.getNode("meta_item1")?.props.styles as Record<string, unknown>;
-  assert.ok(Number(first.width) > Number(second.width));
+  assert.deepEqual(wide.getNode("meta")?.children, ["meta_row0", "meta_row1"]);
+  assert.equal(wide.getNode("meta_row0_separator"), null);
+});
+
+test("SecondaryBody 只按显示上限并排，不按绑定当前值定宽", () => {
+  for (const [value, sample, rowCount] of [
+    [{ path: "/value" }, "示例", 2], ["{{ ${/value} + '级' }}", "示例", 2],
+    [{ path: "/value" }, "好", 2], [{ path: "/value" }, 0, 2], ["示例", "示例", 1],
+    ["{{ ${/value} ? '好' : '待确认' }}", true, 1],
+    ["{{ ${/value} ? '好' : '这段文字超出当前条目的可用宽度' }}", true, 2],
+  ] as const) {
+    const source = [
+      ["root", "SecondaryBody", { width: 126, items: [{ value: "短" }, { label: "值", value }] }],
+      ["/value", sample],
+    ].map(entry => JSON.stringify(entry)).join("\n");
+    const graph = compileMiniDsl(source, { size: "2x2" }).graph;
+    assert.equal(graph.getNode("root")?.children.length, rowCount);
+    assert.equal(Boolean(graph.getNode("root_row0_separator")), rowCount === 1);
+  }
 });
 
 test("SecondaryBody 长单项声明两行，未知绑定保持原布局", () => {

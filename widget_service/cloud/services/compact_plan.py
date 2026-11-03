@@ -12,7 +12,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from core.json_pointer import parse_json_pointer
-from models.generation import CompactDslRecoveryFact
+from models.generation import CompactDslRecoveryFact, TaskSpec
 from services.compact_action_instances import (
     action_instance_instruction,
     event_card_detail_action,
@@ -89,6 +89,58 @@ _FRESHNESS_REQUEST = re.compile(
     r"更新时间|更新于|最后更新|上次更新|刷新时间|最后刷新|同步时间|最后同步|"
     r"数据.{0,4}(?:新鲜|时效|过期)"
 )
+_UPDATE_TIME_MENTION = re.compile(
+    r"(?<![a-z0-9_])updatedAt(?![a-z0-9_])|"
+    r"(?:最后|上次)?(?:更新|刷新|同步)(?:的)?(?:日期|时间(?!间?隔)|时刻|于)|"
+    r"(?:最后|上次)(?:一次)?(?:更新|刷新|同步)(?:的时间)?|"
+    r"(?:何时|什么时候|什么时间|几点)(?:完成)?(?:更新|刷新|同步)|"
+    r"\b(?:last\s+(?:updated?|refresh(?:ed)?|sync(?:ed)?)|(?:update|refresh|sync)\s+time)\b",
+    re.I,
+)
+_HIDE_UPDATE_TIME = re.compile(
+    r"(?:不要|不需要|不用|无需|别|不|隐藏|去掉|移除|排除|省略|删除|取消)"
+    r"(?:再|单独|显示|展示|保留|包含|提供|呈现|关心|看|(?:数据|卡片)的?|这项|该|最近一次)*\s*$|"
+    r"\b(?:without|hide|omit|exclude|(?:do not|don't)\s+(?:show|include))\s+(?:the\s+)?$",
+    re.I,
+)
+
+
+def _requests_updated_at(query: str) -> bool:
+    requested = False
+    instruction = query.partition(_STATIC_FACT_SECTION_MARKER)[0]
+    for clause in re.split(r"[,，。；;！!？?\n]|但是|而是|但", instruction):
+        for mention in _UPDATE_TIME_MENTION.finditer(clause):
+            prefix = clause[:mention.start()]
+            suffix = clause[mention.end():].lstrip()
+            requested = not _HIDE_UPDATE_TIME.search(prefix) and not suffix.startswith(
+                ("不用显示", "不要显示", "不显示", "隐藏", "不用展示", "无需展示"),
+            )
+    return requested
+
+
+def fusion_display_task_spec(task: TaskSpec) -> TaskSpec:
+    """从已投影的 schema 移除未要求展示的更新时间，保留运行时 TaskSpec。"""
+    if _requests_updated_at(task.userQuery):
+        return task
+    paths = compact_plan_data_paths({"dataModelSchema": task.dataModelSchema})
+    if not any(path.endswith("/updatedAt") for path in paths):
+        return task
+
+    def project(node: Any) -> Any:
+        if isinstance(node, list):
+            return [project(item) for item in node]
+        if not isinstance(node, dict) or _is_schema_leaf(node):
+            return node
+        result = {}
+        for key, child in node.items():
+            if key == "updatedAt" and isinstance(child, dict) and _is_schema_leaf(child):
+                continue
+            result[key] = project(child)
+        return result
+
+    return task.model_copy(update={"dataModelSchema": project(task.dataModelSchema)})
+
+
 _PROGRESS_FACT_COMPONENTS = frozenset({"ProgressCircle", "ProgressLine2", "ProgressCircleSingle"})
 _ACTION_FACT_COMPONENTS = frozenset({"PillButton", "CircleButton", "CardButton"})
 _VISIBLE_PROP_NAMES = frozenset(
@@ -270,7 +322,8 @@ def build_compact_plan_tool(
                 "本轮实际选入展示的动态信息的真实 JSON Pointer，不因字段可用而全选；"
                 "用户明确要求的每项内容必须保留，可选补充仅在相关且容量成立时选入。"
                 "仅用于事件传参时不选。"
-                "updatedAt、refreshTime 等刷新元数据默认不选；仅在用户明确要求、时效本身"
+                "updatedAt 仅在用户明确要求展示更新时间时可选。其它刷新元数据默认不选；"
+                "仅在用户明确要求、时效本身"
                 "影响用途，或无动作且只有一个短文本核心信息导致卡面明显稀疏时选择。"
             ),
         }
@@ -2006,7 +2059,7 @@ def _freshness_metadata_plan_errors(
     if not freshness_indexes:
         return []
     query = task_spec.get("userQuery")
-    if isinstance(query, str) and _FRESHNESS_REQUEST.search(query):
+    if isinstance(query, str) and (_requests_updated_at(query) or _FRESHNESS_REQUEST.search(query)):
         return []
     action_indexes = [
         index for index, fact in enumerate(facts) if isinstance(fact.get("actionId"), str)

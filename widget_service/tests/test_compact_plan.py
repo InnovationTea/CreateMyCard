@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from models.generation import TaskSpec
 from services.compact_dsl_a2ui_converter import (
     MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     CompactDslConversionError,
@@ -19,6 +20,7 @@ from services.compact_plan import (
     compact_plan_omitted_facts,
     compact_plan_optional_drop_candidate,
     evaluate_compact_plan_coverage,
+    fusion_display_task_spec,
     parse_compact_plan_call,
 )
 from services.compact_repair_strategy import CompactRepairStrategyTracker
@@ -162,6 +164,39 @@ def freshness_task_spec(user_query: str = "显示天气预警") -> dict:
         },
         "eventCandidates": [],
     }
+
+
+@pytest.mark.parametrize("query,show", [
+    ("显示漏接电话数、未读数，以及数据更新时间。点击可查看通话记录。", True),
+    ("告诉我数据是什么时候刷新的", True),
+    ("显示上次同步时间", True),
+    ("显示未读数，不要显示更新时间", False),
+    ("显示更新时间，但最后更新时间不用显示", False),
+    ("显示未读数并实时更新", False),
+    ("显示会议时间，支持手动刷新", False),
+    ("刷新时间间隔为三十分钟", False),
+    ("显示未读数。本轮卡片静态内容（用作展示的外部事实）：更新时间 10:10", False),
+    ("Show the last updated time", True),
+    ("Show missed calls without the last update time", False),
+])
+def test_fusion_display_fields_follow_requested_update_time(query, show):
+    task = TaskSpec.model_validate(freshness_task_spec(query))
+    original = task.model_dump()
+    view = fusion_display_task_spec(task).model_dump()
+    path = "/data/weather/updatedAt"
+    assert (path in compact_plan_data_paths(view)) == show
+    assert (path in json.dumps(build_compact_plan_tool(view))) == show
+    assert "/data/weather/current/condition" in compact_plan_data_paths(view)
+    assert task.model_dump() == original
+
+
+def test_fusion_display_fields_keep_array_indices_and_business_times():
+    leaf = {"type": "string", "sampleValue": "09:00"}
+    task = TaskSpec(userQuery="显示会议开始时间", size="2x2", dataModelSchema={
+        "data": {"events": [{"updatedAt": leaf}, {"dtStart": leaf, "updatedAt": leaf}]},
+    })
+    view = fusion_display_task_spec(task)
+    assert compact_plan_data_paths(view.model_dump()) == ("/data/events/1/dtStart",)
 
 
 def freshness_plan_call(

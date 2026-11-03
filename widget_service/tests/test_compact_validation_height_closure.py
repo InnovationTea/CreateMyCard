@@ -98,7 +98,7 @@ ANCHOR_MULTILINE_SUPPORT_OVERFLOW = ANCHOR_MULTILINE_SUPPORT.replace(
     '{"label":"实时温度 ","value":{"path":"/data/phoneBattery/batteryTemperatureText"}}',
     '{"label":"实时温度 ","value":{"path":"/data/phoneBattery/batteryTemperatureText"}},'
     '{"label":"充电状态 ","value":{"path":"/data/phoneBattery/chargingStatus"}}',
-)
+) + '\n["/data/phoneBattery/chargingStatus","正在快速充电"]'
 
 WEATHER_TASK_SPEC = {
     "size": "2x2",

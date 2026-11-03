@@ -287,7 +287,7 @@
           "component": "Row",
           "styles": {
             "height": 14,
-            "itemMargin": 0,
+            "itemMargin": 4,
             "alignItems": "center",
             "flexShrink": 1,
             "constraintSize": {
