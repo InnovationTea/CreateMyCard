@@ -1279,7 +1279,8 @@ async def _serve_operation_websocket(
                         and directive_state is WidgetDirectiveState.SUCCESS
                     )
                     if daily_usage_record is not None and countable:
-                        assert daily_usage_limiter is not None
+                        if daily_usage_limiter is None:
+                            raise AssertionError
                         daily_usage_record_started = True
                         await daily_usage_limiter.record_success(daily_usage_record)
                 plugin_response = _build_plugin_stream_response(
