@@ -1683,7 +1683,7 @@
             "value": {
               "styles": {
                 "height": 60,
-                "fontSize": 24,
+                "fontSize": 21,
                 "lineHeight": 1.25,
                 "maxLines": 2
               }

@@ -2960,9 +2960,9 @@ def _data_display_variant(
     value_kind, text_sample = _data_display_value_kind(component, data_model)
     if text_sample is not None:
         character_count = len(re.sub(r"\s+", "", text_sample))
-        if not 1 <= character_count <= 8:
+        if not 1 <= character_count <= 10:
             raise CompactDslConversionError(
-                f"{component.component_id}: text DataDisplay.value requires 1 to 8 characters."
+                f"{component.component_id}: text DataDisplay.value requires 1 to 10 characters."
             )
     if value_kind == "text":
         return "textConclusion"

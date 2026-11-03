@@ -3649,7 +3649,7 @@ def _data_display_route_fits_fact(
     if numeric_text is not None:
         return True
     character_count = len(re.sub(r"\s+", "", normalized))
-    return 1 <= character_count <= 8
+    return 1 <= character_count <= 10
 
 
 def _task_schema_sample(task_spec: dict[str, Any], data_id: str) -> Any:

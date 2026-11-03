@@ -280,19 +280,19 @@ function dataDisplayVariant(
 ): string | undefined {
   const { kind, text } = dataDisplayValueKind(props.value, data);
   const fontSize = props.fontSize;
-  if (kind === "numeric" && fontSize === 24) {
+  if (kind === "numeric" && fontSize === 21) {
     throw new Error(`${id}: 数值 DataDisplay.value 必须使用 48fp。`);
   }
-  if (kind === "text" && fontSize !== undefined && fontSize !== 24) {
-    throw new Error(`${id}: 文本 DataDisplay.value 必须使用 24fp。`);
+  if (kind === "text" && fontSize !== undefined && ![21, 24].includes(fontSize as number)) {
+    throw new Error(`${id}: 文本 DataDisplay.value 必须使用 21fp。`);
   }
   if (text !== undefined) {
     const characterCount = [...text.replace(/\s+/g, "")].length;
-    if (characterCount < 4 || characterCount > 8) {
-      throw new Error(`${id}: 文本 DataDisplay.value 必须为 4–8 个字符。`);
+    if (characterCount < 1 || characterCount > 10) {
+      throw new Error(`${id}: 文本 DataDisplay.value 必须为 1–10 个字符。`);
     }
   }
-  return fontSize === 24 || (fontSize === undefined && kind === "text")
+  return fontSize === 21 || fontSize === 24 || (fontSize === undefined && kind === "text")
     ? "textConclusion"
     : undefined;
 }
@@ -1679,7 +1679,7 @@ function expandHighLevel(
     ];
     requireProps(id, type, p, ["value", "supportingText", "fontColor"], allowed);
     const variant = dataDisplayVariant(id, p, data);
-    requireRecipeFontSize(id, type, p, size, "value", variant);
+    if (p.fontSize !== 24) requireRecipeFontSize(id, type, p, size, "value", variant);
     const label = typeof p.label === "string" && p.label.trim() ? p.label : undefined;
     const icon = typeof p.icon === "string" && p.icon.trim() ? p.icon : undefined;
     if (p.label !== undefined && label === undefined) {

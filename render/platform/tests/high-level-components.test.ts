@@ -35,6 +35,21 @@ test("预览样例覆盖共享 Runtime 的全部高阶组件", () => {
   assert.deepEqual([...covered].sort(), [...HIGH_LEVEL_COMPONENT_TYPES].sort());
 });
 
+test("DataDisplay 文本模式接受1–10个字符", () => {
+  const source = (value: string) => [
+    '["root","Column",{"backgroundColor":"#FFF1F6FE"},["display"]]',
+    '["display","DataDisplay",{"label":"今天","value":{"path":"/data/value"},"supportingText":"星期日"}]',
+    JSON.stringify(["/data/value", value]),
+  ].join("\n");
+
+  assert.doesNotThrow(() => compileMiniDsl(source("优"), { size: "2x2" }));
+  assert.doesNotThrow(() => compileMiniDsl(source("2026-11-01"), { size: "2x2" }));
+  assert.throws(
+    () => compileMiniDsl(source("一二三四五六七八九十甲"), { size: "2x2" }),
+    /DataDisplay\.value 必须为 1–10 个字符/,
+  );
+});
+
 test("浏览器展开直接使用 visual-recipes-v1 的关键几何", () => {
   assert.equal(VISUAL_RECIPE_VERSION, "visual-recipes-v1");
   assert.deepEqual(visualRecipePart("InfoBlock", "icon", "2x2").styles, {
@@ -436,7 +451,7 @@ test("文本语义组件只接受与 Recipe 一致的固定 fontSize 声明", ()
   }
 });
 
-test("DataDisplay 文本模式展开居中图标、24fp 双行结论和动态支撑文本", () => {
+test("DataDisplay 文本模式展开居中图标、21fp 双行结论和动态支撑文本", () => {
   const source = [
     ["root", "Layout", {
       layout: "S-center",
@@ -468,7 +483,7 @@ test("DataDisplay 文本模式展开居中图标、24fp 双行结论和动态支
   assert.deepEqual(valueArea?.children, ["display_value"]);
   assert.equal(valueAreaStyles.height, 60);
   assert.equal(valueAreaStyles.justifyContent, "center");
-  assert.equal((value?.props.styles as Record<string, unknown>).fontSize, 24);
+  assert.equal((value?.props.styles as Record<string, unknown>).fontSize, 21);
   assert.equal((value?.props.styles as Record<string, unknown>).lineHeight, 1.25);
   assert.equal((value?.props.styles as Record<string, unknown>).maxLines, 2);
   assert.equal((value?.props.styles as Record<string, unknown>).height, undefined);
