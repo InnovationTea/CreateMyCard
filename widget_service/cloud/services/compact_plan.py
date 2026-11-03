@@ -12,7 +12,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from core.json_pointer import parse_json_pointer
-from models.generation import CompactDslRecoveryFact
+from models.generation import CompactDslRecoveryFact, TaskSpec
 from services.compact_action_instances import (
     action_instance_instruction,
     event_card_detail_action,
@@ -56,6 +56,7 @@ from services.event_matching import event_handlers_match
 SUBMIT_CARD_PLAN = "submit_card_plan"
 
 _BINDING_PATH = re.compile(r"\$\{(?P<path>/[^}\s]+)\}")
+# 兼容已落库的旧 Plan；解析时忽略该字段，不再写回新的 Plan。
 _FACT_KEYS = frozenset(
     {"requirement", "priority", "dataId", "actionId", "text", "displayLabel", "componentHints"}
 )
@@ -89,6 +90,58 @@ _FRESHNESS_REQUEST = re.compile(
     r"更新时间|更新于|最后更新|上次更新|刷新时间|最后刷新|同步时间|最后同步|"
     r"数据.{0,4}(?:新鲜|时效|过期)"
 )
+_UPDATE_TIME_MENTION = re.compile(
+    r"(?<![a-z0-9_])updatedAt(?![a-z0-9_])|"
+    r"(?:最后|上次)?(?:更新|刷新|同步)(?:的)?(?:日期|时间(?!间?隔)|时刻|于)|"
+    r"(?:最后|上次)(?:一次)?(?:更新|刷新|同步)(?:的时间)?|"
+    r"(?:何时|什么时候|什么时间|几点)(?:完成)?(?:更新|刷新|同步)|"
+    r"\b(?:last\s+(?:updated?|refresh(?:ed)?|sync(?:ed)?)|(?:update|refresh|sync)\s+time)\b",
+    re.I,
+)
+_HIDE_UPDATE_TIME = re.compile(
+    r"(?:不要|不需要|不用|无需|别|不|隐藏|去掉|移除|排除|省略|删除|取消)"
+    r"(?:再|单独|显示|展示|保留|包含|提供|呈现|关心|看|(?:数据|卡片)的?|这项|该|最近一次)*\s*$|"
+    r"\b(?:without|hide|omit|exclude|(?:do not|don't)\s+(?:show|include))\s+(?:the\s+)?$",
+    re.I,
+)
+
+
+def _requests_updated_at(query: str) -> bool:
+    requested = False
+    instruction = query.partition(_STATIC_FACT_SECTION_MARKER)[0]
+    for clause in re.split(r"[,，。；;！!？?\n]|但是|而是|但", instruction):
+        for mention in _UPDATE_TIME_MENTION.finditer(clause):
+            prefix = clause[:mention.start()]
+            suffix = clause[mention.end():].lstrip()
+            requested = not _HIDE_UPDATE_TIME.search(prefix) and not suffix.startswith(
+                ("不用显示", "不要显示", "不显示", "隐藏", "不用展示", "无需展示"),
+            )
+    return requested
+
+
+def fusion_display_task_spec(task: TaskSpec) -> TaskSpec:
+    """从已投影的 schema 移除未要求展示的更新时间，保留运行时 TaskSpec。"""
+    if _requests_updated_at(task.userQuery):
+        return task
+    paths = compact_plan_data_paths({"dataModelSchema": task.dataModelSchema})
+    if not any(path.endswith("/updatedAt") for path in paths):
+        return task
+
+    def project(node: Any) -> Any:
+        if isinstance(node, list):
+            return [project(item) for item in node]
+        if not isinstance(node, dict) or _is_schema_leaf(node):
+            return node
+        result = {}
+        for key, child in node.items():
+            if key == "updatedAt" and isinstance(child, dict) and _is_schema_leaf(child):
+                continue
+            result[key] = project(child)
+        return result
+
+    return task.model_copy(update={"dataModelSchema": project(task.dataModelSchema)})
+
+
 _PROGRESS_FACT_COMPONENTS = frozenset({"ProgressCircle", "ProgressLine2", "ProgressCircleSingle"})
 _ACTION_FACT_COMPONENTS = frozenset({"PillButton", "CircleButton", "CardButton"})
 _VISIBLE_PROP_NAMES = frozenset(
@@ -195,7 +248,7 @@ def build_compact_plan_tool(
     asset_ids = list(compact_plan_asset_ids(task_spec))
     target_variants: list[dict[str, Any]] = []
     if data_paths:
-        target_variants.append({"required": ["dataId", "displayLabel"]})
+        target_variants.append({"required": ["dataId"]})
     if action_ids:
         target_variants.append({"required": ["actionId"]})
     if allowed_texts is None or allowed_texts:
@@ -214,17 +267,6 @@ def build_compact_plan_tool(
                 "should 仅用于未明确要求、且省略后不改变主要用途的入选补充。"
                 "不得为容量将明确要求降为 should。所有入选 actionId 必须为 must。"
                 f"当前 {size} 最多可提交 {max_must_facts} 条 must 信息，Action 计入该数量。"
-            ),
-        },
-        "displayLabel": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 12,
-            "description": (
-                "dataId 的短中文展示标签，例如“风力”“降雨概率”“耳机仓电量”。"
-                "必须和该读数在同组件、同列表项、Group(label-value)或单读数的直接Row中出现；"
-                "同行独立Text或仅mainText的EmphasisText须完整展示短标签，不能只用通用标题代替，"
-                "也不能把标签写进 data 行、事件参数或另一个信息项。actionId 与 text 不填写此字段。"
             ),
         },
         "componentHints": {
@@ -270,7 +312,8 @@ def build_compact_plan_tool(
                 "本轮实际选入展示的动态信息的真实 JSON Pointer，不因字段可用而全选；"
                 "用户明确要求的每项内容必须保留，可选补充仅在相关且容量成立时选入。"
                 "仅用于事件传参时不选。"
-                "updatedAt、refreshTime 等刷新元数据默认不选；仅在用户明确要求、时效本身"
+                "updatedAt 仅在用户明确要求展示更新时间时可选。其它刷新元数据默认不选；"
+                "仅在用户明确要求、时效本身"
                 "影响用途，或无动作且只有一个短文本核心信息导致卡面明显稀疏时选择。"
             ),
         }
@@ -2006,7 +2049,7 @@ def _freshness_metadata_plan_errors(
     if not freshness_indexes:
         return []
     query = task_spec.get("userQuery")
-    if isinstance(query, str) and _FRESHNESS_REQUEST.search(query):
+    if isinstance(query, str) and (_requests_updated_at(query) or _FRESHNESS_REQUEST.search(query)):
         return []
     action_indexes = [
         index for index, fact in enumerate(facts) if isinstance(fact.get("actionId"), str)
@@ -2319,14 +2362,9 @@ def compact_plan_context(
         "两者都须有准确可见的动作名称；独立操作不要求同名数据根。入会不能挂在"
         "耳机等无关信息块，不能因槽位已满省略动作。数值图形不支持的格式化文本保留文字，"
         "不得从 sampleValue 提取数字写成静态进度。\n"
-        "有路径引用不等于读数能看全。逐项检查标签、值、单位在扣除 padding 和图标后"
-        "的实际文字区：使用当前路径所属对象的短名称加完整动态读数，不复制示例的对象标签。"
-        "每个 dataId 的 displayLabel 是冻结的短标签；必须与该读数放在同一可见组件、同一个"
-        "列表项、Group(label-value)的[标签,读数]两个直接子节点或单读数的直接Row中。"
-        "独立静态Text或仅mainText的EmphasisText"
-        "须完整展示短标签，"
-        "不跨嵌套容器、标题、按钮或其它读数借标签，数据行和事件参数不能替代可见标签。"
-        "耳机数据不能标为手机，左右读数必须区分；长说明不能挤掉数值。"
+        "有路径引用不等于读数能看全。逐项检查值和单位在扣除 padding 和图标后的实际文字区；"
+        "使用完整动态读数，不复制示例的对象标签。耳机数据不能标为手机，左右读数必须区分；"
+        "长说明不能挤掉数值。"
         "平均、最高、最低各有独立统计含义，不能拼成无标签区间；动作短名保留必要目标限定。"
         "第二行只放另一项必要事实，不重复主行标签；取消可选图标仍放不下时改用基础组合。"
         "先按信息关系形成完整组件组合，再比较能容纳组合与全部动作的合法布局和内容槽；"
@@ -2379,8 +2417,6 @@ class _CompactVisibleState:
     item_literals: tuple[str, ...]
     handlers: tuple[dict[str, Any], ...]
     value_unit_literals: tuple[str, ...] = ()
-    component_visible_values: dict[str, Any] | None = None
-    grouped_readout_labels: dict[str, tuple[str, ...]] | None = None
 
 
 @dataclass(frozen=True)
@@ -2410,8 +2446,6 @@ class CompactPlanCoverageResult:
 
 def _compact_visible_state(
     components: list[ComponentRow],
-    *,
-    label_components: list[ComponentRow] | None = None,
 ) -> _CompactVisibleState:
     visible_paths: set[str] = set()
     path_occurrences: list[_CompactVisiblePathOccurrence] = []
@@ -2419,7 +2453,6 @@ def _compact_visible_state(
     item_literals: list[str] = []
     value_unit_literals: list[str] = []
     handlers: list[dict[str, Any]] = []
-    component_visible_values: dict[str, Any] = {}
     reachable_ids = _reachable_component_ids(tuple(components))
     for component in components:
         from services.generation_content_policy import current_content_policy
@@ -2445,7 +2478,6 @@ def _compact_visible_state(
         )
         if has_separate_progress_readout:
             visible_props.pop("value", None)
-        component_visible_values[component.component_id] = visible_props
         _collect_paths_and_literals(visible_props, visible_paths, visible_literals)
         _collect_structured_item_literals(
             component,
@@ -2472,131 +2504,7 @@ def _compact_visible_state(
         item_literals=tuple(_normalize_text(value) for value in item_literals),
         handlers=tuple(handlers),
         value_unit_literals=tuple(_normalize_text(value) for value in value_unit_literals),
-        component_visible_values=component_visible_values,
-        grouped_readout_labels=_grouped_readout_labels(
-            components if label_components is None else label_components,
-            path_occurrences,
-            reachable_ids,
-        ),
     )
-
-
-def _grouped_readout_labels(
-    components: list[ComponentRow],
-    occurrences: list[_CompactVisiblePathOccurrence],
-    reachable_ids: set[str],
-) -> dict[str, tuple[str, ...]]:
-    """识别单读数 Row 和已有 label-value 组合，不跨其它容器借标签。"""
-    by_id = {component.component_id: component for component in components}
-    if len(by_id) != len(components):
-        return {}
-    parent_counts: dict[str, int] = {}
-    for component in components:
-        for child_id in component.children:
-            parent_counts[child_id] = parent_counts.get(child_id, 0) + 1
-    labels: dict[str, tuple[str, ...]] = {}
-    for row in components:
-        if row.component_id not in reachable_ids or not _is_readout_group(row):
-            continue
-        if row.props.get("onClick"):
-            continue
-        children = [by_id.get(child_id) for child_id in row.children]
-        if not all(_is_readout_row_leaf(child, parent_counts) for child in children):
-            continue
-        row_occurrences = [item for item in occurrences if item.component_id in row.children]
-        if len(row_occurrences) != 1:
-            continue
-        readout_id = row_occurrences[0].component_id
-        if row.component_type == "Group" and readout_id != row.children[1]:
-            continue
-        label_texts = []
-        for child in children:
-            if child is None or child.component_id == readout_id:
-                continue
-            text = _static_row_label(child)
-            if text:
-                label_texts.append(_normalize_text(text))
-        labels[readout_id] = tuple(label_texts)
-    return labels
-
-
-def _is_readout_group(component: ComponentRow) -> bool:
-    if component.component_type == "Row":
-        return True
-    return (
-        component.component_type == "Group"
-        and component.props.get("variant") == "label-value"
-        and len(component.children) == 2
-    )
-
-
-def _is_readout_row_leaf(component: ComponentRow | None, parent_counts: dict[str, int]) -> bool:
-    if component is None or component.children or component.props.get("onClick"):
-        return False
-    if parent_counts.get(component.component_id) != 1:
-        return False
-    return component.component_type in {"Text", "EmphasizedData", "EmphasisText"}
-
-
-def _static_row_label(component: ComponentRow) -> str:
-    if component.component_type == "Text":
-        content = component.props.get("content")
-    elif component.component_type == "EmphasisText" and not component.props.get("secondaryText"):
-        content = component.props.get("mainText")
-    else:
-        return ""
-    if not isinstance(content, str):
-        return ""
-    if "{{" in content or "${" in content:
-        return ""
-    return content
-
-
-def _display_label_is_visible_with_fact(
-    display_label: str,
-    occurrence: _CompactVisiblePathOccurrence,
-    component_values: dict[str, Any] | None,
-    row_labels: dict[str, tuple[str, ...]] | None,
-) -> bool:
-    """确认动态读数和 Plan 短标签位于同一可见信息单元。"""
-    if not component_values:
-        return False
-    component_value = component_values.get(occurrence.component_id)
-    if not isinstance(component_value, dict):
-        return False
-    value_scope = _fact_visible_value_scope(component_value, occurrence.property_path)
-    visible_text = _visible_text_fragment(value_scope)
-    normalized_label = _normalize_text(display_label)
-    if normalized_label in _normalize_text(visible_text):
-        return True
-    return normalized_label in (row_labels or {}).get(occurrence.component_id, ())
-
-
-def _fact_visible_value_scope(component_value: dict[str, Any], property_path: str) -> Any:
-    """列表项内的绑定只能使用同一项的标签，不能借用相邻条目的文本。"""
-    match = re.match(r"items\[(\d+)](?:\.|$)", property_path)
-    if match is None:
-        return component_value
-    items = component_value.get("items")
-    if not isinstance(items, list):
-        return component_value
-    item_index = int(match.group(1))
-    if not 0 <= item_index < len(items):
-        return component_value
-    return items[item_index]
-
-
-def _visible_text_fragment(value: Any) -> str:
-    """提取可见属性中的静态文字片段，保留混合表达式的标签与单位。"""
-    if isinstance(value, str):
-        return _BINDING_PATH.sub("", value)
-    if isinstance(value, dict):
-        if set(value) == {"path"} and isinstance(value.get("path"), str):
-            return ""
-        return "".join(_visible_text_fragment(item) for item in value.values())
-    if isinstance(value, list):
-        return "".join(_visible_text_fragment(item) for item in value)
-    return ""
 
 
 def compact_plan_overflow_action_ids(
@@ -2764,23 +2672,6 @@ def _compact_fact_coverage_result(
                 warnings=(),
                 duplicate_facts=(duplicate_fact,),
             )
-        display_label = fact.get("displayLabel")
-        if isinstance(display_label, str) and display_label.strip():
-            occurrence = occurrences[0]
-            if not _display_label_is_visible_with_fact(
-                display_label,
-                occurrence,
-                state.component_visible_values,
-                state.grouped_readout_labels,
-            ):
-                return CompactPlanCoverageResult(
-                    errors=(
-                        "Plan data label is not visible with its readout in DSL: "
-                        f"{label} ({data_id}) requires displayLabel {display_label!r} in "
-                        f"{occurrence.component_id} ({occurrence.component_type}).",
-                    ),
-                    warnings=(),
-                )
     action_id = fact.get("actionId")
     if isinstance(action_id, str):
         expected = event_handlers.get(action_id)
@@ -2831,13 +2722,7 @@ def evaluate_compact_plan_coverage(
         return CompactPlanCoverageResult(errors=(), warnings=())
     rows = parse_compact_dsl_rows(compact_dsl)
     components = [row for row in rows if isinstance(row, ComponentRow)]
-    label_components = None
-    facts = plan.get("info_required")
-    if isinstance(facts, list):
-        if any(isinstance(fact, dict) and fact.get("displayLabel") for fact in facts):
-            source_rows = parse_compact_dsl_rows(compact_dsl, expand_layouts=False)
-            label_components = [row for row in source_rows if isinstance(row, ComponentRow)]
-    state = _compact_visible_state(components, label_components=label_components)
+    state = _compact_visible_state(components)
     event_handlers = _event_handlers_by_id(task_spec)
     overflow_action_ids = compact_plan_overflow_action_ids(components, plan, task_spec)
     allowed = set(allowed_omitted_fact_indexes)
@@ -3649,7 +3534,7 @@ def _data_display_route_fits_fact(
     if numeric_text is not None:
         return True
     character_count = len(re.sub(r"\s+", "", normalized))
-    return 1 <= character_count <= 8
+    return 1 <= character_count <= 10
 
 
 def _task_schema_sample(task_spec: dict[str, Any], data_id: str) -> Any:
@@ -3911,18 +3796,6 @@ def _validate_facts(
             "priority": priority,
             target: target_value,
         }
-        display_label = raw_fact.get("displayLabel")
-        if display_label is not None:
-            if target != "dataId":
-                errors.append(f"{location}.displayLabel is only supported for dataId facts.")
-                continue
-            if not isinstance(display_label, str) or not display_label.strip():
-                errors.append(f"{location}.displayLabel must be non-empty text.")
-                continue
-            if len(display_label.strip()) > 12:
-                errors.append(f"{location}.displayLabel must contain at most 12 characters.")
-                continue
-            fact["displayLabel"] = display_label.strip()
         hints = raw_fact.get("componentHints")
         if hints is not None:
             if not isinstance(hints, list):
@@ -3991,16 +3864,6 @@ def _validate_facts(
             previous["requirement"] += "; " + fact["requirement"]
         if fact["priority"] == "must":
             previous["priority"] = "must"
-        display_label = fact.get("displayLabel")
-        previous_label = previous.get("displayLabel")
-        if display_label and previous_label and display_label != previous_label:
-            errors.append(
-                f"{location}.displayLabel conflicts with the existing dataId label: "
-                f"{previous_label!r} and {display_label!r}."
-            )
-            continue
-        if display_label and not previous_label:
-            previous["displayLabel"] = display_label
         merged_hints = list(
             dict.fromkeys([*previous.get("componentHints", []), *fact.get("componentHints", [])])
         )
@@ -4103,13 +3966,17 @@ def _normalize_dual_action_plan(
     if layout_hints != normalized_layouts:
         warnings.append("Two required 2x2 actions force layoutHints to S-content-dual-action.")
 
+    actions_only = len(facts) == 2 and all("actionId" in fact for fact in facts)
+    component_hint = "CardButton" if actions_only else "PillButton"
     for fact in facts:
         if not _requires_action_button(fact):
             continue
         hints = fact.get("componentHints")
-        if hints != ["CardButton"]:
-            fact["componentHints"] = ["CardButton"]
-            warnings.append("A 2x2 dual-action fact uses CardButton in S-content-dual-action.")
+        if hints != [component_hint]:
+            fact["componentHints"] = [component_hint]
+            warnings.append(
+                f"A 2x2 dual-action fact uses {component_hint} in S-content-dual-action."
+            )
     return normalized_layouts, warnings
 
 

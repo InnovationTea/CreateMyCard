@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from models.generation import TaskSpec
 from services.compact_dsl_a2ui_converter import (
     MODEL_COMPACT_INPUT_COMPONENT_TYPES,
     CompactDslConversionError,
@@ -19,6 +20,7 @@ from services.compact_plan import (
     compact_plan_omitted_facts,
     compact_plan_optional_drop_candidate,
     evaluate_compact_plan_coverage,
+    fusion_display_task_spec,
     parse_compact_plan_call,
 )
 from services.compact_repair_strategy import CompactRepairStrategyTracker
@@ -162,6 +164,39 @@ def freshness_task_spec(user_query: str = "显示天气预警") -> dict:
         },
         "eventCandidates": [],
     }
+
+
+@pytest.mark.parametrize("query,show", [
+    ("显示漏接电话数、未读数，以及数据更新时间。点击可查看通话记录。", True),
+    ("告诉我数据是什么时候刷新的", True),
+    ("显示上次同步时间", True),
+    ("显示未读数，不要显示更新时间", False),
+    ("显示更新时间，但最后更新时间不用显示", False),
+    ("显示未读数并实时更新", False),
+    ("显示会议时间，支持手动刷新", False),
+    ("刷新时间间隔为三十分钟", False),
+    ("显示未读数。本轮卡片静态内容（用作展示的外部事实）：更新时间 10:10", False),
+    ("Show the last updated time", True),
+    ("Show missed calls without the last update time", False),
+])
+def test_fusion_display_fields_follow_requested_update_time(query, show):
+    task = TaskSpec.model_validate(freshness_task_spec(query))
+    original = task.model_dump()
+    view = fusion_display_task_spec(task).model_dump()
+    path = "/data/weather/updatedAt"
+    assert (path in compact_plan_data_paths(view)) == show
+    assert (path in json.dumps(build_compact_plan_tool(view))) == show
+    assert "/data/weather/current/condition" in compact_plan_data_paths(view)
+    assert task.model_dump() == original
+
+
+def test_fusion_display_fields_keep_array_indices_and_business_times():
+    leaf = {"type": "string", "sampleValue": "09:00"}
+    task = TaskSpec(userQuery="显示会议开始时间", size="2x2", dataModelSchema={
+        "data": {"events": [{"updatedAt": leaf}, {"dtStart": leaf, "updatedAt": leaf}]},
+    })
+    view = fusion_display_task_spec(task)
+    assert compact_plan_data_paths(view.model_dump()) == ("/data/events/1/dtStart",)
 
 
 def freshness_plan_call(
@@ -582,8 +617,8 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     fact_properties = properties["info_required"]["items"]["properties"]
     assert fact_properties["dataId"]["enum"] == list(compact_plan_data_paths(spec))
     assert fact_properties["actionId"]["enum"] == ["event.open.calendar"]
-    assert fact_properties["displayLabel"]["maxLength"] == 12
-    assert {"required": ["dataId", "displayLabel"]} in properties["info_required"]["items"]["oneOf"]
+    assert "displayLabel" not in fact_properties
+    assert {"required": ["dataId"]} in properties["info_required"]["items"]["oneOf"]
     assert "EventCard" in fact_properties["componentHints"]["items"]["enum"]
     assert "ProgressCircle" in fact_properties["componentHints"]["items"]["enum"]
     assert "Progress" not in fact_properties["componentHints"]["items"]["enum"]
@@ -599,7 +634,7 @@ def test_plan_tool_uses_task_paths_actions_and_size_contracts() -> None:
     assert tool["function"]["parameters"]["required"] == ["info_required"]
 
 
-def test_plan_data_label_must_share_a_visible_information_unit_with_its_readout() -> None:
+def test_plan_data_readout_does_not_require_a_display_label() -> None:
     spec = {
         "size": "2x4",
         "dataModelSchema": {
@@ -617,12 +652,10 @@ def test_plan_data_label_must_share_a_visible_information_unit_with_its_readout(
             {
                 "requirement": "当前风力",
                 "dataId": "/data/weather/windLevel",
-                "displayLabel": "风力",
             },
             {
                 "requirement": "今天降雨概率",
                 "dataId": "/data/weather/rainProbabilityPercent",
-                "displayLabel": "降雨概率",
             },
         ]
     }
@@ -634,171 +667,19 @@ def test_plan_data_label_must_share_a_visible_information_unit_with_its_readout(
         ]
     )
 
-    errors = compact_plan_coverage_errors(bare_source, plan, spec)
-
-    assert len(errors) == 2
-    assert all("not visible with its readout" in error for error in errors)
-    labeled_source = bare_source.replace(
-        "{{ ${/data/weather/windLevel}",
-        "{{ '风力 ' + ${/data/weather/windLevel}",
-    )
-    labeled_source = labeled_source.replace(
-        "{{ ${/data/weather/rainProbabilityPercent}",
-        "{{ '降雨概率 ' + ${/data/weather/rainProbabilityPercent}",
-    )
-    assert compact_plan_coverage_errors(labeled_source, plan, spec) == ()
+    assert compact_plan_coverage_errors(bare_source, plan, spec) == ()
 
 
-def test_plan_display_label_cannot_be_satisfied_by_an_invisible_binding_path() -> None:
-    path = "/data/风力"
-    spec = {
-        "size": "2x4",
-        "dataModelSchema": {"data": {"风力": {"type": "integer", "sampleValue": 2}}},
-        "eventCandidates": [],
-    }
-    plan = {"info_required": [{
-        "requirement": "当前风力", "dataId": path, "displayLabel": "风力",
-    }]}
-    rows = [
-        ["root", "Column", {}, ["reading"]],
-        ["reading", "EmphasisText", {"mainText": {"path": path}}],
-    ]
-    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    errors = compact_plan_coverage_errors(source, plan, spec)
-    assert len(errors) == 1
-    assert "not visible with its readout" in errors[0]
-    rows[1][2]["secondaryText"] = "风力"
-    labeled = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    assert compact_plan_coverage_errors(labeled, plan, spec) == ()
-
-
-@pytest.mark.parametrize("size", ["2x2", "2x4"])
-@pytest.mark.parametrize("case", [
-    "same_row", "reverse_order", "high_level_label", "other_row", "title", "button", "two_readouts",
-    "nested", "list_item", "dynamic_label", "unreachable", "shared_child", "partial_label",
-    "label_value", "reversed_label_value", "hero_support",
-])
-def test_plan_display_label_respects_unambiguous_row_boundary(size: str, case: str) -> None:
-    path = "/data/wind"
-    task = {
-        "size": size,
-        "dataModelSchema": {"data": {"wind": {"type": "integer", "sampleValue": 2}}},
-        "eventCandidates": [],
-    }
-    plan = {"info_required": [{
-        "requirement": "当前风力", "dataId": path, "displayLabel": "风力",
-    }]}
-    rows = [
-        ["root", "Column", {}, ["pair"]],
-        ["pair", "Row", {}, ["label", "reading"]],
-        ["label", "Text", {"content": "风力", "fontSize": 12}],
-        ["reading", "EmphasizedData", {"value": {"path": path}, "unit": "级"}],
-    ]
-    if case == "reverse_order":
-        rows[1][3].reverse()
-    elif case == "high_level_label":
-        rows[2] = ["label", "EmphasisText", {"mainText": "风力", "fontSize": 18}]
-    elif case == "other_row":
-        rows[0][3].append("other")
-        rows[1][3].remove("label")
-        rows.append(["other", "Row", {}, ["label"]])
-    elif case == "title":
-        rows[2] = ["label", "SingleLineTitle", {"title": "风力"}]
-    elif case == "button":
-        rows[2][2]["onClick"] = [{"call": "example", "args": {}}]
-    elif case == "two_readouts":
-        rows[1][3].append("other")
-        rows.append(["other", "Text", {"content": {"path": "/data/temperature"}}])
-    elif case == "nested":
-        rows[1][3][0] = "wrapper"
-        rows.append(["wrapper", "Column", {}, ["label"]])
-    elif case == "list_item":
-        rows[3] = ["reading", "SecondaryBody", {"items": [{"value": {"path": path}}]}]
-    elif case == "dynamic_label":
-        rows[2][2]["content"] = "{{ '风力' }}"
-    elif case == "unreachable":
-        rows[0][3] = ["reading"]
-    elif case == "shared_child":
-        rows[0][3].append("other")
-        rows.append(["other", "Row", {}, ["label"]])
-    elif case == "partial_label":
-        rows[2][2]["content"] = "风力预警"
-    elif case in {"label_value", "reversed_label_value", "hero_support"}:
-        variant = "hero-support" if case == "hero_support" else "label-value"
-        rows[1] = ["pair", "Group", {"variant": variant}, ["label", "reading"]]
-        rows[2] = ["label", "EmphasisText", {"mainText": "风力", "fontSize": 18}]
-        if size == "2x2":
-            rows[0] = ["root", "Layout", {"layout": "S-title-content"}, ["title", "pair"]]
-            rows.append(["title", "SingleLineTitle", {"title": "天气"}])
-        else:
-            rows[0] = ["root", "Layout", {"layout": "W-top-bottom"}, ["pair", "details"]]
-            rows.append(["details", "TextBlock", {"items": [{"value": "今日"}]}])
-        if case == "reversed_label_value":
-            rows[1][3].reverse()
-    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
-    original_rows = json.loads(json.dumps(rows))
-    if case == "unreachable":
-        with pytest.raises(CompactDslConversionError, match="Unreachable"):
-            compact_plan_coverage_errors(source, plan, task)
-        return
-    errors = compact_plan_coverage_errors(source, plan, task)
-    if case in {"same_row", "reverse_order", "high_level_label", "label_value"}:
-        assert errors == ()
-    else:
-        assert len(errors) == 1
-        assert "not visible with its readout" in errors[0]
-    assert rows == original_rows
-
-
-def test_plan_preserves_a_data_display_label_and_rejects_it_for_actions() -> None:
+def test_plan_ignores_legacy_display_label() -> None:
     payload = json.loads(plan_call())
     payload["arguments"]["info_required"][0]["displayLabel"] = "会议名称"
 
     result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), task_spec())
 
-    assert result.plan["info_required"][0]["displayLabel"] == "会议名称"
+    assert "displayLabel" not in result.plan["info_required"][0]
     payload["arguments"]["info_required"][2]["displayLabel"] = "日历"
-    with pytest.raises(CompactPlanValidationError, match="only supported for dataId"):
-        parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), task_spec())
-
-
-def test_plan_data_label_cannot_borrow_a_neighboring_list_item() -> None:
-    spec = {
-        "size": "2x4",
-        "dataModelSchema": {
-            "data": {
-                "earphone": {
-                    "batteryLevel": {"type": "integer", "sampleValue": 80},
-                }
-            }
-        },
-        "eventCandidates": [],
-    }
-    plan = {
-        "info_required": [
-            {
-                "requirement": "耳机仓电量",
-                "dataId": "/data/earphone/batteryLevel",
-                "displayLabel": "耳机仓电量",
-            }
-        ]
-    }
-    source = "\n".join(
-        [
-            '["root","Column",{},["details"]]',
-            '["details","SecondaryBody",{"items":['
-            '{"label":"耳机仓电量","value":"已连接"},'
-            '{"label":"","value":"{{ ${/data/earphone/batteryLevel} + \'%\' }}"}]}]',
-        ]
-    )
-
-    errors = compact_plan_coverage_errors(source, plan, spec)
-
-    assert errors == (
-        "Plan data label is not visible with its readout in DSL: 耳机仓电量 "
-        "(/data/earphone/batteryLevel) requires displayLabel '耳机仓电量' in details "
-        "(SecondaryBody).",
-    )
+    result = parse_compact_plan_call(json.dumps(payload, ensure_ascii=False), task_spec())
+    assert "displayLabel" not in result.plan["info_required"][2]
 
 
 @pytest.mark.parametrize(("size", "max_must_facts"), [("2x2", 6), ("2x4", 10)])
@@ -953,8 +834,8 @@ def test_dual_action_plan_preserves_content_hints_and_normalizes_buttons() -> No
     assert isinstance(facts, list)
     assert facts[0].get("componentHints") == ["ProgressCircleSingle", "EmphasizedData"]
     assert facts[1].get("componentHints") == ["SecondaryBody", "TableText"]
-    assert facts[2].get("componentHints") == ["CardButton"]
-    assert facts[3].get("componentHints") == ["CardButton"]
+    assert facts[2].get("componentHints") == ["PillButton"]
+    assert facts[3].get("componentHints") == ["PillButton"]
 
 
 def test_dual_action_plan_discards_title_asset_without_a_title_slot() -> None:
@@ -2056,6 +1937,20 @@ def test_anchor_composition_cannot_be_replaced_by_text_action_layout() -> None:
 
 def test_single_focus_data_display_route_cannot_be_downgraded_during_repair() -> None:
     spec = task_spec()
+    schema = spec.get("dataModelSchema")
+    assert isinstance(schema, dict)
+    data = schema.get("data")
+    assert isinstance(data, dict)
+    calendar = data.get("calendar")
+    assert isinstance(calendar, dict)
+    events = calendar.get("events")
+    assert isinstance(events, list)
+    assert events
+    first_event = events[0]
+    assert isinstance(first_event, dict)
+    title = first_event.get("title")
+    assert isinstance(title, dict)
+    title["sampleValue"] = "2026-11-01"
     plan = {
         "info_required": [
             {
@@ -2091,22 +1986,8 @@ def test_single_focus_data_display_route_cannot_be_downgraded_during_repair() ->
     )
     assert compact_plan_coverage_errors(preserved, plan, spec) == ()
 
-    long_value_spec = task_spec()
-    schema = long_value_spec.get("dataModelSchema")
-    assert isinstance(schema, dict)
-    data = schema.get("data")
-    assert isinstance(data, dict)
-    calendar = data.get("calendar")
-    assert isinstance(calendar, dict)
-    events = calendar.get("events")
-    assert isinstance(events, list)
-    assert events
-    first_event = events[0]
-    assert isinstance(first_event, dict)
-    title = first_event.get("title")
-    assert isinstance(title, dict)
-    title["sampleValue"] = "这是明确超过八个字的文本结论"
-    assert compact_plan_coverage_errors(downgraded, plan, long_value_spec) == ()
+    title["sampleValue"] = "一二三四五六七八九十甲"
+    assert compact_plan_coverage_errors(downgraded, plan, spec) == ()
 
 
 def test_optional_drop_candidate_prefers_should_only_component() -> None:

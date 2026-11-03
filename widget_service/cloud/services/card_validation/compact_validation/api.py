@@ -263,6 +263,10 @@ def validate_compact_dsl(
         )
         visible_props = {key: value for key, value in component.props.items() if key != "onClick"}
         _collect_binding_context(visible_props, location, visible_binding_paths, [])
+    if task_spec.get("excludeUpdatedAtFromDisplay"):
+        for path in dict.fromkeys(visible_binding_paths):
+            if path.endswith("/updatedAt"):
+                errors.append(f"{path}: omit the unrequested update timestamp from the display.")
     _collect_data_context_errors(binding_paths, data_rows, data_model, task_spec, errors)
     errors.extend(layout_errors)
     if errors:

@@ -10,6 +10,7 @@ from typing import Any
 from services.compact_component_runtime import (
     component_visual_recipe,
     load_visual_recipe_contract,
+    secondary_body_text_width,
     secondary_body_variant,
     text_block_full_width_budget,
     text_block_width_contract,
@@ -547,12 +548,18 @@ def _literal_display_sample(value: Any, task: dict[str, Any]) -> tuple[str, str]
     return paths[0], "".join(parts)
 
 
-def small_card_display_text(value: Any, task: dict[str, Any]) -> str | None:
+def small_card_display_text(
+    value: Any, task: dict[str, Any], *, bounded_only: bool = False,
+) -> str | None:
     """小卡完整文字压力：只读字符串连接或简单布尔映射，不执行表达式。"""
     if isinstance(value, dict):
+        if bounded_only:
+            return None
         displayed = _literal_display_sample(value, task)
         return displayed[1] if displayed is not None else None
     if not isinstance(value, str):
+        if bounded_only and type(value) in {int, float}:
+            return str(value)
         return None
     if "{{" not in value:
         return value
@@ -560,31 +567,26 @@ def small_card_display_text(value: Any, task: dict[str, Any]) -> str | None:
     if expression is None:
         return None
     literal = r'''(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')'''
-    comparison = re.fullmatch(
-        r"\s*\$\{(/[^{}]+)\}\s*(?:==|!=)\s*-?\d+(?:\.\d+)?\s*\?\s*("
+    conditional = re.fullmatch(
+        r"\s*\$\{(/[^{}]+)\}\s*(?:(==|!=)\s*-?\d+(?:\.\d+)?\s*)?\?\s*("
         + literal + r")\s*:\s*(" + literal + r")\s*", expression.group(1),
     )
-    if comparison is not None:
-        schema_type = _schema_value(task, comparison.group(1)).get("type")
-        if schema_type not in {"integer", "number"}:
+    if conditional is not None:
+        allowed_types = {"integer", "number"} if conditional.group(2) else {"boolean"}
+        field_type = _schema_value(task, conditional.group(1)).get("type")
+        if not bounded_only and field_type not in allowed_types:
             return None
         try:
-            branches = [ast.literal_eval(comparison.group(index)) for index in (2, 3)]
+            branches = [ast.literal_eval(conditional.group(index)) for index in (3, 4)]
         except (SyntaxError, ValueError):
             return None
+        if bounded_only:
+            if any(re.search(r"[\r\n\t]", branch) for branch in branches):
+                return None
+            return max(branches, key=lambda text: secondary_body_text_width(text, 1))
         return max(branches, key=lambda text: _text_width(text, 1))
-    boolean = re.fullmatch(
-        r"\s*\$\{(/[^{}]+)\}\s*\?\s*(" + literal + r")\s*:\s*(" + literal + r")\s*",
-        expression.group(1),
-    )
-    if boolean is not None:
-        if _schema_value(task, boolean.group(1)).get("type") != "boolean":
-            return None
-        try:
-            branches = [ast.literal_eval(boolean.group(index)) for index in (2, 3)]
-        except (SyntaxError, ValueError):
-            return None
-        return max(branches, key=lambda text: _text_width(text, 1))
+    if bounded_only:
+        return None
     return concatenated_display_text(
         value, lambda path: _schema_value(task, path).get("sampleValue"),
     )

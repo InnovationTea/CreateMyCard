@@ -65,7 +65,7 @@ def _layout_source(layout: str, variant: str = "standard", action: bool = False)
         ],
         "S-title-dual-column-action": ["SingleLineTitle", "ProgressCircle", "ProgressCircle"],
         "S-title-anchor": ["SingleLineTitle", "EmphasisText", "EmphasisText", "CircleButton"],
-        "S-content-dual-action": ["EmphasisText", "CardButton", "CardButton"],
+        "S-content-dual-action": ["EmphasisText", "PillButton", "PillButton"],
         "S-dual-info": ["InfoBlock", "InfoBlock"],
     }.get(layout)
     assert kinds is not None

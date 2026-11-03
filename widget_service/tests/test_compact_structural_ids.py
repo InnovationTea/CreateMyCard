@@ -49,11 +49,11 @@ EXPECTED_EXAMPLES = {
     "fewshots/2x2.md:example-v14":
         "c08ddcc4cfc7349133df3c30b709afd2c6c33b0e45dc912e068c6ace3cef9cd2",
     "fewshots/2x2.md:example-v03":
-        "62b9d0656427aaf5be826d17e291a449d1268d3e81555cbc92d67ab0ccb5180e",
+        "1edd72116f09cb6180a40421e239e40da124e524757bacc449f860ba97d2abdb",
     "fewshots/2x2.md:example-v17":
         "aa841371bef80ac47c97fa0ff117bdd32068717e5d518ed70881cedd0d67cc18",
     "fewshots/2x2.md:example-v18":
-        "d2506de3e48ae95cc0851efbc3d1cab71187cb98db32ba4812d995f6eb944161",
+        "066d072ab45d3a704e50b61bd69446b221f6336a349d088802ac7d34d030adc4",
     "fewshots/2x2.md:example-v07":
         "d64d1db29b42efec9a23a7a701e15a3c63e955f40e7bbbba3e22d21b8081f62a",
     "fewshots/2x4.md:example-v03":

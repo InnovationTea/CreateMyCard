@@ -299,6 +299,10 @@ def test_two_by_two_layout_prompt_delegates_geometry_to_semantic_templates() -> 
     ):
         assert retained_contract in layouts
 
+    assert "[content, PillButton, PillButton]" in layouts
+    assert '`variant:"actions-only"`，children 为 `[CardButton, CardButton]`' in layouts
+    assert '`variant:"actions-only"`，children 为 `[PillButton, PillButton]`' not in layouts
+
 
 def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() -> None:
     source = (DEFAULT_SOURCE / "layouts/2x4.md").read_text(encoding="utf-8")
@@ -431,6 +435,13 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     assert "数组由转换器按顺序以 ` | ` 连接" in catalog
     assert "静态 / PathBinding；不接受 Expression" in catalog
     assert "| `items[].label` | 显示值 |" in catalog
+
+
+def test_emphasis_text_prompt_suggests_labels_without_a_validation_requirement() -> None:
+    source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+
+    assert "`mainText` 承载动态读数时，生成时需" in source
+    assert "这只是生成提示，不属于 Plan 或 DSL 的强制校验。" in source
 
 
 def test_button_label_contract_preserves_action_while_limiting_visible_text() -> None:

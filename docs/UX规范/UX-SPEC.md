@@ -83,7 +83,7 @@
 | EmphasizedData / ProgressLine2 读数 | 值 30 / 700；单位 12 / 500 | 68 + % | 单一量化读数；不承载完整多段时长 |
 | EmphasisText | 主 18 / 700；次 12 / 400 | 连接状态、7小时1分 | 主行 18；有次行时 16 + 间距 2 |
 | DataDisplay 数值模式 | 值 48 / 700；标签 12 / 500；支撑 14 / 400 | 唯一核心倒计时 | 仅 S-center；不是其它槽位的放大许可 |
-| DataDisplay 文本模式 | 主 24 / 700；支撑 14 / 400 | 1–8 字短结论 | 主区最多两行；不通过缩字装入长正文 |
+| DataDisplay 文本模式 | 主 21 / 700；支撑 14 / 400 | 1–10 字短结论 | 主区最多两行；不通过缩字装入长正文 |
 | SecondaryBody | 单行整组 14 / 400；多行整组 12 / 400 | 辅助状态、完整更新时间 | 规格由实际行数确定，不按项数简单判断 |
 | InfoBlock（2×2） | 主 16 / 700；次 12 / 500；独立单位 10 / 500 | 一个短指标及说明 | 两个同级块使用 S-dual-info |
 | InfoBlock（2×4） | 主 14 / 700；次 12 / 500；独立单位 10 / 500 | 预定义信息槽 | 必须使用 slot 变体 |
@@ -281,7 +281,7 @@ PillButton、CardButton 的静态 label 最多 5 个非空白字符，使用简�
 
 - PillButton 只进入登记的底部动作角色，宽度填满所属动作区、高 36。
 - CircleButton 只用于 S-title-anchor：一个显式动作、准确 SVG、独立左下支撑事实，且用户没有明确要求显示按钮文案；不是文字按钮失败后的通用替代。
-- 双 CardButton 只用于 S-content-dual-action：标准变体使用单行紧凑动作，actions-only 可合法两行；两个动作都必须真实必要。当前固定高度及正文参考余量见附录 A，不将该内部规格推广到所有 CardButton。
+- S-content-dual-action 的标准变体使用两个单行 PillButton；只有无展示事实的 actions-only 才使用两个 CardButton，并可合法两行。两个动作都必须真实必要。当前固定高度及正文参考余量见附录 A，不将该内部规格推广到所有 CardButton。
 - 唯一只读详情的整卡点击仅限服务端接受 wholeCardActionId 的 S-title-content / S-title-dual-content；没有独立按钮槽，不额外预留按钮高度。明确按钮要求及副作用动作不走此例外。
 
 #### 2×4 按钮规格
@@ -361,9 +361,9 @@ root 使用 Layout，角色 ID 为 header / body / note；没有共同标题或�
 
 #### S-center：唯一核心居中
 
-**适用：** 无动作、无独立支撑的单焦点数值或 1–8 字短结论。
+**适用：** 无动作、无独立支撑的单焦点数值或 1–10 字短结论。
 
-**尺寸与排布：** padding 12；仅一个 DataDisplay，双轴居中。数值模式 48fp，文本模式 24fp。
+**尺寸与排布：** padding 12；仅一个 DataDisplay，双轴居中。数值模式 48fp，文本模式 21fp。
 
 **禁止 / 边界：** 不额外加标题、按钮或第二核心；主值包含复杂单位或需要独立明细时改用其它布局。
 
@@ -429,7 +429,7 @@ root 使用 Layout，角色 ID 为 header / body / note；没有共同标题或�
 
 **适用：** 一个紧凑内容及两个必要操作，或只有两个操作。
 
-**尺寸与排布：** 标准为 [内容, CardButton, CardButton]，两个动作按当前固定高度占位，相邻间隔 8，正文承接剩余空间。actions-only 只有两个动作及其间距，在安全区内整体居中，不因没有正文就拉伸为等高满屏区域；固定高度见附录 A。
+**尺寸与排布：** 标准为 [内容, PillButton, PillButton]，两个单行动作各占 36 高、相邻间隔 8，正文承接剩余空间。actions-only 为 [CardButton, CardButton]，两个动作各占 57 高、相邻间隔 8，在安全区内整体居中；不因没有正文就拉伸为等高满屏区域。
 
 **禁止 / 边界：** 无总标题或第三操作；有事实时不能选 actions-only 把正文丢掉，不把动态读数藏入按钮 label。
 
@@ -578,7 +578,7 @@ InfoBlock 的主值必须完整；次行可在运行时省略。云侧只对当�
 | 父布局 | 既有能力型为小卡 10 种 S／宽卡 4 种 W；纯静态用 S/W-static-content，不混用候选池 |
 | 标题 | 既有：12fp，无图标高 12、有图标高 20；静态短标题：12fp／700、高 16 |
 | 大数值 | EmphasizedData 30fp；S-center 的 DataDisplay 数值 48fp，不能互相套用 |
-| 完整主文本 | EmphasisText 18fp；DataDisplay 短文本模式 24fp、最多两行 |
+| 完整主文本 | EmphasisText 18fp；DataDisplay 短文本模式 21fp、最多两行 |
 | 普通辅助 | 既有 SecondaryBody 单行整组 14fp、多行整组 12fp；静态共同说明默认 12fp，可选登记 11／10 档位 |
 | 操作 | PillButton 高 36；CircleButton 40×40；CardButton 按所属槽位承载；PillButton／CardButton 可见文案最多 5 个非空白字符 |
 | 高度容差 | 2×2／2×4 整树均为 2vp 数值容差，不代替真机检查 |

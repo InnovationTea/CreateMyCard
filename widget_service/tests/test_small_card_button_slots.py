@@ -1,4 +1,4 @@
-"""小卡双卡片按钮的固定角色、容量与事实保护。"""
+"""小卡双动作槽的固定角色、容量与事实保护。"""
 
 import copy
 import json
@@ -36,7 +36,8 @@ def _case(pure: bool) -> tuple[dict, dict, list]:
         handler = {"call": "open", "args": {"target": name}}
         task["eventCandidates"].append({"id": name, **handler})
         facts.append({"actionId": name, "priority": "must", "requirement": "操作"})
-        rows.append([name, "CardButton", {"label": "打开", "onClick": [handler]}])
+        component = "CardButton" if pure else "PillButton"
+        rows.append([name, component, {"label": "打开", "onClick": [handler]}])
     plan = {"info_required": facts, "layoutHints": ["S-content-dual-action"]}
     return task, plan, rows
 
@@ -46,7 +47,7 @@ def _source(rows: list) -> str:
 
 
 @pytest.mark.parametrize("pure,expected_height", [(False, 36), (True, 57)])
-def test_dual_card_buttons_validate_and_keep_slot_geometry(
+def test_dual_action_buttons_validate_and_keep_slot_geometry(
     pure: bool, expected_height: int,
 ) -> None:
     task, plan, rows = _case(pure)
@@ -57,23 +58,46 @@ def test_dual_card_buttons_validate_and_keep_slot_geometry(
     )
     assert not result.warnings
     parsed = parse_compact_dsl_rows(source, size="2x2")
-    buttons = [row for row in parsed if isinstance(row, ComponentRow)
-               and row.component_type == "CardButton"]
-    assert len(buttons) == 2
-    assert all(row.props.get("height") == expected_height for row in buttons)
+    if pure:
+        buttons = [
+            row for row in parsed
+            if isinstance(row, ComponentRow) and row.component_type == "CardButton"
+        ]
+        assert len(buttons) == 2
+        assert all(row.props.get("height") == expected_height for row in buttons)
+    else:
+        action_slots = [
+            row
+            for row in parsed
+            if isinstance(row, ComponentRow)
+            and row.component_type == "Column"
+            and row.props.get("height") == expected_height
+            and len(row.children) == 1
+        ]
+        assert len(action_slots) == 2
     output = convert_compact_dsl_to_a2ui(source, size="2x2")
     messages = [json.loads(line) for line in output.splitlines()]
     components = messages[1].get("updateComponents", {}).get("components", [])
     assert len([row for row in components if row.get("onClick")]) == 2
-    assert not any(row.get("component") == "CardButton" for row in components)
+    assert not any(row.get("component") == "PillButton" for row in components)
 
 
-@pytest.mark.parametrize("pure", [False, True])
-@pytest.mark.parametrize("kind", ["PillButton", "CircleButton", "InfoBlock"])
-def test_dual_action_roles_reject_other_components(pure: bool, kind: str) -> None:
+@pytest.mark.parametrize(
+    ("pure", "kind", "expected"),
+    [
+        (False, "CardButton", "PillButton"),
+        (False, "CircleButton", "PillButton"),
+        (True, "PillButton", "CardButton"),
+        (True, "CircleButton", "CardButton"),
+        (True, "InfoBlock", "CardButton"),
+    ],
+)
+def test_dual_action_roles_reject_other_components(
+    pure: bool, kind: str, expected: str,
+) -> None:
     _, _, rows = _case(pure)
     rows[-1][1] = kind
-    with pytest.raises(CompactDslConversionError, match="CardButton"):
+    with pytest.raises(CompactDslConversionError, match=expected):
         convert_compact_dsl_to_a2ui(_source(rows), size="2x2")
 
 
@@ -92,7 +116,7 @@ def test_standard_slot_cannot_use_two_line_label() -> None:
         convert_compact_dsl_to_a2ui(_source(rows), size="2x2")
 
 
-def test_pure_action_slot_keeps_two_line_label_capability() -> None:
+def test_pure_action_slot_keeps_card_button_two_line_contract() -> None:
     _, _, rows = _case(True)
     rows[-1][2]["labelLines"] = 2
     converted = convert_compact_dsl_to_a2ui(_source(rows), size="2x2")
