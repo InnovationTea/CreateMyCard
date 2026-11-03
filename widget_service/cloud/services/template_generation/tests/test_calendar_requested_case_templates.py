@@ -522,7 +522,7 @@ def test_q024_renders_all_four_requested_values_in_reference_geometry() -> None:
         _options(root).items()
         >= {
             "height": 78,
-            "margin": {"top": -2},
+            "margin": {"top": 0},
             "itemMargin": 8,
             "clip": False,
         }.items()

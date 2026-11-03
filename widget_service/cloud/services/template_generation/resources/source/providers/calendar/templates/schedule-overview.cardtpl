@@ -1885,7 +1885,6 @@ Column(
 )
 #End
 
-
 #Template ScheduleOverviewDatedAllDayHero@1(props: {})
 data = {
     date: $path("/events/0/startDate"),
