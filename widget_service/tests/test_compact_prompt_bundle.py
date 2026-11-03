@@ -437,10 +437,15 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     assert "| `items[].label` | 显示值 |" in catalog
 
 
-def test_emphasis_text_prompt_suggests_labels_without_a_validation_requirement() -> None:
+def test_emphasis_text_prompt_limits_labels_to_wind_and_rain_probability() -> None:
     source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
 
-    assert "`mainText` 承载动态读数时，生成时需" in source
+    assert "不默认补充“当前温度”等冗余短标签" in source
+    assert "当前仅风力与降雨概率" in source
+    assert "风力 2级" in source
+    assert "降雨概率 20%" in source
+    assert "其它动态读数不主动添加短标签" in source
+    assert "生成时需在 `mainText` 或 `secondaryText` 中附上" not in source
     assert "这只是生成提示，不属于 Plan 或 DSL 的强制校验。" in source
 
 
