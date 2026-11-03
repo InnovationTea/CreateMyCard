@@ -263,7 +263,7 @@ def _has_dangling_range_separator(content: Any) -> bool:
     return bool(re.search("(?:'|\\\")\\s*(?:-|~|～|至|–|—)\\s*(?:'|\\\")\\s*$", body))
 
 
-def _weather_readout_context(
+def _readout_label_context(
     component: ComponentRow,
     parents: dict[str, str],
     nodes: dict[str, ComponentRow],
@@ -302,7 +302,7 @@ def _weather_readout_context(
 
 def _collect_semantic_text_errors(
     components: list[ComponentRow], task_spec: dict[str, Any], errors: list[str],
-    *, weather_readouts: dict[str, tuple[str, ...]] | None = None,
+    *, readout_labels: dict[str, tuple[str, ...]] | None = None,
 ) -> None:
     components_by_id = {component.component_id: component for component in components}
     parent_by_child: dict[str, str] = {}
@@ -334,9 +334,9 @@ def _collect_semantic_text_errors(
             )
         paths = _component_content_paths(component)
         for path in paths:
-            labels = (weather_readouts or {}).get(path)
+            labels = (readout_labels or {}).get(path)
             if labels:
-                context = _weather_readout_context(component, parent_by_child, components_by_id)
+                context = _readout_label_context(component, parent_by_child, components_by_id)
                 if not any(label in context for label in labels):
                     errors.append(
                         f"component {component.component_id}: {path} 须在同一项显示“{labels[0]}”"

@@ -1505,7 +1505,6 @@ class WidgetGenerationService:
                     display_task,
                     accepted_compact_plan,
                     plan_warnings=accepted_compact_plan_warnings,
-                    card_spec=processing_context.card_spec,
                 )
                 effective_generation_prompt = compact_agent_messages
                 trace_record(

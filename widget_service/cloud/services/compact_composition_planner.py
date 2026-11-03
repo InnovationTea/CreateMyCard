@@ -177,6 +177,21 @@ def _schema_value(task: dict[str, Any], path: str) -> dict[str, Any]:
     return node if isinstance(node, dict) else {}
 
 
+def selected_readout_labels(task: dict, plan: dict | None) -> dict[str, tuple[str, ...]]:
+    """读取入选事实的字段合同；普通字段不产生展示标签约束。"""
+    result = {}
+    for fact in (plan or {}).get("info_required") or ():
+        path = fact.get("dataId") if isinstance(fact, dict) else None
+        if not isinstance(path, str):
+            continue
+        labels = _schema_value(task, path).get("readoutLabels")
+        if not isinstance(labels, list) or not labels:
+            continue
+        if all(isinstance(label, str) and label.strip() for label in labels):
+            result[path] = tuple(labels)
+    return result
+
+
 def is_compound_duration_text(value: Any) -> bool:
     """只识别完整多段时长样值，不推测字段名、不拆单位或执行表达式。"""
     return isinstance(value, str) and _COMPOUND_DURATION.fullmatch(value) is not None

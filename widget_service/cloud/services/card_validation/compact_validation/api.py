@@ -232,11 +232,11 @@ def validate_compact_dsl(
     _collect_ambiguous_metric_text_errors(
         components, task_spec, warnings, layout_origins=context.layout_origins,
     )
-    from services.compact_weather_readouts import selected_weather_readouts
+    from services.compact_composition_planner import selected_readout_labels
 
     _collect_semantic_text_errors(
         components, task_spec, errors,
-        weather_readouts=selected_weather_readouts(card_spec, compact_plan),
+        readout_labels=selected_readout_labels(task_spec, compact_plan),
     )
     _collect_raw_boolean_text_errors(components, task_spec, errors)
     _collect_progress_value_errors(components, task_spec, errors)

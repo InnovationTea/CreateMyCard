@@ -8,12 +8,14 @@ from pathlib import Path
 import pytest
 
 from services.card_validation import CompactDslValidationError, validate_compact_dsl
+from services.compact_composition_planner import selected_readout_labels
 from services.compact_prompt_loader import assemble_prompts
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessorKind,
     get_dsl_processor,
 )
+from services.theme_style_roles import layout_phase
 
 _DESIGN_PROMPT_SOURCE = (
     Path(__file__).resolve().parents[1]
@@ -586,6 +588,101 @@ def test_rejects_title_and_action_button_reusing_same_icon(button_type: str) -> 
             },
             card_spec={"suggestSize": "2x2", "dataBindings": []},
         )
+
+
+@pytest.mark.parametrize("mode", ["bare", "inline", "items", "swapped"])
+@pytest.mark.parametrize("wind,probability", [(2, 20), (3, 40)])
+def test_weather_readouts_share_their_label_with_the_correct_value(mode, wind, probability):
+    root = "/data/forecast"
+    paths = [root + "/current/windLevel", root + "/daily/0/rainProbabilityPercent"]
+    values = [f"{{{{ ${{{paths[0]}}} + '级' }}}}", f"{{{{ ${{{paths[1]}}} + '%' }}}}"]
+    items = [{"value": value} for value in values]
+    for index, label in enumerate(["风力", "降水概率"]):
+        if mode == "items":
+            items[index]["label"] = label
+        elif mode == "inline":
+            items[index]["value"] = values[index].replace("{{ ", "{{ '" + label + " ' + ")
+        elif mode == "swapped":
+            items[1 - index]["label"] = label
+    rows = [
+        ["root", "Column", {}, ["main", "support"]],
+        ["main", "EmphasizedData", {"value": {"path": "/data/battery"}, "unit": "%"}],
+        ["support", "SecondaryBody", {"items": items, "columns": 1}],
+        [paths[0], wind], [paths[1], probability], ["/data/battery", 80],
+    ]
+    spec = {"size": "2x4", "dataModelSchema": {"data": {
+        "forecast": {"current": {"windLevel": {
+                         "type": "integer", "sampleValue": wind, "readoutLabels": ["风力", "风级"],
+                     }},
+                     "daily": [{"rainProbabilityPercent": {
+                         "type": "number", "sampleValue": probability,
+                         "readoutLabels": ["降水概率", "降雨概率"],
+                     }}]},
+        "battery": {"type": "integer", "sampleValue": 80},
+    }}}
+    card = {"suggestSize": "2x4", "dataBindings": [
+        {"capabilityId": "ViewWeather", "writeResultTo": root},
+    ]}
+    plan = {"info_required": [{"dataId": path} for path in [*paths, "/data/battery"]]}
+    source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    with layout_phase():
+        if mode in {"bare", "swapped"}:
+            with pytest.raises(CompactDslValidationError) as error:
+                validate_compact_dsl(source, task_spec=spec, card_spec=card, compact_plan=plan)
+            assert "须在同一项显示“风力”" in str(error.value)
+            assert "须在同一项显示“降水概率”" in str(error.value)
+        else:
+            validate_compact_dsl(source, task_spec=spec, card_spec=card, compact_plan=plan)
+
+
+def test_only_selected_registered_fields_receive_directions():
+    task = {"dataModelSchema": {"data": {
+        "today": {"daily": [{}, {}, {"rainProbabilityPercent": {
+            "type": "number", "readoutLabels": ["降水概率", "降雨概率"],
+        }}]},
+        "other": {"current": {"windLevel": {"type": "integer"}}},
+    }}}
+    paths = ["/data/today/daily/2/rainProbabilityPercent", "/data/today/current/temperatureText",
+             "/data/other/current/windLevel"]
+    plan = {"info_required": [{"dataId": path} for path in paths]}
+    assert selected_readout_labels(task, plan) == {
+        paths[0]: ("降水概率", "降雨概率"),
+    }
+
+
+def test_q037_generation_prompt_only_identifies_the_two_weather_fields():
+    from models.capability import DataCapability
+    from models.generation import CandidateDataBinding
+    from services.prompt_builder import PromptBuilder
+    from services.task_spec_builder import TaskSpecBuilder
+
+    fixture = Path(__file__).resolve().parents[2] / "debug_tools/Datasets/online_updated/Q037.json"
+    request = json.loads(fixture.read_text(encoding="utf-8"))
+    bindings = request.get("candidateDataBindings")
+    assert bindings
+    facts = []
+    for binding in bindings:
+        for pointer in binding.get("candidateOutputFields", []):
+            facts.append({"dataId": binding.get("writeResultTo") + pointer, "priority": "must"})
+    plan = {"info_required": facts, "layoutHints": []}
+    registry = Path(__file__).resolve().parents[1] / "cloud/data/capabilities"
+    source = registry / "app-11.7.7.300_rom-7.0/data_capabilities.json"
+    entries = json.loads(source.read_text("utf-8"))
+    capabilities = [DataCapability.model_validate(item) for item in entries]
+    task = TaskSpecBuilder().build(
+        request.get("userQuery"), "2x4", [CandidateDataBinding.model_validate(b) for b in bindings],
+        capabilities, [], [],
+    )
+    roles = ("system", "user", "user", "assistant")
+    conversation = [{"role": role, "content": "test"} for role in roles]
+    messages = PromptBuilder.build_compact_dsl_continuation(
+        conversation, task, plan,
+    )
+    hints = [line for line in messages[-1]["content"].splitlines() if "的可见读数须" in line]
+    assert len(hints) == 2
+    wind_instruction = "/data/weather/current/windLevel 的可见读数须在同一项说明“风力”"
+    assert any(wind_instruction in hint for hint in hints)
+    assert any("/data/weather/daily/0/rainProbabilityPercent" in hint for hint in hints)
 
 
 def test_hidden_update_time_can_still_be_used_by_an_action() -> None:

@@ -119,6 +119,7 @@
               "type": "integer",
               "minimum": 0,
               "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+              "readoutLabels": ["风力", "风级"],
               "sampleValue": 2,
               "displayUnits": [
                 "级"
@@ -175,6 +176,7 @@
               "rainProbabilityPercent": {
                 "type": "number",
                 "description": "白天降雨概率的百分数数值，返回值不包含单位，例如 20 表示 20%；文本展示必须追加一个“%”，进度组件直接使用数值。",
+                "readoutLabels": ["降水概率", "降雨概率"],
                 "sampleValue": 20,
                 "displayUnits": [
                   "%"

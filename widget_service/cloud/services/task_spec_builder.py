@@ -106,6 +106,8 @@ class TaskSpecBuilder:
                     "sampleValue": sample_value,
                 }
                 source_name = leaf.get("numericSource")
+                if "readoutLabels" in leaf:
+                    metadata["readoutLabels"] = deepcopy(leaf["readoutLabels"])
                 if isinstance(source_name, str):
                     source_parts = (*write_parts, *relative_parts[:-1], source_name)
                     escaped_parts = []
