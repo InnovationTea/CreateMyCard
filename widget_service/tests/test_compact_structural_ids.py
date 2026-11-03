@@ -51,7 +51,7 @@ EXPECTED_EXAMPLES = {
     "fewshots/2x2.md:example-v03":
         "1edd72116f09cb6180a40421e239e40da124e524757bacc449f860ba97d2abdb",
     "fewshots/2x2.md:example-v17":
-        "c9219986440e2cc3397d197dfa5b4b084af87d85f8a2e40568de066aa5867efd",
+        "aa841371bef80ac47c97fa0ff117bdd32068717e5d518ed70881cedd0d67cc18",
     "fewshots/2x2.md:example-v18":
         "066d072ab45d3a704e50b61bd69446b221f6336a349d088802ac7d34d030adc4",
     "fewshots/2x2.md:example-v07":

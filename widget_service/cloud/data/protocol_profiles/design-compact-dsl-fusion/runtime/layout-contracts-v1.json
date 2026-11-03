@@ -275,8 +275,8 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 8, "justifyContent": "center"}, "childCount": 2},
-            {"path": [0], "types": ["PillButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"},
-            {"path": [1], "types": ["PillButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"}
+            {"path": [0], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"},
+            {"path": [1], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"}
           ]
         },
         {
@@ -292,10 +292,8 @@
         {
           "rules": [
             {"path": [], "types": ["Column"], "props": {"padding": 12, "itemMargin": 8, "justifyContent": "center"}, "childCount": 2},
-            {"path": [0], "types": ["Column"], "props": {"width": 126, "height": 57}},
-            {"path": [0, 0], "types": ["PillButton"], "eventPolicy": "require"},
-            {"path": [1], "types": ["Column"], "props": {"width": 126, "height": 57}},
-            {"path": [1, 0], "types": ["PillButton"], "eventPolicy": "require"}
+            {"path": [0], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"},
+            {"path": [1], "types": ["CardButton"], "slotSize": {"width": 126, "height": 57}, "eventPolicy": "require"}
           ]
         }
       ]

@@ -56,7 +56,7 @@ def test_dual_buttons_retrieve_all_three_valid_structures_not_single_buttons() -
     assert _identifiers(result.content) == set(result.identifiers)
     for match in result.matches:
         assert match.example.features.buttons == 2
-        assert "PillButton" in match.example.features.components[0]
+        assert {"PillButton", "CardButton"} & set(match.example.features.components[0])
 
 
 @pytest.mark.parametrize("size", ["2x2", "2x4"])

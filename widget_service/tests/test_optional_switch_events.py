@@ -176,7 +176,7 @@ def _pipeline_inputs(expected: dict, actual: dict, size: str) -> _PipelineInputs
     if size == "2x4":
         rows.append(["content", "Region", {"variant": "center"}, ["body"]])
         rows.append(["body", "EmphasisText", {"mainText": "快捷操作"}])
-    action_type = "PillButton" if size == "2x2" else "CardButton"
+    action_type = "CardButton"
     rows.extend([
         ["switch", action_type, {"label": "开关", "icon": "resources/base/media/ic_switch.svg",
                                  "onClick": [actual]}],
@@ -348,10 +348,10 @@ async def test_registered_optional_switch_completes_service_without_repair(
     rows = [
         ["root", "Layout", {"layout": "S-content-dual-action", "variant": "actions-only"},
          ["switch", "flashlight"]],
-        ["switch", "PillButton", {
+        ["switch", "CardButton", {
             "label": "开关", "onClick": [_handler(registry, event_id, flag)],
         }],
-        ["flashlight", "PillButton", {"label": "手电筒", "onClick": [second_handler]}],
+        ["flashlight", "CardButton", {"label": "手电筒", "onClick": [second_handler]}],
     ]
     calls = []
 

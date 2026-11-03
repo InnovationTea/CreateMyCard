@@ -236,8 +236,8 @@ def test_two_setting_buttons_count_as_one_business_and_zero_body_lines(monkeypat
     rows = [
         ["root", "Layout", {"layout": "S-content-dual-action", "variant": "actions-only"},
          ["wifi", "bluetooth"]],
-        ["wifi", "PillButton", {"label": "Wi-Fi开关", "onClick": [action("event.setWifiMode")]}],
-        ["bluetooth", "PillButton", {
+        ["wifi", "CardButton", {"label": "Wi-Fi开关", "onClick": [action("event.setWifiMode")]}],
+        ["bluetooth", "CardButton", {
             "label": "蓝牙开关", "onClick": [action("event.setBluetoothMode")],
         }],
     ]

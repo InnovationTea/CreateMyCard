@@ -72,7 +72,7 @@ def _layout_source(layout: str, variant: str = "standard", action: bool = False)
     if variant == "stacked-info":
         kinds = ["SingleLineTitle", "InfoBlock", "InfoBlock"]
     if layout == "S-content-dual-action" and variant == "actions-only":
-        kinds = ["PillButton", "PillButton"]
+        kinds = ["CardButton", "CardButton"]
     if layout == "S-title-content-action" and variant == "title-action":
         kinds = ["SingleLineTitle", "PillButton"]
     if action:

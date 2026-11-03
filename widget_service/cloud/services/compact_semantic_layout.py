@@ -694,7 +694,7 @@ class _SmallCompiler(_Compiler):
         counts = {count, count + 1} if layout == "S-title-dual-column-action" else {count}
         if actions_only:
             counts = {2}
-            description = "[PillButton, PillButton]"
+            description = "[CardButton, CardButton]"
         elif title_action_only:
             counts = {2}
             description = "[title, PillButton]"
@@ -747,8 +747,9 @@ class _SmallCompiler(_Compiler):
             expected_actions.add(children[-1])
         if layout == "S-content-dual-action":
             action_children = children if actions_only else children[1:]
+            action_kind = "CardButton" if actions_only else "PillButton"
             for child in action_children:
-                self.action(child, "PillButton")
+                self.action(child, action_kind)
                 expected_actions.add(child)
         if layout == "S-title-dual-column-action" and len(children) == 4:
             self.action(children[-1])
@@ -757,10 +758,10 @@ class _SmallCompiler(_Compiler):
             _fail("root", "Action 必须放在所选小卡布局的动作角色中")
         for child in children:
             self.content(child, compact=True)
-        if self.contains_type(children, "CardButton"):
+        if self.contains_type(children, "CardButton") and not actions_only:
             _fail(
                 "root",
-                "2x2 不支持 CardButton；S-content-dual-action 的动作槽必须使用 PillButton",
+                "2x2 的 CardButton 仅能用于 S-content-dual-action 的 actions-only 变体",
             )
         if self.contains_type(children, "InfoBlock"):
             if layout not in {"S-dual-info", "S-title-dual-content"}:
@@ -866,30 +867,29 @@ class _SmallCompiler(_Compiler):
             body = self.body("root", (primary, bottom), 2, {})
             children = (children[0], body)
         elif layout == "S-content-dual-action":
-            action_slots = []
-            for child in children if actions_only else children[1:]:
-                row = self.node(child)
-                if not actions_only and row.props.get("labelLines", 1) != 1:
-                    _fail(child, "带正文的双动作槽只支持 PillButton 单行标签")
-                slot_index = len(action_slots)
-                action_slots.append(
-                    self.wrap(
-                        "root",
-                        f"action{slot_index}",
-                        child,
-                        {
-                            "height": 57 if actions_only else 36,
-                            "flexShrink": 0,
-                            "justifyContent": "center",
-                        },
+            action_children = children if actions_only else children[1:]
+            if actions_only:
+                for child in action_children:
+                    self.geometry(child, {"width": "matchParent", "height": 57, "flexShrink": 0})
+                children = action_children
+            else:
+                action_slots = []
+                for child in action_children:
+                    row = self.node(child)
+                    if row.props.get("labelLines", 1) != 1:
+                        _fail(child, "带正文的双动作槽只支持 PillButton 单行标签")
+                    slot_index = len(action_slots)
+                    action_slots.append(
+                        self.wrap(
+                            "root",
+                            f"action{slot_index}",
+                            child,
+                            {"height": 36, "flexShrink": 0, "justifyContent": "center"},
+                        )
                     )
-                )
-            if not actions_only:
                 content = self.wrap("root", "content", children[0],
                                     {"layoutWeight": 1, "flexShrink": 0})
                 children = (content, *action_slots)
-            else:
-                children = tuple(action_slots)
         elif layout == "S-dual-info":
             for child in children:
                 if self.node(child).component_type != "InfoBlock":

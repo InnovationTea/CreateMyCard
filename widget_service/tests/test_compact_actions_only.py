@@ -67,7 +67,7 @@ def _rows(task: dict, variant: str | None = "actions-only") -> list:
         params = args.get("params")
         assert isinstance(params, dict)
         params["switchFlag"] = 1
-        rows.append([name, "PillButton", {
+        rows.append([name, "CardButton", {
             "label": "Wi-Fi" if name == "wlan" else "蓝牙",
             "icon": f"resources/base/media/{name}.svg",
             "onClick": [{"call": candidate.get("call"), "args": args}],
