@@ -150,6 +150,81 @@ def static_review_lost_must_indexes(
     return tuple(missing)
 
 
+def _unique_displayed_identity(
+    identity: str, identities: list[str], displays: list[Any],
+) -> bool:
+    from services.card_validation.compact_validation.semantic.static_content import (
+        _identity_covered,
+    )
+
+    matching_identities = 0
+    for candidate in identities:
+        if _identity_covered(identity, [candidate]) or _identity_covered(candidate, [identity]):
+            matching_identities += 1
+    if matching_identities != 1:
+        return False
+    matches = [display for display in displays if _identity_covered(identity, display.parts)]
+    if len(matches) != 1:
+        return False
+    for candidate in identities:
+        if candidate != identity and _identity_covered(candidate, matches[0].parts):
+            return False
+    return True
+
+
+def static_review_lost_displayed_object_indexes(
+    original: dict[str, Any], corrected: dict[str, Any], *, size: str = "2x4",
+) -> tuple[int, ...]:
+    """仅保护已全文排下且身份唯一的对象，不冻结其 should 展示措辞。"""
+    from services.card_validation.compact_validation.semantic.static_content import (
+        _identity_covered,
+        static_display_groups,
+        static_fact_coverage,
+    )
+    from services.compact_dsl_a2ui_converter import CompactDslConversionError
+    from services.static_content_components import complete_static_text_trial
+    from services.static_content_presentation import static_candidate_expansion_error
+
+    old_source = original.get("staticPresentation")
+    new_source = corrected.get("staticPresentation")
+    if not isinstance(old_source, str) or not old_source.strip():
+        return ()
+    if not isinstance(new_source, str) or not new_source.strip():
+        return ()
+    try:
+        # 复用组件展开的全文容量检查，不把允许省略号的旧候选锁定为完整展示。
+        with complete_static_text_trial():
+            if static_candidate_expansion_error(old_source, size) is not None:
+                return ()
+        old_visible = {
+            item.fact_index for item in static_fact_coverage(old_source, original) if item.visible
+        }
+        old_objects, old_shared = static_display_groups(old_source)
+        new_objects, new_shared = static_display_groups(new_source)
+    except CompactDslConversionError:
+        # 无可读取候选时沿用既有 Plan 门禁，不新增失败或推断对象身份。
+        return ()
+    groups = [group for group in original.get("contentGroups", []) if group.get("kind") == "object"]
+    identities = []
+    for group in groups:
+        identity = group.get("identity")
+        if isinstance(identity, str) and identity.strip():
+            identities.append(identity)
+    missing = []
+    for group in groups:
+        identity = group.get("identity")
+        if not isinstance(identity, str) or not identity.strip():
+            continue
+        if not _unique_displayed_identity(identity, identities, old_objects + old_shared):
+            continue
+        if any(_identity_covered(identity, display.parts) for display in new_objects + new_shared):
+            continue
+        for index in group.get("factIndexes", []):
+            if index in old_visible:
+                missing.append(index)
+    return tuple(missing)
+
+
 def _decode_review(raw_output: str) -> tuple[Any, tuple[str, ...]]:
     """仅恢复缺失的最外层闭合符，不补值、内部结构或重复键。"""
     envelope = normalize_plan_json_fence(raw_output)

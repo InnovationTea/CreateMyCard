@@ -117,6 +117,7 @@ from services.source_artifact_repository import (
 from services.static_plan_review import (
     StaticPlanReviewError,
     parse_static_plan_review,
+    static_review_lost_displayed_object_indexes,
     static_review_lost_must_indexes,
 )
 from services.template_generation import TemplateSourceGenerator
@@ -1242,6 +1243,10 @@ class WidgetGenerationService:
                         lost_indexes = static_review_lost_must_indexes(
                             review_plan.plan, validation.plan,
                         )
+                        object_loss = static_review_lost_displayed_object_indexes(
+                            review_plan.plan, validation.plan, size=request.size,
+                        )
+                        lost_indexes = tuple(sorted(set(lost_indexes).union(object_loss)))
                         if lost_indexes:
                             validation = review_plan
                             if review_source is not None:
@@ -1254,7 +1259,10 @@ class WidgetGenerationService:
                             trace_record(
                                 "static_content.plan.review.fallback", stage="plan",
                                 status="success", details={
-                                    "reason": "容量改排缺少原must展示文字，保留已确认原计划",
+                                    "reason": (
+                                        "容量改排缺少原must或原完整展示对象，"
+                                        "保留已确认原计划"
+                                    ),
                                     "factIndexes": list(lost_indexes),
                                 },
                             )

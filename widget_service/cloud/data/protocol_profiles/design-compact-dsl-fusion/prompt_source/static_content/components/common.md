@@ -12,7 +12,7 @@ description: 组件触发条件、语义字段及单组件示例；样式由Runt
 | SingleLineTitle | 概括整卡的共同主题 | title、可选icon | 优先放置主题或主体名称，不与正文重复 |
 | TextList | 两到三条各有主副信息的记录 | items[].primaryText、secondaryText、可选value | 2项必须带SingleLineTitle；3项允许无标题 |
 | SingleLineList | 每项一行可完整表达 | items[].text、assist | 必须与SingleLineTitle标题配套使用；最多5项 |
-| EmphasisText | 一项核心结论及其从属说明 | mainText、可选secondaryText与bottomText | 围绕同一对象或结论 |
+| EmphasisText | 单一对象的核心结论及其从属说明 | mainText、可选secondaryText与bottomText | 各段围绕同一对象或结论 |
 
 ## SingleLineTitle
 
@@ -34,7 +34,8 @@ title为非空短标题；icon为可选的合法素材引用。
 确需三项时不使用标题，让正文使用完整高度。共同主题若不可省略，在Plan中并入首条或改用其它可承载标题的结构，
 不能生成标题加三条TextList。
 ### 语义字段
-items为2–3项，每项primaryText与secondaryText必填，value可选，只放本项短数值。
+items为2–3项，每项primaryText放对象名称或短标题，secondaryText放该项说明或状态，二者必填；
+value可选，只放本项短数值。同级记录采用一致的名称、说明与读数位置。
 ### Runtime规则
 按Design System v16 4.8：主文本12/16、500；副文本10/13、400；数值12/16、500。
 主副间距4，数值与主副组合间距12；分割线1px，末项自动隐藏。
@@ -51,7 +52,8 @@ primaryText和secondaryText固定单行，超出可用宽度时显示省略号�
 ### 选择条件
 若干短标签与对应内容，每项都能在一行内完整理解；不把长段落、趋势或多个限定压成右侧窄栏。
 只有“短标签 + 短值”这一层语义时使用，且必须与SingleLineTitle标题配套使用；没有可展示的共同标题时改用其它正文组件。
-若右侧需要解释状态、条件或多段信息，或记录名、右侧内容无法完整单行显示时，
+同一标签下可并列多个同类短值，按合并后的完整文字检查单行容量。
+若右侧需要长说明、条件解释，或记录名、右侧内容无法完整单行显示时，
 仅在记录数为2–3、含标题最多两项且主副字段均能承载时，才改用TextList。
 条件不满足时不要机械换型；生成时按同一对象关系选择其它已登记组件，修复时保持已接受分组及必要公共标题。
 ### 语义字段
@@ -68,7 +70,8 @@ items为1–5项，每项text、assist必填；assist可为文字或数值，数
 
 ### 选择条件
 mainText突出实际结论、状态、读数或任务内容；整卡主题和主体名称交给SingleLineTitle。
-secondaryText解释这个结论；bottomText补充条件、提示或来源。不把标题或对象名称再放到强调位置。
+secondaryText解释这个结论；bottomText补充其条件、提示或来源。多个等权对象按独立记录组织，
+不作为某个对象的辅助段落。整卡主题和对象名称留在标题或对应记录中。
 ### 语义字段
 mainText必填，secondaryText与bottomText可选，均为静态文字。不用主文本塞入全部事实。
 ### Runtime规则

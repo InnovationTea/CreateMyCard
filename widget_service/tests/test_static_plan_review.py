@@ -191,6 +191,91 @@ def test_preserved_reflow_does_not_turn_optional_omission_into_a_new_gate():
     assert static_review_lost_must_indexes(original, _plan("主要内容")) == ()
 
 
+def _title_tradeoff_plan(count, *, title_priority="should", component="TextList", title=True):
+    facts = []
+    groups = []
+    for index, suffix in enumerate(("甲", "乙", "丙")[:count]):
+        name = "项目" + suffix
+        indexes = []
+        for text, role in ((name, "label"), ("说明" + suffix, "body")):
+            indexes.append(len(facts))
+            facts.append({"requirement": text, "text": text, "sourceTexts": [text],
+                          "priority": "must", "displayRole": role,
+                          "componentHints": [component]})
+        groups.append({"id": f"item{index}", "kind": "object", "identity": name,
+                       "factIndexes": indexes})
+    if title:
+        groups.append({"id": "theme", "kind": "shared", "identity": None,
+                       "factIndexes": [len(facts)]})
+        facts.append({"requirement": "共同主题", "text": "共同主题", "sourceTexts": ["共同主题"],
+                      "priority": title_priority, "displayRole": "title",
+                      "componentHints": ["SingleLineTitle"]})
+    return {"info_required": facts, "contentGroups": groups, "omittedContents": [],
+            "presentationStyle": "records" if component == "TextList" else "rows"}
+
+
+def _accept_title_tradeoff(plan, size):
+    task = {
+        "userQuery": "项目甲：说明甲；项目乙：说明乙；项目丙：说明丙；共同主题",
+        "size": size, "dataModelSchema": {"data": {}},
+        "eventCandidates": [], "assetCandidates": [],
+    }
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        return parse_compact_plan_call(json.dumps(_call(plan)), task).plan
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_preserved_reflow_can_exchange_optional_theme_for_an_additional_complete_object(size):
+    original = _title_tradeoff_plan(2)
+    original["omittedContents"] = ["项目丙：说明丙"]
+    corrected = _title_tradeoff_plan(3, title=False)
+    original_facts = original.get("info_required")
+    assert isinstance(original_facts, list)
+    review = parse_static_plan_review(
+        json.dumps(_correct(corrected)), source="共同主题", fact_count=len(original_facts),
+    )
+    assert review.decision == "correct" and review.source_fidelity == "preserved"
+    assert review.corrected_source is not None
+    accepted_original = _accept_title_tradeoff(original, size)
+    accepted_corrected = _accept_title_tradeoff(corrected, size)
+    assert static_review_lost_must_indexes(accepted_original, accepted_corrected) == ()
+    source = accepted_corrected.get("staticPresentation")
+    assert isinstance(source, str)
+    rows = [json.loads(line) for line in source.splitlines()]
+    root = next(row for row in rows if row[0] == "root")
+    body = next(row for row in rows if row[0] == "body")
+    assert root[3] == ["body"]
+    assert body[1] == "TextList"
+    assert body[2].get("items") == [
+        {"primaryText": "项目甲", "secondaryText": "说明甲"},
+        {"primaryText": "项目乙", "secondaryText": "说明乙"},
+        {"primaryText": "项目丙", "secondaryText": "说明丙"},
+    ]
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_preserved_reflow_still_protects_required_theme_when_recovering_an_object(size):
+    original = _accept_title_tradeoff(_title_tradeoff_plan(2, title_priority="must"), size)
+    corrected = _accept_title_tradeoff(_title_tradeoff_plan(3, title=False), size)
+    assert static_review_lost_must_indexes(original, corrected) == (4,)
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("component,count", [("TextList", 2), ("SingleLineList", 3)])
+def test_optional_theme_remains_visible_when_body_and_title_both_fit(size, component, count):
+    plan = _accept_title_tradeoff(_title_tradeoff_plan(count, component=component), size)
+    source = plan.get("staticPresentation")
+    assert isinstance(source, str)
+    rows = [json.loads(line) for line in source.splitlines()]
+    root = next(row for row in rows if row[0] == "root")
+    header = next(row for row in rows if row[0] == "header")
+    body = next(row for row in rows if row[0] == "body")
+    assert root[3] == ["header", "body"]
+    assert header[1] == "SingleLineTitle" and header[2].get("title") == "共同主题"
+    assert body[1] == component
+    assert len(body[2].get("items", [])) == count
+
+
 @pytest.mark.parametrize("old_identity,new_identity", [
     (None, None), ("地铁", "地铁通勤"),
 ])
@@ -241,6 +326,56 @@ async def test_preserved_reflow_loss_keeps_original_plan_without_extra_call(monk
     accepted = _accepted_plan(calls[-1].get("messages", []))
     assert accepted.get("info_required", [])[0].get("text") == "通勤43分钟"
     assert "43分钟" in saved[0].genui
+
+
+@pytest.mark.asyncio
+async def test_preserved_reflow_keeps_already_displayed_optional_object(monkeypatch):
+    original = _title_tradeoff_plan(3, title=False)
+    facts = original.get("info_required")
+    assert isinstance(facts, list)
+    for fact in facts[4:6]:
+        fact["priority"] = "should"
+    corrected = _title_tradeoff_plan(2)
+    query = "项目甲：说明甲；项目乙：说明乙；项目丙：说明丙；共同主题"
+    baseline = _accept_title_tradeoff(original, "2x4")
+    service, calls, saved = _service(
+        monkeypatch, [_call(original), _correct(corrected)],
+        dsl_source=baseline.get("staticPresentation"),
+    )
+    response = await service.generate_widget_card_compact_dsl(_request(query, "2x4"))
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(calls) == 3 and len(saved) == 1
+    accepted = _accepted_plan(calls[-1].get("messages", []))
+    groups = accepted.get("contentGroups", [])
+    assert any(group.get("identity") == "项目丙" for group in groups)
+    assert "说明丙" in saved[0].genui
+
+
+@pytest.mark.asyncio
+async def test_preserved_reflow_allows_shorter_optional_description(monkeypatch):
+    original = _title_tradeoff_plan(2)
+    corrected = _title_tradeoff_plan(2)
+    for plan in (original, corrected):
+        plan["info_required"][3]["priority"] = "should"
+    original["info_required"][3]["text"] = "提前到达现场完成签到"
+    corrected["info_required"][3]["text"] = "提前到场签到"
+    for plan in (original, corrected):
+        plan["info_required"][3]["sourceTexts"] = ["提前到达现场完成签到"]
+    query = "项目甲：说明甲；项目乙：提前到达现场完成签到；共同主题"
+    task = {"userQuery": query, "size": "2x4", "dataModelSchema": {"data": {}},
+            "eventCandidates": [], "assetCandidates": []}
+    with content_policy_scope(STATIC_CONTENT_POLICY):
+        candidate = parse_compact_plan_call(json.dumps(_call(corrected)), task).plan
+    service, calls, saved = _service(
+        monkeypatch, [_call(original), _correct(corrected)],
+        dsl_source=candidate.get("staticPresentation"),
+    )
+    response = await service.generate_widget_card_compact_dsl(_request(query, "2x4"))
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(calls) == 3 and len(saved) == 1
+    accepted = _accepted_plan(calls[-1].get("messages", []))
+    assert "提前到场签到" in json.dumps(accepted, ensure_ascii=False)
+    assert "提前到场签到" in saved[0].genui
 
 
 def test_correct_preserves_original_plan_envelope_for_existing_validator():
@@ -369,6 +504,37 @@ def test_explicit_fact_source_does_not_admit_user_expectation_as_evidence():
         _parse(_correct(_plan(), [_finding("想去北京")]), source)
 
 
+@pytest.mark.parametrize("quote", [
+    "甲项：说明A\n乙项：说明B", "甲项：说明A 乙项：说明B",
+])
+def test_review_rejects_joined_noncontiguous_source_fragments(quote):
+    source = "甲项：说明A\n条件A\n乙项：说明B\n条件B"
+    payload = _correct(_plan(), [_finding(quote)])
+    with pytest.raises(StaticPlanReviewError, match="不在本轮有效事实源"):
+        _parse(payload, source)
+
+
+@pytest.mark.parametrize("source_newline", ["\n", "\r\n"])
+@pytest.mark.parametrize("quote_newline", ["\n", "\r\n"])
+def test_review_accepts_contiguous_multiline_source_with_normalized_newlines(
+    source_newline, quote_newline,
+):
+    source = source_newline.join(("甲项：说明A", "条件A", "乙项：说明B"))
+    quote = quote_newline.join(("甲项：说明A", "条件A"))
+    payload = _correct(_plan(), [_finding(quote)])
+    reviewed = _parse(payload, source)
+    assert reviewed.source_fidelity == "needs_correction"
+    assert reviewed.findings[0].get("sourceText") == quote
+
+
+def test_review_accepts_separate_findings_for_separate_source_fragments():
+    source = "甲项：说明A\n条件A\n乙项：说明B\n条件B"
+    findings = [_finding("甲项：说明A"), _finding("乙项：说明B")]
+    reviewed = _parse(_correct(_plan(), findings), source)
+    assert reviewed.findings == tuple(findings)
+    assert reviewed.decision == "correct"
+
+
 def test_prompt_reviews_visible_group_with_original_source_without_dsl_blueprint():
     query = "甲活动在上海体育场"
     plan = _plan("甲活动", query)
@@ -399,6 +565,16 @@ def _review_payload(plan, query):
         messages, plan, query, original_submission=json.dumps(_call(plan), ensure_ascii=False),
     )
     return json.loads(reviewed[-1].get("content", ""))
+
+
+def test_review_prompt_describes_contiguous_source_evidence_and_separate_findings():
+    payload = _review_payload(_plan(), "带证件")
+    properties = payload.get("reviewOutput", {}).get("properties", {})
+    finding_fields = properties.get("findings", {}).get("items", {}).get("properties", {})
+    description = finding_fields.get("sourceText", {}).get("description", "")
+    assert "从originalFactSource逐字复制的一段连续原文" in description
+    assert "保留标点与内部换行" in description
+    assert "跨段证据分别列finding，汇总解释放issue" in payload.get("instruction", "")
 
 
 def test_review_does_not_replay_first_stage_output_instructions():
