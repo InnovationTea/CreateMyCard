@@ -8,7 +8,7 @@ from services.fusion_ball_expander import build_fusion_ball_content_id
 from services.post_layout_theme_registry import registered_themes
 from services.template_generation.engine.tersel_converter import Nested2Node
 from services.theme_photo_processing import PhotoStyleContext
-from services.theme_style_roles import role
+from services.theme_style_roles import is_role, role
 
 from .models import (
     TemplateNode,
@@ -62,6 +62,7 @@ def collect_photo_style_context(root: Nested2Node) -> PhotoStyleContext:
         if options.get(ACTION_MARKER):
             buttons.add(identity)
         action = action or options.get(ACTION_MARKER) is True
+        owned = {}
         if not preserved:
             owned = dict(options.get(STYLE_MARKER, {}))
             if action:
@@ -70,10 +71,15 @@ def collect_photo_style_context(root: Nested2Node) -> PhotoStyleContext:
                 if options.get("backgroundColor") not in {None, "#00000000", "transparent"}:
                     owned.setdefault("backgroundColor", role("panel"))
                     surfaces.add(identity)
-            if owned:
-                roles[identity] = owned
             if options.get(SURFACE_MARKER):
                 surfaces.add(identity)
+        elif node.component_type in {"Text", "Button"}:
+            # 动作保色保留主次层级；受信主题引用仍随最终图片更新。
+            text_role = options.get(STYLE_MARKER, {}).get("fontColor")
+            if is_role(text_role):
+                owned["fontColor"] = text_role
+        if owned:
+            roles[identity] = owned
         base = identity.removeprefix("__genui_render_component__")
         for index, child in enumerate(node.children):
             child_options = next((item for item in child.values if isinstance(item, dict)), {})
