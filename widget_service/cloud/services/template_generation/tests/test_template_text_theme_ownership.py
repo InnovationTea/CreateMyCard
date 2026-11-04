@@ -41,7 +41,8 @@ def _photo_nodes(content, photo_id):
 
     visit(clean.children[0], "__genui_render_component__root_1")
     before = deepcopy(nodes)
-    photo = next(item for item in registered_themes("photos") if item.get("id") == photo_id)
+    photo = next(item for item in registered_themes("photos", include_disabled=True)
+                 if item.get("id") == photo_id)
     palette = photo.get("content", {}).get("roles", {})
     apply_content_palette(nodes, palette, None, surface_style={}, legacy_panels=[],
                           ownership=ownership)

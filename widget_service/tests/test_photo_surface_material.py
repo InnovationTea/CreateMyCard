@@ -54,7 +54,7 @@ def test_actual_button_expansion_receives_material(button):
 @pytest.mark.parametrize("size,suffix", [("2x2", "square"), ("2x4", "wide")])
 def test_brown_chairs_keep_black_ink_and_translucent_white_surfaces(size, suffix):
     identity = f"photo-ux-meeting-room-brown-chairs-{suffix}"
-    photo = next(item for item in registry.registered_themes("photos")
+    photo = next(item for item in registry.registered_themes("photos", include_disabled=True)
                  if item.get("id") == identity)
     content = photo.get("content", {})
     roles = content.get("roles", {})

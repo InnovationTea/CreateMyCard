@@ -23,6 +23,7 @@ DISABLED = {
     "road-wide", "bedside-lamp-wide", "cloud-square", "cloud-wide", "hourglass-wide",
     "clouds-weather-square", "starfield-weather-square", "wave-square", "wave-wide", "fuzzy-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
+    "meeting-room-brown-chairs-square", "meeting-room-brown-chairs-wide",
 }
 
 
@@ -30,7 +31,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 33
+    assert len(registry.registered_themes("photos")) == 31
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -123,13 +124,13 @@ def test_meeting_square_rejects_wrong_business_alignment_or_line_count(business,
     assert rejection(saved, MEETING_SQUARE)
 
 
-@pytest.mark.parametrize("button,expected", [(False, set()), (True, {MEETING_WIDE})])
+@pytest.mark.parametrize("button,expected", [
+    (False, {"photo-ux-texture-blue-diamond-wide", "photo-ux-texture-blue-diagonal-wide"}),
+    (True, {MEETING_WIDE}),
+])
 def test_a19_is_excluded_from_side_slots_without_changing_meeting_placement(
     monkeypatch, button, expected,
 ):
-    expected = expected | {
-        "photo-ux-meeting-room-brown-chairs-wide",
-    }
     saved = sample(PATHS.get("calendar"), 3, wide=True, button=button)
     result, audit = choose(saved, monkeypatch)
     assert set(audit.get("candidates", [])) == expected

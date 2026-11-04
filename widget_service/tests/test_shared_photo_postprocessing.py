@@ -102,7 +102,8 @@ def test_generic_metric_photo_colors_follow_roles_without_changing_foreground(du
     # 此处只覆盖配色适配；图片尺寸与业务准入由共用匹配专项测试覆盖。
     nodes, ownership, colors = generic_metric_source(dual, size)
     original = copy.deepcopy(nodes)
-    photo = next(item for item in registry.registered_themes() if item.get("id") == photo_id)
+    photo = next(item for item in registry.registered_themes(include_disabled=True)
+                 if item.get("id") == photo_id)
     palette = photo.get("content", {}).get("roles", {})
     primary = palette.get("primary")
     secondary = palette.get("secondary")
