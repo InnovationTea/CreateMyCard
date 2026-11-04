@@ -102,11 +102,11 @@ def test_wide_weather_depends_on_main_region_not_right_slot(monkeypatch, main_we
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 
-def test_wide_weather_accepts_right_main_but_rejects_unrecognized_layouts():
+def test_wide_weather_rejects_right_main_and_unrecognized_layouts():
     saved = sample(PATHS.get("weather"), 2, wide=True)
     rows = themes.decode(saved.compact)
     rows[0][2]["orientation"] = "content-right"
-    assert rejection(expanded(rows, saved.task), WIDE) is None
+    assert rejection(expanded(rows, saved.task), WIDE)
     saved = sample(PATHS.get("weather"), 2)
     saved.task["size"] = "2x4"
     assert rejection(saved, WIDE)

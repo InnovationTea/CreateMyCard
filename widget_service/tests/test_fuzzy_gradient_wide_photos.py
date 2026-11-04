@@ -20,9 +20,10 @@ def test_new_wide_assets_registered_with_approved_foreground_colors():
         item = photos.get(identity)
         assert item is not None
         assert item.get("size") == "2x4"
-        assert item.get("contentEligibility") == {
-            "kind": "uniform", "businesses": [business], "wideLayout": "main-focus",
-        }
+        expected_policy = {"kind": "uniform", "businesses": [business]}
+        if identity == GRADIENT:
+            expected_policy["wideLayout"] = "top-focus"
+        assert item.get("contentEligibility") == expected_policy
         assert item.get("selectionPriority", 0) == 0
         roles = item.get("content", {}).get("roles", {})
         assert [roles.get(role) for role in ("primary", "secondary", "tertiary")] == [
@@ -35,8 +36,9 @@ def test_new_wide_assets_registered_with_approved_foreground_colors():
         assert roles.get("componentTertiary") == "#1AFFFFFF"
 
 
-@pytest.mark.parametrize("layout", ["left", "right", "top"])
-@pytest.mark.parametrize("selected", [FUZZY, WAVE, LOCAL_CLOUD])
+@pytest.mark.parametrize("layout,selected", [
+    ("left", FUZZY), ("left", WAVE), ("left", LOCAL_CLOUD),
+])
 @pytest.mark.parametrize("response", ["invalid", '{"themeId":"gradient-blue"}'])
 def test_weather_wide_candidates_share_one_unweighted_choice(monkeypatch, layout, selected,
                                                             response):
@@ -50,9 +52,11 @@ def test_weather_wide_candidates_share_one_unweighted_choice(monkeypatch, layout
     saved = focus_sample("weather", 4, layout)
     result, audit = choose(saved, monkeypatch, response)
     assert len(calls) == 1
-    assert len(calls[0]) == 3
-    assert set(calls[0]) == {FUZZY, WAVE, LOCAL_CLOUD}
-    assert set(audit.get("candidates", [])) == {FUZZY, WAVE, LOCAL_CLOUD}
+    expected = {FUZZY, LOCAL_CLOUD}
+    if layout != "top":
+        expected.add(WAVE)
+    assert set(calls[0]) == expected
+    assert set(audit.get("candidates", [])) == expected
     assert audit.get("themeId") == selected
     assert audit.get("photoSelection", {}).get("mode") == "uniform"
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -62,13 +66,14 @@ def test_weather_wide_candidates_share_one_unweighted_choice(monkeypatch, layout
 def test_countdown_wide_subject_precedes_abstract_without_holiday_name(monkeypatch, layout):
     saved = focus_sample("countdown", 4, layout)
     result, audit = choose(saved, monkeypatch)
-    expected = {GRADIENT}
-    if layout in {"left", "right"}:
-        expected.add("photo-ux-hourglass-wide")
+    expected = {GRADIENT} if layout == "top" else set()
     if layout == "left":
         expected.add("photo-ux-glass-hourglass-wide")
-    assert set(audit.get("candidates", [])) == expected
-    assert audit.get("themeId") in expected
+    if expected:
+        assert set(audit.get("candidates", [])) == expected
+        assert audit.get("themeId") in expected
+    else:
+        assert not any(identity.startswith("photo-") for identity in audit.get("candidates", []))
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 
@@ -90,7 +95,8 @@ def test_disabled_new_subject_preserves_existing_fallback(monkeypatch, identity,
         if item.get("id") == identity:
             item["enabled"] = False
     monkeypatch.setattr(registry, "load_theme_registry", lambda: config)
-    _, audit = choose(focus_sample(business, 1), monkeypatch)
+    layout = "left" if business == "weather" else "top"
+    _, audit = choose(focus_sample(business, 1, layout), monkeypatch)
     assert set(audit.get("candidates", [])) == expected
 
 
@@ -99,3 +105,20 @@ def test_new_wide_photos_do_not_become_square_candidates(identity, business):
     saved = focus_sample(business, 1)
     saved.task["size"] = "2x2"
     assert rejection(saved, identity)
+
+
+@pytest.mark.parametrize("variant", ["continuous", "bottom-details", "equal"])
+@pytest.mark.parametrize("title", [False, True])
+@pytest.mark.parametrize("identity", [WAVE, FUZZY, LOCAL_CLOUD])
+def test_weather_lakes_and_cloud_reject_every_top_bottom_variant(variant, title, identity):
+    saved = focus_sample("weather", 2, "top", variant, title)
+    assert "左主焦点" in rejection(saved, identity)
+
+
+def test_model_cannot_select_mountain_lake_for_top_bottom(monkeypatch):
+    saved = focus_sample("weather", 2, "top")
+    result, audit = choose(saved, monkeypatch, '{"themeId":"' + WAVE + '"}')
+    assert WAVE not in audit.get("candidates", [])
+    assert audit.get("themeId") != WAVE
+    assert "左主焦点" in audit.get("rejected", {}).get(WAVE, "")
+    assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)

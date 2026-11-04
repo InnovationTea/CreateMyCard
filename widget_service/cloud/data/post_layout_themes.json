@@ -598,7 +598,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "停机坪飞机",
-      "description": "停机坪飞机。业务类别：travel。2x4左右主次布局，主焦点可在左侧或右侧，但主区正文必须整体居下，最多4行。顶部标题和按钮文案不计行数；辅助槽允许其它业务和按钮。不匹配上下布局、双大背板或主读数居上/居中。沿用白字100%/80%/60%，同级合格图片等概率选择。",
+      "description": "停机坪飞机。业务类别：travel。2x4仅左侧主区＋右侧上下双槽，主区最多4行，正文必须整体居下。顶部标题和按钮文案不计行数；辅助槽允许其它业务和按钮。不匹配主区在右、上下布局、双大背板或主读数居上/居中。沿用白字100%/80%/60%，同级合格图片等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -610,7 +610,6 @@
         "businesses": [
           "travel"
         ],
-        "wideLayout": "side-focus",
         "placement": "bottom"
       },
       "matchingPolicy": "layout-only",
@@ -945,7 +944,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "蓝紫数字波浪",
-      "description": "蓝紫数字波浪。日程会议业务，2x4明确主焦点，支持上下及左右主次布局，不限居左贴底。主区正文最多4行，标题和按钮文案不计行数；双大背板和无主焦点布局不匹配。",
+      "description": "蓝紫数字波浪。日程会议业务，2x4仅支持上下主次布局，不支持左右布局，不限居左贴底。主区正文最多4行，标题和按钮文案不计行数；双大背板和无主焦点布局不匹配。",
       "sizes": [
         "2x4"
       ],
@@ -957,7 +956,7 @@
         "businesses": [
           "calendar"
         ],
-        "wideLayout": "main-focus"
+        "wideLayout": "top-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -2238,7 +2237,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "蓝色波浪天气宽景",
-      "description": "已停用，保留素材与原准入配置，不进入候选。蓝色波浪天气宽景。业务类别：weather。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。顶部标题和按钮文案不计行数；辅助区允许其它业务。不限制图标和按钮；双大背板和无主焦点布局不匹配。同级合格图片等概率选择。",
+      "description": "已停用，保留素材与历史准入配置，不进入候选。蓝色波浪天气宽景。业务类别：weather。历史配置仅供存档，不作为当前启用图片的布局规则。",
       "sizes": [
         "2x4"
       ],
@@ -2307,7 +2306,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "朦胧天气宽景",
-      "description": "已停用，保留素材与原准入配置，不进入候选。朦胧天气宽景。业务类别：weather。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标和按钮。白字100%/80%/60%，同级合格主体图等概率选择。",
+      "description": "已停用，保留素材与历史准入配置，不进入候选。朦胧天气宽景。业务类别：weather。历史配置仅供存档，不作为当前启用图片的布局规则。",
       "sizes": [
         "2x4"
       ],
@@ -2376,7 +2375,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "柔色倒计时宽景",
-      "description": "柔色倒计时宽景。业务类别：countdown。2x4明确主焦点，支持上下及左右主次布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标、按钮或倒计时名称。黑字100%/80%/60%，保留浅色背板，同级合格主体图等概率选择。",
+      "description": "柔色倒计时宽景。业务类别：countdown。2x4仅允许上下主次布局，不支持左右布局，主区正文最多4行；顶部标题和按钮文案不计行数，辅助区可包含其它业务。双大背板和无单一主焦点布局不匹配；不限制图标、按钮或倒计时名称。黑字100%/80%/60%，保留浅色背板，同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -2388,7 +2387,7 @@
         "businesses": [
           "countdown"
         ],
-        "wideLayout": "main-focus"
+        "wideLayout": "top-focus"
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -3940,11 +3939,11 @@
     },
     {
       "id": "photo-ux-hourglass-wide",
-      "enabled": true,
+      "enabled": false,
       "kind": "photo",
       "pool": "photos",
       "name": "沙漏倒计时横图",
-      "description": "沙漏倒计时横图。2x4左右主次布局，主焦点业务为countdown、正文最多4行，辅助区可包含其它业务；标题和按钮文案不计。上下布局、双大背板和四宫格不匹配，同级合格主体图等概率随机选择。",
+      "description": "已停用，不进入候选。沙漏倒计时横图。2x4仅左侧主区＋右侧上下双槽，主区最多4行，业务为countdown；辅助区可包含其它业务，标题和按钮文案不计。主区在右、上下布局、双大背板和四宫格不匹配。",
       "sizes": [
         "2x4"
       ],
@@ -3955,8 +3954,7 @@
         "kind": "uniform",
         "businesses": [
           "countdown"
-        ],
-        "wideLayout": "side-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -4081,7 +4079,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "暖暗卧室睡眠横图",
-      "description": "暖暗卧室睡眠横图。2x4左右主次布局，主焦点业务为sleep、正文最多4行，辅助区可包含其它业务；标题和按钮文案不计。上下布局、双大背板和四宫格不匹配，同级合格主体图等概率随机选择。",
+      "description": "暖暗卧室睡眠横图。2x4仅左侧主区＋右侧上下双槽，主区最多4行，业务为sleep；辅助区可包含其它业务，标题和按钮文案不计。主区在右、上下布局、双大背板和四宫格不匹配，同级合格主体图等概率随机选择。",
       "sizes": [
         "2x4"
       ],
@@ -4092,8 +4090,7 @@
         "kind": "uniform",
         "businesses": [
           "sleep"
-        ],
-        "wideLayout": "side-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -4472,11 +4469,11 @@
           "graphicPrimary": "#FF000000",
           "graphicSecondary": "#CC000000",
           "graphicTertiary": "#99000000",
-          "componentSecondary": "#33000000",
-          "componentTertiary": "#1A000000"
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
         },
         "panelBySize": {
-          "2x2": "#33000000"
+          "2x2": "#33FFFFFF"
         },
         "explicitTextAlpha": {
           "secondary": 204,
@@ -4540,11 +4537,11 @@
           "graphicPrimary": "#FF000000",
           "graphicSecondary": "#CC000000",
           "graphicTertiary": "#99000000",
-          "componentSecondary": "#33000000",
-          "componentTertiary": "#1A000000"
+          "componentSecondary": "#33FFFFFF",
+          "componentTertiary": "#1AFFFFFF"
         },
         "panelBySize": {
-          "2x4": "#33000000"
+          "2x4": "#33FFFFFF"
         },
         "explicitTextAlpha": {
           "secondary": 204,
@@ -4767,7 +4764,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "山景夕阳湖泊宽景",
-      "description": "山景夕阳湖泊宽景。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "description": "山景夕阳湖泊宽景。2x4仅左侧主区＋右侧上下双槽，主区最多4行，主区业务为天气。不支持主区在右或上下布局。标题和按钮文案不计行数。同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -4778,8 +4775,7 @@
         "kind": "uniform",
         "businesses": [
           "weather"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -4909,7 +4905,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "粉色夕阳湖泊宽景",
-      "description": "粉色夕阳湖泊宽景。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "description": "粉色夕阳湖泊宽景。2x4仅左侧主区＋右侧上下双槽，主区最多4行，主区业务为天气。不支持主区在右或上下布局。标题和按钮文案不计行数。同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -4920,8 +4916,7 @@
         "kind": "uniform",
         "businesses": [
           "weather"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {
@@ -5051,7 +5046,7 @@
       "kind": "photo",
       "pool": "photos",
       "name": "蓝底积云宽景",
-      "description": "蓝底积云宽景。2x4明确主焦点为天气，支持上下及左右主次布局，主区正文最多4行。标题和按钮文案不计行数。同级合格主体图等概率选择。",
+      "description": "蓝底积云宽景。2x4仅左侧主区＋右侧上下双槽，主区最多4行，主区业务为天气。不支持主区在右或上下布局。标题和按钮文案不计行数。同级合格主体图等概率选择。",
       "sizes": [
         "2x4"
       ],
@@ -5062,8 +5057,7 @@
         "kind": "uniform",
         "businesses": [
           "weather"
-        ],
-        "wideLayout": "main-focus"
+        ]
       },
       "matchingPolicy": "layout-only",
       "source": {

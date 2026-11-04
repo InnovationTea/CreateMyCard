@@ -157,6 +157,7 @@ def test_registry_returns_independent_copies():
 
 
 def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch):
+    original_ids = {theme.get("id") for theme in registry.registered_themes()}
     config = registry.load_theme_registry()
     entries = config.get("themes", [])
     extra = copy.deepcopy(entries[0])
@@ -170,7 +171,7 @@ def test_adding_disabling_and_deleting_themes_only_requires_registry(monkeypatch
     assert "gradient-blue-added" not in {theme.get("id") for theme in registry.registered_themes()}
     entries.remove(extra)
     use_config(monkeypatch, config)
-    assert len(registry.registered_themes()) == 59
+    assert {theme.get("id") for theme in registry.registered_themes()} == original_ids
 
 
 @pytest.mark.parametrize("identity", [

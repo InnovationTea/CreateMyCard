@@ -110,6 +110,7 @@ def _wide_reason(layout: str) -> str:
     messages = {
         "main-focus": "2x4图片需要明确主焦点，不支持双大背板或无主次布局",
         "side-focus": "2x4图片需要左右主焦点加另一侧上下双槽，不支持上下或双大背板布局",
+        "top-focus": "2x4图片需要上下主次布局，不支持左右或双大背板布局",
     }
     return messages.get(layout, "2x4图片需要左主焦点和右侧上下两个背板")
 

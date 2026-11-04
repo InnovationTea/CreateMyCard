@@ -43,18 +43,18 @@ def _wide_scope(root: ComponentRow, by_id: dict, final_layout: str,
     result: ComponentRow | None = None
     requirement = rules.get("wideLayout", {})
     layout_policy = policy.get("wideLayout")
-    flexible = layout_policy == "main-focus"
+    vertical = layout_policy in {"main-focus", "top-focus"}
     if root.component_type != "Layout":
         return result
     layout = root.props.get("layout")
-    if layout == "W-content-side-slots":
+    if layout == "W-content-side-slots" and layout_policy != "top-focus":
         orientation = root.props.get("orientation", "content-left")
         both_sides = layout_policy in {"main-focus", "side-focus"}
         if both_sides and orientation in ("content-left", "content-right"):
             requirement = {**requirement, "orientation": orientation}
         if matches_subjectless_layout(final_layout, requirement):
             result = by_id.get(root.children[0])
-    elif flexible and layout == "W-top-bottom" and len(root.children) in {2, 3}:
+    elif vertical and layout == "W-top-bottom" and len(root.children) in {2, 3}:
         if root.props.get("variant", "continuous") in ("continuous", "bottom-details", "equal"):
             result = by_id.get(root.children[-2])
     if result is not None:
@@ -95,7 +95,7 @@ def fusion_photo_facts(
     scopes = {"card": scope_facts(root)}
     if task.get("size") == "2x4":
         rules = load_theme_registry().get("photoEligibility", {})
-        for layout in ("left-main-dual", "main-focus", "side-focus"):
+        for layout in ("left-main-dual", "main-focus", "side-focus", "top-focus"):
             policy = {} if layout == "left-main-dual" else {"wideLayout": layout}
             main = _wide_scope(root, context.by_id, final_layout, rules, policy)
             if main is not None:
