@@ -78,6 +78,9 @@ def test_generation_tool_schema_matches_source_direct_result_contract():
     assert "omittedRequirements" in output_schema["properties"]
     assert "artifactUrl" in output_schema["properties"]
     assert "effectiveCapabilities" in output_schema["properties"]
+    response_properties = output_schema.get("properties")
+    assert isinstance(response_properties, dict)
+    assert "agentInstruction" in response_properties
 
 
 def _weather_binding(arguments=None, output_fields=None):

@@ -47,6 +47,7 @@ from services.agent_feedback import (
     terminal_feedback,
 )
 from services.artifact_store import ArtifactUploadError
+from services.candidate_argument_normalizer import normalize_candidate_arguments
 from services.capability_registry import CapabilityRegistry
 from services.compact_dsl_argument_repair import (
     CompactDslArgumentRepairExhaustedError,
@@ -100,6 +101,11 @@ COMPACT_DSL_TRANSPORT_CONTENT_KEYS = frozenset(
         "odid",
         "romVersion",
         "bundleName",
+        "functionName",
+        "skillName",
+        "requestId",
+        "locale",
+        "prdVer",
     }
 )
 GENERATION_OPERATIONS = frozenset(
@@ -178,7 +184,7 @@ class StringifiedToolArgumentsError(ValueError):
         transport_only: bool = False,
         recovery_diagnostic: dict[str, Any] | None = None,
     ) -> None:
-        error_message = "tool arguments were stringified before content mapping"
+        error_message = "mapped request contains no business arguments"
         if not transport_only:
             error_message = "content.arguments must not be a JSON string"
         super().__init__(error_message)
@@ -231,7 +237,7 @@ class StringifiedToolArgumentsError(ValueError):
 
     @staticmethod
     def _transport_only_details() -> dict[str, Any]:
-        """构造工具层仅保留四个透传字段时的原有纠错提示。"""
+        """描述映射后缺少业务参数的事实，不推断上游原始类型。"""
         return {
             "stage": "requestEnvelope",
             "modelCalled": False,
@@ -239,20 +245,22 @@ class StringifiedToolArgumentsError(ValueError):
             "requiredActions": ["FIX_AND_RETRY"],
             "agentInstruction": (
                 "按当前工具约定恢复完整 invoke.arguments，直接传合法 JSON 对象；"
-                "缺必要内容时先澄清，不补造传输字段。"
+                "保留已明确需求、创建或编辑模式、有效来源和候选，不补造传输字段。"
             ),
             "issues": [
                 {
-                    "code": "STRINGIFIED_TOOL_ARGUMENTS",
+                    "code": "MISSING_TOOL_BUSINESS_ARGUMENTS",
                     "path": "/arguments",
                     "message": "微服务仅收到透传字段，未取得原始业务参数。",
                     "expected": "arguments 必须为完整业务 JSON 对象",
-                    "actualType": "string",
+                    "actualType": "unknown",
                     "agentAction": "FIX_AND_RETRY",
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "从本轮原需求及已核对候选恢复完整业务对象，在既有预算内重调。"
+                        "检查 invoke.arguments 是否直接为对象，是否整体字符串化或多套包裹层；"
+                        "原调用已正确时核对工具层映射。复用已明确需求和候选，在既有预算内"
+                        "提交完整业务对象，不只补单个字段、不重复询问用户已提供的信息。"
                     ),
                     "referenceSource": "generateWidgetCardCompactDsl 当前工具 Schema",
                 }
@@ -424,8 +432,14 @@ def _normalize_payload(
     if "content" in payload or "deviceInfo" in payload or "session" in payload:
         _validate_compact_dsl_content(payload, operation)
         envelope = ToolRequestEnvelope(**payload)
-        return _request_id_from_envelope(envelope), _arguments_from_envelope(envelope, operation)
-    return payload.get("requestId"), payload.get("arguments", payload)
+        request_id = _request_id_from_envelope(envelope)
+        arguments = _arguments_from_envelope(envelope, operation)
+    else:
+        request_id = payload.get("requestId")
+        arguments = payload.get("arguments", payload)
+    if operation == COMPACT_DSL_OPERATION and isinstance(arguments, dict):
+        arguments = normalize_candidate_arguments(arguments)
+    return request_id, arguments
 
 
 def _validate_compact_dsl_content(
@@ -440,8 +454,11 @@ def _validate_compact_dsl_content(
         return
     if isinstance(content.get("arguments"), str):
         raise StringifiedToolArgumentsError()
-    if set(content) == COMPACT_DSL_TRANSPORT_CONTENT_KEYS:
-        # arguments 为字符串时，部分工具层不会展开业务字段，只保留自动透传字段。
+    utterance = payload.get("utterance")
+    original = utterance.get("original") if isinstance(utterance, dict) else None
+    has_query_fallback = isinstance(original, str) and bool(original.strip())
+    if set(content).issubset(COMPACT_DSL_TRANSPORT_CONTENT_KEYS) and not has_query_fallback:
+        # 只能证明映射后缺少业务参数，不能据此推断原调用类型。
         raise StringifiedToolArgumentsError(transport_only=True)
 
 

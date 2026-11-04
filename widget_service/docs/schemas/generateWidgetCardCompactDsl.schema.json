@@ -287,6 +287,7 @@
         "data.status": "string，生成状态，枚举 success/degraded/unsupported/failed。",
         "data.artifactUrl": "string，artifact 下载地址；成功或降级成功时返回。",
         "data.artifactDigest": "string，artifact 内容摘要。",
+        "data.agentInstruction": "string，仅 success/degraded 返回的内部编排指引：本轮无需且不得重复生成；只有用户后续明确的新需求才可再次调用，不向用户展示。",
         "data.suggestSize": "string，最终生成卡片尺寸，枚举 2x2/2x4。",
         "data.omittedRequirements": "string[]，可选，实际省略的信息；仅用于部分满足说明，不据此补做生成。",
         "data.removedCapabilities": "RemovedCapability[]，被微服务裁决移除的能力及原因。",

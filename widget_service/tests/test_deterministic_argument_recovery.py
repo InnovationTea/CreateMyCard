@@ -327,7 +327,8 @@ def test_skill_event_example_passes_current_preflight(registry):
     from services.generation_preflight import GenerationPreflight
 
     root = Path(__file__).resolve().parents[2]
-    entry = (root / "skills/harmony-card-generation-online/SKILL.md").read_text(encoding="utf-8")
+    example_path = root / "skills/harmony-card-generation-online/references/examples.md"
+    entry = example_path.read_text(encoding="utf-8")
     examples = re.findall(r"```json\n(.*?)\n```", entry, re.DOTALL)
     assert examples
     for example in examples:

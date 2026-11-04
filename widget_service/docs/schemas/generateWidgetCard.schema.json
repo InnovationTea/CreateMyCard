@@ -189,6 +189,7 @@
         "data.artifactDigest": "string，artifact 内容摘要。",
         "data.suggestSize": "string，最终生成卡片尺寸，枚举 2x2/2x4。",
         "data.omittedRequirements": "string[]，可选，实际省略的信息；仅用于部分满足说明，不据此补做生成。",
+        "data.agentInstruction": "string，仅 success/degraded 返回的内部编排指引：本轮无需且不得重复生成；只有用户后续明确的新需求才可再次调用，不向用户展示。",
         "data.removedCapabilities": "RemovedCapability[]，被微服务裁决移除的能力及原因。",
         "data.errorCode": "string，失败或不支持时返回的错误码。",
         "data.effectiveCapabilities": "object，最终进入 artifact 的有效 data、event、asset 能力集合。",

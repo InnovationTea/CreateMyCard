@@ -25,7 +25,7 @@ from services.card_validation.edit_validation.artifact import (
     unmet_edit_summary,
     validate_edit_artifact,
 )
-from services.edit_request_normalizer import EditRequestNormalizer
+from services.edit_request_normalizer import EditRequestNormalizer, normalize_source_theme_echo
 from services.generation_pipeline import GenerationRoutePolicy
 from services.generation_preflight import GenerationPreflight
 from services.generation_trace_recorder import trace_record, trace_span
@@ -99,6 +99,12 @@ class WidgetEditService:
             return self._response(request, GenerationStatus.FAILED,
                                   "来源卡片规格无效。", ErrorCode.SOURCE_ARTIFACT_INVALID)
         normalized = EditRequestNormalizer().normalize_edit(request, original).request
+        theme_normalized = normalize_source_theme_echo(normalized, original)
+        if theme_normalized is not normalized:
+            _log_edit("source_theme_echo_normalized",
+                      suppliedAssets=normalized.candidateAssetIds,
+                      originalAssets=theme_normalized.candidateAssetIds)
+        normalized = theme_normalized
         if not _same_business_candidates(original, normalized):
             return self._response(
                 normalized, GenerationStatus.UNSUPPORTED,
@@ -389,13 +395,19 @@ def _same_business_candidates(original: WidgetArtifact, request: GenerateWidgetC
     for item in request.candidateDataBindings or []:
         new_bindings.append((item.capabilityId, item.writeResultTo))
     if old_bindings != new_bindings:
+        _log_edit("candidate_mismatch", category="data", reason="identity_path_or_order")
         return False
     events = []
     for event in request.candidateEventCandidates or []:
         events.append(event.model_dump(mode="json", exclude_none=True))
     if not _same(plan.candidateEventCandidates, events):
+        _log_edit("candidate_mismatch", category="event", reason="action_or_order")
         return False
-    return _same(plan.candidateAssetIds, request.candidateAssetIds)
+    matches = _same(plan.candidateAssetIds, request.candidateAssetIds)
+    if not matches:
+        _log_edit("candidate_mismatch", category="asset",
+                  originalAssets=plan.candidateAssetIds, suppliedAssets=request.candidateAssetIds)
+    return matches
 
 
 def _runtime_changes(original: WidgetArtifact, preflight: GenerationPreflightResult,
