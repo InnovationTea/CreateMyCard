@@ -2096,7 +2096,7 @@
     },
     {
       "id": "photo-ux-meeting-room-wide",
-      "enabled": true,
+      "enabled": false,
       "kind": "photo",
       "pool": "photos",
       "name": "白色水滴会议横图",
@@ -4415,7 +4415,7 @@
     },
     {
       "id": "photo-ux-meeting-room-brown-chairs-square",
-      "enabled": false,
+      "enabled": true,
       "kind": "photo",
       "pool": "photos",
       "name": "棕椅会议室",

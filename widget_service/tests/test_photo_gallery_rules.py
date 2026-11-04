@@ -23,7 +23,7 @@ DISABLED = {
     "road-wide", "bedside-lamp-wide", "cloud-square", "cloud-wide", "hourglass-wide",
     "clouds-weather-square", "starfield-weather-square", "wave-square", "wave-wide", "fuzzy-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
-    "meeting-room-brown-chairs-square", "meeting-room-brown-chairs-wide",
+    "meeting-room-wide", "meeting-room-brown-chairs-wide",
 }
 
 
@@ -126,7 +126,7 @@ def test_meeting_square_rejects_wrong_business_alignment_or_line_count(business,
 
 @pytest.mark.parametrize("button,expected", [
     (False, {"photo-ux-texture-blue-diamond-wide", "photo-ux-texture-blue-diagonal-wide"}),
-    (True, {MEETING_WIDE}),
+    (True, {"photo-ux-texture-blue-diamond-wide", "photo-ux-texture-blue-diagonal-wide"}),
 ])
 def test_a19_is_excluded_from_side_slots_without_changing_meeting_placement(
     monkeypatch, button, expected,
