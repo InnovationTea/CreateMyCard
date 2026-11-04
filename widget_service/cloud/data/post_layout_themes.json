@@ -4469,11 +4469,11 @@
           "graphicPrimary": "#FF000000",
           "graphicSecondary": "#CC000000",
           "graphicTertiary": "#99000000",
-          "componentSecondary": "#33FFFFFF",
-          "componentTertiary": "#1AFFFFFF"
+          "componentSecondary": "#33000000",
+          "componentTertiary": "#1A000000"
         },
         "panelBySize": {
-          "2x2": "#33FFFFFF"
+          "2x2": "#33000000"
         },
         "explicitTextAlpha": {
           "secondary": 204,
@@ -4537,11 +4537,11 @@
           "graphicPrimary": "#FF000000",
           "graphicSecondary": "#CC000000",
           "graphicTertiary": "#99000000",
-          "componentSecondary": "#33FFFFFF",
-          "componentTertiary": "#1AFFFFFF"
+          "componentSecondary": "#33000000",
+          "componentTertiary": "#1A000000"
         },
         "panelBySize": {
-          "2x4": "#33FFFFFF"
+          "2x4": "#33000000"
         },
         "explicitTextAlpha": {
           "secondary": 204,

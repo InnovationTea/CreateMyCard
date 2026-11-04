@@ -52,7 +52,7 @@ def test_actual_button_expansion_receives_material(button):
 
 
 @pytest.mark.parametrize("size,suffix", [("2x2", "square"), ("2x4", "wide")])
-def test_brown_chairs_keep_black_ink_and_translucent_white_surfaces(size, suffix):
+def test_brown_chairs_keep_black_ink_and_translucent_black_surfaces(size, suffix):
     identity = f"photo-ux-meeting-room-brown-chairs-{suffix}"
     photo = next(item for item in registry.registered_themes("photos", include_disabled=True)
                  if item.get("id") == identity)
@@ -61,13 +61,13 @@ def test_brown_chairs_keep_black_ink_and_translucent_white_surfaces(size, suffix
     assert roles.get("primary") == "#FF000000"
     assert roles.get("secondary") == "#CC000000"
     assert roles.get("tertiary") == "#99000000"
-    assert roles.get("componentSecondary") == "#33FFFFFF"
-    assert roles.get("componentTertiary") == "#1AFFFFFF"
-    assert content.get("panelBySize", {}).get(size) == "#33FFFFFF"
+    assert roles.get("componentSecondary") == "#33000000"
+    assert roles.get("componentTertiary") == "#1A000000"
+    assert content.get("panelBySize", {}).get(size) == "#33000000"
     original = source()
     result = themes.apply_theme(original, photo, {"size": size}, {})
     styles = node_by_id(result, "panel").get("styles", {})
-    assert styles.get("backgroundColor") == "#33FFFFFF"
+    assert styles.get("backgroundColor") == "#33000000"
     assert styles.get("backdropBlur") == {"radius": 20}
     assert themes.foreground_signature(original) == themes.foreground_signature(result)
 
