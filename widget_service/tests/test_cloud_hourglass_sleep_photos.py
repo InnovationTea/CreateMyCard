@@ -19,7 +19,7 @@ HOURGLASS_WIDE = "photo-ux-hourglass-wide"
 SLEEP = "photo-ux-sleep-new-square"
 SLEEP_WIDE = "photo-ux-sleep-new-wide"
 CLOUDS = ("photo-ux-cloud-square", "photo-ux-cloud-wide")
-ENABLED = (HOURGLASS, HOURGLASS_WIDE, SLEEP, SLEEP_WIDE)
+ENABLED = (HOURGLASS, SLEEP, SLEEP_WIDE)
 DELIVERY_FILES = {
     CLOUDS[0]: "310cbbc7dc6b4752bf38c0e88a5087c1.jpg",
     CLOUDS[1]: "25ec17b9e36c4a16834a95319f1c24e8.jpg",
@@ -37,7 +37,7 @@ def matching_sample(identity):
     return sample(PATHS.get(business), 3, title="生日" if business == "countdown" else "睡眠")
 
 
-@pytest.mark.parametrize("identity", [*ENABLED, *CLOUDS])
+@pytest.mark.parametrize("identity", [*ENABLED, HOURGLASS_WIDE, *CLOUDS])
 def test_downloaded_assets_match_registry_and_both_repository_copies(identity):
     item = photo(identity)
     root = Path(__file__).parents[2]
@@ -99,7 +99,7 @@ def test_hourglass_allows_non_holiday_names_and_keeps_foreground(monkeypatch, ti
 @pytest.mark.parametrize("lines", [1, 4, 5])
 def test_wide_accepts_only_side_focus_with_four_main_lines(identity, business, layout, lines):
     saved = focus_sample(business, lines, layout)
-    assert (rejection(saved, identity) is None) is (layout != "top" and lines <= 4)
+    assert (rejection(saved, identity) is None) is (layout == "left" and lines <= 4)
 
 
 @pytest.mark.parametrize("identity,business", [
@@ -113,7 +113,6 @@ def test_wide_never_borrows_business_from_auxiliary_region(identity, business):
 
 @pytest.mark.parametrize("business,new,old", [
     ("sleep", SLEEP_WIDE, "photo-ux-sleep-wide"),
-    ("countdown", HOURGLASS_WIDE, "photo-ux-gradient-wide"),
 ])
 @pytest.mark.parametrize("pick_new", [False, True])
 def test_wide_same_level_candidates_are_selected_without_weights(monkeypatch, business, new,
@@ -130,8 +129,6 @@ def test_wide_same_level_candidates_are_selected_without_weights(monkeypatch, bu
     result, audit = choose(saved, monkeypatch)
     assert len(calls) == 1
     expected = {new, old}
-    if business == "countdown":
-        expected.add("photo-ux-glass-hourglass-wide")
     assert len(calls[0]) == len(expected)
     assert set(calls[0]) == expected
     assert set(audit.get("candidates", [])) == expected
@@ -163,3 +160,12 @@ def test_pending_clouds_never_enter_candidates_even_if_model_returns_them(monkey
         _, audit = choose(saved, monkeypatch, '{"themeId":"' + identity + '"}')
         assert identity not in audit.get("candidates", [])
         assert audit.get("themeId") != identity
+
+
+@pytest.mark.parametrize("layout", ["left", "right", "top"])
+def test_paused_hourglass_wide_never_enters_candidates(monkeypatch, layout):
+    saved = focus_sample("countdown", 2, layout)
+    assert photo(HOURGLASS_WIDE).get("enabled") is False
+    _, audit = choose(saved, monkeypatch, reply([], HOURGLASS_WIDE))
+    assert HOURGLASS_WIDE not in audit.get("candidates", [])
+    assert audit.get("themeId") != HOURGLASS_WIDE

@@ -18,13 +18,13 @@ def travel_sample(lines=3, orientation="content-left", align="start", button=Fal
     return expanded(rows, saved.task)
 
 
-def test_a17_enabled_with_side_focus_and_bottom_only():
+def test_a17_enabled_with_left_main_and_bottom_only():
     enabled = {item.get("id"): item for item in registry.registered_themes("photos")}
     item = enabled.get(AIRPLANE)
     assert item is not None
     assert item.get("contentEligibility") == {
         "kind": "uniform", "businesses": ["travel"],
-        "wideLayout": "side-focus", "placement": "bottom",
+        "placement": "bottom",
     }
 
 
@@ -35,7 +35,7 @@ def test_a17_bottom_body_counts_actual_lines_without_horizontal_restriction(
     orientation, lines, align,
 ):
     saved = travel_sample(lines, orientation, align)
-    assert (rejection(saved, AIRPLANE) is None) is (lines <= 4)
+    assert (rejection(saved, AIRPLANE) is None) is (orientation == "content-left" and lines <= 4)
     assert evidence(saved).get("photoBodyTextFlow", {}).get("main", {}).get("lineCount") == lines
 
 
@@ -43,6 +43,11 @@ def test_a17_bottom_body_counts_actual_lines_without_horizontal_restriction(
 def test_a17_selection_preserves_foreground_and_registered_asset(orientation, monkeypatch):
     saved = travel_sample(4, orientation)
     result, audit = choose(saved, monkeypatch)
+    if orientation == "content-right":
+        assert AIRPLANE not in audit.get("candidates", [])
+        assert audit.get("themeId") != AIRPLANE
+        assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
+        return
     assert audit.get("candidates") == [AIRPLANE]
     assert audit.get("themeId") == AIRPLANE
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
@@ -122,7 +127,7 @@ def test_only_approved_subjects_receive_side_focus_policy():
     for item in registry.registered_themes(include_disabled=True):
         if item.get("contentEligibility", {}).get("wideLayout") == "side-focus":
             configured.append(item.get("id"))
-    assert set(configured) == {AIRPLANE, "photo-ux-hourglass-wide", "photo-ux-sleep-new-wide"}
+    assert configured == []
     bottom_only = []
     for item in registry.registered_themes(include_disabled=True):
         if item.get("contentEligibility", {}).get("placement") == "bottom":

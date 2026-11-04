@@ -102,7 +102,8 @@ def test_generic_metric_photo_colors_follow_roles_without_changing_foreground(du
     # 此处只覆盖配色适配；图片尺寸与业务准入由共用匹配专项测试覆盖。
     nodes, ownership, colors = generic_metric_source(dual, size)
     original = copy.deepcopy(nodes)
-    photo = next(item for item in registry.registered_themes() if item.get("id") == photo_id)
+    photo = next(item for item in registry.registered_themes(include_disabled=True)
+                 if item.get("id") == photo_id)
     palette = photo.get("content", {}).get("roles", {})
     primary = palette.get("primary")
     secondary = palette.get("secondary")
@@ -417,7 +418,11 @@ def test_template_top_bottom_main_focus_keeps_shared_line_gate(business, photo_i
     facts = template_photo_facts(themes.encode(records), saved.task, "状态")
     photo = next(item for item in registry.registered_themes(include_disabled=True)
                  if item.get("id") == photo_id)
-    assert (photo_reason(photo, facts) is None) is (lines <= 4)
+    reason = photo_reason(photo, facts)
+    if photo_id == "photo-ux-mountain-sunset-lake-wide":
+        assert "左主焦点" in reason
+    else:
+        assert (reason is None) is (lines <= 4)
     assert "side-focus" not in facts.scopes
     assert "left-main-dual" not in facts.scopes
 
@@ -474,8 +479,22 @@ def test_compiled_top_bottom_layout_matches_fusion_main_scope(
                  if item.get("id") == photo_id)
     assert photo_reason(photo, facts) == photo_reason(photo, expected)
     assert "main-focus" in facts.scopes
+    assert "top-focus" in facts.scopes
     assert "side-focus" not in facts.scopes
     assert "left-main-dual" not in facts.scopes
+
+
+@pytest.mark.parametrize("orientation", ["left", "right"])
+def test_countdown_soft_photo_rejects_side_layout_in_both_routes(orientation):
+    saved = focus_sample("countdown", 2, orientation)
+    source, _ = template_source(saved)
+    template_facts = template_photo_facts(source, saved.task, "状态")
+    fusion_facts = fusion_photo_facts(saved.task, evidence(saved), saved.compact)
+    photo = next(item for item in registry.registered_themes()
+                 if item.get("id") == "photo-ux-gradient-wide")
+    for facts in (template_facts, fusion_facts):
+        assert "top-focus" not in facts.scopes
+        assert "上下主次" in photo_reason(photo, facts)
 
 
 @pytest.mark.parametrize("support_panels", [False, True])
@@ -535,6 +554,7 @@ def test_main_scope_keeps_side_panel_and_unambiguous_focus_requirements(layout):
         main["component"] = "Row"
     facts = template_photo_facts(themes.encode(records), saved.task, "状态")
     assert "main-focus" not in facts.scopes
+    assert "top-focus" not in facts.scopes
     assert "side-focus" not in facts.scopes
     assert "left-main-dual" not in facts.scopes
 

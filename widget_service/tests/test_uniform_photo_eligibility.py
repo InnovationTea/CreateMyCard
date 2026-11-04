@@ -111,6 +111,17 @@ def business_sample(business, lines=3, *, wide=False, button=True, title="状态
     return expanded(rows, saved.task)
 
 
+def top_bottom_sample(saved):
+    rows = themes.decode(saved.compact)
+    rows = [row for row in rows if row[0] in {"root", "title", "reading"} or row[0].startswith("/")]
+    rows[0] = ["root", "Layout", {"layout": "W-top-bottom", "variant": "continuous"},
+               ["title", "reading", "support"]]
+    rows.append(["support", "TextBlock", {"items": [
+        {"label": "状态", "value": "辅助"}, {"label": "备注", "value": "今日"},
+    ]}])
+    return expanded(rows, saved.task)
+
+
 def evidence(saved):
     data = themes.decode(saved.source)[-1].get("updateDataModel", {}).get("value")
     return photo_layout_evidence(saved.nodes, data, final_layout=saved.compact,
@@ -186,6 +197,8 @@ def test_every_photo_obeys_its_line_limit_and_preserves_foreground(item):
         saved = business_sample(
             business, count, wide=item.get("size") == "2x4", title="假期", button=button,
         )
+        if item.get("contentEligibility", {}).get("wideLayout") == "top-focus":
+            saved = top_bottom_sample(saved)
         if placement == "center":
             rows = themes.decode(saved.compact)
             rows[0][2].update(alignItems="center", justifyContent="center")

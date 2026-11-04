@@ -1,6 +1,8 @@
 """模型展开的普通色值须复用预设；不在执行代码中重新理解中文词句。"""
 
+import asyncio
 import copy
+from types import SimpleNamespace
 
 import pytest
 
@@ -36,6 +38,37 @@ def test_model_generated_color_routes_to_registered_family(monkeypatch, color, f
     assert audit.get("selectorError") is None
     assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
     assert saved == before
+
+
+@pytest.mark.parametrize("property_name,value", [
+    ("paletteFamily", "green"), ("backgroundColor", "#008000"),
+])
+def test_ordinary_background_color_prompt_separates_color_from_solid_kind(
+    monkeypatch, property_name, value,
+):
+    monkeypatch.setattr(themes, "fusion_ball_enabled", lambda version: True)
+    saved = sample(PATHS.get("weather"), 2)
+    saved.task["userQuery"] = "生成天气卡片，背景是绿色的"
+    items = [preference(property_name, value, "背景是绿色的")]
+    captured = []
+
+    async def generate(prompt, _schema, *, phase):
+        assert phase == "theme"
+        captured.append(prompt)
+        return reply(items, "solid-blue")
+
+    client = SimpleNamespace(generate=generate)
+    result, audit = asyncio.run(themes.select_theme(
+        saved.source, saved.task, client, final_layout=saved.compact,
+    ))
+    assert len(captured) == 1
+    system = captured[0][0].get("content", "")
+    assert "背景是绿色的" in system
+    assert "只有颜色描述不足以支持solid" in system
+    assert "纯绿色背景，不要纹理" in system
+    assert audit.get("themeId") == "fusion-ball-battery-teal"
+    assert audit.get("userColors") == {}
+    assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
 
 
 @pytest.mark.parametrize("query,color", [

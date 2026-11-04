@@ -5,7 +5,14 @@ import pytest
 from photo_samples.common import expanded
 from services import post_layout_theme as themes
 from services import post_layout_theme_registry as registry
-from test_uniform_photo_eligibility import PATHS, choose, evidence, rejection, sample
+from test_uniform_photo_eligibility import (
+    PATHS,
+    choose,
+    evidence,
+    rejection,
+    sample,
+    top_bottom_sample,
+)
 
 BIRDS = "photo-ux-birds-countdown-square"
 WAVE = "photo-ux-digital-wave-wide"
@@ -13,9 +20,10 @@ MEETING_SQUARE = "photo-ux-meeting-room-square"
 MEETING_WIDE = "photo-ux-meeting-room-wide"
 DISABLED = {
     "track-runner-square", "sunrise-runner-square", "track-sprint-square", "running-pair-wide",
-    "road-wide", "bedside-lamp-wide", "cloud-square", "cloud-wide",
+    "road-wide", "bedside-lamp-wide", "cloud-square", "cloud-wide", "hourglass-wide",
     "clouds-weather-square", "starfield-weather-square", "wave-square", "wave-wide", "fuzzy-wide",
     "texture-blue-circles-wide", "texture-purple-circles-wide", "texture-orange-circles-wide",
+    "meeting-room-wide", "meeting-room-brown-chairs-wide",
 }
 
 
@@ -23,7 +31,7 @@ def test_only_requested_gallery_entries_are_disabled_but_preserved():
     all_photos = registry.registered_themes(include_disabled=True)
     disabled = {item.get("id") for item in all_photos if not item.get("enabled")}
     assert disabled == {"photo-ux-" + name for name in DISABLED}
-    assert len(registry.registered_themes("photos")) == 34
+    assert len(registry.registered_themes("photos")) == 31
     assert len(registry.registered_themes("texturePhotos")) == 15
     for item in all_photos:
         if item.get("id") in disabled:
@@ -84,25 +92,21 @@ def test_hidden_holiday_name_and_button_label_cannot_authorize_a12():
     assert rejection(expanded(rows, saved.task), BIRDS)
 
 
-@pytest.mark.parametrize("button,align,lines,allowed", [
-    (False, "start", 1, True), (False, "start", 3, True), (False, "start", 4, True),
-    (False, "start", 5, False), (False, "center", 1, True), (True, "start", 1, True),
+@pytest.mark.parametrize("align,lines,allowed", [
+    ("start", 1, True), ("start", 3, True), ("start", 4, True),
+    ("start", 5, False), ("center", 1, True),
 ])
-def test_a19_uses_calendar_main_up_to_four_lines_without_bottom_placement(button, align,
-                                                                       lines, allowed):
-    saved = sample(PATHS.get("calendar"), lines, wide=True, button=button, align=align)
+def test_a19_uses_calendar_main_up_to_four_lines_without_bottom_placement(align, lines, allowed):
+    saved = sample(PATHS.get("calendar"), lines, wide=True, button=False, align=align)
+    saved = top_bottom_sample(saved)
     assert (rejection(saved, WAVE) is None) is allowed
 
 
 def test_a19_accepts_top_primary_bottom_support_but_rejects_old_information_business():
     saved = sample(PATHS.get("calendar"), 1, wide=True, button=False)
-    rows = themes.decode(saved.compact)
-    main = next(row for row in rows if row[0] == "main")
-    main[2]["variant"] = "title-hero-support"
-    main[3].append("details")
-    rows.append(["details", "Text", {"content": "会议室"}])
-    assert rejection(expanded(rows, saved.task), WAVE) is None
-    assert rejection(sample(PATHS.get("information"), 1, wide=True, button=False), WAVE)
+    assert rejection(top_bottom_sample(saved), WAVE) is None
+    other_business = sample(PATHS.get("information"), 1, wide=True, button=False)
+    assert rejection(top_bottom_sample(other_business), WAVE)
 
 
 @pytest.mark.parametrize("button,lines", [(False, 1), (True, 1), (True, 3)])
@@ -120,13 +124,13 @@ def test_meeting_square_rejects_wrong_business_alignment_or_line_count(business,
     assert rejection(saved, MEETING_SQUARE)
 
 
-@pytest.mark.parametrize("button,expected", [(False, {WAVE}), (True, {WAVE, MEETING_WIDE})])
-def test_a19_overlaps_meeting_wide_without_changing_meeting_placement(
+@pytest.mark.parametrize("button,expected", [
+    (False, {"photo-ux-texture-blue-diamond-wide", "photo-ux-texture-blue-diagonal-wide"}),
+    (True, {"photo-ux-texture-blue-diamond-wide", "photo-ux-texture-blue-diagonal-wide"}),
+])
+def test_a19_is_excluded_from_side_slots_without_changing_meeting_placement(
     monkeypatch, button, expected,
 ):
-    expected = expected | {
-        "photo-ux-meeting-room-brown-chairs-wide",
-    }
     saved = sample(PATHS.get("calendar"), 3, wide=True, button=button)
     result, audit = choose(saved, monkeypatch)
     assert set(audit.get("candidates", [])) == expected
@@ -143,7 +147,7 @@ def test_meeting_wide_accepts_top_primary_with_bottom_support_without_action():
     rows.append(["details", "Text", {"content": "会议室"}])
     saved = expanded(rows, saved.task)
     assert rejection(saved, MEETING_WIDE) is None
-    assert rejection(saved, WAVE) is None
+    assert rejection(saved, WAVE)
 
 
 def test_meeting_wide_keeps_business_line_count_and_wide_layout_gate():

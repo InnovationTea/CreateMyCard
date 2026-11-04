@@ -19,7 +19,7 @@ from test_uniform_photo_eligibility import ACTION, PATHS, choose, evidence, reje
 from theme_preference_samples import preference, reply
 
 A19 = "photo-ux-digital-wave-wide"
-WAVE = "photo-ux-mountain-sunset-lake-wide"
+WAVE = "photo-ux-cumulus-blue-wide"
 FUZZY = "photo-ux-pink-sunset-lake-wide"
 GRADIENT = "photo-ux-gradient-wide"
 BLUE = "photo-ux-texture-blue-diamond-wide"
@@ -64,6 +64,12 @@ def focus_sample(business="weather", lines=4, layout="top", variant="continuous"
 def test_subject_counts_main_but_abstract_counts_whole_card(identity, business, layout, lines):
     saved = focus_sample(business, lines, layout)
     reason = rejection(saved, identity)
+    if identity in {A19, GRADIENT} and layout != "top":
+        assert "上下主次" in reason
+        return
+    if identity in {WAVE, FUZZY} and layout != "left":
+        assert "左主焦点" in reason
+        return
     abstract = "texture" in identity
     limit = 3 if abstract else 4
     body_lines = lines + 2 if abstract and layout == "top" else lines
@@ -76,12 +82,16 @@ def test_subject_counts_main_but_abstract_counts_whole_card(identity, business, 
 
 @pytest.mark.parametrize("variant", ["continuous", "bottom-details", "equal"])
 @pytest.mark.parametrize("title", [False, True])
-@pytest.mark.parametrize("identity,business", [(WAVE, "weather"), (FUZZY, "weather"),
-                                             (GRADIENT, "countdown")])
+@pytest.mark.parametrize("identity,business", [
+    (A19, "calendar"), (WAVE, "weather"), (FUZZY, "weather"), (GRADIENT, "countdown"),
+])
 def test_all_registered_top_bottom_variants_have_the_same_main_scope(variant, title, identity,
                                                                    business):
     saved = focus_sample(business, variant=variant, title=title)
-    assert rejection(saved, identity) is None
+    if identity in {WAVE, FUZZY}:
+        assert "左主焦点" in rejection(saved, identity)
+    else:
+        assert rejection(saved, identity) is None
 
 
 @pytest.mark.parametrize("identity,business", [
@@ -97,9 +107,10 @@ def test_other_subjects_gain_four_lines_but_not_new_layouts(identity, business, 
 
 @pytest.mark.parametrize("identity,business", CASES)
 def test_mixed_or_unknown_main_business_does_not_use_auxiliary_business(identity, business):
-    saved = focus_sample(business, 1)
+    saved = focus_sample(business, 1, "left" if identity in {WAVE, FUZZY} else "top")
     rows = themes.decode(saved.compact)
-    primary = next(row for row in rows if row[0] == "primary")
+    primary_id = "reading" if identity in {WAVE, FUZZY} else "primary"
+    primary = next(row for row in rows if row[0] == primary_id)
     primary[2]["content"] = {"path": "/data/unknown/value"}
     rows.append(["/data/unknown/value", "未知"])
     if "texture" in identity:
@@ -123,10 +134,9 @@ def test_only_approved_wide_configs_use_main_focus_and_circle_enablement_is_unch
             flexible.append(item.get("id"))
             assert item.get("size") == "2x4"
             assert item.get("pool") == "photos" and item.get("id") in {
-                A19, WAVE, FUZZY, GRADIENT, "photo-ux-cumulus-blue-wide",
                 "photo-ux-wave-wide", "photo-ux-fuzzy-wide",
             }
-    assert len(flexible) == 7
+    assert len(flexible) == 2
     for item in registry.registered_themes("texturePhotos", include_disabled=True):
         assert "wideLayout" not in item.get("contentEligibility", {})
         if item.get("id", "").endswith("circles-wide"):
@@ -142,11 +152,12 @@ def test_registry_rejects_invalid_wide_limit(limit):
         registry.validate_registry(config)
 
 
-def test_registry_rejects_main_focus_policy_on_square():
+@pytest.mark.parametrize("policy", ["main-focus", "side-focus", "top-focus"])
+def test_registry_rejects_wide_focus_policy_on_square(policy):
     config = registry.load_theme_registry()
     item = next(item for item in config.get("themes", [])
                 if item.get("id") == "photo-ux-wave-square")
-    item.get("contentEligibility", {})["wideLayout"] = "main-focus"
+    item.get("contentEligibility", {})["wideLayout"] = policy
     with pytest.raises(ValueError, match="wide photo"):
         registry.validate_registry(config)
 
@@ -233,6 +244,15 @@ def test_explicit_user_theme_stays_above_new_photo_rules(monkeypatch, query, val
 @pytest.mark.parametrize("layout", ["left", "right", "top"])
 def test_final_obs_delivery_validates_and_preserves_every_foreground(monkeypatch, identity,
                                                                    business, layout):
+    rejected_direction = identity in {A19, GRADIENT} and layout != "top"
+    rejected_direction = rejected_direction or (identity in {WAVE, FUZZY} and layout != "left")
+    if rejected_direction:
+        saved = focus_sample(business, 4, layout)
+        result, audit = choose(saved, monkeypatch, reply([], identity))
+        assert identity not in audit.get("candidates", [])
+        assert audit.get("themeId") != identity
+        assert themes.foreground_signature(result) == themes.foreground_signature(saved.source)
+        return
     if identity == ORANGE:
         config = registry.load_theme_registry()
         for item in config.get("themes", []):

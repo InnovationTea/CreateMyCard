@@ -139,8 +139,6 @@ _ACTION_TEMPLATE_ROOT_COMPONENTS = {
 _ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _UX_DIRECT_BUSINESS_COMPONENTS = UX_DIRECT_BUSINESS_COMPONENT_IDS
 _DANGEROUS_EVENT_KEYS = frozenset({"onClick", "call", "args", "action"})
-_FONT_PRIMARY = "#E6000000"
-_FONT_SECONDARY = "#99000000"
 _ICON_SECONDARY = "#99000000"
 _TRACK_COLOR = "#1A000000"
 _NORMAL_DATA_COLOR = "#FF64BB5C"
@@ -2972,7 +2970,9 @@ def _battery_text(
         "width": "matchParent",
         "fontSize": font_size,
         "fontWeight": font_weight,
-        "fontColor": "#E6000000" if font_size >= 12 else "#99000000",
+        STYLE_MARKER: {
+            "fontColor": "@theme:primary/1" if font_size >= 12 else "@theme:secondary/1",
+        },
         "maxLines": max_lines,
         "textOverflow": "ellipsis",
         "constraintSize": {"minWidth": 0, "minHeight": 0},
@@ -3338,7 +3338,9 @@ def _bluetooth_text(
         "width": "matchParent",
         "fontSize": font_size,
         "fontWeight": font_weight,
-        "fontColor": _FONT_PRIMARY if font_weight >= 500 else _FONT_SECONDARY,
+        STYLE_MARKER: {
+            "fontColor": "@theme:primary/1" if font_weight >= 500 else "@theme:secondary/1",
+        },
         "maxLines": 1,
         "textAlign": align,
         "textOverflow": "ellipsis",
@@ -6121,9 +6123,12 @@ def _apply_theme_content_color(
         styled = dict(values[options_index])
         if color_property not in styled:
             owned = dict(styled.get(STYLE_MARKER, {}))
-            owned[color_property] = "@theme:primary/1"
+            owned.setdefault(color_property, "@theme:primary/1")
             styled[STYLE_MARKER] = owned
-        styled.setdefault(color_property, theme.primary_color)
+            color = theme.primary_color
+            if owned.get(color_property) == "@theme:secondary/1":
+                color = theme.support_content_color
+            styled[color_property] = color
         values[options_index] = styled
     return Nested2Node(node.component_type, tuple(values), children)
 

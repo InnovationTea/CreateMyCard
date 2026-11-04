@@ -44,7 +44,7 @@ _CONTENT_ELIGIBILITY = {
     "properties": {
         "kind": {"enum": ["uniform", "holiday-countdown", "weather-panels"]},
         "maxTextLines": {"type": "integer", "minimum": 1, "maximum": 3},
-        "wideLayout": {"enum": ["main-focus", "side-focus"]},
+        "wideLayout": {"enum": ["main-focus", "side-focus", "top-focus"]},
         "bodyRegions": {
             "type": "object", "additionalProperties": False,
             "required": ["mainMinLines", "mainMaxLines", "footerMaxRows"],

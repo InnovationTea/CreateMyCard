@@ -37,6 +37,13 @@ preferences为数组；无明确偏好返回[]。每项严格为
 不虚构精确色值；纯业务标题不构成视觉要求。精确色值和明确纯色仍按用户原意保留。
 同一背景不要同时输出paletteFamily和backgroundColor；backgroundColor是固定底色，
 不与渐变/图片/融球要求同时输出。未要求纯色时，优先融球，其次已有渐变。
+颜色与背景形式必须分开判断。“背景”“底色”只是颜色作用的对象，不表示纯色，也不表示明暗。
+例如“背景是绿色的”：仅返回paletteFamily=green，evidence引用“背景是绿色的”；
+不要额外输出backgroundKind=solid、backgroundColor=#008000或backgroundTone。
+“红色背景”“紫色底色”同样只表达对应登记色系，不因业务是天气、日历或电量改变色系要求。
+对比：“纯绿色背景，不要纹理”才返回backgroundKind=solid及backgroundColor；
+“背景使用#008000”按用户精确色值输出backgroundColor，不替换为近似色系。
+输出backgroundKind时再次检查：evidence必须体现用户对背景形式的要求，只有颜色描述不足以支持solid。
 根据整句语义处理否定、转折及最终修正，不按单词出现与否判断。排除要求使用avoid，不得反向设为prefer。
 只描述文字、图标或业务内容的明暗不属于背景偏好；普通业务标题、时间、图片名称不是用户颜色指令。
 不得从业务、样例或候选内容虚构用户偏好。每项evidence必须引用query真实原文，包含判断所需上下文。

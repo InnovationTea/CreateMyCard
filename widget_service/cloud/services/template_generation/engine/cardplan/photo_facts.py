@@ -226,6 +226,8 @@ def template_photo_facts(
             scopes["main-focus"] = facts
             if orientation in {"left", "right"}:
                 scopes["side-focus"] = facts
+            if orientation in {"top", "bottom"}:
+                scopes["top-focus"] = facts
             if orientation == "left":
                 scopes["left-main-dual"] = facts
     top = top_content_evidence(top_analysis, flows, excluded)
