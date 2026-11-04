@@ -26,6 +26,11 @@ def test_generation_response_omits_message_but_preserves_internal_text(status):
         "errorCode": response.errorCode,
         "effectiveCapabilities": {},
     }
+    if status in (GenerationStatus.SUCCESS, GenerationStatus.DEGRADED):
+        instruction = response.agentInstruction
+        assert isinstance(instruction, str)
+        assert "无需且不得再次调用" in instruction
+        expected["agentInstruction"] = instruction
 
     assert response.message == "内部生成结果说明"
     assert response.model_dump(mode="json", exclude_none=True) == expected

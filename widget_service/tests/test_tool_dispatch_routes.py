@@ -611,6 +611,9 @@ def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
         )
 
     assert message["data"]["status"] == "success"
+    success_data = message.get("data")
+    assert isinstance(success_data, dict)
+    assert "无需且不得再次调用" in success_data.get("agentInstruction", "")
     assert len(saved_artifacts) == 1
     artifact = saved_artifacts[0]
     rows = [json.loads(line) for line in artifact["genui"].splitlines()]

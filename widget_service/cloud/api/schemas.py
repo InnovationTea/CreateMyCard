@@ -9,6 +9,7 @@ from pydantic import (
     PrivateAttr,
     SerializerFunctionWrapHandler,
     ValidationError,
+    computed_field,
     field_validator,
     model_serializer,
     model_validator,
@@ -366,12 +367,29 @@ class GenerateWidgetCardResponse(BaseModel):
     editFeedback: str | None = None
     omittedRequirements: list[str] = Field(default_factory=list)
 
+    @computed_field
+    @property
+    def agentInstruction(self) -> str | None:
+        """成功状态的编排终止指引，统一覆盖创建和编辑结果。"""
+        instruction: str | None = None
+        if self.status in (GenerationStatus.SUCCESS, GenerationStatus.DEGRADED):
+            instruction = (
+                "已返回生成结果，本轮无需且不得再次调用生成接口。"
+                "不要为确认结果、继续优化、补内容、补回复或补 URL 重调，"
+                "也不要切换入口或自动转编辑。"
+                "请按实际结果处理来源，并在宿主允许时回复；本指引不向用户展示。"
+                "只有用户后续明确提出新的创建或修改需求，才可开始新任务。"
+            )
+        return instruction
+
     @model_serializer(mode="wrap")
     def serialize_result(self, handler: SerializerFunctionWrapHandler):
-        """仅在有实际编辑反馈或省略明细时输出对应字段。"""
+        """按结果状态输出停止指引，省略空的编辑反馈和省略明细。"""
         payload = handler(self)
         if self.editFeedback is None:
             payload.pop("editFeedback", None)
         if not self.omittedRequirements:
             payload.pop("omittedRequirements", None)
+        if self.agentInstruction is None:
+            payload.pop("agentInstruction", None)
         return payload

@@ -30,12 +30,130 @@ _TYPE_CODES = frozenset(
 )
 
 
+def _candidate_keyword_message(name: str) -> str | None:
+    """仅给顶层错名提供条件性提示；关键词不授权改参或推断业务用途。"""
+    lowered = name.lower()
+    has_event = "event" in lowered
+    has_asset = "asset" in lowered
+    message: str | None = None
+    if has_event and has_asset:
+        message = (
+            f"字段 {name} 同时包含 event 和 asset，请核对用途：事件放入 "
+            "candidateEventCandidates，素材放入 candidateAssetIds，不将混合内容直接改名。"
+        )
+    elif has_event:
+        message = (
+            f"不支持字段 {name}；若为事件候选，请改用 candidateEventCandidates 对象数组，"
+            "每项为 {capabilityId, action:{call,args}}。按本轮事件模板保留固定值，"
+            "仅填写声明的动态参数并核对数据依赖。"
+        )
+    elif has_asset:
+        message = (
+            f"不支持字段 {name}；若为素材候选，请改用 candidateAssetIds 字符串数组，"
+            "ID 须来自本轮素材概述，不传素材定义对象或地址。"
+        )
+    if message is not None:
+        message += "保留合法值、类型和顺序，已有目标字段先核对冲突；编辑不得替换事件或素材候选。"
+    return message
+
+
+def candidate_migration_message(name: str) -> str | None:
+    """仅解释登记的顶层错用字段，不将同名业务参数当作候选。"""
+    messages = {
+        "action": (
+            "生成接口不接受顶层 action；创建不传 sourceArtifactUrl，"
+            "编辑须保留目标卡片有效的 sourceArtifactUrl，不能通过删除来源切换创建。"
+            "移除 action 后保留其余合法业务参数。"
+        ),
+        "assetCandidateIds": (
+            "将 assetCandidateIds 改为 candidateAssetIds；保留本轮已选合法素材 ID，"
+            "值为字符串数组，不将素材改成定义对象。"
+        ),
+        "dataCapabilities": (
+            "将 dataCapabilities 重构为 candidateDataBindings，每项包含 capabilityId、"
+            "arguments、writeResultTo，可选 candidateOutputFields。核对本轮数据概述的 ID，"
+            "依据 getDataCapabilitySchemas 的 inputSchema 将 inputParams 或平铺业务参数"
+            "放入 arguments；依据 defaultWriteResultTo 和 outputSchema 填写路径及展示字段。"
+        ),
+        "eventCapabilities": (
+            "将 eventCapabilities 重构为 candidateEventCandidates，每项为 "
+            "{capabilityId, action:{call,args}}。ID 取本轮事件概述；将 actionTemplate 的"
+            "call、args 完整复制到 action，保留固定值，仅填写声明的动态参数并核对数据依赖。"
+        ),
+        "assetCandidates": (
+            "将 assetCandidates 重构为 candidateAssetIds 字符串数组；"
+            "对象含 assetId 或 id 时，核对本轮素材概述后提取已选 ID；"
+            "不传整份素材定义或自行构造地址，不盲目合并冲突的 ID。"
+        ),
+    }
+    aliases = {
+        "events": "eventCapabilities",
+        "assets": "assetCandidates",
+        "dataCandidates": "dataCapabilities",
+        "dataList": "dataCapabilities",
+        "dataIds": "dataCapabilities",
+        "dataBindings": "dataCapabilities",
+        "candidateDataCapabilities": "dataCapabilities",
+        "eventCandidates": "eventCapabilities",
+        "candidateEvents": "eventCapabilities",
+        "candidateAssets": "assetCandidates",
+        "candidateAssetCandidates": "assetCandidates",
+        "assetIds": "assetCandidates",
+    }
+    canonical = aliases.get(name, name)
+    message = messages.get(canonical)
+    if message is not None and canonical != name:
+        message = message.replace(canonical, name, 1)
+    if message is not None:
+        message += (
+            "保留原需求和同一候选的合法业务参数及类型（包括 0、false、空字符串），"
+            "不得仅删除该字段、清空候选或省略原调用参数来绕过校验；"
+            "已有正确候选时先核对冲突，不盲目覆盖。提交完整 invoke.arguments，"
+            "复核必填项及下层参数；数据绑定变化后复查权限，编辑不得增删原数据集合。"
+        )
+    elif name != "eventCapabilityIds":
+        message = _candidate_keyword_message(name)
+    return message
+
+
+def candidate_field_migration(path: str) -> str | None:
+    """仅匹配候选项本层的别名，不解释 arguments 内部的业务字段。"""
+    parts = path.removeprefix("/").split("/")
+    message: str | None = None
+    if len(parts) == 3 and parts[1].isdigit():
+        root, _index, name = parts
+        if root == "candidateDataBindings":
+            if name in {"id", "dataCapabilityId"}:
+                message = (
+                    f"将候选项的 {name} 移至 capabilityId，核对本轮数据概述；"
+                    "保留该项的调用参数，补齐 writeResultTo，不仅修正 ID。"
+                )
+            elif name == "inputParams":
+                message = (
+                    "将 inputParams 中符合本轮 inputSchema 的参数放入同一候选项的 arguments；"
+                    "保留真实类型及零值、false、空字符串，不删除参数、不省略 arguments 或改成 {}。"
+                    "仅本轮 Schema 确认无参时用 {}；已有 arguments 时先核对冲突，"
+                    "缺少必要业务值先澄清，绑定变化后复查权限。"
+                )
+        elif root == "candidateEventCandidates" and name == "eventCapabilityId":
+            message = (
+                "将 eventCapabilityId 移至候选项的 capabilityId，核对本轮事件概述；"
+                "将 actionTemplate 的 call、args 放入 action，保留固定值与合法动态参数，"
+                "已有目标字段时先核对冲突，不删除事件。"
+            )
+    return message
+
+
 def _extra_field_message(path: str) -> str:
     parts = path.removeprefix("/").split("/")
     name = parts[-1].replace("~1", "/").replace("~0", "~")
     message = f"不支持字段 {name}，请移除该字段。"
     if len(parts) == 1 and name in {"arguments", "params", "content"}:
         message = f"不支持 {name} 包裹层，请将其中的业务字段直接放入 arguments 对象。"
+    if len(parts) == 1:
+        migration = candidate_migration_message(name)
+        if migration is not None:
+            message = migration
     is_event_definition = False
     if parts[0] == "candidateEventCandidates":
         if len(parts) == 3:
@@ -54,6 +172,9 @@ def _extra_field_message(path: str) -> str:
             message = "此处不支持 dynamicArguments 定义，请移除；执行值按本轮事件模板填写。"
     if parts[0] == "candidateDataBindings" and "/arguments/" in path:
         message = f"不支持参数 {name}，请移除多传项，按本轮 inputSchema 填写合法业务参数。"
+    migration = candidate_field_migration(path)
+    if migration is not None:
+        message = migration
     return message
 
 
@@ -141,6 +262,10 @@ def _issue_view(issue: dict[str, Any]) -> dict[str, str]:
     metadata = _metadata_message(issue, path, message)
     if metadata is not None:
         message = metadata
+    elif code == "REQUEST_DATA_FIELD_MISPLACED":
+        instruction = issue.get("repairInstruction")
+        if isinstance(instruction, str) and instruction:
+            message = instruction.removeprefix("核对字段归属；")
     elif code == "REQUEST_EXTRA_FORBIDDEN":
         message = _extra_field_message(path)
     elif (

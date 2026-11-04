@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from models.preflight import AgentAction, PreflightIssue
+from services.agent_error_view import candidate_field_migration, candidate_migration_message
 
 _GENERATION_OPERATIONS = (
     "generateWidgetCard",
@@ -145,6 +146,9 @@ def _pointer(parts: tuple[Any, ...]) -> str:
 def _guidance(location: tuple[Any, ...], operation: str) -> _Guidance:
     if not location:
         return _Guidance("当前工具的业务对象", "无法定位业务字段，请停止并核对工具调用链路。")
+    migration = candidate_field_migration(_pointer(location))
+    if migration is not None and operation in _GENERATION_OPERATIONS:
+        return _Guidance("本轮候选项的正式字段及执行参数", migration, "本轮能力概述及数据 Schema")
     root = str(location[0])
     if root == "candidateDataBindings":
         if len(location) == 2 and isinstance(location[1], int):
@@ -174,6 +178,9 @@ def _guidance(location: tuple[Any, ...], operation: str) -> _Guidance:
         if guide is not None:
             return _Guidance("本轮素材概述中的单个 ID 字符串", guide.instruction, guide.reference)
     if len(location) == 1:
+        migration = candidate_migration_message(root)
+        if migration is not None and operation in _GENERATION_OPERATIONS:
+            return _Guidance("当前工具声明的完整候选结构", migration, "本轮能力概述及数据 Schema")
         if root in {"arguments", "params", "content"}:
             return _Guidance(
                 "invoke.arguments 直接包含当前工具声明的业务字段",
@@ -284,6 +291,8 @@ def _request_message(error: dict[str, Any], actual_type: str) -> str:
     """只解释已登记的服务端约束，不回显自定义异常文本或用户值。"""
     location = tuple(error.get("loc", ()))
     message = str(error.get("msg", ""))
+    if location == ("userQuery",) and error.get("type") in {"missing", "string_too_short"}:
+        return "服务未取得非空 userQuery；不代表用户原始需求文字太短。"
     if location in {("title",), ("description",)}:
         name = str(location[0])
         if message == f"Value error, {name} is required in create mode":
@@ -372,16 +381,104 @@ def _request_retry_instruction(issues: list[PreflightIssue]) -> str:
     return instruction
 
 
+def _discover_request_errors(
+    exc: ValidationError, operation: str, arguments: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """补充被字段错误遮蔽的创建条件必填检查，不猜测未传入的原始对象。"""
+    errors = exc.errors(include_context=False, include_input=True)
+    if operation not in _GENERATION_OPERATIONS or arguments is None:
+        return errors
+    if "sourceArtifactUrl" in arguments:
+        return errors
+    locations = {tuple(error.get("loc", ())) for error in errors}
+    for name in ("title", "description"):
+        if (name,) in locations:
+            continue
+        if arguments.get(name) is not None:
+            continue
+        errors.append({
+            "loc": (name,), "type": "value_error",
+            "msg": f"Value error, {name} is required in create mode",
+        })
+    return errors
+
+
+def _is_data_candidate_array(value: Any) -> bool:
+    """仅识别调用结构，不裁决能力或参数，不修改输入。"""
+    if not isinstance(value, list) or not value:
+        return False
+    for item in value:
+        if not isinstance(item, dict):
+            return False
+        identity = item.get("capabilityId")
+        destination = item.get("writeResultTo")
+        if not isinstance(identity, str) or not identity.strip():
+            return False
+        if not isinstance(destination, str) or not destination.strip():
+            return False
+        if not isinstance(item.get("arguments"), dict):
+            return False
+    return True
+
+
+def _data_field_guidance(value: Any) -> _Guidance:
+    instruction = (
+        "data 的现有结构无法确认是数据候选；请核对本轮定义和业务用途，不直接删除业务内容。"
+    )
+    if isinstance(value, list) and any(isinstance(item, str) for item in value):
+        instruction = (
+            "data 含字符串项；若为候选 JSON，请还原为对象，核对本轮定义后将完整数组迁移到 "
+            "candidateDataBindings，每项含 capabilityId、arguments、writeResultTo。"
+            "无法还原时核对原始调用，不丢弃或补造值。"
+        )
+    if _is_data_candidate_array(value):
+        instruction = (
+            "data 中的数组具有数据候选结构，请将完整数组迁移到 candidateDataBindings；"
+            "这不表示能力或参数合法，仍须核对本轮数据定义。"
+        )
+    instruction += (
+        "保留原参数、展示字段及顺序，保留参数类型及 0、false、合法空字符串；"
+        "已有目标字段先核对冲突。绑定变化后复查权限，编辑不得扩大原数据集合。"
+    )
+    return _Guidance("当前生成工具声明的业务结构", instruction, "本轮工具定义及数据 Schema")
+
+
+def _is_string_candidate(location: tuple[Any, ...], value: Any) -> bool:
+    if len(location) != 2 or not isinstance(value, str):
+        return False
+    return (
+        location[0] in {"candidateDataBindings", "candidateEventCandidates"}
+        and isinstance(location[1], int)
+    )
+
+
 def request_validation_feedback(
     exc: ValidationError, operation: str, *, arguments: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     issues = []
     # 仅读取 input 的 JSON 类型；不回传值、原始异常消息或 ctx。
-    for error in exc.errors(include_context=False, include_input=True):
+    for error in _discover_request_errors(exc, operation, arguments):
         location = tuple(error.get("loc", ()))
         error_type = str(error.get("type", "validation_error"))
         guide = _guidance(location, operation)
         guide = _mode_guidance(guide, location, arguments)
+        code = f"REQUEST_{error_type.upper()}"
+        misplaced_data = location == ("data",) and error_type == "extra_forbidden"
+        if misplaced_data and operation in _GENERATION_OPERATIONS:
+            value = _request_value(arguments, location) if arguments is not None else _MISSING
+            guide = _data_field_guidance(value)
+            code = "REQUEST_DATA_FIELD_MISPLACED"
+        value = _request_value(arguments, location) if arguments is not None else error.get("input")
+        if _is_string_candidate(location, value) and operation in _GENERATION_OPERATIONS:
+            guide = _Guidance(
+                guide.expected,
+                "候选项必须直接为 JSON 对象，不能是序列化字符串；请将该项还原为对象，"
+                "保留原业务参数、类型、顺序及 0、false、合法空字符串，不删除或改成空对象。"
+                "无法还原时核对原始调用及本轮定义，不猜补值；已有字段先核对冲突。"
+                + guide.instruction,
+                guide.reference,
+            )
+            code = "REQUEST_STRINGIFIED_CANDIDATE"
         expected = guide.expected
         expected_type = _TYPE_EXPECTATIONS.get(error_type)
         if expected_type is not None:
@@ -389,13 +486,21 @@ def request_validation_feedback(
         retryable = _is_business_error(location, error_type)
         actual_type = _actual_type(error, arguments)
         instruction = _repair_instruction(error, guide)
+        missing_query = location == ("userQuery",) and error_type in {"missing", "string_too_short"}
+        if missing_query:
+            expected = "invoke.arguments 中的非空 userQuery 字符串"
+            instruction = (
+                "核对 invoke.arguments 是否直接为对象、是否整体字符串化或多套包裹层；"
+                "原调用已有需求时检查工具映射并复用原文，不要求用户重复提供。"
+                "保留模式、有效来源及全部合法候选，提交完整业务对象，不只补 userQuery。"
+            )
         if not retryable:
             instruction = (
                 "核对工具链路的上下文传递，不要手工填写身份或设备字段。"
             )
         issues.append(
             PreflightIssue(
-                code=f"REQUEST_{error_type.upper()}",
+                code=code,
                 path=_pointer(location),
                 message=_request_message(error, actual_type),
                 expected=expected,
