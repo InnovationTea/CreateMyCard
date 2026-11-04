@@ -55,7 +55,7 @@ component_contract_repair 处理组件合同；parent_layout_recompose 重新分
 semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region 或 Group：严格调整该节点直属 children 的数量、顺序和角色，保留其它区域和合法变体，不修改展开后几何。第一次原样返回时必须再执行精确修复；同一合同连续两次未闭合才升级父布局，父布局仍失败后才重建整份 DSL。
 只有语法、Props、绑定或素材错误时，不因此重选合法布局、删除视觉或改未报错图标/颜色/事件。若同时有容量、结构或缺事实错误，不能冻结已不成立的布局；按本轮升级范围处理所有关联问题。
 若 repairRouteLock 指定 `S-center` + `DataDisplay`，说明已接受 Plan 只有一个无动作核心事实且首选路线仍成立；所有 scope 都保留该布局和组件，只修报错 Props、绑定、素材或数据行。升级时“不要再次提交相同组件结构”仅禁止重复同一错误实现，不授权改成 `SingleLineTitle` + `EmphasisText` / `EmphasizedData`。
-`DataDisplay.fontSize` 由 Runtime Recipe 管理：数值模式固定48fp，文本模式固定24fp。修复时不新增、修改或依赖该 Prop；旧 DSL 已携带的字号不会成为校验错误。
+`DataDisplay.fontSize` 由 Runtime Recipe 管理：数值模式固定48fp，文本模式固定21fp。修复时不新增、修改或依赖该 Prop；旧 DSL 已携带的字号不会成为校验错误。
 
 ## 3. 修复顺序
 

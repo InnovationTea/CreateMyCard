@@ -299,6 +299,10 @@ def test_two_by_two_layout_prompt_delegates_geometry_to_semantic_templates() -> 
     ):
         assert retained_contract in layouts
 
+    assert "[content, PillButton, PillButton]" in layouts
+    assert '`variant:"actions-only"`，children 为 `[CardButton, CardButton]`' in layouts
+    assert '`variant:"actions-only"`，children 为 `[PillButton, PillButton]`' not in layouts
+
 
 def test_two_by_four_layout_prompt_delegates_geometry_to_semantic_templates() -> None:
     source = (DEFAULT_SOURCE / "layouts/2x4.md").read_text(encoding="utf-8")
@@ -431,6 +435,18 @@ def test_common_component_contract_separates_shared_and_size_specific_rules() ->
     assert "数组由转换器按顺序以 ` | ` 连接" in catalog
     assert "静态 / PathBinding；不接受 Expression" in catalog
     assert "| `items[].label` | 显示值 |" in catalog
+
+
+def test_emphasis_text_prompt_limits_labels_to_wind_and_rain_probability() -> None:
+    source = (DEFAULT_SOURCE / "components/common.md").read_text(encoding="utf-8")
+
+    assert "不默认补充“当前温度”等冗余短标签" in source
+    assert "当前仅风力与降雨概率" in source
+    assert "风力 2级" in source
+    assert "降雨概率 20%" in source
+    assert "其它动态读数不主动添加短标签" in source
+    assert "生成时需在 `mainText` 或 `secondaryText` 中附上" not in source
+    assert "这只是生成提示，不属于 Plan 或 DSL 的强制校验。" in source
 
 
 def test_button_label_contract_preserves_action_while_limiting_visible_text() -> None:

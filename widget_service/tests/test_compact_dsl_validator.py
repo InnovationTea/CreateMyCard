@@ -588,6 +588,31 @@ def test_rejects_title_and_action_button_reusing_same_icon(button_type: str) -> 
         )
 
 
+def test_hidden_update_time_can_still_be_used_by_an_action() -> None:
+    path = "/data/records/updatedAt"
+    handler = {"call": "openDetails", "args": {"since": {"path": path}}}
+    rows = [
+        ["root", "Column", {}, ["summary", "action"]],
+        ["summary", "EmphasisText", {"mainText": "来电"}],
+        ["action", "PillButton", {"label": "查看", "onClick": [handler]}],
+        [path, "09:00"],
+    ]
+    task = {
+        "size": "2x2", "excludeUpdatedAtFromDisplay": True,
+        "dataModelSchema": {"data": {"records": {"updatedAt": {"type": "string"}}}},
+        "eventCandidates": [handler],
+    }
+
+    def validate():
+        source = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+        return validate_compact_dsl(source, task_spec=task, card_spec={"suggestSize": "2x2"})
+
+    validate()
+    rows[1][2]["mainText"] = "{{ '更新 ' + ${/data/records/updatedAt} }}"
+    with pytest.raises(CompactDslValidationError, match="omit the unrequested update timestamp"):
+        validate()
+
+
 def test_allows_title_and_button_to_use_distinct_icons() -> None:
     handler = {"call": "openWeather", "args": {}}
     compact_dsl = "\n".join(

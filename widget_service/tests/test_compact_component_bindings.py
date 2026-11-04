@@ -359,7 +359,7 @@ def test_data_display_ignores_legacy_font_size_and_uses_text_recipe() -> None:
     assert components["display_icon"]["styles"]["width"] == 18
     assert components["display_icon"]["styles"]["height"] == 18
     assert components["display"]["styles"]["height"] == 122
-    assert components["display_value"]["styles"]["fontSize"] == 24
+    assert components["display_value"]["styles"]["fontSize"] == 21
     assert components["display_value_area"]["component"] == "Column"
     assert components["display_value_area"]["children"] == ["display_value"]
     assert components["display_value_area"]["styles"]["height"] == 60
@@ -395,8 +395,29 @@ def test_data_display_accepts_one_character_path_bound_text() -> None:
     convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
 
 
-def test_data_display_rejects_text_over_eight_characters() -> None:
-    value = "这是超过八个字的文本结论"
+def test_data_display_accepts_ten_character_path_bound_text() -> None:
+    compact_dsl = _serialize(
+        [
+            ["root", "Column", {}, ["display"]],
+            [
+                "display",
+                "DataDisplay",
+                {
+                    "label": "今天",
+                    "value": {"path": "/data/time/currentDate"},
+                    "supportingText": "星期日",
+                    "fontColor": "#FF1F4799",
+                },
+            ],
+            ["/data/time/currentDate", "2026-11-01"],
+        ]
+    )
+
+    convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
+
+
+def test_data_display_rejects_text_over_ten_characters() -> None:
+    value = "一二三四五六七八九十甲"
     compact_dsl = _serialize(
         [
             ["root", "Column", {}, ["display"]],
@@ -413,7 +434,7 @@ def test_data_display_rejects_text_over_eight_characters() -> None:
         ]
     )
 
-    with pytest.raises(CompactDslConversionError, match="requires 1 to 8 characters"):
+    with pytest.raises(CompactDslConversionError, match="requires 1 to 10 characters"):
         convert_compact_dsl_to_a2ui(compact_dsl, size="2x2")
 
 

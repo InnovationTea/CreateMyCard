@@ -230,6 +230,8 @@ def secondary_body_layout(
     texts: list[str | None],
     width: float | None,
     separator: str,
+    label_gap: float,
+    bounds: list[str | None],
 ) -> SecondaryBodyLayout:
     """首帧可知时按完整文字分组；未知文案不静态化，不猜测。"""
     row_sizes: list[int] = []
@@ -237,21 +239,24 @@ def secondary_body_layout(
     multiline = secondary_body_variant(items, columns) is not None
     for item in items:
         max_lines.append(item.get("maxLines", 1))
+    gaps = [label_gap if item.get("label") else 0.0 for item in items]
     index = 0
     while index < len(items):
         row_size = min(columns, len(items) - index)
+        if row_size == 2:
+            first, second = bounds[index:index + 2]
+            if width is None or first is None or second is None:
+                row_size = 1
+            else:
+                pair = first + separator + second
+                required = secondary_body_text_width(pair, 14) + gaps[index] + gaps[index + 1]
+                if any(c in pair for c in "\r\n\t") or required > width:
+                    row_size = 1
         text = texts[index]
         if width is not None and text is not None:
-            if "\n" in text or secondary_body_text_width(text, 14.0) > width:
+            if "\n" in text or secondary_body_text_width(text, 14.0) + gaps[index] > width:
                 multiline = True
                 row_size = 1
-            if row_size == 2:
-                next_text = texts[index + 1]
-                if next_text is not None:
-                    combined = text + separator + next_text
-                    if secondary_body_text_width(combined, 14.0) > width:
-                        row_size = 1
-                        multiline = True
         row_sizes.append(row_size)
         index += row_size
     if len(row_sizes) > 1:
@@ -260,7 +265,7 @@ def secondary_body_layout(
         for index, text in enumerate(texts):
             if text is None:
                 continue
-            required = secondary_body_text_width(text, 12.0)
+            required = secondary_body_text_width(text, 12.0) + gaps[index]
             if "\n" in text or width < required <= width * 2:
                 max_lines[index] = 2
     return SecondaryBodyLayout(tuple(row_sizes), tuple(max_lines), multiline)
