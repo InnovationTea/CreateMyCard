@@ -1,4 +1,4 @@
 ["root","Layout",{"layout":"S-static-content"},["header","body"]]
-["header","SingleLineTitle",{"title":"2026年5月15日"}]
-["body","EmphasisText",{"mainText":"历史纪念日","secondaryText":"2026年5月15日"}]
+["header","SingleLineTitle",{"title":"历史纪念日","icon":"resources/base/media/cake_fill.svg"}]
+["body","TextList",{"items":[{"primaryText":"2026年5月15日","secondaryText":"历史纪念日"},{"primaryText":"历史纪念日","secondaryText":"2026年5月15日"}]}]
 ["/state/ready",true]

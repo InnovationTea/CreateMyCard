@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"交房租","icon":"resources/base/media/calendar_fill.svg","fontSize":12}]
+["content","EventCard",{"items":[{"title":"{{ ${/data/calendar/events/0/title} }}","time":"{{ '日期 ' + ${/data/calendar/events/0/startDate} }}","onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]},{"title":"倒计时天数","time":"{{ ${/data/calendar/events/0/countdownDays} + '天' }}"}]}]
+["/data/calendar/events/0/title","11月10日交房租"]
+["/data/calendar/events/0/startDate","11-10"]
+["/data/calendar/events/0/countdownDays",0]
+["/data/calendar/events/0/entityId","example-event-001"]

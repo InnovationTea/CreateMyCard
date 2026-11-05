@@ -1,0 +1,4 @@
+["root","Layout",{"layout":"S-title-content-action","variant":"title-action"},["title","action"]]
+["title","SingleLineTitle",{"title":"手电筒","fontSize":12}]
+["action","PillButton",{"label":"打开手电筒","icon":"resources/base/media/ic_flashlight.svg","onClick":[{"call":"clickToIntent","args":{"intentName":"OpenFlashlight","params":{}}}]}]
+["/state/ready",true]

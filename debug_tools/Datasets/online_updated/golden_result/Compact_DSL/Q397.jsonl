@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ '耳机盒电量 ' + ${/data/earphone/batteryLevel} + '%' }}","secondaryText":{"path":"/data/earphone/chargingStatusDesc"}}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":{"path":"/data/earphone/leftBatteryLevel"},"unit":"%","secondaryText":"{{ '左耳电量 ' + ${/data/earphone/rightBatteryLevel} + '%' }}"}]
+["/data/earphone/earphoneName","示例耳机"]
+["/data/earphone/batteryLevel",80]
+["/data/earphone/leftBatteryLevel",76]
+["/data/earphone/rightBatteryLevel",78]
+["/data/earphone/chargingStatusDesc","未充电"]

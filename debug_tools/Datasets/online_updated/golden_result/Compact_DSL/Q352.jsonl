@@ -1,0 +1,7 @@
+["root","Layout",{"layout":"S-dual-info"},["first","second"]]
+["first","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ '当前温度 ' + ${/data/weather/current/temperatureText} }}","secondaryText":"{{ '天气现象 ' + ${/data/weather/current/condition} }}"}]
+["second","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ '手机电量 ' + ${/data/phoneBattery/batterySOCText} }}","secondaryText":"{{ '充电状态 ' + ${/data/phoneBattery/chargingStatusDesc} }}"}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/phoneBattery/batterySOCText","68%"]
+["/data/phoneBattery/chargingStatusDesc","未充电"]

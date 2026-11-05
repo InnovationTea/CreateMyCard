@@ -1,0 +1,3 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"结婚纪念日","value":"{{ ${/data/countdown/countdownDays} + '天' }}","supportingText":"2023-10-29"}]
+["/data/countdown/countdownDays",30]

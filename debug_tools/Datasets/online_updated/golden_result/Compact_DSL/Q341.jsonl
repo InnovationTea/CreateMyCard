@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"手机电量","fontSize":12}]
+["content","EmphasisText",{"mainText":"{{ '电池电量 ' + ${/data/phoneBattery/batterySOCText} }}","fontSize":18}]
+["action","PillButton",{"label":"电池设置","icon":"resources/base/media/battery_leaf_fill.svg","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}]
+["/data/phoneBattery/batterySOCText","68%"]

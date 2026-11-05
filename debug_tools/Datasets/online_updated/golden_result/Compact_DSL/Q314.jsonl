@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-title-content-action"},["title","content","action"]]
+["title","SingleLineTitle",{"title":"钟招英生日快乐","icon":"resources/base/media/cake_fill.svg","fontSize":12}]
+["content","EmphasisText",{"mainText":"钟招英生日快乐","fontSize":18}]
+["action","PillButton",{"label":"播放生日歌","icon":"resources/base/media/emoji_music.png","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Music","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}]}]
+["/state/ready",true]
