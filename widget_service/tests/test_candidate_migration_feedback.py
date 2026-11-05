@@ -50,6 +50,30 @@ def test_nested_business_field_does_not_receive_top_level_migration():
     assert "重构为" not in json.dumps(result, ensure_ascii=False)
 
 
+def test_data_capability_inputs_feedback_preserves_business_parameters():
+    arguments = {
+        "uid": "test", "device": {"romVersion": "7.0"}, "userQuery": "天气和日程",
+        "dataCapabilityInputs": {
+            "ViewWeather": {"prefectureName": "private-city"},
+            "GetCalendarEvents": {"futureDays": 1},
+        },
+    }
+    with pytest.raises(ValidationError) as caught:
+        GenerateWidgetCardRequest(**arguments)
+    details = request_validation_feedback(
+        caught.value, "generateWidgetCardCompactDsl", arguments=arguments,
+    )
+    result = agent_error_view({"details": details}, "参数错误")
+    text = json.dumps(result, ensure_ascii=False)
+    for expected in (
+        "candidateDataBindings", "参数对象原样迁移到 arguments", "writeResultTo",
+        "candidateOutputFields", "不得仅删除", "复查权限",
+    ):
+        assert expected in text
+    assert "private-city" not in text
+    assert result.get("retryable") is True
+
+
 @pytest.mark.parametrize("alias,target", [
     ("assetCandidateIds", "candidateAssetIds"),
     ("assetCandidates", "candidateAssetIds"),
@@ -57,6 +81,7 @@ def test_nested_business_field_does_not_receive_top_level_migration():
     ("assetIds", "candidateAssetIds"),
     ("dataCandidates", "candidateDataBindings"),
     ("dataBindings", "candidateDataBindings"),
+    ("dataCapabilityInputs", "candidateDataBindings"),
     ("candidateDataCapabilities", "candidateDataBindings"),
     ("eventCandidates", "candidateEventCandidates"),
     ("candidateEvents", "candidateEventCandidates"),
@@ -157,6 +182,9 @@ def test_data_inside_call_arguments_is_not_a_top_level_alias():
     ("myAsSeTs", "candidateAssetIds"),
     ("EVENT_LIST", "candidateEventCandidates"),
     ("myEvEnTs", "candidateEventCandidates"),
+    ("DATA_INPUTS", "candidateDataBindings"),
+    ("myDaTaParameters", "candidateDataBindings"),
+    ("dataCapabilityInputs", "candidateDataBindings"),
 ])
 def test_keyword_feedback_is_top_level_only_and_keeps_request(name, target):
     import copy
@@ -178,6 +206,7 @@ def test_keyword_feedback_is_top_level_only_and_keeps_request(name, target):
     assert target in text
     assert "先核对冲突" in text
     assert "secret-value" not in text
+    assert "不得仅删除" in text
     assert result.get("retryable") is True
     assert arguments == original
     for root in ("/candidateDataBindings/0/arguments/", "/candidateEventCandidates/0/action/args/"):
@@ -186,13 +215,24 @@ def test_keyword_feedback_is_top_level_only_and_keeps_request(name, target):
         assert "改用" not in nested
 
 
-def test_ambiguous_keyword_and_unrelated_fields_do_not_guess_target():
+@pytest.mark.parametrize("name,targets", [
+    ("myEVENTAssetList", ["candidateEventCandidates", "candidateAssetIds"]),
+    ("myDATAEventList", ["candidateDataBindings", "candidateEventCandidates"]),
+    ("myDataASSETList", ["candidateDataBindings", "candidateAssetIds"]),
+    (
+        "DATA_event_ASSET",
+        ["candidateDataBindings", "candidateEventCandidates", "candidateAssetIds"],
+    ),
+])
+def test_ambiguous_keyword_and_unrelated_fields_do_not_guess_target(name, targets):
     from services.agent_error_view import _extra_field_message
 
-    message = _extra_field_message("/myEVENTAssetList")
-    assert "candidateEventCandidates" in message
-    assert "candidateAssetIds" in message
+    message = _extra_field_message("/" + name)
+    for target in targets:
+        assert target in message
     assert "不将混合内容直接改名" in message
+    assert "不得仅删除" in message
+    assert "先核对冲突" in message
     assert _extra_field_message("/unrelated") == "不支持字段 unrelated，请移除该字段。"
 
 

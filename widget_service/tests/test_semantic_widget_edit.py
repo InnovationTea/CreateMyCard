@@ -780,7 +780,8 @@ def test_fixed_parent_checks_changed_text_and_preserves_historical_deficit(
 async def test_visual_edit_cannot_smuggle_new_data_candidate(edit_run):
     response = await WidgetGenerationService().generate_widget_card_compact_dsl(_request(
         candidateDataBindings=[{"capabilityId": "ViewWeather", "writeResultTo": "/data/weather",
-                                "arguments": {"prefectureName": "上海市", "forecastDays": 1}}],
+                                "arguments": {"prefectureName": "上海市", "forecastDays": 1},
+                                "candidateOutputFields": ["/current/temperatureText"]}],
     ))
     assert response.status == GenerationStatus.UNSUPPORTED
     assert not edit_run.calls and not edit_run.saved

@@ -415,7 +415,7 @@
   {
     "id": "event.open.weather",
     "type": "event",
-    "description": "打开华为天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。",
+    "description": "打开华为天气的对应城市页，保留完整 URI 模板。cityCode 取自 ViewWeather 的 /location/cityCode，仅用于跳转，不用于卡面展示。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
