@@ -1,23 +1,22 @@
 # 本轮标准 A2UI 编辑协议
 
-参考《鸿蒙桌面卡片A2UI协议完整规范》的 Form 子集。此处只说明编辑所需写法，运行时注入的
-editContract 是当前支持范围；不因完整规范提供某能力就擅自新增。字段与枚举取交集。
-editContract.editableStyleValueRules 提供本轮编辑字段值的类型、对象结构与范围合同，
-与程序检查共用；未改变的历史兼容字段原样保留，不能从历史写法推断本轮新增值合法。
+以 editContract 为准：editableStylesByComponent 按组件和获准维度取交集，样式路径加 styles.；
+editableTopLevelProperties 保持顶层路径。值遵守 editableStyleValueRules；原有兼容字段可保留，
+完整协议字段表不等于本轮编辑授权。
 
 1. Form 不接受组件树的流式增量更新。patch 是云侧内部编辑协议，服务会合成完整产物；layout
    直接输出原卡对应的 createSurface、updateComponents、updateDataModel 三条完整消息。
    每条 version、surfaceId、catalogId 和原 root 保持；createSurface 不新增 theme。
 2. 组件为 {id, component, ...业务属性, styles}。content、children、onClick 是组件顶层字段；
-   Row/Column.itemMargin、List.space 也是顶层属性。不要把间距顶层字段放进 styles。
+   Row/Column.itemMargin、List.space 也是顶层属性。property 使用 styles.fontColor 等完整单层路径，
+   不使用裸样式名或 styles.padding.top；对象子字段变化通过替换完整属性表达，保留其它子字段。
    Row 主轴水平、Column 主轴垂直；spaceBetween/spaceAround/spaceEvenly 下 itemMargin 不生效。
    Stack 后面的子节点位于上层，改 children 时保护背景与内容的层级关系和点击归属。
 3. children 可为 ID 数组，也可能为包含 componentId/path 等信息的列表模板对象。
    原模板对象、动态表达式、循环上下文和事件对象须逐字段原样保留，不展开为首帧静态列表。
    不新增表达式，不把动态值、图标或状态固化成静态值。
-   原样保留动态样式所在组件、属性及对象内部路径。替换整个样式对象时，允许修改获准的静态
-   兄弟字段，但动态子字段必须逐字保留，不删除或移动。容器也不能重复引用或多父挂载；
-   动态列表的模板 componentId 是一条结构引用，不为首帧数据复制模板。新增容器必须从 root 可达。
+   对象内动态子字段原位置原值保留，只修改获准静态兄弟字段。模板 componentId 按单条引用保留，
+   不复制为首帧列表；容器不得重复引用或多父挂载，新增容器须从 root 可达。
 4. fontSize/minFontSize/maxFontSize 为数值，单位 fp；常规布局数值默认为 vp，百分比相对父区。
    云侧不知道 fp 与 vp 的端侧缩放关系和真实宿主尺寸，不能据此承诺实际像素无裁切。
    自适应字号需有效的最小/最大字号组合及行数或布局约束；仅改一个边界不保证生效。
@@ -27,7 +26,13 @@ editContract.editableStyleValueRules 提供本轮编辑字段值的类型、对�
    分角 borderRadius 用 topLeft/topRight/bottomLeft/bottomRight。对象中保留未涉及的原字段。
 6. 颜色优先 #AARRGGBB，不能使用颜色名或 CSS rgb()。linearGradient 为对象，colors 是
    [["#FF81D8D0",0],["#FFE6F7F3",1]]，位置在 0..1 内递增；direction/angle/repeating
-   使用端侧规范的写法。设置纯色时移除获准的冲突渐变或背景图，保留业务图标。
+   使用端侧规范的写法。两种背景分别处理：
+   - 原有静态 styles.backgroundImage：以 backgroundTargets 授权承载节点，仅允许移除，
+     不替换资源；是否可登记属性目标仍由编辑维度决定。
+   - 独立 Image.src：移除须用 layout、palette/layout 维度及 backgroundTargets，
+     仅限无动态内容和动作的满承载区背景图；授权父节点清理引用，保留业务图标和包装容器。
+     不虚构 backgroundImage，不给已删除节点登记属性目标。
+   图片覆盖底色时只改底色无效；改纯色需清理获准冲突渐变并检查前景可读性。
 7. shadow 可为协议枚举（如 outerDefaultSM）或含非负 radius 的对象，可选 offsetX/offsetY、
    color、fill、type。不使用 CSS box-shadow 字符串；没有需要时不新增阴影。
    constraintSize 原对象保持合法且不新增矛盾上下界，不通过 minHeight 与固定 height 冲突腾空间。
@@ -35,3 +40,7 @@ editContract.editableStyleValueRules 提供本轮编辑字段值的类型、对�
    或带 vp/fp/% 的合法尺寸字符串。同单位上下界必须有序，不猜测不同单位的换算；clip 必须为布尔值。
 8. 不新增网络图片、emoji、字体文件、事件函数或素材地址。禁止增加 Form 不支持的组件。
    root 与资源、数据授权由程序保护，不能靠重建协议消息绕开。
+
+删除属性会恢复端侧默认行为，不等于清零或保持效果。Row/Column.itemMargin 缺省分别为16/8vp，
+需要零间距应显式设0。字号、自适应边界、宽高和背景须结合保留属性判断；不为精简JSON自动删值，
+不确定效果时保留原属性或使用获准显式值。
