@@ -860,15 +860,11 @@ def _expand_secondary_body(
         row_end = start + row_size
         row_items = items[start:row_end]
         row_height = line_height * max(layout.max_lines[start:row_end])
-        row_uses_predicted_multiline = False
         for item_index, item in enumerate(row_items, start=start):
             max_lines = layout.max_lines[item_index]
             item_height = line_height * max_lines
             declared_max_lines = item.get("maxLines", 1)
             uses_predicted_multiline = max_lines > declared_max_lines
-            row_uses_predicted_multiline = (
-                row_uses_predicted_multiline or uses_predicted_multiline
-            )
             if row_children:
                 separator_id = f"{row_id}_separator"
                 row_children.append(separator_id)
@@ -927,8 +923,9 @@ def _expand_secondary_body(
                 },
             )
             labeled_multiline = label is not None and max_lines > 1
-            if uses_predicted_multiline or labeled_multiline:
-                # Reserve line capacity in the outer row, not in the text's glyph box.
+            if labeled_multiline:
+                # 独立标签旁的短值自然测量，避免在两行框中垂直居中。
+                # 已合并标签的预测换行正文保留 Recipe 行框，不挤压相邻主值。
                 value_row = _without_fixed_height(value_row)
             rows.append(value_row)
             item_row = _visual_row(
@@ -946,8 +943,6 @@ def _expand_secondary_body(
                 ),
                 children=tuple(text_children),
             )
-            if uses_predicted_multiline:
-                item_row = _without_fixed_height(item_row)
             rows.append(item_row)
         row = _visual_row(
             row_id,
@@ -958,8 +953,6 @@ def _expand_secondary_body(
             props={"height": row_height, "alignItems": "start"},
             children=tuple(row_children),
         )
-        if row_uses_predicted_multiline:
-            row = _without_fixed_height(row)
         rows.append(row)
         start = row_end
     root = _visual_row(
