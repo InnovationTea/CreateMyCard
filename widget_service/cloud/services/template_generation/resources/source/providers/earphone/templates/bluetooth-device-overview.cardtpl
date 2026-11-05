@@ -30,13 +30,14 @@ Column(
     Text(data.name,
         {
             "width": "matchParent",
+            "height": 30,
+            "flexShrink": 1,
             "fontSize": 18,
             "fontWeight": 700,
             "fontColor": $theme('primaryColor'),
             "maxLines": 1,
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0},
-            "margin": {"top": 2, "bottom": 0, "left": 0, "right": 0}
         }
     ),
     Row(

@@ -25,7 +25,8 @@ Column(
             "maxLines": 1,
             "textAlign": "center",
             "textOverflow": "ellipsis",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
+            "constraintSize": {"minWidth": 0, "minHeight": 0},
+            "padding": {top: 2},
         }
     ),
     #else
@@ -39,7 +40,8 @@ Column(
             "maxLines": 1,
             "textAlign": "center",
             "textOverflow": "ellipsis",
-            "constraintSize": {"minWidth": 0, "minHeight": 0}
+            "constraintSize": {"minWidth": 0, "minHeight": 0},
+            "padding": {top: 2},
         }
     ),
     #endif
@@ -47,8 +49,10 @@ Column(
         {
             "width": "matchParent",
             "margin": {"top": 4},
+            "layoutWeight": 1,
             "textAlign": "center",
-            "fontSize": 30,
+            "maxFontSize": 48,
+            "minFontSize": 30,
             "fontWeight": 700,
             "fontColor": $theme('primaryColor'),
             "maxLines": 1,

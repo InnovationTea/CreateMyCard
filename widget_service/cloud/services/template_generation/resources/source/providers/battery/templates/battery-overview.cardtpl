@@ -2675,10 +2675,11 @@ Column(
                 }
             ),
             #if data.charging
-            Text(Expr(data.charging + " | " + data.temperature),
+            Text(Expr(data.charging + "|" + data.temperature),
                 {
                     "width": "matchParent",
-                    "fontSize": 12,
+                    "maxFontSize": 12,
+                    "minFontSize": 8,
                     "fontWeight": 400,
                     "fontColor": $theme('supportContentColor'),
                     "maxLines": 1,
