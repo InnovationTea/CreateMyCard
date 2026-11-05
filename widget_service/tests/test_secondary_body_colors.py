@@ -272,6 +272,41 @@ def test_explicit_two_line_value_next_to_label_retains_natural_text_height(size)
     assert value.props.get("content") == {"path": "/data/status"}
 
 
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("dynamic", [False, True])
+@pytest.mark.parametrize("length,lines", [(6, 1), (7, 2), (8, 2), (13, 2), (14, 2), (40, 2)])
+def test_secondary_text_growth_never_reduces_available_lines(size, dynamic, length, lines):
+    text = "文" * length
+    content = {"path": "/data/text"} if dynamic else text
+    component = ComponentRow("body", "SecondaryBody", {
+        "fontColor": "#FF000000", "fontSize": 12, "columns": 1,
+        "items": [{"value": content}],
+    })
+    rows = _expand_secondary_body(
+        component, size, data_model={"data": {"text": text}}, available_width=78,
+    )
+    value = next(row for row in rows if row.component_id == "body_item0_value")
+    assert value.props.get("maxLines") == lines
+    assert value.props.get("height") == 12 * lines
+    assert value.props.get("fontSize") == 12
+    assert value.props.get("content") == content
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_secondary_long_labeled_text_keeps_two_lines_and_complete_binding(size):
+    component = ComponentRow("body", "SecondaryBody", {
+        "fontColor": "#FF000000", "fontSize": 12,
+        "items": [{"label": "说明", "value": {"path": "/data/text"}}],
+    })
+    rows = _expand_secondary_body(
+        component, size, data_model={"data": {"text": "文" * 40}}, available_width=78,
+    )
+    value = next(row for row in rows if row.component_id == "body_item0_value")
+    assert value.props.get("maxLines") == 2
+    assert value.props.get("height") == 24
+    assert value.props.get("content") == "{{ '说明 ' + ${/data/text} }}"
+
+
 @pytest.mark.parametrize("theme", registered_themes(), ids=lambda theme: theme.get("id"))
 def test_every_theme_resolves_label_value_roles_without_rewriting_foreground(theme):
     rows = [
