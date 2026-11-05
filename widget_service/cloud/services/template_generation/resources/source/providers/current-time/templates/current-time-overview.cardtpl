@@ -125,11 +125,11 @@ Column(
     Text(data.updatedAt,
         {
             "width": "matchParent",
-            "fontSize": 14,
+            "maxFontSize": 24,
             "minFontSize": 12,
             "fontWeight": 800,
             "fontColor": $theme('primaryColor'),
-            "maxLines": 2,
+            "maxLines": 1,
             "textAlign": "center",
             "textOverflow": "ellipsis",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
@@ -168,7 +168,6 @@ Row(
     },
     Column(
         {
-            "width": "matchParent",
             "itemMargin": 2,
             "justifyContent": "start",
             "alignItems": "start",
@@ -176,11 +175,11 @@ Row(
         },
         Text(data.updatedAt,
             {
-                "width": "matchParent",
-                "fontSize": 12,
+                "maxFontSize": 14,
+                "minFontSize": 12,
                 "fontWeight": 700,
                 "fontColor": $theme('primaryColor'),
-                "maxLines": 2,
+                "maxLines": 1,
                 "textOverflow": "ellipsis",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }

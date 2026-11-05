@@ -53,7 +53,7 @@
       "templateId": "CurrentTimeOverviewSupport@1",
       "businessId": "CurrentTimeOverview",
       "capabilityId": "GetCurrentTime",
-      "description": "更新时间 Support：以最多两行完整显示更新时间，保留说明行；日期、星期独立展示需求使用 DateFull 或 UpdatedFull。",
+      "description": "更新时间 Support：主行展示端侧更新时间戳，辅助行固定“更新时间”；日期、星期独立展示需求使用 DateFull 或 UpdatedFull。",
       "entry": "templates/current-time-overview.cardtpl",
       "primaryData": [
         "/updatedAt"
