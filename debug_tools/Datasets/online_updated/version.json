@@ -1,6 +1,6 @@
 {
-  "current_version": "v6",
-  "update_date": "2026-11-01",
+  "current_version": "v8",
+  "update_date": "2026-11-05",
   "history_versions": [
     {
       "update_date": "2026-10-17",
@@ -125,6 +125,26 @@
         "补齐 36 条在线样本的金样本产物（A2UI_DSL、Compact_DSL、Screenshot）：Q042、Q050、Q108、Q126、Q146、Q152、Q154、Q156、Q160、Q164、Q168、Q172、Q183、Q188、Q193、Q198、Q200、Q203、Q205、Q210、Q217、Q224、Q229、Q230、Q231、Q238、Q250、Q251、Q255、Q256、Q257、Q265、Q267、Q269、Q271、Q284。",
         "Q160 按真实日期卡数据替换 A2UI/Compact 并重新渲染截图；Q271 补齐缺失的 A2UI/Compact/Screenshot。"
       ]
+    },
+    {
+      "version": "v7",
+      "update_date": "2026-11-04",
+      "commits": [],
+      "changes": [
+        "修正 7 条现网样本的请求参数，样本总数保持 402，全部样本可通过请求校验与生成前置门禁。",
+        "Q175、Q212、Q271 的 candidateEventCandidates 按能力注册表 actionTemplate 补齐完整 action。",
+        "Q200、Q271 的 GetCurrentTime 与 GetMemoData 绑定补齐 writeResultTo，取值与金样本数据路径一致（/data/currentTime、/data/memo）。",
+        "Q211、Q276 的 GetCountdownDays 补齐必填 arguments.targetDate：Q211 取当前最近的未举办场次 2026-11-08（佛山），Q276 取需求给出的 2027-03-13。",
+        "Q254 的 sourceArtifactUrl 由外层包络移入 content，恢复编辑模式判定；该签名 URL 已于 2026-11-03 过期，编辑链路需现网重新导出后才能重放。"
+      ]
+    },
+    {
+      "update_date": "2026-11-05",
+      "commits": [],
+      "changes": [
+        "删除编辑样本 Q254：sourceArtifactUrl 签名已于 2026-11-03 过期，编辑链路无法离线复现，样本总数从 402 调整为 401。"
+      ],
+      "version": "v8"
     }
   ]
 }

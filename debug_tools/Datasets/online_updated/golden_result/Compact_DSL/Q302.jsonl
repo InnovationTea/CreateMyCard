@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-dual-content"},["title","primary","support"]]
+["title","SingleLineTitle",{"title":"今日天气","fontSize":12}]
+["primary","EmphasisText",{"mainText":"{{ '温度 ' + ${/data/weather/current/temperatureText} }}","secondaryText":"{{ '天气现象 ' + ${/data/weather/current/condition} }}","fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"日期","value":{"path":"/data/time/currentDate"}},{"label":"星期","value":{"path":"/data/time/dayOfWeek"}}],"fontSize":14}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/time/currentDate","2026-07-09"]
+["/data/time/dayOfWeek","星期四"]

@@ -1,0 +1,3 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"农历十一月廿五","value":"{{ ${/data/countdown/countdownDays} + '天' }}","supportingText":"距离2027年1月2日"}]
+["/data/countdown/countdownDays",30]

@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-primary-secondary-action"},["title","primary","support","action"]]
+["title","SingleLineTitle",{"title":"今日运动","fontSize":12}]
+["primary","EmphasisText",{"mainText":"{{ ${/data/healthSport/dailySteps} + '步' }}","secondaryText":"今日步数","fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"活动热量","value":{"path":"/data/healthSport/dailyTotalCaloriesText"}},{"label":"活动距离","value":{"path":"/data/healthSport/dailyDistanceText"}}],"columns":1,"fontSize":12}]
+["action","PillButton",{"label":"活动记录","icon":"resources/base/media/emoji_run.png","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Health","uri":"huaweischeme://healthapp/router/openwith?address=com.huawei.health.h5.sports-record?h5pro=true&urlType=4&pName=com.huawei.health&path=ActiveRecord"}}]}]
+["/data/healthSport/dailySteps",6200]
+["/data/healthSport/dailyTotalCaloriesText","420 千卡"]
+["/data/healthSport/dailyDistanceText","4.60 公里"]

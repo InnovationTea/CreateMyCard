@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-dual-content","onClick":[{"call":"clickToDeeplink","args":{"abilityName":"","bundleName":"","intentName":"Weather_CityCode","uri":"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}]},["title","weather","support"]]
+["title","SingleLineTitle",{"title":"深圳天气","fontSize":12}]
+["weather","EmphasisText",{"mainText":"{{ '当前温度 ' + ${/data/weather/current/temperatureText} }}","secondaryText":"{{ '天气现象 ' + ${/data/weather/current/condition} }}","fontSize":18}]
+["support","SecondaryBody",{"items":[{"label":"城市","value":"深圳"}],"fontSize":14}]
+["/data/weather/current/temperatureText","29℃"]
+["/data/weather/current/condition","多云"]
+["/data/weather/location/cityCode","60814"]
+["/state/ready",true]

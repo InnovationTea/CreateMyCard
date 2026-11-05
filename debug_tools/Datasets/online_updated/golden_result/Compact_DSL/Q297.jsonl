@@ -1,0 +1,3 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"今日步数","value":{"path":"/data/health/dailySteps"},"supportingText":"步"}]
+["/data/health/dailySteps",6200]

@@ -10,7 +10,13 @@
     "candidateDataBindings": [
       {
         "capabilityId": "GetCountdownDays",
-        "writeResultTo": "/data/countdown"
+        "arguments": {
+          "targetDate": "2026-11-08"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
       }
     ],
     "candidateEventCandidates": [],

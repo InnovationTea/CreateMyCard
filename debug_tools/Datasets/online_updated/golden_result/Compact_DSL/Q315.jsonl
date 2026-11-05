@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-dual-info"},["left","right"]]
+["left","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","secondaryText":"左耳电量"}]
+["right","InfoBlock",{"surfaceRole":"panel","primaryText":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}","secondaryText":"右耳电量"}]
+["/data/earphone/leftBatteryLevel",76]
+["/data/earphone/rightBatteryLevel",78]

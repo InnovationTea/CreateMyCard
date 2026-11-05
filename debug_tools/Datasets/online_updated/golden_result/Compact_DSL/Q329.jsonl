@@ -1,0 +1,5 @@
+["root","Layout",{"layout":"S-center"},["content"]]
+["content","DataDisplay",{"label":"公历 星期四","value":{"path":"/data/time/lunarDate"},"supportingText":"{{ ${/data/time/currentDate} + ' ' + ${/data/time/dayOfWeek} }}"}]
+["/data/time/lunarDate","五月廿六"]
+["/data/time/currentDate","2026-07-09"]
+["/data/time/dayOfWeek","星期四"]

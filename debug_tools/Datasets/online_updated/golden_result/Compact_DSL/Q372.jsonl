@@ -1,0 +1,8 @@
+["root","Layout",{"layout":"S-title-content"},["title","content"]]
+["title","SingleLineTitle",{"title":"结婚邀请函","icon":"resources/base/media/heart_fill.svg","fontSize":12}]
+["content","Group",{"variant":"supporting-items"},["content_couples","content_date","content_place","content_countdown"]]
+["content_couples","EmphasisText",{"mainText":"吕鸿先生与","secondaryText":"孙雅丽女士","fontSize":18}]
+["content_date","SecondaryBody",{"items":[{"value":"农历十月初八（2026年11月16日）"}],"fontSize":14}]
+["content_place","SecondaryBody",{"items":[{"value":"青岛李沧区亨通大酒店"}],"fontSize":14}]
+["content_countdown","SecondaryBody",{"items":[{"label":"距离婚礼还有","value":"{{ ${/data/countdown/countdownDays} + '天' }}"}],"fontSize":14}]
+["/data/countdown/countdownDays",30]
