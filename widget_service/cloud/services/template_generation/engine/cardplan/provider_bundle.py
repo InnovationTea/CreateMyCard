@@ -1634,6 +1634,12 @@ _ASSET_SOURCE_TERMS = (
     "资源",
 )
 
+_EARPHONE_SIDE_TAGS = frozenset({"earphone-left", "earphone-right"})
+_PAIRED_EARPHONE_PATTERN = re.compile(
+    r"(?:左右|右左|双)(?:耳|声道)"
+    r"|\b(?:left\s*(?:/|and|&)\s*right|right\s*(?:/|and|&)\s*left)\b"
+)
+
 
 def asset_semantic_tags(asset: dict[str, Any]) -> tuple[str, ...]:
     """Derive one asset's closed semantic tags from sceneTags and known terms."""
@@ -1645,11 +1651,13 @@ def asset_semantic_tags(asset: dict[str, Any]) -> tuple[str, ...]:
     searchable = " ".join(
         str(asset.get(key, "")) for key in ("id", "src", "description")
     ).casefold()
-    inferred = [
-        tag
-        for tag, terms in _ASSET_SEMANTIC_TERMS.items()
-        if any(term in searchable for term in terms)
-    ]
+    inferred: list[str] = []
+    for tag, terms in _ASSET_SEMANTIC_TERMS.items():
+        if any(term in searchable for term in terms):
+            inferred.append(tag)
+    # “左右耳”包含“右耳”，但整体素材不能因此进入任一单侧图标槽位。
+    if _EARPHONE_SIDE_TAGS.issubset(inferred) or _PAIRED_EARPHONE_PATTERN.search(searchable):
+        inferred = [tag for tag in inferred if tag not in _EARPHONE_SIDE_TAGS]
     return tuple(dict.fromkeys([*explicit, *inferred]))
 
 
