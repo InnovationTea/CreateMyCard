@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from models.generation import WidgetSize
 from services.card_validation.edit_validation.structure import (
+    background_wrapper_ids,
     validate_edit_reachability,
     validate_edit_structure,
 )
@@ -52,7 +53,12 @@ class EditExpectation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     componentId: str
-    property: str
+    property: str = Field(description=(
+        "完整属性路径：样式必须为 styles.backgroundColor、styles.linearGradient、"
+        "styles.fontColor 等单层路径；顶层仅使用合同允许的 content/itemMargin/space/wrap。"
+        "不使用裸样式名或 styles.padding.top；字段须符合组件与获准维度交集。"
+        "remove/preserve/相对目标须引用原属性；节点增删与属性目标分开表达。"
+    ))
     operator: Literal["equal", "increase", "decrease", "preserve", "remove"]
     value: Any = None
 
@@ -262,31 +268,77 @@ def _validate_expectations(intent: EditIntent, nodes: dict) -> None:
     seen: set[tuple[str, str]] = set()
     allowed = scope_ids(intent, nodes)
     style_fields = _allowed_styles(intent)
-    for expected in intent.expectations:
-        node = nodes.get(expected.componentId)
-        identity = (expected.componentId, expected.property)
-        if node is None or identity in seen:
-            raise ValueError("编辑目标属性不存在或存在重复冲突约束")
-        seen.add(identity)
-        prop = expected.property
-        if prop != "content" and prop not in _TOP_LAYOUT_FIELDS:
-            if not prop.startswith("styles.") or prop.count(".") != 1:
-                raise ValueError("编辑目标只能约束单个样式、间距或静态文案属性")
-        current = read_edit_property(node, prop)
-        _validate_expectation_operation(expected, current)
-        if intent.outcome != "ready" or expected.operator == "preserve":
-            continue
-        if expected.componentId not in allowed:
-            raise ValueError(f"编辑目标约束超出已接受范围：{expected.componentId}.{prop}")
-        if prop.startswith("styles.") and prop.removeprefix("styles.") not in style_fields:
-            raise ValueError(f"编辑目标属性未获得对应维度授权：{expected.componentId}.{prop}")
-        if prop == "content":
-            matching = False
-            for change in intent.textChanges:
-                if change.componentId == expected.componentId:
-                    matching = same_edit_value(prop, change.after, expected.value)
-            if not matching or expected.operator != "equal":
-                raise ValueError("文案目标只能对应已登记的静态文字替换")
+    errors: list[str] = []
+    for index, expected in enumerate(intent.expectations):
+        try:
+            _validate_expectation(expected, intent, nodes, seen, allowed, style_fields)
+        except ValueError as exc:
+            reason = str(exc)
+            if expected.property == "styles.backgroundImage":
+                reason += "；" + _expectation_path_hint(
+                    expected.property, nodes.get(expected.componentId, {}),
+                )
+            errors.append(
+                f"expectations[{index}] componentId={expected.componentId} "
+                f"property={expected.property}: {reason}"
+            )
+    if errors:
+        raise ValueError("；".join(errors))
+
+
+def _expectation_path_hint(prop: str, node: dict) -> str:
+    hint = (
+        "编辑目标只能约束单个样式、间距或静态文案属性；"
+        "样式须使用完整单层路径，如 styles.backgroundColor、styles.fontColor；"
+        "顶层属性仅使用 content/itemMargin/space/wrap"
+    )
+    known_styles: set[str] = set()
+    for fields in _STYLE_GROUPS.values():
+        known_styles.update(fields)
+    if prop in known_styles:
+        hint += f"；将 property 改为 styles.{prop}，保留原目标和取值"
+    elif prop.startswith("styles.") and prop.count(".") > 1:
+        parent = ".".join(prop.split(".")[:2])
+        hint += f"；使用 {parent} 整个属性，并保留未修改子字段及动态绑定"
+    if prop.removeprefix("styles.") in {"backgroundImage", "src"}:
+        if node.get("component") == "Image":
+            hint += (
+                "；该节点是使用 src 的 Image，不是 backgroundImage 样式。"
+                "若原需求确需移除独立背景图，使用 layout、palette/layout 维度和"
+                " backgroundTargets 登记合规背景节点，授权必要父节点清理引用；"
+                "不要将节点删除伪装为属性 remove，不得删除业务图标或动态/动作内容"
+            )
+    return hint
+
+
+def _validate_expectation(
+    expected: EditExpectation, intent: EditIntent, nodes: dict,
+    seen: set[tuple[str, str]], allowed: set[str], style_fields: set[str],
+) -> None:
+    node = nodes.get(expected.componentId)
+    identity = (expected.componentId, expected.property)
+    if node is None or identity in seen:
+        raise ValueError("编辑目标属性不存在或存在重复冲突约束")
+    seen.add(identity)
+    prop = expected.property
+    if prop != "content" and prop not in _TOP_LAYOUT_FIELDS:
+        if not prop.startswith("styles.") or prop.count(".") != 1:
+            raise ValueError(_expectation_path_hint(prop, node))
+    current = read_edit_property(node, prop)
+    _validate_expectation_operation(expected, current)
+    if intent.outcome != "ready" or expected.operator == "preserve":
+        return
+    if expected.componentId not in allowed:
+        raise ValueError(f"编辑目标约束超出已接受范围：{expected.componentId}.{prop}")
+    if prop.startswith("styles.") and prop.removeprefix("styles.") not in style_fields:
+        raise ValueError(f"编辑目标属性未获得对应维度授权：{expected.componentId}.{prop}")
+    if prop == "content":
+        matching = False
+        for change in intent.textChanges:
+            if change.componentId == expected.componentId:
+                matching = same_edit_value(prop, change.after, expected.value)
+        if not matching or expected.operator != "equal":
+            raise ValueError("文案目标只能对应已登记的静态文字替换")
 
 
 def _validate_expectation_operation(expected: EditExpectation, current: EditPropertyValue) -> None:
@@ -298,7 +350,10 @@ def _validate_expectation_operation(expected: EditExpectation, current: EditProp
     elif expected.value is not None:
         raise ValueError("相对、保持和移除目标不应附带 value")
     if expected.operator != "equal" and not current.exists:
-        raise ValueError("相对、保持和移除目标必须引用原有属性")
+        raise ValueError(
+            "相对、保持和移除目标必须引用原有属性；请核对 previousGenui 的完整路径。"
+            "原属性不存在时不要虚构 remove/preserve 或相对目标，保留真实用户目标"
+        )
     if expected.operator in {"increase", "decrease"}:
         if isinstance(current.value, bool) or not isinstance(current.value, (int, float)):
             raise ValueError("相对增减目标必须引用静态数值")
@@ -327,43 +382,63 @@ def _apply_patch(original: str, patch: dict, intent: EditIntent) -> str:
     if not isinstance(changes, list) or not 1 <= len(changes) <= 256:
         raise ValueError("ready 编辑必须包含 1..256 项修改；无需修改应在意图阶段说明")
     seen: set[tuple[str, str]] = set()
-    for change in changes:
-        if not isinstance(change, dict):
-            raise ValueError("补丁项必须为对象")
-        identity, prop = change.get("componentId"), change.get("property")
-        if not isinstance(identity, str) or not isinstance(prop, str):
-            raise ValueError("补丁目标和字段必须为字符串")
-        node = nodes.get(identity)
-        if node is None or (identity, prop) in seen:
-            raise ValueError("补丁目标不存在或字段重复")
-        seen.add((identity, prop))
-        if prop == "content" or prop in _TOP_LAYOUT_FIELDS:
-            target, key = node, prop
-        elif prop.startswith("styles."):
-            target, key = node.setdefault("styles", {}), prop.removeprefix("styles.")
-            if "." in key or not key:
-                raise ValueError("样式补丁只接受单个协议属性")
-        else:
-            raise ValueError("属性补丁不得修改结构、绑定或动作")
-        if not isinstance(target, dict):
-            raise ValueError("组件样式必须是对象")
-        before = {"exists": key in target}
-        if key in target:
-            before["value"] = target.get(key)
-        if not _same(change.get("before"), before):
-            raise ValueError("补丁原值与不可变原卡不一致")
-        operation = change.get("operation", "set")
-        if operation == "remove":
-            if key not in target:
-                raise ValueError("不能删除原本不存在的字段")
-            target.pop(key)
-        elif operation == "set" and "value" in change:
-            target[key] = copy.deepcopy(change.get("value"))
-        else:
-            raise ValueError("补丁只能设置 value 或移除明确的原字段")
+    for index, change in enumerate(changes):
+        try:
+            _apply_patch_change(change, nodes, seen)
+        except ValueError as exc:
+            location = f"changes[{index}]"
+            if isinstance(change, dict):
+                location += (
+                    f" componentId={change.get('componentId')}"
+                    f" property={change.get('property')}"
+                )
+            raise ValueError(f"{location}: {exc}") from exc
     result = dump_rows(rows)
     validate_edit_diff(original, result, intent)
     return result
+
+
+def _apply_patch_change(
+    change: Any, nodes: dict[str, dict], seen: set[tuple[str, str]],
+) -> None:
+    if not isinstance(change, dict):
+        raise ValueError("补丁项必须为对象")
+    identity, prop = change.get("componentId"), change.get("property")
+    if not isinstance(identity, str) or not isinstance(prop, str):
+        raise ValueError("补丁目标和字段必须为字符串")
+    node = nodes.get(identity)
+    if node is None or (identity, prop) in seen:
+        raise ValueError("补丁目标不存在或字段重复")
+    seen.add((identity, prop))
+    if prop == "content" or prop in _TOP_LAYOUT_FIELDS:
+        target, key = node, prop
+    elif prop.startswith("styles."):
+        target, key = node.setdefault("styles", {}), prop.removeprefix("styles.")
+        if "." in key or not key:
+            raise ValueError("样式补丁只接受单个协议属性")
+    else:
+        raise ValueError(
+            "属性补丁不得修改结构、绑定或动作；" + _expectation_path_hint(prop, node)
+        )
+    if not isinstance(target, dict):
+        raise ValueError("组件样式必须是对象")
+    before = {"exists": key in target}
+    if key in target:
+        before["value"] = target.get(key)
+    if not _same(change.get("before"), before):
+        raise ValueError(
+            "补丁原值与不可变原卡不一致；before 须从 previousGenui 的该属性读取，"
+            "保留存在性和真实类型，不使用默认值或上轮失败结果"
+        )
+    operation = change.get("operation", "set")
+    if operation == "remove":
+        if key not in target:
+            raise ValueError("不能删除原本不存在的字段")
+        target.pop(key)
+    elif operation == "set" and "value" in change:
+        target[key] = copy.deepcopy(change.get("value"))
+    else:
+        raise ValueError("补丁只能设置 value 或移除明确的原字段")
 
 
 def apply_edit_output(
@@ -419,12 +494,27 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
         raise ValueError("原卡缺少根节点")
     validate_edit_reachability(before_nodes, after_nodes, root)
     allowed = scope_ids(intent, before_nodes)
+    removed_backgrounds: set[str] = set()
+    if intent.mode == "layout" and "palette" in intent.dimensions:
+        for identity in intent.backgroundTargets:
+            node = before_nodes.get(identity, {})
+            if identity in after_nodes or identity not in allowed:
+                continue
+            if node.get("component") == "Image" and not node.get("onClick"):
+                preserve_dynamic_styles(node, {})
+                removed_backgrounds.add(identity)
+    eligible = set(allowed)
+    for expected in intent.expectations:
+        eligible.discard(expected.componentId)
+    wrappers = background_wrapper_ids(before_nodes, removed_backgrounds, eligible, root)
     style_fields = _allowed_styles(intent)
     texts = {change.componentId: change for change in intent.textChanges}
     style_rules = json.loads(_STYLE_PATH.read_text(encoding="utf-8"))
     for identity, before in before_nodes.items():
         after = after_nodes.get(identity)
         if after is None:
+            if identity in wrappers:
+                continue
             if identity in intent.backgroundTargets and before.get("component") == "Image":
                 preserve_dynamic_styles(before.get("styles", {}), {})
                 continue
@@ -437,6 +527,12 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
             )
         _validate_node(identity, before, after, changes, intent, texts)
         _validate_styles(identity, before, after, style_fields, intent, style_rules)
+        if identity in wrappers and after.get("children") == []:
+            raise ValueError(
+                f"背景删除后纯包装容器为空：componentId={identity} property=children；"
+                "可清理该容器及因此变空的获准纯包装祖先，并移除父引用；"
+                "不得添加占位节点或删除业务内容"
+            )
     for identity, node in after_nodes.items():
         if identity in before_nodes:
             continue
@@ -499,7 +595,10 @@ def _validate_styles(identity: str, before: dict, after: dict, allowed: set[str]
             raise ValueError(f"样式不在已接受维度或协议范围：{identity}.{key}")
         value = new_styles.get(key)
         if key in new_styles:
-            validate_edit_style_value(key, value, after.get("component"), rules)
+            try:
+                validate_edit_style_value(key, value, after.get("component"), rules)
+            except ValueError as exc:
+                raise ValueError(f"componentId={identity} property=styles.{key}: {exc}") from exc
 
 
 def has_layout_change(original: str, candidate: str) -> bool:

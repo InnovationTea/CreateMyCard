@@ -4,6 +4,56 @@ from __future__ import annotations
 
 from typing import Any
 
+from .styles import preserve_dynamic_styles
+
+
+def background_wrapper_ids(
+    before: dict[str, dict], removed_backgrounds: set[str],
+    eligible: set[str], root: str,
+) -> set[str]:
+    """仅推导原子树完全由本次已删背景组成的纯包装，不按 ID 猜测用途。"""
+    removed = set(removed_backgrounds)
+    wrappers: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        for identity, node in before.items():
+            if identity == root or identity in removed or identity not in eligible:
+                continue
+            children = node.get("children")
+            if not isinstance(children, list) or not children:
+                continue
+            if not all(child in removed for child in children):
+                continue
+            if not _pure_wrapper(node):
+                continue
+            removed.add(identity)
+            wrappers.add(identity)
+            changed = True
+    return wrappers
+
+
+def _pure_wrapper(node: dict) -> bool:
+    if node.get("component") not in {"Row", "Column", "Stack"}:
+        return False
+    if set(node) - {"id", "component", "children", "styles", "itemMargin", "wrap"}:
+        return False
+    styles = node.get("styles", {})
+    if not isinstance(styles, dict):
+        return False
+    layout_styles = {
+        "width", "height", "padding", "margin", "alignContent", "alignItems",
+        "justifyContent", "alignSelf", "layoutWeight", "flexShrink", "constraintSize",
+        "aspectRatio", "clip", "borderRadius",
+    }
+    if set(styles) - layout_styles:
+        return False
+    try:
+        preserve_dynamic_styles(node, {})
+    except ValueError:
+        return False
+    return True
+
 
 def _child_ids(node: dict[str, Any]) -> list[str]:
     children = node.get("children", [])
