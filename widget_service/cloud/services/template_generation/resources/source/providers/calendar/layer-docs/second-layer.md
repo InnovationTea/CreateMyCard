@@ -77,6 +77,7 @@
   - `ScheduleOverviewReminderDetailsFull@1`：同版式的提醒详情 Full；发起人、重要程度、提醒分钟数和更新时间
     全部必需，不补造日程标题或事件；可选 `calendarIcon` 与 `headerLabel`。重要程度保持原数值类型，
     不猜测枚举含义，不把整数插入仅接受字符串的模板插值。
+    发起人行固定保留，使用 12fp/500、20vp 行高及 4vp 下方间距；姓名为空时也不隐藏该行。
   - `ScheduleOverviewReminderDetailsHero@1`：提醒详情 Hero；展示数据更新时间、发起人、重要类型和提前
     提醒分钟数，不接收展示 Prop。
   - `ScheduleOverviewReminderSourceFull@1`：上下分组的提醒来源 Full；发起人和提前提醒分钟数全部必需，
