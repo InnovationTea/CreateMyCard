@@ -53,16 +53,13 @@
       "templateId": "CurrentTimeOverviewSupport@1",
       "businessId": "CurrentTimeOverview",
       "capabilityId": "GetCurrentTime",
-      "description": "更新时间 Support，主行展示端侧更新时间戳，辅助行固定“更新时间”，可选补充公历日期与星期（数据同时存在时并列展示）；不接收素材与操作，可与另一业务的 Support 在 TwoSupportLayout@1 配对。 组件形态：support。",
+      "description": "更新时间 Support：以最多两行完整显示更新时间，保留说明行；日期、星期独立展示需求使用 DateFull 或 UpdatedFull。",
       "entry": "templates/current-time-overview.cardtpl",
       "primaryData": [
         "/updatedAt"
       ],
       "secondaryData": [],
-      "optionalData": [
-        "/currentDate",
-        "/dayOfWeek"
-      ]
+      "optionalData": []
     }
   ],
   "compatibility": {

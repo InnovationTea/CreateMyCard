@@ -91,12 +91,7 @@
         "/daily/4/rainProbabilityPercent",
         "/current/temperatureC",
         "/current/condition"
-      ],
-      "assetParameterSemanticTags": {
-        "conditionIcon": [
-          "weather-indicator"
-        ]
-      }
+      ]
     },
     {
       "templateId": "WeatherOverviewCompact@1",
@@ -895,12 +890,7 @@
       "secondaryData": [
         "/current/windLevel"
       ],
-      "optionalData": [],
-      "assetParameterSemanticTags": {
-        "temperatureIcon": [
-          "weather-temperature-indicator"
-        ]
-      }
+      "optionalData": []
     },
     {
       "templateId": "WeatherOverviewDailySummaryFull@1",
@@ -941,13 +931,13 @@
       ]
     },
     {
-      "templateId": "WeatherOverviewHumidityWindLevelHero@1",
+      "templateId": "WeatherOverviewHumidityWindLevelFull@1",
       "supportedEventIds": [
         "event.open.weather"
       ],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "湿度风力 Hero：三段式结构，顶部 20vp 城市标题行，中部温度主值区（可选天气预警行），底部信息行展示空气湿度与风向风力；与双焦点面板另一侧 Hero 保持一致，可在根节点绑定天气事件。",
+      "description": "湿度风力 Full：城市、温度、空气湿度及风向风力完整展示，可补充体感、天气现象与预警；使用 Full 槽位，可在整卡绑定天气事件。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText",

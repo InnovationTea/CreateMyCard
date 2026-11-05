@@ -55,7 +55,7 @@ supportedEventIds 必须为无重复的事件类型 ID；不能填写带实例�
 | WeatherOverviewTemperatureUvSupport@1 | event.open.weather |
 | WeatherOverviewTemperaturecoldLevelSupport@1 | event.open.weather |
 | WeatherOverviewFeelsLikeWindSupport@1 | 空 |
-| WeatherOverviewHumidityWindLevelHero@1 | event.open.weather |
+| WeatherOverviewHumidityWindLevelFull@1 | event.open.weather |
 | WeatherOverviewFeelsLikeHero@1 | event.open.weather |
 | WeatherOverviewTemperatureConditionSupport@1 | event.open.weather |
 | WeatherOverviewTemperatureHumiditySupport@1 | event.open.weather |

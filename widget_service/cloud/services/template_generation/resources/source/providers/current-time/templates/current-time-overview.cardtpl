@@ -74,7 +74,6 @@ data = {
     currentDate: $optionalPath("/currentDate"),
     dayOfWeek: $optionalPath("/dayOfWeek")
 }
-
 Column(
     {
         "_advancedComponent": "CurrentTimeOverview",
@@ -94,45 +93,60 @@ Column(
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
         #if data.currentDate
-            Text(
-                data.currentDate,
-                {
-                    "width": "matchParent",
-                    "fontSize": 16,
-                    "minFontSize": 12,
-                    "fontWeight": 500,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1,
-                    "textAlign": "center",
-                    "textOverflow": "ellipsis",
-                    "constraintSize": {"minWidth": 0, "minHeight": 0}
-                }
-            ),
+        Text(data.currentDate,
+            {
+                "width": "matchParent",
+                "fontSize": 16,
+                "minFontSize": 12,
+                "fontWeight": 500,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textAlign": "center",
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
         #else
-            Text(
-                "数据更新时间",
-                {
-                    "width": "matchParent",
-                    "fontSize": 16,
-                    "minFontSize": 12,
-                    "fontWeight": 500,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1,
-                    "textAlign": "center",
-                    "textOverflow": "ellipsis",
-                    "constraintSize": {"minWidth": 0, "minHeight": 0}
-                }
-            )
+        Text("数据更新时间",
+            {
+                "width": "matchParent",
+                "fontSize": 16,
+                "minFontSize": 12,
+                "fontWeight": 500,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textAlign": "center",
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
         #endif
     ),
-    Text(
-        data.updatedAt,
-        { "width": "matchParent", "fontSize": 24, "minFontSize": 12, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+    Text(data.updatedAt,
+        {
+            "width": "matchParent",
+            "maxFontSize": 24,
+            "minFontSize": 12,
+            "fontWeight": 800,
+            "fontColor": $theme('primaryColor'),
+            "maxLines": 1,
+            "textAlign": "center",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
     ),
     #if data.dayOfWeek
-    Text(
-        data.dayOfWeek,
-        { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0} }
+    Text(data.dayOfWeek,
+        {
+            "width": "matchParent",
+            "fontSize": 12,
+            "fontWeight": 400,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textAlign": "center",
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
     )
     #endif
 )
@@ -141,10 +155,7 @@ Column(
 #Template CurrentTimeOverviewSupport@1(props: {})
 data = {
     updatedAt: $path("/updatedAt"),
-    currentDate: $optionalPath("/currentDate"),
-    dayOfWeek: $optionalPath("/dayOfWeek")
 }
-
 Row(
     {
         "_advancedComponent": "CurrentTimeOverview",
@@ -157,47 +168,33 @@ Row(
     },
     Column(
         {
+            "width": "matchParent",
             "itemMargin": 2,
             "justifyContent": "start",
             "alignItems": "start",
             "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
-        Text(
-            data.updatedAt,
-            { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Text(data.updatedAt,
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 700,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 2,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
         ),
-        Text(
-            "更新时间",
-            { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Text("更新时间",
+            {
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
         ),
-        #if data.currentDate
-            Text(
-                data.currentDate,
-                {
-                    "fontWeight": 400,
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 12,
-                    "maxLines": 1,
-                    "textOverflow": "ellipsis",
-                    "constraintSize": { "minWidth": 0, "minHeight": 0 },
-                    "margin": { "top": 2 }
-                }
-            )
-        #endif
-        #if data.dayOfWeek
-            Text(
-                data.dayOfWeek,
-                {
-                    "fontWeight": 400,
-                    "fontColor": $theme('supportContentColor'),
-                    "fontSize": 12,
-                    "maxLines": 1,
-                    "textOverflow": "ellipsis",
-                    "constraintSize": { "minWidth": 0, "minHeight": 0 },
-                    "margin": { "top": 2 }
-                }
-            )
-        #endif
     )
 )
 #End

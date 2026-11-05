@@ -1690,7 +1690,6 @@ Column(
         "_layoutActionBackgroundOpacity": 0.2,
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 0, "top": 8, "right": 0, "bottom": 0},
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
@@ -1728,7 +1727,8 @@ Column(
     Text(Expr("手机电量剩余" + data.percent + "%"),
         {
             "width": "matchParent",
-            "height": 28,
+            "height": 24,
+            "flexShrink": 1,
             "fontSize": 14,
             "minFontSize": 12,
             "fontWeight": 500,
@@ -2615,16 +2615,6 @@ Column(
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
         ),
-        Text(data.temperature,
-            {
-                "fontSize": 12,
-                "fontWeight": 500,
-                "fontColor": $theme('supportContentColor'),
-                "maxLines": 1,
-                "textOverflow": "ellipsis",
-                "constraintSize": {"minWidth": 0, "minHeight": 0}
-            }
-        )
     ),
     Row(
         {
@@ -2685,11 +2675,23 @@ Column(
                 }
             ),
             #if data.charging
-            Text(data.charging,
+            Text(Expr(data.charging + "|" + data.temperature),
                 {
                     "width": "matchParent",
-                    "fontSize": 12,
+                    "maxFontSize": 12,
+                    "minFontSize": 8,
                     "fontWeight": 400,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
+            ),
+            #else
+            Text(data.temperature,
+                {
+                    "fontSize": 12,
+                    "fontWeight": 500,
                     "fontColor": $theme('supportContentColor'),
                     "maxLines": 1,
                     "textOverflow": "ellipsis",
