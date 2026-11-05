@@ -1413,151 +1413,160 @@ data = {
     windLevel: $optionalPath("/current/windLevel"),
     cityCode: $optionalPath("/location/cityCode")
 }
-
 Column(
-  {
-    "_advancedComponent": "WeatherOverview",
-    "width": "matchParent",
-    "height": "matchParent",
-    "itemMargin": 2,
-    "justifyContent": "start",
-    "alignItems": "start",
-    "clip": true,
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-  Row(
     {
-      "width": "matchParent",
-      "height": 20,
-      "justifyContent": "spaceBetween",
-      "alignItems": "top",
+        "_advancedComponent": "WeatherOverview",
+        "width": "matchParent",
+        "height": "matchParent",
+        "itemMargin": 2,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text(
-        #Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市"))),
+    Row(
         {
-          "width": "matchParent",
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
-      ),
-    #if props.conditionIcon
-      Image(
-        props.conditionIcon,
-        {"_wideHeaderIcon": true,
-          "width": 20,
-          "height": 20,
-          "objectFit": "contain",
-          "flexShrink": 0,
-          "fillColor": $theme('supportContentColor'),
-        }
-      )
-    #endif
-  ),
-  Column(
-    {
-      "width": "matchParent",
-      "itemMargin": 2,
-      "justifyContent": "start",
-      "alignItems": "start",
-      "clip": true,
-      "constraintSize": {"minWidth": 0, "minHeight": 0}
-    },
-    Text(
-        data.temperature,
-        { "height": 40,"fontSize": 30, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-      ),
-    #if data.feelsLike
-      #if data.coldLevel
-      Text(
-        Expr("体感 " + data.feelsLike + "° | 感冒风险" + data.coldLevel),
+            "width": "matchParent",
+            "height": 20,
+            "justifyContent": "spaceBetween",
+            "alignItems": "top",
+        },
+        Text(#Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市"))),
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #if props.conditionIcon
+        Image(props.conditionIcon,
+            {
+                "_wideHeaderIcon": true,
+                "width": 20,
+                "height": 20,
+                "objectFit": "contain",
+                "flexShrink": 0,
+                "fillColor": $theme('supportContentColor'),
+            }
+        )
+        #endif
+    ),
+    Column(
         {
-          "width": "matchParent",
-          "height": 16,
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
-        }
-      )
-      #else
-      Text(
-        Expr("体感 " + data.feelsLike + "°"),
-        {
-          "width": "matchParent",
-          "height": 16,
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
-        }
-      )
-      #endif
-    #elseif data.coldLevel
-      Text(
-        `感冒风险${data.coldLevel}`,
-        { "width": "matchParent", "height": 16, "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
-      )
-    #endif
-    #if data.airQuality
-      Text(
-        `${data.condition}｜空气${data.airQuality}`,
-        {
-          "width": "matchParent",
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
-        }
-      )
-    #else
-      Text(
-        `${data.condition}`,
-        {
-          "width": "matchParent",
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
-        }
-      )
-    #endif
-    #if data.alertLevel
-      Text(
-        data.alertLevel,
-        {
-          "width": "matchParent",
-          "height": 16,
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
-        }
-      )
-    #endif
-    #if data.windLevel
-      Text(
-        Expr("风力" + data.windLevel + "级"),
-        {
-          "width": "matchParent",
-          "height": 16,
-          "fontSize": 12,
-          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
-        }
-      )
-    #endif
-  ),
+            "width": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "start",
+            "alignItems": "start",
+            "clip": true,
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        },
+        Text(data.temperature,
+            {
+                "height": 36,
+                "fontSize": 28,
+                "fontWeight": 700,
+                "fontColor": $theme('primaryColor'),
+                "maxLines": 1
+            }
+        ),
+        #if data.feelsLike
+        #if data.coldLevel
+        Text(Expr("体感 " + data.feelsLike + "° | 感冒风险" + data.coldLevel),
+            {
+                "width": "matchParent",
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #else
+        Text(Expr("体感 " + data.feelsLike + "°"),
+            {
+                "width": "matchParent",
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #endif
+        #elseif data.coldLevel
+        Text(`感冒风险${data.coldLevel}`,
+            {
+                "width": "matchParent",
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1
+            }
+        ),
+        #endif
+        #if data.airQuality
+        Text(`${data.condition}｜空气${data.airQuality}`,
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #else
+        Text(`${data.condition}`,
+            {
+                "width": "matchParent",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #endif
+        #if data.alertLevel
+        Text(data.alertLevel,
+            {
+                "width": "matchParent",
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        ),
+        #endif
+        #if data.windLevel
+        Text(Expr("风力" + data.windLevel + "级"),
+            {
+                "width": "matchParent",
+                "height": 16,
+                "fontSize": 12,
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
+        #endif
+    ),
 )
 #End
 
@@ -4292,7 +4301,7 @@ Column(
         "_advancedComponent": "WeatherOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "itemMargin": 8,
+        "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "start",
         "clip": true,
@@ -4407,14 +4416,24 @@ Column(
                 "flexShrink": 0
             }
         ),
-        #if data.alertLevel
-        Text(Expr(data.windDirection + data.windLevel + "级 | " + data.alertLevel),
+        Text(Expr(data.windDirection + data.windLevel + "级"),
             {
+                "width": "matchParent",
+                "height": 16,
                 "fontSize": 12,
-                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1
+            }
+        ),
+        #if data.alertLevel
+        Text(data.alertLevel,
+            {
+                "width": "matchParent",
+                "height": 16,
+                "fontSize": 12,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1,
-                "textOverflow": "ellipsis",
+                "textOverflow": "ellipsis"
             }
         )
         #endif

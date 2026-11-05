@@ -50,70 +50,88 @@ Column(
 data = {
     steps: $path("/dailySteps")
 }
-
 Column(
-  {
-    "_advancedComponent": "ActivityOverview",
-    "width": "matchParent",
-    "height": "matchParent",
-    "itemMargin": 3,
-    "justifyContent": "start",
-    "alignItems": "start",
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-  Row(
     {
+        "_advancedComponent": "ActivityOverview",
         "width": "matchParent",
-        "itemMargin": 4,
-        "justifyContent": "spaceBetween",
-        "alignItems": "top"
-    },
-    Text(
-      "今日活动",
-      {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-    ),
-    #if props.stepsIcon
-      Image(
-        props.stepsIcon,
-        {"_wideHeaderIcon": true, "fillColor": $theme('supportContentColor'), "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-      )
-    #endif
-  ),
-  Column(
-    {
-        "width": "matchParent",
-        "itemMargin": 3,
+        "height": "matchParent",
+        "itemMargin": 2,
         "justifyContent": "start",
-        "alignItems": "start"
+        "alignItems": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
     Row(
         {
             "width": "matchParent",
             "itemMargin": 4,
-            "justifyContent": "start",
-            "alignItems": "bottom"
+            "justifyContent": "spaceBetween",
+            "alignItems": "top"
         },
-        Text(
-            data.steps,
-            {"fontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1}
+        Text("今日活动",
+            {
+                "fontSize": 12,
+                "fontWeight": 500,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1
+            }
         ),
-        Text(
-            "步",
-            {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "margin": { "bottom": 5 }}
+        #if props.stepsIcon
+        Image(props.stepsIcon,
+            {
+                "_wideHeaderIcon": true,
+                "fillColor": $theme('supportContentColor'),
+                "width": 20,
+                "height": 20,
+                "objectFit": "contain",
+                "flexShrink": 0
+            }
         )
+        #endif
     ),
-    Progress(
+    Column(
         {
-            "value": data.steps,
-            "total": 10000,
-            "strokeWidth": 8,
-            "color": $theme('progressColor'),
-            "backgroundColor": $theme('progressBackgroundColor'),
-            "height": 12,
-            "width": "matchParent"
-        }
+            "width": "matchParent",
+            "itemMargin": 2,
+            "justifyContent": "start",
+            "alignItems": "start"
+        },
+        Row(
+            {
+                "width": "matchParent",
+                "itemMargin": 4,
+                "justifyContent": "start",
+                "alignItems": "bottom"
+            },
+            Text(data.steps,
+                {
+                    "fontSize": 30,
+                    "fontWeight": 800,
+                    "fontColor": $theme('primaryColor'),
+                    "maxLines": 1
+                }
+            ),
+            Text("步",
+                {
+                    "fontSize": 12,
+                    "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "margin": {"bottom": 5}
+                }
+            )
+        ),
+        Progress(
+            {
+                "value": data.steps,
+                "total": 10000,
+                "strokeWidth": 8,
+                "color": $theme('progressColor'),
+                "backgroundColor": $theme('progressBackgroundColor'),
+                "height": 12,
+                "width": "matchParent"
+            }
+        )
     )
-  )
 )
 #End
 

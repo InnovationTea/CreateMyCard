@@ -52,7 +52,7 @@
   - `WeatherOverviewUvFull@1`：以紫外线为主焦点的完整天气摘要。
   - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero；指标下方展示“空气质量”说明，再展示天气及可选感冒风险。
   - `WeatherOverviewHumidityWindLevelFull@1`：湿度风力 Full，使用完整内容槽位；展示城市、温度、
-    空气湿度，可补充天气现象、体感和预警；风向风力位于可选预警分支。可选 `actionId`
+    空气湿度及风向风力，可补充天气现象、体感和预警。无预警时仍显示风向风力；可选 `actionId`
     绑定整卡。`/location/cityCode` 用于事件参数，不作为可见文字。
   - `WeatherOverviewFeelsLikeHero@1`：体感温度大字 Hero；顶部为“城市 + 天气”标题行，中部以
     大号数字展示体感温度并固定追加“°”，不展示天气现象、风力、天气预警和感冒风险（四个字段仅进入

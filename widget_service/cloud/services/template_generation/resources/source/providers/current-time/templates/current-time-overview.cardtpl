@@ -168,6 +168,7 @@ Row(
     },
     Column(
         {
+            "width": "matchParent",
             "itemMargin": 2,
             "justifyContent": "start",
             "alignItems": "start",
@@ -175,11 +176,11 @@ Row(
         },
         Text(data.updatedAt,
             {
-                "maxFontSize": 14,
-                "minFontSize": 12,
+                "width": "matchParent",
+                "fontSize": 12,
                 "fontWeight": 700,
                 "fontColor": $theme('primaryColor'),
-                "maxLines": 1,
+                "maxLines": 2,
                 "textOverflow": "ellipsis",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             }

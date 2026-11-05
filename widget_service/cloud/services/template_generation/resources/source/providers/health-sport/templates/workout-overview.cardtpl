@@ -307,7 +307,7 @@ Column(
             }
         ),
         #if data.heartRateAvg
-        Text(Expr("平均心率：" + data.heartRateAvg),
+        Text(Expr("平均心率：" + data.heartRateAvg + "次/分"),
             {
                 "fontSize": 12,
                 "fontWeight": 400,
