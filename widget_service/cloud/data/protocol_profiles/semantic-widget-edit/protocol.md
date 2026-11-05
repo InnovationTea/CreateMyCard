@@ -30,8 +30,8 @@ editableTopLevelProperties 保持顶层路径。值遵守 editableStyleValueRule
    - 原有静态 styles.backgroundImage：以 backgroundTargets 授权承载节点，仅允许移除，
      不替换资源；是否可登记属性目标仍由编辑维度决定。
    - 独立 Image.src：移除须用 layout、palette/layout 维度及 backgroundTargets，
-     仅限无动态内容和动作的满承载区背景图；授权父节点清理引用，保留业务图标和包装容器。
-     不虚构 backgroundImage，不给已删除节点登记属性目标。
+     仅限无动态内容和动作的满承载区背景图；授权父节点清理引用，保留业务图标；可逐层清理因此变空的获准纯包装容器。
+     根节点、有动作/动态内容/独立装饰或属性目标的容器不得清理；不虚构 backgroundImage。
    图片覆盖底色时只改底色无效；改纯色需清理获准冲突渐变并检查前景可读性。
 7. shadow 可为协议枚举（如 outerDefaultSM）或含非负 radius 的对象，可选 offsetX/offsetY、
    color、fill、type。不使用 CSS box-shadow 字符串；没有需要时不新增阴影。

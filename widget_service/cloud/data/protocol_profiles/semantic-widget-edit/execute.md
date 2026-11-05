@@ -14,7 +14,7 @@ before 精确复制 previousGenui 原属性的存在性和类型，缺失为 {"e
 
 mode=layout：{"sourceDigest":"照抄输入","genui":[完整的三条标准 A2UI 消息对象]}。
 保留 createSurface、updateDataModel、root 和 updateComponents 的其它头字段。
-不删除原节点；只可移除获准 backgroundTargets 中的背景 Image 并清理父引用。
+节点删除仅限公共协议允许的背景 Image 及因此变空的获准纯包装，并清理父引用。
 只可新增 Row/Column/Stack 组织容器；原 Row/Column/Stack 可在授权范围内转换方向与层级，
 不能改变业务组件类型，不重复挂载内容，不留下孤立或循环节点。
 

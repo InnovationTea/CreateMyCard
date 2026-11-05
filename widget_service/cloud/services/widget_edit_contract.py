@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from models.generation import WidgetSize
 from services.card_validation.edit_validation.structure import (
+    background_wrapper_ids,
     validate_edit_reachability,
     validate_edit_structure,
 )
@@ -493,12 +494,27 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
         raise ValueError("原卡缺少根节点")
     validate_edit_reachability(before_nodes, after_nodes, root)
     allowed = scope_ids(intent, before_nodes)
+    removed_backgrounds: set[str] = set()
+    if intent.mode == "layout" and "palette" in intent.dimensions:
+        for identity in intent.backgroundTargets:
+            node = before_nodes.get(identity, {})
+            if identity in after_nodes or identity not in allowed:
+                continue
+            if node.get("component") == "Image" and not node.get("onClick"):
+                preserve_dynamic_styles(node, {})
+                removed_backgrounds.add(identity)
+    eligible = set(allowed)
+    for expected in intent.expectations:
+        eligible.discard(expected.componentId)
+    wrappers = background_wrapper_ids(before_nodes, removed_backgrounds, eligible, root)
     style_fields = _allowed_styles(intent)
     texts = {change.componentId: change for change in intent.textChanges}
     style_rules = json.loads(_STYLE_PATH.read_text(encoding="utf-8"))
     for identity, before in before_nodes.items():
         after = after_nodes.get(identity)
         if after is None:
+            if identity in wrappers:
+                continue
             if identity in intent.backgroundTargets and before.get("component") == "Image":
                 preserve_dynamic_styles(before.get("styles", {}), {})
                 continue
@@ -511,6 +527,12 @@ def validate_edit_diff(original: str, candidate: str, intent: EditIntent) -> Non
             )
         _validate_node(identity, before, after, changes, intent, texts)
         _validate_styles(identity, before, after, style_fields, intent, style_rules)
+        if identity in wrappers and after.get("children") == []:
+            raise ValueError(
+                f"背景删除后纯包装容器为空：componentId={identity} property=children；"
+                "可清理该容器及因此变空的获准纯包装祖先，并移除父引用；"
+                "不得添加占位节点或删除业务内容"
+            )
     for identity, node in after_nodes.items():
         if identity in before_nodes:
             continue

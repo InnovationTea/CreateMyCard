@@ -42,8 +42,8 @@ matchParent 的 Image，body 中有主文字 title 和辅助文字 subtitle。�
 {"componentId":"title","property":"styles.fontColor","operator":"equal","value":"#FFFFFFFF"},
 {"componentId":"subtitle","property":"styles.fontColor","operator":"equal","value":"#FFDDDDDD"}]}
 这只是意图字段片段，仍需填写 outputSchema 要求的其余字段；颜色、ID 和目标取真实需求与原卡。
-执行输出完整三条消息，移除获准背景 Image 及父引用，保留背景包装容器和全部业务节点、数据、动作。
-如果图片位于嵌套容器，只清理实际父引用；不额外删除空包装容器，不给已删除节点登记属性目标。
+执行输出完整三条消息，移除获准背景 Image 及父引用，保留全部业务节点、数据、动作。
+嵌套背景移除后，逐层清理因此变空的获准纯包装及父引用；遇到业务兄弟节点即停止，不给删除节点登记属性目标。
 Image 的图片来自 src，不能虚构 backgroundImage 再 remove，也不能仅在图片后方设置底色冒充完成。
 原卡没有渐变时不登记渐变 remove。若背景含动作、动态数据或属于业务图片，不套用本例删除。
 
