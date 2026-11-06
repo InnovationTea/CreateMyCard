@@ -18,7 +18,7 @@ Column(
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Text(data.name, {
-        "width": "matchParent", "fontSize": 18, "minFontSize": 8, "maxFontSize": 18, "fontWeight": 700,
+        "width": "matchParent", "fontSize": 18, "minFontSize": 10, "height": 26, "flexShrink": 1, "maxFontSize": 18, "fontWeight": 700,
         "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis",
         "constraintSize": { "minWidth": 0, "minHeight": 0 },
         "margin": { "top": 0, "bottom": 4, "left": 0, "right": 0 }

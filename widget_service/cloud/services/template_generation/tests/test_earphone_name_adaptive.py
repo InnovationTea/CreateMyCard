@@ -31,6 +31,28 @@ _NAME_UPPER_SIZES = {
     "EarphonePercentTextFull": 16,
 }
 
+_NAME_HEIGHTS = {
+    "EarbudPairHero": 30,
+    "Hero": 16,
+    "EarbudsPhoneWideFull": 16,
+    "EarbudsDynamicWideFull": 16,
+    "NameAndConnectionSupport": 24,
+    "NameAndChargeSupport": 24,
+    "EarbudPairFull": 18,
+    "CompleteWideFull": 16,
+    "EarbudPairCompact": 16,
+    "CompletePhoneWideFull": 16,
+    "EarphoneHero": 28,
+    "EarphoneCompact": 14,
+    "MusicFull": 16,
+    "ConnectionTextFull": 24,
+    "EarbudPairRingFull": 22,
+    "EarbudTripleHero": 26,
+    "EarbudsChargingWideFull": 16,
+    "EarphoneCasePercentTextFull": 24,
+    "EarphonePercentTextFull": 24,
+}
+
 
 def _nodes(root: Nested2Node, kind: str) -> list[Nested2Node]:
     result = [root] if root.component_type == kind else []
@@ -87,15 +109,20 @@ def test_names_keep_original_upper_size_and_single_line(
     assert len(names) == 1
     upper = _NAME_UPPER_SIZES.get(suffix)
     assert upper is not None
+    height = _NAME_HEIGHTS.get(suffix)
+    assert height is not None
     if suffix == "EarbudPairFull" and not with_optional:
         upper = 18
+        height = 26
     styles = names[0].values[-1]
     assert isinstance(styles, dict)
     assert styles.get("fontSize") == styles.get("maxFontSize") == upper
-    assert styles.get("minFontSize") == 8
+    assert styles.get("minFontSize") == 10
     assert styles.get("maxLines") == 1
     assert styles.get("textOverflow") == "ellipsis"
     assert styles.get("width") in ("matchParent", 112)
+    assert styles.get("height") == height
+    assert styles.get("flexShrink") == 1
 
 
 @pytest.mark.parametrize("with_title", [False, True])

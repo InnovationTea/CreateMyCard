@@ -11,7 +11,7 @@ Row({"_advancedComponent": "BluetoothDeviceOverview", "width": "matchParent", "h
     "justifyContent": "spaceBetween", "itemMargin": 2,
     "backgroundColor": $theme('supportContentStyle.backgroundColor')},
     Text(Expr(data.connected ? '已连接 ' + data.name : '未连接'),
-      {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 8, "maxFontSize": 12, "fontWeight": 500,
+      {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "flexShrink": 1, "maxFontSize": 12, "fontWeight": 500,
         "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis"}),
     Row({"width": "matchParent", "itemMargin": 12, "justifyContent": "spaceBetween"},
       Column({"layoutWeight": 1, "justifyContent": "start",

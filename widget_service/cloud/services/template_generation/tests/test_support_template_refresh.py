@@ -170,7 +170,7 @@ def test_support_ux_spacing_typography_and_right_icon(
             "BluetoothDeviceOverviewNameAndConnectionSupport@1",
             "BluetoothDeviceOverviewNameAndChargeSupport@1",
         }
-        minimum_size = 8 if adaptive_name else font_size
+        minimum_size = 10 if adaptive_name else font_size
         assert styles.get("minFontSize", font_size) == minimum_size
         if adaptive_name:
             assert styles.get("maxFontSize") == font_size

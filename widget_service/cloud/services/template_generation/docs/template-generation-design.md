@@ -24,11 +24,15 @@ JSON 解析异常继续抛出。普通日志记录禁染素材数量、实际清
 
 ## 2026-11-06 耳机名称单行自适应
 
-19 个带名称的耳机模板（Full、Hero、Compact、Support、WideFull）统一设置 `minFontSize: 8`，
+19 个带名称的耳机模板（Full、Hero、Compact、Support、WideFull）统一设置 `minFontSize: 10`，
 `fontSize` 与 `maxFontSize` 取原名称字号和 18fp 的较小值，保留原有短名称视觉大小。
 `maxLines: 1`，`textOverflow: "ellipsis"`，由端侧根据整行文字与实际可用宽度缩放，
-不按字符数分档；缩至 8fp 仍不足时才省略。已有行高、字号层级、颜色、字重和名称条件保留。
-`EarbudPairHero` 仍为 8–18fp，同时保留最新 main 的 30vp 行高与 `flexShrink: 1` 高度压缩规则。
+不按字符数分档；缩至 10fp 仍不足时才省略。字号层级、颜色、字重和名称条件保留。
+所有名称 Text（含与其它文字拼接的整行）显式声明数值 `height` 和 `flexShrink: 1`。
+已有高度保持不变；原先由文字测量高度的 11/12fp 摘要行补为 16vp，10fp Compact 名称补为
+14vp，18fp `EarbudTripleHero` 名称补为 26vp。`EarbudPairHero` 保留最新 main 的 30vp 高度。
+字号缩小时仍按声明高度占位；父布局空间不足时仍允许 Flex 压缩，不能把 `flexShrink: 1`
+解释为任何情况下都锁定高度。该规则不改变其它文字、图标及容器的尺寸或收缩规则。
 
 名称与连接状态、盒电量拼接时，整个表达式使用同一个 Text 缩放；`EarbudPairCompact`
 原名称、竖杠、连接状态三块合成单个 Text，取消名称 74vp、连接状态 48vp 的固定切分。
