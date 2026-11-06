@@ -9,6 +9,8 @@ from typing import Any
 
 from json_repair import repair_json
 
+from services.event_uri_json_recovery import repair_event_uri_quotes
+
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
@@ -149,6 +151,7 @@ def _scalar_tokens(raw: str) -> list[Any]:
 
 def repair_syntax(raw: str) -> str:
     """json_repair 只修标点；修复后仍须严格解析和业务校验，不使用 schema 补默认值。"""
+    raw = repair_event_uri_quotes(raw, DECODER)
     original_tokens = _scalar_tokens(raw)
     balanced = _close_containers(raw)
     repaired = repair_json(balanced, skip_json_loads=True, ensure_ascii=False)
