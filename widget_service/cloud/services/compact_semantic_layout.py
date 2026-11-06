@@ -635,6 +635,24 @@ class _SmallCompiler(_Compiler):
                 return
         _fail(identifier, "缺少已展开的槽位")
 
+    def validate_group_content(self, group_id: str, identifiers: tuple[str, ...]) -> None:
+        for identifier in identifiers:
+            child = self.node(identifier)
+            if child.component_type == "InfoBlock":
+                _fail(
+                    group_id,
+                    f"小卡 Group 内的节点 {identifier}（InfoBlock）只能放在固定槽；"
+                    "将该节点的全部可见事实与绑定迁入合法只读内容组件，"
+                    "或改选允许 InfoBlock 的固定槽布局，不删除事实",
+                )
+            if child.component_type in {"PillButton", "CardButton"} or child.props.get("onClick"):
+                _fail(
+                    group_id,
+                    f"小卡 Group 内的节点 {identifier}（{child.component_type}）含动作；"
+                    "将完整动作移到父布局登记的动作角色，保留全部正文事实、绑定和 Action",
+                )
+            self.validate_group_content(group_id, child.children)
+
     def group(self, row: ComponentRow, *, compact: bool, fixed: bool = False) -> None:
         self.props(row, {"variant"})
         variant = row.props.get("variant")
@@ -644,8 +662,7 @@ class _SmallCompiler(_Compiler):
         self.count(row, counts)
         if variant not in {"hero-support", "label-value", "peer-pair", "supporting-items"}:
             _fail(row.component_id, "小卡 Group.variant 未登记")
-        if self.action_nodes(row.children) or self.contains_type(row.children, "InfoBlock"):
-            _fail(row.component_id, "小卡 Group 只能包含同一区域内的只读内容")
+        self.validate_group_content(row.component_id, row.children)
         props = {"width": "matchParent", "alignItems": "start",
                  "justifyContent": "start", "itemMargin": 2}
         children = row.children
@@ -754,8 +771,19 @@ class _SmallCompiler(_Compiler):
         if layout == "S-title-dual-column-action" and len(children) == 4:
             self.action(children[-1])
             expected_actions.add(children[-1])
-        if self.action_nodes(children) != expected_actions:
-            _fail("root", "Action 必须放在所选小卡布局的动作角色中")
+        actual_actions = self.action_nodes(children)
+        if actual_actions != expected_actions:
+            unexpected = sorted(actual_actions - expected_actions)
+            descriptions = []
+            for identifier in unexpected:
+                kind = self.node(identifier).component_type
+                descriptions.append(f"{identifier}（{kind}）含动作")
+            _fail(
+                "root",
+                "Action 必须放在所选小卡布局的动作角色中；节点 "
+                + "、".join(descriptions)
+                + "；将完整动作移到父布局登记的动作角色，保留全部正文事实、绑定和 Action",
+            )
         for child in children:
             self.content(child, compact=True)
         if self.contains_type(children, "CardButton") and not actions_only:
