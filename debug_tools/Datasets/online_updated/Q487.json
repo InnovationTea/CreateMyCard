@@ -1,0 +1,113 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.health.sleep",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "睡眠信息速览",
+    "userQuery": "在桌面增加一个显示睡眠信息的卡片，展示睡眠得分、睡眠状态、夜间睡眠时长、深睡时长、入睡时间和醒来时间。",
+    "title": "睡眠卡片",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/sleepScore",
+          "/sleepStatus",
+          "/nightSleepDurationText",
+          "/deepSleepDurationText",
+          "/fallAsleepTimeText",
+          "/wakeupTimeText"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261102030921350"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "592e0b71-4a8f-4c54-aaf2-4777a2b1843b"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.health.sleep",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Health",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "睡眠信息速览",
+  "userQuery": "在桌面增加一个显示睡眠信息的卡片，展示睡眠得分、睡眠状态、夜间睡眠时长、深睡时长、入睡时间和醒来时间。",
+  "title": "睡眠卡片",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ]
+    }
+  ]
+}

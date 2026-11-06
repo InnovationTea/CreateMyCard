@@ -1,0 +1,177 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.cake_fill"
+    ],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "家人重要日子倒计时",
+    "userQuery": "创建一张家人重要日子倒计时卡片，每天自动更新倒计时天数，标注每位家人的名字和对应的公历日期。奶奶/爷爷生日：2027年10月5日（农历九月初六）；爸爸生日：2027年6月24日（农历五月二十）；妈妈生日：2027年4月19日（农历三月十三）；崔景会生日：2027年4月12日（农历三月初六）；爸妈结婚纪念日：2028年1月12日（农历腊月十六）；我的生日：2027年10月28日（农历九月廿九，2027年农历九月无三十）。\n本轮卡片静态内容（用作展示的外部事实）：奶奶/爷爷生日10月5日、爸爸生日6月24日、妈妈生日4月19日、崔景会生日4月12日、爸妈结婚纪念日1月12日、我的生日10月28日",
+    "title": "家人纪念日",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-10-05"
+        },
+        "writeResultTo": "/data/countdown0",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-06-24"
+        },
+        "writeResultTo": "/data/countdown1",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-04-19"
+        },
+        "writeResultTo": "/data/countdown2",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-04-12"
+        },
+        "writeResultTo": "/data/countdown3",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2028-01-12"
+        },
+        "writeResultTo": "/data/countdown4",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-10-28"
+        },
+        "writeResultTo": "/data/countdown5",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103015744026"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "10",
+    "isNew": false,
+    "sessionId": "5be97784-19a7-43a8-9dfd-492a78647f37"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.cake_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "家人重要日子倒计时",
+  "userQuery": "创建一张家人重要日子倒计时卡片，每天自动更新倒计时天数，标注每位家人的名字和对应的公历日期。奶奶/爷爷生日：2027年10月5日（农历九月初六）；爸爸生日：2027年6月24日（农历五月二十）；妈妈生日：2027年4月19日（农历三月十三）；崔景会生日：2027年4月12日（农历三月初六）；爸妈结婚纪念日：2028年1月12日（农历腊月十六）；我的生日：2027年10月28日（农历九月廿九，2027年农历九月无三十）。\n本轮卡片静态内容（用作展示的外部事实）：奶奶/爷爷生日10月5日、爸爸生日6月24日、妈妈生日4月19日、崔景会生日4月12日、爸妈结婚纪念日1月12日、我的生日10月28日",
+  "title": "家人纪念日",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-10-05"
+      },
+      "writeResultTo": "/data/countdown0",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-06-24"
+      },
+      "writeResultTo": "/data/countdown1",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-04-19"
+      },
+      "writeResultTo": "/data/countdown2",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-04-12"
+      },
+      "writeResultTo": "/data/countdown3",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2028-01-12"
+      },
+      "writeResultTo": "/data/countdown4",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-10-28"
+      },
+      "writeResultTo": "/data/countdown5",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ]
+}

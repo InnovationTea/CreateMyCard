@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "一周三餐安排",
+    "userQuery": "把备忘录里的减脂食谱做成桌面卡片，显示一周三餐安排和关键提醒。本轮卡片静态内容（用作展示的外部事实）：📅 一周减脂食谱（周一至周日）\n\n周一：\n早餐：燕麦粥 + 水煮蛋 + 凉拌黄瓜\n午餐：糙米饭 + 清蒸鱼 + 清炒西兰花\n晚餐：杂粮粥 + 手撕包菜 + 素炒豆腐\n\n周二：\n早餐：全麦面包 + 脱脂牛奶 + 苹果\n午餐：红薯饭 + 炒鸡胸肉片 + 清炒菠菜\n晚餐：小米粥 + 清炒胡萝卜丝\n\n周三：\n早餐：玉米 + 西红柿炒鸡蛋\n午餐：荞麦馒头 + 凉拌海带丝\n晚餐：绿豆粥 + 清炒西葫芦\n\n周四：\n早餐：红豆薏仁粥 + 清炒油麦菜\n午餐：藜麦饭 + 香煎豆腐 + 白灼虾\n晚餐：南瓜粥 + 凉拌豆芽\n\n周五：\n早餐：荞麦面 + 西兰花炒木耳\n午餐：紫薯饭 + 白灼虾 + 清炒莴笋\n晚餐：山药粥 + 清炒豆角\n\n周六：\n早餐：黑米粥 + 凉拌生菜\n午餐：燕麦饭 + 去皮鸡腿 + 清炒时蔬\n晚餐：蔬菜汤 + 蒸南瓜\n\n周日：\n早餐：玉米糊 + 水煮蛋 + 凉拌黄瓜\n午餐：高粱米饭 + 炒虾仁 + 清炒油麦菜\n晚餐：香菇青菜汤 + 蒸南瓜\n\n💡 关键提醒：\n1. 主食换成粗粮（糙米、燕麦、玉米、红薯）\n2. 蛋白质选低脂的（鱼虾、去皮鸡肉、豆腐）\n3. 烹饪方式多用蒸、煮、凉拌，少油炸\n4. 每日饮水2000-3000ml，配合运动\n5. 加餐可选：一小把坚果、无糖酸奶或一个水果",
+    "title": "减脂食谱",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103094317077"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "1f959e14-e73c-451f-80d9-dcb81ce3b3f7"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "一周三餐安排",
+  "userQuery": "把备忘录里的减脂食谱做成桌面卡片，显示一周三餐安排和关键提醒。本轮卡片静态内容（用作展示的外部事实）：📅 一周减脂食谱（周一至周日）\n\n周一：\n早餐：燕麦粥 + 水煮蛋 + 凉拌黄瓜\n午餐：糙米饭 + 清蒸鱼 + 清炒西兰花\n晚餐：杂粮粥 + 手撕包菜 + 素炒豆腐\n\n周二：\n早餐：全麦面包 + 脱脂牛奶 + 苹果\n午餐：红薯饭 + 炒鸡胸肉片 + 清炒菠菜\n晚餐：小米粥 + 清炒胡萝卜丝\n\n周三：\n早餐：玉米 + 西红柿炒鸡蛋\n午餐：荞麦馒头 + 凉拌海带丝\n晚餐：绿豆粥 + 清炒西葫芦\n\n周四：\n早餐：红豆薏仁粥 + 清炒油麦菜\n午餐：藜麦饭 + 香煎豆腐 + 白灼虾\n晚餐：南瓜粥 + 凉拌豆芽\n\n周五：\n早餐：荞麦面 + 西兰花炒木耳\n午餐：紫薯饭 + 白灼虾 + 清炒莴笋\n晚餐：山药粥 + 清炒豆角\n\n周六：\n早餐：黑米粥 + 凉拌生菜\n午餐：燕麦饭 + 去皮鸡腿 + 清炒时蔬\n晚餐：蔬菜汤 + 蒸南瓜\n\n周日：\n早餐：玉米糊 + 水煮蛋 + 凉拌黄瓜\n午餐：高粱米饭 + 炒虾仁 + 清炒油麦菜\n晚餐：香菇青菜汤 + 蒸南瓜\n\n💡 关键提醒：\n1. 主食换成粗粮（糙米、燕麦、玉米、红薯）\n2. 蛋白质选低脂的（鱼虾、去皮鸡肉、豆腐）\n3. 烹饪方式多用蒸、煮、凉拌，少油炸\n4. 每日饮水2000-3000ml，配合运动\n5. 加餐可选：一小把坚果、无糖酸奶或一个水果",
+  "title": "减脂食谱",
+  "candidateDataBindings": []
+}

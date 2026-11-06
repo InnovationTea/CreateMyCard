@@ -1,0 +1,141 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.list_book_fill"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewNote",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "备忘录速览",
+    "userQuery": "在手机主屏幕放一个可视化备忘录卡片，展示备忘录笔记和待办事项的汇总信息，包括笔记总数、最近笔记列表、待办总数及待办明细。",
+    "title": "备忘录",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetMemoData",
+        "arguments": {},
+        "writeResultTo": "/data/memo",
+        "candidateOutputFields": [
+          "/noteCount",
+          "/favoriteNoteCount",
+          "/notes/0/title",
+          "/notes/0/content",
+          "/notes/0/modifiedTimeText",
+          "/notes/1/title",
+          "/notes/1/content",
+          "/notes/1/modifiedTimeText",
+          "/todoTotalCount",
+          "/todoCompletedCount",
+          "/todoPendingCount",
+          "/todos/0/title",
+          "/todos/0/isComplete",
+          "/todos/0/reminderTimeText",
+          "/todos/1/title",
+          "/todos/1/isComplete",
+          "/todos/1/reminderTimeText",
+          "/hasReminderToday",
+          "/nextReminderTimeText"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261102234735247"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "839d9971-4520-4c7c-bba4-fb69c05504e0"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.list_book_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewNote",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "备忘录速览",
+  "userQuery": "在手机主屏幕放一个可视化备忘录卡片，展示备忘录笔记和待办事项的汇总信息，包括笔记总数、最近笔记列表、待办总数及待办明细。",
+  "title": "备忘录",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetMemoData",
+      "arguments": {},
+      "writeResultTo": "/data/memo",
+      "candidateOutputFields": [
+        "/noteCount",
+        "/favoriteNoteCount",
+        "/notes/0/title",
+        "/notes/0/content",
+        "/notes/0/modifiedTimeText",
+        "/notes/1/title",
+        "/notes/1/content",
+        "/notes/1/modifiedTimeText",
+        "/todoTotalCount",
+        "/todoCompletedCount",
+        "/todoPendingCount",
+        "/todos/0/title",
+        "/todos/0/isComplete",
+        "/todos/0/reminderTimeText",
+        "/todos/1/title",
+        "/todos/1/isComplete",
+        "/todos/1/reminderTimeText",
+        "/hasReminderToday",
+        "/nextReminderTimeText"
+      ]
+    }
+  ]
+}

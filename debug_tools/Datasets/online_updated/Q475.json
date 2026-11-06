@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "11月-12月排班日历",
+    "userQuery": "制作一张大小周排班日历卡片，展示从2026年11月2日到2026年12月31日的大小周排班安排。排班规则：本周（11月2日-11月8日）为小周，上六天休一天（周日休息）；下一周为大周，上五天休两天（周六周日休息），大小周交替轮换。小周：11/2-11/8、11/16-11/22、11/30-12/6、12/14-12/20、12/28-12/31；大周：11/9-11/15、11/23-11/29、12/7-12/13、12/21-12/27。卡片需清晰标注每周是大小周、上班日和休息日。本轮卡片静态内容（用作展示的外部事实）：2026年11月2日至12月31日大小周排班，小周上六休一（周日休），大周上五休二（周六周日休），交替轮换。小周：11/2-11/8、11/16-11/22、11/30-12/6、12/14-12/20、12/28-12/31；大周：11/9-11/15、11/23-11/29、12/7-12/13、12/21-12/27。",
+    "title": "大小周排班",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103005749910"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "5",
+    "isNew": false,
+    "sessionId": "877d10e7-3875-476c-a6bd-5eb58428e00a"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "11月-12月排班日历",
+  "userQuery": "制作一张大小周排班日历卡片，展示从2026年11月2日到2026年12月31日的大小周排班安排。排班规则：本周（11月2日-11月8日）为小周，上六天休一天（周日休息）；下一周为大周，上五天休两天（周六周日休息），大小周交替轮换。小周：11/2-11/8、11/16-11/22、11/30-12/6、12/14-12/20、12/28-12/31；大周：11/9-11/15、11/23-11/29、12/7-12/13、12/21-12/27。卡片需清晰标注每周是大小周、上班日和休息日。本轮卡片静态内容（用作展示的外部事实）：2026年11月2日至12月31日大小周排班，小周上六休一（周日休），大周上五休二（周六周日休），交替轮换。小周：11/2-11/8、11/16-11/22、11/30-12/6、12/14-12/20、12/28-12/31；大周：11/9-11/15、11/23-11/29、12/7-12/13、12/21-12/27。",
+  "title": "大小周排班",
+  "candidateDataBindings": []
+}

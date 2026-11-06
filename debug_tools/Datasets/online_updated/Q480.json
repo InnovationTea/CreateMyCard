@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "本周值班安排",
+    "userQuery": "做一张值班表卡片，显示一周的值班安排：星期二上午上班、下午休息；星期四上午休息、下午上班；星期三、星期五全天上班；星期六、星期天上午上班、下午休息。本轮卡片静态内容（用作展示的外部事实）：值班安排：周二上午上班下午休息，周四上午休息下午上班，周三周五全天上班，周六周日上午上班下午休息。",
+    "title": "值班表",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103023632529"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "68c6735d-4423-48be-88f2-3ec6de8315ea"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "本周值班安排",
+  "userQuery": "做一张值班表卡片，显示一周的值班安排：星期二上午上班、下午休息；星期四上午休息、下午上班；星期三、星期五全天上班；星期六、星期天上午上班、下午休息。本轮卡片静态内容（用作展示的外部事实）：值班安排：周二上午上班下午休息，周四上午休息下午上班，周三周五全天上班，周六周日上午上班下午休息。",
+  "title": "值班表",
+  "candidateDataBindings": []
+}

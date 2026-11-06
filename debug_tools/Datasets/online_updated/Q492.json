@@ -1,0 +1,109 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.checkmark_calendar_fill"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewNote",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "每日锻炼打卡记录",
+    "userQuery": "做一张锻炼打卡桌面卡片，展示备忘录中的待办打卡情况，显示已完成和未完成的锻炼打卡待办数量，点击可打开备忘录查看打卡记录。本轮卡片静态内容（用作展示的外部事实）：用户每天锻炼后打卡，通过备忘录待办记录锻炼打卡。",
+    "title": "锻炼打卡",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetMemoData",
+        "arguments": {},
+        "writeResultTo": "/data/memo",
+        "candidateOutputFields": [
+          "/todoTotalCount",
+          "/todoCompletedCount",
+          "/todoPendingCount"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261102160944869"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "7b0aa84f-e53f-4d21-b7c4-c0d7fa21a358"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.checkmark_calendar_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewNote",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "每日锻炼打卡记录",
+  "userQuery": "做一张锻炼打卡桌面卡片，展示备忘录中的待办打卡情况，显示已完成和未完成的锻炼打卡待办数量，点击可打开备忘录查看打卡记录。本轮卡片静态内容（用作展示的外部事实）：用户每天锻炼后打卡，通过备忘录待办记录锻炼打卡。",
+  "title": "锻炼打卡",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetMemoData",
+      "arguments": {},
+      "writeResultTo": "/data/memo",
+      "candidateOutputFields": [
+        "/todoTotalCount",
+        "/todoCompletedCount",
+        "/todoPendingCount"
+      ]
+    }
+  ]
+}

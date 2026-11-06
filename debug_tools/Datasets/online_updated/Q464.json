@@ -1,0 +1,115 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.airplane_fill_1",
+      "asset.alarm_fill_1"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "航班行程提醒卡片",
+    "userQuery": "为用户生成行程提醒卡片，展示航班FU6686郑州新郑国际机场飞往厦门高崎国际机场的行程信息，计划出港时间2026年11月1日22:40，计划到港时间2026年11月2日00:50。本轮卡片静态内容（用作展示的外部事实）：航班号FU6686，郑州新郑国际机场→厦门高崎国际机场，计划出港2026-11-01 22:40，计划到港2026-11-02 00:50",
+    "title": "行程提醒",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/startDate",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/eventLocation",
+          "/events/0/countdownDays"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101121843212"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "40fc5b46-bc79-48a1-9902-8e038e7c23a2"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.airplane_fill_1",
+    "asset.alarm_fill_1"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "航班行程提醒卡片",
+  "userQuery": "为用户生成行程提醒卡片，展示航班FU6686郑州新郑国际机场飞往厦门高崎国际机场的行程信息，计划出港时间2026年11月1日22:40，计划到港时间2026年11月2日00:50。本轮卡片静态内容（用作展示的外部事实）：航班号FU6686，郑州新郑国际机场→厦门高崎国际机场，计划出港2026-11-01 22:40，计划到港2026-11-02 00:50",
+  "title": "行程提醒",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/title",
+        "/events/0/startDate",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/eventLocation",
+        "/events/0/countdownDays"
+      ]
+    }
+  ]
+}
