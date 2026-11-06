@@ -7,7 +7,7 @@ from __future__ import annotations
 import copy
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from services.compact_component_runtime import (
@@ -267,7 +267,7 @@ def expand_high_level_component_rows(
     for parent in components:
         for child_id in parent.children:
             parents[child_id] = parent
-    secondary_widths = _secondary_body_widths(components, size)
+    text_boxes = _text_component_boxes(components, size)
     from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
     from services.static_content_components import expand_static_component
 
@@ -318,12 +318,17 @@ def expand_high_level_component_rows(
         elif component.component_type in {"PillButton", "CircleButton"}:
             rows = expander(component, size, color_palette=color_palette)
         elif component.component_type == "SecondaryBody":
+            box = text_boxes.get(component.component_id)
             rows = expander(
                 component,
                 size,
                 data_model=data_model,
-                available_width=secondary_widths.get(component.component_id),
+                available_width=box.width if box is not None else None,
+                table_continuation=_is_table_continuation(component, components, parent),
             )
+        elif component.component_type == "CardButton":
+            rows = expander(component, size)
+            rows = _fit_card_button_label(rows, text_boxes.get(component.component_id), size)
         elif component.component_type in {
             "DataDisplay",
             "EmphasizedData",
@@ -769,32 +774,25 @@ def _secondary_body_items(component: ComponentRow) -> list[dict[str, Any]]:
     return items
 
 
-def _secondary_body_widths(components: list[ComponentRow], size: str) -> dict[str, float]:
+def _text_component_boxes(components: list[ComponentRow], size: str) -> dict[str, RegionBox]:
     from services.compact_region_layout import reference_region_boxes
 
     if size not in {"2x2", "2x4"}:
         return {}
     nodes: list[dict[str, Any]] = []
-    secondary_ids: set[str] = set()
+    has_text_component = False
     for component in components:
         props = component.props
         kind = component.component_type
-        if kind == "SecondaryBody":
-            kind = "Column"
+        if kind in {"SecondaryBody", "CardButton"}:
+            kind = "Column" if kind == "SecondaryBody" else "Row"
             props = {"width": "matchParent", **props}
-            secondary_ids.add(component.component_id)
+            has_text_component = True
         nodes.append({
             "id": component.component_id, "component": kind,
             "styles": props, "children": list(component.children),
         })
-    widths: dict[str, float] = {}
-    if secondary_ids:
-        boxes = reference_region_boxes(nodes, size=size)
-        for identifier in secondary_ids:
-            box = boxes.get(identifier)
-            if box is not None and box.width is not None:
-                widths[identifier] = box.width
-    return widths
+    return reference_region_boxes(nodes, size=size) if has_text_component else {}
 
 
 def _secondary_sample_schema(value: Any) -> Any:
@@ -818,10 +816,68 @@ def _secondary_sample_schema(value: Any) -> Any:
     return result
 
 
+def _array_value_member(value: Any) -> re.Match[str] | None:
+    path = value.get("path") if isinstance(value, dict) else None
+    if isinstance(value, str):
+        binding = re.fullmatch(r"\s*\{\{\s*\$\{([^{}]+)\}\s*\}\}\s*", value)
+        if binding is not None:
+            path = binding.group(1)
+    member: re.Match[str] | None = None
+    if isinstance(path, str):
+        member = re.fullmatch(
+            r"(?P<collection>/.*)/(?P<index>0|[1-9]\d*)/(?P<field>[^/]+)", path
+        )
+    return member
+
+
+def _list_item_members(component: ComponentRow) -> list[re.Match[str]]:
+    items = component.props.get("items")
+    if not isinstance(items, list):
+        return []
+    members = []
+    for item in items:
+        if not isinstance(item, dict) or not item.get("label"):
+            return []
+        member = _array_value_member(item.get("value"))
+        if member is None:
+            return []
+        members.append(member)
+    return members
+
+
+def _is_table_continuation(
+    component: ComponentRow, components: list[ComponentRow], parent: ComponentRow | None,
+) -> bool:
+    if parent is None or parent.component_type != "Column":
+        return False
+    members = _list_item_members(component)
+    if not members:
+        return False
+    key = members[0].group("collection", "field")
+    indexes = {member.group("index") for member in members}
+    if len(indexes) != len(members):
+        return False
+    if any(member.group("collection", "field") != key for member in members):
+        return False
+    for sibling in components:
+        if sibling.component_type != "TableText" or sibling.component_id not in parent.children:
+            continue
+        table = _list_item_members(sibling)
+        if len(table) < 2:
+            continue
+        if any(member.group("collection", "field") != key for member in table):
+            continue
+        table_indexes = {member.group("index") for member in table}
+        if len(table_indexes) == len(table) and not indexes.intersection(table_indexes):
+            return True
+    return False
+
+
 def _expand_secondary_body(
     component: ComponentRow, size: str, *,
     data_model: dict[str, Any] | None = None,
     available_width: float | None = None,
+    table_continuation: bool = False,
 ) -> list[ComponentRow]:
     from services.compact_composition_context import small_card_display_text
 
@@ -923,6 +979,8 @@ def _expand_secondary_body(
                 },
             )
             labeled_multiline = label is not None and max_lines > 1
+            if table_continuation and label is not None and max_lines == 1:
+                value_row = replace(value_row, props={**value_row.props, "textAlign": "end"})
             if labeled_multiline:
                 # 独立标签旁的短值自然测量，避免在两行框中垂直居中。
                 # 已合并标签的预测换行正文保留 Recipe 行框，不挤压相邻主值。
@@ -2483,6 +2541,50 @@ def _expand_card_button(component: ComponentRow, size: str) -> list[ComponentRow
         )
     )
     return rows
+
+
+def _required_recipe_field(props: dict, key: str) -> Any:
+    if key not in props:
+        raise KeyError(key)
+    return props[key]
+
+
+def _fit_card_button_label(
+    rows: list[ComponentRow], box: RegionBox | None, size: str,
+) -> list[ComponentRow]:
+    """按所属槽位估宽；图标只表示动作装饰，点击事件仍由按钮根承载。"""
+    root, label, icon = rows
+    text = _required_recipe_field(label.props, "content")
+    if box is None or box.width is None or not isinstance(text, str):
+        return rows
+    if "{{" in text or "${" in text:
+        return rows
+    padding = _required_recipe_field(root.props, "padding")
+    plain_width = box.width - _required_recipe_field(padding, "left")
+    plain_width -= _required_recipe_field(padding, "right")
+    icon_width = _required_recipe_field(icon.props, "width")
+    icon_width += _required_recipe_field(root.props, "itemMargin")
+    font = _required_recipe_field(label.props, "fontSize")
+    # 参考盒不是原生字形测量；给粗体每行留半字余量，避免临界宽度提前裁尾。
+    required = secondary_body_text_width(text, font)
+    line_count = _required_recipe_field(label.props, "maxLines")
+    if required <= (plain_width - icon_width - font / 2) * line_count:
+        return rows
+    if line_count == 1 and required > plain_width - font / 2:
+        _, multiline = _visual_recipe_part_for_converter(
+            "CardButton", "label", size=size, variant="multilineLabel",
+        )
+        text_height = _required_recipe_field(multiline, "height")
+        needed_height = text_height + _required_recipe_field(padding, "top")
+        needed_height += _required_recipe_field(padding, "bottom")
+        if box.height is not None and box.height >= needed_height:
+            label = ComponentRow(label.component_id, "Text", {
+                **label.props, "maxLines": _required_recipe_field(multiline, "maxLines"),
+                "height": text_height,
+            })
+    root = ComponentRow(root.component_id, "Row", {**root.props, "itemMargin": 0},
+                        (label.component_id,))
+    return [root, label]
 
 
 def _expand_progress_circle_single(

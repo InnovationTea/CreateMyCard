@@ -123,6 +123,76 @@ def test_pure_action_slot_keeps_card_button_two_line_contract() -> None:
     assert '"maxLines":2' in converted
 
 
+@pytest.mark.parametrize(
+    ("size", "label", "icon", "keep_icon"),
+    [
+        ("2x2", "屏幕时长管控", "switch.svg", False),
+        ("2x4", "打车去公司", "car.svg", False),
+        ("2x2", "ABCDEF", "switch.svg", True),
+        ("2x4", "打车", None, True),
+        ("2x2", "屏幕时长管控", None, False),
+    ],
+)
+def test_card_button_icon_yields_to_label_width(size, label, icon, keep_icon) -> None:
+    handler = {"call": "open", "args": {"target": "first"}}
+    props = {"label": label, "onClick": [handler]}
+    if icon is not None:
+        props["icon"] = "resources/base/media/" + icon
+    if size == "2x2":
+        _, _, rows = _case(True)
+        rows[1][2] = props
+        button_id = "first"
+    else:
+        button_id = "lower"
+        rows = [
+            ["root", "Layout", {"layout": "W-content-side-slots"}, ["body", "upper", "lower"]],
+            ["body", "Region", {"variant": "title-content"}, ["title", "main"]],
+            ["title", "SingleLineTitle", {"title": "天气"}],
+            ["main", "EmphasisText", {"mainText": "小雨"}],
+            ["upper", "InfoBlock", {"variant": "slot", "primaryText": "75%",
+                                   "secondaryText": "降水概率", "backgroundColor": "#33000000"}],
+            [button_id, "CardButton", props],
+        ]
+    output = convert_compact_dsl_to_a2ui(_source(rows), size=size)
+    by_id = _nodes_by_id(output)
+    button = by_id.get(button_id)
+    text = by_id.get(button_id + "_label")
+    assert button is not None and text is not None
+    assert button.get("onClick") == [handler]
+    assert text.get("content") == label
+    assert text.get("styles", {}).get("maxLines") == 1
+    assert (button_id + "_visual" in by_id) is keep_icon
+    assert button.get("itemMargin") == (8 if keep_icon else 0)
+
+
+def _nodes_by_id(output: str) -> dict:
+    update = json.loads(output.splitlines()[1]).get("updateComponents")
+    assert update is not None
+    nodes = update.get("components")
+    assert isinstance(nodes, list)
+    return {node.get("id"): node for node in nodes}
+
+
+@pytest.mark.parametrize(("height", "expected_lines"), [(57, 2), (36, 1)])
+def test_icon_free_label_wraps_only_in_a_tall_enough_slot(height, expected_lines) -> None:
+    rows = [
+        ["root", "Column", {"width": "matchParent", "height": "matchParent"}, ["slot"]],
+        ["slot", "Column", {"width": 78, "height": height}, ["action"]],
+        ["action", "CardButton", {
+            "label": "屏幕时长管控", "width": "matchParent", "height": "matchParent",
+            "onClick": [{"call": "open", "args": {}}],
+        }],
+    ]
+    output = convert_compact_dsl_to_a2ui(_source(rows), size="2x4")
+    by_id = _nodes_by_id(output)
+    button = by_id.get("action")
+    text = by_id.get("action_label")
+    assert button is not None and text is not None
+    assert button.get("children") == ["action_label"]
+    assert text.get("styles", {}).get("maxLines") == expected_lines
+    assert text.get("styles", {}).get("fontSize") == 14
+
+
 def test_card_button_is_not_a_single_action_substitute() -> None:
     rows = [["root", "Layout", {"layout": "S-title-content-action"}, ["title", "body", "action"]],
             ["title", "SingleLineTitle", {"title": "测试", "fontSize": 12}],
