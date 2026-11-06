@@ -97,6 +97,7 @@ def test_legal_static_and_dynamic_generation_requests_remain_valid(operation, ha
             "capabilityId": "GetCalendarEvents",
             "arguments": {},
             "writeResultTo": "/data/calendar",
+            "candidateOutputFields": ["/eventCount"],
         }]
     request_type = GenerateWidgetCardRequest
     if operation is not None:
@@ -269,6 +270,7 @@ def test_unknown_data_argument_reports_exact_location(name):
             "capabilityId": "GetCalendarEvents",
             "arguments": {name: "today"},
             "writeResultTo": "/data/calendar",
+            "candidateOutputFields": ["/eventCount"],
         }],
     )
     from services.edit_request_normalizer import EditRequestNormalizer
