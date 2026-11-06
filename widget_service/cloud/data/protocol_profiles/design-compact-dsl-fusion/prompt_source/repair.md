@@ -90,6 +90,8 @@ semantic_layout_contract_repair 只修复错误消息定位的 Layout、Region �
 | SecondaryBody 动态 label | 保留静态标签；动态部分与原 value 按显示顺序合入同项完整 value Expression，保留全部绑定 |
 | SecondaryBody 是整卡唯一业务正文 | 同一对象有 2–3 项同级等权的短标签—值时，优先改为可承担核心角色的 TableText；两项高 38vp/fontSize 12，三项高 52vp/fontSize 10。逐项保留 label、value 和绑定，按父区剩余高度核算；事件、比例、强调主值不表格化，超出项不得未授权删除 |
 | SecondaryBody 项数/字号/宽度 | 最多6项，只移除未被 Plan 要求的重复或可选项；必要项改组合。按最终单/多行使用规定字号；长值可 columns:1、maxLines:2并计新增行高 |
+| Region hero 缺少核心内容 | 在报错 hero 子树使用合法核心组件或包含核心内容的 Group，保留原事实、绑定、字号和动作；也可选择真正匹配现有信息角色的其它合法 Region，不以小标题或辅助文字占据主槽 |
+| SingleLineTitle 的唯一数值展示超宽 | 把完整数值及必要单位安排到合法核心位置，标题保留必要身份；不删除数值绑定、不缩字、不将读数藏在会被裁切的长标题末尾，复查实际区域容量 |
 | EmphasizedData 误装多段时长 | 完整绑定迁入 EmphasisText.mainText 固定18fp，辅助时长保持正文规格；不截数字或删单位 |
 | 2x4 EmphasisText.mainText 超宽且无已有次文本 | 用户与Plan未要求大字强调、且原输入已有同对象核心名称或状态时，可将完整原值或绑定移入secondaryText，以已有名称或状态作为mainText；例如mainText为“领事保护”，secondaryText为完整电话号码。字段为secondaryText而非subText；不编造正文、不覆盖已有次文本，完整保留事实和拨号参数，复检12fp次文本单行宽度与总高；仍放不下时重组布局 |
 | TextBlock 项目被拆散或超出槽宽 | 用完整显示格式核对每格文字净宽；将放不下的长值移到较宽正文行。保留已选事实及绑定，短值仍可并列；移出后不足两项则改选合法组件 |

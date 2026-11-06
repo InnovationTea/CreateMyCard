@@ -56,6 +56,7 @@ from services.card_validation.compact_validation.semantic.numeric_display import
 )
 from services.card_validation.compact_validation.semantic.plan_contracts import (
     collect_actions_only_plan_errors,
+    collect_hero_slot_errors,
     collect_plan_contract_errors,
     collect_secondary_body_context_errors,
 )
@@ -202,9 +203,7 @@ def validate_compact_dsl(
         original_errors.extend(layout_errors)
         raise _validation_error(original_errors, context, repair_context)
     try:
-        components = expand_high_level_component_rows(
-            components, size=size, data_model=data_model, protocol_profile=protocol_profile
-        )
+        components = expand_high_level_component_rows(components, size=size, data_model=data_model)
     except CompactDslConversionError as exc:
         from .semantic.layout.text_capacity import capacity_diagnostic_from_error
 
@@ -231,6 +230,9 @@ def validate_compact_dsl(
     errors = DiagnosticCollector()
     _collect_asset_source_errors(components, task_spec, errors)
     _collect_component_contract_errors(components, task_spec, errors)
+    collect_hero_slot_errors(
+        [row for row in original_rows if isinstance(row, ComponentRow)], errors,
+    )
     _collect_ambiguous_metric_text_errors(
         components, task_spec, warnings, layout_origins=context.layout_origins,
     )

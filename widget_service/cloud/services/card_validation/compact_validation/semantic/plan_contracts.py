@@ -23,6 +23,42 @@ from services.event_matching import event_handlers_match
 _BUTTON_COMPONENT_TYPES = frozenset({"PillButton", "CircleButton", "CardButton"})
 
 
+def collect_hero_slot_errors(
+    source_components: list[ComponentRow] | None, errors: list[str],
+) -> None:
+    """按正式 Region 角色检查主槽，不把其它分区的核心内容借给该槽。"""
+    from services.generation_content_policy import STATIC_COMPONENTS, current_content_policy
+
+    if source_components is None:
+        return
+    core_types = CORE_INFORMATION_COMPONENT_TYPES
+    if current_content_policy().is_static:
+        core_types = core_types | STATIC_COMPONENTS
+    by_id = {component.component_id: component for component in source_components}
+    for region in source_components:
+        if region.component_type != "Region":
+            continue
+        variant = region.props.get("variant")
+        if variant not in {"title-hero-support", "title-hero-support-action"}:
+            continue
+        if len(region.children) < 2:
+            continue
+        hero_id = region.children[1]
+        subtree = _component_subtree_ids([hero_id], by_id)
+        has_core = any(
+            component.component_type in core_types
+            for component in source_components if component.component_id in subtree
+        )
+        if has_core:
+            continue
+        errors.append(
+            f"component {hero_id}: Region.{variant} hero slot requires a core information "
+            "component in its own subtree. Titles, auxiliary text and actions cannot alone "
+            "serve as the hero. Preserve facts, bindings and actions; use a valid core "
+            "component or a supported Region matching the information roles."
+        )
+
+
 def collect_actions_only_plan_errors(
     source_components: list[ComponentRow],
     compact_plan: dict[str, Any] | None,

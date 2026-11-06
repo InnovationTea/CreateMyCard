@@ -32,6 +32,7 @@ _CAPACITY_MARKERS = (
     "text width overflow",
 )
 _STRUCTURE_MARKERS = (
+    "hero slot requires a core information component",
     "compact layout does not match scope",
     "layout does not match",
     "语义布局不符合合同",

@@ -20,16 +20,16 @@ def text_block(count: int) -> ComponentRow:
 
 
 @pytest.mark.parametrize(
-    ("value", "height", "orientation"),
+    ("value", "height"),
     [
-        ("30分", 150, "Row"),
-        ("2小时30分钟", 150, "Column"),
-        ("2小时30分钟", 125, "Row"),
-        ("很长的内容" * 8, 150, "Row"),
+        ("30分", 150),
+        ("2小时30分钟", 150),
+        ("2小时30分钟", 125),
+        ("很长的内容" * 8, 150),
     ],
 )
-def test_bound_text_block_uses_full_rows_only_when_they_fit(
-    value: str, height: int, orientation: str,
+def test_bound_text_block_keeps_authored_layout_independent_of_first_frame(
+    value: str, height: int,
 ) -> None:
     expression = "{{ ${/data/name} + ' ' + ${/data/value} }}"
     source = [
@@ -53,17 +53,14 @@ def test_bound_text_block_uses_full_rows_only_when_they_fit(
     assert components is not None
     by_id = {node.get("id"): node for node in components}
     block = by_id.get("facts")
-    assert block is not None and block.get("component") == orientation
+    assert block is not None and block.get("component") == "Row"
     assert block.get("children") == ["facts_item0", "facts_item1", "facts_item2"]
     text = by_id.get("facts_item0_value")
     assert text is not None and text.get("content") == expression
     assert text.get("styles", {}).get("fontSize") == 10
-    if orientation == "Column":
-        boxes = reference_region_boxes(components, size="2x4", profile=profile)
-        text_box = boxes.get("facts_item0_value")
-        item_box = boxes.get("facts_item0")
-        assert text_box is not None and text_box.width == pytest.approx(172)
-        assert item_box is not None and item_box.height == pytest.approx(22)
+    boxes = reference_region_boxes(components, size="2x4", profile=profile)
+    text_box = boxes.get("facts_item0_value")
+    assert text_box is not None and text_box.width == pytest.approx(70 + 2 / 3)
 
 
 @pytest.mark.parametrize("count", [2, 3, 4])

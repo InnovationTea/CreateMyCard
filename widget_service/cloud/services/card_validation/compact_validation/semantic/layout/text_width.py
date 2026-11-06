@@ -29,6 +29,7 @@ def _collect_text_width_budget_errors(
     size = card_spec.get("suggestSize") or task_spec.get("size")
     if size not in {"2x2", "2x4"}:
         return
+    _collect_title_width_errors(components, task_spec, errors, warnings, size, protocol_profile)
     nodes = []
     parents = {}
     by_id = {}
@@ -162,14 +163,107 @@ def _collect_text_width_budget_errors(
                         "an ellipsis."
                     )
                 continue
+            errors.append(_width_error(
+                row.component_id, text, font, required, available, width_description,
+            ))
+
+
+def _width_error(
+    identifier: str, text: str, font: float, required: float,
+    available: float, description: str,
+) -> str:
+    return (
+        f"component {identifier}: text width overflow; complete text {text!r} "
+        f"at original font {font:g} needs about {required:g}vp in one line, "
+        f"but its {description} is {available:g}vp. Keep every label, prefix, "
+        "value and action; use legal lines at the same font or regroup into a wider "
+        "region. A fixed single-line component needs same-font separate lines or a "
+        "different legal composition, not clipping, unsupported font overrides or weight."
+    )
+
+
+def _collect_title_width_errors(
+    components: list[ComponentRow], task: dict[str, Any], errors: list[str],
+    warnings: list[str] | None, size: str, profile: dict[str, Any] | None,
+) -> None:
+    """只读实际标题展开；其它组件仍使用原几何检查，避免改变既有预算。"""
+    from services.compact_composition_context import small_card_display_text
+    from services.compact_high_level_components import _convert_single_line_title
+
+    existing_ids = {row.component_id for row in components}
+    nodes = []
+    titles = []
+    for component in components:
+        if component.component_type != "SingleLineTitle":
+            nodes.append({"id": component.component_id, "component": component.component_type,
+                          "styles": component.props, "children": list(component.children)})
+            continue
+        expanded = _convert_single_line_title(component, size)
+        generated_ids = {node.get("id") for node in expanded[1:]}
+        if generated_ids.intersection(existing_ids):
+            # 命名冲突由原转换/完整产物校验处理，不在这里猜测重命名。
+            nodes.append({"id": component.component_id, "component": component.component_type,
+                          "styles": component.props, "children": list(component.children)})
+            continue
+        nodes.extend(expanded)
+        titles.append((component, expanded[1]))
+    if not titles:
+        return
+    try:
+        boxes = reference_region_boxes(nodes, size=size, profile=profile)
+    except ValueError:
+        # 原文字预算入口会发布同一参考配置错误。
+        return
+    for component, text_node in titles:
+        box = boxes.get(text_node.get("id"))
+        styles = text_node.get("styles", {})
+        font = _non_negative_number(styles.get("fontSize"))
+        text = small_card_display_text(component.props.get("title"), task)
+        if box is None or box.width is None or font is None:
+            continue
+        if not isinstance(text, str) or not text or "\n" in text:
+            continue
+        available = box.width - _horizontal_padding(styles)
+        required = sum(font * (0.5 if char.isascii() else 1) for char in text)
+        if available <= 0 or required <= available + 1e-7:
+            continue
+        message = _width_error(
+            component.component_id, text, font, required, available, "allocated text area",
+        )
+        if _has_title_only_number(component, components, task):
             errors.append(
-                f"component {row.component_id}: text width overflow; complete text {text!r} "
-                f"at original font {font:g} needs about {required:g}vp in one line, "
-                f"but its {width_description} is {available:g}vp. Keep every label, prefix, "
-                "value and action; use legal lines at the same font or regroup into a wider "
-                "region. A fixed single-line component needs same-font separate lines or a "
-                "different legal composition, not clipping, unsupported font overrides or weight."
+                message + " SingleLineTitle is the only display of this numeric reading; "
+                "preserve its "
+                "binding and unit in a legal core information component or a wider region."
             )
+        elif warnings is not None:
+            warnings.append(message + " SingleLineTitle overflow remains a non-blocking warning.")
+
+
+def _has_title_only_number(
+    title: ComponentRow, components: list[ComponentRow], task: dict[str, Any],
+) -> bool:
+    from services.card_validation.compact_validation.syntax.expressions import (
+        _collect_binding_context,
+    )
+    from services.compact_composition_planner import _schema_value
+
+    paths: list[str] = []
+    _collect_binding_context(title.props.get("title"), "title", paths, [])
+    numbers = set()
+    for path in paths:
+        if _schema_value(task, path).get("type") in {"integer", "number"}:
+            numbers.add(path)
+    if not numbers:
+        return False
+    for component in components:
+        if component.component_type == "SingleLineTitle":
+            continue
+        visible = {key: value for key, value in component.props.items() if key != "onClick"}
+        other_paths: list[str] = []
+        _collect_binding_context(visible, "component", other_paths, [])
+        numbers.difference_update(other_paths)
+    return bool(numbers)
 
 
 def _compound_duration_label_width_error(

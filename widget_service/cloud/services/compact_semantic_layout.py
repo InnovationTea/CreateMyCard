@@ -145,10 +145,6 @@ def collect_semantic_layout_warnings(
     return ()
 
 
-def generated_component_id(origin: str, suffix: str) -> str:
-    return f"{GENERATED_PREFIX}{origin}__{suffix}"
-
-
 def _fail(identifier: str, message: str) -> NoReturn:
     raise CompactDslConversionError(
         f"语义布局不符合合同：节点 {identifier}：{message}。"
@@ -201,7 +197,7 @@ class _Compiler:
         return row
 
     def generated(self, origin: str, suffix: str) -> str:
-        identifier = generated_component_id(origin, suffix)
+        identifier = f"{GENERATED_PREFIX}{origin}__{suffix}"
         if identifier in self.by_id or identifier in self.origins:
             _fail(origin, "生成的组件 ID 发生冲突")
         self.origins[identifier] = origin

@@ -248,7 +248,6 @@ def expand_high_level_component_rows(
     size: str,
     data_model: dict[str, Any] | None = None,
     color_palette: dict[str, str] | None = None,
-    protocol_profile: dict[str, Any] | None = None,
 ) -> list[ComponentRow]:
     """Expand Fusion high-level rows into the existing base Compact components."""
     if color_palette is None:
@@ -382,9 +381,6 @@ def expand_high_level_component_rows(
                 )
             generated_ids.add(row.component_id)
             expanded.append(row)
-    text_blocks = [row.component_id for row in components if row.component_type == "TextBlock"]
-    if text_blocks:
-        return _fit_text_blocks(expanded, text_blocks, data_model, size, protocol_profile)
     return expanded
 
 
@@ -2388,97 +2384,6 @@ def _expand_table_text(component: ComponentRow, size: str) -> list[ComponentRow]
         children=tuple(children),
     )
     return [root, *rows]
-
-
-def _fit_text_blocks(
-    rows: list[ComponentRow], block_ids: list[str], data: dict[str, Any] | None,
-    size: str, profile: dict[str, Any] | None,
-) -> list[ComponentRow]:
-    from services.compact_region_layout import reference_region_boxes
-    from services.compact_semantic_layout import generated_component_id
-
-    # 只适配语义骨架生成的详情槽。手写基础容器按作者指定的几何展开。
-    details_id = generated_component_id("root", "details")
-    details = next((row for row in rows if row.component_id == details_id), None)
-    if details is None:
-        return rows
-
-    nodes = []
-    for row in rows:
-        nodes.append({
-            "id": row.component_id, "component": row.component_type,
-            "styles": row.props, "children": row.children,
-        })
-    reference_profile = profile if profile is not None and "sizes" in profile else None
-    boxes = reference_region_boxes(nodes, size=size, profile=reference_profile)
-    by_id = {row.component_id: row for row in rows}
-    task = {"dataModelSchema": _secondary_sample_schema(data or {})}
-    changes: dict[str, ComponentRow] = {}
-    for block_id in block_ids:
-        if block_id not in details.children:
-            continue
-        block = by_id.get(block_id)
-        box = boxes.get(block_id)
-        if block is None or box is None:
-            continue
-        changes.update(_text_block_full_rows(block, box, by_id, boxes, task))
-    return [changes.get(row.component_id, row) for row in rows]
-
-
-def _text_block_full_rows(
-    block: ComponentRow, box: RegionBox, by_id: dict[str, ComponentRow],
-    boxes: dict[str, RegionBox], task: dict[str, Any],
-) -> dict[str, ComponentRow]:
-    """只有旧横排已超宽、且全部文字在逐行布局中可容纳时才改变排列。"""
-    from services.compact_composition_context import small_card_display_text
-
-    if box.width is None or box.height is None:
-        return {}
-    count = len(block.children)
-    gap = _required_recipe_field(block.props, "itemMargin")
-    row_height = (box.height - gap * (count - 1)) / count
-    changes = {
-        block.component_id: replace(
-            block, component_type="Column", props={**block.props, "alignItems": "start"}
-        ),
-    }
-    overflows = False
-    for item_id in block.children:
-        item = by_id.get(item_id)
-        if item is None:
-            return {}
-        padding = _required_recipe_field(item.props, "padding")
-        inset = _required_recipe_field(padding, "left") + _required_recipe_field(padding, "right")
-        inner = box.width - inset - _required_recipe_field(item.props, "itemMargin")
-        props = {
-            **item.props, "width": "matchParent", "alignItems": "center", "justifyContent": "start",
-        }
-        props.pop("height", None)
-        changes[item_id] = replace(item, component_type="Row", props=props)
-        # 标签和值沿用各自的行盒，宽度随端侧容器按 1:2 分配。
-        for weight, slot_id in enumerate(item.children, start=1):
-            slot = by_id.get(slot_id)
-            if slot is None or not slot.children:
-                return {}
-            text = by_id.get(slot.children[0])
-            if text is None:
-                return {}
-            visible = small_card_display_text(text.props.get("content"), task)
-            old = boxes.get(text.component_id)
-            if visible is None or old is None or old.width is None:
-                return {}
-            if "\n" in visible or "\r" in visible:
-                return {}
-            font_size = _required_recipe_field(text.props, "fontSize")
-            width = secondary_body_text_width(visible, font_size)
-            slot_height = _required_recipe_field(slot.props, "height")
-            if width > inner * weight / 3 or row_height < slot_height:
-                return {}
-            overflows = overflows or width > old.width
-            slot_props = {**slot.props, "layoutWeight": weight}
-            slot_props.pop("width", None)
-            changes[slot_id] = replace(slot, props=slot_props)
-    return changes if overflows else {}
 
 
 def _expand_text_block(component: ComponentRow, size: str) -> list[ComponentRow]:
