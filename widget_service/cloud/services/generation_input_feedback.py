@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from core.errors import ErrorCode
 from models.preflight import AgentAction, PreflightIssue
 from services.argument_json_recovery import DECODER
-from services.compact_plan_output import normalize_plan_output
+from services.compact_plan_output import normalize_plan_json_fence, normalize_plan_output
 
 REPORT_MISSING_DATA = "report_missing_data"
 MISSING_DATA_PLAN_INSTRUCTION = (
@@ -90,7 +90,8 @@ def parse_missing_data_report(
 ) -> MissingDataReport | None:
     result: MissingDataReport | None = None
     try:
-        payload = DECODER.decode(normalize_plan_output(raw_output).text)
+        normalized = normalize_plan_output(raw_output).text
+        payload = DECODER.decode(normalize_plan_json_fence(normalized).text)
     except ValueError:
         payload = None  # 非本合同的输出仍由原 Plan 解析器诊断。
     if not isinstance(payload, dict) or payload.get("name") != REPORT_MISSING_DATA:

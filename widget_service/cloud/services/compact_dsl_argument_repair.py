@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import ValidationError
 
-from api.schemas import GenerateWidgetCardRequest
+from api.schemas import GenerateWidgetCardRequest, RequestDataBinding
 from app.logger import json_for_log, json_text_for_log, logger
 from config.config import get_settings
 from core.errors import ErrorCode
@@ -20,7 +20,7 @@ from custom.a2ui_model_client import A2UIModelClient
 from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelBackend
 from models.capability import EventDynamicArgument
-from models.generation import CandidateDataBinding, GenerationOptions, ModelRequestContext
+from models.generation import GenerationOptions, ModelRequestContext
 from models.preflight import GenerationPreflightError
 from services.agent_feedback import request_validation_feedback
 from services.argument_json_recovery import (
@@ -1031,7 +1031,7 @@ def _fragment_is_valid(
     if name == "candidateAssetIds":
         return isinstance(value, str) and registry.get_asset_capability(value) is not None
     try:
-        binding = CandidateDataBinding.model_validate(value, strict=True)
+        binding = RequestDataBinding.model_validate(value, strict=True)
     except ValidationError:
         return False
     capability = registry.get_data_capability(binding.capabilityId)

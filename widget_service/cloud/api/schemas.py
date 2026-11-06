@@ -252,6 +252,13 @@ def _without_tool_metadata(values: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+class RequestDataBinding(CandidateDataBinding):
+    """新提交绑定须完整；历史产物继续使用兼容的内部绑定模型。"""
+
+    arguments: dict[str, Any] = Field(...)
+    candidateOutputFields: list[str] = Field(..., min_length=1)
+
+
 class GenerateWidgetCardRequest(VersionedToolRequest):
     model_config = ConfigDict(extra="forbid")
 
@@ -260,7 +267,7 @@ class GenerateWidgetCardRequest(VersionedToolRequest):
     size: WidgetSize | None = None
     title: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, min_length=1)
-    candidateDataBindings: list[CandidateDataBinding] | None = None
+    candidateDataBindings: list[RequestDataBinding] | None = None
     candidateEventCandidates: list[CandidateEventCandidate] | None = None
     candidateAssetIds: list[str] | None = None
     options: GenerationOptions = Field(default_factory=GenerationOptions)
@@ -332,7 +339,7 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     size: WidgetSize | None = None
     title: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, min_length=1)
-    candidateDataBindings: list[CandidateDataBinding] | None = None
+    candidateDataBindings: list[RequestDataBinding] | None = None
     candidateEventCandidates: list[CandidateEventCandidate] | None = None
     candidateAssetIds: list[str] | None = None
 

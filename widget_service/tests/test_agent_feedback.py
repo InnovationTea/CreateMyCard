@@ -118,6 +118,7 @@ def test_corrected_request_can_be_retried_without_reaching_generation_on_first_c
                 "capabilityId": "GetCalendarEvents",
                 "arguments": {},
                 "writeResultTo": "/data/calendar",
+                "candidateOutputFields": ["/eventCount"],
             }
         ]
         websocket.send_json({"arguments": arguments})
@@ -694,6 +695,7 @@ def test_preflight_keeps_precise_constraint_and_points_to_agent_business_object(
                 "capabilityId": "ViewWeather",
                 "arguments": {"forecastDays": "secret-number"},
                 "writeResultTo": "/data/weather",
+                "candidateOutputFields": ["/current/temperatureText"],
             }
         ],
     )
