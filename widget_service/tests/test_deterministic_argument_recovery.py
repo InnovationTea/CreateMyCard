@@ -236,10 +236,101 @@ def test_ordinary_valid_request_does_not_enter_recovery(registry):
     assert _recover(source) is None
 
 
+def _missing_uri_quote(source):
+    raw = json.dumps(source, ensure_ascii=False)
+    broken = raw.replace('cityCode} }}"', 'cityCode} }}')
+    assert broken != raw
+    return broken
+
+
+@pytest.mark.parametrize("action_key", ["action", "actionTemplate"])
+@pytest.mark.parametrize("multiple", [False, True])
+def test_missing_uri_quote_preserves_all_events_and_following_fields(
+    registry, action_key, multiple,
+):
+    source = _content(registry)
+    events = source.get("candidateEventCandidates")
+    assert isinstance(events, list)
+    if multiple:
+        phone = registry.get_event_capability("event.call.phone")
+        assert phone is not None
+        events.insert(0, {
+            "capabilityId": phone.id, "action": phone.actionTemplate.model_dump(mode="json"),
+        })
+        events.append(copy.deepcopy(events[1]))
+    expected = copy.deepcopy(source)
+    if action_key == "actionTemplate":
+        for event in events:
+            event[action_key] = event.pop("action")
+    raw = _missing_uri_quote(source)
+    assert DECODER.decode(repair_syntax(raw)) == source
+    result = _recover({"arguments": raw})
+    assert result is not None
+    assert result.content == expected
+    assert result.attempts == 0
+    assert result.mode == "syntax"
+    assert result.dropped_candidates == ()
+
+
+@pytest.mark.parametrize("location", ["root", "data", "text"])
+def test_missing_uri_quote_outside_event_is_not_repaired(registry, location):
+    source = _content(registry)
+    events = source.pop("candidateEventCandidates")
+    assert isinstance(events, list)
+    action = events[0].get("action")
+    assert isinstance(action, dict)
+    args = action.get("args")
+    assert isinstance(args, dict)
+    if location == "root":
+        source.update(args)
+    elif location == "data":
+        source["candidateDataBindings"] = [{"arguments": args}]
+    else:
+        source["description"] = json.dumps(args)
+        raw = json.dumps(source)
+        assert DECODER.decode(repair_syntax(raw)) == source
+        return
+    with pytest.raises(ValueError, match="outside event"):
+        repair_syntax(_missing_uri_quote(source))
+
+
+@pytest.mark.parametrize("damage", ["expression", "extra_brace", "duplicate", "trailing"])
+def test_missing_uri_quote_does_not_hide_other_syntax_damage(registry, damage):
+    raw = _missing_uri_quote(_content(registry))
+    if damage == "expression":
+        raw = raw.replace("cityCode} }}", "cityCode} }")
+    elif damage == "extra_brace":
+        raw = raw.replace("cityCode} }}", "cityCode} }}}")
+    elif damage == "duplicate":
+        raw = raw.replace('"size": "2x2"', '"size": "2x2", "size": "2x4"')
+    else:
+        raw += " extra text"
+    with pytest.raises(ValueError):
+        _recover({"arguments": raw})
+
+
+def test_missing_uri_quote_keeps_invalid_binding_for_preflight(registry):
+    raw = _missing_uri_quote(_content(registry))
+    raw = raw.replace("/data/weather/location/cityCode", "/data/unknown/location/cityCode")
+    with pytest.raises(ValueError):
+        _recover({"arguments": raw})
+
+
+def test_missing_uri_quote_logs_only_repair_count(monkeypatch, registry):
+    from services import event_uri_json_recovery
+
+    logs = []
+    monkeypatch.setattr(event_uri_json_recovery.logger, "info", logs.append)
+    source = _content(registry)
+    repair_syntax(_missing_uri_quote(source))
+    assert logs == ["event_uri_json_quote_repaired count=1 model_called=false"]
+
+
 @pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("missing_quote", [False, True])
 @pytest.mark.asyncio
 async def test_deterministic_route_precedes_model_gate_without_request_id(
-    monkeypatch, registry, enabled,
+    monkeypatch, registry, enabled, missing_quote,
 ):
     from api import routes
     from config.config import get_settings
@@ -250,7 +341,8 @@ async def test_deterministic_route_precedes_model_gate_without_request_id(
     monkeypatch.setattr(get_settings(), "enable_compact_dsl_argument_repair_fallback", enabled)
     monkeypatch.setattr(routes, "recover_compact_dsl_content", unexpected_model)
     source = _content(registry)
-    payload = _payload({"arguments": _damaged_event(source)})
+    raw = _missing_uri_quote(source) if missing_quote else _damaged_event(source)
+    payload = _payload({"arguments": raw})
     recovered = await routes._repair_compact_dsl_content_if_needed(
         payload, "generateWidgetCardCompactDsl", None, None,
     )

@@ -40,6 +40,12 @@ def test_success_instruction_survives_transport_without_changing_result(status, 
     assert "无需且不得再次调用" in instruction
     assert "只有用户后续明确" in instruction
     assert "不向用户展示" in instruction
+    assert "优先按实际结果及本指引处理" in instruction
+    assert "可忽略 notion 中与本指引冲突" in instruction
+    assert "仅输出 NO_REPLY 或禁止文本回复" in instruction
+    assert "允许只向用户回复一段简短文本" in instruction
+    assert "不必调用任何工具来完成回复" in instruction
+    assert "部分完成须如实说明" in instruction
     if status == "degraded":
         assert data.get("omittedRequirements") == ["次要说明"]
 
