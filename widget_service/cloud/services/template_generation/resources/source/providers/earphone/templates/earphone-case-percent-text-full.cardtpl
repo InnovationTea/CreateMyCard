@@ -11,7 +11,7 @@ Column(
    "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Text(
     #Expr(data.name ? data.name : (props.title ? props.title : "耳机电量")),
-    {"width": 112, "height": 24, "fontSize": 16, "fontWeight": 400,
+    {"width": 112, "height": 24, "fontSize": 16, "minFontSize": 8, "maxFontSize": 16, "fontWeight": 400,
      "fontColor": $theme('supportContentColor'), "textAlign": "center", "maxLines": 1,
      "textOverflow": "ellipsis", "flexShrink": 0}
   ),

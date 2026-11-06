@@ -8,6 +8,11 @@
 
 # 第二层业务模板使用规则
 
+所有显示耳机名称的模板均为单行自适应：下限 8fp，上限取该行原字号与 18fp 的较小值，
+短名称不放大，缩至下限仍不足时省略。名称与其它文字同排时整行一起缩放，图标尺寸不变；
+保留名称与连接状态的运行时条件。不要通过拆开同一行或改写名称绕过自适应规则。
+`NameAndChargeSupport` 使用外层 Support 的正常留白，不再叠加左右各 8vp 内边距。
+
 - `BluetoothDeviceOverviewEarbudPairChargingFull@1`：沿用EarbudPairFull的小标题、大字主状态和
   左耳/右耳/盒三列电量。必需三处电量及chargingStatusDesc；不要补名称、连接状态或左右耳状态。
   当cardComposition.businessTitleCandidate非空时逐字传入title；缺省省略，显示“蓝牙耳机”。
@@ -22,6 +27,7 @@
     每列从上到下依次为图标、电量、对应充电状态，间距分别4vp、2vp；图标可选，缺失显示左/右/盒；
     用于 HeroActionLayout 搭配一个 PillAction，不使用角落 IconAction。
   - `BluetoothDeviceOverviewEarbudPairHero@1`：主行展示耳机名称，下方 12px 左右图标与 10fp 电量百分比并排；
+    名称固定单行，上限 18fp，使用 8–18fp 自适应字号；缩至 8fp 仍放不下时省略。
     名称和左右电量必需，不要求连接状态或仓电量。图标可选，缺失显示左/右文字；用于 HeroActionLayout 加一个按钮。
   - `BluetoothDeviceOverviewHero@1`：展示连接状态、设备名，左右耳电量可选；可选左右耳图标；用于
     `HeroActionLayout@1` 加一个 `PillAction@1`。左右耳充电状态可选，各自可用时以 12vp

@@ -22,6 +22,23 @@
 JSON 解析异常继续抛出。普通日志记录禁染素材数量、实际清理的 Image 数和删除属性数，不输出完整卡片。
 回归覆盖正式清单全部禁染 SVG、可染色 SVG、嵌套节点、数据隔离及二层输出到公共转换的完整路径。
 
+## 2026-11-06 耳机名称单行自适应
+
+19 个带名称的耳机模板（Full、Hero、Compact、Support、WideFull）统一设置 `minFontSize: 8`，
+`fontSize` 与 `maxFontSize` 取原名称字号和 18fp 的较小值，保留原有短名称视觉大小。
+`maxLines: 1`，`textOverflow: "ellipsis"`，由端侧根据整行文字与实际可用宽度缩放，
+不按字符数分档；缩至 8fp 仍不足时才省略。已有行高、字号层级、颜色、字重和名称条件保留。
+`EarbudPairHero` 仍为 8–18fp，同时保留最新 main 的 30vp 行高与 `flexShrink: 1` 高度压缩规则。
+
+名称与连接状态、盒电量拼接时，整个表达式使用同一个 Text 缩放；`EarbudPairCompact`
+原名称、竖杠、连接状态三块合成单个 Text，取消名称 74vp、连接状态 48vp 的固定切分。
+`EarphoneCompact` 有图标时图标固定、名称使用剩余宽度；无图标时“耳机”和名称合成同一行，
+两部分一起缩放。不改变断连时的场景标题回退或补充名称隐藏语义。
+
+EAR074 对应 `BluetoothDeviceOverviewNameAndChargeSupport@1`。其根 Row 原有左右各 8vp
+padding 与外层 Support 底板留白重复，现移除该内层 padding；保留外层正常留白和垂直居中，
+使名称、充电状态的左边缘与其它 Support 内容一致。图标、电量可选分支仍按原规则显示。
+
 ## 2026-11-05 日程详情发起人字号
 
 `ScheduleOverviewReminderDetailsFull@1` 保留固定的发起人行和原有正文结构，不根据姓名空值隐藏或
