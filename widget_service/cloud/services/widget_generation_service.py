@@ -48,6 +48,7 @@ from services.asset_url_mapper import AssetUrlMapper
 from services.capability_registry import CapabilityRegistry
 from services.card_validation.compact_validation.repair_guidance import RepairGuidanceContext
 from services.compact_dsl_a2ui_converter import serialize_compact_dsl_source
+from services.compact_list_review import review_list_plan, second_member_targets
 from services.compact_plan import (
     CompactPlanValidationError,
     CompactPlanValidationResult,
@@ -1032,6 +1033,16 @@ class WidgetGenerationService:
                     )
             plan_profile = {"id": "compact-info-plan", "format": "raw-json"}
             max_plan_attempts = 2
+            review_dynamic_list = direct_fusion_request and generation_mode == "create"
+            review_dynamic_list = (
+                review_dynamic_list and not content_policy.is_static and not capacity_recovery
+            )
+
+            async def submit_list_review(messages: list[dict[str, str]]) -> str:
+                return await self._resolve_model_result(model_client.generate(
+                    messages, plan_profile, suppress_prompt_log=True, phase="plan",
+                ))
+
             refinement_plan: CompactPlanValidationResult | None = None
             refinement_source: str | None = None
             review_plan: CompactPlanValidationResult | None = None
@@ -1327,6 +1338,16 @@ class WidgetGenerationService:
                     if review_conversation is not None:
                         plan_prompt = copy.deepcopy(review_conversation)
                         plan_prompt[-1] = {"role": "assistant", "content": raw_plan}
+                    if review_dynamic_list and attempt < max_plan_attempts:
+                        task_value = display_task.model_dump(mode="json", exclude_none=True)
+                        targets = second_member_targets(validation.plan, task_value)
+                        if targets:
+                            validation = await review_list_plan(
+                                validation, plan_prompt, task_value, targets,
+                                require_composition=settings.enable_design_compact_runtime_prompt_context,
+                                generate=submit_list_review,
+                            )
+                            raw_plan = plan_prompt[-1].get("content", raw_plan)
                     trace_step(
                         "plan.validation.completed",
                         stage="plan.parseValidate",
