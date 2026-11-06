@@ -202,7 +202,9 @@ def validate_compact_dsl(
         original_errors.extend(layout_errors)
         raise _validation_error(original_errors, context, repair_context)
     try:
-        components = expand_high_level_component_rows(components, size=size, data_model=data_model)
+        components = expand_high_level_component_rows(
+            components, size=size, data_model=data_model, protocol_profile=protocol_profile
+        )
     except CompactDslConversionError as exc:
         from .semantic.layout.text_capacity import capacity_diagnostic_from_error
 

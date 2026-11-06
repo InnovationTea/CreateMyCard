@@ -696,6 +696,7 @@ def convert_compact_dsl_to_a2ui(
         size=size,
         data_model=data_model,
         color_palette=card_palette,
+        protocol_profile=profile,
     )
     validate_single_line_title_layout(components, size=size)
 
