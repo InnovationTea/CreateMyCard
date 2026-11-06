@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "空白算题面板",
+    "userQuery": "做一个空白面板卡片，用于写算题。本轮卡片静态内容（用作展示的外部事实）：空白面板，用于书写算题。",
+    "title": "算题面板",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101132344888"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "6ae27904-1972-425d-a2ca-7862a0a463dc"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "空白算题面板",
+  "userQuery": "做一个空白面板卡片，用于写算题。本轮卡片静态内容（用作展示的外部事实）：空白面板，用于书写算题。",
+  "title": "算题面板",
+  "candidateDataBindings": []
+}

@@ -1,0 +1,121 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.list_book_fill"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewNote",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "备忘录速览",
+    "userQuery": "在桌面上创建备忘录卡片，展示备忘录笔记和待办信息。",
+    "title": "备忘录",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetMemoData",
+        "arguments": {},
+        "writeResultTo": "/data/memo",
+        "candidateOutputFields": [
+          "/noteCount",
+          "/favoriteNoteCount",
+          "/notes/0/title",
+          "/todoTotalCount",
+          "/todoCompletedCount",
+          "/todoPendingCount",
+          "/todos/0/title",
+          "/hasReminderToday",
+          "/nextReminderTimeText"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101005456271"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "9b88ea78-6ab8-439a-8cea-8092e216781c"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.list_book_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewNote",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "备忘录速览",
+  "userQuery": "在桌面上创建备忘录卡片，展示备忘录笔记和待办信息。",
+  "title": "备忘录",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetMemoData",
+      "arguments": {},
+      "writeResultTo": "/data/memo",
+      "candidateOutputFields": [
+        "/noteCount",
+        "/favoriteNoteCount",
+        "/notes/0/title",
+        "/todoTotalCount",
+        "/todoCompletedCount",
+        "/todoPendingCount",
+        "/todos/0/title",
+        "/hasReminderToday",
+        "/nextReminderTimeText"
+      ]
+    }
+  ]
+}

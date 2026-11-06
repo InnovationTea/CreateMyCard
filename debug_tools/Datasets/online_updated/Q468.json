@@ -1,0 +1,73 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMU-AL10 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "距离春节还有多少天",
+    "userQuery": "做一张春节倒计时卡片，显示距离2027年2月6日春节还有多少天。本轮卡片静态内容（用作展示的外部事实）：2027年春节是2月6日。",
+    "title": "春节倒计时",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-02-06"
+        },
+        "writeResultTo": "/data/countdown",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMU-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101135153660"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "fe3b6587-7ed4-4876-a66e-d4b6576ded8f"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMU-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "距离春节还有多少天",
+  "userQuery": "做一张春节倒计时卡片，显示距离2027年2月6日春节还有多少天。本轮卡片静态内容（用作展示的外部事实）：2027年春节是2月6日。",
+  "title": "春节倒计时",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-02-06"
+      },
+      "writeResultTo": "/data/countdown",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ]
+}

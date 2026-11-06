@@ -1,0 +1,149 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "时间天气音乐速览",
+    "userQuery": "创建一张桌面卡片，参考图片样式：显示时间、日期（含农历）、电量、天气（温度、城市）、音乐播放信息，背景为山湖风景。",
+    "title": "桌面卡片",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCurrentTime",
+        "arguments": {},
+        "writeResultTo": "/data/time",
+        "candidateOutputFields": [
+          "/currentDate",
+          "/dayOfWeek",
+          "/lunarDate"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/battery",
+        "candidateOutputFields": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batterySOC"
+        ]
+      },
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {},
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/temperatureText",
+          "/current/condition",
+          "/location/prefectureName"
+        ]
+      },
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {},
+        "writeResultTo": "/data/health",
+        "candidateOutputFields": [
+          "/exerciseTypeName"
+        ]
+      },
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/earphoneName",
+          "/leftBatteryLevel",
+          "/rightBatteryLevel"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101005612986"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": false,
+    "sessionId": "fcea8e19-83c2-4ec5-99b0-1d89f51b1bd8"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "时间天气音乐速览",
+  "userQuery": "创建一张桌面卡片，参考图片样式：显示时间、日期（含农历）、电量、天气（温度、城市）、音乐播放信息，背景为山湖风景。",
+  "title": "桌面卡片",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCurrentTime",
+      "arguments": {},
+      "writeResultTo": "/data/time",
+      "candidateOutputFields": [
+        "/currentDate",
+        "/dayOfWeek",
+        "/lunarDate"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/battery",
+      "candidateOutputFields": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batterySOC"
+      ]
+    },
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {},
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/temperatureText",
+        "/current/condition",
+        "/location/prefectureName"
+      ]
+    },
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {},
+      "writeResultTo": "/data/health",
+      "candidateOutputFields": [
+        "/exerciseTypeName"
+      ]
+    },
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/earphoneName",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ]
+    }
+  ]
+}

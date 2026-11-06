@@ -1,0 +1,77 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "耳机状态速览",
+    "userQuery": "做一张耳机小组件卡片，显示蓝牙耳机的名称、耳机盒电量、左右耳电量及充电状态。",
+    "title": "耳机电量",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/earphoneName",
+          "/batteryLevel",
+          "/leftBatteryLevel",
+          "/rightBatteryLevel",
+          "/chargingStatusDesc"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261102175406686"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "3",
+    "isNew": false,
+    "sessionId": "ef796bc5-ee8b-4d4c-9550-49a8c48a6539"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "耳机状态速览",
+  "userQuery": "做一张耳机小组件卡片，显示蓝牙耳机的名称、耳机盒电量、左右耳电量及充电状态。",
+  "title": "耳机电量",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/earphoneName",
+        "/batteryLevel",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel",
+        "/chargingStatusDesc"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
-  "current_version": "v8",
-  "update_date": "2026-11-05",
+  "current_version": "v9",
+  "update_date": "2026-11-06",
   "history_versions": [
     {
       "update_date": "2026-10-17",
@@ -145,6 +145,16 @@
         "删除编辑样本 Q254：sourceArtifactUrl 签名已于 2026-11-03 过期，编辑链路无法离线复现，样本总数从 402 调整为 401。"
       ],
       "version": "v8"
+    },
+    {
+      "version": "v9",
+      "update_date": "2026-11-06",
+      "commits": [],
+      "changes": [
+        "新增 Q413-Q519 共 107 条由 taskspec 还原的微服务入参样本，样本总数从 401 调整为 508。",
+        "还原规则：静态文案取 CardSpec，数据绑定补全展示字段并剔除仅事件引用的路径，动作取 TaskSpec 事件，素材沿用原始候选。",
+        "Q426、Q457、Q507：替换 3 个当前注册表未收录的历史素材，避免前置校验 REFRESH_CAPABILITIES 拒绝——emoji_temperature_blue→icon_weather_thermometer_medium，emoji_courier_box→envelope_badge_dot_fill，emoji_Fitness_Health→ic_sportsHealth_bule；content 与外层素材列表同步替换。"
+      ]
     }
   ]
 }

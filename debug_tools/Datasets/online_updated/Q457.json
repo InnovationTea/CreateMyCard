@@ -1,0 +1,55 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.envelope_badge_dot_fill"
+    ],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "京东2个包裹待取",
+    "userQuery": "在桌面生成快递取件码提醒卡片，展示京东配送的2个包裹取件信息：取件码9-4-0046和9-2-0060，取件地点樟村22栋。本轮卡片静态内容（用作展示的外部事实）：京东配送2个包裹，取件码9-4-0046、9-2-0060，取件地点樟村22栋。",
+    "title": "快递取件提醒",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103044834808"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "c9b88631-0e5f-4796-8c22-589e95a0c055"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.envelope_badge_dot_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "京东2个包裹待取",
+  "userQuery": "在桌面生成快递取件码提醒卡片，展示京东配送的2个包裹取件信息：取件码9-4-0046和9-2-0060，取件地点樟村22栋。本轮卡片静态内容（用作展示的外部事实）：京东配送2个包裹，取件码9-4-0046、9-2-0060，取件地点樟村22栋。",
+  "title": "快递取件提醒",
+  "candidateDataBindings": []
+}

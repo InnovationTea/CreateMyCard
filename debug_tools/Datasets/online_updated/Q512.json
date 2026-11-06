@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "今日湖州交通新闻速览",
+    "userQuery": "生成一张新闻卡，展示湖州今日新闻：2026年湖州市交通建设工程试验检测公路工程路面专项竞赛圆满落幕，来自全市20支代表队、60名检测精英同场竞技，申苏浙皖改扩建第TJ01标工地试验室摘得团体一等奖。本轮卡片静态内容（用作展示的外部事实）：2026年湖州市交通建设工程试验检测公路工程路面专项竞赛圆满落幕，来自全市公路水运工程试验检测机构及在建项目工地试验室的20支代表队、60名检测精英同场竞技。申苏浙皖改扩建第TJ01标工地试验室凭借扎实的理论功底和出色的现场发挥摘得团体一等奖，另有两家单位分获团体二等奖、三家单位分获团体三等奖。",
+    "title": "湖州新闻",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101150045087"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "4a440d8e-74c0-45fe-8494-046e01997b3b"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "今日湖州交通新闻速览",
+  "userQuery": "生成一张新闻卡，展示湖州今日新闻：2026年湖州市交通建设工程试验检测公路工程路面专项竞赛圆满落幕，来自全市20支代表队、60名检测精英同场竞技，申苏浙皖改扩建第TJ01标工地试验室摘得团体一等奖。本轮卡片静态内容（用作展示的外部事实）：2026年湖州市交通建设工程试验检测公路工程路面专项竞赛圆满落幕，来自全市公路水运工程试验检测机构及在建项目工地试验室的20支代表队、60名检测精英同场竞技。申苏浙皖改扩建第TJ01标工地试验室凭借扎实的理论功底和出色的现场发挥摘得团体一等奖，另有两家单位分获团体二等奖、三家单位分获团体三等奖。",
+  "title": "湖州新闻",
+  "candidateDataBindings": []
+}

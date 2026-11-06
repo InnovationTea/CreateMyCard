@@ -1,0 +1,173 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "多个重要农历日期倒计时",
+    "userQuery": "创建倒计时卡片，显示以下日期的倒计时天数：农历九月初六（2027年10月5日）、农历五月二十（2027年6月24日）、农历三月十三（2027年4月19日）、农历腊月十六（2028年1月12日）、农历三月初六（2027年4月12日）、农历九月廿九（2027年10月28日）。本轮卡片静态内容（用作展示的外部事实）：农历九月初六对应公历2027年10月5日，农历五月二十对应公历2027年6月24日，农历三月十三对应公历2027年4月19日，农历腊月十六对应公历2028年1月12日，农历三月初六对应公历2027年4月12日，2027年农历九月没有三十，九月廿九为公历2027年10月28日。",
+    "title": "重要日期倒计时",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-10-05"
+        },
+        "writeResultTo": "/data/countdown0",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-06-24"
+        },
+        "writeResultTo": "/data/countdown1",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-04-19"
+        },
+        "writeResultTo": "/data/countdown2",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2028-01-12"
+        },
+        "writeResultTo": "/data/countdown3",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-04-12"
+        },
+        "writeResultTo": "/data/countdown4",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      },
+      {
+        "capabilityId": "GetCountdownDays",
+        "arguments": {
+          "targetDate": "2027-10-28"
+        },
+        "writeResultTo": "/data/countdown5",
+        "candidateOutputFields": [
+          "/countdownDays"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103015037169"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "5",
+    "isNew": false,
+    "sessionId": "df7296fa-478b-47af-bfe1-e3da79787405"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "多个重要农历日期倒计时",
+  "userQuery": "创建倒计时卡片，显示以下日期的倒计时天数：农历九月初六（2027年10月5日）、农历五月二十（2027年6月24日）、农历三月十三（2027年4月19日）、农历腊月十六（2028年1月12日）、农历三月初六（2027年4月12日）、农历九月廿九（2027年10月28日）。本轮卡片静态内容（用作展示的外部事实）：农历九月初六对应公历2027年10月5日，农历五月二十对应公历2027年6月24日，农历三月十三对应公历2027年4月19日，农历腊月十六对应公历2028年1月12日，农历三月初六对应公历2027年4月12日，2027年农历九月没有三十，九月廿九为公历2027年10月28日。",
+  "title": "重要日期倒计时",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-10-05"
+      },
+      "writeResultTo": "/data/countdown0",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-06-24"
+      },
+      "writeResultTo": "/data/countdown1",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-04-19"
+      },
+      "writeResultTo": "/data/countdown2",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2028-01-12"
+      },
+      "writeResultTo": "/data/countdown3",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-04-12"
+      },
+      "writeResultTo": "/data/countdown4",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    },
+    {
+      "capabilityId": "GetCountdownDays",
+      "arguments": {
+        "targetDate": "2027-10-28"
+      },
+      "writeResultTo": "/data/countdown5",
+      "candidateOutputFields": [
+        "/countdownDays"
+      ]
+    }
+  ]
+}

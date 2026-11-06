@@ -1,0 +1,117 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.120",
+    "candidateAssetIds": [
+      "asset.bell_fill"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewNote",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "abilityName": "MainAbility",
+            "bundleName": "com.huawei.hmos.notepad",
+            "intentName": "ViewNote",
+            "params": {
+              "launchSource": "1",
+              "launchType": "0"
+            }
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "笔记与待办速览",
+    "userQuery": "生成一个我的记忆卡片，展示我的备忘录笔记和待办信息",
+    "title": "我的记忆",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetMemoData",
+        "arguments": {},
+        "writeResultTo": "/data/memo",
+        "candidateOutputFields": [
+          "/noteCount",
+          "/favoriteNoteCount",
+          "/notes/0/title",
+          "/todoTotalCount",
+          "/todoCompletedCount",
+          "/todoPendingCount",
+          "/todos/0/title"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.9.300",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261104065531527"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "6cbc8cb2-a70c-461f-8816-a350e70aceb6"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.120",
+  "candidateAssetIds": [
+    "asset.bell_fill"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewNote",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "abilityName": "MainAbility",
+          "bundleName": "com.huawei.hmos.notepad",
+          "intentName": "ViewNote",
+          "params": {
+            "launchSource": "1",
+            "launchType": "0"
+          }
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "笔记与待办速览",
+  "userQuery": "生成一个我的记忆卡片，展示我的备忘录笔记和待办信息",
+  "title": "我的记忆",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetMemoData",
+      "arguments": {},
+      "writeResultTo": "/data/memo",
+      "candidateOutputFields": [
+        "/noteCount",
+        "/favoriteNoteCount",
+        "/notes/0/title",
+        "/todoTotalCount",
+        "/todoCompletedCount",
+        "/todoPendingCount",
+        "/todos/0/title"
+      ]
+    }
+  ]
+}

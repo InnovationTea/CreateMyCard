@@ -1,0 +1,163 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome",
+      "asset.emoji_default_weather_blue",
+      "asset.ic_sun",
+      "asset.icon_weather_thermometer_medium",
+      "asset.emoji_humidity_blue",
+      "asset.ic_purification",
+      "asset.ic_uv_color",
+      "asset.emoji_location_blue"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "天气桌面卡片",
+    "userQuery": "用户要求将天气卡片添加到手机桌面，展示包头市青山区的当前天气和未来3天预报，包含温度、天气现象、湿度、空气质量、紫外线等信息，点击卡片可打开天气应用查看详情。",
+    "title": "天气",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "青山区",
+          "forecastDays": 3,
+          "prefectureName": "包头市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/location/districtName",
+          "/location/prefectureName",
+          "/current/temperatureC",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/feelsLikeC",
+          "/current/humidityPercent",
+          "/current/airQuality",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/current/uvIndex",
+          "/current/coldLevel",
+          "/current/alertLevel",
+          "/daily/0/date",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/rainProbabilityPercent",
+          "/daily/0/airQuality",
+          "/daily/0/uvIndex",
+          "/daily/0/coldLevel",
+          "/updatedAt"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101120451846"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "c407390e-67c0-4ea3-888b-ce23f44480e1"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome",
+    "asset.emoji_default_weather_blue",
+    "asset.ic_sun",
+    "asset.icon_weather_thermometer_medium",
+    "asset.emoji_humidity_blue",
+    "asset.ic_purification",
+    "asset.ic_uv_color",
+    "asset.emoji_location_blue"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "天气桌面卡片",
+  "userQuery": "用户要求将天气卡片添加到手机桌面，展示包头市青山区的当前天气和未来3天预报，包含温度、天气现象、湿度、空气质量、紫外线等信息，点击卡片可打开天气应用查看详情。",
+  "title": "天气",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "青山区",
+        "forecastDays": 3,
+        "prefectureName": "包头市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/location/districtName",
+        "/location/prefectureName",
+        "/current/temperatureC",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/feelsLikeC",
+        "/current/humidityPercent",
+        "/current/airQuality",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/current/uvIndex",
+        "/current/coldLevel",
+        "/current/alertLevel",
+        "/daily/0/date",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/0/airQuality",
+        "/daily/0/uvIndex",
+        "/daily/0/coldLevel",
+        "/updatedAt"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "1-12月中英文记忆卡片",
+    "userQuery": "生成一份从1月到12月的中英文对照方便记忆的卡片。本轮卡片静态内容（用作展示的外部事实）：1月 January (Jan) | 2月 February (Feb) | 3月 March (Mar) | 4月 April (Apr) | 5月 May | 6月 June (Jun) | 7月 July (Jul) | 8月 August (Aug) | 9月 September (Sep) | 10月 October (Oct) | 11月 November (Nov) | 12月 December (Dec)",
+    "title": "月份中英对照",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261102125803934"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "df91ef14-d6d8-4a21-842f-9ab0f7625ebc"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "1-12月中英文记忆卡片",
+  "userQuery": "生成一份从1月到12月的中英文对照方便记忆的卡片。本轮卡片静态内容（用作展示的外部事实）：1月 January (Jan) | 2月 February (Feb) | 3月 March (Mar) | 4月 April (Apr) | 5月 May | 6月 June (Jun) | 7月 July (Jul) | 8月 August (Aug) | 9月 September (Sep) | 10月 October (Oct) | 11月 November (Nov) | 12月 December (Dec)",
+  "title": "月份中英对照",
+  "candidateDataBindings": []
+}

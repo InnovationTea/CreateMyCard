@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "VNE-AL00 6.1.0.115",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "中国纳税企业排行",
+    "userQuery": "展示中国纳税Top3企业排名及纳税额，包括中国石化、中国石油、工商银行\n\n本轮卡片静态内容（用作展示的外部事实）：\n1. 中国石化，2026年上半年纳税1,656.94亿元\n2. 中国石油，2026年上半年纳税1,322.72亿元\n3. 工商银行，2026年上半年纳税831.82亿元",
+    "title": "纳税Top3",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "VNE-AL00",
+    "prdVer": "11.7.9.223",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103124930966"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "13",
+    "isNew": false,
+    "sessionId": "5054d329-04a1-4e0e-a257-3f7b5c716d65"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "VNE-AL00 6.1.0.115",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "中国纳税企业排行",
+  "userQuery": "展示中国纳税Top3企业排名及纳税额，包括中国石化、中国石油、工商银行\n\n本轮卡片静态内容（用作展示的外部事实）：\n1. 中国石化，2026年上半年纳税1,656.94亿元\n2. 中国石油，2026年上半年纳税1,322.72亿元\n3. 工商银行，2026年上半年纳税831.82亿元",
+  "title": "纳税Top3",
+  "candidateDataBindings": []
+}

@@ -1,0 +1,57 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.figure_run",
+      "asset.flame_fill"
+    ],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "一周四练 胸背腿肩分化",
+    "userQuery": "制作一张我的训练计划桌面卡片，展示一周四练的胸背腿肩分化训练安排。本轮卡片静态内容（用作展示的外部事实）：我的训练计划：周一练胸，周三练背，周五练腿，周日练肩。每次训练包含热身、主项训练和拉伸放松。",
+    "title": "我的训练计划",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101162435896"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "7",
+    "isNew": false,
+    "sessionId": "22c4b89f-83a3-4b27-80c9-835a8cff8fd7"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.figure_run",
+    "asset.flame_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "一周四练 胸背腿肩分化",
+  "userQuery": "制作一张我的训练计划桌面卡片，展示一周四练的胸背腿肩分化训练安排。本轮卡片静态内容（用作展示的外部事实）：我的训练计划：周一练胸，周三练背，周五练腿，周日练肩。每次训练包含热身、主项训练和拉伸放松。",
+  "title": "我的训练计划",
+  "candidateDataBindings": []
+}

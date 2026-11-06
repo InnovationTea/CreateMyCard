@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "张定豪成绩卡",
+    "userQuery": "把当前屏幕上六（3）班成绩表中张定豪同学的成绩做成一张小卡片保存下来。本轮卡片静态内容（用作展示的外部事实）：张定豪，语文87分，数学98分，英语98.75分。",
+    "title": "张定豪成绩",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101131233709"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "60fecf02-f5b0-40f3-8024-994cf301b970"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "张定豪成绩卡",
+  "userQuery": "把当前屏幕上六（3）班成绩表中张定豪同学的成绩做成一张小卡片保存下来。本轮卡片静态内容（用作展示的外部事实）：张定豪，语文87分，数学98分，英语98.75分。",
+  "title": "张定豪成绩",
+  "candidateDataBindings": []
+}

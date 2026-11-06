@@ -1,0 +1,139 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMS-AL20 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.ic_weather_monochrome",
+      "asset.emoji_default_weather_blue"
+    ],
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "bundleName": "com.huawei.genui",
+    "description": "当前天气与未来预报",
+    "userQuery": "在当前页面添加一个天气卡片到堆叠窗口中，展示当前天气信息",
+    "title": "天气",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "districtName": "宝山区",
+          "forecastDays": 3,
+          "prefectureName": "上海市"
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/location/districtName",
+          "/location/prefectureName",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/humidityPercent",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/1/weekday",
+          "/daily/1/condition",
+          "/daily/1/temperatureRangeText",
+          "/daily/2/weekday",
+          "/daily/2/condition",
+          "/daily/2/temperatureRangeText"
+        ]
+      }
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMS-AL20",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101034747741"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": false,
+    "sessionId": "2349d36c-bb9d-47df-aa3f-4d09fd7f686a"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMS-AL20 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.ic_weather_monochrome",
+    "asset.emoji_default_weather_blue"
+  ],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "bundleName": "com.huawei.genui",
+  "description": "当前天气与未来预报",
+  "userQuery": "在当前页面添加一个天气卡片到堆叠窗口中，展示当前天气信息",
+  "title": "天气",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "districtName": "宝山区",
+        "forecastDays": 3,
+        "prefectureName": "上海市"
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/location/districtName",
+        "/location/prefectureName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/1/weekday",
+        "/daily/1/condition",
+        "/daily/1/temperatureRangeText",
+        "/daily/2/weekday",
+        "/daily/2/condition",
+        "/daily/2/temperatureRangeText"
+      ]
+    }
+  ]
+}

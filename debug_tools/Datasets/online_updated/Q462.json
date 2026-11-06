@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x4",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "通用工资表",
+    "userQuery": "创建一张通用的工资表卡片，包含姓名、基本工资、奖金、补贴、扣款、实发工资等项目，展示通用的工资表格式。本轮卡片静态内容（用作展示的外部事实）：通用工资表，包含项目：姓名、基本工资、奖金、补贴、扣款、实发工资",
+    "title": "工资表",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261103032555447"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "2",
+    "isNew": false,
+    "sessionId": "0ab5533d-f28a-44fc-a2b7-606dfaeef148"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x4",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "通用工资表",
+  "userQuery": "创建一张通用的工资表卡片，包含姓名、基本工资、奖金、补贴、扣款、实发工资等项目，展示通用的工资表格式。本轮卡片静态内容（用作展示的外部事实）：通用工资表，包含项目：姓名、基本工资、奖金、补贴、扣款、实发工资",
+  "title": "工资表",
+  "candidateDataBindings": []
+}

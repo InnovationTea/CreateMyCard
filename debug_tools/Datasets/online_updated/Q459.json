@@ -1,0 +1,55 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "CMM-AL10P 7.0.0.111",
+    "candidateAssetIds": [
+      "asset.calendar_fill"
+    ],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "11月日程总览",
+    "userQuery": "制作个静态卡片\n\n本轮卡片静态内容（用作展示的外部事实）：\n11月6日 PC镇江实地指导(镇江)\n11月7日 PC天坛学习班(北京)、PC镇江市一学习班(镇江)、CPP南儿学习班（南京/11.7-8）、PC南京市中医院泌尿生殖研讨会\n11月12日 AI CPP特训营（上海）\n11月13日 AI CPP特训营(苏州)、CPP苏儿学习班(苏州/11.13-14）、中国医师妇产科年会(沈阳/11.13-15)\n11月14日 PC运河之光(天津)、PC鲲鹏社(上海)、PC实地指导孙逸仙医院(宜宾）、PC省级机关学习班(南京)\n11月18日 PC常熟一院学习班(常熟)\n11月19日 PC 3i Vision会议(武汉)\n11月19-23日 CUA年会（武汉）\n11月20日 CPP AI特训营（沈阳）、CPP河北儿童&儿研所交流（石家庄）、CPP盛京儿泌学习班（沈阳/11.20-21）\n11月21日 CPP济南儿童赞助(济南)\n11月26日 PC天津一中心实地指导(天津)\n11月27日 PC武汉协和互访（武汉）、PC鼓楼-淮安实地指导(淮安)、PC江苏人民学习班-HIMA领航会(南京)、PC苏北人民学习班(扬州/11.27-28)\n11月28日 PC湘雅二院互访(长沙）、CPP河北儿童赞助会议(石家庄）、中国医大四会议赞助(沈阳/11.28-29)\n11月29日 CPP上海亚太会、PC天津人民会议赞助",
+    "title": "11月日程",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "CMM-AL10",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261101154359606"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "df701bbf-6e32-4dab-881f-156f8f5350be"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "CMM-AL10P 7.0.0.111",
+  "candidateAssetIds": [
+    "asset.calendar_fill"
+  ],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "11月日程总览",
+  "userQuery": "制作个静态卡片\n\n本轮卡片静态内容（用作展示的外部事实）：\n11月6日 PC镇江实地指导(镇江)\n11月7日 PC天坛学习班(北京)、PC镇江市一学习班(镇江)、CPP南儿学习班（南京/11.7-8）、PC南京市中医院泌尿生殖研讨会\n11月12日 AI CPP特训营（上海）\n11月13日 AI CPP特训营(苏州)、CPP苏儿学习班(苏州/11.13-14）、中国医师妇产科年会(沈阳/11.13-15)\n11月14日 PC运河之光(天津)、PC鲲鹏社(上海)、PC实地指导孙逸仙医院(宜宾）、PC省级机关学习班(南京)\n11月18日 PC常熟一院学习班(常熟)\n11月19日 PC 3i Vision会议(武汉)\n11月19-23日 CUA年会（武汉）\n11月20日 CPP AI特训营（沈阳）、CPP河北儿童&儿研所交流（石家庄）、CPP盛京儿泌学习班（沈阳/11.20-21）\n11月21日 CPP济南儿童赞助(济南)\n11月26日 PC天津一中心实地指导(天津)\n11月27日 PC武汉协和互访（武汉）、PC鼓楼-淮安实地指导(淮安)、PC江苏人民学习班-HIMA领航会(南京)、PC苏北人民学习班(扬州/11.27-28)\n11月28日 PC湘雅二院互访(长沙）、CPP河北儿童赞助会议(石家庄）、中国医大四会议赞助(沈阳/11.28-29)\n11月29日 CPP上海亚太会、PC天津人民会议赞助",
+  "title": "11月日程",
+  "candidateDataBindings": []
+}

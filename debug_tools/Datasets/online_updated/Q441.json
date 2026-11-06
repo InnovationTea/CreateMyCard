@@ -1,0 +1,51 @@
+{
+  "content": {
+    "size": "2x2",
+    "functionName": "generateWidgetCardCompactDsl",
+    "romVersion": "HLS-AL00 7.0.0.111",
+    "candidateAssetIds": [],
+    "candidateEventCandidates": [],
+    "bundleName": "com.huawei.genui",
+    "description": "自爱圆满，天地同尘",
+    "userQuery": "制作一张静态文字卡片，展示以下内容：世人皆向外求爱，不知爱是向内修出的内丹。自己未曾炼成，给出的也只是半剂药。先把自己活成一道光，黑暗自会循光而来——那才是真正的慈悲。渡人先渡己，自爱圆满，天地同尘。\n本轮卡片静态内容（用作展示的外部事实）：世人皆向外求爱，不知爱是向内修出的内丹。自己未曾炼成，给出的也只是半剂药。先把自己活成一道光，黑暗自会循光而来——那才是真正的慈悲。渡人先渡己，自爱圆满，天地同尘。",
+    "title": "渡人先渡己",
+    "candidateDataBindings": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "HLS-AL00",
+    "prdVer": "11.7.8.342",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20261102012654770"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "4",
+    "isNew": false,
+    "sessionId": "186860d3-d6e0-4296-80bf-1d081043cff5"
+  },
+  "userAuth": {
+    "user": {}
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "size": "2x2",
+  "functionName": "generateWidgetCardCompactDsl",
+  "romVersion": "HLS-AL00 7.0.0.111",
+  "candidateAssetIds": [],
+  "candidateEventCandidates": [],
+  "bundleName": "com.huawei.genui",
+  "description": "自爱圆满，天地同尘",
+  "userQuery": "制作一张静态文字卡片，展示以下内容：世人皆向外求爱，不知爱是向内修出的内丹。自己未曾炼成，给出的也只是半剂药。先把自己活成一道光，黑暗自会循光而来——那才是真正的慈悲。渡人先渡己，自爱圆满，天地同尘。\n本轮卡片静态内容（用作展示的外部事实）：世人皆向外求爱，不知爱是向内修出的内丹。自己未曾炼成，给出的也只是半剂药。先把自己活成一道光，黑暗自会循光而来——那才是真正的慈悲。渡人先渡己，自爱圆满，天地同尘。",
+  "title": "渡人先渡己",
+  "candidateDataBindings": []
+}
