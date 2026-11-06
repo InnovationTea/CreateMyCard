@@ -18,6 +18,7 @@ DATA = {
     "capabilityId": "ViewWeather",
     "arguments": {"districtName": "雨花台区", "prefectureName": "南京市", "forecastDays": 1},
     "writeResultTo": "/data/weather",
+    "candidateOutputFields": ["/current/temperatureText"],
 }
 EVENT = {
     "capabilityId": "event.open.weather",
@@ -122,6 +123,7 @@ def test_compact_route_recovers_reported_shapes_and_keeps_context(envelope):
         data=[json.dumps(DATA), json.dumps({
             "capabilityId": "GetCalendarEvents", "arguments": {"futureDays": 1},
             "writeResultTo": "/data/calendar",
+            "candidateOutputFields": ["/eventCount"],
         })],
         candidateEventCandidates=[EVENT],
         candidateAssetCandidates=["asset.icon_car", "asset.drop_1"],

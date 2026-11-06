@@ -161,7 +161,10 @@ def test_invalid_candidate_cannot_be_removed_even_when_others_are_valid(registry
     if field_name == "candidateAssetIds":
         values.append("unknown.asset")
     else:
-        values.append({"capabilityId": "unknown.data", "arguments": {}, "writeResultTo": "/data/x"})
+        values.append({
+            "capabilityId": "unknown.data", "arguments": {}, "writeResultTo": "/data/x",
+            "candidateOutputFields": ["/value"],
+        })
     with pytest.raises(ValueError, match="preflight rejected"):
         _recover({"arguments": json.dumps(source)})
 

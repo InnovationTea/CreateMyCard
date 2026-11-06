@@ -32,9 +32,12 @@ def _report():
     }
 
 
-def _parse(payload, *, allow=True):
+def _parse(payload, *, allow=True, fenced=False):
+    raw = json.dumps(payload, ensure_ascii=False)
+    if fenced:
+        raw = f"```json\n{raw}\n```"
     return parse_missing_data_report(
-        json.dumps(payload, ensure_ascii=False), QUERY, allow_report=allow,
+        raw, QUERY, allow_report=allow,
     )
 
 
@@ -58,6 +61,7 @@ def test_report_contains_diagnostics_but_no_capability_or_permission_authorizati
     assert "权限" in issue.get("repairInstruction", "")
 
 
+@pytest.mark.parametrize("fenced", [False, True])
 @pytest.mark.parametrize("bad", [
     {"requirements": []},
     {"requirements": [{"description": "", "sourceQuote": QUOTE}]},
@@ -70,25 +74,42 @@ def test_report_contains_diagnostics_but_no_capability_or_permission_authorizati
     {"requirements": [{"description": "缺数据", "sourceQuote": QUOTE}] * 9},
     "not-an-object",
 ])
-def test_invalid_report_does_not_authorize_input_retry(bad):
+def test_invalid_report_does_not_authorize_input_retry(bad, fenced):
     with pytest.raises(MissingDataReportValidationError):
-        _parse({"name": "report_missing_data", "arguments": bad})
+        _parse({"name": "report_missing_data", "arguments": bad}, fenced=fenced)
 
 
-def test_report_cannot_be_mixed_with_normal_plan_or_used_for_edit():
+@pytest.mark.parametrize("fenced", [False, True])
+def test_report_cannot_be_mixed_with_normal_plan_or_used_for_edit(fenced):
     with pytest.raises(MissingDataReportValidationError):
-        _parse({**_report(), "info_required": []})
+        _parse({**_report(), "info_required": []}, fenced=fenced)
     with pytest.raises(MissingDataReportValidationError, match="编辑"):
-        _parse(_report(), allow=False)
+        _parse(_report(), allow=False, fenced=fenced)
 
 
+@pytest.mark.parametrize("fenced", [False, True])
 @pytest.mark.parametrize("raw", [
     "not json", '{"name":"report_missing_data","arguments":',
     '{"name":"submit_card_plan","name":"report_missing_data","arguments":{}}',
     '{"name":"submit_card_plan","arguments":{"info_required":[]}}',
+    '{"name":"report_missing_data","arguments":{}} {}',
 ])
-def test_other_or_ambiguous_output_remains_with_original_plan_validator(raw):
+def test_other_or_ambiguous_output_remains_with_original_plan_validator(raw, fenced):
+    if fenced:
+        raw = f"```json\n{raw}\n```"
     assert parse_missing_data_report(raw, QUERY, allow_report=True) is None
+
+
+@pytest.mark.parametrize("prefix,suffix", [
+    ("```json\n", "\n```"), ("```JSON\r\n", "\r\n```"),
+    ("```\n", "\n```"), ("```json\n", ""), ("", "\n```"),
+    ("call\n```json\n", "\n```"),
+])
+def test_missing_report_accepts_existing_plan_envelopes(prefix, suffix):
+    raw = prefix + json.dumps(_report(), ensure_ascii=False) + suffix
+    report = parse_missing_data_report(raw, QUERY, allow_report=True)
+    assert report is not None
+    assert report.requirements[0].sourceQuote == QUOTE
 
 
 def test_tool_contract_exposes_no_fields_for_model_to_add_data_bindings():
@@ -129,8 +150,12 @@ def _configure(monkeypatch, callback):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("initial_invalid_plan", [False, True])
+@pytest.mark.parametrize("fenced", [False, True])
 @pytest.mark.parametrize("mixed", [False, True])
-async def test_missing_data_stops_before_dsl_and_does_not_retry_same_inputs(monkeypatch, mixed):
+async def test_missing_data_stops_before_dsl_and_does_not_retry_same_inputs(
+    monkeypatch, mixed, fenced, initial_invalid_plan,
+):
     calls = []
 
     async def generate(_self, prompt, profile=None, **_kwargs):
@@ -138,7 +163,12 @@ async def test_missing_data_stops_before_dsl_and_does_not_retry_same_inputs(monk
         assert (profile or {}).get("id") == "compact-info-plan"
         context = "\n".join(message.get("content", "") for message in prompt)
         assert "report_missing_data" in context
-        return json.dumps(_report(), ensure_ascii=False)
+        if initial_invalid_plan and len(calls) == 1:
+            return json.dumps({"name": "submit_card_plan", "arguments": {"info_required": [{
+                "requirement": "显示当前电量", "priority": "must",
+            }]}})
+        raw = json.dumps(_report(), ensure_ascii=False)
+        return f"```json\n{raw}\n```" if fenced else raw
 
     _configure(monkeypatch, generate)
     request = _request(mixed=mixed)
@@ -149,7 +179,7 @@ async def test_missing_data_stops_before_dsl_and_does_not_retry_same_inputs(monk
             service.generate_widget_card_compact_dsl, request,
             enabled=True, retry_count=3, request_id="input-feedback",
         )
-    assert len(calls) == 1
+    assert len(calls) == (2 if initial_invalid_plan else 1)
     assert request.model_dump(mode="json") == before
 
 
@@ -228,7 +258,8 @@ def test_empty_data_accepts_static_and_action_plans_without_missing_input_error(
         assert facts[0].get("text") == "每天开心"
 
 
-def test_websocket_final_exposes_structured_input_guidance(monkeypatch):
+@pytest.mark.parametrize("fenced", [False, True])
+def test_websocket_final_exposes_structured_input_guidance(monkeypatch, fenced):
     from fastapi.testclient import TestClient
 
     from test_tool_dispatch_routes import (
@@ -243,7 +274,8 @@ def test_websocket_final_exposes_structured_input_guidance(monkeypatch):
 
     async def generate(_self, _prompt, profile=None, **_kwargs):
         calls.append(profile)
-        return json.dumps(_report(), ensure_ascii=False)
+        raw = json.dumps(_report(), ensure_ascii=False)
+        return f"```json\n{raw}\n```" if fenced else raw
 
     _configure(monkeypatch, generate)
     monkeypatch.setattr(get_settings(), "enable_compact_dsl_interface_retry", True)

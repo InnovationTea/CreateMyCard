@@ -1219,7 +1219,7 @@
     "id": "asset.emoji_location_blue",
     "type": "asset",
     "src": "resources/base/media/emoji_location_blue.png",
-    "description": "样式：亮蓝色圆形底上的白色定位标记与浅蓝色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。蓝色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "description": "样式：亮蓝色圆形底上的白色定位标记与浅蓝色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。蓝色仅为视觉配色，不表示定位开关状态或定位成功。",
     "overviewDescription": "蓝色圆底定位图标；用于天气查询地点、对应城市天气页或位置开关操作，不代表定位状态或成功。",
     "sceneTags": [
       "weather",
@@ -1232,7 +1232,7 @@
     "id": "asset.emoji_location_orange",
     "type": "asset",
     "src": "resources/base/media/emoji_location_orange.png",
-    "description": "样式：橙色圆形底上的米白色定位标记与浅橙色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 或 location.cityCode 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。橙色仅为视觉配色，不表示定位开关状态或定位成功。",
+    "description": "样式：橙色圆形底上的米白色定位标记与浅橙色地图基座图标，圆形外透明，原始尺寸为 64×64，PNG 位图需保留原色；适用：天气卡片中的查询地点，可结合 ViewWeather 的 location.districtName、location.prefectureName 展示并配合 event.open.weather 打开对应城市天气页，也可作为 event.setLocationSwitch 的位置设置操作图标。橙色仅为视觉配色，不表示定位开关状态或定位成功。",
     "overviewDescription": "橙色圆底定位图标；用于天气查询地点、对应城市天气页或位置开关操作，不代表定位状态或成功。",
     "sceneTags": [
       "weather",

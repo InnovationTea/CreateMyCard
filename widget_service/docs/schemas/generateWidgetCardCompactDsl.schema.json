@@ -96,7 +96,8 @@
               "required": [
                 "capabilityId",
                 "arguments",
-                "writeResultTo"
+                "writeResultTo",
+                "candidateOutputFields"
               ],
               "properties": {
                 "writeResultTo": {
@@ -114,12 +115,13 @@
                 },
                 "candidateOutputFields": {
                   "type": "Array<String>",
-                  "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
+                  "minItems": 1,
+                  "description": "必填非空候选展示字段数组；每项为对应能力 outputSchema 可推导的叶子 JSON Pointer",
                   "required": [],
                   "properties": {
                     "ArrayItem": {
                       "type": "String",
-                      "description": "可选候选展示字段 JSON Pointer"
+                      "description": "候选展示字段叶子 JSON Pointer"
                     }
                   }
                 }
@@ -302,13 +304,14 @@
       "required": [
         "capabilityId",
         "arguments",
-        "writeResultTo"
+        "writeResultTo",
+        "candidateOutputFields"
       ],
       "properties": {
         "capabilityId": "string，数据能力 ID。",
         "arguments": "object，能力入参，只能使用该能力 inputSchema 声明的字段。",
         "writeResultTo": "string，写入 DataModel 的 JSON Pointer，必须位于 /data/ 下。",
-        "candidateOutputFields": "string[]，可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导。"
+        "candidateOutputFields": "string[]，必填非空候选展示字段数组；每项为对应能力 outputSchema 可推导的叶子 JSON Pointer。"
       }
     },
     "CandidateEventCandidate": {

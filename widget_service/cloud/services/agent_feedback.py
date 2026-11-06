@@ -40,7 +40,7 @@ class _Guidance:
 
 
 _DATA_LIST = _Guidance(
-    "JSON 对象数组，每项包含 capabilityId、arguments、writeResultTo，可选 candidateOutputFields",
+    "JSON 对象数组，每项必含 capabilityId、arguments、writeResultTo、candidateOutputFields",
     "按本轮数据定义构造完整绑定，不只传 ID；arguments 为静态对象，无参用 {}。",
     "getDataCapabilitySchemas.dataCapabilities[]",
 )
@@ -83,7 +83,7 @@ _DATA_FIELDS = {
         "getDataCapabilitySchemas.dataCapabilities[].defaultWriteResultTo",
     ),
     "candidateOutputFields": _Guidance(
-        "可选字符串数组，每项为本轮 outputSchema 可推导的叶子 JSON Pointer",
+        "必填非空字符串数组，每项为本轮 outputSchema 可推导的叶子 JSON Pointer",
         "从本轮 outputSchema 选择所需叶子路径，数组用数字下标；保留必需字段及对应时间范围。",
         "getDataCapabilitySchemas.dataCapabilities[].outputSchema",
     ),

@@ -2599,6 +2599,7 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
                 "capabilityId": "ViewWeather",
                 "arguments": {"districtName": "滨江区", "forecastDays": 0},
                 "writeResultTo": "/data/weather",
+                "candidateOutputFields": ["/current/temperatureText"],
             }
         ],
         candidateEventCandidates=[
