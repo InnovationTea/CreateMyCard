@@ -138,6 +138,46 @@ def test_small_group_uses_registered_same_region_geometry(variant: str) -> None:
     assert '"component": "Layout"' not in converted
 
 
+@pytest.mark.parametrize("nested", [False, True])
+def test_small_group_reports_infoblock_node_without_authorizing_fact_deletion(nested: bool) -> None:
+    children = ["metric", "support"]
+    rows = [["root", "Layout", {"layout": "S-title-content"}, ["title", "group"]],
+            _leaf("title", "SingleLineTitle"),
+            ["group", "Group", {"variant": "supporting-items"}, children],
+            ["metric", "InfoBlock", {"primaryText": {"path": "/data/device/reading"},
+                                      "secondaryText": "读数"}],
+            _leaf("support", "SecondaryBody")]
+    if nested:
+        children[0] = "nested"
+        rows.append(["nested", "Group", {"variant": "supporting-items"}, ["metric", "note"]])
+        rows.append(_leaf("note", "SecondaryBody"))
+    source = _source(rows)
+    with pytest.raises(CompactDslConversionError) as caught:
+        convert_compact_dsl_to_a2ui(source, size="2x2")
+    message = str(caught.value)
+    assert "节点 group" in message
+    assert "metric（InfoBlock）只能放在固定槽" in message
+    assert "全部可见事实与绑定" in message
+    assert "不删除事实" in message
+
+
+@pytest.mark.parametrize("kind", ["PillButton", "CardButton", "CircleButton", "EmphasisText"])
+def test_small_group_reports_action_node_and_preserves_action(kind: str) -> None:
+    action = _leaf("control", kind)
+    action[2]["onClick"] = [{"call": "open", "args": {"target": "device"}}]
+    rows = [["root", "Layout", {"layout": "S-title-content"}, ["title", "group"]],
+            _leaf("title", "SingleLineTitle"),
+            ["group", "Group", {"variant": "supporting-items"}, ["control", "support"]],
+            action,
+            _leaf("support", "SecondaryBody")]
+    with pytest.raises(CompactDslConversionError) as caught:
+        convert_compact_dsl_to_a2ui(_source(rows), size="2x2")
+    message = str(caught.value)
+    assert f"control（{kind}）含动作" in message
+    assert "父布局登记的动作角色" in message
+    assert "保留全部正文事实、绑定和 Action" in message
+
+
 @pytest.mark.parametrize("legacy", LEGACY, ids=[item.get("fragment") for item in LEGACY])
 def test_legacy_small_samples_round_trip_without_changing_output(legacy: dict) -> None:
     """历史输入保持可解析、可转换，不冻结现行案例的节点 ID、文案和布局。"""
