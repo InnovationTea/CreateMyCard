@@ -33,6 +33,8 @@ Column(
             "height": 30,
             "flexShrink": 1,
             "fontSize": 18,
+            "minFontSize": 10,
+            "maxFontSize": 18,
             "fontWeight": 700,
             "fontColor": $theme('primaryColor'),
             "maxLines": 1,
@@ -225,6 +227,9 @@ Column(
             "width": "matchParent",
             "height": 16,
             "fontSize": 12,
+            "minFontSize": 10,
+            "flexShrink": 1,
+            "maxFontSize": 12,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -238,6 +243,9 @@ Column(
             "width": "matchParent",
             "height": 16,
             "fontSize": 12,
+            "minFontSize": 10,
+            "flexShrink": 1,
+            "maxFontSize": 12,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -375,6 +383,9 @@ Column(
             "width": "matchParent",
             "height": 16,
             "fontSize": 12,
+            "minFontSize": 10,
+            "flexShrink": 1,
+            "maxFontSize": 12,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -520,6 +531,10 @@ Column(
         {
             "width": "matchParent",
             "fontSize": 11,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 11,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -533,6 +548,10 @@ Column(
         {
             "width": "matchParent",
             "fontSize": 11,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 11,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -548,6 +567,10 @@ Column(
         {
             "width": "matchParent",
             "fontSize": 11,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 11,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -561,6 +584,10 @@ Column(
         {
             "width": "matchParent",
             "fontSize": 11,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 11,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -821,6 +848,10 @@ Column(
             {
                 "width": "matchParent",
                 "fontSize": 12,
+                "minFontSize": 10,
+                "height": 16,
+                "flexShrink": 1,
+                "maxFontSize": 12,
                 "fontWeight": 400,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1,
@@ -835,6 +866,10 @@ Column(
             {
                 "width": "matchParent",
                 "fontSize": 12,
+                "minFontSize": 10,
+                "height": 16,
+                "flexShrink": 1,
+                "maxFontSize": 12,
                 "fontWeight": 400,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1,
@@ -1344,6 +1379,10 @@ Row(
             Text(Expr(data.connected ? data.name : props.title),
                 {
                     "fontSize": 14,
+                    "width": "matchParent",
+                    "minFontSize": 10,
+                    "flexShrink": 1,
+                    "maxFontSize": 14,
                     "height": 24,
                     "fontWeight": 700,
                     "fontColor": $theme('primaryColor'),
@@ -1356,6 +1395,10 @@ Row(
             Text(Expr(data.connected ? data.name : '蓝牙耳机'),
                 {
                     "fontSize": 14,
+                    "width": "matchParent",
+                    "minFontSize": 10,
+                    "flexShrink": 1,
+                    "maxFontSize": 14,
                     "height": 24,
                     "fontWeight": 700,
                     "fontColor": $theme('primaryColor'),
@@ -1402,7 +1445,6 @@ Row(
         "_advancedComponent": "BluetoothDeviceOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "padding": {"left": 8, "right": 8},
         "justifyContent": "start",
         "alignItems": "center",
         "clip": true,
@@ -1428,6 +1470,10 @@ Row(
             Text(data.name,
                 {
                     "fontSize": 14,
+                    "width": "matchParent",
+                    "minFontSize": 10,
+                    "flexShrink": 1,
+                    "maxFontSize": 14,
                     "height": 24,
                     "fontWeight": 700,
                     "fontColor": $theme('primaryColor'),
@@ -1895,9 +1941,9 @@ Column(
     #if data.name
       #if data.connected
         #if props.title
-        Text(Expr(data.connected ? data.name : props.title), { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
+        Text(Expr(data.connected ? data.name : props.title), { "fontSize": 12, "width": "matchParent", "minFontSize": 10, "flexShrink": 1, "maxFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
         #else
-        Text(Expr(data.connected ? data.name : '蓝牙耳机'), { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
+        Text(Expr(data.connected ? data.name : '蓝牙耳机'), { "fontSize": 12, "width": "matchParent", "minFontSize": 10, "flexShrink": 1, "maxFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } })
         #endif
       #elseif props.title
         Text(props.title, { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }),
@@ -1917,7 +1963,7 @@ Column(
     #elseif data.name
     Text(
       data.name,
-      { "fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      { "fontSize": 18, "width": "matchParent", "minFontSize": 10, "flexShrink": 1, "maxFontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
     #endif
   ),
@@ -2194,6 +2240,10 @@ Column(
             {
                 "width": "matchParent",
                 "fontSize": 12,
+                "minFontSize": 10,
+                "height": 16,
+                "flexShrink": 1,
+                "maxFontSize": 12,
                 "fontWeight": 400,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1,
@@ -2208,6 +2258,10 @@ Column(
             {
                 "width": "matchParent",
                 "fontSize": 12,
+                "minFontSize": 10,
+                "height": 16,
+                "flexShrink": 1,
+                "maxFontSize": 12,
                 "fontWeight": 400,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1,
@@ -2416,65 +2470,52 @@ Column(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
     #if data.connected
-    Row(
+    #if props.title
+    Text(Expr(data.connected ? data.name + ' | 已连接' : props.title + ' | 未连接'),
         {
             "width": "matchParent",
-            "itemMargin": 4,
-            "alignItems": "center"
-        },
-        #if props.title
-        Text(Expr(data.connected ? data.name : props.title),
-            {
-                "fontSize": 12,
-                "fontWeight": 700,
-                "fontColor": $theme('primaryColor'),
-                "maxLines": 1,
-                "textOverflow": "ellipsis",
-                "flexShrink": 1,
-                "constraintSize": {"minWidth": 0, "maxWidth": 74}
-            }
-        )
-        #else
-        Text(Expr(data.connected ? data.name : '蓝牙耳机'),
-            {
-                "fontSize": 12,
-                "fontWeight": 700,
-                "fontColor": $theme('primaryColor'),
-                "maxLines": 1,
-                "textOverflow": "ellipsis",
-                "flexShrink": 1,
-                "constraintSize": {"minWidth": 0, "maxWidth": 74}
-            }
-        )
-        #endif
-        Text("|",
-            {
-                "width": 6,
-                "fontSize": 12,
-                "fontWeight": 700,
-                "fontColor": $theme('primaryColor'),
-                "maxLines": 1,
-                "flexShrink": 0
-            }
-        ),
-        Text(Expr(data.connected ? '已连接' : '未连接'),
-            {
-                "width": 48,
-                "fontSize": 12,
-                "fontWeight": 700,
-                "fontColor": $theme('primaryColor'),
-                "maxLines": 1,
-                "flexShrink": 0
-            }
-        )
-    ),
+            "fontSize": 12,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 12,
+            "fontWeight": 700,
+            "fontColor": $theme('primaryColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #else
+    Text(Expr(data.connected ? data.name + ' | 已连接' : '蓝牙耳机 | 未连接'),
+        {
+            "width": "matchParent",
+            "fontSize": 12,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 12,
+            "fontWeight": 700,
+            "fontColor": $theme('primaryColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+    )
+    #endif
     #else
     Text(data.name,
         {
             "width": "matchParent",
             "fontSize": 12,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 12,
             "fontWeight": 700,
-            "fontColor": $theme('primaryColor')
+            "fontColor": $theme('primaryColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis"
         }
     ),
     #endif
@@ -2702,6 +2743,10 @@ Column(
         {
             "width": "matchParent",
             "fontSize": 11,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 11,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -2715,6 +2760,10 @@ Column(
         {
             "width": "matchParent",
             "fontSize": 11,
+            "minFontSize": 10,
+            "height": 16,
+            "flexShrink": 1,
+            "maxFontSize": 11,
             "fontWeight": 400,
             "fontColor": $theme('supportContentColor'),
             "maxLines": 1,
@@ -3050,7 +3099,9 @@ Column(
             "width": "matchParent",
             "height": 28,
             "fontSize": 14,
-            "minFontSize": 12,
+            "maxFontSize": 14,
+            "minFontSize": 10,
+            "flexShrink": 1,
             "fontWeight": 500,
             "fontColor": $theme('primaryColor'),
             "maxLines": 1,
@@ -3089,34 +3140,54 @@ Column(
     ),
     Row(
         {
+            "width": "matchParent",
             "itemMargin": 4,
             "justifyContent": "start",
-            "alignItems": "center"
+            "alignItems": "center",
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
         },
         #if props.earphoneIcon
         Image(props.earphoneIcon,
             {
                 "width": 12,
                 "height": 12,
+                "flexShrink": 0,
                 "fillColor": $theme('supportContentColor')
             }
         ),
-        #else
-        Text("耳机",
-            {
-                "fontColor": $theme('supportContentColor'),
-                "fontSize": 10,
-                "fontWeight": 400
-            }
-        ),
-        #endif
         Text(data.name,
             {
+                "width": "matchParent",
+                "layoutWeight": 1,
                 "fontColor": $theme('supportContentColor'),
                 "fontSize": 10,
-                "fontWeight": 400
+                "minFontSize": 10,
+                "height": 14,
+                "flexShrink": 1,
+                "maxFontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
             }
         )
+        #else
+        Text(Expr('耳机 ' + data.name),
+            {
+                "width": "matchParent",
+                "fontColor": $theme('supportContentColor'),
+                "fontSize": 10,
+                "minFontSize": 10,
+                "height": 14,
+                "flexShrink": 1,
+                "maxFontSize": 10,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
+            }
+        )
+        #endif
     )
 )
 #End
@@ -3414,6 +3485,11 @@ Column(
             {
                 "height": 16,
                 "fontSize": 12,
+                "width": "matchParent",
+                "textOverflow": "ellipsis",
+                "minFontSize": 10,
+                "flexShrink": 1,
+                "maxFontSize": 12,
                 "fontWeight": 400,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1
@@ -3424,6 +3500,11 @@ Column(
             {
                 "height": 16,
                 "fontSize": 12,
+                "width": "matchParent",
+                "textOverflow": "ellipsis",
+                "minFontSize": 10,
+                "flexShrink": 1,
+                "maxFontSize": 12,
                 "fontWeight": 400,
                 "fontColor": $theme('supportContentColor'),
                 "maxLines": 1
