@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 from itertools import combinations, permutations, product
+from math import isfinite
 from typing import Any
 
 from models.generation import TaskSpec
@@ -238,9 +239,9 @@ def _layout_geometry_fits(
 def _template_intrinsic_height(template_id: str, registry: CardPlanRegistry) -> int:
     """Estimate a business template's natural vertical requirement.
 
-    ``matchParent`` is deliberately ignored here: it is a flexible request,
-    not an intrinsic minimum. Numeric heights, vertical padding, item margins,
-    and the largest branch of paired template conditionals are retained.
+    ``matchParent`` and explicitly shrinkable nodes do not impose an intrinsic
+    minimum. Fixed nodes, parent spacing and the largest conditional branch
+    remain part of the budget; this is not an on-device size prediction.
     """
     definition = registry.require_template(template_id)
     variants = tuple(
@@ -265,6 +266,12 @@ def _template_node_intrinsic_height(node: TemplateNode) -> int:
         return _template_sequence_intrinsic_height(node.children)
 
     options = _template_node_options(node)
+    flex_shrink = options.get("flexShrink")
+    if isinstance(flex_shrink, (int, float)) and not isinstance(flex_shrink, bool):
+        if flex_shrink > 0 and isfinite(flex_shrink):
+            # Explicit shrinking delegates this node's height to the device.
+            # Returning no fixed minimum leaves parent gaps and siblings checked.
+            return 0
     explicit_height = options.get("height")
     fixed_height = int(explicit_height) if isinstance(explicit_height, (int, float)) else 0
     children_height = _template_sequence_intrinsic_height(node.children)

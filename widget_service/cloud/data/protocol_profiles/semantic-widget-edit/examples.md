@@ -26,9 +26,26 @@ expectations=[{componentId:title,property:styles.fontSize,operator:increase},
 ## 背景从渐变改为白色
 
 原 root.styles 有 linearGradient。targets=[root]，dimensions=[palette]，mode=patch。
-expectations 对 backgroundColor 登记 equal #FFFFFFFF，对 linearGradient 登记 remove。
+expectations 对 styles.backgroundColor 登记 equal #FFFFFFFF，对 styles.linearGradient 登记 remove。
 执行移除原 linearGradient（before 精确复制完整渐变），再设置背景色；不要仅叠加纯色保留冲突。
 若是独立满屏背景 Image，改用 layout，登记该 Image 与必要父节点，不删除天气图标或动作图标。
+
+## 独立背景图片改为纯色
+
+假设 root 是 Stack，children=[background,body]，background 是无动态内容、无动作且宽高为
+matchParent 的 Image，body 中有主文字 title 和辅助文字 subtitle。原 root 另有 linearGradient。
+用户要求整体改为深蓝纯色时，由模型理解配色与必要前景联动，意图关键字段示例：
+{"mode":"layout","dimensions":["palette","layout"],"targets":["root"],
+"backgroundTargets":["background"],"expectations":[
+{"componentId":"root","property":"styles.backgroundColor","operator":"equal","value":"#FF001F3F"},
+{"componentId":"root","property":"styles.linearGradient","operator":"remove"},
+{"componentId":"title","property":"styles.fontColor","operator":"equal","value":"#FFFFFFFF"},
+{"componentId":"subtitle","property":"styles.fontColor","operator":"equal","value":"#FFDDDDDD"}]}
+这只是意图字段片段，仍需填写 outputSchema 要求的其余字段；颜色、ID 和目标取真实需求与原卡。
+执行输出完整三条消息，移除获准背景 Image 及父引用，保留全部业务节点、数据、动作。
+嵌套背景移除后，逐层清理因此变空的获准纯包装及父引用；遇到业务兄弟节点即停止，不给删除节点登记属性目标。
+Image 的图片来自 src，不能虚构 backgroundImage 再 remove，也不能仅在图片后方设置底色冒充完成。
+原卡没有渐变时不登记渐变 remove。若背景含动作、动态数据或属于业务图片，不套用本例删除。
 
 ## 2x4 改为 2x2，保留全部指标和按钮
 

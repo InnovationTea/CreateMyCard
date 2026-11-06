@@ -264,7 +264,7 @@
 | ✅ | `WeatherOverviewWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/feelsLikeC`<br>`/daily/0/temperatureRangeText`<br>`/daily/0/rainProbabilityPercent` |
 | ✅ | `WeatherOverviewWideHalf@1` | 约 4x1；用于 2x4 半高组合布局 | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/daily/0/rainProbabilityPercent` |
 | ✅ | `WeatherOverviewConditionFeelsLikeAlertFull@1` | 完整 2x2；圆角底板内天气现象大字，底部体感温度（可选）与天气预警（可选，缺失展示无预警） | `/current/condition` | 无 | `/current/feelsLikeC`<br>`/current/alertLevel`<br>`/location/prefectureName`<br>`/location/districtName` |
-| ✅ | `WeatherOverviewHumidityWindLevelHero@1` | 约 2x1.7 焦点面板；城市行+温度大字+空气湿度、风向风力与天气预警（可选）行，用于 `WideTwoFocus` 系列双焦点布局 | `/current/temperatureText`<br>`/current/humidityPercent` | `/current/windDirection`<br>`/current/windLevel` | `/current/alertLevel`<br>`/location/prefectureName`<br>`/location/districtName` |
+| ✅ | `WeatherOverviewHumidityWindLevelFull@1` | Full 内容槽位；城市、温度、湿度和风向风力，可选体感、现象和预警 | `/current/temperatureText`<br>`/current/humidityPercent` | `/current/windDirection`<br>`/current/windLevel` | `/current/alertLevel`<br>`/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewRainWindFull@1` | 完整 2x2；城市行+明日降水概率进度环，底部当前风力（风向可选） | `/daily/0/rainProbabilityPercent` | `/current/windLevel` | `/current/windDirection`<br>`/location/prefectureName`<br>`/location/districtName` |
 
 说明：最新天气 UX 中的日出日落与 AQI 数值不在当前 `ViewWeather` 数据契约内，本轮未生成伪数据模板。

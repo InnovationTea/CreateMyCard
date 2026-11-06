@@ -51,10 +51,9 @@
   - `WeatherOverviewHumidityFull@1`：以湿度为主焦点的完整天气摘要。
   - `WeatherOverviewUvFull@1`：以紫外线为主焦点的完整天气摘要。
   - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero；指标下方展示“空气质量”说明，再展示天气及可选感冒风险。
-  - `WeatherOverviewHumidityWindLevelHero@1`：湿度风力 Hero；三段式结构，顶部 20vp 城市标题行，
-    中部温度主值区（可选天气预警行），底部信息行展示空气湿度与风向风力；可选内部事件 `actionId`
-    绑定根节点底板。天气现象与体感可选，可用时分别在温度右侧（12vp）和主值区下方
-    （12vp「体感 N°」）展示；`/location/cityCode` 仅作为可选数据进入字段覆盖契约，不在模板内展示。
+  - `WeatherOverviewHumidityWindLevelFull@1`：湿度风力 Full，使用完整内容槽位；展示城市、温度、
+    空气湿度及风向风力，可补充天气现象、体感和预警。无预警时仍显示风向风力；可选 `actionId`
+    绑定整卡。`/location/cityCode` 用于事件参数，不作为可见文字。
   - `WeatherOverviewFeelsLikeHero@1`：体感温度大字 Hero；顶部为“城市 + 天气”标题行，中部以
     大号数字展示体感温度并固定追加“°”，不展示天气现象、风力、天气预警和感冒风险（四个字段仅进入
     字段覆盖契约）；用于 2x4 双 Hero 组合布局（含 `WideTwoHeroActionLayout@1`）的天气槽位，
@@ -76,7 +75,7 @@
     只用于 `TwoSupportLayout@1`，可选 `conditionIcon`；主标题为 14vp，副标题为 10vp。
   - `WeatherOverviewTravelSupport@1`：出行天气 Support；参考 `WeatherOverviewConditionHero@1`
     以天气现象为主视觉，辅助展示未来第5天 `daily[4]` 的温度范围和降雨概率，或当前温度；只用于
-    `TwoSupportLayout@1`，可选 `conditionIcon`，可在分配天气详情事件时通过 `actionId` 绑定胶囊点击；
+    `TwoSupportLayout@1`，不接收图标参数，可在分配天气详情事件时通过 `actionId` 绑定胶囊点击；
     主标题为 14vp，副标题为 10vp。
   - `WeatherOverviewDailyDateFull@1`：明日日期天气 Full（daily[0]），突出天气现象，并展示日期和星期。
   - `WeatherOverviewDailyRainFull@1`：明日降雨 Full（daily[0]），突出降雨概率，并展示温度范围；说明为“降雨概率”，不可当作空气湿度。
@@ -89,7 +88,7 @@
   - `WeatherOverviewFeelsLikeAlertFull@1`：完整温度天气摘要，倒数第二行展示体感温度，最后一行展示预警信息；无预警时显示“无预警信息”。可选 `conditionIcon`。
   - `WeatherOverviewHumidityWindFull@1`：完整温度天气摘要，倒数第二行展示湿度，最后一行展示风向。可选 `conditionIcon`。
   - `WeatherOverviewUvColdFull@1`：完整温度天气摘要，展示紫外线强度行，并保留感冒风险行。可选 `conditionIcon`。
-  - `WeatherOverviewFeelsLikeWindSupport@1`：左侧两行展示体感温度和风力等级，右侧固定 24vp 温度计图标（`temperatureIcon`）。
+  - `WeatherOverviewFeelsLikeWindSupport@1`：两行展示体感温度和风力等级，不接收温度计图标参数，为文字保留完整宽度。
   - `WeatherOverviewDailySummaryFull@1`：后天天气摘要 Full（daily[1]），展示城市、日期、星期、温度范围、降雨概率和空气质量。
   - `WeatherOverviewThreeDayForecastFull@1`：从明天开始的三日天气 Full，按顺序完整展示 `daily[0..2]` 每天的
     日期、星期、天气现象、降雨概率和温度范围；每天固定两行，上行是完整日期与星期，下行是天气、

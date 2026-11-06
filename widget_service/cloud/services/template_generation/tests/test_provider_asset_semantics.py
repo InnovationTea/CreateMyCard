@@ -80,7 +80,67 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 26
+    assert slot_count == 24
+
+
+@pytest.mark.parametrize("description", (
+    "左右耳设备状态", "右左耳设备状态", "左右声道", "右左声道",
+    "双耳图标，可用于右耳电量", "双声道图标，可用于左声道",
+    "左耳与右耳电量", "右耳和左耳电量",
+    "left and right ear status", "right and left ear status",
+    "left / right channel", "right / left channel",
+))
+def test_paired_earphone_description_has_no_inferred_side(description: str) -> None:
+    tags = asset_semantic_tags({"id": "asset.earphone", "description": description})
+    assert "earphone" in tags
+    assert not {"earphone-left", "earphone-right"}.intersection(tags)
+
+
+@pytest.mark.parametrize(("description", "side"), (
+    ("左耳机电量", "earphone-left"), ("右耳机电量", "earphone-right"),
+    ("Left ear indicator", "earphone-left"), ("Right channel indicator", "earphone-right"),
+))
+def test_single_earphone_description_preserves_its_side(description: str, side: str) -> None:
+    tags = asset_semantic_tags({"description": description})
+    assert {"earphone-left", "earphone-right"}.intersection(tags) == {side}
+
+
+@pytest.mark.parametrize("side", ("earphone-left", "earphone-right"))
+def test_explicit_earphone_side_is_preserved(side: str) -> None:
+    tags = asset_semantic_tags({
+        "description": "用于左右耳电量卡片", "sceneTags": [side, "audio"],
+    })
+    assert {"earphone-left", "earphone-right"}.intersection(tags) == {side}
+    assert "audio" in tags
+
+
+@pytest.mark.parametrize(("parameter", "filename"), (
+    ("leftEarIcon", "icon_left.svg"), ("rightEarIcon", "icon_right.svg"),
+))
+@pytest.mark.parametrize("with_side_icons", (False, True))
+def test_earphone_slots_filter_and_correct_generic_icons(
+    definitions: dict[str, TemplateDefinition],
+    catalog_contract: HybridBodyContract,
+    parameter: str,
+    filename: str,
+    with_side_icons: bool,
+) -> None:
+    definition = definitions.get("BluetoothDeviceOverviewEarbudsFull@1")
+    assert definition is not None
+    generic = _SOURCE + "icon_earphone.svg"
+    sources = [generic, _SOURCE + "emoji_bluetooth_earbuds_black.png"]
+    if with_side_icons:
+        sources.extend((_SOURCE + "icon_left.svg", _SOURCE + "icon_right.svg"))
+    contract = catalog_contract.model_copy(update={"allowed_asset_sources": tuple(sources)})
+    expected = (_SOURCE + filename,) if with_side_icons else ()
+    assert _parameter_allowed_asset_sources(parameter, definition, contract) == expected
+    for source in sources[:2]:
+        normalized = _normalize_template_asset_params(
+            {parameter: source}, definition.asset_parameter_semantic_tags, contract,
+            required_parameters=frozenset(),
+            optional_semantic_fallback_parameters=frozenset({"leftEarIcon", "rightEarIcon"}),
+        )
+        assert normalized == ({parameter: expected[0]} if expected else {})
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -140,7 +200,7 @@ def test_phone_battery_support_icon_does_not_change_single_business_asset_semant
 @pytest.mark.parametrize("template_id", (
     "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
     "WeatherOverviewTemperatureSupport@1",
-    "WeatherOverviewDaily2TravelSupport@1", "WeatherOverviewTravelSupport@1",
+    "WeatherOverviewDaily2TravelSupport@1",
     "WeatherOverviewHero@1", "WeatherOverviewFull@1", "WeatherOverviewConditionSupport@1",
 ))
 def test_weather_slot_separates_single_and_dual_business_assets(

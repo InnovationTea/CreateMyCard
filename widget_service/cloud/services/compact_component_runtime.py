@@ -266,7 +266,7 @@ def secondary_body_layout(
             if text is None:
                 continue
             required = secondary_body_text_width(text, 12.0) + gaps[index]
-            if "\n" in text or width < required <= width * 2:
+            if "\n" in text or required > width:
                 max_lines[index] = 2
     return SecondaryBodyLayout(tuple(row_sizes), tuple(max_lines), multiline)
 
