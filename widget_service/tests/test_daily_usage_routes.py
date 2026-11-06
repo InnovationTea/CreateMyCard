@@ -1,6 +1,8 @@
 """公共 WebSocket 路由的计次边界，不调用真实模型。"""
 
+import ast
 import hashlib
+import inspect
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -17,6 +19,44 @@ from test_daily_usage_limiter import make_limiter
 from ws_response_parser import parse_legacy_stream_content
 
 OPERATION = "generateWidgetCardCompactDsl"
+
+
+def test_daily_usage_entry_has_no_assert_statement():
+    tree = ast.parse(inspect.getsource(routes._serve_operation_websocket))
+    assert not any(isinstance(node, ast.Assert) for node in ast.walk(tree))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("optimize", [0, 1, 2])
+@pytest.mark.parametrize("limiter_present", [True, False])
+async def test_daily_usage_guard_survives_optimized_compilation(
+    monkeypatch, setup_route, optimize, limiter_present
+):
+    limiter = make_limiter()
+    record = await limiter.check("user", "session&1")
+    assert record is not None
+    monkeypatch.setattr(routes, "_check_daily_usage", AsyncMock(return_value=record))
+    log = Mock()
+    monkeypatch.setattr(routes, "logger", log)
+    source = inspect.getsource(routes._serve_operation_websocket)
+    namespace = dict(vars(routes))
+    exec(compile(source, routes.__file__, "exec", optimize=optimize), namespace)
+    optimized_handler = namespace.get("_serve_operation_websocket")
+    assert callable(optimized_handler)
+    monkeypatch.setattr(routes, "_serve_operation_websocket", optimized_handler)
+
+    frames, calls = await run_route(monkeypatch, limiter if limiter_present else None)
+
+    assert len(calls) == 1
+    if limiter_present:
+        assert limiter.repository.writes == 1
+        assert final_message(frames).get("status") == "success"
+        log.error.assert_not_called()
+    else:
+        assert limiter.repository.writes == 0
+        errors = str(log.error.call_args_list)
+        assert "exception_type=AssertionError" in errors
+        assert "exception_type=AttributeError" not in errors
 
 
 def payload(*, uid="user", interaction="1"):
