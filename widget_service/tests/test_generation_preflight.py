@@ -173,6 +173,7 @@ def test_preflight_blocks_whole_request_when_one_binding_is_invalid():
                 "capabilityId": "GetCountdownDays",
                 "arguments": {},
                 "writeResultTo": "/data/countdown",
+                "candidateOutputFields": ["/countdownDays"],
             },
         ]
     )
@@ -270,6 +271,7 @@ def test_preflight_reports_write_result_conflict_on_second_binding():
                 "capabilityId": "GetCountdownDays",
                 "arguments": {"targetDate": "2026-12-31"},
                 "writeResultTo": "/data/weather/countdown",
+                "candidateOutputFields": ["/countdownDays"],
             },
         ]
     )

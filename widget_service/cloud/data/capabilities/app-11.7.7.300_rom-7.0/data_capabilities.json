@@ -43,7 +43,7 @@
           "properties": {
             "cityCode": {
               "type": "string",
-              "description": "城市代码，如60814代表青浦区",
+              "description": "城市内部编码，仅用于 event.open.weather 跳转，不用于卡面展示；地点展示使用 prefectureName、districtName。",
               "sampleValue": "60814"
             },
             "districtName": {

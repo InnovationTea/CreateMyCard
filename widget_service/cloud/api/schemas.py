@@ -252,6 +252,13 @@ def _without_tool_metadata(values: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+class RequestDataBinding(CandidateDataBinding):
+    """新提交绑定须完整；历史产物继续使用兼容的内部绑定模型。"""
+
+    arguments: dict[str, Any] = Field(...)
+    candidateOutputFields: list[str] = Field(..., min_length=1)
+
+
 class GenerateWidgetCardRequest(VersionedToolRequest):
     model_config = ConfigDict(extra="forbid")
 
@@ -260,7 +267,7 @@ class GenerateWidgetCardRequest(VersionedToolRequest):
     size: WidgetSize | None = None
     title: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, min_length=1)
-    candidateDataBindings: list[CandidateDataBinding] | None = None
+    candidateDataBindings: list[RequestDataBinding] | None = None
     candidateEventCandidates: list[CandidateEventCandidate] | None = None
     candidateAssetIds: list[str] | None = None
     options: GenerationOptions = Field(default_factory=GenerationOptions)
@@ -332,7 +339,7 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     size: WidgetSize | None = None
     title: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, min_length=1)
-    candidateDataBindings: list[CandidateDataBinding] | None = None
+    candidateDataBindings: list[RequestDataBinding] | None = None
     candidateEventCandidates: list[CandidateEventCandidate] | None = None
     candidateAssetIds: list[str] | None = None
 
@@ -375,9 +382,13 @@ class GenerateWidgetCardResponse(BaseModel):
         if self.status in (GenerationStatus.SUCCESS, GenerationStatus.DEGRADED):
             instruction = (
                 "已返回生成结果，本轮无需且不得再次调用生成接口。"
+                "本轮卡片业务优先按实际结果及本指引处理；可忽略 notion 中与本指引冲突的"
+                "继续调用工具、仅输出 NO_REPLY 或禁止文本回复的通用提示。"
+                "允许只向用户回复一段简短文本，不必调用任何工具来完成回复。"
                 "不要为确认结果、继续优化、补内容、补回复或补 URL 重调，"
                 "也不要切换入口或自动转编辑。"
-                "请按实际结果处理来源，并在宿主允许时回复；本指引不向用户展示。"
+                "请按实际结果处理来源并说明结果，部分完成须如实说明；"
+                "不输出产物地址，不声称已添加桌面，本指引不向用户展示。"
                 "只有用户后续明确提出新的创建或修改需求，才可开始新任务。"
             )
         return instruction

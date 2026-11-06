@@ -33,13 +33,30 @@ _TYPE_CODES = frozenset(
 def _candidate_keyword_message(name: str) -> str | None:
     """仅给顶层错名提供条件性提示；关键词不授权改参或推断业务用途。"""
     lowered = name.lower()
+    matched_categories = []
+    destinations = []
+    for keyword, destination in (
+        ("data", "数据放入 candidateDataBindings"),
+        ("event", "事件放入 candidateEventCandidates"),
+        ("asset", "素材放入 candidateAssetIds"),
+    ):
+        if keyword in lowered:
+            matched_categories.append(keyword)
+            destinations.append(destination)
+    has_data = "data" in lowered
     has_event = "event" in lowered
     has_asset = "asset" in lowered
     message: str | None = None
-    if has_event and has_asset:
+    if len(matched_categories) > 1:
         message = (
-            f"字段 {name} 同时包含 event 和 asset，请核对用途：事件放入 "
-            "candidateEventCandidates，素材放入 candidateAssetIds，不将混合内容直接改名。"
+            f"字段 {name} 同时包含 {'、'.join(matched_categories)}，请核对用途："
+            f"{'，'.join(destinations)}，不将混合内容直接改名。"
+        )
+    elif has_data:
+        message = (
+            f"不支持字段 {name}；若为数据候选，请改用 candidateDataBindings 对象数组，"
+            "每项包含 capabilityId、arguments、writeResultTo 和非空 candidateOutputFields。"
+            "核对本轮数据概述及完整定义，保留合法业务参数，无参时显式传 arguments: {}。"
         )
     elif has_event:
         message = (
@@ -53,13 +70,24 @@ def _candidate_keyword_message(name: str) -> str | None:
             "ID 须来自本轮素材概述，不传素材定义对象或地址。"
         )
     if message is not None:
-        message += "保留合法值、类型和顺序，已有目标字段先核对冲突；编辑不得替换事件或素材候选。"
+        message += (
+            "保留合法值、类型和顺序，已有目标字段先核对冲突；"
+            "不得仅删除该字段或清空候选绕过校验，提交前仍须完成全部预检；"
+            "数据绑定变化后复查权限，编辑不得增删原数据集合或替换事件、素材候选。"
+        )
     return message
 
 
 def candidate_migration_message(name: str) -> str | None:
     """仅解释登记的顶层错用字段，不将同名业务参数当作候选。"""
     messages = {
+        "dataCapabilityInputs": (
+            "将顶层 dataCapabilityInputs 重构为 candidateDataBindings 数组；"
+            "若原值是按能力 ID 索引的参数对象，先核对每个 ID 来自本轮能力概述，"
+            "将 ID 填入 capabilityId，对应参数对象原样迁移到 arguments，"
+            "再依据本轮完整数据定义填写 writeResultTo 和非空 candidateOutputFields。"
+            "缺少必要业务参数时先向用户澄清，不从样例猜填。"
+        ),
         "action": (
             "生成接口不接受顶层 action；创建不传 sourceArtifactUrl，"
             "编辑须保留目标卡片有效的 sourceArtifactUrl，不能通过删除来源切换创建。"
@@ -71,7 +99,7 @@ def candidate_migration_message(name: str) -> str | None:
         ),
         "dataCapabilities": (
             "将 dataCapabilities 重构为 candidateDataBindings，每项包含 capabilityId、"
-            "arguments、writeResultTo，可选 candidateOutputFields。核对本轮数据概述的 ID，"
+            "arguments、writeResultTo 和非空 candidateOutputFields。核对本轮数据概述的 ID，"
             "依据 getDataCapabilitySchemas 的 inputSchema 将 inputParams 或平铺业务参数"
             "放入 arguments；依据 defaultWriteResultTo 和 outputSchema 填写路径及展示字段。"
         ),
@@ -111,7 +139,7 @@ def candidate_migration_message(name: str) -> str | None:
             "已有正确候选时先核对冲突，不盲目覆盖。提交完整 invoke.arguments，"
             "复核必填项及下层参数；数据绑定变化后复查权限，编辑不得增删原数据集合。"
         )
-    elif name != "eventCapabilityIds":
+    elif name not in {"dataCapabilityIds", "eventCapabilityIds"}:
         message = _candidate_keyword_message(name)
     return message
 
