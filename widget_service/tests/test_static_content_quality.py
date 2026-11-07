@@ -320,8 +320,8 @@ async def test_plan_refines_within_existing_budget_and_keeps_last_valid_plan(
 
 @pytest.mark.usefixtures("static_scope")
 @pytest.mark.parametrize("alias,canonical", [
-    ("description", "body"), ("primaryText", "value"),
-    ("secondaryText", "title"), ("details", "detail"),
+    ("description", "body"), ("primaryText", "label"),
+    ("secondaryText", "body"), ("details", "detail"),
 ])
 def test_component_field_roles_normalize_without_query_heuristics(alias, canonical):
     value = _plan()

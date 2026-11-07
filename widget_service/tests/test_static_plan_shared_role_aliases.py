@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from services.card_validation.compact_validation.semantic.static_content import static_group_errors
 from services.compact_plan import (
     CompactPlanValidationError,
     build_compact_plan_tool,
@@ -160,14 +161,112 @@ def test_real_required_title_without_legal_candidate_keeps_existing_rejection():
         _accept(plan)
 
 
-def test_schema_explains_shared_and_object_aliases_without_removing_canonical_roles():
+def test_schema_exposes_semantic_roles_instead_of_component_field_aliases():
     tool = build_compact_plan_tool(_task(_plan(), "2x4"))
     fields = tool.get("function", {}).get("parameters", {}).get("properties", {})
     group_fields = fields.get("contentGroups", {}).get("items", {}).get("properties", {})
     role = group_fields.get("facts", {}).get("items", {}).get("properties", {}).get("displayRole")
     assert isinstance(role, dict)
-    assert {"title", "body", "secondaryText"}.issubset(role.get("enum", []))
+    assert set(role.get("enum", [])) == {
+        "title", "body", "label", "value", "leading", "trailing", "detail",
+    }
     description = role.get("description", "")
-    assert "在shared组归一为body" in description
-    assert "在object组保留原title语义" in description
-    assert "显式title不改" in description
+    assert "label为对象名称或短标签" in description
+    assert "body为该对象说明" in description
+    assert "value为短读数" in description
+
+
+def _record_field_plan(presentation, hints):
+    facts = [_fact("服务安排", "title")]
+    groups = [{"id": "theme", "kind": "shared", "identity": None, "factIndexes": [0]}]
+    for index, (name, detail) in enumerate((("甲服务", "须预约"), ("乙服务", "无需预约"))):
+        indexes = []
+        for text, role in ((name, "primaryText"), (detail, "secondaryText")):
+            indexes.append(len(facts))
+            fact = _fact(text, role, protected=True)
+            if hints:
+                fact["componentHints"] = hints
+            facts.append(fact)
+        groups.append({"id": f"service{index}", "kind": "object", "identity": name,
+                       "factIndexes": indexes})
+    return {"info_required": facts, "contentGroups": groups,
+            "presentationStyle": presentation, "omittedContents": []}
+
+
+@pytest.mark.parametrize("size,presentation,hints", [
+    ("2x2", "records", []), ("2x4", "records", []),
+    ("2x2", "auto", ["TextList"]), ("2x4", "auto", ["TextList"]),
+    ("2x4", "records", ["TextList", "ComparisonGroup"]),
+    ("2x4", "auto", ["TextList", "ComparisonGroup"]),
+])
+def test_record_aliases_keep_names_and_descriptions_in_consistent_slots(size, presentation, hints):
+    plan = _record_field_plan(presentation, hints)
+    original = copy.deepcopy(plan)
+    accepted = _accept(plan, size)
+    facts = accepted.get("info_required")
+    original_facts = original.get("info_required")
+    assert facts and original_facts
+    assert len(facts) == len(original_facts) == 5
+    for index in range(1, 5):
+        expected_role = "label" if index % 2 else "body"
+        assert facts[index] == {**original_facts[index],
+                               "displayRole": expected_role}
+    source = accepted.get("staticPresentation")
+    assert source
+    body = None
+    for line in source.splitlines():
+        row = json.loads(line)
+        if row[0] == "body":
+            body = row
+            break
+    assert body
+    assert body[1] == "TextList"
+    assert body[2].get("items") == [
+        {"primaryText": "甲服务", "secondaryText": "须预约"},
+        {"primaryText": "乙服务", "secondaryText": "无需预约"},
+    ]
+    assert not static_group_errors(source, accepted)
+    assert accepted.get("contentGroups") == original.get("contentGroups")
+    assert accepted.get("omittedContents") == []
+    assert plan == original
+
+
+@pytest.mark.parametrize("presentation,hints", [
+    ("comparison", ["ComparisonGroup"]), ("auto", ["ComparisonGroup"]),
+])
+def test_comparison_context_preserves_legacy_value_and_title_aliases(presentation, hints):
+    plan = _record_field_plan(presentation, hints)
+    accepted = _accept(plan)
+    facts = accepted.get("info_required")
+    assert facts
+    assert [fact.get("displayRole") for fact in facts] == [
+        "title", "value", "title", "value", "title",
+    ]
+
+
+@pytest.mark.parametrize("presentation,hints", [
+    ("comparison", ["TextList"]), ("records", ["ComparisonGroup"]),
+])
+def test_conflicting_presentation_and_component_hints_are_still_rejected(presentation, hints):
+    with pytest.raises(CompactPlanValidationError, match="componentHints"):
+        _accept(_record_field_plan(presentation, hints))
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+def test_record_context_does_not_reclassify_explicit_semantic_roles(size):
+    plan = _record_field_plan("records", ["TextList"])
+    facts = plan.get("info_required")
+    assert facts
+    for index in range(1, 5):
+        facts[index]["displayRole"] = "title" if index % 2 else "body"
+    accepted = _accept(plan, size)
+    assert accepted.get("info_required") == facts
+
+
+@pytest.mark.parametrize("size", ["2x2", "2x4"])
+@pytest.mark.parametrize("invalid_hint", [{}, []])
+def test_malformed_component_hint_uses_existing_plan_contract_error(size, invalid_hint):
+    plan = _record_field_plan("records", [invalid_hint])
+    with pytest.raises(CompactPlanValidationError) as error:
+        _accept(plan, size)
+    assert error.value.errors

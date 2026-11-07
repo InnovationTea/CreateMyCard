@@ -2076,7 +2076,13 @@ class PromptBuilder:
                                 "required": ["sourceText", "factIndexes", "issue"],
                                 "additionalProperties": False,
                                 "properties": {
-                                    "sourceText": {"type": "string", "minLength": 1},
+                                    "sourceText": {
+                                        "type": "string", "minLength": 1,
+                                        "description": (
+                                            "从originalFactSource逐字复制的一段连续原文，"
+                                            "保留标点与内部换行。"
+                                        ),
+                                    },
                                     "factIndexes": {
                                         "type": "array",
                                         "items": {"type": "integer", "minimum": 0},
@@ -2112,6 +2118,7 @@ class PromptBuilder:
                     "新omittedContents须按原合同提交description/factRefs对象，"
                     "每项引用groupId和factId，不得从归一化说明猜造遗漏许可。"
                     "先从originalFactSource检查整卡共同主体、年份、时间范围和公共条件，再逐项核对。"
+                    "跨段证据分别列finding，汇总解释放issue。"
                     "unreferencedSourceFragments只是原文未被sourceTexts引用的片段，"
                     "可能包含制作指令、无关背景或已合法省略内容，不是必须全部展示的清单；"
                     "也不能只检查candidatePlan已有事实而漏掉未进入Plan的公共背景。"

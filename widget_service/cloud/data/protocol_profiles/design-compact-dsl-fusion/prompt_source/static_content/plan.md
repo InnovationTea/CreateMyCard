@@ -59,7 +59,8 @@ identity填写最终要显示的名称；若本组text已含同对象简称，�
 
 ## 首次提交容量预算
 
-提交Plan前必须先选定一种正文结构，再按下表核算实际占用；不得用“最多5个object组”代替具体组件容量。
+提交Plan前先确定完整正文的条目与表达形态，再按下表核算正文和标题能否共同容纳；
+不先锁定标题再缩减正文，也不用“最多5个object组”代替具体组件容量。
 
 | presentationStyle / 组件 | 标题组合 | 正文容量 | 适用信息 |
 |---|---|---|---|
@@ -69,7 +70,8 @@ identity填写最终要显示的名称；若本组text已含同对象简称，�
 | content / EmphasisText | 必须有SingleLineTitle | 1个核心对象或结论；主文本最多2行，两段辅助各最多3行且共享剩余高度 | 单一结论与从属说明，不承载多个平级对象 |
 
 按以下顺序自查：
-1. 先数完整object条目，再核对shared/title和shared/body；标题会改变TextList和ComparisonGroup的可用项数。
+1. 先数完整object条目，再核对shared/title和shared/body；正文与标题均放得下时保留标题。
+   确需三条TextList且共同主题可省略时才让位；必要主体、范围和条件仍须可见。
 2. shared/body必须落入所选正文组件的现有字段；列表或对比结构没有额外公共说明槽位时，不能把它当作“不占容量”。任何最终正文行都计入该组件条目数，
    即使它在Plan中是shared且不计object组数。
 3. 短对象名加短月份、价格或状态能单行读完时优先rows；不因对象数多就默认选records。
@@ -86,9 +88,10 @@ identity填写最终要显示的名称；若本组text已含同对象简称，�
 | paletteFamily | auto/blue/purple/warm | 用户明确偏好才登记对应色系，默认auto |
 
 单一主体或整卡主题用shared/title；实际结论用object/body或value，单行条目用label/value，文本列表的补充用body，短数值可用trailing。
-除三项TextList外，在shared组规划一个简短主题标题，displayRole为title，componentHints为["SingleLineTitle"]；
+按已选正文的容量安排标题；可以同时完整展示时，在shared组规划简短主题，displayRole为title，componentHints为["SingleLineTitle"]。
 sourceTexts引用支持该主题的输入内容，text可忠实概括，不要求输入已有独立标题句。标题不重复正文主句，
-也不把概括当作新增事实；不为保留标题删减必要记录。标题用must；三项TextList不单独规划可省略主题，必要主体或范围仍须可见。
+也不把概括当作新增事实。保留的标题用must；仅确需三项TextList时不单独规划可省略主题，
+两项TextList、SingleLineList及其它正文结构仍带标题，必要主体或范围仍须可见。
 对比的value是主读数、title是对象名。列表和对比的名称用object/title；共同条件在正文内承载，不另建辅助组件。
 替代/并列关系和必要限定须在展示文字中保留，不得仅放requirement或组ID。
 
